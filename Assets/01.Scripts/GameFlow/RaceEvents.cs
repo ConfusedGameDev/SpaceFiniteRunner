@@ -23,9 +23,17 @@ namespace HoverRacer
         /// <summary>Fired once the final score (0–100) has been calculated.</summary>
         public static event Action<int> OnScoreCalculated;
 
-        public static void RaiseSpeedChanged(float speed)        => OnSpeedChanged?.Invoke(speed);
-        public static void RaiseVehicleStopped()                  => OnVehicleStopped?.Invoke();
-        public static void RaiseFinishLineCrossed(float distance) => OnFinishLineCrossed?.Invoke(distance);
-        public static void RaiseScoreCalculated(int score)        => OnScoreCalculated?.Invoke(score);
+        /// <summary>Fired when boost charges change. Arg: remaining charges (can be fractional, e.g. 2.5).</summary>
+        public static event Action<float> OnBoostsChanged;
+
+        /// <summary>Fired when the player passes through a checkpoint. Arg: the rating achieved.</summary>
+        public static event Action<CheckpointRating> OnCheckpointPassed;
+
+        public static void RaiseSpeedChanged(float speed)               => OnSpeedChanged?.Invoke(speed);
+        public static void RaiseVehicleStopped()                         => OnVehicleStopped?.Invoke();
+        public static void RaiseFinishLineCrossed(float distance)        => OnFinishLineCrossed?.Invoke(distance);
+        public static void RaiseScoreCalculated(int score)               => OnScoreCalculated?.Invoke(score);
+        public static void RaiseBoostsChanged(float remaining)           => OnBoostsChanged?.Invoke(remaining);
+        public static void RaiseCheckpointPassed(CheckpointRating rating)=> OnCheckpointPassed?.Invoke(rating);
     }
 }

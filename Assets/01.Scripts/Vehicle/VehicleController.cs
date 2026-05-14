@@ -28,8 +28,9 @@ namespace HoverRacer
 
         Rigidbody rb;
         float     currentSpeed;
-        float     steerInput;    // [-1, 1] set each Update by VehicleInputHandler
+        float     steerInput;      // [-1, 1] set each Update by VehicleInputHandler
         bool      isStopped;
+        float     remainingBoosts; // fractional: 0.5 = half a charge, 1.0 = one usable boost
 
         /// <summary>Current forward speed in m/s. Read-only from outside.</summary>
         public float CurrentSpeed => currentSpeed;
@@ -44,8 +45,10 @@ namespace HoverRacer
 
         void Start()
         {
-            currentSpeed = stats.initialSpeed;
+            currentSpeed    = stats.initialSpeed;
+            remainingBoosts = stats.boostCount;
             RaceEvents.RaiseSpeedChanged(currentSpeed);
+            RaceEvents.RaiseBoostsChanged(remainingBoosts);
         }
 
         void FixedUpdate()
@@ -139,6 +142,36 @@ namespace HoverRacer
         {
             currentSpeed = Mathf.Clamp(currentSpeed + delta, 0f, stats.maxSpeed);
             RaceEvents.RaiseSpeedChanged(currentSpeed);
+        }
+
+        /// <summary>
+        /// Player-triggered boost. Requires at least 1 full charge.
+        /// Consumes 1.0 charge and adds boostSpeedDelta to current speed.
+        /// </summary>
+        public void ActivateBoost()
+        {
+            if (isStopped || remainingBoosts < 1f) return;
+
+            remainingBoosts -= 1f;
+            ModifySpeed(stats.boostSpeedDelta);
+            RaceEvents.RaiseBoostsChanged(remainingBoosts);
+        }
+
+        /// <summary>
+        /// Adds (or removes) boost charges. Clamps to [0, boostCount].
+        /// Called by checkpoints based on rating achieved.
+        /// </summary>
+        public void ModifyBoosts(float delta)
+        {
+            remainingBoosts = Mathf.Clamp(remainingBoosts + delta, 0f, stats.boostCount);
+            RaceEvents.RaiseBoostsChanged(remainingBoosts);
+        }
+
+        /// <summary>Restores boost charges to the maximum defined in stats. Called on Perfect rating.</summary>
+        public void ReplenishBoosts()
+        {
+            remainingBoosts = stats.boostCount;
+            RaceEvents.RaiseBoostsChanged(remainingBoosts);
         }
 
         /// <summary>World position of the vehicle — used by scoring to measure stop distance.</summary>
