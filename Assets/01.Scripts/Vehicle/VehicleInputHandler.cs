@@ -44,6 +44,10 @@ namespace HoverRacer
             // X axis = left (-1) / right (+1) steering.
             float horizontal = inputActions.Player.Move.ReadValue<UnityEngine.Vector2>().x;
             vehicle.SetSteerInput(horizontal);
+
+            // Boost: triggered once per press (Jump action = Space / gamepad South button).
+            if (inputActions.Player.Jump.WasPressedThisFrame())
+                vehicle.ActivateBoost();
         }
     }
 }

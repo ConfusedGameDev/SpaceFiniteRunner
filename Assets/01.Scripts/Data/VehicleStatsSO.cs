@@ -40,5 +40,11 @@ namespace HoverRacer
         [Range(0f, 45f)] public float maxBankAngle = 25f;
         [Tooltip("Speed at which the visual bank lerps toward the target angle.")]
         [Min(0f)] public float bankLerpSpeed = 8f;
+
+        [Header("Boosts")]
+        [Tooltip("Number of player-triggered boosts available at race start.")]
+        [Min(0)] public int boostCount = 3;
+        [Tooltip("Speed added instantly per boost activation, in m/s.")]
+        [Min(0f)] public float boostSpeedDelta = 10f;
     }
 }
