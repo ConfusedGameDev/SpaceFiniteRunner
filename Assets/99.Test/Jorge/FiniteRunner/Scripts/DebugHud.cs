@@ -3,8 +3,8 @@ using UnityEngine;
 namespace FiniteRunner
 {
     /// <summary>
-    /// Throwaway OnGUI readout for the feel test: speed in km/h, target
-    /// speed, distance to goal and the graded result. Replaced by real HUD later.
+    /// Throwaway OnGUI readout for the feel test: speed in km/h, the Light
+    /// Speed goal, the countdown and the result. Replaced by real HUD later.
     /// </summary>
     public class DebugHud : MonoBehaviour
     {
@@ -32,8 +32,10 @@ namespace FiniteRunner
             GUILayout.BeginArea(new Rect(20, 20, Screen.width - 40, Screen.height - 40));
             GUILayout.Label($"{motor.CurrentSpeed * 3.6f:0} km/h", bigStyle);
             if (gameManager != null)
-                GUILayout.Label($"TARGET  {gameManager.TargetSpeedKmh:0} km/h", style);
-            GUILayout.Label($"GOAL    {motor.DistanceToGoal:0} m", style);
+            {
+                GUILayout.Label($"LIGHT SPEED  {gameManager.LightSpeedKmh:0} km/h", style);
+                GUILayout.Label($"TIME    {gameManager.TimeRemaining:0.0} s", style);
+            }
 
             string result = gameManager != null ? gameManager.ResultLabel
                           : motor.HasStopped ? "OUT OF SPEED" : null;
@@ -45,8 +47,7 @@ namespace FiniteRunner
             }
             GUILayout.EndArea();
 
-            bool runOver = gameManager != null ? gameManager.RunOver
-                         : motor.HasStopped || motor.HasFinished;
+            bool runOver = gameManager != null ? gameManager.RunOver : motor.HasStopped;
             if (runOver &&
                 UnityEngine.InputSystem.Keyboard.current is { rKey: { wasPressedThisFrame: true } })
             {

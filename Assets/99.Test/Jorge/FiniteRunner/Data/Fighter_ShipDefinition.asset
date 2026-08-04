@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.ShipDefinition
   displayName: Fighter
   description: First feel-test ship. Launches at 25, bleeds 3 speed/s.
-  maxSpeed: 180
   initialImpulse: 80
   passiveDeceleration: 6
   acceleration: 60

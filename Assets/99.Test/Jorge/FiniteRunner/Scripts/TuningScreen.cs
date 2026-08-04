@@ -5,13 +5,13 @@ namespace FiniteRunner
 {
     /// <summary>
     /// Pre-run ship setup: the player distributes a limited pool of points
-    /// across Max Speed / Acceleration / Handling / Weight, then launches.
+    /// across Launch Speed / Acceleration / Handling / Weight, then launches.
     /// Applies the tuning as a runtime clone of the base ShipDefinition so
     /// the asset on disk is never modified.
     /// </summary>
     public class TuningScreen : MonoBehaviour
     {
-        public enum Stat { MaxSpeed = 0, Acceleration = 1, Handling = 2, Weight = 3 }
+        public enum Stat { LaunchSpeed = 0, Acceleration = 1, Handling = 2, Weight = 3 }
 
         [SerializeField] ShipMotor motor;
         [SerializeField] ShipDefinition baseDefinition;
@@ -21,7 +21,8 @@ namespace FiniteRunner
         [SerializeField, Min(1)] int maxPointsPerStat = 5;
 
         [Header("Effect per point")]
-        [SerializeField] float maxSpeedPerPoint = 10f;      // m/s on the cap
+        [Tooltip("Speed is uncapped now, so this stat raises the launch impulse instead.")]
+        [SerializeField] float maxSpeedPerPoint = 10f;      // m/s on the launch impulse
         [SerializeField] float accelerationPerPoint = 10f;  // pad blend rate
         [SerializeField] float lateralSpeedPerPoint = 4f;   // steering speed
         [Tooltip("Negative = each point makes the ship lighter, so pads (boosts AND brakes) hit harder.")]
@@ -85,7 +86,7 @@ namespace FiniteRunner
 
             if (tunedDefinition == null) tunedDefinition = Instantiate(baseDefinition);
 
-            tunedDefinition.maxSpeed = baseDefinition.maxSpeed + points[(int)Stat.MaxSpeed] * maxSpeedPerPoint;
+            tunedDefinition.initialImpulse = baseDefinition.initialImpulse + points[(int)Stat.LaunchSpeed] * maxSpeedPerPoint;
             tunedDefinition.acceleration = baseDefinition.acceleration + points[(int)Stat.Acceleration] * accelerationPerPoint;
             tunedDefinition.lateralSpeed = baseDefinition.lateralSpeed + points[(int)Stat.Handling] * lateralSpeedPerPoint;
             tunedDefinition.weight = Mathf.Max(minWeight, baseDefinition.weight + points[(int)Stat.Weight] * weightPerPoint);

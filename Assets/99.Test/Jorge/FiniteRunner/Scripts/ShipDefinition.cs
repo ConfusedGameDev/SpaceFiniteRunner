@@ -6,7 +6,8 @@ namespace FiniteRunner
     /// Defines a ship's identity, tuning stats and movement behaviour.
     /// The ship never accelerates on its own: it launches with an initial
     /// impulse and constantly bleeds speed until a pad (or card effect)
-    /// feeds it more. When speed reaches zero, the run is over.
+    /// feeds it more. When speed reaches zero, the run is over. Speed has
+    /// no upper cap — reaching Light Speed is the win condition.
     /// </summary>
     [CreateAssetMenu(fileName = "ShipDefinition", menuName = "FiniteRunner/Ship Definition")]
     public class ShipDefinition : ScriptableObject
@@ -17,9 +18,6 @@ namespace FiniteRunner
         public string description;
 
         [Header("Speed")]
-        [Tooltip("Hard cap. Boost pads can never push the ship past this.")]
-        [Min(0f)] public float maxSpeed = 60f;
-
         [Tooltip("Speed the ship launches with at the start of a run.")]
         [Min(0f)] public float initialImpulse = 25f;
 

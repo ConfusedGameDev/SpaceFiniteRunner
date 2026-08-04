@@ -1,0 +1,62 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project overview
+
+Unity 6 project (editor version **6000.7.0a3**, URP 17.7) for *SpaceFiniteRunner* — a hover-ship racing prototype. The core mechanic: the ship launches with a single speed impulse and constantly bleeds speed; boost/brake pads on the track are the only way to change speed.
+
+There is no CLI build or test tooling — all iteration happens through the Unity Editor. Open the project in Unity 6000.7.0a3 and play the test scene:
+`Assets/99.Test/Jorge/FiniteRunner/Scenes/FiniteRunner_Test.unity`
+
+## Game design (current direction)
+
+The game has been pivoted from a finite-track / target-speed race into a **police-chase endless runner**:
+
+- **Objective**: escape the police before time runs out or you get caught.
+- **Win condition** *(implemented)*: reach "Light Speed" (`GameManager.lightSpeedKmh`, shown on the HUD). Losing: the countdown hits 0 or the ship bleeds to a standstill.
+- **Enemy** *(implemented)*: a police patrol chases the ship (`PolicePatrol`, spawned at runtime by `GameManager` — no scene object). Rubber-band chase: it targets the ship's current speed × `patrolRubberBandFactor`, blending toward it at `patrolCatchUpKmhPerSecond`, but never below a minimum floor (launch speed + slow ramp). Catching up to `patrolCatchDistance` triggers a game over. All chase tunables live on the `GameManager` inspector.
+- **Power-ups** *(implemented)*: speed-ups are small **hovering orbs (0.3 size)** on the flight line that must be aimed for; speed-downs are large **1.2-size pads** that must be dodged. Sizing/orb flags live on `PadDefinition` (`sizeMultiplier`, `floatingOrb`).
+- **No speed cap** *(implemented)*: speed keeps increasing for as long as power-ups are collected; `ShipDefinition.maxSpeed` was removed and the tuning screen's first stat now raises the launch impulse.
+- **Endless track** *(implemented)*: no end goal — `TrackGenerator` streams the track during the run, appending spline segments ahead of the ship and culling pads/decoration behind it.
+- **Time is the limit, not distance** *(implemented)*: the bottom bar is a countdown of `GameManager.TimeRemaining`.
+- **Juice** *(implemented)*: every booster hit spawns floating "+N" text at the ship (`FloatingWorldText`, spawned by `RaceHud`).
+
+The old finish-line grading (PERFECT / AWESOME / …) is gone; `GameManager` now owns win/lose and the timer.
+
+## Where the code lives
+
+All game code is in **`Assets/99.Test/Jorge/FiniteRunner/`** under the `FiniteRunner` namespace (Scripts/, Data/, Scenes/, Materials/, 03.UI/). The numbered root folders (`01.Scripts`, `05.Scenes`, etc.) are mostly empty placeholders for a future reorganization.
+
+Everything else in `Assets/` is inherited from Unity's URP 3D Sample template and should generally not be modified:
+- `Assets/Scenes/` (Cockpit, Garden, Oasis, Terminal) — stock demo scenes and their scripts
+- `Assets/SharedAssets/` — the template's scene-transition/quality/loading framework
+- `Assets/Plugins/Sirenix/` — Odin Inspector (installed but not required by game scripts)
+
+## Architecture
+
+The game is spline-based, not physics-based. The ship is moved kinematically along a `SplineContainer` (Unity Splines package); pads detect the ship via trigger colliders against its kinematic rigidbody.
+
+Core flow, in `Assets/99.Test/Jorge/FiniteRunner/Scripts/`:
+
+- **`TrackManager`** — owns the track spline. Converts `(normalized t, lateral offset)` into world poses. **Distance from the track start is the authoritative coordinate**: the spline grows during the run, which shifts what any normalized t means, so consumers map distance → t through `DistanceToT()` (cached arc-length tables) every frame rather than storing t.
+- **`ShipMotor`** — the simulation. Applies the launch impulse, constant `passiveDeceleration` (no upper cap), queued pad impulses (blended in at the ship's `acceleration` rate), lateral steering clamped to `TrackManager.HalfWidth`, and sets `HasStopped` at speed 0. Tracks `DistanceTravelled` and remaps it to spline t each frame. Exposes a `PadImpulse` event and a `Paused` flag (used by the tuning screen, and by `GameManager` to freeze the sim when the run ends). Hover bob and banking are **visual-only**, applied to a `visual` child transform — the root object stays exactly on the flight line so trigger detection is unaffected. Keep that separation when touching movement code.
+- **`GameManager`** — win/lose and the countdown. Win when speed reaches `lightSpeedKmh`; lose when the patrol catches up, `TimeRemaining` hits 0, or the ship stops. Spawns the `PolicePatrol` in `Awake` and holds all its tunables. The timer only ticks while the motor isn't paused. Speeds are stored in m/s; UI converts with `* 3.6f`. `Restart()` rebuilds the track via `TrackGenerator.RegenerateForRun()`, relaunches ship and patrol, and reopens the tuning screen.
+- **`ChaseMinimap`** — right-edge chase gauge, spawned by `GameManager` with the patrol: vertical strip with the ship diamond pinned at the top, the patrol icon (red/blue flicker) climbing as the gap closes, and the gap in meters underneath. Built from code on its own overlay canvas — no scene wiring.
+- **`PolicePatrol`** — the chaser. Rubber-bands its speed to the ship's (scaled, floored at its ramping launch speed), advances by distance along the track center (extrapolating straight back when still behind the start line), freezes whenever the ship's motor is paused, spawns "PATROL x M" floating warnings when the gap drops below `patrolWarnDistance`, and sets `HasCaught` for the GameManager to poll. Its cruiser visual (hull, cabin, alternating red/blue lights) is built from primitives in code — colliders are stripped so it can't trip pad triggers.
+- **`SpeedPad` + `PadDefinition`** — pads call `ShipMotor.AddSpeedImpulse(speedDelta)` on trigger enter; positive = boost, negative = brake. Effect is divided by the ship's `weight`. `PadDefinition.sizeMultiplier` scales the spawned pad; `floatingOrb` makes it a hovering sphere on the flight line (gets an `OrbHover` bob/spin component at runtime) instead of a flat pad.
+- **`TrackGenerator`** (+ `Editor/TrackGeneratorEditor`) — procedural builder **and endless streamer**. With `endless` on (the default) it builds an initial stretch in `Awake`, then in `Update` keeps `aheadDistance` of finished track ahead of the ship (appending knots, placing pads, decorating) and culls spawned objects more than `behindDistance` behind. Key invariants: **knots are never removed** (so distances stay valid all run — only spawned objects are culled), and nothing is placed on the trailing `SettleMargin` (two segments) because AutoSmooth reshapes those curves when the next knot lands. `RegenerateForRun()` fully rebuilds (endless restarts must, since the stretch behind the start was culled). `seed == 0` means non-repeatable. The custom inspector's "Regenerate Track" button previews layouts in edit mode.
+- **`FloatingTextSystem`** — singleton entry point for floating gameplay texts: `FloatingTextSystem.Instance.DisplayText(text, color, duration = 1f)` (overload takes lead distance + character size). Auto-created on first use; spawns texts ahead of the ship so they stay readable at speed. Lead offsets for boost popups and patrol alerts are tuned on the `GameManager` inspector (`boostTextLeadMeters`, `patrolAlertLeadMeters`). Backed by **`FloatingWorldText`**, the code-built rising/fading billboard component.
+- **`TrackDecorator`** — stamps road-kit meshes (road surface, side barriers) along the spline, streaming-style: `DecorateUpTo(distance)` advances an internal stamp cursor, `CullBefore(distance)` drops pieces behind the ship. The goal gantry is gone (no end goal). Note its comment: MPB tints are unreliable with the SRP Batcher, hence the material-override fields.
+- **`SteeringInput` / `ISteeringInput`** — the motor only reads `ISteeringInput.SteerAxis` (-1..+1). The current implementation polls the new Input System directly (keyboard A/D + arrows, gamepad left stick, touch screen halves); the interface exists so a VR implementation can be swapped in later.
+- **`TuningScreen`** — pre-run point allocation across Launch Speed / Acceleration / Handling / Weight. It applies tuning to a **runtime clone** of the base `ShipDefinition` via `ShipMotor.SetDefinition()` — never mutate the ScriptableObject asset on disk.
+- **`CameraShaker` / `ShakeOnPad` / `CameraShakeSettings`** — camera feedback driven by the `ShipMotor.PadImpulse` event.
+
+Tunables live in ScriptableObjects in `FiniteRunner/Data/` (`ShipDefinition`, `PadDefinition`, `CameraShakeSettings` assets); prefer adding new gameplay knobs there rather than hardcoding.
+
+## Conventions
+
+- Uses the **new Input System** (`UnityEngine.InputSystem`) — do not use the legacy `Input` class.
+- Uses `Unity.Mathematics` alongside `UnityEngine` math in spline code.
+- Scripts carry XML doc summaries explaining each class's role and the design rule it enforces; keep that style when adding classes.
+- Editor-only code goes in an `Editor/` subfolder (namespace `FiniteRunner.EditorTools`).

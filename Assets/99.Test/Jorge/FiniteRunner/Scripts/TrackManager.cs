@@ -6,8 +6,10 @@ namespace FiniteRunner
 {
     /// <summary>
     /// Owns the track spline. Converts (spline t, lateral offset) into world
-    /// poses for the ship, pads and markers, and advances t by travelled
-    /// distance in an arc-length-correct way.
+    /// poses for the ship, pads and markers. Distance along the track is the
+    /// authoritative coordinate — the spline grows during the run (endless
+    /// streaming), which shifts normalized t, so consumers map distance to t
+    /// through <see cref="DistanceToT"/> every frame.
     /// </summary>
     public class TrackManager : MonoBehaviour
     {
@@ -25,12 +27,20 @@ namespace FiniteRunner
 
         public void Recalculate() => Length = spline != null ? spline.CalculateLength() : 0f;
 
-        /// <summary>Advances normalized position <paramref name="t"/> by a world-space distance.</summary>
-        public float AdvanceT(float t, float distance)
+        /// <summary>
+        /// Maps a world-space distance from the track start to normalized t,
+        /// using the spline's cached arc-length tables. Clamped to the
+        /// currently generated track.
+        /// </summary>
+        public float DistanceToT(float distance)
         {
-            if (spline == null || distance <= 0f) return t;
-            SplineUtility.GetPointAtLinearDistance(spline.Spline, t, distance, out float newT);
-            return math.min(newT, 1f);
+            if (spline == null) return 0f;
+            if (Length <= 0f) Recalculate();
+            if (Length <= 0f) return 0f;
+
+            float t = SplineUtility.GetNormalizedInterpolation(
+                spline.Spline, math.clamp(distance, 0f, Length), PathIndexUnit.Distance);
+            return math.clamp(t, 0f, 1f);
         }
 
         /// <summary>World pose on the track at normalized t, shifted laterally across the width.</summary>
@@ -45,12 +55,8 @@ namespace FiniteRunner
             rotation = Quaternion.LookRotation(fwd, upDir);
         }
 
-        /// <summary>Pose at a world-space distance from the track start. Editor/placement helper.</summary>
+        /// <summary>Pose at a world-space distance from the track start.</summary>
         public void GetPoseAtDistance(float distance, float lateral, out Vector3 position, out Quaternion rotation)
-        {
-            Recalculate();
-            SplineUtility.GetPointAtLinearDistance(spline.Spline, 0f, distance, out float t);
-            GetPose(math.min(t, 1f), lateral, out position, out rotation);
-        }
+            => GetPose(DistanceToT(distance), lateral, out position, out rotation);
     }
 }

@@ -15993,20 +15993,22 @@ MonoBehaviour:
   gameManager: {fileID: 1221762356}
   speedText: {fileID: 2064704043}
   targetText: {fileID: 434663088}
-  distanceText: {fileID: 562575980}
-  distanceFill: {fileID: 2037607742}
+  timeText: {fileID: 562575980}
+  timeFill: {fileID: 2037607742}
   resultText: {fileID: 1675321470}
   promptText: {fileID: 2081312112}
   slowColor: {r: 0.31, g: 0.76, b: 1, a: 1}
   onTargetColor: {r: 0.48, g: 0.83, b: 0.32, a: 1}
   fastColor: {r: 1, g: 0.35, b: 0.25, a: 1}
-  perfectColor: {r: 0.48, g: 0.83, b: 0.32, a: 1}
-  awesomeColor: {r: 0.31, g: 0.76, b: 1, a: 1}
-  clearColor: {r: 1, g: 0.8, b: 0.25, a: 1}
-  almostColor: {r: 1, g: 0.55, b: 0.2, a: 1}
+  winColor: {r: 0.48, g: 0.83, b: 0.32, a: 1}
   failColor: {r: 1, g: 0.3, b: 0.25, a: 1}
+  lowTimeWarning: 10
+  timeColor: {r: 1, g: 1, b: 1, a: 1}
   pulseScale: 1.3
   pulseDecay: 6
+  spawnBoostText: 1
+  boostTextColor: {r: 0.48, g: 1, b: 0.4, a: 1}
+  boostTextSize: 1.2
 --- !u!114 &635331351
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -30000,11 +30002,19 @@ MonoBehaviour:
   motor: {fileID: 1092581442}
   generator: {fileID: 1402584891}
   tuningScreen: {fileID: 635331355}
-  targetSpeedKmh: 400
-  perfectPercent: 2
-  awesomePercent: 5
-  clearPercent: 10
-  almostTherePercent: 20
+  lightSpeedKmh: 4000
+  timeLimitSeconds: 60
+  patrolEnabled: 1
+  patrolSpeedKmh: 350
+  patrolRampKmhPerSecond: 3
+  patrolRubberBandFactor: 1.05
+  patrolCatchUpKmhPerSecond: 60
+  patrolStartGap: 250
+  patrolCatchDistance: 10
+  patrolWarnDistance: 130
+  minimapRangeMeters: 400
+  boostTextLeadMeters: 60
+  patrolAlertLeadMeters: 180
 --- !u!4 &1221762357
 Transform:
   m_ObjectHideFlags: 0
@@ -33888,8 +33898,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.TrackGenerator
   track: {fileID: 1402584888}
+  ship: {fileID: 0}
+  endless: 1
   randomize: 1
   seed: 0
+  aheadDistance: 700
+  behindDistance: 150
   segments: 12
   segmentLength: {x: 300, y: 420}
   maxTurnPerSegment: 24
@@ -33930,8 +33944,6 @@ MonoBehaviour:
   barrierPrefab: {fileID: 919132149155446097, guid: e3ba0439ebb6246a5b0b3d1682c8a554, type: 3}
   barrierScale: {x: 20, y: 25, z: 60}
   barrierLateral: 0
-  goalSignPrefab: {fileID: 919132149155446097, guid: b8a9e50b779494b17a64295756841225, type: 3}
-  goalSignScale: {x: 20, y: 30, z: 60}
 --- !u!1 &1407496961
 GameObject:
   m_ObjectHideFlags: 0
@@ -36793,7 +36805,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.000061035156, y: 0.000061035156}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0.000061035156, y: 0.000030517578}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1510011394

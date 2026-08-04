@@ -5,8 +5,10 @@ namespace FiniteRunner
     /// <summary>
     /// Drives the ship along the track spline. Core speed rule: an initial
     /// impulse at launch followed by constant decay — pads are the only way
-    /// to regain speed. Speed 0 before the goal ends the run.
-    /// All tunables come from the assigned <see cref="ShipDefinition"/>.
+    /// to regain speed, and there is no upper cap (the win condition is
+    /// reaching Light Speed). The track streams endlessly ahead (see
+    /// TrackGenerator); the run ends when speed hits 0 or the GameManager's
+    /// timer expires. All tunables come from the assigned <see cref="ShipDefinition"/>.
     /// </summary>
     public class ShipMotor : MonoBehaviour
     {
@@ -19,10 +21,7 @@ namespace FiniteRunner
         public ShipDefinition Definition => definition;
         public float CurrentSpeed { get; private set; }
         public float DistanceTravelled { get; private set; }
-        public float DistanceToGoal => track != null ? Mathf.Max(0f, track.Length - DistanceTravelled) : 0f;
         public bool HasStopped { get; private set; }
-        public bool HasFinished { get; private set; }
-        public float FinalSpeed { get; private set; }
 
         /// <summary>Raised when a pad impulse is applied. Argument is the raw magnitude (positive = boost).</summary>
         public event System.Action<float> PadImpulse;
@@ -58,15 +57,13 @@ namespace FiniteRunner
         /// <summary>Resets the run to the track start and applies the initial impulse.</summary>
         public void Launch()
         {
-            CurrentSpeed = Mathf.Min(definition.initialImpulse, definition.maxSpeed);
+            CurrentSpeed = definition.initialImpulse;
             DistanceTravelled = 0f;
             splineT = 0f;
             lateralOffset = 0f;
             lateralVelocity = 0f;
             pendingSpeedChange = 0f;
             HasStopped = false;
-            HasFinished = false;
-            FinalSpeed = 0f;
             ApplyPose(0f);
         }
 
@@ -76,7 +73,7 @@ namespace FiniteRunner
         /// </summary>
         public void AddSpeedImpulse(float rawMagnitude)
         {
-            if (HasStopped || HasFinished) return;
+            if (HasStopped) return;
             pendingSpeedChange += definition.ScalePadEffect(rawMagnitude);
             PadImpulse?.Invoke(rawMagnitude);
         }
@@ -85,14 +82,14 @@ namespace FiniteRunner
         {
             float dt = Time.deltaTime;
 
-            if (!Paused && !HasStopped && !HasFinished)
+            if (!Paused && !HasStopped)
             {
                 UpdateSpeed(dt);
                 UpdateLateral(dt);
                 AdvanceAlongTrack(dt);
                 ApplyPose(dt);
 
-                if (!HasFinished && CurrentSpeed <= 0f)
+                if (CurrentSpeed <= 0f)
                 {
                     CurrentSpeed = 0f;
                     HasStopped = true;
@@ -114,9 +111,9 @@ namespace FiniteRunner
                 pendingSpeedChange -= step;
             }
 
-            // The core rule: speed always bleeds away.
-            CurrentSpeed -= definition.passiveDeceleration * dt;
-            CurrentSpeed = Mathf.Clamp(CurrentSpeed, 0f, definition.maxSpeed);
+            // The core rule: speed always bleeds away. No upper cap — the win
+            // condition is climbing all the way to Light Speed.
+            CurrentSpeed = Mathf.Max(0f, CurrentSpeed - definition.passiveDeceleration * dt);
         }
 
         void UpdateLateral(float dt)
@@ -135,16 +132,12 @@ namespace FiniteRunner
 
         void AdvanceAlongTrack(float dt)
         {
-            float step = CurrentSpeed * dt;
-            DistanceTravelled += step;
-            splineT = track.AdvanceT(splineT, step);
+            DistanceTravelled += CurrentSpeed * dt;
 
-            if (splineT >= 1f)
-            {
-                splineT = 1f;
-                HasFinished = true;
-                FinalSpeed = CurrentSpeed;
-            }
+            // Distance is authoritative: the endless streamer grows the spline
+            // during the run, which shifts what any given normalized t means,
+            // so remap from distance every frame instead of advancing t.
+            splineT = track.DistanceToT(DistanceTravelled);
         }
 
         void ApplyPose(float dt)
