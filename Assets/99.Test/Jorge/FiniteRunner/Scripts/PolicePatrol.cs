@@ -94,6 +94,13 @@ namespace FiniteRunner
 
                 if (GapToShip <= catchDistance) HasCaught = true;
                 else WarnIfClose(dt);
+
+                // Proximity rumble that grows as the patrol closes in. The
+                // haptics channel self-fades when this stops being refreshed
+                // (pause, catch, or the patrol falling behind again).
+                float gap = GapToShip;
+                if (gap <= warnDistance && warnDistance > 0f)
+                    HapticsSystem.Instance.SetChaseIntensity(1f - Mathf.Clamp01(gap / warnDistance));
             }
 
             ApplyPose();

@@ -39,6 +39,7 @@ namespace FiniteRunner
 
         readonly int[] points = new int[4];
         ShipDefinition tunedDefinition;
+        float openedTime;
 
         int PointsSpent { get { int s = 0; foreach (int p in points) s += p; return s; } }
         int PointsLeft => totalPoints - PointsSpent;
@@ -56,8 +57,22 @@ namespace FiniteRunner
 
         void Start() => Show();
 
+        void Update()
+        {
+            // Gamepad support: A / Cross launches the run while the setup panel
+            // is open, so a controller-only player is never stuck. (Start is
+            // reserved for the pause menu.) The grace period keeps the same
+            // press that restarted the run on the result screen from also
+            // launching it instantly.
+            if (panelRoot == null || !panelRoot.activeInHierarchy) return;
+            if (Time.unscaledTime - openedTime < 0.3f) return;
+            if (UnityEngine.InputSystem.Gamepad.current is { buttonSouth: { wasPressedThisFrame: true } })
+                StartRun();
+        }
+
         public void Show()
         {
+            openedTime = Time.unscaledTime;
             if (motor != null) motor.Paused = true;
             if (panelRoot != null) panelRoot.SetActive(true);
             Refresh();

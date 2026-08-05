@@ -30013,6 +30013,14 @@ MonoBehaviour:
   patrolCatchDistance: 10
   patrolWarnDistance: 130
   minimapRangeMeters: 400
+  powerUpSpeedBoost: 15
+  messageHoldSeconds: 2.5
+  messageOrbTierName: Purple
+  purpleOrbMessage: ayjoesu AGARRENSEN  DE LAS MANOS!
+  winMessage: 'LIGHT SPEED! '
+  loseMessage: "Gotcha, hotshot. Party's over \u2014por puto."
+  pilotMessageColor: {r: 0.35, g: 0.9, b: 1, a: 1}
+  patrolMessageColor: {r: 1, g: 0.4, b: 0.35, a: 1}
   boostTextLeadMeters: 60
   patrolAlertLeadMeters: 180
 --- !u!4 &1221762357
@@ -33898,6 +33906,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.TrackGenerator
   track: {fileID: 1402584888}
+  gameManager: {fileID: 0}
   ship: {fileID: 0}
   endless: 1
   randomize: 1
@@ -33916,6 +33925,25 @@ MonoBehaviour:
   boostSpacing: {x: 150, y: 220}
   brakeChance: 0.35
   padSize: {x: 10, y: 0.5, z: 20}
+  orbTiers:
+  - name: Green
+    multiplier: 1
+    weight: 70
+    color: {r: 0.1, g: 1, b: 0.3, a: 1}
+    swayAmplitude: 0
+    swayFrequency: 0.5
+  - name: Blue
+    multiplier: 2.5
+    weight: 25
+    color: {r: 0.25, g: 0.55, b: 1, a: 1}
+    swayAmplitude: 4
+    swayFrequency: 0.45
+  - name: Purple
+    multiplier: 10
+    weight: 5
+    color: {r: 0.75, g: 0.3, b: 1, a: 1}
+    swayAmplitude: 8
+    swayFrequency: 0.8
   padSignPrefab: {fileID: 919132149155446097, guid: 12a4ac7d5a25a44009fc60417de04fb1, type: 3}
   padSignScale: 8
   markersParent: {fileID: 0}

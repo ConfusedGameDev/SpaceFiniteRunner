@@ -100,7 +100,11 @@ namespace FiniteRunner
             UpdateResult();
 
             bool runOver = gameManager != null ? gameManager.RunOver : motor.HasStopped;
-            if (runOver && UnityEngine.InputSystem.Keyboard.current is { rKey: { wasPressedThisFrame: true } })
+            // South only on gamepad — Start is reserved for the pause menu.
+            bool restartPressed =
+                UnityEngine.InputSystem.Keyboard.current is { rKey: { wasPressedThisFrame: true } } ||
+                UnityEngine.InputSystem.Gamepad.current is { buttonSouth: { wasPressedThisFrame: true } };
+            if (runOver && restartPressed)
             {
                 if (gameManager != null) gameManager.Restart();
                 else motor.Launch();
