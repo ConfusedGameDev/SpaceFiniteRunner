@@ -30002,27 +30002,7 @@ MonoBehaviour:
   motor: {fileID: 1092581442}
   generator: {fileID: 1402584891}
   tuningScreen: {fileID: 635331355}
-  lightSpeedKmh: 4000
-  timeLimitSeconds: 60
-  patrolEnabled: 1
-  patrolSpeedKmh: 350
-  patrolRampKmhPerSecond: 3
-  patrolRubberBandFactor: 1.05
-  patrolCatchUpKmhPerSecond: 60
-  patrolStartGap: 250
-  patrolCatchDistance: 10
-  patrolWarnDistance: 130
-  minimapRangeMeters: 400
-  powerUpSpeedBoost: 15
-  messageHoldSeconds: 2.5
-  messageOrbTierName: Purple
-  purpleOrbMessage: ayjoesu AGARRENSEN  DE LAS MANOS!
-  winMessage: 'LIGHT SPEED! '
-  loseMessage: "Gotcha, hotshot. Party's over \u2014por puto."
-  pilotMessageColor: {r: 0.35, g: 0.9, b: 1, a: 1}
-  patrolMessageColor: {r: 1, g: 0.4, b: 0.35, a: 1}
-  boostTextLeadMeters: 60
-  patrolAlertLeadMeters: 180
+  settings: {fileID: 11400000, guid: a4573a719f8b47bcb82110db7c40439e, type: 2}
 --- !u!4 &1221762357
 Transform:
   m_ObjectHideFlags: 0

@@ -18,7 +18,7 @@ namespace FiniteRunner
     {
         /// <summary>
         /// One rarity tier of boost orb. The applied boost is
-        /// GameManager.powerUpSpeedBoost × multiplier; weight drives how often
+        /// GameSettings.powerUpSpeedBoost × multiplier; weight drives how often
         /// the tier spawns, and sway makes it drift across the track so the
         /// juicier orbs are harder to catch.
         /// </summary>
@@ -26,7 +26,7 @@ namespace FiniteRunner
         public class OrbTier
         {
             public string name = "Green";
-            [Tooltip("Multiplies GameManager.powerUpSpeedBoost.")]
+            [Tooltip("Multiplies GameSettings.powerUpSpeedBoost.")]
             [Min(0f)] public float multiplier = 1f;
             [Tooltip("Relative spawn weight — higher = more common.")]
             [Min(0f)] public float weight = 1f;

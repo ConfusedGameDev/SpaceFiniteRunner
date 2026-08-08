@@ -1,3 +1,4 @@
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace FiniteRunner
@@ -8,55 +9,76 @@ namespace FiniteRunner
     /// impulse and constantly bleeds speed until a pad (or card effect)
     /// feeds it more. When speed reaches zero, the run is over. Speed has
     /// no upper cap — reaching Light Speed is the win condition.
+    /// Every stat is an Odin slider with a hand-picked range so ships can be
+    /// felt out by dragging instead of guessing numbers.
     /// </summary>
     [CreateAssetMenu(fileName = "ShipDefinition", menuName = "FiniteRunner/Ship Definition")]
     public class ShipDefinition : ScriptableObject
     {
-        [Header("Identity")]
+        [TitleGroup("Identity")]
         public string displayName = "Fighter";
-        [TextArea]
+        [TitleGroup("Identity"), MultiLineProperty(3), HideLabel]
         public string description;
 
-        [Header("Speed")]
+        [TitleGroup("Speed")]
         [Tooltip("Speed the ship launches with at the start of a run.")]
-        [Min(0f)] public float initialImpulse = 25f;
+        [PropertyRange(0f, 1000f), SuffixLabel("m/s", true)]
+        public float initialImpulse = 25f;
 
+        [TitleGroup("Speed")]
         [Tooltip("Speed lost per second when not touching any pad. This is the core pressure of the game.")]
-        [Min(0f)] public float passiveDeceleration = 3f;
+        [PropertyRange(0f, 50f), SuffixLabel("m/s per s", true)]
+        public float passiveDeceleration = 3f;
 
+        [TitleGroup("Speed")]
         [Tooltip("How quickly external speed changes (pads, impulses) blend into the current speed, in speed units per second.")]
-        [Min(0.01f)] public float acceleration = 40f;
+        [PropertyRange(0.01f, 200f), SuffixLabel("m/s per s", true)]
+        public float acceleration = 40f;
 
-        [Header("Handling")]
+        [TitleGroup("Handling")]
         [Tooltip("Lateral movement speed across the track, in units per second, at full steer input.")]
-        [Min(0f)] public float lateralSpeed = 8f;
+        [PropertyRange(0f, 100f), SuffixLabel("m/s", true)]
+        public float lateralSpeed = 8f;
 
+        [TitleGroup("Handling")]
         [Tooltip("Responsiveness of the steering. Higher values reach full lateral speed faster; low values feel heavy and drifty.")]
-        [Min(0.01f)] public float handlingResponse = 8f;
+        [PropertyRange(0.01f, 30f)]
+        public float handlingResponse = 8f;
 
-        [Header("Weight")]
+        [TitleGroup("Weight")]
         [Tooltip("Scales how much pads affect this ship. 1 = full effect, 2 = pads (boost AND brake) only apply half their effect.")]
-        [Min(0.1f)] public float weight = 1f;
+        [PropertyRange(0.1f, 5f)]
+        public float weight = 1f;
 
-        [Header("Hover")]
+        [TitleGroup("Hover (visual only)")]
         [Tooltip("How high the ship model floats above the flight line (visual only — pad detection is unaffected).")]
-        [Min(0f)] public float hoverHeight = 2f;
+        [PropertyRange(0f, 10f), SuffixLabel("m", true)]
+        public float hoverHeight = 2f;
 
+        [TitleGroup("Hover (visual only)")]
         [Tooltip("How far the ship bobs up and down around the hover height.")]
-        [Min(0f)] public float bobAmplitude = 0.35f;
+        [PropertyRange(0f, 3f), SuffixLabel("m", true)]
+        public float bobAmplitude = 0.35f;
 
+        [TitleGroup("Hover (visual only)")]
         [Tooltip("How fast the hover bobbing moves.")]
-        [Min(0f)] public float bobFrequency = 1.5f;
+        [PropertyRange(0f, 10f), SuffixLabel("Hz", true)]
+        public float bobFrequency = 1.5f;
 
+        [TitleGroup("Hover (visual only)")]
         [Tooltip("Maximum nose pitch wobble from the hover, in degrees.")]
-        [Range(0f, 10f)] public float hoverPitchDegrees = 2.5f;
+        [PropertyRange(0f, 10f), SuffixLabel("deg", true)]
+        public float hoverPitchDegrees = 2.5f;
 
-        [Header("Feel")]
+        [TitleGroup("Feel")]
         [Tooltip("Maximum roll angle in degrees when steering at full input.")]
-        [Range(0f, 90f)] public float maxBankAngle = 35f;
+        [PropertyRange(0f, 90f), SuffixLabel("deg", true)]
+        public float maxBankAngle = 35f;
 
+        [TitleGroup("Feel")]
         [Tooltip("How fast the ship rolls into / out of a bank.")]
-        [Min(0.01f)] public float bankResponse = 6f;
+        [PropertyRange(0.01f, 20f)]
+        public float bankResponse = 6f;
 
         /// <summary>Speed delta a pad of the given raw magnitude applies to this ship.</summary>
         public float ScalePadEffect(float rawMagnitude) => rawMagnitude / weight;

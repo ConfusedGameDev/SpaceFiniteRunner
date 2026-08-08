@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e0c463223354807b12af66da01d4b44, type: 3}
+  m_Name: FiniteRunner_GameSettings
+  m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.GameSettings
+  lightSpeedKmh: 4000
+  timeLimitSeconds: 60
+  patrolEnabled: 1
+  patrolSpeedKmh: 119
+  patrolRampKmhPerSecond: 0.3
+  patrolRubberBandFactor: 0.95
+  patrolCatchUpKmhPerSecond: 12
+  patrolStartGap: 750
+  patrolDangerBand: {x: 10, y: 130}
+  minimapRangeMeters: 1012
+  patrolRedeploys: 1
+  patrolRedeployBand: {x: 1049.7882, y: 1372.0339}
+  patrolRedeploySpeedFactor: 1
+  powerUpSpeedBoost: 15
+  boostTextLeadMeters: 60
+  patrolAlertLeadMeters: 180
+  messageHoldSeconds: 2.5
+  messageOrbTierName: Purple
+  purpleOrbMessage: ayjoesu AGARRENSEN  DE LAS MANOS!
+  winMessage: 'LIGHT SPEED! '
+  loseMessage: "Gotcha, hotshot. Party's over \u2014por puto."
+  pilotMessageColor: {r: 0.35, g: 0.9, b: 1, a: 1}
+  patrolMessageColor: {r: 1, g: 0.4, b: 0.35, a: 1}

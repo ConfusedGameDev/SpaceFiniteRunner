@@ -1,3 +1,4 @@
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace FiniteRunner
@@ -12,8 +13,11 @@ namespace FiniteRunner
     /// </summary>
     public class ShipMotor : MonoBehaviour
     {
-        [SerializeField] ShipDefinition definition;
-        [SerializeField] TrackManager track;
+        // Inline so the ship's sliders are reachable without leaving the scene —
+        // in play mode this field holds the tuning screen's runtime clone, so
+        // editing here tweaks the live run and never the asset on disk.
+        [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)] ShipDefinition definition;
+        [SerializeField, Required] TrackManager track;
 
         [Tooltip("Visual child that banks when steering (the ship model). Falls back to this transform.")]
         [SerializeField] Transform visual;

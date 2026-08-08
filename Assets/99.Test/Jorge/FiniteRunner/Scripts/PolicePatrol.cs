@@ -9,6 +9,9 @@ namespace FiniteRunner
     /// it speeds up with the player but never drops below that threshold,
     /// and without boost orbs it always closes in. When the gap drops to the
     /// catch distance the run is over (GameManager polls <see cref="HasCaught"/>).
+    /// The chase is never allowed to go stale: outrun the patrol past the
+    /// redeploy distance and a fresh one cuts in just behind the ship, already
+    /// faster than it, so the only way to shake it is to boost again.
     /// Spawned and configured entirely from code by the GameManager — visual,
     /// lights and all — so no scene wiring is needed.
     /// </summary>
@@ -26,6 +29,10 @@ namespace FiniteRunner
         float warnDistance;   // gap below which warnings spawn, meters
         float alertLead;      // meters ahead of the ship the warnings spawn at
 
+        float redeployDistance;    // gap that retires this patrol for a fresh one, meters (0 = never)
+        float redeployGap;         // meters behind the ship the fresh patrol drops in at
+        float redeploySpeedFactor; // fresh patrol's speed as a multiple of the ship's
+
         float minSpeed;       // current floor: baseSpeed + accumulated ramp
         float currentSpeed;
         float warnCooldown;
@@ -38,6 +45,8 @@ namespace FiniteRunner
 
         public float DistanceTravelled { get; private set; }
         public bool HasCaught { get; private set; }
+        /// <summary>How many patrols have joined the chase this run (1 = the launch patrol).</summary>
+        public int PatrolNumber { get; private set; } = 1;
         public float GapToShip => target != null ? target.DistanceTravelled - DistanceTravelled : float.MaxValue;
 
         public static PolicePatrol Spawn(ShipMotor target, float speedKmh, float rampKmhPerSecond,
@@ -62,6 +71,21 @@ namespace FiniteRunner
             return patrol;
         }
 
+        /// <summary>
+        /// Arms the "never lose them for good" rule: once the ship is more than
+        /// <paramref name="distance"/> meters clear, this patrol drops out and a
+        /// fresh one takes over <paramref name="gap"/> meters back, running at
+        /// <paramref name="speedFactor"/> times the ship's speed. Pass 0 distance
+        /// to disable. Kept separate from Spawn so the chase tunables stay on the
+        /// GameSettings asset without growing its argument list.
+        /// </summary>
+        public void SetRedeployRule(float distance, float gap, float speedFactor)
+        {
+            redeployDistance = distance;
+            redeployGap = gap;
+            redeploySpeedFactor = speedFactor;
+        }
+
         /// <summary>Resets the chase to the launch gap behind the start line.</summary>
         public void Launch()
         {
@@ -70,6 +94,7 @@ namespace FiniteRunner
             currentSpeed = baseSpeed;
             HasCaught = false;
             warnCooldown = 0f;
+            PatrolNumber = 1;
             ApplyPose();
         }
 
@@ -92,6 +117,8 @@ namespace FiniteRunner
 
                 DistanceTravelled += currentSpeed * dt;
 
+                if (redeployDistance > 0f && GapToShip > redeployDistance) Redeploy();
+
                 if (GapToShip <= catchDistance) HasCaught = true;
                 else WarnIfClose(dt);
 
@@ -106,13 +133,35 @@ namespace FiniteRunner
             ApplyPose();
         }
 
+        /// <summary>
+        /// The old patrol is left in the dust, so a fresh interceptor cuts in
+        /// just behind the ship — same cruiser, new number. It arrives above the
+        /// ship's current speed and that speed becomes the rubber band's new
+        /// floor, so coasting is never enough: the player has to find more
+        /// boosts to open the gap again.
+        /// </summary>
+        void Redeploy()
+        {
+            float speed = Mathf.Max(minSpeed, target.CurrentSpeed * redeploySpeedFactor);
+            minSpeed = speed;
+            currentSpeed = speed;
+            DistanceTravelled = target.DistanceTravelled - redeployGap;
+            warnCooldown = 0f;
+            PatrolNumber++;
+            ApplyPose();
+
+            FloatingTextSystem.Instance.DisplayText(
+                $"PATROL {PatrolNumber} INBOUND", new Color(1f, 0.35f, 0.3f), 1.6f, alertLead, 3.5f);
+            HapticsSystem.Instance.Pulse(0.6f, 0.4f, 0.4f);
+        }
+
         void WarnIfClose(float dt)
         {
             warnCooldown -= dt;
             if (GapToShip > warnDistance || warnCooldown > 0f) return;
             warnCooldown = 1.5f;
 
-            // Spawned well ahead of the ship (GameManager.patrolAlertLeadMeters)
+            // Spawned well ahead of the ship (GameSettings.patrolAlertLeadMeters)
             // so the warning stays readable instead of being left behind
             // instantly at these speeds.
             FloatingTextSystem.Instance.DisplayText(

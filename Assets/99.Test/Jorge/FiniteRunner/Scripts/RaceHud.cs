@@ -69,7 +69,7 @@ namespace FiniteRunner
             currentPulse = pulseScale;
 
             // Juice: floating text for every booster hit, spawned ahead of the
-            // ship (GameManager.boostTextLeadMeters) so it isn't left behind
+            // ship (GameSettings.boostTextLeadMeters) so it isn't left behind
             // instantly at speed.
             if (spawnBoostText && magnitude > 0f && gameManager != null)
                 FloatingTextSystem.Instance.DisplayText(
