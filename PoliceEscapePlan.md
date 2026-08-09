@@ -111,7 +111,7 @@ Odin-decorated, grouped with `[TabGroup]`/`[FoldoutGroup]`:
 ## 5. Milestones
 
 - [x] **M1 — Grid + roads, single chunk:** ChunkData model, socket-matched road spawning, settings SO + Odin buttons, gizmos. *Exit: press Recalculate, get a connected drivable-looking layout every time.* *(Code complete — verify piece masks visually on first Recalculate; bend/T orientations are best guesses, fix via `connectionMask`/`rotationOffset` per piece.)*
-- [ ] **M2 — Populator:** lot detection, weighted footprint placement, BuildingSet SO, Repopulate button.
+- [x] **M2 — Populator:** lot detection, weighted footprint placement, BuildingSet SO, Repopulate button. *(Code complete — re-run the test scene menu item to get test buildings; verify facing/packing, then wire the Kenney building FBXs into a real BuildingSet.)*
 - [ ] **M3 — Player car:** drivable car with tuned arcade handling inside the static city; camera; respawn.
 - [ ] **M4 — Infinite streaming:** chunk hashing, border continuity, pooling, time-sliced spawning, unloading. *Exit: drive in one direction for 10 minutes, stable memory + framerate.*
 - [ ] **M5 — Patrol AI:** RoadGraph, path-following car, Patrol/Chase/Search, PatrolManager.

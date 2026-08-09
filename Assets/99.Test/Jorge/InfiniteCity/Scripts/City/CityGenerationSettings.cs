@@ -89,6 +89,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Keep dead-end stubs instead of repairing them away. Needs a single-socket (dead-end) piece in the list below.")]
         public bool allowDeadEnds;
 
+        // ----------------------------------------------------------- buildings
+        [TitleGroup("Buildings")]
+        [Tooltip("Building set the populator fills non-road cells from. Leave empty for roads only. Later, districts can pick different sets by noise.")]
+        public Population.BuildingSet buildingSet;
+
         // -------------------------------------------------------------- pieces
         [TitleGroup("Road pieces")]
         [Tooltip("Scale spawned pieces so their footprint fills the cell exactly (cell size ÷ native size). Leave on unless the assets already match the cell size.")]

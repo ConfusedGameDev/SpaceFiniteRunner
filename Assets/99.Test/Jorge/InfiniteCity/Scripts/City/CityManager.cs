@@ -63,6 +63,28 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         }
 
         [TitleGroup("Actions")]
+        [Button("Repopulate", ButtonSizes.Large)]
+        [Tooltip("Rebuild buildings only, keeping the current roads — much faster iteration on the building set than a full Recalculate.")]
+        public void Repopulate()
+        {
+            foreach (var chunk in GetComponentsInChildren<CityChunk>())
+            {
+                if (chunk.Data == null)
+                {
+                    Debug.LogWarning("CityManager: chunk data was lost (domain reload) — press Recalculate instead.");
+                    return;
+                }
+                var oldBuildings = chunk.transform.Find("Buildings");
+                if (oldBuildings != null)
+                {
+                    if (Application.isPlaying) Destroy(oldBuildings.gameObject);
+                    else DestroyImmediate(oldBuildings.gameObject);
+                }
+                PopulateChunk(chunk.transform, chunk.Data);
+            }
+        }
+
+        [TitleGroup("Actions")]
         [Button("Clear", ButtonSizes.Large)]
         public void Clear()
         {
@@ -124,6 +146,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
             foreach (var mask in missingMasks)
                 Debug.LogWarning($"CityManager: no road piece matches socket mask [{mask}] — those cells were left empty. Add a matching piece to the settings (dead ends need a single-socket piece).");
+
+            PopulateChunk(chunkGo.transform, data);
+        }
+
+        void PopulateChunk(Transform chunkRoot, ChunkData data)
+        {
+            if (settings.buildingSet == null) return;
+            var buildingsGo = new GameObject("Buildings");
+            ApplyGeneratedFlags(buildingsGo);
+            buildingsGo.transform.SetParent(chunkRoot, false);
+            Population.CityPopulator.Populate(settings, data, buildingsGo.transform);
         }
 
         /// <summary>
@@ -155,7 +188,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             return picked != null;
         }
 
-        static void ApplyGeneratedFlags(GameObject go)
+        public static void ApplyGeneratedFlags(GameObject go)
         {
             // DontSave keeps edit-mode output out of the scene file; in play
             // mode normal scene teardown handles cleanup, so don't set it there

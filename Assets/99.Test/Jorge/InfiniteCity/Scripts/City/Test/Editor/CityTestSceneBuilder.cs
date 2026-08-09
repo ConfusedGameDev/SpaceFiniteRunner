@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.City;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Population;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -21,6 +22,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string TestFolder = "Assets/99.Test/Jorge/InfiniteCity/Scripts/City/Test";
         const string ScenePath = TestFolder + "/CityTest.unity";
         const string SettingsPath = TestFolder + "/CityTestSettings.asset";
+        const string BuildingSetPath = TestFolder + "/CityTestBuildingSet.asset";
 
         [MenuItem("Tools/Police Escape/Create City Test Scene")]
         public static void CreateTestScene()
@@ -39,7 +41,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 BuildPiece("TestRoad_End", EdgeMask.North, Color.red),
             };
 
+            var buildings = new List<BuildingDefinition>
+            {
+                BuildBuilding("TestBuilding_1x1", 1, 1, 1.5f, 3f, new Color(0.55f, 0.65f, 0.8f)),
+                BuildBuilding("TestBuilding_1x1_Tall", 1, 1, 4f, 1f, new Color(0.4f, 0.5f, 0.9f)),
+                BuildBuilding("TestBuilding_2x1", 2, 1, 2f, 2f, new Color(0.8f, 0.6f, 0.45f)),
+                BuildBuilding("TestBuilding_2x2", 2, 2, 3f, 1f, new Color(0.6f, 0.8f, 0.55f)),
+            };
+
             CityGenerationSettings settings = CreateOrUpdateSettings(pieces);
+            settings.buildingSet = CreateOrUpdateBuildingSet(buildings);
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssets();
             CreateScene(settings);
 
             Debug.Log("CityTestSceneBuilder: test scene ready — press Recalculate on the CityManager (or just look: it already ran once).");
@@ -104,6 +117,61 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             material.SetColor("_BaseColor", color);
             EditorUtility.SetDirty(material);
             return material;
+        }
+
+        // ------------------------------------------------------- test buildings
+
+        /// <summary>
+        /// A colored box on a footprint-sized slab, with a small dark "door"
+        /// block on its +Z front face — so which way a building faces is
+        /// obvious from above. Built on a 1 m-per-cell footprint like the
+        /// road pieces.
+        /// </summary>
+        static BuildingDefinition BuildBuilding(string name, int w, int h, float height, float weight, Color color)
+        {
+            Material wall = CreateOrUpdateMaterial(name + "_Wall", color);
+            Material door = CreateOrUpdateMaterial("TestBuilding_Door", new Color(0.1f, 0.1f, 0.1f));
+
+            var root = new GameObject(name);
+            try
+            {
+                // Body fills ~80% of the footprint so neighbours never touch.
+                AddCube(root.transform, "Body", wall,
+                    new Vector3(0f, height * 0.5f, 0f), new Vector3(w * 0.8f, height, h * 0.8f));
+                AddCube(root.transform, "Door", door,
+                    new Vector3(0f, 0.2f, h * 0.4f + 0.02f), new Vector3(0.25f, 0.4f, 0.06f));
+
+                string path = $"{TestFolder}/{name}.prefab";
+                GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+                return new BuildingDefinition
+                {
+                    prefab = prefab,
+                    weight = weight,
+                    footprintInCells = new Vector2Int(w, h),
+                    positionJitter = 0.05f,
+                    scaleJitter = 0.1f,
+                    heightJitter = 0.25f,
+                };
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        static BuildingSet CreateOrUpdateBuildingSet(List<BuildingDefinition> buildings)
+        {
+            var set = AssetDatabase.LoadAssetAtPath<BuildingSet>(BuildingSetPath);
+            bool isNew = set == null;
+            if (isNew) set = ScriptableObject.CreateInstance<BuildingSet>();
+
+            set.buildings = buildings;
+            set.nativeCellSize = 1f; // test boxes are built on a 1 m-per-cell footprint
+            set.density = 0.9f;
+
+            if (isNew) AssetDatabase.CreateAsset(set, BuildingSetPath);
+            else EditorUtility.SetDirty(set);
+            return set;
         }
 
         // ------------------------------------------------------------ settings
