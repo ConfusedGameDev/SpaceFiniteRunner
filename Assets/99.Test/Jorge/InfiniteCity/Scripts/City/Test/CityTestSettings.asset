@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e3bfe90a7e2c2e498d40e8d5f2a5eb2, type: 3}
+  m_Name: CityTestSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.City.CityGenerationSettings
+  globalSeed: 1
+  cellSize: 20
+  chunkSizeInCells: 24
+  initialCitySizeInChunks: 1
+  arterialSpacing: 8
+  arterialJitter: 0.75
+  connectorDensity: 0.6
+  turnProbability: 0.35
+  allowDeadEnds: 0
+  scaleToCellSize: 1
+  pieceNativeSize: 1
+  roadPieces:
+  - prefab: {fileID: 939434563057685227, guid: c51cc984687b6ba469d57788571ace16, type: 3}
+    connectionMask: 5
+    weight: 1
+    rotationOffset: 0
+  - prefab: {fileID: 4546056851163537384, guid: 4da38f414b45e5547bb8f2dc7abcd1f9, type: 3}
+    connectionMask: 3
+    weight: 1
+    rotationOffset: 0
+  - prefab: {fileID: 8635772051731509379, guid: d48ce1a2efde50c4b9072ab39c4206d9, type: 3}
+    connectionMask: 11
+    weight: 1
+    rotationOffset: 0
+  - prefab: {fileID: 8316935031918961, guid: 665a4fea47eb0864e9971b7ced19f589, type: 3}
+    connectionMask: 15
+    weight: 1
+    rotationOffset: 0
+  - prefab: {fileID: 148906609270239788, guid: 08e490db3c0679c4c93272f360693567, type: 3}
+    connectionMask: 1
+    weight: 1
+    rotationOffset: 0
