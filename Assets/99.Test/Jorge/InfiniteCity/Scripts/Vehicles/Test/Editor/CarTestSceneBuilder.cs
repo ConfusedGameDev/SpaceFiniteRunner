@@ -23,8 +23,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string TestFolder = "Assets/99.Test/Jorge/InfiniteCity/Scripts/Vehicles/Test";
         const string ScenePath = TestFolder + "/CarTest.unity";
         const string CarPrefabPath = TestFolder + "/TestCar.prefab";
+        const string PoliceCarPrefabPath = TestFolder + "/TestPoliceCar.prefab";
         const string CarConfigPath = TestFolder + "/TestCarConfig.asset";
         const string CameraSettingsPath = TestFolder + "/TestChaseCameraSettings.asset";
+        const string PursuitSettingsPath = TestFolder + "/TestPursuitSettings.asset";
         const string CitySettingsPath = "Assets/99.Test/Jorge/InfiniteCity/Scripts/City/Test/CityTestSettings.asset";
 
         [MenuItem("Tools/Police Escape/Create Car Test Scene")]
@@ -39,7 +41,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // so re-running the builder never wipes handling tuning.
             CarConfig carConfig = CreateOrLoad<CarConfig>(CarConfigPath);
             ChaseCameraSettings cameraSettings = CreateOrLoad<ChaseCameraSettings>(CameraSettingsPath);
+            AI.PursuitSettings pursuitSettings = CreateOrLoad<AI.PursuitSettings>(PursuitSettingsPath);
             GameObject carPrefab = BuildCarPrefab(carConfig);
+            GameObject policeCarPrefab = BuildPoliceCarPrefab(carConfig, pursuitSettings);
             AssetDatabase.SaveAssets();
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
@@ -53,6 +57,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 city.settings = citySettings;
                 city.carPrefab = carPrefab;              // enables the Create Car button
                 city.chaseCameraSettings = cameraSettings;
+                city.policeCarPrefab = policeCarPrefab;  // wired police fields spawn the PatrolManager at play
+                city.pursuitSettings = pursuitSettings;
                 city.Recalculate();
             }
             else
@@ -111,46 +117,89 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             var root = new GameObject("TestCar");
             try
             {
-                var body = root.AddComponent<Rigidbody>();
-                body.mass = config.mass;
-                body.interpolation = RigidbodyInterpolation.Interpolate; // ChaseCamera reads the pose in LateUpdate
-                body.collisionDetectionMode = CollisionDetectionMode.Continuous;
-
-                // Chassis: one box collider on the body, cabin is visual only.
-                // Body is narrower than the wheel track so the wheels show.
-                AddBox(root.transform, "Body", bodyMat, new Vector3(0f, 0.55f, 0f), new Vector3(1.6f, 0.6f, 4.2f), withCollider: true);
-                AddBox(root.transform, "Cabin", cabinMat, new Vector3(0f, 1f, -0.35f), new Vector3(1.4f, 0.4f, 1.9f), withCollider: false);
-
-                var wheels = new GameObject("Wheels");
-                wheels.transform.SetParent(root.transform, false);
-
-                WheelCollider fl = BuildWheel(wheels.transform, "FL", new Vector3(-0.85f, 0.45f, 1.35f));
-                WheelCollider fr = BuildWheel(wheels.transform, "FR", new Vector3(0.85f, 0.45f, 1.35f));
-                WheelCollider rl = BuildWheel(wheels.transform, "RL", new Vector3(-0.85f, 0.45f, -1.35f));
-                WheelCollider rr = BuildWheel(wheels.transform, "RR", new Vector3(0.85f, 0.45f, -1.35f));
-
-                var visuals = new GameObject("WheelVisuals");
-                visuals.transform.SetParent(root.transform, false);
-
+                BuildVehicleBase(root, config, bodyMat, cabinMat, wheelMat);
                 root.AddComponent<CarInput>();
-                var controller = root.AddComponent<CarController>();
-                controller.config = config;
-                controller.frontLeft = fl;
-                controller.frontRight = fr;
-                controller.rearLeft = rl;
-                controller.rearRight = rr;
-                controller.frontLeftVisual = BuildWheelVisual(visuals.transform, "FL_Visual", fl.transform.localPosition, wheelMat);
-                controller.frontRightVisual = BuildWheelVisual(visuals.transform, "FR_Visual", fr.transform.localPosition, wheelMat);
-                controller.rearLeftVisual = BuildWheelVisual(visuals.transform, "RL_Visual", rl.transform.localPosition, wheelMat);
-                controller.rearRightVisual = BuildWheelVisual(visuals.transform, "RR_Visual", rr.transform.localPosition, wheelMat);
                 root.AddComponent<CarRespawner>();
-
                 return PrefabUtility.SaveAsPrefabAsset(root, CarPrefabPath);
             }
             finally
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        /// <summary>
+        /// White-and-dark cruiser with a flashing red/blue light bar, driven
+        /// by PoliceCarInput — same chassis and CarConfig as the player car,
+        /// only the driver differs.
+        /// </summary>
+        static GameObject BuildPoliceCarPrefab(CarConfig config, AI.PursuitSettings pursuitSettings)
+        {
+            Material bodyMat = CreateOrUpdateMaterial("TestPolice_Body", new Color(0.92f, 0.92f, 0.95f));
+            Material cabinMat = CreateOrUpdateMaterial("TestPolice_Cabin", new Color(0.1f, 0.1f, 0.14f));
+            Material wheelMat = CreateOrUpdateMaterial("TestCar_Wheel", new Color(0.08f, 0.08f, 0.08f));
+            Material redMat = CreateOrUpdateMaterial("TestPolice_Red", new Color(1f, 0.1f, 0.1f));
+            Material blueMat = CreateOrUpdateMaterial("TestPolice_Blue", new Color(0.15f, 0.35f, 1f));
+
+            var root = new GameObject("TestPoliceCar");
+            try
+            {
+                BuildVehicleBase(root, config, bodyMat, cabinMat, wheelMat);
+
+                // Light bar on the cabin roof.
+                AddBox(root.transform, "LightBarBase", cabinMat, new Vector3(0f, 1.26f, -0.35f), new Vector3(0.9f, 0.12f, 0.4f), withCollider: false);
+                GameObject red = AddBox(root.transform, "LightRed", redMat, new Vector3(-0.22f, 1.4f, -0.35f), new Vector3(0.4f, 0.16f, 0.34f), withCollider: false);
+                GameObject blue = AddBox(root.transform, "LightBlue", blueMat, new Vector3(0.22f, 1.4f, -0.35f), new Vector3(0.4f, 0.16f, 0.34f), withCollider: false);
+                var lights = root.AddComponent<AI.PoliceLights>();
+                lights.redLight = red.GetComponent<Renderer>();
+                lights.blueLight = blue.GetComponent<Renderer>();
+
+                var driver = root.AddComponent<AI.PoliceCarInput>();
+                driver.settings = pursuitSettings; // PatrolManager re-assigns at spawn; wired here so a hand-placed car works too
+
+                return PrefabUtility.SaveAsPrefabAsset(root, PoliceCarPrefabPath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>Shared chassis: rigidbody, body/cabin boxes, four wheels + visuals, CarController wired to the config.</summary>
+        static CarController BuildVehicleBase(GameObject root, CarConfig config, Material bodyMat, Material cabinMat, Material wheelMat)
+        {
+            var body = root.AddComponent<Rigidbody>();
+            body.mass = config.mass;
+            body.interpolation = RigidbodyInterpolation.Interpolate; // ChaseCamera reads the pose in LateUpdate
+            body.collisionDetectionMode = CollisionDetectionMode.Continuous;
+
+            // Chassis: one box collider on the body, cabin is visual only.
+            // Body is narrower than the wheel track so the wheels show.
+            AddBox(root.transform, "Body", bodyMat, new Vector3(0f, 0.55f, 0f), new Vector3(1.6f, 0.6f, 4.2f), withCollider: true);
+            AddBox(root.transform, "Cabin", cabinMat, new Vector3(0f, 1f, -0.35f), new Vector3(1.4f, 0.4f, 1.9f), withCollider: false);
+
+            var wheels = new GameObject("Wheels");
+            wheels.transform.SetParent(root.transform, false);
+
+            WheelCollider fl = BuildWheel(wheels.transform, "FL", new Vector3(-0.85f, 0.45f, 1.35f));
+            WheelCollider fr = BuildWheel(wheels.transform, "FR", new Vector3(0.85f, 0.45f, 1.35f));
+            WheelCollider rl = BuildWheel(wheels.transform, "RL", new Vector3(-0.85f, 0.45f, -1.35f));
+            WheelCollider rr = BuildWheel(wheels.transform, "RR", new Vector3(0.85f, 0.45f, -1.35f));
+
+            var visuals = new GameObject("WheelVisuals");
+            visuals.transform.SetParent(root.transform, false);
+
+            var controller = root.AddComponent<CarController>();
+            controller.config = config;
+            controller.frontLeft = fl;
+            controller.frontRight = fr;
+            controller.rearLeft = rl;
+            controller.rearRight = rr;
+            controller.frontLeftVisual = BuildWheelVisual(visuals.transform, "FL_Visual", fl.transform.localPosition, wheelMat);
+            controller.frontRightVisual = BuildWheelVisual(visuals.transform, "FR_Visual", fr.transform.localPosition, wheelMat);
+            controller.rearLeftVisual = BuildWheelVisual(visuals.transform, "RL_Visual", rl.transform.localPosition, wheelMat);
+            controller.rearRightVisual = BuildWheelVisual(visuals.transform, "RR_Visual", rr.transform.localPosition, wheelMat);
+            return controller;
         }
 
         static WheelCollider BuildWheel(Transform parent, string name, Vector3 localPosition)
@@ -210,7 +259,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             return asset;
         }
 
-        static void AddBox(Transform parent, string name, Material material, Vector3 localPosition, Vector3 localScale, bool withCollider)
+        static GameObject AddBox(Transform parent, string name, Material material, Vector3 localPosition, Vector3 localScale, bool withCollider)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = name;
@@ -219,6 +268,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             go.transform.localPosition = localPosition;
             go.transform.localScale = localScale;
             go.GetComponent<MeshRenderer>().sharedMaterial = material;
+            return go;
         }
 
         static Material CreateOrUpdateMaterial(string name, Color color)

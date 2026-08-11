@@ -31,6 +31,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Camera-feel settings for the ChaseCamera attached to the main camera when the car spawns.")]
         public Vehicles.ChaseCameraSettings chaseCameraSettings;
 
+        [TitleGroup("Police")]
+        [AssetsOnly]
+        [Tooltip("Police car prefab — needs a CarController and a PoliceCarInput on its root. When both police fields are wired, a PatrolManager is spawned at play start.")]
+        public GameObject policeCarPrefab;
+
+        [TitleGroup("Police")]
+        [Tooltip("All pursuit tunables (fleet size, detection, driving) live on this asset.")]
+        public AI.PursuitSettings pursuitSettings;
+
+        /// <summary>Waypoint graph over the generated roads — the AI's navigation source. Rebuilt on every Recalculate; null before the first one.</summary>
+        public RoadGraph Graph { get; private set; }
+
         [TitleGroup("Gizmos")]
         [Tooltip("Draw the grid model overlay (road cells, chunk borders, seed labels).")]
         public bool drawGizmos = true;
@@ -41,7 +53,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         {
             // Generated content is never saved with the scene, so a play-mode
             // session always starts empty and rebuilds from seed + settings.
-            if (Application.isPlaying) Recalculate();
+            if (!Application.isPlaying) return;
+            Recalculate();
+
+            // Police fleet: the manager is spawned, not scene-placed, so any
+            // scene with a wired CityManager gets patrols with zero setup.
+            if (policeCarPrefab != null && pursuitSettings != null)
+            {
+                var managerGo = new GameObject("PatrolManager");
+                var patrolManager = managerGo.AddComponent<AI.PatrolManager>();
+                patrolManager.settings = pursuitSettings;
+                patrolManager.policeCarPrefab = policeCarPrefab;
+            }
         }
 
         // ------------------------------------------------------------- buttons
@@ -60,6 +83,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             settings.PrepareSeedForRecalculate();
 
             Clear();
+            Graph = new RoadGraph(settings.cellSize);
             int half = settings.initialCitySizeInChunks / 2;
             int size = settings.initialCitySizeInChunks;
             for (int cy = -half; cy < size - half; cy++)
@@ -67,6 +91,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             {
                 var coord = new Vector2Int(cx, cy);
                 var data = RoadNetworkGenerator.Generate(settings, coord);
+                Graph.RegisterChunk(data);
                 BuildChunk(coord, data);
             }
         }
@@ -303,7 +328,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// ~4 m, so the chunk ground colliders (top at y = 0) never trip it
         /// and tiny roof overhangs at the very border are tolerated.
         /// </summary>
-        bool IsCellClear(Vector3 cellCenter)
+        public bool IsCellClear(Vector3 cellCenter)
         {
             float half = settings.cellSize * 0.45f;
             var halfExtents = new Vector3(half, 2f, half);

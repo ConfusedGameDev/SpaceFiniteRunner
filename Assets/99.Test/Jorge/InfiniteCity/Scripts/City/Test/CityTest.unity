@@ -340,6 +340,8 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: c9332aaf5c158de489354c3081458a2c, type: 2}
   carPrefab: {fileID: 2862266193195909051, guid: cf44c16b0189644089abc1830c09fe3c, type: 3}
   chaseCameraSettings: {fileID: 11400000, guid: a75a5e8a752d94ef9b39389cd38497de, type: 2}
+  policeCarPrefab: {fileID: 2862266193195909051, guid: cf44c16b0189644089abc1830c09fe3c, type: 3}
+  pursuitSettings: {fileID: 11400000, guid: eb235918e6d2545d9a114d33dfe1c4ad, type: 2}
   drawGizmos: 1
 --- !u!4 &863037763
 Transform:
