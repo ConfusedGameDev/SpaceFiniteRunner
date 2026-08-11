@@ -40,6 +40,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("All pursuit tunables (fleet size, detection, driving) live on this asset.")]
         public AI.PursuitSettings pursuitSettings;
 
+        [TitleGroup("UI")]
+        [Tooltip("Circular radar settings — when assigned, a minimap is spawned at play start (bottom-right, GTA-style).")]
+        public UI.MinimapSettings minimapSettings;
+
         /// <summary>Waypoint graph over the generated roads — the AI's navigation source. Rebuilt on every Recalculate; null before the first one.</summary>
         public RoadGraph Graph { get; private set; }
 
@@ -67,6 +71,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 var patrolManager = managerGo.AddComponent<AI.PatrolManager>();
                 patrolManager.settings = pursuitSettings;
                 patrolManager.policeCarPrefab = policeCarPrefab;
+            }
+
+            // Radar: same deal — spawned when wired, builds its own canvas.
+            if (minimapSettings != null)
+            {
+                var minimapGo = new GameObject("Minimap");
+                minimapGo.AddComponent<UI.Minimap>().settings = minimapSettings;
             }
         }
 

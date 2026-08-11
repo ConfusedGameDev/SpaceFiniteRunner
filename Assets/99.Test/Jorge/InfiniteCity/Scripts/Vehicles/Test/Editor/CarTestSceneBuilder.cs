@@ -27,6 +27,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string CarConfigPath = TestFolder + "/TestCarConfig.asset";
         const string CameraSettingsPath = TestFolder + "/TestChaseCameraSettings.asset";
         const string PursuitSettingsPath = TestFolder + "/TestPursuitSettings.asset";
+        const string MinimapSettingsPath = TestFolder + "/TestMinimapSettings.asset";
         const string CitySettingsPath = "Assets/99.Test/Jorge/InfiniteCity/Scripts/City/Test/CityTestSettings.asset";
 
         [MenuItem("Tools/Police Escape/Create Car Test Scene")]
@@ -42,6 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             CarConfig carConfig = CreateOrLoad<CarConfig>(CarConfigPath);
             ChaseCameraSettings cameraSettings = CreateOrLoad<ChaseCameraSettings>(CameraSettingsPath);
             AI.PursuitSettings pursuitSettings = CreateOrLoad<AI.PursuitSettings>(PursuitSettingsPath);
+            UI.MinimapSettings minimapSettings = CreateOrLoad<UI.MinimapSettings>(MinimapSettingsPath);
             GameObject carPrefab = BuildCarPrefab(carConfig);
             GameObject policeCarPrefab = BuildPoliceCarPrefab(carConfig, pursuitSettings);
             AssetDatabase.SaveAssets();
@@ -59,6 +61,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 city.chaseCameraSettings = cameraSettings;
                 city.policeCarPrefab = policeCarPrefab;  // wired police fields spawn the PatrolManager at play
                 city.pursuitSettings = pursuitSettings;
+                city.minimapSettings = minimapSettings;  // wired minimap settings spawn the radar at play
                 city.Recalculate();
             }
             else
