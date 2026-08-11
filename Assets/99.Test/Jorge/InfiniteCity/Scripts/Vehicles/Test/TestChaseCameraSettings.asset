@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adfa5a74664764885b2572ac3e559444, type: 3}
+  m_Name: TestChaseCameraSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.ChaseCameraSettings
+  followDistance: 7
+  followHeight: 3
+  lookHeight: 1.2
+  positionSmoothTime: 0.15
+  lookSharpness: 10
+  velocityAlignment: 0.6
+  lookAhead: 0.4
+  baseFov: 60
+  fovPerKmh: 0.08
+  maxFovBoost: 15

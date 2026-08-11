@@ -203,6 +203,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             var manager = managerGo.AddComponent<CityManager>();
             manager.settings = settings;
 
+            // Wire the car test assets when they exist, so the Create Car
+            // button works in this scene too (built by CarTestSceneBuilder).
+            manager.carPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/99.Test/Jorge/InfiniteCity/Scripts/Vehicles/Test/TestCar.prefab");
+            manager.chaseCameraSettings = AssetDatabase.LoadAssetAtPath<Vehicles.ChaseCameraSettings>(
+                "Assets/99.Test/Jorge/InfiniteCity/Scripts/Vehicles/Test/TestChaseCameraSettings.asset");
+
             // Overhead vantage so one glance shows the whole first chunk.
             var camera = Camera.main;
             if (camera != null)

@@ -94,6 +94,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Building set the populator fills non-road cells from. Leave empty for roads only. Later, districts can pick different sets by noise.")]
         public Population.BuildingSet buildingSet;
 
+        // ------------------------------------------------------------- physics
+        [TitleGroup("Physics")]
+        [Tooltip("Add colliders to generated content: a flat ground slab per chunk (top at road level, y = 0) and a fitted box per building — enough for WheelCollider driving without per-mesh colliders.")]
+        public bool generateColliders = true;
+
         // -------------------------------------------------------------- pieces
         [TitleGroup("Road pieces")]
         [Tooltip("Scale spawned pieces so their footprint fills the cell exactly (cell size ÷ native size). Leave on unless the assets already match the cell size.")]

@@ -22,6 +22,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("All generation tunables live on this asset — add new knobs there, not here.")]
         public CityGenerationSettings settings;
 
+        [TitleGroup("Player car")]
+        [AssetsOnly]
+        [Tooltip("Car prefab dropped by Create Car — needs a CarController and an ICarInput on its root.")]
+        public GameObject carPrefab;
+
+        [TitleGroup("Player car")]
+        [Tooltip("Camera-feel settings for the ChaseCamera attached to the main camera when the car spawns.")]
+        public Vehicles.ChaseCameraSettings chaseCameraSettings;
+
         [TitleGroup("Gizmos")]
         [Tooltip("Draw the grid model overlay (road cells, chunk borders, seed labels).")]
         public bool drawGizmos = true;
@@ -82,6 +91,50 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 }
                 PopulateChunk(chunk.transform, chunk.Data);
             }
+        }
+
+        /// <summary>
+        /// Drop the player car on a random road cell, already rolling
+        /// (CarConfig.spawnSpeedKmh) and facing along the road, with the chase
+        /// camera retargeted. The factory removes any existing car first, so
+        /// pressing this repeatedly always leaves exactly one car.
+        /// </summary>
+        [TitleGroup("Actions")]
+        [Button("Create Car", ButtonSizes.Large), GUIColor(0.6f, 0.8f, 1f)]
+        [EnableIf("@UnityEngine.Application.isPlaying")]
+        public void CreateCar()
+        {
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("CityManager: Create Car works in play mode — the car is physics-driven.");
+                return;
+            }
+            if (carPrefab == null)
+            {
+                Debug.LogWarning("CityManager: assign a car prefab first.");
+                return;
+            }
+            // Preferred: a straight piece with a clear runway ahead, so the
+            // rolling start never launches into a corner or junction.
+            if (!TryGetRandomStraightSpawn(SpawnRunwayCells(), out Vector3 center, out float yaw))
+            {
+                if (!TryGetRandomRoadCell(out center, out EdgeMask connections))
+                {
+                    Debug.LogWarning("CityManager: no road cells found — Recalculate first.");
+                    return;
+                }
+                yaw = RandomConnectedYaw(connections);
+                Debug.LogWarning($"CityManager: no straight stretch with {SpawnRunwayCells()} clear cells ahead — spawning on a random road cell instead. Longer arterials (lower arterialSpacing jitter) or a shorter spawnRunwayCells fix this.");
+            }
+
+            Vehicles.CarFactory.Spawn(carPrefab, chaseCameraSettings, center, yaw);
+        }
+
+        /// <summary>Runway length demanded by the car prefab's config (CarConfig.spawnRunwayCells), with a safe default when unwired.</summary>
+        int SpawnRunwayCells()
+        {
+            var controller = carPrefab != null ? carPrefab.GetComponent<Vehicles.CarController>() : null;
+            return controller != null && controller.config != null ? controller.config.spawnRunwayCells : 4;
         }
 
         [TitleGroup("Actions")]
@@ -147,7 +200,245 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             foreach (var mask in missingMasks)
                 Debug.LogWarning($"CityManager: no road piece matches socket mask [{mask}] — those cells were left empty. Add a matching piece to the settings (dead ends need a single-socket piece).");
 
+            if (settings.generateColliders)
+            {
+                // One flat slab per chunk, top at road level (y = 0) — roads and
+                // lots alike are drivable; buildings block with their own boxes.
+                float side = settings.chunkSizeInCells * settings.cellSize;
+                var ground = chunkGo.AddComponent<BoxCollider>();
+                ground.center = new Vector3(side * 0.5f, -0.5f, side * 0.5f);
+                ground.size = new Vector3(side, 1f, side);
+            }
+
             PopulateChunk(chunkGo.transform, data);
+        }
+
+        /// <summary>
+        /// Nearest road cell center (and its connection mask) across all built
+        /// chunks — used for car spawning and respawning. Prefers cells whose
+        /// airspace is physically clear (building meshes can overhang road
+        /// cells the grid model calls free); falls back to any road cell so a
+        /// cluttered network still returns something. Brute-force over the
+        /// grid models — flagged for replacement by the RoadGraph in M5.
+        /// </summary>
+        public bool TryFindNearestRoadCell(Vector3 from, out Vector3 center, out EdgeMask connections)
+        {
+            center = default;
+            connections = EdgeMask.None;
+            if (settings == null) return false;
+
+            Physics.SyncTransforms(); // colliders may have been created this frame
+            return PickNearestRoadCell(from, true, ref center, ref connections)
+                || PickNearestRoadCell(from, false, ref center, ref connections);
+        }
+
+        /// <summary>
+        /// Uniformly random road cell across all built chunks (reservoir pick,
+        /// single pass — no allocation of the full cell list). Same clearance
+        /// preference and fallback as <see cref="TryFindNearestRoadCell"/>.
+        /// Not tied to the city's deterministic seed: every press is a fresh spot.
+        /// </summary>
+        public bool TryGetRandomRoadCell(out Vector3 center, out EdgeMask connections)
+        {
+            center = default;
+            connections = EdgeMask.None;
+            if (settings == null) return false;
+
+            Physics.SyncTransforms();
+            return PickRandomRoadCell(true, ref center, ref connections)
+                || PickRandomRoadCell(false, ref center, ref connections);
+        }
+
+        bool PickNearestRoadCell(Vector3 from, bool requireClear, ref Vector3 center, ref EdgeMask connections)
+        {
+            float bestSqr = float.MaxValue;
+            foreach ((Vector3 candidate, EdgeMask mask) in RoadCells())
+            {
+                float sqr = (candidate - from).sqrMagnitude;
+                if (sqr >= bestSqr) continue;
+                if (requireClear && !IsCellClear(candidate)) continue;
+                bestSqr = sqr;
+                center = candidate;
+                connections = mask;
+            }
+            return bestSqr < float.MaxValue;
+        }
+
+        bool PickRandomRoadCell(bool requireClear, ref Vector3 center, ref EdgeMask connections)
+        {
+            int seen = 0;
+            foreach ((Vector3 candidate, EdgeMask mask) in RoadCells())
+            {
+                if (requireClear && !IsCellClear(candidate)) continue;
+                seen++;
+                if (Random.Range(0, seen) != 0) continue;
+                center = candidate;
+                connections = mask;
+            }
+            return seen > 0;
+        }
+
+        /// <summary>Every road cell center + connection mask across the built chunks.</summary>
+        IEnumerable<(Vector3 center, EdgeMask connections)> RoadCells()
+        {
+            float cell = settings.cellSize;
+            foreach (var chunk in GetComponentsInChildren<CityChunk>())
+            {
+                if (chunk.Data == null) continue;
+                Vector3 origin = chunk.transform.position;
+                for (int y = 0; y < chunk.Data.SizeInCells; y++)
+                for (int x = 0; x < chunk.Data.SizeInCells; x++)
+                {
+                    if (!chunk.Data.IsRoad(x, y)) continue;
+                    yield return (origin + new Vector3((x + 0.5f) * cell, 0f, (y + 0.5f) * cell),
+                        chunk.Data.GetConnections(x, y));
+                }
+            }
+        }
+
+        /// <summary>
+        /// True when nothing solid (building box, overhanging mesh collider,
+        /// the previous car) intrudes into the cell's airspace. The checked
+        /// box covers 90% of the cell from just above the ground slab up to
+        /// ~4 m, so the chunk ground colliders (top at y = 0) never trip it
+        /// and tiny roof overhangs at the very border are tolerated.
+        /// </summary>
+        bool IsCellClear(Vector3 cellCenter)
+        {
+            float half = settings.cellSize * 0.45f;
+            var halfExtents = new Vector3(half, 2f, half);
+            return !Physics.CheckBox(cellCenter + Vector3.up * (halfExtents.y + 0.05f), halfExtents,
+                Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
+        }
+
+        /// <summary>
+        /// Random spawn pose on a straight road cell with at least
+        /// <paramref name="runwayCells"/> more straight cells ahead in the
+        /// facing direction — a launch runway, never a corner, junction or
+        /// building cell. Reservoir-sampled so every qualifying (cell,
+        /// direction) pair is equally likely.
+        /// </summary>
+        public bool TryGetRandomStraightSpawn(int runwayCells, out Vector3 center, out float yaw)
+        {
+            center = default;
+            yaw = 0f;
+            if (settings == null) return false;
+
+            Physics.SyncTransforms();
+            int seen = 0;
+            foreach ((Vector3 candidate, float candidateYaw) in StraightSpawns(runwayCells))
+            {
+                seen++;
+                if (Random.Range(0, seen) != 0) continue;
+                center = candidate;
+                yaw = candidateYaw;
+            }
+            return seen > 0;
+        }
+
+        /// <summary>Nearest qualifying straight-runway spawn pose (see <see cref="TryGetRandomStraightSpawn"/>).</summary>
+        public bool TryFindNearestStraightSpawn(Vector3 from, int runwayCells, out Vector3 center, out float yaw)
+        {
+            center = default;
+            yaw = 0f;
+            if (settings == null) return false;
+
+            Physics.SyncTransforms();
+            float bestSqr = float.MaxValue;
+            foreach ((Vector3 candidate, float candidateYaw) in StraightSpawns(runwayCells))
+            {
+                float sqr = (candidate - from).sqrMagnitude;
+                if (sqr >= bestSqr) continue;
+                bestSqr = sqr;
+                center = candidate;
+                yaw = candidateYaw;
+            }
+            return bestSqr < float.MaxValue;
+        }
+
+        /// <summary>
+        /// Every (cell center, yaw) pose sitting on a straight road piece with
+        /// a clear straight runway ahead — clear both in the grid model (only
+        /// straight pieces, same axis) and physically (no building geometry
+        /// intruding into the spawn cell or any runway cell; meshes can
+        /// overhang cells the grid calls road). Runways are checked within a
+        /// single chunk's grid — cells whose runway would cross a chunk border
+        /// simply don't qualify, which plenty of arterial cells survive.
+        /// </summary>
+        IEnumerable<(Vector3 center, float yaw)> StraightSpawns(int runwayCells)
+        {
+            float cell = settings.cellSize;
+            foreach (var chunk in GetComponentsInChildren<CityChunk>())
+            {
+                if (chunk.Data == null) continue;
+                ChunkData data = chunk.Data;
+                Vector3 origin = chunk.transform.position;
+                for (int y = 0; y < data.SizeInCells; y++)
+                for (int x = 0; x < data.SizeInCells; x++)
+                {
+                    if (!IsStraightRoad(data, x, y, out bool northSouth)) continue;
+                    for (int side = 0; side < 2; side++)
+                    {
+                        int dir = side * 2 + (northSouth ? 0 : 1); // N/S or E/W, both ways
+                        if (!HasStraightRunway(data, x, y, dir, runwayCells)) continue;
+                        if (!IsRunwayPhysicallyClear(origin, x, y, dir, runwayCells)) continue;
+                        yield return (origin + new Vector3((x + 0.5f) * cell, 0f, (y + 0.5f) * cell), dir * 90f);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Physics pass over spawn cell + runway: every cell's airspace must be free of intruding geometry. Data checks run first, so this only ever probes short qualifying stretches.</summary>
+        bool IsRunwayPhysicallyClear(Vector3 origin, int x, int y, int dir, int runwayCells)
+        {
+            float cell = settings.cellSize;
+            Vector2Int step = EdgeMaskUtility.Offset(dir);
+            for (int i = 0; i <= runwayCells; i++)
+            {
+                Vector3 center = origin + new Vector3(
+                    (x + step.x * i + 0.5f) * cell, 0f, (y + step.y * i + 0.5f) * cell);
+                if (!IsCellClear(center)) return false;
+            }
+            return true;
+        }
+
+        static bool IsStraightRoad(ChunkData data, int x, int y, out bool northSouth)
+        {
+            northSouth = false;
+            if (!data.InBounds(x, y) || !data.IsRoad(x, y)) return false;
+            EdgeMask mask = data.GetConnections(x, y);
+            if (mask == (EdgeMask.North | EdgeMask.South))
+            {
+                northSouth = true;
+                return true;
+            }
+            return mask == (EdgeMask.East | EdgeMask.West);
+        }
+
+        static bool HasStraightRunway(ChunkData data, int x, int y, int dir, int length)
+        {
+            Vector2Int step = EdgeMaskUtility.Offset(dir);
+            bool wantNorthSouth = dir == 0 || dir == 2;
+            for (int i = 1; i <= length; i++)
+            {
+                if (!IsStraightRoad(data, x + step.x * i, y + step.y * i, out bool northSouth) || northSouth != wantNorthSouth)
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>Yaw (degrees, 0 = +Z) of a random direction the cell actually connects to, so a spawned car launches along the road.</summary>
+        static float RandomConnectedYaw(EdgeMask connections)
+        {
+            int count = 0;
+            int picked = 0;
+            for (int dir = 0; dir < 4; dir++)
+            {
+                if ((connections & EdgeMaskUtility.DirectionBit(dir)) == 0) continue;
+                count++;
+                if (Random.Range(0, count) == 0) picked = dir;
+            }
+            return count > 0 ? picked * 90f : 0f;
         }
 
         void PopulateChunk(Transform chunkRoot, ChunkData data)
