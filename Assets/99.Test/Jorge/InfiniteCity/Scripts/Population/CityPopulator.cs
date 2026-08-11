@@ -18,7 +18,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
     {
         const int SaltPopulate = 505;
 
-        public static void Populate(CityGenerationSettings settings, ChunkData data, Transform buildingsRoot)
+        /// <summary>
+        /// Fill the chunk's lots. With a <paramref name="scheduler"/>, every
+        /// Instantiate is handed off to it (the streamer's per-frame budget
+        /// queue) instead of run inline — but all placement decisions and RNG
+        /// draws still happen here, in order, so a streamed chunk is
+        /// identical to an instantly built one.
+        /// </summary>
+        public static void Populate(CityGenerationSettings settings, ChunkData data, Transform buildingsRoot,
+            System.Action<System.Action> scheduler = null)
         {
             BuildingSet set = settings.buildingSet;
             if (set == null || set.buildings == null || set.buildings.Count == 0) return;
@@ -27,7 +35,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
             var occupied = new bool[data.SizeInCells * data.SizeInCells];
 
             foreach (List<Vector2Int> lot in FindLots(data))
-                FillLot(settings, set, data, lot, occupied, rng, buildingsRoot);
+                FillLot(settings, set, data, lot, occupied, rng, buildingsRoot, scheduler);
         }
 
         // ----------------------------------------------------------------- lots
@@ -72,7 +80,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
         // ------------------------------------------------------------ placement
 
         static void FillLot(CityGenerationSettings settings, BuildingSet set, ChunkData data,
-            List<Vector2Int> lot, bool[] occupied, System.Random rng, Transform buildingsRoot)
+            List<Vector2Int> lot, bool[] occupied, System.Random rng, Transform buildingsRoot,
+            System.Action<System.Action> scheduler)
         {
             foreach (Vector2Int cell in lot)
             {
@@ -102,7 +111,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
                 }
 
                 Occupy(data, occupied, cell, picked.w, picked.h, picked.def.minSpacing);
-                Spawn(settings, set, data, cell, picked, rng, buildingsRoot);
+                Spawn(settings, set, data, cell, picked, rng, buildingsRoot, scheduler);
             }
         }
 
@@ -143,30 +152,43 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
         // ------------------------------------------------------------- spawning
 
         static void Spawn(CityGenerationSettings settings, BuildingSet set, ChunkData data,
-            Vector2Int cell, (BuildingDefinition def, int w, int h) placed, System.Random rng, Transform buildingsRoot)
+            Vector2Int cell, (BuildingDefinition def, int w, int h) placed, System.Random rng, Transform buildingsRoot,
+            System.Action<System.Action> scheduler)
         {
             (BuildingDefinition def, int w, int h) = placed;
             int facing = PickFacing(settings, data, cell, w, h, def.footprintInCells.x != def.footprintInCells.y && w != def.footprintInCells.x);
 
+            // All RNG draws happen here, in the same order as instant builds —
+            // only the Instantiate below may be deferred to the spawn budget.
             float cellSize = settings.cellSize;
-            var instance = Object.Instantiate(def.prefab, buildingsRoot);
-            CityManager.ApplyGeneratedFlags(instance);
-
             float jitterX = ((float)rng.NextDouble() * 2f - 1f) * def.positionJitter * cellSize;
             float jitterZ = ((float)rng.NextDouble() * 2f - 1f) * def.positionJitter * cellSize;
-            instance.transform.localPosition = new Vector3(
+            var localPosition = new Vector3(
                 (cell.x + w * 0.5f) * cellSize + jitterX,
                 0f,
                 (cell.y + h * 0.5f) * cellSize + jitterZ);
 
-            instance.transform.localRotation = Quaternion.Euler(0f, facing * 90f + def.rotationOffset, 0f);
+            var localRotation = Quaternion.Euler(0f, facing * 90f + def.rotationOffset, 0f);
 
             float baseScale = set.nativeCellSize > 0.0001f ? cellSize / set.nativeCellSize : 1f;
             float uniform = baseScale * (1f + ((float)rng.NextDouble() * 2f - 1f) * def.scaleJitter);
             float height = uniform * (1f + (float)rng.NextDouble() * def.heightJitter);
-            instance.transform.localScale = new Vector3(uniform, height, uniform);
+            var localScale = new Vector3(uniform, height, uniform);
 
-            if (settings.generateColliders) AddFittedCollider(instance);
+            bool addCollider = settings.generateColliders;
+            void SpawnNow()
+            {
+                if (buildingsRoot == null) return; // chunk unloaded before its turn in the queue
+                var instance = Object.Instantiate(def.prefab, buildingsRoot);
+                CityManager.ApplyGeneratedFlags(instance);
+                instance.transform.localPosition = localPosition;
+                instance.transform.localRotation = localRotation;
+                instance.transform.localScale = localScale;
+                if (addCollider) AddFittedCollider(instance);
+            }
+
+            if (scheduler != null) scheduler(SpawnNow);
+            else SpawnNow();
         }
 
         /// <summary>

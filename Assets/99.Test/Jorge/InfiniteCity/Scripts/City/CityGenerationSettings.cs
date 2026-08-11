@@ -94,6 +94,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Building set the populator fills non-road cells from. Leave empty for roads only. Later, districts can pick different sets by noise.")]
         public Population.BuildingSet buildingSet;
 
+        // ----------------------------------------------------------- streaming
+        [TitleGroup("Streaming")]
+        [Tooltip("Stream chunks around the player at runtime: generate ahead as they approach an edge, unload far-behind chunks so the scene never overloads. Off = only the initial grid exists.")]
+        public bool endlessStreaming = true;
+
+        [TitleGroup("Streaming")]
+        [Tooltip("Chunks kept loaded in every direction around the player's chunk (1 = a 3×3 block).")]
+        [PropertyRange(1, 4)]
+        public int loadRadiusInChunks = 1;
+
+        [TitleGroup("Streaming")]
+        [Tooltip("Extra ring beyond the load radius a chunk may drift into before it is unloaded — hysteresis, so driving along a chunk border doesn't load/unload in a loop.")]
+        [PropertyRange(1, 3)]
+        public int unloadPaddingInChunks = 1;
+
+        [TitleGroup("Streaming")]
+        [Tooltip("Spawn operations (road pieces, buildings) executed per frame while streaming — the time-slice budget that keeps chunk builds hitch-free. Raise it if chunks visibly build too slowly at speed.")]
+        [PropertyRange(10, 500)]
+        public int maxSpawnsPerFrame = 80;
+
         // ------------------------------------------------------------- physics
         [TitleGroup("Physics")]
         [Tooltip("Add colliders to generated content: a flat ground slab per chunk (top at road level, y = 0) and a fitted box per building — enough for WheelCollider driving without per-mesh colliders.")]
@@ -108,6 +128,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("The road piece's native footprint in meters, before any scaling. Set by 'Measure Cell Size'.")]
         [PropertyRange(0.1f, 60f), SuffixLabel("m", true)]
         public float pieceNativeSize = 1f;
+
+        [TitleGroup("Road pieces")]
+        [Tooltip("Extra uniform scale on spawned road pieces, on top of the cell fit. Grid spacing stays cellSize — slightly above 1 overlaps neighbouring tiles to hide seams, below 1 shrinks pieces inside their cell.")]
+        [PropertyRange(0.5f, 2f)]
+        public float roadScaleMultiplier = 1f;
 
         [TitleGroup("Road pieces")]
         [TableList(AlwaysExpanded = true)]

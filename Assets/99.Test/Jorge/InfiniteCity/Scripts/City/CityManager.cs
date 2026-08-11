@@ -47,7 +47,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Draw the grid model overlay (road cells, chunk borders, seed labels).")]
         public bool drawGizmos = true;
 
-        readonly List<CityChunk> chunks = new();
+        readonly Dictionary<Vector2Int, CityChunk> chunkMap = new();
+        readonly Queue<System.Action> spawnQueue = new();
+        Vehicles.CarController streamingTarget;
+        float anchorRefreshTimer;
 
         void Awake()
         {
@@ -88,12 +91,95 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             int size = settings.initialCitySizeInChunks;
             for (int cy = -half; cy < size - half; cy++)
             for (int cx = -half; cx < size - half; cx++)
+                EnsureChunk(new Vector2Int(cx, cy), instant: true);
+        }
+
+        // ----------------------------------------------------------- streaming
+
+        void Update()
+        {
+            if (!Application.isPlaying || settings == null || !settings.endlessStreaming || Graph == null) return;
+            StreamAroundAnchor();
+            ProcessSpawnQueue();
+        }
+
+        /// <summary>
+        /// Keep loadRadius chunks alive around the anchor's chunk; unload
+        /// anything beyond loadRadius + unloadPadding. The padding is the
+        /// hysteresis: a chunk loads at one distance and unloads at a larger
+        /// one, so cruising along a border can't thrash.
+        /// </summary>
+        void StreamAroundAnchor()
+        {
+            if (!TryGetStreamingAnchor(out Vector3 anchor)) return;
+
+            float side = settings.chunkSizeInCells * settings.cellSize;
+            var center = new Vector2Int(Mathf.FloorToInt(anchor.x / side), Mathf.FloorToInt(anchor.z / side));
+
+            int load = settings.loadRadiusInChunks;
+            for (int dy = -load; dy <= load; dy++)
+            for (int dx = -load; dx <= load; dx++)
+                EnsureChunk(new Vector2Int(center.x + dx, center.y + dy), instant: false);
+
+            int unload = load + settings.unloadPaddingInChunks;
+            List<Vector2Int> toUnload = null;
+            foreach (var pair in chunkMap)
             {
-                var coord = new Vector2Int(cx, cy);
-                var data = RoadNetworkGenerator.Generate(settings, coord);
-                Graph.RegisterChunk(data);
-                BuildChunk(coord, data);
+                int distance = Mathf.Max(Mathf.Abs(pair.Key.x - center.x), Mathf.Abs(pair.Key.y - center.y));
+                if (distance <= unload) continue;
+                (toUnload ??= new List<Vector2Int>()).Add(pair.Key);
             }
+            if (toUnload == null) return;
+            foreach (Vector2Int coord in toUnload) UnloadChunk(coord);
+        }
+
+        /// <summary>Drain the time-slice budget: streamed chunks materialize a few objects per frame instead of hitching on one.</summary>
+        void ProcessSpawnQueue()
+        {
+            int budget = settings.maxSpawnsPerFrame;
+            while (budget-- > 0 && spawnQueue.Count > 0)
+                spawnQueue.Dequeue().Invoke();
+        }
+
+        void EnsureChunk(Vector2Int coord, bool instant)
+        {
+            if (chunkMap.ContainsKey(coord)) return;
+            var data = RoadNetworkGenerator.Generate(settings, coord);
+            Graph?.RegisterChunk(data);
+            BuildChunk(coord, data, instant);
+        }
+
+        void UnloadChunk(Vector2Int coord)
+        {
+            if (!chunkMap.TryGetValue(coord, out CityChunk chunk)) return;
+            chunkMap.Remove(coord);
+            if (chunk == null) return;
+            if (chunk.Data != null) Graph?.UnregisterChunk(chunk.Data);
+            Destroy(chunk.gameObject);
+        }
+
+        /// <summary>Stream around the player's car; before one exists, around the main camera.</summary>
+        bool TryGetStreamingAnchor(out Vector3 anchor)
+        {
+            anchorRefreshTimer -= Time.deltaTime;
+            if (streamingTarget == null && anchorRefreshTimer <= 0f)
+            {
+                anchorRefreshTimer = 1f;
+                streamingTarget = AI.PatrolManager.FindPlayerCar();
+            }
+            if (streamingTarget != null)
+            {
+                anchor = streamingTarget.transform.position;
+                return true;
+            }
+            var camera = Camera.main;
+            if (camera != null)
+            {
+                anchor = camera.transform.position;
+                return true;
+            }
+            anchor = default;
+            return false;
         }
 
         [TitleGroup("Actions")]
@@ -166,7 +252,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Button("Clear", ButtonSizes.Large)]
         public void Clear()
         {
-            chunks.Clear();
+            chunkMap.Clear();
+            spawnQueue.Clear();
             // Also sweep by component so orphans from before a domain reload are found.
             var stale = GetComponentsInChildren<CityChunk>(true);
             foreach (var chunk in stale)
@@ -179,7 +266,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         // ------------------------------------------------------------ building
 
-        void BuildChunk(Vector2Int coord, ChunkData data)
+        /// <summary>
+        /// Build one chunk. Cheap scaffolding (root, marker, ground collider)
+        /// is always immediate so physics and road-cell queries work right
+        /// away; the many Instantiates (road pieces, buildings) run inline
+        /// when <paramref name="instant"/>, otherwise through the streamer's
+        /// per-frame spawn budget. All picking decisions and RNG draws happen
+        /// here either way, so streamed chunks equal instant ones.
+        /// </summary>
+        void BuildChunk(Vector2Int coord, ChunkData data, bool instant)
         {
             var chunkGo = new GameObject($"Chunk_{coord.x}_{coord.y}");
             ApplyGeneratedFlags(chunkGo);
@@ -191,7 +286,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
             var chunk = chunkGo.AddComponent<CityChunk>();
             chunk.Initialize(coord, data);
-            chunks.Add(chunk);
+            chunkMap[coord] = chunk;
+
+            if (settings.generateColliders)
+            {
+                // One flat slab per chunk, top at road level (y = 0) — roads and
+                // lots alike are drivable; buildings block with their own boxes.
+                // Immediate, so a car never drives onto a floorless chunk.
+                float side = settings.chunkSizeInCells * settings.cellSize;
+                var ground = chunkGo.AddComponent<BoxCollider>();
+                ground.center = new Vector3(side * 0.5f, -0.5f, side * 0.5f);
+                ground.size = new Vector3(side, 1f, side);
+            }
 
             var roadsGo = new GameObject("Roads");
             ApplyGeneratedFlags(roadsGo);
@@ -200,6 +306,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             // Piece picking gets its own deterministic stream, separate from layout.
             var rng = new System.Random(DeterministicHash.Combine(settings.globalSeed, SaltPiecePick, coord.x, coord.y));
             var missingMasks = new HashSet<EdgeMask>();
+
+            float pieceScale = settings.roadScaleMultiplier;
+            if (settings.scaleToCellSize && settings.pieceNativeSize > 0.0001f)
+                pieceScale *= settings.cellSize / settings.pieceNativeSize;
 
             for (int y = 0; y < data.SizeInCells; y++)
             for (int x = 0; x < data.SizeInCells; x++)
@@ -214,28 +324,30 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                     continue;
                 }
 
-                var instance = Instantiate(piece.prefab, roadsGo.transform);
-                ApplyGeneratedFlags(instance);
-                instance.transform.localPosition = new Vector3((x + 0.5f) * settings.cellSize, 0f, (y + 0.5f) * settings.cellSize);
-                instance.transform.localRotation = Quaternion.Euler(0f, quarterTurns * 90f + piece.rotationOffset, 0f);
-                if (settings.scaleToCellSize && settings.pieceNativeSize > 0.0001f)
-                    instance.transform.localScale = Vector3.one * (settings.cellSize / settings.pieceNativeSize);
+                // Copies for the closure — the loop variables move on.
+                var localPosition = new Vector3((x + 0.5f) * settings.cellSize, 0f, (y + 0.5f) * settings.cellSize);
+                var localRotation = Quaternion.Euler(0f, quarterTurns * 90f + piece.rotationOffset, 0f);
+                GameObject prefab = piece.prefab;
+                float scale = pieceScale;
+                void SpawnPiece()
+                {
+                    if (roadsGo == null) return; // chunk unloaded before its turn in the queue
+                    var instance = Instantiate(prefab, roadsGo.transform);
+                    ApplyGeneratedFlags(instance);
+                    instance.transform.localPosition = localPosition;
+                    instance.transform.localRotation = localRotation;
+                    if (!Mathf.Approximately(scale, 1f))
+                        instance.transform.localScale = Vector3.one * scale;
+                }
+
+                if (instant) SpawnPiece();
+                else spawnQueue.Enqueue(SpawnPiece);
             }
 
             foreach (var mask in missingMasks)
                 Debug.LogWarning($"CityManager: no road piece matches socket mask [{mask}] — those cells were left empty. Add a matching piece to the settings (dead ends need a single-socket piece).");
 
-            if (settings.generateColliders)
-            {
-                // One flat slab per chunk, top at road level (y = 0) — roads and
-                // lots alike are drivable; buildings block with their own boxes.
-                float side = settings.chunkSizeInCells * settings.cellSize;
-                var ground = chunkGo.AddComponent<BoxCollider>();
-                ground.center = new Vector3(side * 0.5f, -0.5f, side * 0.5f);
-                ground.size = new Vector3(side, 1f, side);
-            }
-
-            PopulateChunk(chunkGo.transform, data);
+            PopulateChunk(chunkGo.transform, data, instant ? null : spawnQueue.Enqueue);
         }
 
         /// <summary>
@@ -466,13 +578,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             return count > 0 ? picked * 90f : 0f;
         }
 
-        void PopulateChunk(Transform chunkRoot, ChunkData data)
+        void PopulateChunk(Transform chunkRoot, ChunkData data, System.Action<System.Action> scheduler = null)
         {
             if (settings.buildingSet == null) return;
             var buildingsGo = new GameObject("Buildings");
             ApplyGeneratedFlags(buildingsGo);
             buildingsGo.transform.SetParent(chunkRoot, false);
-            Population.CityPopulator.Populate(settings, data, buildingsGo.transform);
+            Population.CityPopulator.Populate(settings, data, buildingsGo.transform, scheduler);
         }
 
         /// <summary>

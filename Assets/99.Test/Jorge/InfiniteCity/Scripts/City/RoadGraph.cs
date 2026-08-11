@@ -35,6 +35,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             }
         }
 
+        /// <summary>Drop an unloaded chunk's cells — the AI can no longer route through space that no longer exists.</summary>
+        public void UnregisterChunk(ChunkData data)
+        {
+            Vector2Int origin = data.WorldCellOrigin;
+            for (int y = 0; y < data.SizeInCells; y++)
+            for (int x = 0; x < data.SizeInCells; x++)
+            {
+                if (!data.IsRoad(x, y)) continue;
+                cells.Remove(new Vector2Int(origin.x + x, origin.y + y));
+            }
+        }
+
         public bool IsRoad(Vector2Int cell) => cells.ContainsKey(cell);
 
         public EdgeMask Connections(Vector2Int cell) =>
