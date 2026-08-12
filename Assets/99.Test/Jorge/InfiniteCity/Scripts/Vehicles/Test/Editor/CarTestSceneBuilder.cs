@@ -7,16 +7,19 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 {
     /// <summary>
-    /// One-click test harness for M3: builds a primitive WheelCollider car
-    /// prefab (box body, cylinder wheels), a CarConfig and ChaseCameraSettings
-    /// asset, and a saved scene with the city test layout (if its settings
-    /// asset exists), a safety-net ground collider and a PlayerCarSpawner.
-    /// The car is spawned at runtime, not baked in — every play regenerates
-    /// the city with a fresh seed, so the spawner picks a road cell then and
-    /// attaches the chase camera. Re-running rebuilds prefab and scene but
-    /// leaves existing config assets untouched, so handling tuning survives.
-    /// Drive with WASD/arrows or gamepad; Space/South = handbrake, R/North =
-    /// respawn.
+    /// One-click test harness for M3+: builds the player and police car
+    /// prefabs around the Kenney vehicle models (sedan-sports / police) —
+    /// scaled to real-car length, wheel colliders placed at the models'
+    /// wheel positions, wheel meshes re-pivoted so they spin cleanly — plus
+    /// the config assets and a saved scene with the city test layout (if its
+    /// settings asset exists), a safety-net ground collider and a
+    /// PlayerCarSpawner. The car is spawned at runtime, not baked in — every
+    /// play regenerates the city with a fresh seed. Re-running rebuilds
+    /// prefabs and scene but leaves existing config assets untouched, so
+    /// handling tuning survives; 'Rebuild Vehicle Prefabs' refreshes just the
+    /// prefabs in place (same assets, scene wiring keeps working). Drive with
+    /// WASD or gamepad; Space/South = handbrake, R/North = respawn; mouse /
+    /// right stick / arrows pan the camera.
     /// </summary>
     public static class CarTestSceneBuilder
     {
@@ -29,6 +32,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string PursuitSettingsPath = TestFolder + "/TestPursuitSettings.asset";
         const string MinimapSettingsPath = TestFolder + "/TestMinimapSettings.asset";
         const string CitySettingsPath = "Assets/99.Test/Jorge/InfiniteCity/Scripts/City/Test/CityTestSettings.asset";
+        const string PlayerModelPath = "Assets/99.Test/Jorge/InfiniteCity/Vehicles/sedan-sports.fbx";
+        const string PoliceModelPath = "Assets/99.Test/Jorge/InfiniteCity/Vehicles/police.fbx";
+        const float TargetCarLength = 4.4f; // the Kenney models are ~2.6-3.1 units long — scale them to real-car meters
 
         [MenuItem("Tools/Police Escape/Create Car Test Scene")]
         public static void CreateTestScene()
@@ -111,16 +117,25 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 
         // ------------------------------------------------------------- prefab
 
+        /// <summary>Refresh just the two vehicle prefabs in place — same assets, so every scene and CityManager wiring keeps working.</summary>
+        [MenuItem("Tools/Police Escape/Rebuild Vehicle Prefabs")]
+        public static void RebuildVehiclePrefabs()
+        {
+            EnsureFolder(TestFolder);
+            CarConfig carConfig = CreateOrLoad<CarConfig>(CarConfigPath);
+            AI.PursuitSettings pursuitSettings = CreateOrLoad<AI.PursuitSettings>(PursuitSettingsPath);
+            BuildCarPrefab(carConfig);
+            BuildPoliceCarPrefab(carConfig, pursuitSettings);
+            AssetDatabase.SaveAssets();
+            Debug.Log("CarTestSceneBuilder: vehicle prefabs rebuilt from the Kenney models.");
+        }
+
         static GameObject BuildCarPrefab(CarConfig config)
         {
-            Material bodyMat = CreateOrUpdateMaterial("TestCar_Body", new Color(0.85f, 0.25f, 0.2f));
-            Material cabinMat = CreateOrUpdateMaterial("TestCar_Cabin", new Color(0.2f, 0.3f, 0.4f));
-            Material wheelMat = CreateOrUpdateMaterial("TestCar_Wheel", new Color(0.08f, 0.08f, 0.08f));
-
             var root = new GameObject("TestCar");
             try
             {
-                BuildVehicleBase(root, config, bodyMat, cabinMat, wheelMat);
+                BuildVehicleBase(root, config, PlayerModelPath);
                 root.AddComponent<CarInput>();
                 root.AddComponent<CarRespawner>();
                 return PrefabUtility.SaveAsPrefabAsset(root, CarPrefabPath);
@@ -132,27 +147,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         }
 
         /// <summary>
-        /// White-and-dark cruiser with a flashing red/blue light bar, driven
-        /// by PoliceCarInput — same chassis and CarConfig as the player car,
-        /// only the driver differs.
+        /// Kenney police cruiser with flashing red/blue toppers on the
+        /// modeled light bar, driven by PoliceCarInput — same chassis logic
+        /// and CarConfig as the player car, only the driver differs.
         /// </summary>
         static GameObject BuildPoliceCarPrefab(CarConfig config, AI.PursuitSettings pursuitSettings)
         {
-            Material bodyMat = CreateOrUpdateMaterial("TestPolice_Body", new Color(0.92f, 0.92f, 0.95f));
-            Material cabinMat = CreateOrUpdateMaterial("TestPolice_Cabin", new Color(0.1f, 0.1f, 0.14f));
-            Material wheelMat = CreateOrUpdateMaterial("TestCar_Wheel", new Color(0.08f, 0.08f, 0.08f));
             Material redMat = CreateOrUpdateMaterial("TestPolice_Red", new Color(1f, 0.1f, 0.1f));
             Material blueMat = CreateOrUpdateMaterial("TestPolice_Blue", new Color(0.15f, 0.35f, 1f));
 
             var root = new GameObject("TestPoliceCar");
             try
             {
-                BuildVehicleBase(root, config, bodyMat, cabinMat, wheelMat);
+                BuildVehicleBase(root, config, PoliceModelPath);
 
-                // Light bar on the cabin roof.
-                AddBox(root.transform, "LightBarBase", cabinMat, new Vector3(0f, 1.26f, -0.35f), new Vector3(0.9f, 0.12f, 0.4f), withCollider: false);
-                GameObject red = AddBox(root.transform, "LightRed", redMat, new Vector3(-0.22f, 1.4f, -0.35f), new Vector3(0.4f, 0.16f, 0.34f), withCollider: false);
-                GameObject blue = AddBox(root.transform, "LightBlue", blueMat, new Vector3(0.22f, 1.4f, -0.35f), new Vector3(0.4f, 0.16f, 0.34f), withCollider: false);
+                // Flashing toppers sitting on the model's roof, over the cabin.
+                var chassis = root.GetComponent<BoxCollider>();
+                float roofY = chassis.center.y + chassis.size.y * 0.5f;
+                float barZ = chassis.center.z - chassis.size.z * 0.12f;
+                GameObject red = AddBox(root.transform, "LightRed", redMat, new Vector3(-0.2f, roofY + 0.05f, barZ), new Vector3(0.38f, 0.12f, 0.3f), withCollider: false);
+                GameObject blue = AddBox(root.transform, "LightBlue", blueMat, new Vector3(0.2f, roofY + 0.05f, barZ), new Vector3(0.38f, 0.12f, 0.3f), withCollider: false);
                 var lights = root.AddComponent<AI.PoliceLights>();
                 lights.redLight = red.GetComponent<Renderer>();
                 lights.blueLight = blue.GetComponent<Renderer>();
@@ -168,73 +182,99 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             }
         }
 
-        /// <summary>Shared chassis: rigidbody, body/cabin boxes, four wheels + visuals, CarController wired to the config.</summary>
-        static CarController BuildVehicleBase(GameObject root, CarConfig config, Material bodyMat, Material cabinMat, Material wheelMat)
+        /// <summary>
+        /// Shared chassis built around a Kenney vehicle model: rigidbody, the
+        /// model scaled to real-car length, wheel colliders placed at the
+        /// model's actual wheel positions, and a chassis box fitted to the
+        /// body. Each wheel mesh is re-pivoted onto a centered pivot — the
+        /// kit's wheel pivots sit at the axle attach point, not the wheel
+        /// center, and GetWorldPose spins the pivot.
+        /// </summary>
+        static CarController BuildVehicleBase(GameObject root, CarConfig config, string modelPath)
         {
+            var modelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+            if (modelPrefab == null)
+                throw new System.InvalidOperationException("CarTestSceneBuilder: vehicle model missing at " + modelPath);
+
             var body = root.AddComponent<Rigidbody>();
             body.mass = config.mass;
-            body.interpolation = RigidbodyInterpolation.Interpolate; // ChaseCamera reads the pose in LateUpdate
+            body.interpolation = RigidbodyInterpolation.Interpolate; // the camera reads the pose in LateUpdate
             body.collisionDetectionMode = CollisionDetectionMode.Continuous;
 
-            // Chassis: one box collider on the body, cabin is visual only.
-            // Body is narrower than the wheel track so the wheels show.
-            AddBox(root.transform, "Body", bodyMat, new Vector3(0f, 0.55f, 0f), new Vector3(1.6f, 0.6f, 4.2f), withCollider: true);
-            AddBox(root.transform, "Cabin", cabinMat, new Vector3(0f, 1f, -0.35f), new Vector3(1.4f, 0.4f, 1.9f), withCollider: false);
+            // Model, scaled so its length equals a real car's. The build root
+            // sits at the origin unrotated, so world space == root-local space.
+            var model = (GameObject)PrefabUtility.InstantiatePrefab(modelPrefab);
+            // Unpack: the wheels get re-parented out below, which a connected
+            // prefab instance would refuse (mesh/material references survive).
+            PrefabUtility.UnpackPrefabInstance(model, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            model.name = "Model";
+            model.transform.SetParent(root.transform, false);
+            model.transform.localPosition = Vector3.zero;
+            model.transform.localRotation = Quaternion.identity;
+            float scale = TargetCarLength / Mathf.Max(0.01f, CombinedBounds(model.transform).size.z);
+            model.transform.localScale = Vector3.one * scale;
 
             var wheels = new GameObject("Wheels");
             wheels.transform.SetParent(root.transform, false);
-
-            WheelCollider fl = BuildWheel(wheels.transform, "FL", new Vector3(-0.85f, 0.45f, 1.35f));
-            WheelCollider fr = BuildWheel(wheels.transform, "FR", new Vector3(0.85f, 0.45f, 1.35f));
-            WheelCollider rl = BuildWheel(wheels.transform, "RL", new Vector3(-0.85f, 0.45f, -1.35f));
-            WheelCollider rr = BuildWheel(wheels.transform, "RR", new Vector3(0.85f, 0.45f, -1.35f));
-
-            var visuals = new GameObject("WheelVisuals");
-            visuals.transform.SetParent(root.transform, false);
+            var pivots = new GameObject("WheelPivots");
+            pivots.transform.SetParent(root.transform, false);
 
             var controller = root.AddComponent<CarController>();
             controller.config = config;
-            controller.frontLeft = fl;
-            controller.frontRight = fr;
-            controller.rearLeft = rl;
-            controller.rearRight = rr;
-            controller.frontLeftVisual = BuildWheelVisual(visuals.transform, "FL_Visual", fl.transform.localPosition, wheelMat);
-            controller.frontRightVisual = BuildWheelVisual(visuals.transform, "FR_Visual", fr.transform.localPosition, wheelMat);
-            controller.rearLeftVisual = BuildWheelVisual(visuals.transform, "RL_Visual", rl.transform.localPosition, wheelMat);
-            controller.rearRightVisual = BuildWheelVisual(visuals.transform, "RR_Visual", rr.transform.localPosition, wheelMat);
+            (controller.frontLeft, controller.frontLeftVisual) = BuildModelWheel(model.transform, "wheel-front-left", wheels.transform, pivots.transform, config);
+            (controller.frontRight, controller.frontRightVisual) = BuildModelWheel(model.transform, "wheel-front-right", wheels.transform, pivots.transform, config);
+            (controller.rearLeft, controller.rearLeftVisual) = BuildModelWheel(model.transform, "wheel-back-left", wheels.transform, pivots.transform, config);
+            (controller.rearRight, controller.rearRightVisual) = BuildModelWheel(model.transform, "wheel-back-right", wheels.transform, pivots.transform, config);
+
+            // Chassis box from what's left of the model — the wheels were just
+            // re-parented out, so this is the body (plus spoiler/grill details).
+            Bounds bodyBounds = CombinedBounds(model.transform);
+            var box = root.AddComponent<BoxCollider>();
+            box.center = bodyBounds.center;
+            box.size = bodyBounds.size;
             return controller;
         }
 
-        static WheelCollider BuildWheel(Transform parent, string name, Vector3 localPosition)
+        /// <summary>
+        /// Wire one of the model's wheels: a centered pivot (the visual the
+        /// controller spins via GetWorldPose) wrapping the original mesh, and
+        /// a WheelCollider at the wheel's true center with its radius read
+        /// off the mesh bounds.
+        /// </summary>
+        static (WheelCollider collider, Transform pivot) BuildModelWheel(
+            Transform model, string wheelName, Transform collidersRoot, Transform pivotsRoot, CarConfig config)
         {
-            var go = new GameObject("Wheel_" + name);
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = localPosition;
-            var wheel = go.AddComponent<WheelCollider>();
-            wheel.radius = 0.35f;
+            Transform mesh = model.Find(wheelName);
+            if (mesh == null)
+                throw new System.InvalidOperationException("CarTestSceneBuilder: '" + wheelName + "' not found on " + model.name);
+
+            Bounds worldBounds = mesh.GetComponent<Renderer>().bounds;
+            float radius = worldBounds.extents.y;
+            Vector3 center = worldBounds.center;
+
+            var pivot = new GameObject(wheelName + "-pivot").transform;
+            pivot.SetParent(pivotsRoot, false);
+            pivot.position = center;
+            mesh.SetParent(pivot, true); // keep pose — the mesh now spins around its true center
+
+            var colliderGo = new GameObject(wheelName + "-collider");
+            colliderGo.transform.SetParent(collidersRoot, false);
+            // Attach half a suspension travel above the resting wheel center.
+            colliderGo.transform.position = center + Vector3.up * (config.suspensionDistance * 0.5f);
+            var wheel = colliderGo.AddComponent<WheelCollider>();
+            wheel.radius = radius;
             wheel.mass = 25f;
-            wheel.suspensionDistance = 0.25f; // baseline; CarController re-applies from config each step
-            return wheel;
+            wheel.suspensionDistance = config.suspensionDistance;
+            return (wheel, pivot);
         }
 
-        /// <summary>
-        /// Pivot synced by CarController via GetWorldPose, with the cylinder
-        /// mesh as a rotated child so its axis points along the axle.
-        /// </summary>
-        static Transform BuildWheelVisual(Transform parent, string name, Vector3 localPosition, Material material)
+        static Bounds CombinedBounds(Transform root)
         {
-            var pivot = new GameObject(name);
-            pivot.transform.SetParent(parent, false);
-            pivot.transform.localPosition = localPosition;
-
-            var mesh = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            mesh.name = "Mesh";
-            Object.DestroyImmediate(mesh.GetComponent<Collider>());
-            mesh.transform.SetParent(pivot.transform, false);
-            mesh.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            mesh.transform.localScale = new Vector3(0.7f, 0.125f, 0.7f); // radius 0.35, width 0.25
-            mesh.GetComponent<MeshRenderer>().sharedMaterial = material;
-            return pivot.transform;
+            var renderers = root.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return new Bounds(root.position, Vector3.one);
+            Bounds bounds = renderers[0].bounds;
+            foreach (Renderer renderer in renderers) bounds.Encapsulate(renderer.bounds);
+            return bounds;
         }
 
         // -------------------------------------------------------------- scene
