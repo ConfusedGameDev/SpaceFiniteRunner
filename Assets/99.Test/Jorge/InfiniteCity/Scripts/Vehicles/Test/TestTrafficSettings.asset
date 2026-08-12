@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a89b34446de14dabb69c0722a054a4f, type: 3}
+  m_Name: TestTrafficSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.AI.TrafficSettings
+  targetVehicleCount: 12
+  activeRadius: 250
+  despawnPadding: 50
+  minSpawnDistance: 60
+  modelScale: 1.73
+  carConfig: {fileID: 11400000, guid: 37fc7070342fe428c8400506aeca1f6e, type: 2}
+  vehicles:
+  - model: {fileID: 919132149155446097, guid: 64b6a2b5d9ea442a9b387d5e5dce2e18, type: 3}
+    weight: 1.5
+    stopsRandomly: 0
+  - model: {fileID: 919132149155446097, guid: 33077b4f22bf84f2983d4633a8703feb, type: 3}
+    weight: 1.2
+    stopsRandomly: 0
+  - model: {fileID: 919132149155446097, guid: c93d38965d43244f38267f64abd214c1, type: 3}
+    weight: 1
+    stopsRandomly: 0
+  - model: {fileID: 919132149155446097, guid: 8d4ba3433f1404d78a6e66106ae145bd, type: 3}
+    weight: 1
+    stopsRandomly: 0
+  - model: {fileID: 919132149155446097, guid: 3acae932f96884abd9547b1f990bad91, type: 3}
+    weight: 0.7
+    stopsRandomly: 0
+  - model: {fileID: 919132149155446097, guid: 5d615b953fe3d4cba83bfc07f46a44d7, type: 3}
+    weight: 1
+    stopsRandomly: 0
+  - model: {fileID: 919132149155446097, guid: f3c8ed7780dc64212be097dbe16b7b6d, type: 3}
+    weight: 0.6
+    stopsRandomly: 0
+  - model: {fileID: 919132149155446097, guid: c58fae156076a46898a7ee225fc7fdfe, type: 3}
+    weight: 0.4
+    stopsRandomly: 0
+  - model: {fileID: 919132149155446097, guid: c69bc46eccbe64e7f82c1d7fa53d379b, type: 3}
+    weight: 0.8
+    stopsRandomly: 1
+  - model: {fileID: 919132149155446097, guid: 3c44233af98ed4523b13ae693077e6d2, type: 3}
+    weight: 0.5
+    stopsRandomly: 1
+  cruiseSpeedBand: {x: 25, y: 40}
+  cornerSpeedKmh: 14
+  throttleGain: 0.12
+  waypointReachDistance: 6
+  forwardBrakeDistance: 10
+  stopEveryBand: {x: 10, y: 25}
+  stopDurationBand: {x: 2, y: 6}
+  stuckSeconds: 2
+  reverseSeconds: 1.2

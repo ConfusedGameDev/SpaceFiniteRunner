@@ -40,6 +40,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("All pursuit tunables (fleet size, detection, driving) live on this asset.")]
         public AI.PursuitSettings pursuitSettings;
 
+        [TitleGroup("Traffic")]
+        [Tooltip("Civilian traffic tunables — when assigned, a TrafficManager is spawned at play start (vehicles exist only within its active radius of the player).")]
+        public AI.TrafficSettings trafficSettings;
+
         [TitleGroup("UI")]
         [Tooltip("Circular radar settings — when assigned, a minimap is spawned at play start (bottom-right, GTA-style).")]
         public UI.MinimapSettings minimapSettings;
@@ -75,6 +79,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 var patrolManager = managerGo.AddComponent<AI.PatrolManager>();
                 patrolManager.settings = pursuitSettings;
                 patrolManager.policeCarPrefab = policeCarPrefab;
+            }
+
+            // Civilian traffic: same spawn-when-wired pattern as the police.
+            if (trafficSettings != null)
+            {
+                var trafficGo = new GameObject("TrafficManager");
+                trafficGo.AddComponent<AI.TrafficManager>().settings = trafficSettings;
             }
 
             // HUD pieces: same deal — spawned when wired, each builds its own canvas.
@@ -584,8 +595,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             return true;
         }
 
-        /// <summary>Yaw (degrees, 0 = +Z) of a random direction the cell actually connects to, so a spawned car launches along the road.</summary>
-        static float RandomConnectedYaw(EdgeMask connections)
+        /// <summary>Yaw (degrees, 0 = +Z) of a random direction the cell actually connects to, so a spawned (or recovered) car launches along the road.</summary>
+        public static float RandomConnectedYaw(EdgeMask connections)
         {
             int count = 0;
             int picked = 0;

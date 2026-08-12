@@ -45,9 +45,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         readonly List<Vector3> waypoints = new();
         readonly List<Vector2Int> pathBuffer = new();
         Vector3 lastKnownPlayerPosition;
+        Vector3 previousWaypoint;
         Vector2Int wanderFrom;
-        float repathTimer, lostSightTimer, searchTimer, stuckTimer, reverseTimer, retargetTimer;
+        bool offRoad;
+        float repathTimer, lostSightTimer, searchTimer, stuckTimer, reverseTimer, retargetTimer, lowSpeedTime;
         float lastForwardSteer;
+
+        float CellSize => city != null && city.settings != null ? city.settings.cellSize : 20f;
 
         public void Initialize(PursuitSettings pursuitSettings, CityManager cityManager)
         {
@@ -55,7 +59,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             city = cityManager;
         }
 
-        void Awake() => car = GetComponent<CarController>();
+        void Awake()
+        {
+            car = GetComponent<CarController>();
+            previousWaypoint = transform.position;
+        }
 
         void Update()
         {
@@ -67,12 +75,39 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 return;
             }
 
+            // Last-resort self-heal outside Chase: crawling for too long
+            // (reverse cycles included) → snap onto the nearest road cell.
+            if (State != AiState.Chase && car.SpeedKmh < 2f) lowSpeedTime += dt;
+            else lowSpeedTime = 0f;
+            if (lowSpeedTime >= settings.hardRecoverSeconds)
+            {
+                HardRecover();
+                return;
+            }
+
             RefreshPlayer(dt);
             bool seesPlayer = CanSeePlayer();
             if (seesPlayer) lastKnownPlayerPosition = player.transform.position;
 
             UpdateState(seesPlayer, dt);
-            PlanRoute(seesPlayer, dt);
+
+            // Roads only (except mid-Chase, where cutting a lot toward a
+            // visible player is fair game): off the grid, drop the plan and
+            // creep straight back to the nearest road cell.
+            offRoad = !city.Graph.IsRoad(city.Graph.WorldToCell(transform.position));
+            if (offRoad && State != AiState.Chase)
+            {
+                if (waypoints.Count != 1 && city.Graph.TryGetNearestCell(transform.position, out Vector2Int nearest))
+                {
+                    waypoints.Clear();
+                    waypoints.Add(city.Graph.CellCenter(nearest));
+                    previousWaypoint = transform.position;
+                }
+            }
+            else
+            {
+                PlanRoute(seesPlayer, dt);
+            }
             Drive(dt);
         }
 
@@ -124,6 +159,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             lostSightTimer = 0f;
             repathTimer = 0f;
             waypoints.Clear();
+            previousWaypoint = transform.position;
         }
 
         void PlanRoute(bool seesPlayer, float dt)
@@ -139,6 +175,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                     {
                         waypoints.Clear();
                         waypoints.Add(predicted);
+                        previousWaypoint = transform.position;
                         break;
                     }
 
@@ -152,11 +189,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
                 case AiState.Search:
                     // Reached (or failed to path to) the last known spot — sweep the nearby junctions.
-                    if (waypoints.Count == 0) ExtendWander();
+                    if (waypoints.Count == 0)
+                        for (int i = 0; waypoints.Count < 3 && i < 4; i++) ExtendWander();
                     break;
 
                 case AiState.Patrol:
-                    if (waypoints.Count < 2) ExtendWander();
+                    // Keep a few cells queued so the corner slowdown can look ahead.
+                    for (int i = 0; waypoints.Count < 3 && i < 4; i++) ExtendWander();
                     break;
             }
         }
@@ -176,8 +215,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 return;
             }
 
-            while (waypoints.Count > 0 && FlatDistance(transform.position, waypoints[0]) < settings.waypointReachDistance)
+            // Tight tracking: pop when genuinely close OR just passed — a
+            // missed waypoint must never become an orbit center.
+            float reach = Mathf.Min(settings.waypointReachDistance, CellSize * 0.4f);
+            while (waypoints.Count > 0)
+            {
+                Vector3 to = waypoints[0] - transform.position;
+                to.y = 0f;
+                bool reached = to.magnitude < reach;
+                bool passed = Vector3.Dot(transform.forward, to) < 0f && to.magnitude < reach * 2.5f;
+                if (!reached && !passed) break;
+                previousWaypoint = waypoints[0];
                 waypoints.RemoveAt(0);
+            }
 
             if (waypoints.Count == 0)
             {
@@ -186,35 +236,94 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 return;
             }
 
-            Vector3 local = transform.InverseTransformPoint(waypoints[0]);
+            // Lane discipline outside Chase: aim right of the cell center,
+            // anchored to the segment direction so the target is fixed in
+            // space (live-approach offsets rotate with the car and create
+            // merry-go-rounds); a chasing cop takes the center.
+            Vector3 target = waypoints[0];
+            if (State != AiState.Chase)
+            {
+                Vector3 segment = waypoints[0] - previousWaypoint;
+                segment.y = 0f;
+                if (segment.sqrMagnitude > 0.25f)
+                {
+                    float laneOffset = Mathf.Min(CellSize * settings.laneOffsetFraction, 2.2f);
+                    target += Vector3.Cross(Vector3.up, segment.normalized) * laneOffset;
+                }
+            }
+
+            Vector3 local = transform.InverseTransformPoint(target);
             float angle = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
             float maxSteerAngle = car.config != null ? car.config.maxSteerAngle : 35f;
             Steer = Mathf.Clamp(angle / maxSteerAngle, -1f, 1f);
             lastForwardSteer = Steer;
 
+            // Slow BEFORE the corner, not just in it: when the next leg bends,
+            // the closer we get to the corner cell the harder we brake.
+            float steerFactor = Mathf.Clamp01(1f - Mathf.Abs(angle) / 90f);
+            float approachFactor = 1f;
+            if (waypoints.Count >= 2)
+            {
+                float turnAhead = Vector3.Angle(waypoints[1] - waypoints[0], waypoints[0] - transform.position);
+                if (turnAhead > 30f)
+                    approachFactor = Mathf.Clamp01(FlatDistance(transform.position, waypoints[0]) / (CellSize * 1.2f));
+            }
             float cruise = State == AiState.Chase ? settings.chaseSpeedKmh : settings.patrolSpeedKmh;
-            float desired = Mathf.Lerp(settings.cornerSpeedKmh, cruise, Mathf.Clamp01(1f - Mathf.Abs(angle) / 90f));
-            if (ObstacleAhead()) desired = Mathf.Min(desired, settings.cornerSpeedKmh * 0.5f);
+            float desired = Mathf.Lerp(settings.cornerSpeedKmh, cruise, Mathf.Min(steerFactor, approachFactor));
+            if (offRoad && State != AiState.Chase) desired = Mathf.Min(desired, settings.cornerSpeedKmh); // creep back onto the road
+            ObstacleKind obstacle = ObstacleAhead();
+            if (obstacle == ObstacleKind.Wall) desired = 0f;
+            else if (obstacle == ObstacleKind.Vehicle) desired = Mathf.Min(desired, settings.cornerSpeedKmh * 0.5f);
             Throttle = Mathf.Clamp((desired - car.SpeedKmh) * settings.throttleGain, -1f, 1f);
 
-            bool wantsMotion = Mathf.Abs(Throttle) > 0.2f;
-            stuckTimer = wantsMotion && car.SpeedKmh < 3f ? stuckTimer + dt : 0f;
-            if (stuckTimer >= settings.stuckSeconds)
+            // Stuck escalation while standing still: walls escalate fast,
+            // vehicles patiently (Chase keeps its short fuse — back up and
+            // charge again is exactly the ramming rhythm we want).
+            bool standing = car.SpeedKmh < 3f;
+            bool wedged = obstacle == ObstacleKind.Wall || (obstacle == ObstacleKind.None && Mathf.Abs(Throttle) > 0.2f);
+            bool queued = obstacle == ObstacleKind.Vehicle;
+            stuckTimer = standing && (wedged || queued) ? stuckTimer + dt : 0f;
+            float escalation = queued && State != AiState.Chase ? settings.stuckSeconds * 3f : settings.stuckSeconds;
+            if (stuckTimer >= escalation)
             {
                 stuckTimer = 0f;
                 reverseTimer = settings.reverseSeconds;
                 waypoints.Clear();
+                previousWaypoint = transform.position;
             }
         }
 
-        /// <summary>Another car dead ahead? Brake instead of shunting it — walls are the path planner's problem, so only rigidbodies count.</summary>
-        bool ObstacleAhead()
+        /// <summary>Snap onto the nearest road cell, aligned with the road — the answer to a hopeless wedge outside Chase.</summary>
+        void HardRecover()
+        {
+            lowSpeedTime = 0f;
+            stuckTimer = 0f;
+            reverseTimer = 0f;
+            waypoints.Clear();
+
+            RoadGraph graph = city.Graph;
+            if (!graph.TryGetNearestCell(transform.position, out Vector2Int cell)) return;
+            float yaw = CityManager.RandomConnectedYaw(graph.Connections(cell));
+            car.Body.linearVelocity = Vector3.zero;
+            car.Body.angularVelocity = Vector3.zero;
+            CarFactory.Teleport(car.Body, graph.CellCenter(cell) + Vector3.up * 0.5f, Quaternion.Euler(0f, yaw, 0f));
+            previousWaypoint = transform.position;
+        }
+
+        enum ObstacleKind { None, Vehicle, Wall }
+
+        /// <summary>Another car dead ahead (brake, don't shunt) — or a wall close ahead, meaning we've left the road line.</summary>
+        ObstacleKind ObstacleAhead()
         {
             Vector3 origin = transform.position + Vector3.up * 0.6f + transform.forward * 2.6f;
             if (!Physics.Raycast(origin, transform.forward, out RaycastHit hit,
                     settings.forwardBrakeDistance, ~0, QueryTriggerInteraction.Ignore))
-                return false;
-            return hit.rigidbody != null && hit.rigidbody != car.Body;
+                return ObstacleKind.None;
+            if (hit.transform.IsChildOf(transform)) return ObstacleKind.None;
+            if (hit.rigidbody != null && hit.rigidbody != car.Body) return ObstacleKind.Vehicle;
+            return hit.rigidbody == null && hit.distance < settings.forwardBrakeDistance * 0.45f
+                ? ObstacleKind.Wall
+                : ObstacleKind.None;
         }
 
         // ------------------------------------------------------------- routing
@@ -227,6 +336,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             if (!graph.TryFindPath(start, goal, pathBuffer)) return;
 
             waypoints.Clear();
+            previousWaypoint = transform.position;
             foreach (Vector2Int cell in pathBuffer)
                 if (cell != start)
                     waypoints.Add(graph.CellCenter(cell));

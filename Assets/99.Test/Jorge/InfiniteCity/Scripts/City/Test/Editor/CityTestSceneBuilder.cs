@@ -213,6 +213,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             manager.pursuitSettings = AssetDatabase.LoadAssetAtPath<AI.PursuitSettings>(vehiclesTest + "/TestPursuitSettings.asset");
             manager.minimapSettings = AssetDatabase.LoadAssetAtPath<UI.MinimapSettings>(vehiclesTest + "/TestMinimapSettings.asset");
             manager.speedometerSettings = AssetDatabase.LoadAssetAtPath<UI.SpeedometerSettings>(vehiclesTest + "/TestSpeedometerSettings.asset");
+            manager.trafficSettings = AssetDatabase.LoadAssetAtPath<AI.TrafficSettings>(vehiclesTest + "/TestTrafficSettings.asset");
 
             // Overhead vantage so one glance shows the whole first chunk.
             var camera = Camera.main;

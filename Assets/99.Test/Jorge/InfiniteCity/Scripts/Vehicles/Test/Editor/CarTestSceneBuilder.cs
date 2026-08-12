@@ -32,6 +32,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string PursuitSettingsPath = TestFolder + "/TestPursuitSettings.asset";
         const string MinimapSettingsPath = TestFolder + "/TestMinimapSettings.asset";
         const string SpeedometerSettingsPath = TestFolder + "/TestSpeedometerSettings.asset";
+        const string TrafficSettingsPath = TestFolder + "/TestTrafficSettings.asset";
+        const string VehiclesFolder = "Assets/99.Test/Jorge/InfiniteCity/Vehicles";
         const string CitySettingsPath = "Assets/99.Test/Jorge/InfiniteCity/Scripts/City/Test/CityTestSettings.asset";
         const string PlayerModelPath = "Assets/99.Test/Jorge/InfiniteCity/Vehicles/sedan-sports.fbx";
         const string PoliceModelPath = "Assets/99.Test/Jorge/InfiniteCity/Vehicles/police.fbx";
@@ -52,6 +54,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             AI.PursuitSettings pursuitSettings = CreateOrLoad<AI.PursuitSettings>(PursuitSettingsPath);
             UI.MinimapSettings minimapSettings = CreateOrLoad<UI.MinimapSettings>(MinimapSettingsPath);
             UI.SpeedometerSettings speedometerSettings = CreateOrLoad<UI.SpeedometerSettings>(SpeedometerSettingsPath);
+            AI.TrafficSettings trafficSettings = CreateOrLoadTrafficSettings(carConfig);
             GameObject carPrefab = BuildCarPrefab(carConfig);
             GameObject policeCarPrefab = BuildPoliceCarPrefab(carConfig, pursuitSettings);
             AssetDatabase.SaveAssets();
@@ -71,6 +74,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 city.pursuitSettings = pursuitSettings;
                 city.minimapSettings = minimapSettings;  // wired minimap settings spawn the radar at play
                 city.speedometerSettings = speedometerSettings;
+                city.trafficSettings = trafficSettings;  // wired traffic settings spawn the TrafficManager at play
                 city.Recalculate();
             }
             else
@@ -295,6 +299,45 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         }
 
         // ------------------------------------------------------------ helpers
+
+        /// <summary>
+        /// Traffic settings with a starter vehicle pool: filled only when the
+        /// list is empty, so weight/flag tuning survives re-runs. Work
+        /// vehicles (delivery, garbage truck) get the random-stop flag.
+        /// </summary>
+        static AI.TrafficSettings CreateOrLoadTrafficSettings(CarConfig carConfig)
+        {
+            var settings = CreateOrLoad<AI.TrafficSettings>(TrafficSettingsPath);
+            if (settings.carConfig == null) settings.carConfig = carConfig;
+            if (settings.vehicles == null || settings.vehicles.Count == 0)
+            {
+                (string file, float weight, bool stops)[] pool =
+                {
+                    ("sedan", 1.5f, false),
+                    ("taxi", 1.2f, false),
+                    ("van", 1f, false),
+                    ("suv", 1f, false),
+                    ("suv-luxury", 0.7f, false),
+                    ("hatchback-sports", 1f, false),
+                    ("truck", 0.6f, false),
+                    ("truck-flat", 0.4f, false),
+                    ("delivery", 0.8f, true),
+                    ("garbage-truck", 0.5f, true),
+                };
+                foreach ((string file, float weight, bool stops) in pool)
+                {
+                    var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{VehiclesFolder}/{file}.fbx");
+                    if (model == null)
+                    {
+                        Debug.LogWarning($"CarTestSceneBuilder: traffic vehicle '{file}.fbx' not found — skipped.");
+                        continue;
+                    }
+                    settings.vehicles.Add(new AI.TrafficVehicleDefinition { model = model, weight = weight, stopsRandomly = stops });
+                }
+            }
+            EditorUtility.SetDirty(settings);
+            return settings;
+        }
 
         static T CreateOrLoad<T>(string path) where T : ScriptableObject
         {

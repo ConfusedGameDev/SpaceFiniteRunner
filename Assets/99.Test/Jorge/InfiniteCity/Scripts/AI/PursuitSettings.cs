@@ -75,6 +75,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float waypointReachDistance = 6f;
 
         [TitleGroup("Driving")]
+        [Tooltip("Right-hand lane discipline while patrolling/searching: fraction of a cell kept to the right of the road center, so cruisers pass oncoming traffic instead of blocking it. Chase ignores lanes.")]
+        [PropertyRange(0f, 0.35f)]
+        public float laneOffsetFraction = 0.18f;
+
+        [TitleGroup("Driving")]
         [Tooltip("Seconds between route recomputations while chasing.")]
         [PropertyRange(0.2f, 5f), SuffixLabel("s", true)]
         public float repathInterval = 1f;
@@ -99,5 +104,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         [Tooltip("How long a stuck patrol reverses (with opposite steering) before replanning.")]
         [PropertyRange(0.5f, 4f), SuffixLabel("s", true)]
         public float reverseSeconds = 1.4f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Last resort outside Chase: a patrol below walking pace this long is snapped onto the nearest road cell instead of grinding forever.")]
+        [PropertyRange(5f, 30f), SuffixLabel("s", true)]
+        public float hardRecoverSeconds = 15f;
     }
 }
