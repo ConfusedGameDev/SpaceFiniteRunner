@@ -25,7 +25,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string CarPrefabPath = TestFolder + "/TestCar.prefab";
         const string PoliceCarPrefabPath = TestFolder + "/TestPoliceCar.prefab";
         const string CarConfigPath = TestFolder + "/TestCarConfig.asset";
-        const string CameraSettingsPath = TestFolder + "/TestChaseCameraSettings.asset";
+        const string CameraSettingsPath = TestFolder + "/TestOrbitCameraSettings.asset";
         const string PursuitSettingsPath = TestFolder + "/TestPursuitSettings.asset";
         const string MinimapSettingsPath = TestFolder + "/TestMinimapSettings.asset";
         const string CitySettingsPath = "Assets/99.Test/Jorge/InfiniteCity/Scripts/City/Test/CityTestSettings.asset";
@@ -41,7 +41,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // Existing config assets are kept as-is — only created when missing —
             // so re-running the builder never wipes handling tuning.
             CarConfig carConfig = CreateOrLoad<CarConfig>(CarConfigPath);
-            ChaseCameraSettings cameraSettings = CreateOrLoad<ChaseCameraSettings>(CameraSettingsPath);
+            OrbitCameraSettings cameraSettings = CreateOrLoad<OrbitCameraSettings>(CameraSettingsPath);
             AI.PursuitSettings pursuitSettings = CreateOrLoad<AI.PursuitSettings>(PursuitSettingsPath);
             UI.MinimapSettings minimapSettings = CreateOrLoad<UI.MinimapSettings>(MinimapSettingsPath);
             GameObject carPrefab = BuildCarPrefab(carConfig);
@@ -58,7 +58,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 var city = cityGo.AddComponent<CityManager>();
                 city.settings = citySettings;
                 city.carPrefab = carPrefab;              // enables the Create Car button
-                city.chaseCameraSettings = cameraSettings;
+                city.orbitCameraSettings = cameraSettings;
                 city.policeCarPrefab = policeCarPrefab;  // wired police fields spawn the PatrolManager at play
                 city.pursuitSettings = pursuitSettings;
                 city.minimapSettings = minimapSettings;  // wired minimap settings spawn the radar at play

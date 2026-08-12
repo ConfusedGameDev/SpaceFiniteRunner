@@ -1,3 +1,4 @@
+using Unity.Cinemachine;
 using UnityEngine;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
@@ -7,13 +8,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     /// PlayerCarSpawner and CityManager's Create Car button. Enforces the
     /// single-car rule (any CarController already in the scene is destroyed
     /// first), gives the car its rolling start (CarConfig.spawnSpeedKmh, so
-    /// the player takes the wheel mid-motion) and attaches/retargets the
-    /// ChaseCamera on the main camera.
+    /// the player takes the wheel mid-motion) and retargets the Cinemachine
+    /// orbit rig (created on demand, brain added to the main camera).
     /// </summary>
     public static class CarFactory
     {
         /// <summary>Spawn the car on a road cell, facing <paramref name="yaw"/> degrees (0 = +Z), already rolling.</summary>
-        public static CarController Spawn(GameObject carPrefab, ChaseCameraSettings cameraSettings, Vector3 roadCenter, float yaw)
+        public static CarController Spawn(GameObject carPrefab, OrbitCameraSettings cameraSettings, Vector3 roadCenter, float yaw)
         {
             if (carPrefab == null)
             {
@@ -45,12 +46,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             go.name = "PlayerCar";
             var car = go.GetComponent<CarController>();
 
+            // The PlayerCar layer feeds the glitch silhouette render feature
+            // (car visible through buildings). Added by Tools → Police Escape →
+            // Install Glitch Silhouette Feature; harmless while it doesn't exist.
+            int glitchLayer = LayerMask.NameToLayer("PlayerCar");
+            if (glitchLayer >= 0) SetLayerRecursively(go.transform, glitchLayer);
+
             // Rolling start — hand the player a car that's already moving.
             var body = go.GetComponent<Rigidbody>();
             if (body != null && config != null)
                 body.linearVelocity = rotation * Vector3.forward * (config.spawnSpeedKmh / 3.6f);
 
-            AttachChaseCamera(car, cameraSettings);
+            AttachOrbitCamera(car, cameraSettings);
             return car;
         }
 
@@ -59,33 +66,45 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// transform together with interpolation suspended for the jump —
         /// moving only the transform of an interpolating rigidbody gets
         /// overwritten by its interpolation history on the next frame.
+        /// Cinemachine is told about the warp so the camera cuts along
+        /// instead of swooping across the city.
         /// </summary>
         public static void Teleport(Rigidbody body, Vector3 position, Quaternion rotation)
         {
+            Vector3 delta = position - body.position;
             RigidbodyInterpolation mode = body.interpolation;
             body.interpolation = RigidbodyInterpolation.None;
             body.position = position;
             body.rotation = rotation;
             body.transform.SetPositionAndRotation(position, rotation);
             body.interpolation = mode;
+            CinemachineCore.OnTargetObjectWarped(body.transform, delta);
         }
 
-        /// <summary>Get-or-add a ChaseCamera on the main camera and snap it behind the car.</summary>
-        public static void AttachChaseCamera(CarController car, ChaseCameraSettings cameraSettings)
+        static void SetLayerRecursively(Transform root, int layer)
+        {
+            root.gameObject.layer = layer;
+            for (int i = 0; i < root.childCount; i++)
+                SetLayerRecursively(root.GetChild(i), layer);
+        }
+
+        /// <summary>Ensure a CinemachineBrain on the main camera and an OrbitCameraRig in the scene, then retarget the rig to the car.</summary>
+        public static void AttachOrbitCamera(CarController car, OrbitCameraSettings cameraSettings)
         {
             if (car == null) return;
             var camera = Camera.main;
             if (camera == null)
             {
-                Debug.LogWarning("CarFactory: no main camera found to attach the ChaseCamera to.");
+                Debug.LogWarning("CarFactory: no main camera found to attach the orbit camera to.");
                 return;
             }
+            if (camera.GetComponent<CinemachineBrain>() == null)
+                camera.gameObject.AddComponent<CinemachineBrain>();
 
-            var chase = camera.GetComponent<ChaseCamera>();
-            if (chase == null) chase = camera.gameObject.AddComponent<ChaseCamera>();
-            if (cameraSettings != null) chase.settings = cameraSettings;
-            chase.target = car;
-            chase.SnapBehindTarget();
+            var rig = Object.FindAnyObjectByType<OrbitCameraRig>();
+            if (rig == null) rig = new GameObject("OrbitCameraRig").AddComponent<OrbitCameraRig>();
+            if (cameraSettings != null) rig.settings = cameraSettings;
+            rig.SetTarget(car);
         }
     }
 }

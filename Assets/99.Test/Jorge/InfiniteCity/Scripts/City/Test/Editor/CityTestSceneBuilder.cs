@@ -208,7 +208,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // built by CarTestSceneBuilder).
             const string vehiclesTest = "Assets/99.Test/Jorge/InfiniteCity/Scripts/Vehicles/Test";
             manager.carPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vehiclesTest + "/TestCar.prefab");
-            manager.chaseCameraSettings = AssetDatabase.LoadAssetAtPath<Vehicles.ChaseCameraSettings>(vehiclesTest + "/TestChaseCameraSettings.asset");
+            manager.orbitCameraSettings = AssetDatabase.LoadAssetAtPath<Vehicles.OrbitCameraSettings>(vehiclesTest + "/TestOrbitCameraSettings.asset");
             manager.policeCarPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vehiclesTest + "/TestPoliceCar.prefab");
             manager.pursuitSettings = AssetDatabase.LoadAssetAtPath<AI.PursuitSettings>(vehiclesTest + "/TestPursuitSettings.asset");
             manager.minimapSettings = AssetDatabase.LoadAssetAtPath<UI.MinimapSettings>(vehiclesTest + "/TestMinimapSettings.asset");

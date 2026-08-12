@@ -28,8 +28,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public GameObject carPrefab;
 
         [TitleGroup("Player car")]
-        [Tooltip("Camera-feel settings for the ChaseCamera attached to the main camera when the car spawns.")]
-        public Vehicles.ChaseCameraSettings chaseCameraSettings;
+        [Tooltip("Camera-feel settings for the Cinemachine orbit rig set up when the car spawns.")]
+        public Vehicles.OrbitCameraSettings orbitCameraSettings;
 
         [TitleGroup("Police")]
         [AssetsOnly]
@@ -249,7 +249,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 Debug.LogWarning($"CityManager: no straight stretch with {SpawnRunwayCells()} clear cells ahead — spawning on a random road cell instead. Longer arterials (lower arterialSpacing jitter) or a shorter spawnRunwayCells fix this.");
             }
 
-            Vehicles.CarFactory.Spawn(carPrefab, chaseCameraSettings, center, yaw);
+            Vehicles.CarFactory.Spawn(carPrefab, orbitCameraSettings, center, yaw);
         }
 
         /// <summary>Runway length demanded by the car prefab's config (CarConfig.spawnRunwayCells), with a safe default when unwired.</summary>

@@ -20,8 +20,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         public GameObject carPrefab;
 
         [Required, InlineEditor]
-        [Tooltip("Camera-feel tunables for the ChaseCamera this spawner attaches to the main camera.")]
-        public ChaseCameraSettings cameraSettings;
+        [Tooltip("Camera-feel tunables for the Cinemachine orbit rig this spawner sets up.")]
+        public OrbitCameraSettings cameraSettings;
 
         public CarController SpawnedCar { get; private set; }
 

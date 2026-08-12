@@ -25,10 +25,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     }
 
     /// <summary>
-    /// Player driver: keyboard (WASD/arrows, Space handbrake, R respawn) and
-    /// gamepad (left stick steer, triggers accelerate/brake, South handbrake,
-    /// North respawn), polled straight off the new Input System like the
-    /// runner's SteeringInput.
+    /// Player driver: keyboard (WASD, Space handbrake, R respawn — arrows
+    /// belong to the OrbitCameraRig) and gamepad (left stick steer, triggers
+    /// accelerate/brake, South handbrake, North respawn), polled straight
+    /// off the new Input System like the runner's SteeringInput.
     /// </summary>
     public class CarInput : MonoBehaviour, ICarInput
     {
@@ -47,10 +47,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             var keyboard = Keyboard.current;
             if (keyboard != null)
             {
-                if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) steer -= 1f;
-                if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) steer += 1f;
-                if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) throttle += 1f;
-                if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) throttle -= 1f;
+                // WASD only — the arrow keys pan the orbit camera.
+                if (keyboard.aKey.isPressed) steer -= 1f;
+                if (keyboard.dKey.isPressed) steer += 1f;
+                if (keyboard.wKey.isPressed) throttle += 1f;
+                if (keyboard.sKey.isPressed) throttle -= 1f;
                 handbrake |= keyboard.spaceKey.isPressed;
                 respawn |= keyboard.rKey.wasPressedThisFrame;
             }
