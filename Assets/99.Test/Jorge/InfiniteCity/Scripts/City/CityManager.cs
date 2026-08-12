@@ -44,6 +44,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Circular radar settings — when assigned, a minimap is spawned at play start (bottom-right, GTA-style).")]
         public UI.MinimapSettings minimapSettings;
 
+        [TitleGroup("UI")]
+        [Tooltip("Speedometer settings — when assigned, an analog gauge is spawned at play start (bottom-left).")]
+        public UI.SpeedometerSettings speedometerSettings;
+
         /// <summary>Waypoint graph over the generated roads — the AI's navigation source. Rebuilt on every Recalculate; null before the first one.</summary>
         public RoadGraph Graph { get; private set; }
 
@@ -73,11 +77,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 patrolManager.policeCarPrefab = policeCarPrefab;
             }
 
-            // Radar: same deal — spawned when wired, builds its own canvas.
+            // HUD pieces: same deal — spawned when wired, each builds its own canvas.
             if (minimapSettings != null)
             {
                 var minimapGo = new GameObject("Minimap");
                 minimapGo.AddComponent<UI.Minimap>().settings = minimapSettings;
+            }
+            if (speedometerSettings != null)
+            {
+                var speedometerGo = new GameObject("Speedometer");
+                speedometerGo.AddComponent<UI.Speedometer>().settings = speedometerSettings;
             }
         }
 

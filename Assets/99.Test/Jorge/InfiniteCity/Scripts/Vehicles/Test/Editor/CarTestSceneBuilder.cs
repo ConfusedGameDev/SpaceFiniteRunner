@@ -31,6 +31,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string CameraSettingsPath = TestFolder + "/TestOrbitCameraSettings.asset";
         const string PursuitSettingsPath = TestFolder + "/TestPursuitSettings.asset";
         const string MinimapSettingsPath = TestFolder + "/TestMinimapSettings.asset";
+        const string SpeedometerSettingsPath = TestFolder + "/TestSpeedometerSettings.asset";
         const string CitySettingsPath = "Assets/99.Test/Jorge/InfiniteCity/Scripts/City/Test/CityTestSettings.asset";
         const string PlayerModelPath = "Assets/99.Test/Jorge/InfiniteCity/Vehicles/sedan-sports.fbx";
         const string PoliceModelPath = "Assets/99.Test/Jorge/InfiniteCity/Vehicles/police.fbx";
@@ -50,6 +51,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             OrbitCameraSettings cameraSettings = CreateOrLoad<OrbitCameraSettings>(CameraSettingsPath);
             AI.PursuitSettings pursuitSettings = CreateOrLoad<AI.PursuitSettings>(PursuitSettingsPath);
             UI.MinimapSettings minimapSettings = CreateOrLoad<UI.MinimapSettings>(MinimapSettingsPath);
+            UI.SpeedometerSettings speedometerSettings = CreateOrLoad<UI.SpeedometerSettings>(SpeedometerSettingsPath);
             GameObject carPrefab = BuildCarPrefab(carConfig);
             GameObject policeCarPrefab = BuildPoliceCarPrefab(carConfig, pursuitSettings);
             AssetDatabase.SaveAssets();
@@ -68,6 +70,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 city.policeCarPrefab = policeCarPrefab;  // wired police fields spawn the PatrolManager at play
                 city.pursuitSettings = pursuitSettings;
                 city.minimapSettings = minimapSettings;  // wired minimap settings spawn the radar at play
+                city.speedometerSettings = speedometerSettings;
                 city.Recalculate();
             }
             else
