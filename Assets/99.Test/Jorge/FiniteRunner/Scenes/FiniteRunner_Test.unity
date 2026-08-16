@@ -16201,6 +16201,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.TuningScreen
   motor: {fileID: 1092581442}
   baseDefinition: {fileID: 11400000, guid: 408f48fcd34734649aeb7a97c35ffb43, type: 2}
+  autoLaunch: 1
   totalPoints: 8
   maxPointsPerStat: 5
   maxSpeedPerPoint: 10
@@ -34182,7 +34183,7 @@ MonoBehaviour:
   track: {fileID: 1402584888}
   decorParent: {fileID: 1907718398}
   roadPrefab: {fileID: 919132149155446097, guid: 58d1ae75fe75f4e40974a15be5b871d2, type: 3}
-  roadScale: {x: 20, y: 10, z: 60}
+  roadScale: {x: 40, y: 10, z: 60}
   roadSpacing: 19
   roadYaw: 90
   roadMaterialOverride: {fileID: 2100000, guid: 2c0e4ab812f8f4ee7aa77d83aea2cf4d, type: 2}

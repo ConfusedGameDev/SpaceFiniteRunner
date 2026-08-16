@@ -16,6 +16,10 @@ namespace FiniteRunner
         [SerializeField] ShipMotor motor;
         [SerializeField] ShipDefinition baseDefinition;
 
+        [Header("Flow")]
+        [Tooltip("Skip the setup panel and launch immediately with the base definition — the scene is entered mid-glitch from the city chase, so the run must already be moving when the corruption fades. Restarts auto-launch too.")]
+        [SerializeField] bool autoLaunch;
+
         [Header("Point budget")]
         [SerializeField, Min(1)] int totalPoints = 8;
         [SerializeField, Min(1)] int maxPointsPerStat = 5;
@@ -72,6 +76,12 @@ namespace FiniteRunner
 
         public void Show()
         {
+            if (autoLaunch)
+            {
+                if (panelRoot != null) panelRoot.SetActive(false);
+                StartRun();
+                return;
+            }
             openedTime = Time.unscaledTime;
             if (motor != null) motor.Paused = true;
             if (panelRoot != null) panelRoot.SetActive(true);
