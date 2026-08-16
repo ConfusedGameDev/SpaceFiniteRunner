@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a89b34446de14dabb69c0722a054a4f, type: 3}
   m_Name: TestTrafficSettings
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.AI.TrafficSettings
-  targetVehicleCount: 12
+  targetVehicleCount: 30
   activeRadius: 250
   despawnPadding: 50
   minSpawnDistance: 60
+  spawnsPerTick: 4
   modelScale: 1.73
   carConfig: {fileID: 11400000, guid: 37fc7070342fe428c8400506aeca1f6e, type: 2}
   vehicles:
@@ -53,8 +54,14 @@ MonoBehaviour:
   cornerSpeedKmh: 14
   throttleGain: 0.12
   waypointReachDistance: 6
+  laneOffsetFraction: 0.18
   forwardBrakeDistance: 10
+  wallBrakeDistance: 3.5
+  yieldWhiskerAngle: 40
+  yieldWhiskerDistance: 8
   stopEveryBand: {x: 10, y: 25}
   stopDurationBand: {x: 2, y: 6}
   stuckSeconds: 2
   reverseSeconds: 1.2
+  hardRecoverSeconds: 12
+  logTrafficEvents: 0

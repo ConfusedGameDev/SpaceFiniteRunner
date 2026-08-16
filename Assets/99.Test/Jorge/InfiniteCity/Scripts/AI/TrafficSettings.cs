@@ -36,6 +36,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         [PropertyRange(10f, 200f), SuffixLabel("m", true)]
         public float minSpawnDistance = 60f;
 
+        [TitleGroup("Fleet")]
+        [Tooltip("At most this many vehicles spawn per maintenance tick — ramps the fleet in over a few seconds instead of rig-building the whole lot in one hitch frame.")]
+        [PropertyRange(1, 10)]
+        public int spawnsPerTick = 4;
+
         // ------------------------------------------------------------ vehicles
         [TitleGroup("Vehicles")]
         [Tooltip("Uniform scale applied to the kit models — 1.73 puts the sedan at real-car length, and trucks come out proportionally bigger.")]
@@ -82,6 +87,21 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         [PropertyRange(3f, 30f), SuffixLabel("m", true)]
         public float forwardBrakeDistance = 10f;
 
+        [TitleGroup("Driving")]
+        [Tooltip("Emergency wall brake: stop only when a static obstacle sits closer than this on the forward ray (head-on and while not mid-turn) — smaller than the vehicle brake distance so buildings at junctions don't stall traffic.")]
+        [PropertyRange(1f, 8f), SuffixLabel("m", true)]
+        public float wallBrakeDistance = 3.5f;
+
+        [TitleGroup("Driving")]
+        [Tooltip("Junction yield: a whisker ray this far right of forward sees crossing traffic the forward ray can't. Right-only = priority to the right — of two converging cars, exactly one yields.")]
+        [PropertyRange(20f, 60f), SuffixLabel("°", true)]
+        public float yieldWhiskerAngle = 40f;
+
+        [TitleGroup("Driving")]
+        [Tooltip("Length of the junction-yield whisker ray.")]
+        [PropertyRange(3f, 15f), SuffixLabel("m", true)]
+        public float yieldWhiskerDistance = 8f;
+
         public float CruiseMin => cruiseSpeedBand.x;
         public float CruiseMax => cruiseSpeedBand.y;
 
@@ -113,8 +133,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float reverseSeconds = 1.2f;
 
         [TitleGroup("Recovery")]
-        [Tooltip("Last resort: a civilian that has crawled below walking pace this long (reverse cycles included, deliberate stops excluded) is snapped onto the nearest road cell. Ambient traffic heals; nobody notices.")]
+        [Tooltip("Last resort: a civilian that has made no net progress this long (reverse-crash loops included, deliberate stops excluded) is snapped onto the nearest road cell. Ambient traffic heals; nobody notices.")]
         [PropertyRange(5f, 30f), SuffixLabel("s", true)]
         public float hardRecoverSeconds = 12f;
+
+        // --------------------------------------------------------------- debug
+        [TitleGroup("Debug")]
+        [Tooltip("Log traffic events (stuck escalations, hard recovers, vehicle contacts) to the console — for tuning sessions, off in normal play.")]
+        public bool logTrafficEvents;
     }
 }

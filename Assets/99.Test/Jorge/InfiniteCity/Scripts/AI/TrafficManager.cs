@@ -53,9 +53,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 vehicles.RemoveAt(i);
             }
 
-            while (vehicles.Count < settings.targetVehicleCount)
+            // Ramp the fleet in over a few ticks — spawning the whole lot at
+            // once is a rig-building hitch frame.
+            int spawnedThisTick = 0;
+            while (vehicles.Count < settings.targetVehicleCount && spawnedThisTick < settings.spawnsPerTick)
             {
                 if (!TrySpawnVehicle(player)) break; // no valid spot this tick — try again next tick
+                spawnedThisTick++;
             }
         }
 
@@ -103,6 +107,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
             driver.Initialize(settings, city, definition.stopsRandomly);
             vehicles.Add(driver);
+            // Push the fresh rig into the physics world now, so the next
+            // IsCellClear check in this same tick can see it — without this,
+            // same-tick spawns can land on top of each other.
+            Physics.SyncTransforms();
             return true;
         }
 

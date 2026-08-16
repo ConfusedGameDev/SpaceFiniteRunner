@@ -97,9 +97,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
                 colliders[i] = wheel;
             }
 
-            // Driver before controller, so CarController.Awake finds the ICarInput.
-            var driver = root.AddComponent<TDriver>();
+            // Controller before driver: the driver's [RequireComponent] is then
+            // satisfied by this one instead of auto-adding a bare duplicate.
+            // CarController binds its ICarInput in Start, so order is safe.
             var controller = root.AddComponent<CarController>();
+            var driver = root.AddComponent<TDriver>();
             controller.config = config;
             controller.frontLeft = colliders[0];
             controller.frontRight = colliders[1];

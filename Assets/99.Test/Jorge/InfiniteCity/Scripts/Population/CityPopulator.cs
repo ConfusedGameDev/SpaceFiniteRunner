@@ -184,7 +184,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
                 instance.transform.localPosition = localPosition;
                 instance.transform.localRotation = localRotation;
                 instance.transform.localScale = localScale;
-                if (addCollider) AddFittedCollider(instance);
+                if (addCollider) AddMeshColliders(instance);
             }
 
             if (scheduler != null) scheduler(SpawnNow);
@@ -192,45 +192,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
         }
 
         /// <summary>
-        /// One box collider on the building root, fitted to the combined mesh
-        /// bounds in root-local space — it inherits the instance's rotation and
-        /// scale for free, so a single box serves every jittered variant.
+        /// A mesh collider on every child mesh, so collision follows the actual
+        /// model — buildings like building-b/building-n have drive-through
+        /// archways a fitted bounding box would seal off. Buildings never move,
+        /// so the colliders stay non-convex (legal for static geometry), and
+        /// the kit meshes are low-poly so per-instance cooking is cheap.
         /// Skipped when the prefab already ships colliders of its own.
         /// </summary>
-        static void AddFittedCollider(GameObject instance)
+        static void AddMeshColliders(GameObject instance)
         {
             if (instance.GetComponentInChildren<Collider>() != null) return;
 
-            Transform root = instance.transform;
-            bool hasBounds = false;
-            var bounds = new Bounds();
             foreach (MeshFilter filter in instance.GetComponentsInChildren<MeshFilter>())
             {
-                Mesh mesh = filter.sharedMesh;
-                if (mesh == null) continue;
-                Bounds meshBounds = mesh.bounds;
-                // Walk all 8 corners through child → world → root-local so
-                // rotated child meshes still land inside the box.
-                for (int corner = 0; corner < 8; corner++)
-                {
-                    var local = meshBounds.center + Vector3.Scale(meshBounds.extents, new Vector3(
-                        (corner & 1) == 0 ? -1f : 1f,
-                        (corner & 2) == 0 ? -1f : 1f,
-                        (corner & 4) == 0 ? -1f : 1f));
-                    Vector3 point = root.InverseTransformPoint(filter.transform.TransformPoint(local));
-                    if (!hasBounds)
-                    {
-                        bounds = new Bounds(point, Vector3.zero);
-                        hasBounds = true;
-                    }
-                    else bounds.Encapsulate(point);
-                }
+                if (filter.sharedMesh == null) continue;
+                var meshCollider = filter.gameObject.AddComponent<MeshCollider>();
+                meshCollider.sharedMesh = filter.sharedMesh;
             }
-            if (!hasBounds) return;
-
-            var box = instance.AddComponent<BoxCollider>();
-            box.center = bounds.center;
-            box.size = bounds.size;
         }
 
         /// <summary>

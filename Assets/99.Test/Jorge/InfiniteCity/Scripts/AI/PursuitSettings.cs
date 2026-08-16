@@ -94,6 +94,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         [PropertyRange(2f, 30f), SuffixLabel("m", true)]
         public float forwardBrakeDistance = 9f;
 
+        [TitleGroup("Driving")]
+        [Tooltip("Emergency wall brake: stop only when a static obstacle sits closer than this on the forward ray (head-on and while not mid-turn) — smaller than the vehicle brake distance so buildings at junctions don't stall the cruiser.")]
+        [PropertyRange(1f, 8f), SuffixLabel("m", true)]
+        public float wallBrakeDistance = 3.5f;
+
         // ------------------------------------------------------------ recovery
         [TitleGroup("Recovery")]
         [Tooltip("Seconds of wanting to move while standing still before the patrol decides it is stuck.")]
@@ -106,7 +111,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float reverseSeconds = 1.4f;
 
         [TitleGroup("Recovery")]
-        [Tooltip("Last resort outside Chase: a patrol below walking pace this long is snapped onto the nearest road cell instead of grinding forever.")]
+        [Tooltip("Last resort outside Chase: a patrol that has made no net progress this long (reverse-crash loops included) is snapped onto the nearest road cell instead of grinding forever.")]
         [PropertyRange(5f, 30f), SuffixLabel("s", true)]
         public float hardRecoverSeconds = 15f;
     }

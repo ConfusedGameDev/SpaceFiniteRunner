@@ -51,10 +51,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         void Awake()
         {
             body = GetComponent<Rigidbody>();
-            input = GetComponent<ICarInput>();
         }
 
-        void Start() => ApplyConfig();
+        void Start()
+        {
+            // Bound in Start, not Awake: runtime-rigged cars (VehicleRigBuilder)
+            // add the driver after this component, and Start runs once all
+            // same-frame AddComponent calls are done but before any FixedUpdate.
+            input = GetComponent<ICarInput>();
+            ApplyConfig();
+        }
 
         /// <summary>
         /// One-time chassis setup from the config: mass, dropped center of
