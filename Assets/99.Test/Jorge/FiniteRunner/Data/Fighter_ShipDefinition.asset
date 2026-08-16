@@ -20,7 +20,7 @@ MonoBehaviour:
   lateralSpeed: 30
   handlingResponse: 10
   weight: 1
-  hoverHeight: 2
+  hoverHeight: 3.5
   bobAmplitude: 0.35
   bobFrequency: 1.5
   hoverPitchDegrees: 2.5
