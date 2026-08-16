@@ -95,6 +95,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             spawner.carPrefab = carPrefab;
             spawner.cameraSettings = cameraSettings;
 
+            // Objective flow: reach the hack speed, shake the police, hand over
+            // to the FiniteRunner scene. Messages come from the shared
+            // RpgMessageSystem, which builds its own canvas at runtime.
+            new GameObject("LevelManager").AddComponent<LevelManager>();
+
             // Overhead vantage for edit mode; the ChaseCamera takes over in play.
             var camera = Camera.main;
             if (camera != null)

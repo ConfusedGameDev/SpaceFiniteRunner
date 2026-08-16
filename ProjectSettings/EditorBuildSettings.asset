@@ -8,5 +8,11 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/05.Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/99.Test/Jorge/InfiniteCity/Scripts/Vehicles/Test/CarTest.unity
+    guid: 259c7a4fc38c44b118b54e3e3dd1b5f3
+  - enabled: 1
+    path: Assets/99.Test/Jorge/FiniteRunner/Scenes/FiniteRunner_Test.unity
+    guid: b4f920b23b6464f6097abdfc32367f33
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
