@@ -15,5 +15,5 @@ MonoBehaviour:
   displayName: Brake
   speedDelta: -25
   color: {r: 1, g: 0.15, b: 0.1, a: 1}
-  sizeMultiplier: 1.2
+  sizeMultiplier: 0.7
   floatingOrb: 0
