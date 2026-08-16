@@ -447,6 +447,10 @@ MonoBehaviour:
   nextSceneName: FiniteRunner_Test
   speakerName: OPERATOR
   messageHoldSeconds: 4
+  collisionPulse: 0.4
+  policeHitIntensity: 0.34
+  minImpactSpeed: 3
+  resetDelaySeconds: 1.2
 --- !u!4 &896291438
 Transform:
   m_ObjectHideFlags: 0
@@ -492,6 +496,55 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1829365297}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1387305807
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1387305809}
+  - component: {fileID: 1387305808}
+  m_Layer: 0
+  m_Name: GlitchController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1387305808
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1387305807}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d2bc64357dd2486eae1b630b974a22c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.FX.GlitchController
+  glitchMaterial: {fileID: 2100000, guid: 30c149be5d65e4bb29be2c1f16e41ad6, type: 2}
+  baseIntensity: 0
+  startIntensity: 0
+  baseFadePerSecond: 0.05
+  pulseDecayPerSecond: 2
+--- !u!4 &1387305809
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1387305807}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1686207025
@@ -737,3 +790,4 @@ SceneRoots:
   - {fileID: 362626745}
   - {fileID: 995491298}
   - {fileID: 896291438}
+  - {fileID: 1387305809}

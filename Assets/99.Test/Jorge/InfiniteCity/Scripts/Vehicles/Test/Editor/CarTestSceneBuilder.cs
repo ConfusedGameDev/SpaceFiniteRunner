@@ -35,6 +35,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string TrafficSettingsPath = TestFolder + "/TestTrafficSettings.asset";
         const string VehiclesFolder = "Assets/99.Test/Jorge/InfiniteCity/Vehicles";
         const string CitySettingsPath = "Assets/99.Test/Jorge/InfiniteCity/Scripts/City/Test/CityTestSettings.asset";
+        const string GlitchMaterialPath = "Assets/99.Test/Jorge/InfiniteCity/Shaders/GlitchPost.mat";
         const string PlayerModelPath = "Assets/99.Test/Jorge/InfiniteCity/Vehicles/sedan-sports.fbx";
         const string PoliceModelPath = "Assets/99.Test/Jorge/InfiniteCity/Vehicles/police.fbx";
         const float TargetCarLength = 4.4f; // the Kenney models are ~2.6-3.1 units long — scale them to real-car meters
@@ -99,6 +100,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // to the FiniteRunner scene. Messages come from the shared
             // RpgMessageSystem, which builds its own canvas at runtime.
             new GameObject("LevelManager").AddComponent<LevelManager>();
+
+            // Fullscreen glitch dial — the renderer's GlitchPost feature runs
+            // the shader; this controller is what gameplay events talk to.
+            // The slow base fade doubles as crash-damage recovery.
+            var glitchMaterial = AssetDatabase.LoadAssetAtPath<Material>(GlitchMaterialPath);
+            if (glitchMaterial != null)
+            {
+                var glitch = new GameObject("GlitchController").AddComponent<FX.GlitchController>();
+                glitch.glitchMaterial = glitchMaterial;
+                glitch.baseFadePerSecond = 0.05f;
+            }
 
             // Overhead vantage for edit mode; the ChaseCamera takes over in play.
             var camera = Camera.main;
