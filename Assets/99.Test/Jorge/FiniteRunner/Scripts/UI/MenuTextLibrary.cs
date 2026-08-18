@@ -18,7 +18,8 @@ namespace FiniteRunner
         AreYouSure, Yes, No,
         PressEnter, PressStart,
         HintMove, HintSelect, HintBack, HintChange, HintCancel, HintTitle,
-        RoleMaster, RoleFool
+        RoleMaster, RoleFool,
+        Paused, Resume
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -124,6 +125,11 @@ namespace FiniteRunner
         [TitleGroup("Credits")]
         [SerializeField] LocalizedString roleFool = new("TOWN FOOL", "EL TONTO DEL PUEBLO", "町の道化師", "L'IDIOT DU VILLAGE");
 
+        [TitleGroup("Pause menu")]
+        [SerializeField] LocalizedString paused = new("PAUSED", "PAUSA", "ポーズ", "PAUSE");
+        [TitleGroup("Pause menu")]
+        [SerializeField] LocalizedString resume = new("RESUME", "CONTINUAR", "再開", "REPRENDRE");
+
         static MenuTextLibrary cached;
 
         /// <summary>The library asset, or a throwaway on the C# defaults if none is in a Resources folder.</summary>
@@ -186,6 +192,8 @@ namespace FiniteRunner
             MenuTextId.HintTitle => hintTitle,
             MenuTextId.RoleMaster => roleMaster,
             MenuTextId.RoleFool => roleFool,
+            MenuTextId.Paused => paused,
+            MenuTextId.Resume => resume,
             _ => start
         };
     }

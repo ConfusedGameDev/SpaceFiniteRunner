@@ -1,8 +1,6 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -64,11 +62,7 @@ namespace FiniteRunner
         float attractTarget = 1f;
         float pulseTime;
 
-        float verticalTimer;
-        float horizontalTimer;
-        int verticalLast;
-        int horizontalLast;
-
+        MenuNavigator nav;
         AudioSource ui;
         bool ownsTimeScale;
         bool standalone; // placed in its own scene: START loads a scene instead of un-pausing a run
@@ -98,6 +92,7 @@ namespace FiniteRunner
         {
             IsOpen = true;
             theme = MenuTheme.Load();
+            nav = new MenuNavigator(theme);
 
             Build();
 
@@ -106,7 +101,7 @@ namespace FiniteRunner
                 // Own scene: nothing runs behind the menu, so nothing to
                 // freeze — but the menu still needs an EventSystem for mouse
                 // input, which the gameplay scenes carry and this one may not.
-                EnsureEventSystem();
+                MenuScreenFactory.EnsureEventSystem();
             }
             else
             {
@@ -119,14 +114,6 @@ namespace FiniteRunner
 
             openedTime = Time.unscaledTime;
             Gamepad.current?.ResetHaptics();
-        }
-
-        static void EnsureEventSystem()
-        {
-            if (EventSystem.current != null || FindFirstObjectByType<EventSystem>() != null) return;
-            var go = new GameObject("EventSystem");
-            go.AddComponent<EventSystem>();
-            go.AddComponent<InputSystemUIInputModule>();
         }
 
         void Update()
@@ -195,7 +182,7 @@ namespace FiniteRunner
 
         void UpdateNavigation(float dt)
         {
-            int vertical = Step(RawVertical(), dt, ref verticalTimer, ref verticalLast);
+            int vertical = nav.StepVertical(dt);
             if (vertical != 0)
             {
                 current.MoveFocus(-vertical); // rows run top-down, so up is index-1
@@ -203,15 +190,15 @@ namespace FiniteRunner
                 HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
             }
 
-            int horizontal = Step(RawHorizontal(), dt, ref horizontalTimer, ref horizontalLast);
+            int horizontal = nav.StepHorizontal(dt);
             if (horizontal != 0 && current.Focused != null && current.Focused.Adjust(horizontal))
             {
                 Blip(theme.MoveClip);
                 HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
             }
 
-            if (ConfirmPressed()) current.Focused?.Activate();
-            else if (BackPressed()) Back();
+            if (MenuNavigator.ConfirmPressed()) current.Focused?.Activate();
+            else if (MenuNavigator.BackPressed()) Back();
         }
 
         // ------------------------------------------------------------- flow
@@ -345,103 +332,8 @@ namespace FiniteRunner
         }
 
         // -------------------------------------------------------------- input
-
-        int RawVertical()
-        {
-            int direction = 0;
-
-            var keyboard = Keyboard.current;
-            if (keyboard != null)
-            {
-                if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) direction++;
-                if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) direction--;
-            }
-
-            var pad = Gamepad.current;
-            if (pad != null)
-            {
-                if (pad.dpad.up.isPressed) direction++;
-                if (pad.dpad.down.isPressed) direction--;
-
-                float y = pad.leftStick.ReadValue().y;
-                if (y > theme.StickDeadZone) direction++;
-                else if (y < -theme.StickDeadZone) direction--;
-            }
-
-            return Mathf.Clamp(direction, -1, 1);
-        }
-
-        int RawHorizontal()
-        {
-            int direction = 0;
-
-            var keyboard = Keyboard.current;
-            if (keyboard != null)
-            {
-                if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) direction++;
-                if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) direction--;
-            }
-
-            var pad = Gamepad.current;
-            if (pad != null)
-            {
-                if (pad.dpad.right.isPressed) direction++;
-                if (pad.dpad.left.isPressed) direction--;
-
-                float x = pad.leftStick.ReadValue().x;
-                if (x > theme.StickDeadZone) direction++;
-                else if (x < -theme.StickDeadZone) direction--;
-            }
-
-            return Mathf.Clamp(direction, -1, 1);
-        }
-
-        // One step on press, then repeat after a delay — a tap moves exactly
-        // one row whether it came from the d-pad or the stick.
-        int Step(int raw, float dt, ref float timer, ref int last)
-        {
-            if (raw == 0)
-            {
-                last = 0;
-                timer = 0f;
-                return 0;
-            }
-
-            if (raw != last)
-            {
-                last = raw;
-                timer = theme.RepeatDelay;
-                return raw;
-            }
-
-            timer -= dt;
-            if (timer > 0f) return 0;
-            timer = theme.RepeatInterval;
-            return raw;
-        }
-
-        static bool ConfirmPressed()
-        {
-            var keyboard = Keyboard.current;
-            if (keyboard != null && (keyboard.enterKey.wasPressedThisFrame ||
-                                     keyboard.numpadEnterKey.wasPressedThisFrame ||
-                                     keyboard.spaceKey.wasPressedThisFrame))
-                return true;
-
-            return Gamepad.current is { buttonSouth: { wasPressedThisFrame: true } };
-        }
-
-        static bool BackPressed()
-        {
-            var keyboard = Keyboard.current;
-            if (keyboard != null && (keyboard.escapeKey.wasPressedThisFrame ||
-                                     keyboard.backspaceKey.wasPressedThisFrame))
-                return true;
-
-            if (Mouse.current is { rightButton: { wasPressedThisFrame: true } }) return true;
-
-            return Gamepad.current is { buttonEast: { wasPressedThisFrame: true } };
-        }
+        // Navigation/confirm/back live on the shared MenuNavigator; only the
+        // attract screen's wake-on-anything check is menu-specific.
 
         static bool AnyInput()
         {
@@ -556,32 +448,8 @@ namespace FiniteRunner
             mainScreen.AddRow<MenuRow>(MenuTextId.Exit).Activated += () => OpenSub(exitScreen);
         }
 
-        void BuildSettings()
-        {
-            settingsScreen = MenuScreen.Create("SettingsScreen", root, theme, 0f, 130f);
-            settingsScreen.SetTitle(MenuTextId.Settings);
-
-            settingsScreen.AddRow<MenuSlider>(MenuTextId.MasterVolume)
-                          .Configure(UserSettings.MasterVolume, 5, v => UserSettings.MasterVolume = v);
-            settingsScreen.AddRow<MenuSlider>(MenuTextId.MusicVolume)
-                          .Configure(UserSettings.MusicVolume, 5, v => UserSettings.MusicVolume = v);
-            settingsScreen.AddRow<MenuSlider>(MenuTextId.FxVolume)
-                          .Configure(UserSettings.SfxVolume, 5, v => UserSettings.SfxVolume = v);
-            settingsScreen.AddRow<MenuToggle>(MenuTextId.Subtitles)
-                          .Configure(UserSettings.Subtitles, v => UserSettings.Subtitles = v);
-
-            // Each language names itself, so the row stays readable no matter
-            // which one is active; every LocalizedLabel refreshes on change.
-            var names = new[]
-            {
-                MenuTextLibrary.LanguageDisplayName(MenuLanguage.English),
-                MenuTextLibrary.LanguageDisplayName(MenuLanguage.Spanish),
-                MenuTextLibrary.LanguageDisplayName(MenuLanguage.Japanese),
-                MenuTextLibrary.LanguageDisplayName(MenuLanguage.French)
-            };
-            settingsScreen.AddRow<MenuChoice>(MenuTextId.Language)
-                          .Configure(names, (int)UserSettings.Language, i => UserSettings.Language = (MenuLanguage)i);
-        }
+        // Shared with the pause menu, so the two settings pages never drift.
+        void BuildSettings() => settingsScreen = MenuScreenFactory.BuildSettings(root, theme);
 
         void BuildCheats()
         {

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.SceneManagement;
 
 namespace FiniteRunner
 {
@@ -110,7 +111,21 @@ namespace FiniteRunner
         // Load before anything can play a sound, so the first frame is already
         // at the player's chosen levels rather than full blast.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void Boot() => EnsureLoaded();
+        static void Boot()
+        {
+            EnsureLoaded();
+
+            // The mixer can stomp values applied before its first snapshot
+            // settles, and a scene change is the natural moment audio state
+            // resets — re-push the saved levels after every load so the
+            // sliders' values survive the menu → chase → runner hand-offs.
+            // (Unsubscribe first: with domain reload disabled, statics — and
+            // this subscription — outlive a play session.)
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        static void OnSceneLoaded(Scene scene, LoadSceneMode mode) => PushAll();
 
         /// <summary>
         /// Linear 0..1 to mixer decibels. 0 (and anything non-finite) maps to

@@ -6,19 +6,39 @@ namespace FiniteRunner
 {
     /// <summary>
     /// Pause system: Esc or gamepad Start freezes the game (timeScale 0 +
-    /// motor pause) and shows a Resume / Restart / Exit menu. Only opens
-    /// during active gameplay — never over the tuning screen or the result
-    /// screen, where those buttons mean other things. Menu is mouse-clickable
-    /// and fully driveable by shortcuts (keyboard and gamepad, shown on the
-    /// buttons). Built from code on its own overlay canvas, spawned by the
-    /// GameManager — no scene wiring needed.
+    /// motor pause) and shows Resume / Settings / Exit on the shared themed
+    /// menu framework — same rows, focus easing and slide transitions as the
+    /// main menu, and the exact same settings page (volumes, subtitles,
+    /// language) via <see cref="MenuScreenFactory.BuildSettings"/>, applied
+    /// live and persisted by <see cref="UserSettings"/>. Only opens during
+    /// active gameplay — never over the tuning screen, the result screen, or
+    /// the main-menu overlay, where those buttons mean other things. Built
+    /// from code on its own overlay canvas. Two ways to get one: spawned by
+    /// the GameManager in the runner scene (ship-aware — freezes the motor
+    /// too), or placed as a bare GameObject in a scene with no ship (the city
+    /// chase), where it pauses on timeScale alone. Everything animates on
+    /// unscaled time, because the whole point is that scaled time is stopped.
     /// </summary>
     public class PauseMenu : MonoBehaviour
     {
+        const int SortingOrder = 20; // above the HUD (10) and messages (15), below the main menu (30)
+
         GameManager gameManager;
         ShipMotor motor;
+        MenuTheme theme;
+        MenuNavigator nav;
+
         GameObject panel;
+        RectTransform panelRect;
+        MenuScreen pauseScreen;
+        MenuScreen settingsScreen;
+        MenuScreen current;
+        PromptStrip footer;
+        AudioSource ui;
+
         bool isPaused;
+        float lockTimer;   // input frozen while a screen transition plays
+        float openedTime;  // grace so the press that paused can't also confirm
 
         public static PauseMenu Spawn(GameManager gameManager, ShipMotor motor)
         {
@@ -26,51 +46,89 @@ namespace FiniteRunner
             var menu = go.AddComponent<PauseMenu>();
             menu.gameManager = gameManager;
             menu.motor = motor;
+            menu.theme = MenuTheme.Load();
+            menu.nav = new MenuNavigator(menu.theme);
             menu.Build();
             return menu;
         }
 
+        // Spawn() builds synchronously right after AddComponent, so a menu
+        // still unbuilt by Start() was placed in a scene by hand (the city
+        // chase) — build it there with no ship references.
+        void Start()
+        {
+            if (theme != null) return;
+            theme = MenuTheme.Load();
+            nav = new MenuNavigator(theme);
+            Build();
+        }
+
         void Update()
         {
-            var kb = Keyboard.current;
-            var pad = Gamepad.current;
-            bool toggle = kb is { escapeKey: { wasPressedThisFrame: true } } ||
-                          pad is { startButton: { wasPressedThisFrame: true } };
+            float dt = Time.unscaledDeltaTime;
 
             if (!isPaused)
             {
-                if (toggle && CanPause()) Pause();
+                if (MenuNavigator.PauseTogglePressed() && CanPause()) Pause();
                 return;
             }
 
-            if (toggle ||
-                pad is { buttonSouth: { wasPressedThisFrame: true } } or { buttonEast: { wasPressedThisFrame: true } })
+            if (lockTimer > 0f)
             {
-                Resume();
+                lockTimer -= dt;
                 return;
             }
-            if (kb is { rKey: { wasPressedThisFrame: true } } ||
-                pad is { buttonWest: { wasPressedThisFrame: true } })
+            if (Time.unscaledTime - openedTime < theme.InputGrace) return;
+
+            // Esc/Start/B all step outward: settings back to the pause list,
+            // the pause list back to the game. Quitting is never one press.
+            if (MenuNavigator.PauseTogglePressed() || MenuNavigator.BackPressed())
             {
-                RestartRun();
+                if (current == settingsScreen) CloseSettings();
+                else Resume();
                 return;
             }
-            if (kb is { qKey: { wasPressedThisFrame: true } } ||
-                pad is { buttonNorth: { wasPressedThisFrame: true } })
-                ExitGame();
+
+            int vertical = nav.StepVertical(dt);
+            if (vertical != 0)
+            {
+                current.MoveFocus(-vertical); // rows run top-down, so up is index-1
+                Blip(theme.MoveClip);
+                HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
+            }
+
+            int horizontal = nav.StepHorizontal(dt);
+            if (horizontal != 0 && current.Focused != null && current.Focused.Adjust(horizontal))
+                Blip(theme.MoveClip);
+
+            if (MenuNavigator.ConfirmPressed()) current.Focused?.Activate();
         }
 
-        // Active gameplay only: motor.Paused covers the tuning screen and the
-        // frozen end-of-run state; RunOver covers the result screen.
-        bool CanPause() =>
-            motor != null && !motor.Paused && (gameManager == null || !gameManager.RunOver);
+        // Active gameplay only. With a ship: motor.Paused covers the tuning
+        // screen, the main-menu overlay and the frozen end-of-run state;
+        // RunOver covers the result screen. Without one (city chase), running
+        // scaled time is the only "gameplay is live" signal there is.
+        bool CanPause()
+        {
+            if (MainMenuController.IsOpen) return false;
+            if (motor != null) return !motor.Paused && (gameManager == null || !gameManager.RunOver);
+            return Time.timeScale > 0f;
+        }
 
         void Pause()
         {
             isPaused = true;
-            motor.Paused = true;
+            if (motor != null) motor.Paused = true;
             Time.timeScale = 0f;
+            MenuScreenFactory.EnsureEventSystem(); // the city scene has none; mouse clicks need one
             panel.SetActive(true);
+
+            openedTime = Time.unscaledTime;
+            lockTimer = 0f;
+            settingsScreen.HideImmediate();
+            current = pauseScreen;
+            pauseScreen.Show(staggered: false); // pausing should feel instant, not cinematic
+            SetFooterFor(pauseScreen);
             Gamepad.current?.ResetHaptics();
         }
 
@@ -78,15 +136,31 @@ namespace FiniteRunner
         {
             isPaused = false;
             Time.timeScale = 1f;
-            motor.Paused = false;
+            if (motor != null) motor.Paused = false;
             panel.SetActive(false);
+            Blip(theme.BackClip);
         }
 
-        void RestartRun()
+        void OpenSettings()
         {
-            Resume(); // restore timeScale before the run resets
-            if (gameManager != null) gameManager.Restart();
-            else motor.Launch();
+            pauseScreen.SlideOut(-theme.ScreenSlide);
+            settingsScreen.SlideIn(theme.ScreenSlide);
+            current = settingsScreen;
+            lockTimer = theme.ScreenTransition;
+            openedTime = Time.unscaledTime;
+            SetFooterFor(settingsScreen);
+            Blip(theme.ConfirmClip);
+        }
+
+        void CloseSettings()
+        {
+            settingsScreen.SlideOut(theme.ScreenSlide);
+            pauseScreen.SlideIn(-theme.ScreenSlide);
+            current = pauseScreen;
+            lockTimer = theme.ScreenTransition;
+            openedTime = Time.unscaledTime;
+            SetFooterFor(pauseScreen);
+            Blip(theme.BackClip);
         }
 
         /// <summary>Quits for real in a build, stops play mode in the editor. Shared with the main menu's EXIT.</summary>
@@ -109,7 +183,7 @@ namespace FiniteRunner
         {
             var canvas = gameObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 20;
+            canvas.sortingOrder = SortingOrder;
 
             var scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -117,59 +191,49 @@ namespace FiniteRunner
 
             gameObject.AddComponent<GraphicRaycaster>();
 
+            ui = gameObject.AddComponent<AudioSource>();
+            ui.playOnAwake = false;
+            ui.outputAudioMixerGroup = theme.UiOutput;
+
             // Full-screen dim that also blocks clicks reaching the HUD below.
+            // Everything hangs off it, so hiding the panel hides the menu.
             panel = new GameObject("Panel", typeof(RectTransform));
-            var panelRect = (RectTransform)panel.transform;
+            panelRect = (RectTransform)panel.transform;
             panelRect.SetParent(transform, false);
             panelRect.anchorMin = Vector2.zero;
             panelRect.anchorMax = Vector2.one;
             panelRect.offsetMin = panelRect.offsetMax = Vector2.zero;
-            panel.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.65f);
+            var dim = panel.AddComponent<Image>();
+            var dimColor = theme.Backdrop;
+            dimColor.a = 0.78f; // the frozen run stays faintly visible behind the menu
+            dim.color = dimColor;
 
-            MakeText("Title", panelRect, new Vector2(0f, 160f), new Vector2(600f, 80f), "PAUSED", 56, Color.white);
+            pauseScreen = MenuScreen.Create("PauseScreen", panelRect, theme, 0f, 40f);
+            pauseScreen.SetTitle(MenuTextId.Paused);
+            pauseScreen.AddRow<MenuRow>(MenuTextId.Resume).Activated += Resume;
+            pauseScreen.AddRow<MenuRow>(MenuTextId.Settings).Activated += OpenSettings;
+            pauseScreen.AddRow<MenuRow>(MenuTextId.Exit).Activated += ExitGame;
 
-            MakeButton(panelRect, new Vector2(0f, 40f), "RESUME  (A / ESC)", Resume);
-            MakeButton(panelRect, new Vector2(0f, -50f), "RESTART  (X / R)", RestartRun);
-            MakeButton(panelRect, new Vector2(0f, -140f), "EXIT  (Y / Q)", ExitGame);
+            settingsScreen = MenuScreenFactory.BuildSettings(panelRect, theme);
+
+            footer = PromptStrip.Create(panelRect, theme, 56f);
 
             panel.SetActive(false);
         }
 
-        static Text MakeText(string name, Transform parent, Vector2 position, Vector2 size,
-                             string content, int fontSize, Color color)
+        void SetFooterFor(MenuScreen screen)
         {
-            var go = new GameObject(name, typeof(RectTransform));
-            var rect = (RectTransform)go.transform;
-            rect.SetParent(parent, false);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-
-            var text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.text = content;
-            text.fontSize = fontSize;
-            text.fontStyle = FontStyle.Bold;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = color;
-            return text;
+            if (screen == settingsScreen)
+                footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintChange),
+                                (PromptAction.Back, MenuTextId.HintBack));
+            else
+                footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Confirm, MenuTextId.HintSelect),
+                                (PromptAction.Back, MenuTextId.Resume));
         }
 
-        void MakeButton(Transform parent, Vector2 position, string label, UnityEngine.Events.UnityAction onClick)
+        void Blip(AudioClip clip)
         {
-            var go = new GameObject(label, typeof(RectTransform));
-            var rect = (RectTransform)go.transform;
-            rect.SetParent(parent, false);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = new Vector2(420f, 70f);
-
-            var image = go.AddComponent<Image>();
-            image.color = new Color(0.12f, 0.14f, 0.2f, 0.95f);
-
-            var button = go.AddComponent<Button>();
-            button.targetGraphic = image;
-            button.onClick.AddListener(onClick);
-
-            MakeText("Label", rect, Vector2.zero, rect.sizeDelta, label, 30, Color.white);
+            if (clip != null && ui != null) ui.PlayOneShot(clip, theme.UiVolume);
         }
     }
 }
