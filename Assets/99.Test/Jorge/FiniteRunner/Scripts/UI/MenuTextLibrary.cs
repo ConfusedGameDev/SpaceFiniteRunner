@@ -19,7 +19,7 @@ namespace FiniteRunner
         PressEnter, PressStart,
         HintMove, HintSelect, HintBack, HintChange, HintCancel, HintTitle,
         RoleMaster, RoleFool,
-        Paused, Resume
+        Paused, Resume, ExitToMenu, QuitGame
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -129,6 +129,10 @@ namespace FiniteRunner
         [SerializeField] LocalizedString paused = new("PAUSED", "PAUSA", "ポーズ", "PAUSE");
         [TitleGroup("Pause menu")]
         [SerializeField] LocalizedString resume = new("RESUME", "CONTINUAR", "再開", "REPRENDRE");
+        [TitleGroup("Pause menu")]
+        [SerializeField] LocalizedString exitToMenu = new("EXIT TO MAIN MENU", "SALIR AL MENÚ PRINCIPAL", "メインメニューへ", "RETOUR AU MENU");
+        [TitleGroup("Pause menu")]
+        [SerializeField] LocalizedString quitGame = new("QUIT GAME", "SALIR DEL JUEGO", "ゲームを終了", "QUITTER LE JEU");
 
         static MenuTextLibrary cached;
 
@@ -194,6 +198,8 @@ namespace FiniteRunner
             MenuTextId.RoleFool => roleFool,
             MenuTextId.Paused => paused,
             MenuTextId.Resume => resume,
+            MenuTextId.ExitToMenu => exitToMenu,
+            MenuTextId.QuitGame => quitGame,
             _ => start
         };
     }

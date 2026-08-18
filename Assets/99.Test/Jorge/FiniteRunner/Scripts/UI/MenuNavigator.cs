@@ -155,6 +155,26 @@ namespace FiniteRunner
             go.AddComponent<InputSystemUIInputModule>();
         }
 
+        /// <summary>
+        /// A "really do this?" page: title, ARE YOU SURE?, then YES / NO.
+        /// Focus starts on NO — destructive actions need a deliberate step.
+        /// Used by the main menu's EXIT and both pause-menu exits.
+        /// </summary>
+        public static MenuScreen BuildConfirm(RectTransform parent, MenuTheme theme, MenuTextId titleId,
+                                              System.Action onYes, System.Action onNo)
+        {
+            var screen = MenuScreen.Create($"Confirm_{titleId}", parent, theme, 0f, 0f);
+            screen.SetTitle(titleId);
+            screen.AddLabel("Question", new Vector2(0f, 66f), new Vector2(900f, 60f),
+                            MenuTextId.AreYouSure, 36, theme.TextPrimary, theme.BodyFont,
+                            TextAnchor.MiddleCenter, theme.TitleLead);
+
+            screen.AddRow<MenuRow>(MenuTextId.Yes).Activated += onYes;
+            screen.AddRow<MenuRow>(MenuTextId.No).Activated += onNo;
+            screen.SetFocus(1); // default to the safe answer
+            return screen;
+        }
+
         public static MenuScreen BuildSettings(RectTransform parent, MenuTheme theme)
         {
             var screen = MenuScreen.Create("SettingsScreen", parent, theme, 0f, 130f);

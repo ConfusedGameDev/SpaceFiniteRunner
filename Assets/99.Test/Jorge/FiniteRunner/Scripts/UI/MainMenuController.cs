@@ -222,6 +222,9 @@ namespace FiniteRunner
         {
             if (phase != Phase.Browsing) return;
 
+            // The exit confirm always re-arms on the safe answer.
+            if (screen == exitScreen) screen.SetFocus(1);
+
             current.SlideOut(-theme.ScreenSlide);
             screen.SlideIn(theme.ScreenSlide);
             current = screen;
@@ -482,18 +485,8 @@ namespace FiniteRunner
                                    TextAnchor.MiddleCenter, delay + theme.EntranceStagger * 3f);
         }
 
-        void BuildExit()
-        {
-            exitScreen = MenuScreen.Create("ExitScreen", root, theme, 0f, 0f);
-            exitScreen.SetTitle(MenuTextId.Exit);
-            exitScreen.AddLabel("Question", new Vector2(0f, 66f), new Vector2(900f, 60f),
-                                MenuTextId.AreYouSure, 36, theme.TextPrimary, theme.BodyFont,
-                                TextAnchor.MiddleCenter, theme.TitleLead);
-
-            exitScreen.AddRow<MenuRow>(MenuTextId.Yes).Activated += ConfirmExit;
-            exitScreen.AddRow<MenuRow>(MenuTextId.No).Activated += Back;
-            exitScreen.SetFocus(1); // default to the safe answer
-        }
+        // Shared confirm shape with the pause menu's exits.
+        void BuildExit() => exitScreen = MenuScreenFactory.BuildConfirm(root, theme, MenuTextId.Exit, ConfirmExit, Back);
 
         void SetFooterFor(MenuScreen screen)
         {

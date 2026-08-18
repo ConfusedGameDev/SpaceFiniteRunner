@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace FiniteRunner
@@ -32,6 +33,8 @@ namespace FiniteRunner
         RectTransform panelRect;
         MenuScreen pauseScreen;
         MenuScreen settingsScreen;
+        MenuScreen confirmMenuScreen; // "exit to main menu — are you sure?"
+        MenuScreen confirmQuitScreen; // "quit game — are you sure?"
         MenuScreen current;
         PromptStrip footer;
         AudioSource ui;
@@ -80,11 +83,12 @@ namespace FiniteRunner
             }
             if (Time.unscaledTime - openedTime < theme.InputGrace) return;
 
-            // Esc/Start/B all step outward: settings back to the pause list,
-            // the pause list back to the game. Quitting is never one press.
+            // Esc/Start/B all step outward: any sub-screen (settings or a
+            // confirm) back to the pause list, the pause list back to the
+            // game. Quitting is never one press.
             if (MenuNavigator.PauseTogglePressed() || MenuNavigator.BackPressed())
             {
-                if (current == settingsScreen) CloseSettings();
+                if (current != pauseScreen) CloseSub();
                 else Resume();
                 return;
             }
@@ -126,6 +130,8 @@ namespace FiniteRunner
             openedTime = Time.unscaledTime;
             lockTimer = 0f;
             settingsScreen.HideImmediate();
+            confirmMenuScreen.HideImmediate();
+            confirmQuitScreen.HideImmediate();
             current = pauseScreen;
             pauseScreen.Show(staggered: false); // pausing should feel instant, not cinematic
             SetFooterFor(pauseScreen);
@@ -141,26 +147,39 @@ namespace FiniteRunner
             Blip(theme.BackClip);
         }
 
-        void OpenSettings()
+        void OpenSub(MenuScreen screen)
         {
+            // A confirm page always re-arms on the safe answer, no matter
+            // where the focus sat when it was last backed out of.
+            if (screen == confirmMenuScreen || screen == confirmQuitScreen) screen.SetFocus(1);
+
             pauseScreen.SlideOut(-theme.ScreenSlide);
-            settingsScreen.SlideIn(theme.ScreenSlide);
-            current = settingsScreen;
+            screen.SlideIn(theme.ScreenSlide);
+            current = screen;
             lockTimer = theme.ScreenTransition;
             openedTime = Time.unscaledTime;
-            SetFooterFor(settingsScreen);
+            SetFooterFor(screen);
             Blip(theme.ConfirmClip);
         }
 
-        void CloseSettings()
+        void CloseSub()
         {
-            settingsScreen.SlideOut(theme.ScreenSlide);
+            current.SlideOut(theme.ScreenSlide);
             pauseScreen.SlideIn(-theme.ScreenSlide);
             current = pauseScreen;
             lockTimer = theme.ScreenTransition;
             openedTime = Time.unscaledTime;
             SetFooterFor(pauseScreen);
             Blip(theme.BackClip);
+        }
+
+        // Abandons the run and returns to the attract screen. The scene load
+        // destroys this menu (and the run) — hand the next scene a running
+        // clock first, and let the menu scene's own controller take over.
+        void ExitToMainMenu()
+        {
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(0); // MainMenu is build index 0
         }
 
         /// <summary>Quits for real in a build, stops play mode in the editor. Shared with the main menu's EXIT.</summary>
@@ -208,13 +227,18 @@ namespace FiniteRunner
             dimColor.a = 0.78f; // the frozen run stays faintly visible behind the menu
             dim.color = dimColor;
 
-            pauseScreen = MenuScreen.Create("PauseScreen", panelRect, theme, 0f, 40f);
+            pauseScreen = MenuScreen.Create("PauseScreen", panelRect, theme, 0f, 90f);
             pauseScreen.SetTitle(MenuTextId.Paused);
             pauseScreen.AddRow<MenuRow>(MenuTextId.Resume).Activated += Resume;
-            pauseScreen.AddRow<MenuRow>(MenuTextId.Settings).Activated += OpenSettings;
-            pauseScreen.AddRow<MenuRow>(MenuTextId.Exit).Activated += ExitGame;
+            pauseScreen.AddRow<MenuRow>(MenuTextId.Settings).Activated += () => OpenSub(settingsScreen);
+            pauseScreen.AddRow<MenuRow>(MenuTextId.ExitToMenu).Activated += () => OpenSub(confirmMenuScreen);
+            pauseScreen.AddRow<MenuRow>(MenuTextId.QuitGame).Activated += () => OpenSub(confirmQuitScreen);
 
             settingsScreen = MenuScreenFactory.BuildSettings(panelRect, theme);
+            confirmMenuScreen = MenuScreenFactory.BuildConfirm(panelRect, theme, MenuTextId.ExitToMenu,
+                                                               ExitToMainMenu, CloseSub);
+            confirmQuitScreen = MenuScreenFactory.BuildConfirm(panelRect, theme, MenuTextId.QuitGame,
+                                                               ExitGame, CloseSub);
 
             footer = PromptStrip.Create(panelRect, theme, 56f);
 
@@ -226,6 +250,9 @@ namespace FiniteRunner
             if (screen == settingsScreen)
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintChange),
                                 (PromptAction.Back, MenuTextId.HintBack));
+            else if (screen == confirmMenuScreen || screen == confirmQuitScreen)
+                footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Confirm, MenuTextId.HintSelect),
+                                (PromptAction.Back, MenuTextId.HintCancel));
             else
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Confirm, MenuTextId.HintSelect),
                                 (PromptAction.Back, MenuTextId.Resume));
