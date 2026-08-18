@@ -20,6 +20,10 @@ namespace FiniteRunner
         [SerializeField, Required] TrackGenerator generator;
         [SerializeField] TuningScreen tuningScreen;
 
+        [Title("Flow")]
+        [Tooltip("Overlay the main menu (attract screen) over this scene on boot — an in-scene testing shortcut. The shipping flow keeps this off: the menu is its own scene (MainMenu.unity, build index 0) and this scene is reached from the city chase.")]
+        [SerializeField] bool mainMenuOnBoot;
+
         [Title("Balance")]
         [Tooltip("Every tunable of the run. Edit it right here — it is the same asset the whole project shares.")]
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
@@ -54,6 +58,11 @@ namespace FiniteRunner
             if (motor != null) motor.PadImpulse += OnPadImpulse;
             SpeedPad.Collected += OnPadCollected;
             PauseMenu.Spawn(this, motor);
+
+            // Above the pause menu's canvas and holding timeScale at 0, so the
+            // scene boots to the attract screen with nothing running behind it.
+            if (mainMenuOnBoot) MainMenuController.Spawn(motor, tuningScreen);
+
             if (settings.patrolEnabled && motor != null)
             {
                 patrol = PolicePatrol.Spawn(motor, settings.patrolSpeedKmh, settings.patrolRampKmhPerSecond,

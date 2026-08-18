@@ -59,7 +59,14 @@ namespace FiniteRunner
             if (startButton != null) startButton.onClick.AddListener(StartRun);
         }
 
-        void Start() => Show();
+        void Start()
+        {
+            // The main menu owns the boot flow when it is up: it calls Show()
+            // itself once the player picks START, so the run can never begin
+            // behind the attract screen (autoLaunch would otherwise fire here).
+            if (MainMenuController.IsOpen) return;
+            Show();
+        }
 
         void Update()
         {

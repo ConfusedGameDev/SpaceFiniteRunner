@@ -89,7 +89,8 @@ namespace FiniteRunner
             else motor.Launch();
         }
 
-        static void ExitGame()
+        /// <summary>Quits for real in a build, stops play mode in the editor. Shared with the main menu's EXIT.</summary>
+        public static void ExitGame()
         {
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
