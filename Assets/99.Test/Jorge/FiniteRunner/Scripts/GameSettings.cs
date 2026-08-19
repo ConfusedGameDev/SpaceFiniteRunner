@@ -87,6 +87,69 @@ namespace FiniteRunner
         [PropertyRange(0f, 100f), SuffixLabel("m/s", true)]
         public float powerUpSpeedBoost = 15f;
 
+        // --------------------------------------------------------------- dash
+        // Per-ship dash stats (power, speed, fill rate, ghost count) live on
+        // ShipDefinition — this section only holds the run-level rules.
+        [ToggleGroup("dashEnabled", "Lateral dash")]
+        [Tooltip("Enable the double-tap lateral dash (bumpers on pad, N/M on keyboard) with its power meter, ghosts and prompts.")]
+        public bool dashEnabled = true;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Meter fraction one dash consumes. 0.5 = a full meter holds two dashes.")]
+        [PropertyRange(0.1f, 1f)]
+        public float dashCost = 0.5f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Max seconds between two taps of the same bumper/key that still count as a double tap.")]
+        [PropertyRange(0.1f, 0.6f), SuffixLabel("s", true)]
+        public float dashDoubleTapSeconds = 0.3f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Glitch-effect burst strength when a dash slams the track edge.")]
+        [PropertyRange(0f, 1f)]
+        public float dashWallGlitchStrength = 0.7f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Minimum seconds between two wall-slam feedbacks, so hugging the edge can't spam them.")]
+        [PropertyRange(0.1f, 2f), SuffixLabel("s", true)]
+        public float dashWallHitCooldownSeconds = 0.5f;
+
+        [ToggleGroup("dashEnabled"), Title("Ghost trail")]
+        [Tooltip("Seconds an onion-skin ghost takes to fade out completely.")]
+        [PropertyRange(0.05f, 1f), SuffixLabel("s", true)]
+        public float dashGhostLifetime = 0.35f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Starting opacity of a freshly spawned ghost.")]
+        [PropertyRange(0f, 1f)]
+        public float dashGhostStartAlpha = 0.45f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Transparent URP material for the onion-skin ghosts (Materials/DashGhost_Mat). Empty = a runtime fallback material is built instead.")]
+        public Material dashGhostMaterial;
+
+        [ToggleGroup("dashEnabled"), Title("Power meter")]
+        [Tooltip("Fill colour of the meter once at least one dash is banked; dimmed while still charging. The bar itself is the DashMeter scene object under the Ship.")]
+        public Color dashMeterColor = new(0.35f, 0.9f, 1f);
+
+        [ToggleGroup("dashEnabled"), Title("Encouragement")]
+        [Tooltip("Seconds the meter may sit full and unused before the narrator nags again.")]
+        [PropertyRange(2f, 60f), SuffixLabel("s", true)]
+        public float dashEncourageAfterSeconds = 10f;
+
+        [ToggleGroup("dashEnabled"), MultiLineProperty(2), LabelText("First-full line")]
+        public string dashFirstFullMessage = "Side boosters charged! Double-tap the bumpers to dash — thread the orbs, dodge the pads!";
+
+        [ToggleGroup("dashEnabled"), MultiLineProperty(2), LabelText("Reminder line")]
+        public string dashReminderMessage = "Those side boosters won't fire themselves — double-tap and DASH!";
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Caption of the pulsing on-screen hint between the bumper glyphs / key labels.")]
+        public string dashHintText = "DOUBLE-TAP TO DASH";
+
+        [ToggleGroup("dashEnabled")]
+        public Color dashMessageColor = new(1f, 0.85f, 0.4f);
+
         // ------------------------------------------------------- floating text
         [TitleGroup("Floating text offsets")]
         [Tooltip("How far ahead of the ship the '+N' boost popups spawn.")]

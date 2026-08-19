@@ -25,6 +25,8 @@ MonoBehaviour:
   glyphNavigate: {fileID: 21300000, guid: 723482a838f1a314899d27609d021519, type: 3}
   glyphAdjust: {fileID: 21300000, guid: 7d774c45743f92d4da07887e72b2cbfe, type: 3}
   glyphStart: {fileID: 21300000, guid: 0fee7badf73365447874bfd88bda357e, type: 3}
+  glyphBumperLeft: {fileID: 21300000, guid: bb4fca19ea4a47641836e03a3420c480, type: 3}
+  glyphBumperRight: {fileID: 21300000, guid: 3d3f11b6a53fc104a8630ea0237f2827, type: 3}
   mixer: {fileID: 24100000, guid: 5c8a24d1f0b74e2ab6d3915c47e0a8f3, type: 2}
   uiOutput: {fileID: 24300006, guid: 5c8a24d1f0b74e2ab6d3915c47e0a8f3, type: 2}
   moveClip: {fileID: 0}

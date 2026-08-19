@@ -1,3 +1,4 @@
+using ConfusedGameDev.FiniteRunner.PoliceEscape.FX;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -30,6 +31,7 @@ namespace FiniteRunner
         GameSettings settings;
 
         PolicePatrol patrol;
+        DashPromptController dashPrompt;
 
         public float BoostTextLeadMeters => settings.boostTextLeadMeters;
 
@@ -58,6 +60,21 @@ namespace FiniteRunner
             if (motor != null) motor.PadImpulse += OnPadImpulse;
             SpeedPad.Collected += OnPadCollected;
             PauseMenu.Spawn(this, motor);
+
+            if (motor != null)
+            {
+                motor.ConfigureDash(settings);
+                motor.WallHit += OnWallHit;
+                motor.DashPerformed += OnDashPerformed;
+
+                // The DashMeterUI is a scene child of the Ship — it configures
+                // itself off the motor in Start, after ConfigureDash above.
+                if (settings.dashEnabled)
+                {
+                    motor.gameObject.AddComponent<DashGhostTrail>().Init(motor, settings);
+                    dashPrompt = DashPromptController.Spawn(motor, settings);
+                }
+            }
 
             // Above the pause menu's canvas and holding timeScale at 0, so the
             // scene boots to the attract screen with nothing running behind it.
@@ -139,9 +156,28 @@ namespace FiniteRunner
             else HapticsSystem.Instance.Pulse(0.65f, 0.2f, 0.25f);
         }
 
+        // Dash feel: a short kick in the hands.
+        void OnDashPerformed(int direction)
+        {
+            HapticsSystem.Instance.Pulse(0.3f, 0.6f, 0.12f);
+        }
+
+        // Dash into the wall: a thud in the hands and a burst of signal corruption.
+        void OnWallHit(float impactSpeed)
+        {
+            HapticsSystem.Instance.Pulse(0.8f, 0.4f, 0.2f);
+            if (GlitchController.Instance != null)
+                GlitchController.Instance.Pulse(settings.dashWallGlitchStrength);
+        }
+
         void OnDestroy()
         {
-            if (motor != null) motor.PadImpulse -= OnPadImpulse;
+            if (motor != null)
+            {
+                motor.PadImpulse -= OnPadImpulse;
+                motor.WallHit -= OnWallHit;
+                motor.DashPerformed -= OnDashPerformed;
+            }
             SpeedPad.Collected -= OnPadCollected;
         }
 
@@ -152,6 +188,7 @@ namespace FiniteRunner
             // message's auto-restart — dropping any pending message (and its
             // onFinished) keeps the new run from being reset a second time.
             RpgMessageSystem.Instance.ClearMessages();
+            if (dashPrompt != null) dashPrompt.ResetForRun();
 
             ResultLabel = null;
             HasWon = false;

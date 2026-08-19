@@ -19,6 +19,10 @@ MonoBehaviour:
   acceleration: 60
   lateralSpeed: 30
   handlingResponse: 10
+  dashDistance: 12
+  dashDuration: 0.25
+  dashRechargeSeconds: 8
+  dashGhostCount: 6
   weight: 1
   hoverHeight: 3.5
   bobAmplitude: 0.35

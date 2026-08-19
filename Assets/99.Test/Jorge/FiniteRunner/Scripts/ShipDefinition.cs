@@ -45,6 +45,26 @@ namespace FiniteRunner
         [PropertyRange(0.01f, 30f)]
         public float handlingResponse = 8f;
 
+        [TitleGroup("Dash")]
+        [Tooltip("Dash power: how far one lateral dash carries the ship.")]
+        [PropertyRange(2f, 30f), SuffixLabel("m", true)]
+        public float dashDistance = 12f;
+
+        [TitleGroup("Dash")]
+        [Tooltip("Dash speed: how long the burst lasts. Shorter = snappier.")]
+        [PropertyRange(0.05f, 1f), SuffixLabel("s", true)]
+        public float dashDuration = 0.25f;
+
+        [TitleGroup("Dash")]
+        [Tooltip("Fill rate: seconds for the dash meter to recharge from empty to full. The meter starts every run empty.")]
+        [PropertyRange(1f, 60f), SuffixLabel("s", true)]
+        public float dashRechargeSeconds = 8f;
+
+        [TitleGroup("Dash")]
+        [Tooltip("Onion-skin ghosts left behind over one dash.")]
+        [PropertyRange(1, 20)]
+        public int dashGhostCount = 6;
+
         [TitleGroup("Weight")]
         [Tooltip("Scales how much pads affect this ship. 1 = full effect, 2 = pads (boost AND brake) only apply half their effect.")]
         [PropertyRange(0.1f, 5f)]

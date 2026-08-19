@@ -73,6 +73,14 @@ namespace FiniteRunner
         [Tooltip("Shown under PRESS START on the attract screen while a controller is connected.")]
         [SerializeField] Sprite glyphStart;     // xbox_button_start
 
+        [TitleGroup("Xbox prompt glyphs (03.UI/Xbox Series/Double)")]
+        [Tooltip("Left bumper, for the dash hint while a controller is connected.")]
+        [SerializeField] Sprite glyphBumperLeft;  // xbox_lb
+
+        [TitleGroup("Xbox prompt glyphs (03.UI/Xbox Series/Double)")]
+        [Tooltip("Right bumper, for the dash hint while a controller is connected.")]
+        [SerializeField] Sprite glyphBumperRight; // xbox_rb
+
         // ------------------------------------------------------------ palette
         [TitleGroup("Palette")]
         [Tooltip("Full-screen backdrop. Keep it near-opaque: the run is frozen behind the menu, not hidden.")]
@@ -262,6 +270,8 @@ namespace FiniteRunner
         public Sprite GlyphNavigate => glyphNavigate;
         public Sprite GlyphAdjust => glyphAdjust;
         public Sprite GlyphStart => glyphStart;
+        public Sprite GlyphBumperLeft => glyphBumperLeft;
+        public Sprite GlyphBumperRight => glyphBumperRight;
 
         public Color Backdrop => backdrop;
         public Color Accent => accent;
