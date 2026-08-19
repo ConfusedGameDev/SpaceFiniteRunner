@@ -29,6 +29,9 @@ namespace FiniteRunner
         float focusTarget;
         float focusVelocity;
 
+        /// <summary>Smoothed focus 0..1, for subclasses recoloring their own widgets in ApplyFocus.</summary>
+        protected float Focus => focus;
+
         /// <summary>Fade written by the screen's entrance animation; multiplied with the focus alpha.</summary>
         public float EntranceAlpha { get; set; } = 1f;
 

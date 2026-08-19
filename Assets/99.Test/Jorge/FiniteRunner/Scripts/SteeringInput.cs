@@ -54,8 +54,11 @@ namespace FiniteRunner
         {
             SteerAxis = ReadSteer();
 
-            // Scaled time on purpose: the pause menu sets timeScale to 0, so a
-            // double tap can never straddle a pause.
+            // No tap collection while paused: the pause menu uses the bumpers
+            // for its debug tabs, and frozen Time.time would otherwise make any
+            // two paused presses read as a double tap that fires on resume.
+            if (Time.timeScale == 0f) return;
+
             if (LeftTapped()) RegisterTap(ref lastLeftTap, -1);
             if (RightTapped()) RegisterTap(ref lastRightTap, +1);
         }

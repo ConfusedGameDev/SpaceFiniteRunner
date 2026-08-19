@@ -34254,6 +34254,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a4bc53d1969f4798b0358957f766551, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.TrackGenerator
+  trackWidth: 60
+  spawnTable:
+  - name: Green
+    prefab: {fileID: 0}
+    definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
+    probability: 46
+    multiplier: 1
+    color: {r: 0.1, g: 1, b: 0.3, a: 1}
+    swayAmplitude: 0
+    swayFrequency: 0.5
+  - name: Blue
+    prefab: {fileID: 0}
+    definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
+    probability: 16
+    multiplier: 2.5
+    color: {r: 0.25, g: 0.55, b: 1, a: 1}
+    swayAmplitude: 4
+    swayFrequency: 0.45
+  - name: Purple
+    prefab: {fileID: 0}
+    definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
+    probability: 3
+    multiplier: 10
+    color: {r: 0.75, g: 0.3, b: 1, a: 1}
+    swayAmplitude: 8
+    swayFrequency: 0.8
+  - name: Brake
+    prefab: {fileID: 0}
+    definition: {fileID: 11400000, guid: 68dcd2a069fec4c56a8cca2c952f4244, type: 2}
+    probability: 35
+    multiplier: 1
+    color: {r: 1, g: 0.25, b: 0.2, a: 1}
+    swayAmplitude: 0
+    swayFrequency: 0.5
+  straightness: 100
   track: {fileID: 1402584888}
   gameManager: {fileID: 0}
   ship: {fileID: 0}
@@ -34264,35 +34299,13 @@ MonoBehaviour:
   behindDistance: 150
   segments: 3
   segmentLength: {x: 300, y: 420}
-  maxTurnPerSegment: 0
-  maxHeading: 4.9
-  boostDefinition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
-  brakeDefinition: {fileID: 11400000, guid: 68dcd2a069fec4c56a8cca2c952f4244, type: 2}
+  maxTurnPerSegment: 24
+  maxHeading: 55
   boostMaterial: {fileID: 2100000, guid: d5349876b0f5c4ac6be9d2b65eb8b939, type: 2}
   brakeMaterial: {fileID: 2100000, guid: 5763c7e6bab0741b68b7e83bb42a8e9d, type: 2}
   padsParent: {fileID: 305136800}
-  boostSpacing: {x: 150, y: 220}
-  brakeChance: 0.35
+  padSpacing: {x: 150, y: 220}
   padSize: {x: 10, y: 0.5, z: 20}
-  orbTiers:
-  - name: Green
-    multiplier: 1
-    weight: 70
-    color: {r: 0.1, g: 1, b: 0.3, a: 1}
-    swayAmplitude: 0
-    swayFrequency: 0.5
-  - name: Blue
-    multiplier: 2.5
-    weight: 25
-    color: {r: 0.25, g: 0.55, b: 1, a: 1}
-    swayAmplitude: 4
-    swayFrequency: 0.45
-  - name: Purple
-    multiplier: 10
-    weight: 5
-    color: {r: 0.75, g: 0.3, b: 1, a: 1}
-    swayAmplitude: 8
-    swayFrequency: 0.8
   padSignPrefab: {fileID: 919132149155446097, guid: 12a4ac7d5a25a44009fc60417de04fb1, type: 3}
   padSignScale: 8
   markersParent: {fileID: 0}

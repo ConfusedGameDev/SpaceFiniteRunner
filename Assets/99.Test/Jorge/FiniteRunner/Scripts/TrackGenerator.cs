@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using Sirenix.OdinInspector;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.Splines;
 
 namespace FiniteRunner
@@ -17,25 +19,62 @@ namespace FiniteRunner
     public class TrackGenerator : MonoBehaviour
     {
         /// <summary>
-        /// One rarity tier of boost orb. The applied boost is
-        /// GameSettings.powerUpSpeedBoost × multiplier; weight drives how often
-        /// the tier spawns, and sway makes it drift across the track so the
-        /// juicier orbs are harder to catch.
+        /// One spawnable pad/orb kind. Probability is the share of every spawn
+        /// roll this entry wins (the sliders auto-rebalance so the table always
+        /// sums to 100%). A prefab replaces the code-built primitive; boosts
+        /// apply GameSettings.powerUpSpeedBoost × multiplier, and sway makes
+        /// the juicier orbs drift across the track so they must be earned.
         /// </summary>
         [System.Serializable]
-        public class OrbTier
+        public class PadSpawnEntry
         {
             public string name = "Green";
-            [Tooltip("Multiplies GameSettings.powerUpSpeedBoost.")]
+
+            [Tooltip("Optional model spawned instead of the code-built primitive. Colliders are forced to triggers; one is added if the prefab has none.")]
+            public GameObject prefab;
+
+            [Tooltip("What the pad does on pickup (boost/brake, orb or flat pad, size).")]
+            [Required] public PadDefinition definition;
+
+            [Tooltip("Share of every spawn roll this entry wins. The table always sums to 100%.")]
+            [PropertyRange(0f, 100f), SuffixLabel("%", true)]
+            public float probability = 25f;
+
+            [Tooltip("Boosts only: multiplies GameSettings.powerUpSpeedBoost. Brakes use their definition's own delta.")]
             [Min(0f)] public float multiplier = 1f;
-            [Tooltip("Relative spawn weight — higher = more common.")]
-            [Min(0f)] public float weight = 1f;
+
+            [Tooltip("Tint of the code-built primitive (prefabs keep their own materials) and of the pickup's story color.")]
             public Color color = new(0.1f, 1f, 0.3f);
+
             [Tooltip("How far the orb sways side to side across the track, in meters. 0 = holds the flight line.")]
             [Min(0f)] public float swayAmplitude;
+
             [Tooltip("Sway cycles per second.")]
             [Min(0f)] public float swayFrequency = 0.5f;
         }
+
+        // ------------------------------------------------------ Core Settings
+        [TitleGroup("Core Settings")]
+        [Tooltip("Full width of the track in meters. Drives the ship's steering clamp, the pad placement bounds and the road meshes (which are authored for 60 m and stretch proportionally). Regenerate to see it.")]
+        [PropertyRange(10f, 120f), SuffixLabel("m", true)]
+        [SerializeField] float trackWidth = 60f;
+
+        [TitleGroup("Core Settings")]
+        [Tooltip("One entry per power-up / slowdown kind. Every spawn step draws one entry by probability; the sliders auto-rebalance to always total 100%.")]
+        [OnValueChanged(nameof(NormalizeProbabilities), true)]
+        [SerializeField]
+        PadSpawnEntry[] spawnTable =
+        {
+            new() { name = "Green",  probability = 46f, multiplier = 1f,   color = new Color(0.1f, 1f, 0.3f) },
+            new() { name = "Blue",   probability = 16f, multiplier = 2.5f, color = new Color(0.25f, 0.55f, 1f), swayAmplitude = 4f, swayFrequency = 0.45f },
+            new() { name = "Purple", probability = 3f,  multiplier = 10f,  color = new Color(0.75f, 0.3f, 1f),  swayAmplitude = 8f, swayFrequency = 0.8f },
+            new() { name = "Brake",  probability = 35f, multiplier = 1f,   color = new Color(1f, 0.25f, 0.2f) },
+        };
+
+        [TitleGroup("Core Settings")]
+        [Tooltip("100% = a dead straight line, 0% = the curviest track the Shape settings below allow. Regenerate to see it.")]
+        [PropertyRange(0f, 100f), SuffixLabel("%", true)]
+        [SerializeField] float straightness = 100f;
 
         [SerializeField] TrackManager track;
 
@@ -71,25 +110,16 @@ namespace FiniteRunner
         [SerializeField, Range(0f, 85f)] float maxHeading = 55f;
 
         [Header("Pads")]
-        [SerializeField] PadDefinition boostDefinition;
-        [SerializeField] PadDefinition brakeDefinition;
+        [Tooltip("Base material of code-built boost primitives; each entry gets a recolored instance. Prefab entries keep their own materials.")]
         [SerializeField] Material boostMaterial;
+        [Tooltip("Material of code-built brake primitives.")]
         [SerializeField] Material brakeMaterial;
         [SerializeField] Transform padsParent;
-        [Tooltip("Distance between consecutive boost pads (min, max).")]
-        [SerializeField] Vector2 boostSpacing = new(150f, 220f);
-        [SerializeField, Range(0f, 1f)] float brakeChance = 0.35f;
+        [Tooltip("Distance between consecutive spawn rolls (min, max) — each roll places one entry from the Core Settings spawn table.")]
+        [FormerlySerializedAs("boostSpacing")]
+        [SerializeField] Vector2 padSpacing = new(150f, 220f);
         [Tooltip("Pad footprint (width, thickness, length). Also used to keep pads inside the track.")]
         [SerializeField] Vector3 padSize = new(10f, 0.5f, 20f);
-
-        [Header("Power-up orb tiers")]
-        [Tooltip("Weighted pool the boost orbs are drawn from. Keep the high multipliers scarce (low weight) and moving (sway) so they must be earned.")]
-        [SerializeField] OrbTier[] orbTiers =
-        {
-            new() { name = "Green",  multiplier = 1f,   weight = 70f, color = new Color(0.1f, 1f, 0.3f) },
-            new() { name = "Blue",   multiplier = 2.5f, weight = 25f, color = new Color(0.25f, 0.55f, 1f), swayAmplitude = 4f, swayFrequency = 0.45f },
-            new() { name = "Purple", multiplier = 10f,  weight = 5f,  color = new Color(0.75f, 0.3f, 1f),  swayAmplitude = 8f, swayFrequency = 0.8f },
-        };
 
         [Header("Pad signs")]
         [Tooltip("Optional sign model placed at each flat pad, tinted with the pad color.")]
@@ -105,13 +135,21 @@ namespace FiniteRunner
 
         public bool Randomize => randomize;
 
+        // Live access for the pause menu's debug tab. Width/straightness only
+        // take effect on the next Generate (the debug tab reloads the scene);
+        // spawn-table edits affect streaming immediately.
+        public float TrackWidth { get => trackWidth; set => trackWidth = Mathf.Clamp(value, 10f, 120f); }
+        public float Straightness { get => straightness; set => straightness = Mathf.Clamp(value, 0f, 100f); }
+        public PadSpawnEntry[] SpawnTable => spawnTable;
+
         // Streaming state — all reset by Generate().
         Unity.Mathematics.Random rng;
         float heading;
         float3 endPosition;
         float padCursor;
         readonly List<(float distance, GameObject go)> spawned = new();
-        Dictionary<OrbTier, Material> tierMaterials;
+        Dictionary<PadSpawnEntry, Material> entryMaterials;
+        float[] lastProbabilities; // change-detection cache for the 100% rebalance
 
         // AutoSmooth reshapes the curves around the previous knot every time a
         // new one lands, so the last two segments are never safe to build on.
@@ -142,6 +180,15 @@ namespace FiniteRunner
 
         public void Generate()
         {
+            // Debug-tab tweaks (saved to the TrackDebugSettings asset) override
+            // the scene's Core Settings — play mode only, so edit-mode previews
+            // and the inspector always reflect the authored scene values.
+            if (Application.isPlaying) TrackDebugSettings.Load().ApplyTo(this);
+
+            // One width knob for everything: steering clamp, pad bounds, meshes.
+            if (track != null) track.SetWidth(trackWidth);
+            if (decorator != null) decorator.SetTrackWidth(trackWidth);
+
             rng = seed == 0
                 ? new Unity.Mathematics.Random((uint)System.Environment.TickCount)
                 : new Unity.Mathematics.Random((uint)seed);
@@ -198,9 +245,14 @@ namespace FiniteRunner
 
         void AddSegment()
         {
+            // Straightness scales the Shape limits down: 100% pins the heading
+            // to dead ahead, 0% lets the full turn/heading ranges act.
+            float curviness = 1f - straightness / 100f;
+            float turnLimit = maxTurnPerSegment * curviness;
+            float headingLimit = maxHeading * curviness;
             heading = math.clamp(
-                heading + rng.NextFloat(-maxTurnPerSegment, maxTurnPerSegment),
-                -maxHeading, maxHeading);
+                heading + rng.NextFloat(-turnLimit, turnLimit),
+                -headingLimit, headingLimit);
             float rad = math.radians(heading);
             endPosition += new float3(math.sin(rad), 0f, math.cos(rad)) *
                            rng.NextFloat(segmentLength.x, segmentLength.y);
@@ -209,23 +261,17 @@ namespace FiniteRunner
 
         void PlacePadsUpTo(float limit)
         {
-            // A boost's optional brake trails it by up to 140 m — only place a
-            // boost when its whole pattern fits, and resume here next stream.
-            while (padCursor + 140f < limit)
+            // One weighted draw from the Core Settings spawn table per step;
+            // the cursor resumes here on the next stream.
+            while (padCursor < limit)
             {
-                OrbTier tier = PickOrbTier();
-                float lat = MaxLateral(boostDefinition, tier != null ? tier.swayAmplitude : 0f);
-                CreatePad(padCursor, rng.NextFloat(-lat, lat), boostDefinition,
-                          tier != null ? TierMaterial(tier) : boostMaterial, tier);
-
-                if (rng.NextFloat() < brakeChance)
+                PadSpawnEntry entry = PickSpawnEntry();
+                if (entry != null && entry.definition != null)
                 {
-                    float brakeDist = padCursor + rng.NextFloat(60f, 140f);
-                    lat = MaxLateral(brakeDefinition);
-                    CreatePad(brakeDist, rng.NextFloat(-lat, lat), brakeDefinition, brakeMaterial);
+                    float lat = MaxLateral(entry.definition, entry.swayAmplitude);
+                    CreatePad(padCursor, rng.NextFloat(-lat, lat), entry);
                 }
-
-                padCursor += rng.NextFloat(boostSpacing.x, boostSpacing.y);
+                padCursor += rng.NextFloat(padSpacing.x, padSpacing.y);
             }
         }
 
@@ -249,87 +295,172 @@ namespace FiniteRunner
             return Mathf.Max(0f, track.HalfWidth - width * 0.5f - 2f - sway);
         }
 
-        // Weighted draw from the tier pool; uses the layout rng so seeded runs
-        // reproduce the same tier sequence.
-        OrbTier PickOrbTier()
+        // Weighted draw from the spawn table; uses the layout rng so seeded
+        // runs reproduce the same sequence. Probabilities are normalized by
+        // their sum, so the draw stays correct even mid-edit.
+        PadSpawnEntry PickSpawnEntry()
         {
-            if (orbTiers == null || orbTiers.Length == 0) return null;
+            if (spawnTable == null || spawnTable.Length == 0) return null;
             float total = 0f;
-            foreach (var t in orbTiers) total += t.weight;
-            if (total <= 0f) return orbTiers[0];
+            foreach (var e in spawnTable) total += e.probability;
+            if (total <= 0f) return spawnTable[0];
 
             float roll = rng.NextFloat(0f, total);
-            foreach (var t in orbTiers)
+            foreach (var e in spawnTable)
             {
-                roll -= t.weight;
-                if (roll <= 0f) return t;
+                roll -= e.probability;
+                if (roll <= 0f) return e;
             }
-            return orbTiers[^1];
+            return spawnTable[^1];
         }
 
-        float EffectiveBoost(OrbTier tier)
+        // Keeps the Core Settings probability sliders honest: whichever slider
+        // the designer just moved keeps its value, the others rebalance
+        // proportionally so the table always totals 100%.
+        void NormalizeProbabilities()
         {
-            float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost
-                            : boostDefinition != null ? boostDefinition.speedDelta : 15f;
-            return baseBoost * tier.multiplier;
+            if (spawnTable == null || spawnTable.Length == 0) { lastProbabilities = null; return; }
+
+            if (spawnTable.Length == 1)
+            {
+                spawnTable[0].probability = 100f;
+            }
+            else if (lastProbabilities != null && lastProbabilities.Length == spawnTable.Length)
+            {
+                int changed = -1;
+                for (int i = 0; i < spawnTable.Length; i++)
+                    if (!Mathf.Approximately(spawnTable[i].probability, lastProbabilities[i])) { changed = i; break; }
+
+                if (changed >= 0)
+                {
+                    float kept = Mathf.Clamp(spawnTable[changed].probability, 0f, 100f);
+                    spawnTable[changed].probability = kept;
+
+                    float othersSum = 0f;
+                    for (int i = 0; i < spawnTable.Length; i++)
+                        if (i != changed) othersSum += spawnTable[i].probability;
+
+                    float remainder = 100f - kept;
+                    for (int i = 0; i < spawnTable.Length; i++)
+                    {
+                        if (i == changed) continue;
+                        spawnTable[i].probability = othersSum > 0f
+                            ? spawnTable[i].probability * remainder / othersSum
+                            : remainder / (spawnTable.Length - 1);
+                    }
+                }
+            }
+            else
+            {
+                // Entry added/removed (or first touch): scale everything to 100.
+                float total = 0f;
+                foreach (var e in spawnTable) total += e.probability;
+                for (int i = 0; i < spawnTable.Length; i++)
+                    spawnTable[i].probability = total > 0f
+                        ? spawnTable[i].probability * 100f / total
+                        : 100f / spawnTable.Length;
+            }
+
+            lastProbabilities = new float[spawnTable.Length];
+            for (int i = 0; i < spawnTable.Length; i++) lastProbabilities[i] = spawnTable[i].probability;
+        }
+
+        void OnValidate() => NormalizeProbabilities();
+
+        float EffectiveBoost(PadSpawnEntry entry)
+        {
+            float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost : 15f;
+            return baseBoost * entry.multiplier;
         }
 
         // The SpeedPad's MPB tint alone is unreliable with the SRP Batcher
-        // (see TrackDecorator), so each tier gets its own recolored instance
-        // of the boost material. Play mode only — edit-mode previews would
-        // leak the instances into the scene.
-        Material TierMaterial(OrbTier tier)
+        // (see TrackDecorator), so each boost entry gets its own recolored
+        // instance of the boost material. Play mode only — edit-mode previews
+        // would leak the instances into the scene.
+        Material EntryMaterial(PadSpawnEntry entry)
         {
+            bool boost = entry.definition == null || entry.definition.speedDelta >= 0f;
+            if (!boost) return brakeMaterial;
             if (!Application.isPlaying || boostMaterial == null) return boostMaterial;
-            tierMaterials ??= new Dictionary<OrbTier, Material>();
-            if (!tierMaterials.TryGetValue(tier, out var mat))
+
+            entryMaterials ??= new Dictionary<PadSpawnEntry, Material>();
+            if (!entryMaterials.TryGetValue(entry, out var mat))
             {
                 mat = new Material(boostMaterial);
-                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", tier.color);
-                else mat.color = tier.color;
-                if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", tier.color);
-                tierMaterials.Add(tier, mat);
+                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", entry.color);
+                else mat.color = entry.color;
+                if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", entry.color);
+                entryMaterials.Add(entry, mat);
             }
             return mat;
         }
 
-        void CreatePad(float distance, float lateral, PadDefinition def, Material mat, OrbTier tier = null)
+        void CreatePad(float distance, float lateral, PadSpawnEntry entry)
         {
-            if (def == null) return;
-
+            PadDefinition def = entry.definition;
             track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
+            // Orbs sit on the flight line; flat pads sink to road level.
+            Vector3 padPos = def.floatingOrb ? pos : pos + rot * new Vector3(0f, -0.9f, 0f);
+            Material mat = EntryMaterial(entry);
             GameObject pad;
 
-            if (def.floatingOrb)
+            if (entry.prefab != null)
+            {
+                // Designer-authored look: the prefab keeps its own materials,
+                // only the definition's size multiplier scales it.
+                pad = Instantiate(entry.prefab, padPos, rot, padsParent);
+                pad.transform.localScale *= def.sizeMultiplier;
+
+                var colliders = pad.GetComponentsInChildren<Collider>();
+                foreach (var c in colliders) c.isTrigger = true;
+                if (colliders.Length == 0)
+                {
+                    if (def.floatingOrb)
+                    {
+                        var sphere = pad.AddComponent<SphereCollider>();
+                        sphere.isTrigger = true;
+                        sphere.radius = padSize.x * 0.5f;
+                    }
+                    else
+                    {
+                        var box = pad.AddComponent<BoxCollider>();
+                        box.isTrigger = true;
+                        box.size = padSize;
+                    }
+                }
+            }
+            else if (def.floatingOrb)
             {
                 // Floating orb centered on the flight line so the ship's trigger
                 // collider passes straight through it. Small — must be aimed for.
                 pad = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 pad.transform.SetParent(padsParent, false);
-                pad.transform.SetPositionAndRotation(pos, rot);
+                pad.transform.SetPositionAndRotation(padPos, rot);
                 pad.transform.localScale = Vector3.one * (padSize.x * def.sizeMultiplier);
                 pad.GetComponent<SphereCollider>().isTrigger = true;
-                if (Application.isPlaying)
-                {
-                    var hover = pad.AddComponent<OrbHover>();
-                    if (tier != null) hover.Configure(tier.swayAmplitude, tier.swayFrequency);
-                }
+                if (mat != null) pad.GetComponent<Renderer>().sharedMaterial = mat;
             }
             else
             {
                 pad = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 pad.transform.SetParent(padsParent, false);
-                pad.transform.SetPositionAndRotation(pos + rot * new Vector3(0f, -0.9f, 0f), rot);
+                pad.transform.SetPositionAndRotation(padPos, rot);
                 pad.transform.localScale = padSize * def.sizeMultiplier;
                 pad.GetComponent<BoxCollider>().isTrigger = true;
+                if (mat != null) pad.GetComponent<Renderer>().sharedMaterial = mat;
             }
 
-            pad.name = tier != null
-                ? $"{tier.name}{def.displayName}Pad_{distance:00000}"
-                : $"{def.displayName}Pad_{distance:00000}";
-            if (mat != null) pad.GetComponent<Renderer>().sharedMaterial = mat;
+            if (def.floatingOrb && Application.isPlaying)
+            {
+                var hover = pad.AddComponent<OrbHover>();
+                hover.Configure(entry.swayAmplitude, entry.swayFrequency);
+            }
+
+            pad.name = $"{entry.name}{def.displayName}Pad_{distance:00000}";
             var speedPad = pad.AddComponent<SpeedPad>();
-            if (tier != null) speedPad.SetDefinition(def, EffectiveBoost(tier), tier.color, tier.name);
+            // Boosts scale off the shared power-up base; brakes keep their
+            // definition's own delta so dodging stays predictable.
+            if (def.speedDelta >= 0f) speedPad.SetDefinition(def, EffectiveBoost(entry), entry.color, entry.name);
             else speedPad.SetDefinition(def);
             spawned.Add((distance, pad));
 
@@ -372,4 +503,5 @@ namespace FiniteRunner
                 TrackDecorator.SafeDestroy(parent.GetChild(i).gameObject);
         }
     }
+
 }

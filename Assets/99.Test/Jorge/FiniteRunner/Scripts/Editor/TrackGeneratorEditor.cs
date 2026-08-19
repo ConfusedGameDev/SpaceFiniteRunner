@@ -1,3 +1,4 @@
+using Sirenix.OdinInspector.Editor;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -5,15 +6,17 @@ using UnityEngine;
 namespace FiniteRunner.EditorTools
 {
     /// <summary>
-    /// Adds a "Regenerate Track" button to the TrackGenerator inspector so
-    /// random layouts can be previewed without entering play mode.
+    /// Draws the TrackGenerator through Odin (so the Core Settings region —
+    /// title group, percentage sliders, auto-rebalancing spawn table — renders
+    /// properly) and adds a "Regenerate Track" button so random layouts can be
+    /// previewed without entering play mode.
     /// </summary>
     [CustomEditor(typeof(TrackGenerator))]
-    public class TrackGeneratorEditor : Editor
+    public class TrackGeneratorEditor : OdinEditor
     {
         public override void OnInspectorGUI()
         {
-            DrawDefaultInspector();
+            base.OnInspectorGUI();
 
             GUILayout.Space(10);
             if (GUILayout.Button("Regenerate Track", GUILayout.Height(32)))

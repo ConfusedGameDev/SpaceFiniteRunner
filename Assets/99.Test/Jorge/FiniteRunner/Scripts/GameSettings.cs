@@ -168,7 +168,7 @@ namespace FiniteRunner
         public float messageHoldSeconds = 2.5f;
 
         [TitleGroup("Story messages")]
-        [Tooltip("Orb tier (by name, see TrackGenerator.orbTiers) whose pickup triggers the pilot's hype line. Empty = no orb message.")]
+        [Tooltip("Spawn-table entry (by name, see the TrackGenerator's Core Settings) whose pickup triggers the pilot's hype line. Empty = no orb message.")]
         public string messageOrbTierName = "Purple";
 
         [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Orb line")]

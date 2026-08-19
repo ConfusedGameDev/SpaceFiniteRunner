@@ -24,10 +24,15 @@ namespace FiniteRunner
     {
         const int SortingOrder = 20; // above the HUD (10) and messages (15), below the main menu (30)
 
+        [Tooltip("Show the DEBUG entry (tabbed developer pages — core track settings, more to come). Turn off for player-facing builds.")]
+        public bool debug = true;
+
         GameManager gameManager;
         ShipMotor motor;
         MenuTheme theme;
         MenuNavigator nav;
+        DebugMenu debugMenu;
+        TrackDebugSettings debugSettings;
 
         GameObject panel;
         RectTransform panelRect;
@@ -93,6 +98,23 @@ namespace FiniteRunner
                 return;
             }
 
+            // Bumpers (or Q/E) flip between debug tabs, same slide language as
+            // the other screens. Only while a debug tab is the current screen.
+            if (debugMenu != null && debugMenu.Contains(current) && debugMenu.Count > 1)
+            {
+                int tabStep = DebugMenu.TabStepPressed();
+                if (tabStep != 0)
+                {
+                    current.SlideOut(-tabStep * theme.ScreenSlide);
+                    current = debugMenu.Cycle(tabStep);
+                    current.SlideIn(tabStep * theme.ScreenSlide);
+                    lockTimer = theme.ScreenTransition;
+                    SetFooterFor(current);
+                    Blip(theme.MoveClip);
+                    return;
+                }
+            }
+
             int vertical = nav.StepVertical(dt);
             if (vertical != 0)
             {
@@ -132,6 +154,7 @@ namespace FiniteRunner
             settingsScreen.HideImmediate();
             confirmMenuScreen.HideImmediate();
             confirmQuitScreen.HideImmediate();
+            debugMenu?.HideAllImmediate();
             current = pauseScreen;
             pauseScreen.Show(staggered: false); // pausing should feel instant, not cinematic
             SetFooterFor(pauseScreen);
@@ -144,6 +167,7 @@ namespace FiniteRunner
             Time.timeScale = 1f;
             if (motor != null) motor.Paused = false;
             panel.SetActive(false);
+            debugSettings?.Flush(); // commit any debug tweaks to disk
             Blip(theme.BackClip);
         }
 
@@ -227,10 +251,25 @@ namespace FiniteRunner
             dimColor.a = 0.78f; // the frozen run stays faintly visible behind the menu
             dim.color = dimColor;
 
+            // The tabbed debug pages need a TrackGenerator to edit — a scene
+            // without one (the city chase) gets no DEBUG entry even when on.
+            TrackGenerator generator = debug ? FindFirstObjectByType<TrackGenerator>() : null;
+            if (generator != null)
+            {
+                debugSettings = TrackDebugSettings.Load();
+                debugMenu = new DebugMenu();
+                debugMenu.AddTab(DebugMenuFactory.BuildCoreSettingsTab(
+                    panelRect, theme, generator, debugSettings, ReloadScene, 0, 2));
+                debugMenu.AddTab(DebugMenuFactory.BuildMultipliersTab(
+                    panelRect, theme, generator, debugSettings, 1, 2));
+            }
+
             pauseScreen = MenuScreen.Create("PauseScreen", panelRect, theme, 0f, 90f);
             pauseScreen.SetTitle(MenuTextId.Paused);
             pauseScreen.AddRow<MenuRow>(MenuTextId.Resume).Activated += Resume;
             pauseScreen.AddRow<MenuRow>(MenuTextId.Settings).Activated += () => OpenSub(settingsScreen);
+            if (debugMenu != null)
+                pauseScreen.AddRow<MenuRow>("DEBUG").Activated += () => OpenSub(debugMenu.Active);
             pauseScreen.AddRow<MenuRow>(MenuTextId.ExitToMenu).Activated += () => OpenSub(confirmMenuScreen);
             pauseScreen.AddRow<MenuRow>(MenuTextId.QuitGame).Activated += () => OpenSub(confirmQuitScreen);
 
@@ -245,9 +284,22 @@ namespace FiniteRunner
             panel.SetActive(false);
         }
 
+        // The debug sliders saved their values into the TrackDebugSettings
+        // asset as they moved — commit it to disk, then reload; the fresh
+        // TrackGenerator re-applies the asset in Generate().
+        void ReloadScene()
+        {
+            debugSettings?.Flush();
+
+            Time.timeScale = 1f;
+            var scene = SceneManager.GetActiveScene();
+            if (scene.buildIndex >= 0) SceneManager.LoadScene(scene.buildIndex);
+            else SceneManager.LoadScene(scene.name);
+        }
+
         void SetFooterFor(MenuScreen screen)
         {
-            if (screen == settingsScreen)
+            if (screen == settingsScreen || (debugMenu != null && debugMenu.Contains(screen)))
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintChange),
                                 (PromptAction.Back, MenuTextId.HintBack));
             else if (screen == confirmMenuScreen || screen == confirmQuitScreen)

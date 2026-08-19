@@ -52,6 +52,11 @@ namespace FiniteRunner
         float columnX;
         float contentTop;
         float rowDelayBase;
+        float rowHeightOverride = -1f;
+        float rowSpacingOverride = -1f;
+
+        float RowHeight => rowHeightOverride > 0f ? rowHeightOverride : theme.RowHeight;
+        float RowSpacing => rowSpacingOverride >= 0f ? rowSpacingOverride : theme.RowSpacing;
 
         public RectTransform Root => root;
         public bool Visible => phase != Phase.Hidden;
@@ -94,22 +99,39 @@ namespace FiniteRunner
         }
 
         /// <summary>
+        /// Compact-row mode for dense screens (the debug tabs): every row added
+        /// afterwards uses this height and spacing instead of the theme's.
+        /// </summary>
+        public void SetRowMetrics(float height, float spacing)
+        {
+            rowHeightOverride = height;
+            rowSpacingOverride = spacing;
+        }
+
+        /// <summary>
         /// Adds a focusable row of type <typeparamref name="T"/> at the bottom
         /// of the column. Screens with no rows (Cheats, Credits) simply never
         /// call this — adding rows later needs no navigation changes.
         /// </summary>
         public T AddRow<T>(MenuTextId labelId) where T : MenuRow
+            => AddRowInternal<T>(MenuTextLibrary.Load().Get(labelId), labelId);
+
+        /// <summary>Raw-string variant for rows that must not localize (debug tabs, generated labels).</summary>
+        public T AddRow<T>(string label) where T : MenuRow
+            => AddRowInternal<T>(label, null);
+
+        T AddRowInternal<T>(string label, MenuTextId? localizeId) where T : MenuRow
         {
-            var go = new GameObject($"Row_{labelId}", typeof(RectTransform));
+            var go = new GameObject($"Row_{label}", typeof(RectTransform));
             var rect = (RectTransform)go.transform;
             rect.SetParent(root, false);
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(theme.RowWidth, theme.RowHeight);
-            rect.anchoredPosition = new Vector2(columnX, contentTop - rows.Count * (theme.RowHeight + theme.RowSpacing));
+            rect.sizeDelta = new Vector2(theme.RowWidth, RowHeight);
+            rect.anchoredPosition = new Vector2(columnX, contentTop - rows.Count * (RowHeight + RowSpacing));
 
             var row = go.AddComponent<T>();
-            row.Bind(this, theme, MenuTextLibrary.Load().Get(labelId), labelId);
+            row.Bind(this, theme, label, localizeId);
             rows.Add(row);
 
             AddEntranceItem(rect, null, row, rowDelayBase + (rows.Count - 1) * theme.EntranceStagger);

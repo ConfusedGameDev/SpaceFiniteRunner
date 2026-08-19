@@ -22,6 +22,13 @@ namespace FiniteRunner
         public float HalfWidth => halfWidth;
         public float Length { get; private set; }
 
+        /// <summary>
+        /// Sets the playable lane from a full track width in meters. Driven by
+        /// the TrackGenerator's Core Settings so the gameplay clamp, the pad
+        /// placement bounds and the road meshes all share one width knob.
+        /// </summary>
+        public void SetWidth(float fullWidth) => halfWidth = Mathf.Max(0.5f, fullWidth * 0.5f);
+
         void Awake() => Recalculate();
         void OnValidate() => Recalculate();
 

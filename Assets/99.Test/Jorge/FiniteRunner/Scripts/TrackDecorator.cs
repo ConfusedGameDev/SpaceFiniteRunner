@@ -38,10 +38,31 @@ namespace FiniteRunner
         [Tooltip("Lateral distance of the barrier strip from the track center.")]
         [SerializeField] float barrierLateral = 30.5f;
 
+        // The road/barrier scales and the barrier lateral above are authored
+        // for this track width; SetTrackWidth stretches them proportionally.
+        const float ReferenceTrackWidth = 60f;
+
         // Streaming state: distance of the next stamp, and every live piece
         // tagged with the distance it was stamped at (for culling).
         float stampCursor;
+        float widthScale = 1f;
         readonly List<(float distance, GameObject go)> stamped = new();
+
+        /// <summary>
+        /// Adapts the authored piece scales to the given full track width
+        /// (Core Settings on the TrackGenerator). Only affects pieces stamped
+        /// afterwards — the generator regenerates, so everything restamps.
+        /// </summary>
+        public void SetTrackWidth(float width) => widthScale = Mathf.Max(0.05f, width / ReferenceTrackWidth);
+
+        // The kit tiles are yawed to align with the track, so which local axis
+        // spans the road width depends on that yaw: near ±90 it is Z, else X.
+        Vector3 ScaleAcrossWidth(Vector3 scale)
+        {
+            if (Mathf.Abs(Mathf.Cos(roadYaw * Mathf.Deg2Rad)) < 0.5f) scale.z *= widthScale;
+            else scale.x *= widthScale;
+            return scale;
+        }
 
         /// <summary>Clears everything and re-stamps the whole current track.</summary>
         public void Decorate()
@@ -82,7 +103,7 @@ namespace FiniteRunner
             if (roadPrefab != null)
             {
                 var piece = Stamp(d, roadPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
-                                  rot * Quaternion.Euler(0f, roadYaw, 0f), roadScale);
+                                  rot * Quaternion.Euler(0f, roadYaw, 0f), ScaleAcrossWidth(roadScale));
                 if (roadMaterialOverride != null) OverrideMaterials(piece, roadMaterialOverride);
             }
 
@@ -92,17 +113,18 @@ namespace FiniteRunner
                 {
                     // Full-width piece (e.g. road-straight-barrier): one centered stamp.
                     var b = Stamp(d, barrierPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
-                                  rot * Quaternion.Euler(0f, roadYaw, 0f), barrierScale);
+                                  rot * Quaternion.Euler(0f, roadYaw, 0f), ScaleAcrossWidth(barrierScale));
                     if (roadMaterialOverride != null) OverrideMaterials(b, roadMaterialOverride);
                 }
                 else
                 {
-                    track.GetPoseAtDistance(d, -barrierLateral, out Vector3 lp, out Quaternion lr);
+                    float lateral = barrierLateral * widthScale;
+                    track.GetPoseAtDistance(d, -lateral, out Vector3 lp, out Quaternion lr);
                     var bl = Stamp(d, barrierPrefab, lp + lr * new Vector3(0f, roadYOffset, 0f),
                                    lr * Quaternion.Euler(0f, roadYaw, 0f), barrierScale);
                     if (roadMaterialOverride != null) OverrideMaterials(bl, roadMaterialOverride);
 
-                    track.GetPoseAtDistance(d, barrierLateral, out Vector3 rp, out Quaternion rr);
+                    track.GetPoseAtDistance(d, lateral, out Vector3 rp, out Quaternion rr);
                     var br = Stamp(d, barrierPrefab, rp + rr * new Vector3(0f, roadYOffset, 0f),
                                    rr * Quaternion.Euler(0f, roadYaw + 180f, 0f), barrierScale);
                     if (roadMaterialOverride != null) OverrideMaterials(br, roadMaterialOverride);
