@@ -19,7 +19,18 @@ namespace FiniteRunner
         PressEnter, PressStart,
         HintMove, HintSelect, HintBack, HintChange, HintCancel, HintTitle,
         RoleMaster, RoleFool,
-        Paused, Resume, ExitToMenu, QuitGame
+        Paused, Resume, ExitToMenu, QuitGame,
+        Debug,
+        DebugTabCore, DebugTabMultipliers, DebugTabShipSpeed, DebugTabShipHandling,
+        DebugTabShipDash, DebugTabShipHover,
+        TrackWidth, Straightness, ReloadScene, ReloadScenePrompt,
+        LaunchSpeed, Deceleration, Acceleration, Weight,
+        LateralSpeed, SteerResponse, BankAngle, BankResponse,
+        DashDistance, DashDuration, DashRecharge, DashGhosts,
+        HoverHeight, BobAmplitude, BobFrequency, PitchWobble,
+        DebugTabPatrol,
+        PatrolBaseSpeed, PatrolRamp, PatrolRubberBand, PatrolCatchUp,
+        PatrolStartGap, PatrolCatchDistance, PatrolWarnDistance, PatrolAlertLead
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -134,6 +145,81 @@ namespace FiniteRunner
         [TitleGroup("Pause menu")]
         [SerializeField] LocalizedString quitGame = new("QUIT GAME", "SALIR DEL JUEGO", "ゲームを終了", "QUITTER LE JEU");
 
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString debug = new("DEBUG", "DEPURACIÓN", "デバッグ", "DÉBOGAGE");
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString debugTabCore = new("DEBUG — CORE SETTINGS", "DEPURACIÓN — AJUSTES BÁSICOS", "デバッグ — 基本設定", "DÉBOGAGE — RÉGLAGES DE BASE");
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString debugTabMultipliers = new("DEBUG — MULTIPLIERS", "DEPURACIÓN — MULTIPLICADORES", "デバッグ — 倍率", "DÉBOGAGE — MULTIPLICATEURS");
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString debugTabShipSpeed = new("DEBUG — SHIP SPEED", "DEPURACIÓN — VELOCIDAD DE LA NAVE", "デバッグ — 機体スピード", "DÉBOGAGE — VITESSE DU VAISSEAU");
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString debugTabShipHandling = new("DEBUG — SHIP HANDLING", "DEPURACIÓN — MANEJO DE LA NAVE", "デバッグ — 機体ハンドリング", "DÉBOGAGE — MANIABILITÉ DU VAISSEAU");
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString debugTabShipDash = new("DEBUG — SHIP DASH", "DEPURACIÓN — DASH DE LA NAVE", "デバッグ — 機体ダッシュ", "DÉBOGAGE — DASH DU VAISSEAU");
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString debugTabShipHover = new("DEBUG — SHIP HOVER", "DEPURACIÓN — FLOTACIÓN DE LA NAVE", "デバッグ — 機体ホバー", "DÉBOGAGE — SUSTENTATION DU VAISSEAU");
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString trackWidth = new("TRACK WIDTH", "ANCHO DE PISTA", "トラック幅", "LARGEUR DE PISTE");
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString straightness = new("STRAIGHTNESS", "RECTITUD", "直線度", "RECTITUDE");
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString reloadScene = new("RELOAD SCENE", "RECARGAR ESCENA", "シーンをリロード", "RECHARGER LA SCÈNE");
+        [TitleGroup("Debug menu")]
+        [SerializeField] LocalizedString reloadScenePrompt = new("DO YOU WANT TO RELOAD THE SCENE?", "¿QUIERES RECARGAR LA ESCENA?", "シーンをリロードしますか？", "VOULEZ-VOUS RECHARGER LA SCÈNE ?");
+
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString launchSpeed = new("LAUNCH SPEED", "VELOCIDAD DE LANZAMIENTO", "発進速度", "VITESSE DE LANCEMENT");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString deceleration = new("DECELERATION", "DESACELERACIÓN", "減速", "DÉCÉLÉRATION");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString acceleration = new("ACCELERATION", "ACELERACIÓN", "加速", "ACCÉLÉRATION");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString weight = new("WEIGHT", "PESO", "重量", "POIDS");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString lateralSpeed = new("LATERAL SPEED", "VELOCIDAD LATERAL", "横移動速度", "VITESSE LATÉRALE");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString steerResponse = new("STEER RESPONSE", "RESPUESTA DE GIRO", "操舵レスポンス", "RÉPONSE DE DIRECTION");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString bankAngle = new("BANK ANGLE", "ÁNGULO DE INCLINACIÓN", "バンク角", "ANGLE D'INCLINAISON");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString bankResponse = new("BANK RESPONSE", "RESPUESTA DE INCLINACIÓN", "バンクレスポンス", "RÉPONSE D'INCLINAISON");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString dashDistance = new("DASH DISTANCE", "DISTANCIA DEL DASH", "ダッシュ距離", "DISTANCE DU DASH");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString dashDuration = new("DASH DURATION", "DURACIÓN DEL DASH", "ダッシュ時間", "DURÉE DU DASH");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString dashRecharge = new("DASH RECHARGE", "RECARGA DEL DASH", "ダッシュ充電", "RECHARGE DU DASH");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString dashGhosts = new("DASH GHOSTS", "ESTELAS DEL DASH", "ダッシュ残像", "FANTÔMES DU DASH");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString hoverHeight = new("HOVER HEIGHT", "ALTURA DE FLOTACIÓN", "ホバー高度", "HAUTEUR DE SUSTENTATION");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString bobAmplitude = new("BOB AMPLITUDE", "AMPLITUD DE BALANCEO", "浮遊の振幅", "AMPLITUDE D'OSCILLATION");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString bobFrequency = new("BOB FREQUENCY", "FRECUENCIA DE BALANCEO", "浮遊の周波数", "FRÉQUENCE D'OSCILLATION");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString pitchWobble = new("PITCH WOBBLE", "CABECEO", "ピッチの揺れ", "TANGAGE");
+
+        [TitleGroup("Patrol stats")]
+        [SerializeField] LocalizedString debugTabPatrol = new("DEBUG — PATROL", "DEPURACIÓN — PATRULLA", "デバッグ — パトロール", "DÉBOGAGE — PATROUILLE");
+        [TitleGroup("Patrol stats")]
+        [SerializeField] LocalizedString patrolBaseSpeed = new("BASE SPEED", "VELOCIDAD BASE", "基本速度", "VITESSE DE BASE");
+        [TitleGroup("Patrol stats")]
+        [SerializeField] LocalizedString patrolRamp = new("SPEED RAMP", "RAMPA DE VELOCIDAD", "速度上昇率", "MONTÉE EN VITESSE");
+        [TitleGroup("Patrol stats")]
+        [SerializeField] LocalizedString patrolRubberBand = new("RUBBER BAND", "BANDA ELÁSTICA", "ラバーバンド", "ÉLASTIQUE");
+        [TitleGroup("Patrol stats")]
+        [SerializeField] LocalizedString patrolCatchUp = new("CATCH-UP ACCEL", "ACELERACIÓN DE ALCANCE", "追従加速", "ACCÉL. DE RATTRAPAGE");
+        [TitleGroup("Patrol stats")]
+        [SerializeField] LocalizedString patrolStartGap = new("START GAP", "DISTANCIA INICIAL", "開始距離", "ÉCART INITIAL");
+        [TitleGroup("Patrol stats")]
+        [SerializeField] LocalizedString patrolCatchDistance = new("CATCH DISTANCE", "DISTANCIA DE CAPTURA", "捕獲距離", "DISTANCE DE CAPTURE");
+        [TitleGroup("Patrol stats")]
+        [SerializeField] LocalizedString patrolWarnDistance = new("WARN DISTANCE", "DISTANCIA DE ALERTA", "警告距離", "DISTANCE D'ALERTE");
+        [TitleGroup("Patrol stats")]
+        [SerializeField] LocalizedString patrolAlertLead = new("ALERT LEAD", "ADELANTO DE ALERTA", "警告の先行距離", "AVANCE D'ALERTE");
+
         static MenuTextLibrary cached;
 
         /// <summary>The library asset, or a throwaway on the C# defaults if none is in a Resources folder.</summary>
@@ -200,6 +286,42 @@ namespace FiniteRunner
             MenuTextId.Resume => resume,
             MenuTextId.ExitToMenu => exitToMenu,
             MenuTextId.QuitGame => quitGame,
+            MenuTextId.Debug => debug,
+            MenuTextId.DebugTabCore => debugTabCore,
+            MenuTextId.DebugTabMultipliers => debugTabMultipliers,
+            MenuTextId.DebugTabShipSpeed => debugTabShipSpeed,
+            MenuTextId.DebugTabShipHandling => debugTabShipHandling,
+            MenuTextId.DebugTabShipDash => debugTabShipDash,
+            MenuTextId.DebugTabShipHover => debugTabShipHover,
+            MenuTextId.TrackWidth => trackWidth,
+            MenuTextId.Straightness => straightness,
+            MenuTextId.ReloadScene => reloadScene,
+            MenuTextId.ReloadScenePrompt => reloadScenePrompt,
+            MenuTextId.LaunchSpeed => launchSpeed,
+            MenuTextId.Deceleration => deceleration,
+            MenuTextId.Acceleration => acceleration,
+            MenuTextId.Weight => weight,
+            MenuTextId.LateralSpeed => lateralSpeed,
+            MenuTextId.SteerResponse => steerResponse,
+            MenuTextId.BankAngle => bankAngle,
+            MenuTextId.BankResponse => bankResponse,
+            MenuTextId.DashDistance => dashDistance,
+            MenuTextId.DashDuration => dashDuration,
+            MenuTextId.DashRecharge => dashRecharge,
+            MenuTextId.DashGhosts => dashGhosts,
+            MenuTextId.HoverHeight => hoverHeight,
+            MenuTextId.BobAmplitude => bobAmplitude,
+            MenuTextId.BobFrequency => bobFrequency,
+            MenuTextId.PitchWobble => pitchWobble,
+            MenuTextId.DebugTabPatrol => debugTabPatrol,
+            MenuTextId.PatrolBaseSpeed => patrolBaseSpeed,
+            MenuTextId.PatrolRamp => patrolRamp,
+            MenuTextId.PatrolRubberBand => patrolRubberBand,
+            MenuTextId.PatrolCatchUp => patrolCatchUp,
+            MenuTextId.PatrolStartGap => patrolStartGap,
+            MenuTextId.PatrolCatchDistance => patrolCatchDistance,
+            MenuTextId.PatrolWarnDistance => patrolWarnDistance,
+            MenuTextId.PatrolAlertLead => patrolAlertLead,
             _ => start
         };
     }

@@ -17,14 +17,14 @@ MonoBehaviour:
   straightness: 100
   entries:
   - name: Green
-    probability: 50.433846
+    probability: 50.16999
     multiplier: 5.699997
   - name: Blue
-    probability: 14.355013
+    probability: 14.803075
     multiplier: 2.5
   - name: Purple
-    probability: 2.6915648
+    probability: 2.6774833
     multiplier: 10
   - name: Brake
-    probability: 32.519577
+    probability: 32.349445
     multiplier: 1.6000001

@@ -123,6 +123,10 @@ namespace FiniteRunner
             tunedDefinition.lateralSpeed = baseDefinition.lateralSpeed + points[(int)Stat.Handling] * lateralSpeedPerPoint;
             tunedDefinition.weight = Mathf.Max(minWeight, baseDefinition.weight + points[(int)Stat.Weight] * weightPerPoint);
 
+            // Armed ship debug values win over the point allocation, same rule
+            // as the track debug asset — untick applyOnLoad to get tuning back.
+            ShipDebugSettings.Load().ApplyTo(tunedDefinition);
+
             motor.SetDefinition(tunedDefinition);
             motor.Launch();
             motor.Paused = false;

@@ -33,18 +33,23 @@ namespace FiniteRunner
         MenuNavigator nav;
         DebugMenu debugMenu;
         TrackDebugSettings debugSettings;
+        ShipDebugSettings shipDebugSettings;
+        PatrolDebugSettings patrolDebugSettings;
+        readonly System.Collections.Generic.List<System.Action> debugRefreshers = new();
 
         GameObject panel;
         RectTransform panelRect;
         MenuScreen pauseScreen;
         MenuScreen settingsScreen;
-        MenuScreen confirmMenuScreen; // "exit to main menu — are you sure?"
-        MenuScreen confirmQuitScreen; // "quit game — are you sure?"
+        MenuScreen confirmMenuScreen;   // "exit to main menu — are you sure?"
+        MenuScreen confirmQuitScreen;   // "quit game — are you sure?"
+        MenuScreen confirmReloadScreen; // "debug values changed — reload the scene?"
         MenuScreen current;
         PromptStrip footer;
         AudioSource ui;
 
         bool isPaused;
+        bool debugDirty;   // a debug slider moved this pause — offer a reload on the way out
         float lockTimer;   // input frozen while a screen transition plays
         float openedTime;  // grace so the press that paused can't also confirm
 
@@ -90,11 +95,13 @@ namespace FiniteRunner
 
             // Esc/Start/B all step outward: any sub-screen (settings or a
             // confirm) back to the pause list, the pause list back to the
-            // game. Quitting is never one press.
+            // game. Quitting is never one press. Leaving the debug tabs after
+            // changing anything detours through the reload confirmation first.
             if (MenuNavigator.PauseTogglePressed() || MenuNavigator.BackPressed())
             {
-                if (current != pauseScreen) CloseSub();
-                else Resume();
+                if (current == pauseScreen) Resume();
+                else if (debugDirty && debugMenu != null && debugMenu.Contains(current)) OpenReloadConfirm();
+                else CloseSub();
                 return;
             }
 
@@ -151,10 +158,15 @@ namespace FiniteRunner
 
             openedTime = Time.unscaledTime;
             lockTimer = 0f;
+            debugDirty = false;
             settingsScreen.HideImmediate();
             confirmMenuScreen.HideImmediate();
             confirmQuitScreen.HideImmediate();
+            confirmReloadScreen.HideImmediate();
             debugMenu?.HideAllImmediate();
+            // The ship sliders were built before the tuning screen swapped in
+            // its runtime clone — re-read the live values on every open.
+            foreach (var refresh in debugRefreshers) refresh();
             current = pauseScreen;
             pauseScreen.Show(staggered: false); // pausing should feel instant, not cinematic
             SetFooterFor(pauseScreen);
@@ -167,8 +179,26 @@ namespace FiniteRunner
             Time.timeScale = 1f;
             if (motor != null) motor.Paused = false;
             panel.SetActive(false);
-            debugSettings?.Flush(); // commit any debug tweaks to disk
+            debugSettings?.Flush();     // commit any debug tweaks to disk
+            shipDebugSettings?.Flush();
+            patrolDebugSettings?.Flush();
             Blip(theme.BackClip);
+        }
+
+        // Backing out of a debug tab with changes lands here instead of the
+        // pause list: offer the reload once, then drop the dirty flag so NO
+        // (or Esc, which is the same answer) continues without nagging again.
+        void OpenReloadConfirm()
+        {
+            debugDirty = false;
+            confirmReloadScreen.SetFocus(1); // default to the safe answer
+            current.SlideOut(-theme.ScreenSlide);
+            confirmReloadScreen.SlideIn(theme.ScreenSlide);
+            current = confirmReloadScreen;
+            lockTimer = theme.ScreenTransition;
+            openedTime = Time.unscaledTime;
+            SetFooterFor(confirmReloadScreen);
+            Blip(theme.ConfirmClip);
         }
 
         void OpenSub(MenuScreen screen)
@@ -253,15 +283,44 @@ namespace FiniteRunner
 
             // The tabbed debug pages need a TrackGenerator to edit — a scene
             // without one (the city chase) gets no DEBUG entry even when on.
+            // The ship tabs additionally need a motor, which a hand-placed
+            // menu (no Spawn call) does not have.
             TrackGenerator generator = debug ? FindFirstObjectByType<TrackGenerator>() : null;
             if (generator != null)
             {
+                // The patrol tab needs the initialized scene patrol — the
+                // GameManager spawns this menu after Init, so the definition
+                // clone already exists here.
+                PolicePatrol patrol = gameManager != null ? gameManager.Patrol : null;
+                bool patrolReady = patrol != null && patrol.Definition != null;
+
                 debugSettings = TrackDebugSettings.Load();
                 debugMenu = new DebugMenu();
+                System.Action changed = () => debugDirty = true;
+                int tabCount = 2 + (motor != null ? 4 : 0) + (patrolReady ? 1 : 0);
+                int tab = 0;
                 debugMenu.AddTab(DebugMenuFactory.BuildCoreSettingsTab(
-                    panelRect, theme, generator, debugSettings, ReloadScene, 0, 2));
+                    panelRect, theme, generator, debugSettings, ReloadScene, changed, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildMultipliersTab(
-                    panelRect, theme, generator, debugSettings, 1, 2));
+                    panelRect, theme, generator, debugSettings, changed, tab++, tabCount));
+                if (motor != null)
+                {
+                    shipDebugSettings = ShipDebugSettings.Load();
+                    debugMenu.AddTab(DebugMenuFactory.BuildShipSpeedTab(
+                        panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    debugMenu.AddTab(DebugMenuFactory.BuildShipHandlingTab(
+                        panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    debugMenu.AddTab(DebugMenuFactory.BuildShipDashTab(
+                        panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    debugMenu.AddTab(DebugMenuFactory.BuildShipHoverTab(
+                        panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                }
+                if (patrolReady)
+                {
+                    patrolDebugSettings = PatrolDebugSettings.Load();
+                    debugMenu.AddTab(DebugMenuFactory.BuildPatrolTab(
+                        panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                }
             }
 
             pauseScreen = MenuScreen.Create("PauseScreen", panelRect, theme, 0f, 90f);
@@ -269,7 +328,7 @@ namespace FiniteRunner
             pauseScreen.AddRow<MenuRow>(MenuTextId.Resume).Activated += Resume;
             pauseScreen.AddRow<MenuRow>(MenuTextId.Settings).Activated += () => OpenSub(settingsScreen);
             if (debugMenu != null)
-                pauseScreen.AddRow<MenuRow>("DEBUG").Activated += () => OpenSub(debugMenu.Active);
+                pauseScreen.AddRow<MenuRow>(MenuTextId.Debug).Activated += () => OpenSub(debugMenu.Active);
             pauseScreen.AddRow<MenuRow>(MenuTextId.ExitToMenu).Activated += () => OpenSub(confirmMenuScreen);
             pauseScreen.AddRow<MenuRow>(MenuTextId.QuitGame).Activated += () => OpenSub(confirmQuitScreen);
 
@@ -278,6 +337,9 @@ namespace FiniteRunner
                                                                ExitToMainMenu, CloseSub);
             confirmQuitScreen = MenuScreenFactory.BuildConfirm(panelRect, theme, MenuTextId.QuitGame,
                                                                ExitGame, CloseSub);
+            confirmReloadScreen = MenuScreenFactory.BuildConfirm(panelRect, theme, MenuTextId.ReloadScene,
+                                                                 MenuTextId.ReloadScenePrompt,
+                                                                 ReloadScene, CloseSub);
 
             footer = PromptStrip.Create(panelRect, theme, 56f);
 
@@ -290,6 +352,8 @@ namespace FiniteRunner
         void ReloadScene()
         {
             debugSettings?.Flush();
+            shipDebugSettings?.Flush();
+            patrolDebugSettings?.Flush();
 
             Time.timeScale = 1f;
             var scene = SceneManager.GetActiveScene();
@@ -302,7 +366,7 @@ namespace FiniteRunner
             if (screen == settingsScreen || (debugMenu != null && debugMenu.Contains(screen)))
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintChange),
                                 (PromptAction.Back, MenuTextId.HintBack));
-            else if (screen == confirmMenuScreen || screen == confirmQuitScreen)
+            else if (screen == confirmMenuScreen || screen == confirmQuitScreen || screen == confirmReloadScreen)
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Confirm, MenuTextId.HintSelect),
                                 (PromptAction.Back, MenuTextId.HintCancel));
             else

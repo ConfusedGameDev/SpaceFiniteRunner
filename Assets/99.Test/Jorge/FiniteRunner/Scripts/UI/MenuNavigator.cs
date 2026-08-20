@@ -162,11 +162,16 @@ namespace FiniteRunner
         /// </summary>
         public static MenuScreen BuildConfirm(RectTransform parent, MenuTheme theme, MenuTextId titleId,
                                               System.Action onYes, System.Action onNo)
+            => BuildConfirm(parent, theme, titleId, MenuTextId.AreYouSure, onYes, onNo);
+
+        /// <summary>Variant with its own question line (the debug menu's "reload the scene?").</summary>
+        public static MenuScreen BuildConfirm(RectTransform parent, MenuTheme theme, MenuTextId titleId,
+                                              MenuTextId questionId, System.Action onYes, System.Action onNo)
         {
             var screen = MenuScreen.Create($"Confirm_{titleId}", parent, theme, 0f, 0f);
             screen.SetTitle(titleId);
             screen.AddLabel("Question", new Vector2(0f, 66f), new Vector2(900f, 60f),
-                            MenuTextId.AreYouSure, 36, theme.TextPrimary, theme.BodyFont,
+                            questionId, 36, theme.TextPrimary, theme.BodyFont,
                             TextAnchor.MiddleCenter, theme.TitleLead);
 
             screen.AddRow<MenuRow>(MenuTextId.Yes).Activated += onYes;

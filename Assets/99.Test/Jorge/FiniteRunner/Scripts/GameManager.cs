@@ -8,7 +8,8 @@ namespace FiniteRunner
     /// Owns the win/lose conditions of the chase. Win: reach Light Speed
     /// before the countdown ends. Lose: the police patrol catches up, the
     /// timer runs out, or the ship bleeds down to a standstill.
-    /// Also spawns the PolicePatrol at runtime and restarts it with the run.
+    /// Wires up the scene's PolicePatrol object (its chase tunables live on
+    /// its own PatrolDefinition asset) and restarts it with the run.
     /// The timer only ticks while the ship is actually flying (not while
     /// the tuning screen has the simulation paused).
     /// Holds no tunables itself — every balance knob lives on the
@@ -20,6 +21,8 @@ namespace FiniteRunner
         [SerializeField, Required] ShipMotor motor;
         [SerializeField, Required] TrackGenerator generator;
         [SerializeField] TuningScreen tuningScreen;
+        [Tooltip("The scene's police patrol object. Initialized (and its cruiser visual built) here in Awake; deactivated when the patrol is disabled on GameSettings.")]
+        [SerializeField] PolicePatrol patrol;
 
         [Title("Flow")]
         [Tooltip("Overlay the main menu (attract screen) over this scene on boot — an in-scene testing shortcut. The shipping flow keeps this off: the menu is its own scene (MainMenu.unity, build index 0) and this scene is reached from the city chase.")]
@@ -30,7 +33,6 @@ namespace FiniteRunner
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
         GameSettings settings;
 
-        PolicePatrol patrol;
         DashPromptController dashPrompt;
 
         public float BoostTextLeadMeters => settings.boostTextLeadMeters;
@@ -59,7 +61,6 @@ namespace FiniteRunner
             TimeRemaining = settings.timeLimitSeconds;
             if (motor != null) motor.PadImpulse += OnPadImpulse;
             SpeedPad.Collected += OnPadCollected;
-            PauseMenu.Spawn(this, motor);
 
             if (motor != null)
             {
@@ -80,16 +81,28 @@ namespace FiniteRunner
             // scene boots to the attract screen with nothing running behind it.
             if (mainMenuOnBoot) MainMenuController.Spawn(motor, tuningScreen);
 
-            if (settings.patrolEnabled && motor != null)
+            // The patrol is a scene object now: wire it up here (its chase
+            // tunables live on its PatrolDefinition asset), or park it when
+            // the feature is off. A missing reference degrades to a chase-less
+            // run instead of breaking the scene.
+            if (settings.patrolEnabled && motor != null && patrol != null)
             {
-                patrol = PolicePatrol.Spawn(motor, settings.patrolSpeedKmh, settings.patrolRampKmhPerSecond,
-                                            settings.patrolRubberBandFactor, settings.patrolCatchUpKmhPerSecond,
-                                            settings.patrolStartGap, settings.PatrolCatchDistance,
-                                            settings.PatrolWarnDistance, settings.patrolAlertLeadMeters);
+                patrol.Init(motor);
                 patrol.SetRedeployRule(settings.PatrolRedeployDistance, settings.PatrolRedeployGap,
                                        settings.patrolRedeploySpeedFactor);
-                ChaseMinimap.Spawn(motor, patrol, settings.minimapRangeMeters, settings.PatrolWarnDistance);
+                ChaseMinimap.Spawn(motor, patrol, settings.minimapRangeMeters, patrol.Definition.warnDistance);
             }
+            else
+            {
+                if (settings.patrolEnabled && motor != null)
+                    Debug.LogError($"{nameof(GameManager)} has no {nameof(PolicePatrol)} scene reference — running without the chase.", this);
+                if (patrol != null) patrol.gameObject.SetActive(false);
+                patrol = null;
+            }
+
+            // After the patrol init, so the debug menu's patrol tab can bind
+            // to the live definition clone.
+            PauseMenu.Spawn(this, motor);
         }
 
         void Update()

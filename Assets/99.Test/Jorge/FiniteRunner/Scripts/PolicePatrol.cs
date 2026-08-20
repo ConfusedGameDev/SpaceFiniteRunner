@@ -1,3 +1,4 @@
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace FiniteRunner
@@ -12,22 +13,21 @@ namespace FiniteRunner
     /// The chase is never allowed to go stale: outrun the patrol past the
     /// redeploy distance and a fresh one cuts in just behind the ship, already
     /// faster than it, so the only way to shake it is to boost again.
-    /// Spawned and configured entirely from code by the GameManager — visual,
-    /// lights and all — so no scene wiring is needed.
+    /// A scene object (referenced by the GameManager, which wires it up via
+    /// <see cref="Init"/>); all chase tunables live on its
+    /// <see cref="PatrolDefinition"/> asset, cloned at init so the debug menu
+    /// edits a live run and never the asset on disk. The cruiser visual is
+    /// still built from code — the scene object is just an empty holder.
     /// </summary>
     public class PolicePatrol : MonoBehaviour
     {
+        // Inline so the chase sliders are reachable without leaving the scene.
+        [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        PatrolDefinition definition;
+
         ShipMotor target;
         TrackManager track;
-
-        float baseSpeed;      // m/s — launch speed and the rubber band's initial floor
-        float ramp;           // m/s per second added to the floor
-        float rubberBand;     // ship-speed multiplier the patrol chases
-        float catchUpAccel;   // m/s per second the patrol may change speed by
-        float startGap;       // meters behind the start line at launch
-        float catchDistance;  // gap that counts as caught, meters
-        float warnDistance;   // gap below which warnings spawn, meters
-        float alertLead;      // meters ahead of the ship the warnings spawn at
+        PatrolDefinition runtimeDef; // clone of the asset, the only copy ever mutated
 
         float redeployDistance;    // gap that retires this patrol for a fresh one, meters (0 = never)
         float redeployGap;         // meters behind the ship the fresh patrol drops in at
@@ -49,26 +49,30 @@ namespace FiniteRunner
         public int PatrolNumber { get; private set; } = 1;
         public float GapToShip => target != null ? target.DistanceTravelled - DistanceTravelled : float.MaxValue;
 
-        public static PolicePatrol Spawn(ShipMotor target, float speedKmh, float rampKmhPerSecond,
-                                         float rubberBandFactor, float catchUpAccelKmhPerSecond,
-                                         float startGap, float catchDistance, float warnDistance,
-                                         float alertLead)
+        /// <summary>The live chase tunables — the runtime clone, so the debug menu can edit them mid-run. Null until <see cref="Init"/>.</summary>
+        public PatrolDefinition Definition => runtimeDef;
+
+        /// <summary>
+        /// Wires the scene patrol up for a run: clones its definition (with
+        /// any armed <see cref="PatrolDebugSettings"/> overrides on top),
+        /// builds the cruiser visual and launches the chase. Called by the
+        /// GameManager in Awake; the object stays inert without it.
+        /// </summary>
+        public void Init(ShipMotor target)
         {
-            var go = new GameObject("PolicePatrol");
-            var patrol = go.AddComponent<PolicePatrol>();
-            patrol.target = target;
-            patrol.track = FindFirstObjectByType<TrackManager>();
-            patrol.baseSpeed = speedKmh / 3.6f;
-            patrol.ramp = rampKmhPerSecond / 3.6f;
-            patrol.rubberBand = rubberBandFactor;
-            patrol.catchUpAccel = catchUpAccelKmhPerSecond / 3.6f;
-            patrol.startGap = startGap;
-            patrol.catchDistance = catchDistance;
-            patrol.warnDistance = warnDistance;
-            patrol.alertLead = alertLead;
-            patrol.BuildVisual();
-            patrol.Launch();
-            return patrol;
+            this.target = target;
+            track = FindFirstObjectByType<TrackManager>();
+
+            if (definition == null)
+            {
+                Debug.LogError($"{nameof(PolicePatrol)} has no {nameof(PatrolDefinition)} asset assigned — falling back to defaults.", this);
+                definition = ScriptableObject.CreateInstance<PatrolDefinition>();
+            }
+            runtimeDef = Instantiate(definition);
+            PatrolDebugSettings.Load().ApplyTo(runtimeDef);
+
+            BuildVisual();
+            Launch();
         }
 
         /// <summary>
@@ -89,9 +93,10 @@ namespace FiniteRunner
         /// <summary>Resets the chase to the launch gap behind the start line.</summary>
         public void Launch()
         {
-            DistanceTravelled = -startGap;
-            minSpeed = baseSpeed;
-            currentSpeed = baseSpeed;
+            if (runtimeDef == null) return; // scene object never Init'd (patrol disabled)
+            DistanceTravelled = -runtimeDef.startGap;
+            minSpeed = runtimeDef.baseSpeed;
+            currentSpeed = runtimeDef.baseSpeed;
             HasCaught = false;
             warnCooldown = 0f;
             PatrolNumber = 1;
@@ -100,7 +105,7 @@ namespace FiniteRunner
 
         void Update()
         {
-            if (target == null || track == null) return;
+            if (target == null || track == null || runtimeDef == null) return;
 
             Blink(Time.deltaTime);
 
@@ -111,23 +116,23 @@ namespace FiniteRunner
 
                 // Rubber band: chase the ship's speed (scaled), but never drop
                 // below the floor — the launch speed plus the accumulated ramp.
-                minSpeed += ramp * dt;
-                float desired = Mathf.Max(minSpeed, target.CurrentSpeed * rubberBand);
-                currentSpeed = Mathf.MoveTowards(currentSpeed, desired, catchUpAccel * dt);
+                minSpeed += runtimeDef.ramp * dt;
+                float desired = Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.rubberBand);
+                currentSpeed = Mathf.MoveTowards(currentSpeed, desired, runtimeDef.catchUpAccel * dt);
 
                 DistanceTravelled += currentSpeed * dt;
 
                 if (redeployDistance > 0f && GapToShip > redeployDistance) Redeploy();
 
-                if (GapToShip <= catchDistance) HasCaught = true;
+                if (GapToShip <= runtimeDef.catchDistance) HasCaught = true;
                 else WarnIfClose(dt);
 
                 // Proximity rumble that grows as the patrol closes in. The
                 // haptics channel self-fades when this stops being refreshed
                 // (pause, catch, or the patrol falling behind again).
                 float gap = GapToShip;
-                if (gap <= warnDistance && warnDistance > 0f)
-                    HapticsSystem.Instance.SetChaseIntensity(1f - Mathf.Clamp01(gap / warnDistance));
+                if (gap <= runtimeDef.warnDistance && runtimeDef.warnDistance > 0f)
+                    HapticsSystem.Instance.SetChaseIntensity(1f - Mathf.Clamp01(gap / runtimeDef.warnDistance));
             }
 
             ApplyPose();
@@ -151,21 +156,21 @@ namespace FiniteRunner
             ApplyPose();
 
             FloatingTextSystem.Instance.DisplayText(
-                $"PATROL {PatrolNumber} INBOUND", new Color(1f, 0.35f, 0.3f), 1.6f, alertLead, 3.5f);
+                $"PATROL {PatrolNumber} INBOUND", new Color(1f, 0.35f, 0.3f), 1.6f, runtimeDef.alertLead, 3.5f);
             HapticsSystem.Instance.Pulse(0.6f, 0.4f, 0.4f);
         }
 
         void WarnIfClose(float dt)
         {
             warnCooldown -= dt;
-            if (GapToShip > warnDistance || warnCooldown > 0f) return;
+            if (GapToShip > runtimeDef.warnDistance || warnCooldown > 0f) return;
             warnCooldown = 1.5f;
 
-            // Spawned well ahead of the ship (GameSettings.patrolAlertLeadMeters)
-            // so the warning stays readable instead of being left behind
+            // Spawned well ahead of the ship (PatrolDefinition.alertLead) so
+            // the warning stays readable instead of being left behind
             // instantly at these speeds.
             FloatingTextSystem.Instance.DisplayText(
-                $"PATROL {GapToShip:0} M", new Color(1f, 0.35f, 0.3f), 1.2f, alertLead, 3f);
+                $"PATROL {GapToShip:0} M", new Color(1f, 0.35f, 0.3f), 1.2f, runtimeDef.alertLead, 3f);
         }
 
         void ApplyPose()

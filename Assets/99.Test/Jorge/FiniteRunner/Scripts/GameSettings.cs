@@ -27,39 +27,12 @@ namespace FiniteRunner
         public float timeLimitSeconds = 60f;
 
         // ------------------------------------------------------------- patrol
+        // The chase tunables (speeds, rubber band, distances) moved to the
+        // PatrolDefinition asset on the scene's PolicePatrol object — this
+        // section only keeps the run-level rules: on/off, minimap, redeploy.
         [ToggleGroup("patrolEnabled", "Police patrol")]
-        [Tooltip("Spawn the chasing patrol at runtime (no scene object needed).")]
+        [Tooltip("Enable the chasing patrol (the scene object the GameManager references; its chase tunables live on its PatrolDefinition asset).")]
         public bool patrolEnabled = true;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Patrol launch speed, and the rubber band's minimum — the patrol never goes slower than this. Keep it above the ship's launch speed.")]
-        [PropertyRange(100f, 2000f), SuffixLabel("km/h", true)]
-        public float patrolSpeedKmh = 350f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("How much the rubber band's minimum speed grows per second — the chase tightens the longer the run lasts.")]
-        [PropertyRange(0f, 50f), SuffixLabel("km/h per s", true)]
-        public float patrolRampKmhPerSecond = 3f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Rubber band: the patrol chases the ship's current speed times this factor (1.05 = always 5% faster), but never below the minimum above.")]
-        [PropertyRange(0.5f, 2f), SuffixLabel("x ship speed", true)]
-        public float patrolRubberBandFactor = 1.05f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("How fast the patrol's speed adapts toward its rubber-band target. Lower = boosts buy more breathing room before the patrol matches them.")]
-        [PropertyRange(1f, 500f), SuffixLabel("km/h per s", true)]
-        public float patrolCatchUpKmhPerSecond = 60f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Meters behind the start line the patrol launches from.")]
-        [PropertyRange(0f, 1000f), SuffixLabel("m", true)]
-        public float patrolStartGap = 250f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("The danger band, in meters: X = gap that counts as caught (run over), Y = gap below which 'PATROL x M' warnings and rumble kick in.")]
-        [MinMaxSlider(0f, 500f, true)]
-        public Vector2 patrolDangerBand = new(10f, 130f);
 
         [ToggleGroup("patrolEnabled")]
         [Tooltip("Gap that puts the patrol icon at the very bottom of the chase minimap.")]
@@ -156,10 +129,7 @@ namespace FiniteRunner
         [PropertyRange(0f, 500f), SuffixLabel("m", true)]
         public float boostTextLeadMeters = 60f;
 
-        [TitleGroup("Floating text offsets")]
-        [Tooltip("How far ahead of the ship the 'PATROL x M' alerts spawn.")]
-        [PropertyRange(0f, 500f), SuffixLabel("m", true)]
-        public float patrolAlertLeadMeters = 180f;
+        // The patrol alert lead moved to PatrolDefinition.alertLead.
 
         // ------------------------------------------------------------ messages
         [TitleGroup("Story messages")]
@@ -187,12 +157,6 @@ namespace FiniteRunner
         public Color patrolMessageColor = new(1f, 0.4f, 0.35f);
 
         // --------------------------------------------------------- accessors
-        /// <summary>Gap in meters at which the patrol catches the ship (min-max band X).</summary>
-        public float PatrolCatchDistance => patrolDangerBand.x;
-
-        /// <summary>Gap in meters below which warnings and proximity rumble start (band Y).</summary>
-        public float PatrolWarnDistance => patrolDangerBand.y;
-
         /// <summary>How far behind the ship a fresh patrol drops in, in meters (band X).</summary>
         public float PatrolRedeployGap => patrolRedeployBand.x;
 
