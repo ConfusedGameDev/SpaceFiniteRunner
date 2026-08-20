@@ -18,6 +18,9 @@ namespace FiniteRunner
     {
         protected const float LabelInset = 34f;
 
+        /// <summary>Point size of every row label — screens measure label widths with it.</summary>
+        public const int LabelFontSize = 34;
+
         protected MenuTheme theme;
         protected MenuScreen screen;
         protected RectTransform rect;
@@ -57,7 +60,7 @@ namespace FiniteRunner
 
             label = MenuScreen.MakeText("Label", rect, Vector2.zero,
                                         new Vector2(rect.sizeDelta.x - LabelInset * 2f, rect.sizeDelta.y),
-                                        text, 34, theme.TextDim, theme.BodyFont, TextAnchor.MiddleLeft);
+                                        text, LabelFontSize, theme.TextDim, theme.BodyFont, TextAnchor.MiddleLeft);
             if (localizeId.HasValue) LocalizedLabel.Bind(label, localizeId.Value);
 
             Build();
@@ -66,6 +69,29 @@ namespace FiniteRunner
 
         /// <summary>Extra widgets a subclass hangs off the row (bar, toggle box, value readout).</summary>
         protected virtual void Build() { }
+
+        /// <summary>
+        /// Horizontal space this row type's widgets claim from the right edge
+        /// (bar + readout, toggle box, choice value). The label must end
+        /// before it, so screens add it when computing the fitted row width.
+        /// </summary>
+        public virtual float ReservedRightWidth => 0f;
+
+        /// <summary>Plate width this row needs for a label of the given rendered width.</summary>
+        public float RequiredWidth(float labelWidth) => LabelInset * 2f + labelWidth + ReservedRightWidth;
+
+        /// <summary>
+        /// Re-widens the row after a later sibling turned out to need more
+        /// room — screens keep every plate on a page the same width.
+        /// Subclasses re-anchor their right-edge widgets on top of this.
+        /// </summary>
+        public virtual void SetWidth(float width)
+        {
+            rect.sizeDelta = new Vector2(width, rect.sizeDelta.y);
+            if (plate != null) plate.rectTransform.sizeDelta = rect.sizeDelta;
+            if (label != null)
+                label.rectTransform.sizeDelta = new Vector2(width - LabelInset * 2f, rect.sizeDelta.y);
+        }
 
         public void SetFocused(bool focused) => focusTarget = focused ? 1f : 0f;
 

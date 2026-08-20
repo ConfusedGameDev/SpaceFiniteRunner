@@ -64,6 +64,7 @@ Tunables live in ScriptableObjects in `FiniteRunner/Data/` (`GameSettings`, `Shi
 ## Conventions
 
 - Uses the **new Input System** (`UnityEngine.InputSystem`) — do not use the legacy `Input` class.
+- **Menu boxes auto-fit their texts**: `MenuScreen` measures every row label (and screen title) in all four languages (`MenuTextLibrary.MaxWidth`) and sizes the page's plates to the widest one plus the row type's widget reserve (`MenuRow.ReservedRightWidth`) — uniform per screen, never below `MenuTheme.RowWidth`. Don't hardcode plate widths; when adding a new row type with right-side widgets, override `ReservedRightWidth` and `SetWidth`.
 - Uses `Unity.Mathematics` alongside `UnityEngine` math in spline code.
 - Scripts carry XML doc summaries explaining each class's role and the design rule it enforces; keep that style when adding classes.
 - Editor-only code goes in an `Editor/` subfolder (namespace `FiniteRunner.EditorTools`).

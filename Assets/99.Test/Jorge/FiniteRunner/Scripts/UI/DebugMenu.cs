@@ -103,6 +103,19 @@ namespace FiniteRunner
         /// <summary>Updates the shown value without firing the change callback — for rebalancing sibling rows.</summary>
         public void SetWithoutNotify(float newValue) => SetValue(newValue, false);
 
+        // Bar + readout, measured from the right edge — the label stops here.
+        public override float ReservedRightWidth => TrackRightMargin + TrackWidth;
+
+        public override void SetWidth(float width)
+        {
+            base.SetWidth(width);
+            float right = width * 0.5f;
+            if (track != null)
+                track.anchoredPosition = new Vector2(right - TrackRightMargin - TrackWidth * 0.5f, 0f);
+            if (valueText != null)
+                valueText.rectTransform.anchoredPosition = new Vector2(right - TrackRightMargin * 0.5f, 0f);
+        }
+
         protected override void ApplyFocus(bool immediate)
         {
             base.ApplyFocus(immediate);

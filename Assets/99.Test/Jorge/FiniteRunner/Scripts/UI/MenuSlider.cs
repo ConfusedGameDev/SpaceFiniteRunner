@@ -32,6 +32,19 @@ namespace FiniteRunner
         /// <summary>Current value as 0..1.</summary>
         public float Normalized => value / 100f;
 
+        // Bar + readout, measured from the right edge — the label stops here.
+        public override float ReservedRightWidth => TrackRightMargin + TrackWidth;
+
+        public override void SetWidth(float width)
+        {
+            base.SetWidth(width);
+            float right = width * 0.5f;
+            if (track != null)
+                track.anchoredPosition = new Vector2(right - TrackRightMargin - TrackWidth * 0.5f, 0f);
+            if (valueText != null)
+                valueText.rectTransform.anchoredPosition = new Vector2(right - TrackRightMargin * 0.5f, 0f);
+        }
+
         protected override void Build()
         {
             float right = rect.sizeDelta.x * 0.5f;

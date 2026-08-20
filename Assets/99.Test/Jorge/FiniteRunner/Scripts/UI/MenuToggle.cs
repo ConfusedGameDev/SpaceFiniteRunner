@@ -27,6 +27,19 @@ namespace FiniteRunner
 
         public bool IsOn => on;
 
+        // Box + ON/OFF word, measured from the right edge — the label stops here.
+        public override float ReservedRightWidth => BoxRightMargin + BoxSize * 0.5f;
+
+        public override void SetWidth(float width)
+        {
+            base.SetWidth(width);
+            float right = width * 0.5f;
+            if (box != null)
+                box.rectTransform.anchoredPosition = new Vector2(right - BoxRightMargin, 0f);
+            if (stateText != null)
+                stateText.rectTransform.anchoredPosition = new Vector2(right - BoxRightMargin * 0.5f + 12f, 0f);
+        }
+
         protected override void Build()
         {
             float right = rect.sizeDelta.x * 0.5f;

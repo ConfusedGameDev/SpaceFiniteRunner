@@ -54,6 +54,7 @@ namespace FiniteRunner
         float rowDelayBase;
         float rowHeightOverride = -1f;
         float rowSpacingOverride = -1f;
+        float rowWidth; // per-screen: grows to fit the widest label in any language, never below theme.RowWidth
 
         float RowHeight => rowHeightOverride > 0f ? rowHeightOverride : theme.RowHeight;
         float RowSpacing => rowSpacingOverride >= 0f ? rowSpacingOverride : theme.RowSpacing;
@@ -79,18 +80,31 @@ namespace FiniteRunner
             screen.theme = theme;
             screen.columnX = columnX;
             screen.contentTop = contentTop;
+            screen.rowWidth = theme.RowWidth;
             screen.group = go.AddComponent<CanvasGroup>();
             go.SetActive(false);
             return screen;
         }
 
-        /// <summary>Adds the screen's title plate. Titles settle slightly ahead of the rows.</summary>
+        /// <summary>
+        /// Adds the screen's title plate. Titles settle slightly ahead of the
+        /// rows. The plate grows to the title's widest translation (never
+        /// below the designed 560), so no language ever clips.
+        /// </summary>
         public void SetTitle(MenuTextId titleId)
         {
+            const float TitleFontSize = 46;
+            const float TitlePadding = 30f; // plate border on each side of the text
+
+            var library = MenuTextLibrary.Load();
+            float plateWidth = Mathf.Max(
+                560f, Mathf.Ceil(library.MaxWidth(titleId, theme.TitleFont, (int)TitleFontSize) + TitlePadding * 2f));
+
             var plate = MakeImage("TitlePlate", root, new Vector2(columnX, contentTop + 150f),
-                                  new Vector2(560f, 110f), theme.TitlePlate, theme.PlateFocused);
-            var text = MakeText("TitleText", plate.rectTransform, Vector2.zero, new Vector2(500f, 100f),
-                                MenuTextLibrary.Load().Get(titleId), 46, theme.TextPrimary, theme.TitleFont,
+                                  new Vector2(plateWidth, 110f), theme.TitlePlate, theme.PlateFocused);
+            var text = MakeText("TitleText", plate.rectTransform, Vector2.zero,
+                                new Vector2(plateWidth - TitlePadding * 2f, 100f),
+                                library.Get(titleId), (int)TitleFontSize, theme.TextPrimary, theme.TitleFont,
                                 TextAnchor.MiddleCenter);
             LocalizedLabel.Bind(text, titleId);
 
@@ -112,25 +126,40 @@ namespace FiniteRunner
         /// Adds a focusable row of type <typeparamref name="T"/> at the bottom
         /// of the column. Screens with no rows (Cheats, Credits) simply never
         /// call this — adding rows later needs no navigation changes.
+        /// The label is measured in every language so the row fits its widest
+        /// translation, and the screen's plates stay one uniform width.
         /// </summary>
         public T AddRow<T>(MenuTextId labelId) where T : MenuRow
-            => AddRowInternal<T>(MenuTextLibrary.Load().Get(labelId), labelId);
+        {
+            var library = MenuTextLibrary.Load();
+            return AddRowInternal<T>(library.Get(labelId), labelId,
+                                     library.MaxWidth(labelId, theme.BodyFont, MenuRow.LabelFontSize));
+        }
 
         /// <summary>Raw-string variant for rows that must not localize (debug tabs, generated labels).</summary>
         public T AddRow<T>(string label) where T : MenuRow
-            => AddRowInternal<T>(label, null);
+            => AddRowInternal<T>(label, null,
+                                 MenuTextLibrary.MeasureWidth(label, theme.BodyFont, MenuRow.LabelFontSize));
 
-        T AddRowInternal<T>(string label, MenuTextId? localizeId) where T : MenuRow
+        T AddRowInternal<T>(string label, MenuTextId? localizeId, float labelWidth) where T : MenuRow
         {
             var go = new GameObject($"Row_{label}", typeof(RectTransform));
             var rect = (RectTransform)go.transform;
             rect.SetParent(root, false);
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(theme.RowWidth, RowHeight);
+
+            // Uniform fit: the widest label on the page (in any language,
+            // plus the row type's widget reserve) sets the width of EVERY
+            // plate on it — a longer row added later re-widens the earlier
+            // ones, so the column always lines up and nothing clips.
+            var row = go.AddComponent<T>();
+            float required = Mathf.Ceil(row.RequiredWidth(labelWidth));
+            if (required > rowWidth) SetRowWidth(required);
+
+            rect.sizeDelta = new Vector2(rowWidth, RowHeight);
             rect.anchoredPosition = new Vector2(columnX, contentTop - rows.Count * (RowHeight + RowSpacing));
 
-            var row = go.AddComponent<T>();
             row.Bind(this, theme, label, localizeId);
             rows.Add(row);
 
@@ -138,6 +167,12 @@ namespace FiniteRunner
             EnsureMarker();
             if (focus < 0) SetFocus(0);
             return row;
+        }
+
+        void SetRowWidth(float width)
+        {
+            rowWidth = width;
+            foreach (var row in rows) row.SetWidth(width);
         }
 
         /// <summary>Adds a non-interactive line of text that joins the entrance animation.</summary>
@@ -330,7 +365,7 @@ namespace FiniteRunner
             markerY = Mathf.SmoothDamp(markerY, target.Rect.anchoredPosition.y, ref markerVelocity,
                                        Mathf.Max(0.01f, theme.FocusEaseSeconds), Mathf.Infinity, dt);
             marker.rectTransform.anchoredPosition =
-                new Vector2(columnX - theme.RowWidth * 0.5f - MarkerGap, markerY);
+                new Vector2(columnX - rowWidth * 0.5f - MarkerGap, markerY);
             markerGroup.alpha = target.EntranceAlpha;
         }
 

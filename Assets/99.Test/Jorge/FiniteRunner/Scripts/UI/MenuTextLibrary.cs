@@ -242,6 +242,46 @@ namespace FiniteRunner
         /// <summary>The string for an id in the player's current language.</summary>
         public string Get(MenuTextId id) => Get(id, UserSettings.Language);
 
+        // Shared scratch generator for width measurements — never renders.
+        static readonly TextGenerator measurer = new();
+
+        /// <summary>
+        /// Widest rendering of an id across every shipped language, in UI
+        /// units. Menu boxes are sized off this instead of the current
+        /// language, so plates keep one uniform width and no translation
+        /// ever clips — switching language never resizes the menu.
+        /// </summary>
+        public float MaxWidth(MenuTextId id, Font font, int fontSize)
+        {
+            float widest = 0f;
+            foreach (MenuLanguage lang in System.Enum.GetValues(typeof(MenuLanguage)))
+                widest = Mathf.Max(widest, MeasureWidth(Get(id, lang), font, fontSize));
+            return widest;
+        }
+
+        /// <summary>Rendered width of one string, for texts that never localize (debug labels).</summary>
+        public static float MeasureWidth(string text, Font font, int fontSize)
+        {
+            if (string.IsNullOrEmpty(text) || font == null) return 0f;
+
+            var settings = new TextGenerationSettings
+            {
+                font = font,
+                fontSize = fontSize,
+                fontStyle = FontStyle.Normal,
+                richText = false,
+                scaleFactor = 1f,
+                color = Color.white,
+                lineSpacing = 1f,
+                textAnchor = TextAnchor.MiddleCenter,
+                horizontalOverflow = HorizontalWrapMode.Overflow,
+                verticalOverflow = VerticalWrapMode.Overflow,
+                generationExtents = Vector2.zero,
+                pivot = new Vector2(0.5f, 0.5f)
+            };
+            return measurer.GetPreferredWidth(text, settings);
+        }
+
         /// <summary>
         /// How a language names itself on the selector row — always in its own
         /// language, so a player lost in the wrong one can still find home.

@@ -23,6 +23,17 @@ namespace FiniteRunner
 
         public int Index => index;
 
+        // "< OPTION >" value zone, measured from the right edge — the label stops here.
+        public override float ReservedRightWidth => ValueRightMargin + ValueWidth;
+
+        public override void SetWidth(float width)
+        {
+            base.SetWidth(width);
+            if (valueText != null)
+                valueText.rectTransform.anchoredPosition =
+                    new Vector2(width * 0.5f - ValueRightMargin - ValueWidth * 0.5f, 0f);
+        }
+
         protected override void Build()
         {
             float right = rect.sizeDelta.x * 0.5f;
