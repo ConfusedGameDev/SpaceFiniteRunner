@@ -17,7 +17,7 @@ MonoBehaviour:
   downforce: 40
   antiRollForce: 8000
   drivetrain: 2
-  maxMotorTorque: 3000
+  maxMotorTorque: 4900
   torqueBySpeed:
     serializedVersion: 2
     m_Curve:
@@ -42,9 +42,10 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  topSpeedKmh: 140
+  topSpeedKmh: 300
   reverseTorqueFactor: 0.5
   brakeTorque: 4000
+  coastBrakeTorque: 250
   handbrakeTorque: 6000
   handbrakeGrip: 0.5
   maxSteerAngle: 35
@@ -82,5 +83,6 @@ MonoBehaviour:
   substepsBelowThreshold: 12
   substepsAboveThreshold: 6
   spawnSpeedKmh: 40
+  spawnRunwayCells: 4
   flipTimeout: 1.5
   respawnHeight: 0.6

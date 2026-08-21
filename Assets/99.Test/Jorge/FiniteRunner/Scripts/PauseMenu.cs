@@ -1,3 +1,4 @@
+using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -19,12 +20,15 @@ namespace FiniteRunner
     /// too), or placed as a bare GameObject in a scene with no ship (the city
     /// chase), where it pauses on timeScale alone. Everything animates on
     /// unscaled time, because the whole point is that scaled time is stopped.
+    /// The DEBUG entry follows the same rule: <see cref="BuildDebugTabs"/>
+    /// builds only the pages the current scene can actually edit — track,
+    /// ship and patrol in the runner, car and chase camera in the city.
     /// </summary>
     public class PauseMenu : MonoBehaviour
     {
         const int SortingOrder = 20; // above the HUD (10) and messages (15), below the main menu (30)
 
-        [Tooltip("Show the DEBUG entry (tabbed developer pages — core track settings, more to come). Turn off for player-facing builds.")]
+        [Tooltip("Show the DEBUG entry (tabbed developer pages — track and ship in the runner, car and chase camera in the city). Turn off for player-facing builds.")]
         public bool debug = true;
 
         GameManager gameManager;
@@ -182,6 +186,7 @@ namespace FiniteRunner
             debugSettings?.Flush();     // commit any debug tweaks to disk
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
+            CityDebugMenuFactory.Flush();
             Blip(theme.BackClip);
         }
 
@@ -246,10 +251,16 @@ namespace FiniteRunner
 #endif
         }
 
-        // Safety: never leave the game frozen if this object goes away.
+        // Safety: never leave the game frozen if this object goes away, and
+        // never lose a debug tweak that was made but not resumed out of —
+        // this also fires on the way out of play mode.
         void OnDestroy()
         {
             if (isPaused) Time.timeScale = 1f;
+            debugSettings?.Flush();
+            shipDebugSettings?.Flush();
+            patrolDebugSettings?.Flush();
+            CityDebugMenuFactory.Flush();
         }
 
         void Build()
@@ -281,47 +292,7 @@ namespace FiniteRunner
             dimColor.a = 0.78f; // the frozen run stays faintly visible behind the menu
             dim.color = dimColor;
 
-            // The tabbed debug pages need a TrackGenerator to edit — a scene
-            // without one (the city chase) gets no DEBUG entry even when on.
-            // The ship tabs additionally need a motor, which a hand-placed
-            // menu (no Spawn call) does not have.
-            TrackGenerator generator = debug ? FindFirstObjectByType<TrackGenerator>() : null;
-            if (generator != null)
-            {
-                // The patrol tab needs the initialized scene patrol — the
-                // GameManager spawns this menu after Init, so the definition
-                // clone already exists here.
-                PolicePatrol patrol = gameManager != null ? gameManager.Patrol : null;
-                bool patrolReady = patrol != null && patrol.Definition != null;
-
-                debugSettings = TrackDebugSettings.Load();
-                debugMenu = new DebugMenu();
-                System.Action changed = () => debugDirty = true;
-                int tabCount = 2 + (motor != null ? 4 : 0) + (patrolReady ? 1 : 0);
-                int tab = 0;
-                debugMenu.AddTab(DebugMenuFactory.BuildCoreSettingsTab(
-                    panelRect, theme, generator, debugSettings, ReloadScene, changed, tab++, tabCount));
-                debugMenu.AddTab(DebugMenuFactory.BuildMultipliersTab(
-                    panelRect, theme, generator, debugSettings, changed, tab++, tabCount));
-                if (motor != null)
-                {
-                    shipDebugSettings = ShipDebugSettings.Load();
-                    debugMenu.AddTab(DebugMenuFactory.BuildShipSpeedTab(
-                        panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
-                    debugMenu.AddTab(DebugMenuFactory.BuildShipHandlingTab(
-                        panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
-                    debugMenu.AddTab(DebugMenuFactory.BuildShipDashTab(
-                        panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
-                    debugMenu.AddTab(DebugMenuFactory.BuildShipHoverTab(
-                        panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
-                }
-                if (patrolReady)
-                {
-                    patrolDebugSettings = PatrolDebugSettings.Load();
-                    debugMenu.AddTab(DebugMenuFactory.BuildPatrolTab(
-                        panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
-                }
-            }
+            if (debug) BuildDebugTabs();
 
             pauseScreen = MenuScreen.Create("PauseScreen", panelRect, theme, 0f, 90f);
             pauseScreen.SetTitle(MenuTextId.Paused);
@@ -346,6 +317,71 @@ namespace FiniteRunner
             panel.SetActive(false);
         }
 
+        /// <summary>
+        /// Assembles the DEBUG tabs out of whatever the current scene has to
+        /// edit — the pause menu is shared by both games, and each one only
+        /// gets its own pages. The runner: track (a TrackGenerator), ship (a
+        /// motor, which a hand-placed menu has no reference to) and patrol (an
+        /// initialized scene patrol, whose definition clone already exists
+        /// because the GameManager spawns this menu after Init). The city
+        /// chase: the player car's config and the chase camera's settings. A
+        /// scene with none of them gets no DEBUG entry at all — the row is
+        /// only added when a tab was actually built. Every tab prints its own
+        /// "TAB n/N", so the total is counted before the first one is made.
+        /// </summary>
+        void BuildDebugTabs()
+        {
+            TrackGenerator generator = FindFirstObjectByType<TrackGenerator>();
+            PolicePatrol patrol = gameManager != null ? gameManager.Patrol : null;
+            bool patrolReady = patrol != null && patrol.Definition != null;
+            bool shipReady = generator != null && motor != null;
+            // City pages only in the city: the runner scene loads additively
+            // over the city it replaces, so for a beat both worlds exist and
+            // its menu must not sprout car tabs that are about to unload.
+            CityDebugTabs city = generator == null ? CityDebugMenuFactory.Discover() : CityDebugMenuFactory.None;
+
+            int tabCount = (generator != null ? 2 : 0) + (shipReady ? 4 : 0)
+                         + (patrolReady ? 1 : 0) + city.TabCount;
+            if (tabCount == 0) return;
+
+            debugMenu = new DebugMenu();
+            System.Action changed = () => debugDirty = true;
+            int tab = 0;
+
+            if (generator != null)
+            {
+                debugSettings = TrackDebugSettings.Load();
+                debugMenu.AddTab(DebugMenuFactory.BuildCoreSettingsTab(
+                    panelRect, theme, generator, debugSettings, ReloadScene, changed, tab++, tabCount));
+                debugMenu.AddTab(DebugMenuFactory.BuildMultipliersTab(
+                    panelRect, theme, generator, debugSettings, changed, tab++, tabCount));
+            }
+            if (shipReady)
+            {
+                shipDebugSettings = ShipDebugSettings.Load();
+                debugMenu.AddTab(DebugMenuFactory.BuildShipSpeedTab(
+                    panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                debugMenu.AddTab(DebugMenuFactory.BuildShipHandlingTab(
+                    panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                debugMenu.AddTab(DebugMenuFactory.BuildShipDashTab(
+                    panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                debugMenu.AddTab(DebugMenuFactory.BuildShipHoverTab(
+                    panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+            }
+            if (patrolReady)
+            {
+                patrolDebugSettings = PatrolDebugSettings.Load();
+                debugMenu.AddTab(DebugMenuFactory.BuildPatrolTab(
+                    panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
+            }
+
+            // No `changed` for the city pages: every car and camera knob they
+            // expose applies live, so they never need the reload the runner's
+            // track sliders do — and reloading the city would reroll the whole
+            // layout under the player for nothing.
+            city.AddTabs(debugMenu, panelRect, theme, debugRefreshers, ref tab, tabCount);
+        }
+
         // The debug sliders saved their values into the TrackDebugSettings
         // asset as they moved — commit it to disk, then reload; the fresh
         // TrackGenerator re-applies the asset in Generate().
@@ -354,6 +390,7 @@ namespace FiniteRunner
             debugSettings?.Flush();
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
+            CityDebugMenuFactory.Flush();
 
             Time.timeScale = 1f;
             var scene = SceneManager.GetActiveScene();

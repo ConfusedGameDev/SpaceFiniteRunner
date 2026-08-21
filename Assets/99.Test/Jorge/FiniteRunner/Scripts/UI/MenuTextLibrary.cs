@@ -30,7 +30,12 @@ namespace FiniteRunner
         HoverHeight, BobAmplitude, BobFrequency, PitchWobble,
         DebugTabPatrol,
         PatrolBaseSpeed, PatrolRamp, PatrolRubberBand, PatrolCatchUp,
-        PatrolStartGap, PatrolCatchDistance, PatrolWarnDistance, PatrolAlertLead
+        PatrolStartGap, PatrolCatchDistance, PatrolWarnDistance, PatrolAlertLead,
+        DebugTabCarDrive, DebugTabCarGrip, DebugTabCamera,
+        CarMass, CarCenterOfMass, CarDownforce, CarMotorTorque, CarTopSpeed, CarBrakeTorque,
+        CarSteerAngle, CarHandbrakeTorque, CarHandbrakeGrip, CarForwardGrip, CarSideGrip,
+        CamDistance, CamHeight, CamPitch, CamDamping,
+        CamRecenterDelay, CamRecenterSpeed, CamBaseFov, CamSpeedFov
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -220,6 +225,52 @@ namespace FiniteRunner
         [TitleGroup("Patrol stats")]
         [SerializeField] LocalizedString patrolAlertLead = new("ALERT LEAD", "ADELANTO DE ALERTA", "警告の先行距離", "AVANCE D'ALERTE");
 
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString debugTabCarDrive = new("DEBUG — CAR DRIVE", "DEPURACIÓN — MOTOR DEL COCHE", "デバッグ — 車の駆動", "DÉBOGAGE — MOTRICITÉ");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString debugTabCarGrip = new("DEBUG — CAR GRIP", "DEPURACIÓN — AGARRE DEL COCHE", "デバッグ — 車のグリップ", "DÉBOGAGE — ADHÉRENCE");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carMass = new("MASS", "MASA", "重量", "MASSE");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carCenterOfMass = new("CENTER OF MASS", "CENTRO DE MASA", "重心の下げ", "CENTRE DE MASSE");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carDownforce = new("DOWNFORCE", "CARGA AERODINÁMICA", "ダウンフォース", "APPUI AÉRO");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carMotorTorque = new("MOTOR TORQUE", "PAR DEL MOTOR", "エンジントルク", "COUPLE MOTEUR");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carTopSpeed = new("TOP SPEED", "VELOCIDAD MÁXIMA", "最高速度", "VITESSE MAX");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carBrakeTorque = new("BRAKE TORQUE", "PAR DE FRENADO", "ブレーキトルク", "COUPLE DE FREIN");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carSteerAngle = new("STEER ANGLE", "ÁNGULO DE GIRO", "操舵角", "ANGLE DE BRAQUAGE");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carHandbrakeTorque = new("HANDBRAKE TORQUE", "PAR DEL FRENO DE MANO", "ハンドブレーキトルク", "COUPLE DE FREIN À MAIN");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carHandbrakeGrip = new("HANDBRAKE GRIP", "AGARRE CON FRENO DE MANO", "ハンドブレーキ時グリップ", "ADHÉRENCE FREIN À MAIN");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carForwardGrip = new("FORWARD GRIP", "AGARRE LONGITUDINAL", "前後グリップ", "ADHÉRENCE LONGITUDINALE");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carSideGrip = new("SIDE GRIP", "AGARRE LATERAL", "横方向グリップ", "ADHÉRENCE LATÉRALE");
+
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString debugTabCamera = new("DEBUG — CHASE CAMERA", "DEPURACIÓN — CÁMARA", "デバッグ — カメラ", "DÉBOGAGE — CAMÉRA");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camDistance = new("CAMERA DISTANCE", "DISTANCIA DE CÁMARA", "カメラ距離", "DISTANCE CAMÉRA");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camHeight = new("LOOK HEIGHT", "ALTURA DE MIRA", "注視点の高さ", "HAUTEUR DE VISÉE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camPitch = new("DEFAULT PITCH", "INCLINACIÓN POR DEFECTO", "既定の俯角", "TANGAGE PAR DÉFAUT");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camDamping = new("POSITION DAMPING", "AMORTIGUACIÓN", "位置ダンピング", "AMORTISSEMENT");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camRecenterDelay = new("RECENTER DELAY", "RETARDO DE RECENTRADO", "再センタリング遅延", "DÉLAI DE RECENTRAGE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camRecenterSpeed = new("RECENTER SPEED", "VELOCIDAD DE RECENTRADO", "再センタリング速度", "VITESSE DE RECENTRAGE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camBaseFov = new("BASE FOV", "FOV BASE", "基本FOV", "FOV DE BASE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camSpeedFov = new("SPEED FOV", "FOV POR VELOCIDAD", "速度FOV", "FOV VITESSE");
+
         static MenuTextLibrary cached;
 
         /// <summary>The library asset, or a throwaway on the C# defaults if none is in a Resources folder.</summary>
@@ -362,6 +413,28 @@ namespace FiniteRunner
             MenuTextId.PatrolCatchDistance => patrolCatchDistance,
             MenuTextId.PatrolWarnDistance => patrolWarnDistance,
             MenuTextId.PatrolAlertLead => patrolAlertLead,
+            MenuTextId.DebugTabCarDrive => debugTabCarDrive,
+            MenuTextId.DebugTabCarGrip => debugTabCarGrip,
+            MenuTextId.CarMass => carMass,
+            MenuTextId.CarCenterOfMass => carCenterOfMass,
+            MenuTextId.CarDownforce => carDownforce,
+            MenuTextId.CarMotorTorque => carMotorTorque,
+            MenuTextId.CarTopSpeed => carTopSpeed,
+            MenuTextId.CarBrakeTorque => carBrakeTorque,
+            MenuTextId.CarSteerAngle => carSteerAngle,
+            MenuTextId.CarHandbrakeTorque => carHandbrakeTorque,
+            MenuTextId.CarHandbrakeGrip => carHandbrakeGrip,
+            MenuTextId.CarForwardGrip => carForwardGrip,
+            MenuTextId.CarSideGrip => carSideGrip,
+            MenuTextId.DebugTabCamera => debugTabCamera,
+            MenuTextId.CamDistance => camDistance,
+            MenuTextId.CamHeight => camHeight,
+            MenuTextId.CamPitch => camPitch,
+            MenuTextId.CamDamping => camDamping,
+            MenuTextId.CamRecenterDelay => camRecenterDelay,
+            MenuTextId.CamRecenterSpeed => camRecenterSpeed,
+            MenuTextId.CamBaseFov => camBaseFov,
+            MenuTextId.CamSpeedFov => camSpeedFov,
             _ => start
         };
     }

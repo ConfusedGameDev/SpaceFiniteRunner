@@ -12,19 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c1b119ea93664cd68aa7d784276386a, type: 3}
   m_Name: TestOrbitCameraSettings
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.OrbitCameraSettings
-  distance: 8
-  lookHeight: 1.1
-  defaultPitch: 18
+  distance: 9
+  lookHeight: 0.9
+  defaultPitch: 28
   pitchRange: {x: 2, y: 55}
-  positionDamping: 0.75
+  positionDamping: 1.0999999
   mouseSensitivity: 0.12
   stickSpeed: 180
   keySpeed: 140
   verticalScale: 0.6
   invertY: 0
   autoRecenter: 1
-  recenterDelay: 1.5
+  recenterDelay: 2.2999997
   recenterSpeed: 120
-  baseFov: 60
+  baseFov: 71
   fovPerKmh: 0.08
   maxFovBoost: 15

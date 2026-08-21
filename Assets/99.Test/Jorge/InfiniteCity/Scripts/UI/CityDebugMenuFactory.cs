@@ -1,0 +1,259 @@
+using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
+using FiniteRunner;
+using UnityEngine;
+
+namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
+{
+    /// <summary>
+    /// The city chase's pages for the shared pause-menu debug tabs: the core
+    /// handling knobs of the player car's <see cref="CarConfig"/> (drive and
+    /// grip) and the framing knobs of its <see cref="OrbitCameraSettings"/>.
+    /// Same tab framework as the runner's pages — normal compact-row
+    /// MenuScreens cycled with the bumpers.
+    ///
+    /// One rule differs from the runner's ship/patrol tabs: the city's cars
+    /// and camera rig read their settings assets LIVE every step (that is the
+    /// point of the inline inspector workflow — there is no runtime clone to
+    /// catch), so these sliders edit the assets themselves. Which makes
+    /// persistence exact: the edited asset is kept dirty and written to disk
+    /// at the pause menu's commit points (resume, reload scene) via
+    /// <see cref="Flush"/>, so a tweak survives exiting play mode with no
+    /// shadow copy that could drift out of sync. Nothing here needs a scene
+    /// reload, so these pages never mark the menu dirty — the chassis knobs
+    /// (mass, center of mass) re-run <see cref="CarController.ApplyConfig"/>
+    /// on every car using the config instead.
+    /// </summary>
+    public static class CityDebugMenuFactory
+    {
+        const float RowHeight = 54f;
+        const float RowSpacing = 8f;
+        const float ContentTop = 340f;
+
+        /// <summary>What this scene has to offer the debug menu — nothing at all, in the runner.</summary>
+        public static CityDebugTabs Discover() => new(FindCarConfig(), FindCameraSettings());
+
+        /// <summary>No pages, for a caller that already knows it isn't in the city.</summary>
+        public static CityDebugTabs None => new(null, null);
+
+        /// <summary>
+        /// The player car's config: the spawner's prefab first, because the
+        /// menu is built in Start and the car itself only arrives afterwards.
+        /// Falls back to a live player-driven car (a hand-placed one, or a
+        /// menu built late) — never a traffic or police car.
+        /// </summary>
+        static CarConfig FindCarConfig()
+        {
+            var spawner = Object.FindFirstObjectByType<PlayerCarSpawner>();
+            if (spawner != null && spawner.carPrefab != null)
+            {
+                var prefabController = spawner.carPrefab.GetComponent<CarController>();
+                if (prefabController != null && prefabController.config != null) return prefabController.config;
+            }
+
+            foreach (var car in Object.FindObjectsByType<CarController>(FindObjectsSortMode.None))
+                if (car.config != null && car.GetComponent<CarInput>() != null) return car.config;
+
+            return null;
+        }
+
+        /// <summary>The chase camera's settings, from whoever owns the rig — the spawner, or the rig itself once it exists.</summary>
+        static OrbitCameraSettings FindCameraSettings()
+        {
+            var spawner = Object.FindFirstObjectByType<PlayerCarSpawner>();
+            if (spawner != null && spawner.cameraSettings != null) return spawner.cameraSettings;
+
+            var rig = Object.FindFirstObjectByType<OrbitCameraRig>();
+            return rig != null ? rig.settings : null;
+        }
+
+        // ---------------------------------------------------------------- tabs
+
+        /// <summary>
+        /// Drivetrain and chassis: what the car does with the throttle. Mass
+        /// and the center-of-mass drop are one-time rigidbody setup, so they
+        /// re-run ApplyConfig; the rest is pushed to the wheels every physics
+        /// step and lands instantly.
+        /// </summary>
+        public static MenuScreen BuildCarDriveTab(RectTransform parent, MenuTheme theme, CarConfig config,
+                                                  List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_CarDrive", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabCarDrive, tabIndex, tabCount);
+
+            AddCarStat(screen, config, refreshers, MenuTextId.CarMass,
+                       400f, 3000f, 50f, "0", c => c.mass, (c, v) => c.mass = v, chassis: true);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarCenterOfMass,
+                       0f, 1.5f, 0.05f, "0.00", c => c.centerOfMassDrop, (c, v) => c.centerOfMassDrop = v, chassis: true);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarDownforce,
+                       0f, 200f, 5f, "0", c => c.downforce, (c, v) => c.downforce = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarMotorTorque,
+                       200f, 8000f, 100f, "0", c => c.maxMotorTorque, (c, v) => c.maxMotorTorque = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarTopSpeed,
+                       40f, 300f, 5f, "0", c => c.topSpeedKmh, (c, v) => c.topSpeedKmh = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarBrakeTorque,
+                       500f, 12000f, 250f, "0", c => c.brakeTorque, (c, v) => c.brakeTorque = v);
+            return screen;
+        }
+
+        /// <summary>Steering and tire grip: what the car does with the wheel. All of it applies live.</summary>
+        public static MenuScreen BuildCarGripTab(RectTransform parent, MenuTheme theme, CarConfig config,
+                                                 List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_CarGrip", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabCarGrip, tabIndex, tabCount);
+
+            AddCarStat(screen, config, refreshers, MenuTextId.CarSteerAngle,
+                       10f, 60f, 1f, "0", c => c.maxSteerAngle, (c, v) => c.maxSteerAngle = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.SteerResponse,
+                       60f, 720f, 20f, "0", c => c.steerResponse, (c, v) => c.steerResponse = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarHandbrakeTorque,
+                       500f, 12000f, 250f, "0", c => c.handbrakeTorque, (c, v) => c.handbrakeTorque = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarHandbrakeGrip,
+                       0.1f, 1f, 0.05f, "0.00", c => c.handbrakeGrip, (c, v) => c.handbrakeGrip = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarForwardGrip,
+                       0.25f, 4f, 0.05f, "0.00", c => c.forwardStiffness, (c, v) => c.forwardStiffness = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarSideGrip,
+                       0.25f, 4f, 0.05f, "0.00", c => c.sideStiffness, (c, v) => c.sideStiffness = v);
+            return screen;
+        }
+
+        /// <summary>
+        /// Chase camera: framing, recentering and the speed FOV kick. The rig
+        /// re-applies the settings in Update, which keeps running on a frozen
+        /// clock — so these move the camera while the menu is still open.
+        /// </summary>
+        public static MenuScreen BuildCameraTab(RectTransform parent, MenuTheme theme, OrbitCameraSettings settings,
+                                                List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_ChaseCamera", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabCamera, tabIndex, tabCount);
+
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamDistance,
+                          3f, 25f, 0.5f, "0.0", s => s.distance, (s, v) => s.distance = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamHeight,
+                          0f, 3f, 0.1f, "0.0", s => s.lookHeight, (s, v) => s.lookHeight = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamPitch,
+                          0f, 60f, 1f, "0", s => s.defaultPitch, (s, v) => s.defaultPitch = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamDamping,
+                          0f, 3f, 0.05f, "0.00", s => s.positionDamping, (s, v) => s.positionDamping = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamRecenterDelay,
+                          0.2f, 10f, 0.1f, "0.0", s => s.recenterDelay, (s, v) => s.recenterDelay = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamRecenterSpeed,
+                          30f, 360f, 10f, "0", s => s.recenterSpeed, (s, v) => s.recenterSpeed = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamBaseFov,
+                          40f, 90f, 1f, "0", s => s.baseFov, (s, v) => s.baseFov = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamSpeedFov,
+                          0f, 0.3f, 0.01f, "0.00", s => s.fovPerKmh, (s, v) => s.fovPerKmh = v);
+            return screen;
+        }
+
+        // --------------------------------------------------------------- rows
+
+        static void AddCarStat(MenuScreen screen, CarConfig config, List<System.Action> refreshers, MenuTextId label,
+                               float min, float max, float step, string format,
+                               System.Func<CarConfig, float> get, System.Action<CarConfig, float> set,
+                               bool chassis = false)
+        {
+            var row = screen.AddRow<DebugSliderRow>(label);
+            row.Configure(min, max, step, get(config), format, v =>
+            {
+                set(config, v);
+                if (chassis) ReapplyChassis(config);
+                MarkDirty(config);
+            });
+            refreshers?.Add(() => row.SetWithoutNotify(get(config)));
+        }
+
+        static void AddCameraStat(MenuScreen screen, OrbitCameraSettings settings, List<System.Action> refreshers,
+                                  MenuTextId label, float min, float max, float step, string format,
+                                  System.Func<OrbitCameraSettings, float> get,
+                                  System.Action<OrbitCameraSettings, float> set)
+        {
+            var row = screen.AddRow<DebugSliderRow>(label);
+            row.Configure(min, max, step, get(settings), format, v =>
+            {
+                set(settings, v);
+                MarkDirty(settings);
+            });
+            refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
+        }
+
+        /// <summary>
+        /// Re-runs the one-time chassis setup on every car sharing this config
+        /// — mass, dropped center of mass and wheel substeps are pushed to the
+        /// rigidbody once, not per physics step, so the slider would otherwise
+        /// do nothing until the next spawn.
+        /// </summary>
+        static void ReapplyChassis(CarConfig config)
+        {
+            foreach (var car in Object.FindObjectsByType<CarController>(FindObjectsSortMode.None))
+                if (car.config == config) car.ApplyConfig();
+        }
+
+        // -------------------------------------------------------- persistence
+
+#if UNITY_EDITOR
+        static readonly List<Object> touched = new();
+#endif
+
+        /// <summary>Marks an edited settings asset for the next <see cref="Flush"/>.</summary>
+        static void MarkDirty(Object asset)
+        {
+#if UNITY_EDITOR
+            if (asset == null) return;
+            if (!touched.Contains(asset)) touched.Add(asset);
+            UnityEditor.EditorUtility.SetDirty(asset);
+#endif
+        }
+
+        /// <summary>
+        /// Writes every asset these tabs edited to disk (editor only — builds
+        /// keep the changes for the app session). Called at the pause menu's
+        /// commit points, not on every slider tick, so the tweaks are on disk
+        /// well before play mode ends.
+        /// </summary>
+        public static void Flush()
+        {
+#if UNITY_EDITOR
+            foreach (var asset in touched)
+                if (asset != null) UnityEditor.AssetDatabase.SaveAssetIfDirty(asset);
+            touched.Clear();
+#endif
+        }
+    }
+
+    /// <summary>
+    /// The city debug pages available in the current scene, discovered once so
+    /// the pause menu can count the tabs before it builds any of them — every
+    /// tab header prints its own "TAB n/N".
+    /// </summary>
+    public class CityDebugTabs
+    {
+        readonly CarConfig car;
+        readonly OrbitCameraSettings orbitCamera;
+
+        internal CityDebugTabs(CarConfig car, OrbitCameraSettings orbitCamera)
+        {
+            this.car = car;
+            this.orbitCamera = orbitCamera;
+        }
+
+        public int TabCount => (car != null ? 2 : 0) + (orbitCamera != null ? 1 : 0);
+
+        public void AddTabs(DebugMenu menu, RectTransform parent, MenuTheme theme,
+                            List<System.Action> refreshers, ref int tab, int tabCount)
+        {
+            if (car != null)
+            {
+                menu.AddTab(CityDebugMenuFactory.BuildCarDriveTab(parent, theme, car, refreshers, tab++, tabCount));
+                menu.AddTab(CityDebugMenuFactory.BuildCarGripTab(parent, theme, car, refreshers, tab++, tabCount));
+            }
+            if (orbitCamera != null)
+                menu.AddTab(CityDebugMenuFactory.BuildCameraTab(parent, theme, orbitCamera, refreshers, tab++, tabCount));
+        }
+    }
+}
