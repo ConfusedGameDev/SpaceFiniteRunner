@@ -22,13 +22,13 @@ namespace FiniteRunner
     /// unscaled time, because the whole point is that scaled time is stopped.
     /// The DEBUG entry follows the same rule: <see cref="BuildDebugTabs"/>
     /// builds only the pages the current scene can actually edit — track,
-    /// ship and patrol in the runner, car and chase camera in the city.
+    /// ship and patrol in the runner, car, chase camera and police in the city.
     /// </summary>
     public class PauseMenu : MonoBehaviour
     {
         const int SortingOrder = 20; // above the HUD (10) and messages (15), below the main menu (30)
 
-        [Tooltip("Show the DEBUG entry (tabbed developer pages — track and ship in the runner, car and chase camera in the city). Turn off for player-facing builds.")]
+        [Tooltip("Show the DEBUG entry (tabbed developer pages — track and ship in the runner, car, camera and police in the city). Turn off for player-facing builds.")]
         public bool debug = true;
 
         GameManager gameManager;
@@ -324,7 +324,7 @@ namespace FiniteRunner
         /// motor, which a hand-placed menu has no reference to) and patrol (an
         /// initialized scene patrol, whose definition clone already exists
         /// because the GameManager spawns this menu after Init). The city
-        /// chase: the player car's config and the chase camera's settings. A
+        /// chase: the player car's config, the chase camera's settings and the police pursuit settings. A
         /// scene with none of them gets no DEBUG entry at all — the row is
         /// only added when a tab was actually built. Every tab prints its own
         /// "TAB n/N", so the total is counted before the first one is made.

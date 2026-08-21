@@ -15,9 +15,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
     {
         // --------------------------------------------------------------- fleet
         [TitleGroup("Fleet")]
-        [Tooltip("How many police cars the PatrolManager keeps alive around the player.")]
-        [PropertyRange(0, 8)]
-        public int targetPatrolCount = 2;
+        [Tooltip("How many police cars the PatrolManager keeps alive around the player. Lowering it retires the extras on the next maintenance tick.")]
+        [PropertyRange(0, 25)]
+        public int targetPatrolCount = 5;
 
         [TitleGroup("Fleet")]
         [Tooltip("Patrols spawn on a road cell this far from the player: min keeps them out of plain sight, max keeps them relevant.")]

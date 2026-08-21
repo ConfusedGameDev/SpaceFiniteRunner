@@ -35,7 +35,11 @@ namespace FiniteRunner
         CarMass, CarCenterOfMass, CarDownforce, CarMotorTorque, CarTopSpeed, CarBrakeTorque,
         CarSteerAngle, CarHandbrakeTorque, CarHandbrakeGrip, CarForwardGrip, CarSideGrip,
         CamDistance, CamHeight, CamPitch, CamDamping,
-        CamRecenterDelay, CamRecenterSpeed, CamBaseFov, CamSpeedFov
+        CamRecenterDelay, CamRecenterSpeed, CamBaseFov, CamSpeedFov,
+        DebugTabPoliceFleet, DebugTabPoliceChase,
+        PolicePatrolCount, PoliceSpawnMin, PoliceSpawnMax, PoliceDespawn,
+        PoliceDetection, PoliceLoseSight, PoliceSearchTime,
+        PolicePatrolSpeed, PoliceChaseSpeed, PoliceCornerSpeed
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -271,6 +275,31 @@ namespace FiniteRunner
         [TitleGroup("Chase camera stats")]
         [SerializeField] LocalizedString camSpeedFov = new("SPEED FOV", "FOV POR VELOCIDAD", "速度FOV", "FOV VITESSE");
 
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString debugTabPoliceFleet = new("DEBUG — POLICE FLEET", "DEPURACIÓN — FLOTA POLICIAL", "デバッグ — 警察の台数", "DÉBOGAGE — FLOTTE DE POLICE");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString debugTabPoliceChase = new("DEBUG — POLICE CHASE", "DEPURACIÓN — PERSECUCIÓN", "デバッグ — 追跡", "DÉBOGAGE — POURSUITE");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policePatrolCount = new("PATROL COUNT", "NÚMERO DE PATRULLAS", "パトカーの数", "NOMBRE DE PATROUILLES");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policeSpawnMin = new("SPAWN MIN", "APARICIÓN MÍN", "出現距離 最小", "APPARITION MIN");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policeSpawnMax = new("SPAWN MAX", "APARICIÓN MÁX", "出現距離 最大", "APPARITION MAX");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policeDespawn = new("DESPAWN DISTANCE", "DISTANCIA DE RETIRADA", "消滅距離", "DISTANCE DE RETRAIT");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policeDetection = new("DETECTION RANGE", "ALCANCE DE DETECCIÓN", "発見距離", "PORTÉE DE DÉTECTION");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policeLoseSight = new("LOSE SIGHT", "PERDER DE VISTA", "見失う時間", "PERTE DE VUE");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policeSearchTime = new("SEARCH TIME", "TIEMPO DE BÚSQUEDA", "捜索時間", "TEMPS DE RECHERCHE");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policePatrolSpeed = new("PATROL SPEED", "VELOCIDAD DE PATRULLA", "巡回速度", "VITESSE DE PATROUILLE");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policeChaseSpeed = new("CHASE SPEED", "VELOCIDAD DE PERSECUCIÓN", "追跡速度", "VITESSE DE POURSUITE");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policeCornerSpeed = new("CORNER SPEED", "VELOCIDAD EN CURVA", "コーナー速度", "VITESSE EN VIRAGE");
+
         static MenuTextLibrary cached;
 
         /// <summary>The library asset, or a throwaway on the C# defaults if none is in a Resources folder.</summary>
@@ -435,6 +464,18 @@ namespace FiniteRunner
             MenuTextId.CamRecenterSpeed => camRecenterSpeed,
             MenuTextId.CamBaseFov => camBaseFov,
             MenuTextId.CamSpeedFov => camSpeedFov,
+            MenuTextId.DebugTabPoliceFleet => debugTabPoliceFleet,
+            MenuTextId.DebugTabPoliceChase => debugTabPoliceChase,
+            MenuTextId.PolicePatrolCount => policePatrolCount,
+            MenuTextId.PoliceSpawnMin => policeSpawnMin,
+            MenuTextId.PoliceSpawnMax => policeSpawnMax,
+            MenuTextId.PoliceDespawn => policeDespawn,
+            MenuTextId.PoliceDetection => policeDetection,
+            MenuTextId.PoliceLoseSight => policeLoseSight,
+            MenuTextId.PoliceSearchTime => policeSearchTime,
+            MenuTextId.PolicePatrolSpeed => policePatrolSpeed,
+            MenuTextId.PoliceChaseSpeed => policeChaseSpeed,
+            MenuTextId.PoliceCornerSpeed => policeCornerSpeed,
             _ => start
         };
     }

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.City;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using FiniteRunner;
 using UnityEngine;
@@ -8,7 +10,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     /// <summary>
     /// The city chase's pages for the shared pause-menu debug tabs: the core
     /// handling knobs of the player car's <see cref="CarConfig"/> (drive and
-    /// grip) and the framing knobs of its <see cref="OrbitCameraSettings"/>.
+    /// grip), the framing knobs of its <see cref="OrbitCameraSettings"/>, and
+    /// the fleet and chase knobs of the police <see cref="PursuitSettings"/>.
     /// Same tab framework as the runner's pages — normal compact-row
     /// MenuScreens cycled with the bumpers.
     ///
@@ -31,10 +34,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         const float ContentTop = 340f;
 
         /// <summary>What this scene has to offer the debug menu — nothing at all, in the runner.</summary>
-        public static CityDebugTabs Discover() => new(FindCarConfig(), FindCameraSettings());
+        public static CityDebugTabs Discover() => new(FindCarConfig(), FindCameraSettings(), FindPursuitSettings());
 
         /// <summary>No pages, for a caller that already knows it isn't in the city.</summary>
-        public static CityDebugTabs None => new(null, null);
+        public static CityDebugTabs None => new(null, null, null);
 
         /// <summary>
         /// The player car's config: the spawner's prefab first, because the
@@ -65,6 +68,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
             var rig = Object.FindFirstObjectByType<OrbitCameraRig>();
             return rig != null ? rig.settings : null;
+        }
+
+        /// <summary>
+        /// The police pursuit settings, from the CityManager that hands them
+        /// to the fleet at play start — the PatrolManager it spawns does not
+        /// exist yet when the menu is built, so it is only the fallback.
+        /// </summary>
+        static PursuitSettings FindPursuitSettings()
+        {
+            var city = Object.FindFirstObjectByType<CityManager>();
+            if (city != null && city.pursuitSettings != null) return city.pursuitSettings;
+
+            var manager = Object.FindFirstObjectByType<PatrolManager>();
+            if (manager != null && manager.settings != null) return manager.settings;
+
+            var patrol = Object.FindFirstObjectByType<PoliceCarInput>();
+            return patrol != null ? patrol.settings : null;
         }
 
         // ---------------------------------------------------------------- tabs
@@ -151,6 +171,77 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             return screen;
         }
 
+        /// <summary>
+        /// Police fleet: how many cruisers are kept alive and where they cut
+        /// in. The PatrolManager re-reads all of it on its 1 s maintenance
+        /// tick, so raising the count spawns and lowering it retires — but
+        /// only once the game is running again, since that tick is on scaled
+        /// time and the menu has it frozen.
+        /// </summary>
+        public static MenuScreen BuildPoliceFleetTab(RectTransform parent, MenuTheme theme, PursuitSettings settings,
+                                                     List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_PoliceFleet", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabPoliceFleet, tabIndex, tabCount);
+
+            AddPursuitStat(screen, settings, refreshers, MenuTextId.PolicePatrolCount,
+                           0f, 25f, 1f, "0", s => s.targetPatrolCount,
+                           (s, v) => s.targetPatrolCount = Mathf.RoundToInt(v));
+
+            // The spawn band is one MinMaxSlider on the asset; here it is two
+            // rows, each shoving the other along so the pair can never cross.
+            DebugSliderRow spawnMin = null, spawnMax = null;
+            spawnMin = AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceSpawnMin,
+                                      30f, 600f, 10f, "0", s => s.spawnDistanceBand.x, (s, v) =>
+                                      {
+                                          s.spawnDistanceBand.x = v;
+                                          if (s.spawnDistanceBand.y >= v) return;
+                                          s.spawnDistanceBand.y = v;
+                                          spawnMax?.SetWithoutNotify(v);
+                                      });
+            spawnMax = AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceSpawnMax,
+                                      30f, 600f, 10f, "0", s => s.spawnDistanceBand.y, (s, v) =>
+                                      {
+                                          s.spawnDistanceBand.y = v;
+                                          if (s.spawnDistanceBand.x <= v) return;
+                                          s.spawnDistanceBand.x = v;
+                                          spawnMin?.SetWithoutNotify(v);
+                                      });
+
+            AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceDespawn,
+                           100f, 1500f, 25f, "0", s => s.despawnDistance, (s, v) => s.despawnDistance = v);
+            return screen;
+        }
+
+        /// <summary>
+        /// Police chase: what it takes to be spotted, how long they hunt after
+        /// losing you, and how fast they drive doing it. Every cruiser reads
+        /// these off the shared asset each frame, so the whole fleet turns on
+        /// one slider.
+        /// </summary>
+        public static MenuScreen BuildPoliceChaseTab(RectTransform parent, MenuTheme theme, PursuitSettings settings,
+                                                     List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_PoliceChase", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabPoliceChase, tabIndex, tabCount);
+
+            AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceDetection,
+                           10f, 300f, 5f, "0", s => s.detectionRange, (s, v) => s.detectionRange = v);
+            AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceLoseSight,
+                           0.5f, 10f, 0.5f, "0.0", s => s.loseSightSeconds, (s, v) => s.loseSightSeconds = v);
+            AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceSearchTime,
+                           3f, 60f, 1f, "0", s => s.searchDuration, (s, v) => s.searchDuration = v);
+            AddPursuitStat(screen, settings, refreshers, MenuTextId.PolicePatrolSpeed,
+                           10f, 100f, 5f, "0", s => s.patrolSpeedKmh, (s, v) => s.patrolSpeedKmh = v);
+            AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceChaseSpeed,
+                           20f, 250f, 5f, "0", s => s.chaseSpeedKmh, (s, v) => s.chaseSpeedKmh = v);
+            AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceCornerSpeed,
+                           5f, 80f, 1f, "0", s => s.cornerSpeedKmh, (s, v) => s.cornerSpeedKmh = v);
+            return screen;
+        }
+
         // --------------------------------------------------------------- rows
 
         static void AddCarStat(MenuScreen screen, CarConfig config, List<System.Action> refreshers, MenuTextId label,
@@ -180,6 +271,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 MarkDirty(settings);
             });
             refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
+        }
+
+        /// <summary>Returns the row, so paired knobs (the spawn band) can nudge each other's readout.</summary>
+        static DebugSliderRow AddPursuitStat(MenuScreen screen, PursuitSettings settings, List<System.Action> refreshers,
+                                             MenuTextId label, float min, float max, float step, string format,
+                                             System.Func<PursuitSettings, float> get,
+                                             System.Action<PursuitSettings, float> set)
+        {
+            var row = screen.AddRow<DebugSliderRow>(label);
+            row.Configure(min, max, step, get(settings), format, v =>
+            {
+                set(settings, v);
+                MarkDirty(settings);
+            });
+            refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
+            return row;
         }
 
         /// <summary>
@@ -235,14 +342,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     {
         readonly CarConfig car;
         readonly OrbitCameraSettings orbitCamera;
+        readonly PursuitSettings police;
 
-        internal CityDebugTabs(CarConfig car, OrbitCameraSettings orbitCamera)
+        internal CityDebugTabs(CarConfig car, OrbitCameraSettings orbitCamera, PursuitSettings police)
         {
             this.car = car;
             this.orbitCamera = orbitCamera;
+            this.police = police;
         }
 
-        public int TabCount => (car != null ? 2 : 0) + (orbitCamera != null ? 1 : 0);
+        public int TabCount => (car != null ? 2 : 0) + (orbitCamera != null ? 1 : 0) + (police != null ? 2 : 0);
 
         public void AddTabs(DebugMenu menu, RectTransform parent, MenuTheme theme,
                             List<System.Action> refreshers, ref int tab, int tabCount)
@@ -254,6 +363,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             }
             if (orbitCamera != null)
                 menu.AddTab(CityDebugMenuFactory.BuildCameraTab(parent, theme, orbitCamera, refreshers, tab++, tabCount));
+            if (police != null)
+            {
+                menu.AddTab(CityDebugMenuFactory.BuildPoliceFleetTab(parent, theme, police, refreshers, tab++, tabCount));
+                menu.AddTab(CityDebugMenuFactory.BuildPoliceChaseTab(parent, theme, police, refreshers, tab++, tabCount));
+            }
         }
     }
 }

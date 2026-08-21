@@ -53,6 +53,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 patrols.RemoveAt(i);
             }
 
+            // Fleet shrank (the debug slider, or a rebalanced asset): retire
+            // the extras now rather than waiting for them to drift out of
+            // despawn range — a lowered count has to mean fewer cars.
+            for (int i = patrols.Count - 1; i >= settings.targetPatrolCount; i--)
+            {
+                Destroy(patrols[i].gameObject);
+                patrols.RemoveAt(i);
+            }
+
             while (patrols.Count < settings.targetPatrolCount)
             {
                 if (!TrySpawnPatrol(player)) break; // no valid cell this tick — try again next tick
