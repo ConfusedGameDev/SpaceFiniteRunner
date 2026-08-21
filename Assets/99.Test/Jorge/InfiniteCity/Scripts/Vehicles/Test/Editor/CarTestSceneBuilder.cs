@@ -33,6 +33,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string MinimapSettingsPath = TestFolder + "/TestMinimapSettings.asset";
         const string SpeedometerSettingsPath = TestFolder + "/TestSpeedometerSettings.asset";
         const string TrafficSettingsPath = TestFolder + "/TestTrafficSettings.asset";
+        const string LevelDefinitionPath = TestFolder + "/TestLevelDefinition.asset";
         const string VehiclesFolder = "Assets/99.Test/Jorge/InfiniteCity/Vehicles";
         const string CitySettingsPath = "Assets/99.Test/Jorge/InfiniteCity/Scripts/City/Test/CityTestSettings.asset";
         const string GlitchMaterialPath = "Assets/99.Test/Jorge/InfiniteCity/Shaders/GlitchPost.mat";
@@ -56,6 +57,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             UI.MinimapSettings minimapSettings = CreateOrLoad<UI.MinimapSettings>(MinimapSettingsPath);
             UI.SpeedometerSettings speedometerSettings = CreateOrLoad<UI.SpeedometerSettings>(SpeedometerSettingsPath);
             AI.TrafficSettings trafficSettings = CreateOrLoadTrafficSettings(carConfig);
+            LevelDefinition levelDefinition = CreateOrLoadLevelDefinition();
             GameObject carPrefab = BuildCarPrefab(carConfig);
             GameObject policeCarPrefab = BuildPoliceCarPrefab(carConfig, pursuitSettings);
             AssetDatabase.SaveAssets();
@@ -96,10 +98,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             spawner.carPrefab = carPrefab;
             spawner.cameraSettings = cameraSettings;
 
-            // Objective flow: reach the hack speed, shake the police, hand over
-            // to the FiniteRunner scene. Messages come from the shared
+            // Objective flow, as data: the level asset lists the steps (by
+            // default reach the hack speed, then shake the police) and the
+            // scene handed over to. Messages come from the shared
             // RpgMessageSystem, which builds its own canvas at runtime.
-            new GameObject("LevelManager").AddComponent<LevelManager>();
+            var levelManager = new GameObject("LevelManager").AddComponent<LevelManager>();
+            levelManager.level = levelDefinition;
+
+            // Pause menu shared with the runner — hand-placed here, it builds
+            // itself in Start with no ship references and offers the city's
+            // debug pages (car, camera, police, level).
+            new GameObject("PauseMenu") { layer = 5 }.AddComponent<global::FiniteRunner.PauseMenu>();
 
             // Fullscreen glitch dial — the renderer's GlitchPost feature runs
             // the shader; this controller is what gameplay events talk to.
@@ -354,6 +363,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             }
             EditorUtility.SetDirty(settings);
             return settings;
+        }
+
+        /// <summary>The level asset, seeded with the default two steps only when freshly created — an authored list is never touched.</summary>
+        static LevelDefinition CreateOrLoadLevelDefinition()
+        {
+            bool existed = AssetDatabase.LoadAssetAtPath<LevelDefinition>(LevelDefinitionPath) != null;
+            var level = CreateOrLoad<LevelDefinition>(LevelDefinitionPath);
+            if (existed) return level;
+            LevelDefinition.SeedDefaultObjectives(level);
+            EditorUtility.SetDirty(level);
+            return level;
         }
 
         static T CreateOrLoad<T>(string path) where T : ScriptableObject

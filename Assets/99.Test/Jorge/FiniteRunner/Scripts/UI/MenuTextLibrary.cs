@@ -39,7 +39,9 @@ namespace FiniteRunner
         DebugTabPoliceFleet, DebugTabPoliceChase,
         PolicePatrolCount, PoliceSpawnMin, PoliceSpawnMax, PoliceDespawn,
         PoliceDetection, PoliceLoseSight, PoliceSearchTime,
-        PolicePatrolSpeed, PoliceChaseSpeed, PoliceCornerSpeed
+        PolicePatrolSpeed, PoliceChaseSpeed, PoliceCornerSpeed,
+        DebugTabLevel,
+        ObjectiveReachSpeed, ObjectiveEscapePolice, ObjectiveGoTo, ObjectiveSurvive
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -300,6 +302,17 @@ namespace FiniteRunner
         [TitleGroup("City police stats")]
         [SerializeField] LocalizedString policeCornerSpeed = new("CORNER SPEED", "VELOCIDAD EN CURVA", "コーナー速度", "VITESSE EN VIRAGE");
 
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString debugTabLevel = new("DEBUG — LEVEL", "DEPURACIÓN — NIVEL", "デバッグ — レベル", "DÉBOGAGE — NIVEAU");
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString objectiveReachSpeed = new("REACH SPEED", "ALCANZAR VELOCIDAD", "速度到達", "ATTEINDRE LA VITESSE");
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString objectiveEscapePolice = new("ESCAPE POLICE", "ESCAPAR DE LA POLICÍA", "警察から逃げる", "SEMER LA POLICE");
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString objectiveGoTo = new("GO TO", "IR A", "目的地へ", "ALLER À");
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString objectiveSurvive = new("SURVIVE", "SOBREVIVIR", "生き延びる", "SURVIVRE");
+
         static MenuTextLibrary cached;
 
         /// <summary>The library asset, or a throwaway on the C# defaults if none is in a Resources folder.</summary>
@@ -476,6 +489,11 @@ namespace FiniteRunner
             MenuTextId.PolicePatrolSpeed => policePatrolSpeed,
             MenuTextId.PoliceChaseSpeed => policeChaseSpeed,
             MenuTextId.PoliceCornerSpeed => policeCornerSpeed,
+            MenuTextId.DebugTabLevel => debugTabLevel,
+            MenuTextId.ObjectiveReachSpeed => objectiveReachSpeed,
+            MenuTextId.ObjectiveEscapePolice => objectiveEscapePolice,
+            MenuTextId.ObjectiveGoTo => objectiveGoTo,
+            MenuTextId.ObjectiveSurvive => objectiveSurvive,
             _ => start
         };
     }

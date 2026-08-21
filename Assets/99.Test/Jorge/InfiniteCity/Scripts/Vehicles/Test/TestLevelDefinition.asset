@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c3e1b2a9d4f4e8bb1a6c5d0e2f3a4b5, type: 3}
+  m_Name: TestLevelDefinition
+  m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.LevelDefinition
+  levelName: Level 1
+  nextSceneName: FiniteRunner_Test
+  mode: 0
+  speakerName: OPERATOR
+  messageHoldSeconds: 4
+  completionMessage: Hack complete. LFG!
+  completionGlitchHoldSeconds: 1.2
+  objectives:
+  - type: 3
+    targetSpeedKmh: 130
+    surviveSeconds: 30
+    targetId: 
+    arriveRadius: 12
+    mustBeHuntedFirst: 0
+    briefing: 'I need 30 seconds to finish the hack hang on '
+    accent: {r: 0.45, g: 0.9, b: 1, a: 1}
+  - type: 1
+    targetSpeedKmh: 130
+    surviveSeconds: 30
+    targetId: 
+    arriveRadius: 12
+    mustBeHuntedFirst: 0
+    briefing: we need to loose the pollice Hurry!
+    accent: {r: 1, g: 0.4, b: 0.35, a: 1}
+  - type: 0
+    targetSpeedKmh: 130
+    surviveSeconds: 30
+    targetId: 
+    arriveRadius: 12
+    mustBeHuntedFirst: 0
+    briefing: We need to hit 130km/h to trigger the portal
+    accent: {r: 0.45, g: 0.9, b: 1, a: 1}

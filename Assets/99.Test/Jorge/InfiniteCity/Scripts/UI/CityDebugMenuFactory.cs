@@ -10,10 +10,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     /// <summary>
     /// The city chase's pages for the shared pause-menu debug tabs: the core
     /// handling knobs of the player car's <see cref="CarConfig"/> (drive and
-    /// grip), the framing knobs of its <see cref="OrbitCameraSettings"/>, and
-    /// the fleet and chase knobs of the police <see cref="PursuitSettings"/>.
-    /// Same tab framework as the runner's pages — normal compact-row
-    /// MenuScreens cycled with the bumpers.
+    /// grip), the framing knobs of its <see cref="OrbitCameraSettings"/>, the
+    /// fleet and chase knobs of the police <see cref="PursuitSettings"/>, and
+    /// the <see cref="LevelManager"/>'s objective list (every step in order,
+    /// tinted by status, with sliders on the speed and time steps). Same tab
+    /// framework as the runner's pages — normal compact-row MenuScreens
+    /// cycled with the bumpers.
     ///
     /// One rule differs from the runner's ship/patrol tabs: the city's cars
     /// and camera rig read their settings assets LIVE every step (that is the
@@ -33,11 +35,25 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         const float RowSpacing = 8f;
         const float ContentTop = 340f;
 
+        static readonly Color DoneTint = new(0.45f, 1f, 0.55f);
+
         /// <summary>What this scene has to offer the debug menu — nothing at all, in the runner.</summary>
-        public static CityDebugTabs Discover() => new(FindCarConfig(), FindCameraSettings(), FindPursuitSettings());
+        public static CityDebugTabs Discover() => new(FindCarConfig(), FindCameraSettings(), FindPursuitSettings(), FindLevelManager());
 
         /// <summary>No pages, for a caller that already knows it isn't in the city.</summary>
-        public static CityDebugTabs None => new(null, null, null);
+        public static CityDebugTabs None => new(null, null, null, null);
+
+        /// <summary>
+        /// The level flow, if the scene runs one. The manager rather than its
+        /// asset: the page shows live status, and a manager with no asset
+        /// assigned plays an in-memory default that only exists after its
+        /// Awake — which has run by the time the pause menu builds in Start.
+        /// </summary>
+        static LevelManager FindLevelManager()
+        {
+            var manager = Object.FindFirstObjectByType<LevelManager>();
+            return manager != null && manager.Level != null ? manager : null;
+        }
 
         /// <summary>
         /// The player car's config: the spawner's prefab first, because the
@@ -242,7 +258,94 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             return screen;
         }
 
+        /// <summary>
+        /// The level's objectives, one row each in list order. Speed and time
+        /// steps are sliders that edit the asset live (the manager reads it
+        /// every frame, so a raised target regresses the step on the spot);
+        /// the other kinds are read-only rows. Every label is tinted by status
+        /// — green once done, accent while active, plain while pending — and
+        /// the tint keeps following the run while the menu is open. Rows are
+        /// built once per menu: objectives added in the inspector mid-play
+        /// show up after the next scene load.
+        /// </summary>
+        public static MenuScreen BuildLevelTab(RectTransform parent, MenuTheme theme, LevelManager manager,
+                                               List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_Level", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabLevel, tabIndex, tabCount);
+
+            LevelDefinition level = manager.Level;
+            string modeLabel = level.mode == CompletionMode.AllMustHold ? "ALL MUST HOLD" : "INDEPENDENT";
+            screen.AddLabel("LevelName", new Vector2(0f, 372f), new Vector2(900f, 32f),
+                            $"{level.levelName}  ·  {modeLabel}", 22, theme.TextDim, theme.BodyFont,
+                            TextAnchor.MiddleCenter, 0f);
+
+            MenuTextLibrary texts = MenuTextLibrary.Load();
+            for (int i = 0; i < level.Count; i++)
+            {
+                LevelObjective objective = level.objectives[i];
+                switch (objective.type)
+                {
+                    case ObjectiveType.ReachSpeed:
+                        AddObjectiveStat(screen, theme, manager, i, refreshers, MenuTextId.ObjectiveReachSpeed,
+                                         50f, 300f, 5f, "0", o => o.targetSpeedKmh, (o, v) => o.targetSpeedKmh = v);
+                        break;
+                    case ObjectiveType.SurviveTime:
+                        AddObjectiveStat(screen, theme, manager, i, refreshers, MenuTextId.ObjectiveSurvive,
+                                         5f, 300f, 5f, "0", o => o.surviveSeconds, (o, v) => o.surviveSeconds = v);
+                        break;
+                    case ObjectiveType.GoToTarget:
+                        // Raw label: the id is data, so this row does not re-localize on a language change.
+                        screen.AddRow<DebugLabelRow>($"{texts.Get(MenuTextId.ObjectiveGoTo)}  [{objective.targetId}]")
+                              .SetLabelTintProvider(StatusTint(manager, i, theme));
+                        break;
+                    default:
+                        screen.AddRow<DebugLabelRow>(MenuTextId.ObjectiveEscapePolice)
+                              .SetLabelTintProvider(StatusTint(manager, i, theme));
+                        break;
+                }
+            }
+            return screen;
+        }
+
         // --------------------------------------------------------------- rows
+
+        static void AddObjectiveStat(MenuScreen screen, MenuTheme theme, LevelManager manager, int index,
+                                     List<System.Action> refreshers, MenuTextId label,
+                                     float min, float max, float step, string format,
+                                     System.Func<LevelObjective, float> get,
+                                     System.Action<LevelObjective, float> set)
+        {
+            // Re-resolved on every call: the list is the asset's, and it may be reordered between pauses.
+            LevelObjective Objective() =>
+                manager != null && manager.Level != null && index < manager.Level.Count ? manager.Level.objectives[index] : null;
+
+            var row = screen.AddRow<DebugSliderRow>(label);
+            var initial = Objective();
+            row.Configure(min, max, step, initial != null ? get(initial) : min, format, v =>
+            {
+                var objective = Objective();
+                if (objective == null) return;
+                set(objective, v);
+                MarkDirty(manager.Level);
+            });
+            refreshers?.Add(() =>
+            {
+                var objective = Objective();
+                if (objective != null) row.SetWithoutNotify(get(objective));
+            });
+            row.SetLabelTintProvider(StatusTint(manager, index, theme));
+        }
+
+        /// <summary>Label tint for an objective row: done, active, or none (pending).</summary>
+        static System.Func<Color?> StatusTint(LevelManager manager, int index, MenuTheme theme) => () =>
+        {
+            if (manager == null) return null;
+            if (manager.Completed || manager.IsDone(index)) return DoneTint;
+            if (manager.CurrentIndex == index) return theme.Accent;
+            return null;
+        };
 
         static void AddCarStat(MenuScreen screen, CarConfig config, List<System.Action> refreshers, MenuTextId label,
                                float min, float max, float step, string format,
@@ -311,7 +414,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         static void MarkDirty(Object asset)
         {
 #if UNITY_EDITOR
-            if (asset == null) return;
+            // Only real assets: a LevelManager with nothing assigned plays an
+            // in-memory level, and there is nothing on disk to save for it.
+            if (asset == null || !UnityEditor.EditorUtility.IsPersistent(asset)) return;
             if (!touched.Contains(asset)) touched.Add(asset);
             UnityEditor.EditorUtility.SetDirty(asset);
 #endif
@@ -343,15 +448,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         readonly CarConfig car;
         readonly OrbitCameraSettings orbitCamera;
         readonly PursuitSettings police;
+        readonly LevelManager level;
 
-        internal CityDebugTabs(CarConfig car, OrbitCameraSettings orbitCamera, PursuitSettings police)
+        internal CityDebugTabs(CarConfig car, OrbitCameraSettings orbitCamera, PursuitSettings police, LevelManager level)
         {
             this.car = car;
             this.orbitCamera = orbitCamera;
             this.police = police;
+            this.level = level;
         }
 
-        public int TabCount => (car != null ? 2 : 0) + (orbitCamera != null ? 1 : 0) + (police != null ? 2 : 0);
+        public int TabCount => (car != null ? 2 : 0) + (orbitCamera != null ? 1 : 0) + (police != null ? 2 : 0)
+                             + (level != null ? 1 : 0);
 
         public void AddTabs(DebugMenu menu, RectTransform parent, MenuTheme theme,
                             List<System.Action> refreshers, ref int tab, int tabCount)
@@ -368,6 +476,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 menu.AddTab(CityDebugMenuFactory.BuildPoliceFleetTab(parent, theme, police, refreshers, tab++, tabCount));
                 menu.AddTab(CityDebugMenuFactory.BuildPoliceChaseTab(parent, theme, police, refreshers, tab++, tabCount));
             }
+            if (level != null)
+                menu.AddTab(CityDebugMenuFactory.BuildLevelTab(parent, theme, level, refreshers, tab++, tabCount));
         }
     }
 }
