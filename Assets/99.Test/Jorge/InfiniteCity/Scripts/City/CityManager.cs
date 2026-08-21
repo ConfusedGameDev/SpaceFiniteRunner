@@ -8,7 +8,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// Entry point and orchestrator of the procedural city. Recalculate works
     /// in edit mode (no play required): it clears previous output, generates a
     /// ChunkData per chunk of the initial grid and stamps socket-matched road
-    /// pieces under City/Chunk_{x}_{y}/Roads. Generated objects carry DontSave
+    /// pieces under City/Chunk_{x}_{y}/Roads — plus the features the placer
+    /// carved into the data: multi-cell templates once at their footprint
+    /// centre, ramp chains per run, decks and pillars. Generated objects carry DontSave
     /// flags — they are never written into the scene file and are rebuilt from
     /// seed + settings on demand (play mode regenerates automatically).
     /// Gizmos overlay the grid model: road cells colored by socket count,
@@ -54,6 +56,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         /// <summary>Waypoint graph over the generated roads — the AI's navigation source. Rebuilt on every Recalculate; null before the first one.</summary>
         public RoadGraph Graph { get; private set; }
+
+        /// <summary>Uniform scale applied to every spawned road piece: cell fit (cellSize ÷ native footprint) × the extra multiplier.</summary>
+        public float PieceScale
+        {
+            get
+            {
+                if (settings == null) return 1f;
+                float scale = settings.roadScaleMultiplier;
+                if (settings.scaleToCellSize && settings.pieceNativeSize > 0.0001f)
+                    scale *= settings.cellSize / settings.pieceNativeSize;
+                return scale;
+            }
+        }
+
+        /// <summary>World height of overpass decks — the Deck piece's native surface height at the piece scale, so it tracks roadScaleMultiplier too.</summary>
+        public float DeckWorldHeight => settings != null ? settings.DeckNativeHeight * PieceScale : 0f;
 
         [TitleGroup("Gizmos")]
         [Tooltip("Draw the grid model overlay (road cells, chunk borders, seed labels).")]
@@ -117,7 +135,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             settings.PrepareSeedForRecalculate();
 
             Clear();
-            Graph = new RoadGraph(settings.cellSize);
+            Graph = new RoadGraph(settings.cellSize, DeckWorldHeight);
             int half = settings.initialCitySizeInChunks / 2;
             int size = settings.initialCitySizeInChunks;
             for (int cy = -half; cy < size - half; cy++)
@@ -338,13 +356,41 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             var rng = new System.Random(DeterministicHash.Combine(settings.globalSeed, SaltPiecePick, coord.x, coord.y));
             var missingMasks = new HashSet<EdgeMask>();
 
-            float pieceScale = settings.roadScaleMultiplier;
-            if (settings.scaleToCellSize && settings.pieceNativeSize > 0.0001f)
-                pieceScale *= settings.cellSize / settings.pieceNativeSize;
+            float pieceScale = PieceScale;
+            Transform stampRoot = roadsGo.transform;
+            System.Action<System.Action> schedule = instant
+                ? (System.Action<System.Action>)(spawn => spawn())
+                : spawnQueue.Enqueue;
+            RoadPieceDefinition pillar = settings.PillarPiece;
 
             for (int y = 0; y < data.SizeInCells; y++)
             for (int x = 0; x < data.SizeInCells; x++)
             {
+                if (data.IsCovered(x, y)) continue; // a multi-cell piece owns this cell — stamped below
+                var cellCenter = new Vector3((x + 0.5f) * settings.cellSize, 0f, (y + 0.5f) * settings.cellSize);
+
+                // Ramp runs are stamped once, from their foot cell.
+                if (data.IsRamp(x, y))
+                {
+                    if (data.GetRampStep(x, y) == 0) StampRampRun(stampRoot, data, x, y, pieceScale, schedule);
+                    continue;
+                }
+
+                // Overpass deck above; a pillar where no street runs underneath.
+                if (data.HasDeck(x, y))
+                {
+                    EdgeMask upper = data.GetUpperConnections(x, y);
+                    if (TryPickPiece(upper, rng, out var deck, out int deckTurns, RoadPieceRole.Deck))
+                        Stamp(stampRoot, deck.prefab, cellCenter, deckTurns * 90f + deck.rotationOffset, Vector3.one * pieceScale, schedule);
+                    else
+                        missingMasks.Add(upper);
+                    bool selfSupporting = deck != null && deck.includesUnderpass;
+                    if (data.IsReserved(x, y) && pillar != null && !selfSupporting)
+                        Stamp(stampRoot, pillar.prefab, cellCenter, pillar.rotationOffset, Vector3.one * pieceScale, schedule);
+                    // Kenney's road-bridge already models its supports and the street underneath — a second ground piece would z-fight it.
+                    if (selfSupporting) continue;
+                }
+
                 if (!data.IsRoad(x, y)) continue;
                 EdgeMask mask = data.GetConnections(x, y);
                 if (mask == EdgeMask.None) continue;
@@ -354,31 +400,134 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                     missingMasks.Add(mask);
                     continue;
                 }
+                Stamp(stampRoot, piece.prefab, cellCenter, quarterTurns * 90f + piece.rotationOffset, Vector3.one * pieceScale, schedule);
+            }
 
-                // Copies for the closure — the loop variables move on.
-                var localPosition = new Vector3((x + 0.5f) * settings.cellSize, 0f, (y + 0.5f) * settings.cellSize);
-                var localRotation = Quaternion.Euler(0f, quarterTurns * 90f + piece.rotationOffset, 0f);
-                GameObject prefab = piece.prefab;
-                float scale = pieceScale;
-                void SpawnPiece()
+            // Features: templates (roundabouts) once at the footprint centre; forks from their parts.
+            foreach (RoadFeature feature in data.Features)
+            {
+                if (feature.Kind == RoadFeatureKind.Fork)
                 {
-                    if (roadsGo == null) return; // chunk unloaded before its turn in the queue
-                    var instance = Instantiate(prefab, roadsGo.transform);
-                    ApplyGeneratedFlags(instance);
-                    instance.transform.localPosition = localPosition;
-                    instance.transform.localRotation = localRotation;
-                    if (!Mathf.Approximately(scale, 1f))
-                        instance.transform.localScale = Vector3.one * scale;
+                    StampFork(stampRoot, feature, rng, pieceScale, schedule);
+                    continue;
                 }
-
-                if (instant) SpawnPiece();
-                else spawnQueue.Enqueue(SpawnPiece);
+                RoadPieceDefinition piece = feature.PieceIndex >= 0 && feature.PieceIndex < settings.roadPieces.Count ? settings.roadPieces[feature.PieceIndex] : null;
+                if (piece?.prefab == null) continue;
+                var center = new Vector3(
+                    (feature.Origin.x + feature.Footprint.x * 0.5f) * settings.cellSize,
+                    0f,
+                    (feature.Origin.y + feature.Footprint.y * 0.5f) * settings.cellSize);
+                Stamp(stampRoot, piece.prefab, center, feature.QuarterTurns * 90f + piece.rotationOffset, Vector3.one * pieceScale, schedule);
             }
 
             foreach (var mask in missingMasks)
-                Debug.LogWarning($"CityManager: no road piece matches socket mask [{mask}] — those cells were left empty. Add a matching piece to the settings (dead ends need a single-socket piece).");
+                Debug.LogWarning($"CityManager: no road piece matches socket mask [{mask}] — those cells were left empty. Add a matching piece to the settings (dead ends need a single-socket piece, overpasses a Deck piece).");
 
             PopulateChunk(chunkGo.transform, data, instant ? null : spawnQueue.Enqueue);
+        }
+
+        /// <summary>
+        /// Queue (or run) one piece instantiation. All placement values are
+        /// resolved here, so a streamed chunk equals an instant one; the
+        /// closure only checks that the chunk still exists when its turn comes.
+        /// </summary>
+        void Stamp(Transform parent, GameObject prefab, Vector3 localPosition, float yaw, Vector3 localScale, System.Action<System.Action> schedule)
+        {
+            var localRotation = Quaternion.Euler(0f, yaw, 0f);
+            schedule(() =>
+            {
+                if (parent == null) return; // chunk unloaded before its turn in the queue
+                var instance = Instantiate(prefab, parent);
+                ApplyGeneratedFlags(instance);
+                instance.transform.localPosition = localPosition;
+                instance.transform.localRotation = localRotation;
+                instance.transform.localScale = Vector3.Scale(prefab.transform.localScale, localScale);
+            });
+        }
+
+        /// <summary>
+        /// A ramp run is rampLength cells from its foot (step 0) uphill; the
+        /// settings' ramp chain (street → deck links) is spread evenly along
+        /// it, each link stretched or compressed along its uphill axis so any
+        /// chain length fits any run length.
+        /// </summary>
+        void StampRampRun(Transform parent, ChunkData data, int footX, int footY, float pieceScale, System.Action<System.Action> schedule)
+        {
+            List<RoadPieceDefinition> chain = settings.RampChain;
+            if (chain.Count == 0) return;
+
+            int direction = data.GetRampDirection(footX, footY);
+            int length = Mathf.Max(1, data.GetRampLength(footX, footY));
+            Vector2Int step = EdgeMaskUtility.Offset(direction);
+            float cellsPerLink = (float)length / chain.Count;
+
+            for (int i = 0; i < chain.Count; i++)
+            {
+                float along = (i + 0.5f) * cellsPerLink; // cells from the foot edge to this link's centre
+                var center = new Vector3(
+                    (footX + 0.5f + step.x * (along - 0.5f)) * settings.cellSize,
+                    0f,
+                    (footY + 0.5f + step.y * (along - 0.5f)) * settings.cellSize);
+                Stamp(parent, chain[i].prefab, center, direction * 90f + chain[i].rotationOffset,
+                    RampScale(chain[i].rotationOffset, pieceScale, cellsPerLink), schedule);
+            }
+        }
+
+        /// <summary>
+        /// A fork's pieces, all centred on the seam between the side street's
+        /// row and its twin row: a T on the through road (its two outer half
+        /// cells refilled with half straights), <c>stem</c> straights, then the
+        /// split piece — stem facing the junction, exits along the street.
+        /// Convention of the Fork piece: at rotationOffset 0 its stem is West
+        /// and its exits East, so facing direction 1 (East) is yaw 0.
+        /// </summary>
+        void StampFork(Transform parent, RoadFeature fork, System.Random rng, float pieceScale, System.Action<System.Action> schedule)
+        {
+            RoadPieceDefinition split = settings.FirstPieceWithRole(RoadPieceRole.Fork);
+            if (split == null) return;
+
+            int dir = fork.QuarterTurns & 3;
+            int stem = fork.Footprint.x;
+            Vector2Int f = EdgeMaskUtility.Offset(dir);
+            Vector2Int p = EdgeMaskUtility.Offset(dir + 1) * fork.Variant;
+            EdgeMask axisPair = EdgeMaskUtility.DirectionBit(dir) | EdgeMaskUtility.DirectionBit(dir + 2);
+            EdgeMask perpPair = EdgeMask.All & ~axisPair;
+            float cell = settings.cellSize;
+            Vector3 scale = Vector3.one * pieceScale;
+            Vector3 toTwin = new Vector3(p.x, 0f, p.y) * (0.5f * cell); // cell centre → seam
+
+            Vector3 CellCenter(Vector2Int c) => new((c.x + 0.5f) * cell, 0f, (c.y + 0.5f) * cell);
+            Vector3 SeamAt(Vector2Int c) => CellCenter(c) + toTwin;
+
+            // Seam junction on the through road.
+            if (TryPickPiece(perpPair | EdgeMaskUtility.DirectionBit(dir), rng, out var tee, out int teeTurns))
+                Stamp(parent, tee.prefab, SeamAt(fork.Origin), teeTurns * 90f + tee.rotationOffset, scale, schedule);
+            if (TryPickPiece(perpPair, rng, out var half, out int halfTurns, RoadPieceRole.HalfStraight))
+            {
+                float yaw = halfTurns * 90f + half.rotationOffset;
+                Stamp(parent, half.prefab, CellCenter(fork.Origin) - toTwin * 0.5f, yaw, scale, schedule);
+                Stamp(parent, half.prefab, CellCenter(fork.Origin + p) + toTwin * 0.5f, yaw, scale, schedule);
+            }
+
+            // Stem straights on the seam.
+            for (int i = 1; i <= stem; i++)
+            {
+                if (TryPickPiece(axisPair, rng, out var straight, out int turns))
+                    Stamp(parent, straight.prefab, SeamAt(fork.Origin + f * i), turns * 90f + straight.rotationOffset, scale, schedule);
+            }
+
+            // The split: one entrance from the junction side, two exits along the street.
+            Stamp(parent, split.prefab, SeamAt(fork.Origin + f * (stem + 1)), (dir - 1) * 90f + split.rotationOffset, scale, schedule);
+        }
+
+        /// <summary>Piece scale that stretches a ramp link by <paramref name="stretch"/> along its own uphill axis (local +Z before rotationOffset).</summary>
+        static Vector3 RampScale(float rotationOffset, float pieceScale, float stretch)
+        {
+            Vector3 uphillLocal = Quaternion.Euler(0f, -rotationOffset, 0f) * Vector3.forward;
+            return new Vector3(
+                pieceScale * Mathf.Lerp(1f, stretch, Mathf.Abs(uphillLocal.x)),
+                pieceScale,
+                pieceScale * Mathf.Lerp(1f, stretch, Mathf.Abs(uphillLocal.z)));
         }
 
         /// <summary>
@@ -389,15 +538,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// cluttered network still returns something. Brute-force over the
         /// grid models — flagged for replacement by the RoadGraph in M5.
         /// </summary>
-        public bool TryFindNearestRoadCell(Vector3 from, out Vector3 center, out EdgeMask connections)
+        public bool TryFindNearestRoadCell(Vector3 from, out Vector3 center, out EdgeMask connections, bool groundOnly = false)
         {
             center = default;
             connections = EdgeMask.None;
             if (settings == null) return false;
 
             Physics.SyncTransforms(); // colliders may have been created this frame
-            return PickNearestRoadCell(from, true, ref center, ref connections)
-                || PickNearestRoadCell(from, false, ref center, ref connections);
+            return PickNearestRoadCell(from, true, groundOnly, ref center, ref connections)
+                || PickNearestRoadCell(from, false, groundOnly, ref center, ref connections);
         }
 
         /// <summary>
@@ -406,37 +555,41 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// preference and fallback as <see cref="TryFindNearestRoadCell"/>.
         /// Not tied to the city's deterministic seed: every press is a fresh spot.
         /// </summary>
-        public bool TryGetRandomRoadCell(out Vector3 center, out EdgeMask connections)
+        public bool TryGetRandomRoadCell(out Vector3 center, out EdgeMask connections, bool groundOnly = false)
         {
             center = default;
             connections = EdgeMask.None;
             if (settings == null) return false;
 
             Physics.SyncTransforms();
-            return PickRandomRoadCell(true, ref center, ref connections)
-                || PickRandomRoadCell(false, ref center, ref connections);
+            return PickRandomRoadCell(true, groundOnly, ref center, ref connections)
+                || PickRandomRoadCell(false, groundOnly, ref center, ref connections);
         }
 
-        bool PickNearestRoadCell(Vector3 from, bool requireClear, ref Vector3 center, ref EdgeMask connections)
+        bool PickNearestRoadCell(Vector3 from, bool requireClear, bool groundOnly, ref Vector3 center, ref EdgeMask connections)
         {
-            float bestSqr = float.MaxValue;
-            foreach ((Vector3 candidate, EdgeMask mask) in RoadCells())
+            float best = float.MaxValue;
+            foreach ((Vector3 candidate, EdgeMask mask, bool flatGround) in RoadCells())
             {
-                float sqr = (candidate - from).sqrMagnitude;
-                if (sqr >= bestSqr) continue;
+                if (groundOnly && !flatGround) continue;
+                // Height counts triple, so a spot under a bridge resolves to the street, not the deck above it.
+                Vector3 delta = candidate - from;
+                float score = delta.x * delta.x + delta.z * delta.z + 9f * delta.y * delta.y;
+                if (score >= best) continue;
                 if (requireClear && !IsCellClear(candidate)) continue;
-                bestSqr = sqr;
+                best = score;
                 center = candidate;
                 connections = mask;
             }
-            return bestSqr < float.MaxValue;
+            return best < float.MaxValue;
         }
 
-        bool PickRandomRoadCell(bool requireClear, ref Vector3 center, ref EdgeMask connections)
+        bool PickRandomRoadCell(bool requireClear, bool groundOnly, ref Vector3 center, ref EdgeMask connections)
         {
             int seen = 0;
-            foreach ((Vector3 candidate, EdgeMask mask) in RoadCells())
+            foreach ((Vector3 candidate, EdgeMask mask, bool flatGround) in RoadCells())
             {
+                if (groundOnly && !flatGround) continue;
                 if (requireClear && !IsCellClear(candidate)) continue;
                 seen++;
                 if (Random.Range(0, seen) != 0) continue;
@@ -446,9 +599,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             return seen > 0;
         }
 
-        /// <summary>Every road cell center + connection mask across the built chunks.</summary>
-        IEnumerable<(Vector3 center, EdgeMask connections)> RoadCells()
+        /// <summary>
+        /// Every road spot across the built chunks: surface centre (deck
+        /// height for overpasses, part-way up for ramps), connection mask and
+        /// whether it is flat ground (the only kind cars spawn on). Served by
+        /// the RoadGraph when it exists; after a domain reload the graph is
+        /// gone but the chunk markers may still hold their data, so the grid
+        /// scan remains as the fallback.
+        /// </summary>
+        IEnumerable<(Vector3 center, EdgeMask connections, bool flatGround)> RoadCells()
         {
+            if (Graph != null)
+            {
+                foreach (var pair in Graph.Nodes)
+                    yield return (pair.Value.Center, pair.Value.Mask, pair.Key.Level == 0 && !pair.Value.IsRamp);
+                yield break;
+            }
+
             float cell = settings.cellSize;
             foreach (var chunk in GetComponentsInChildren<CityChunk>())
             {
@@ -458,8 +625,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 for (int x = 0; x < chunk.Data.SizeInCells; x++)
                 {
                     if (!chunk.Data.IsRoad(x, y)) continue;
-                    yield return (origin + new Vector3((x + 0.5f) * cell, 0f, (y + 0.5f) * cell),
-                        chunk.Data.GetConnections(x, y));
+                    Vector2 shift = chunk.Data.GetCenterOffset(x, y) * cell;
+                    yield return (origin + new Vector3((x + 0.5f) * cell + shift.x, 0f, (y + 0.5f) * cell + shift.y),
+                        chunk.Data.GetConnections(x, y), !chunk.Data.IsRamp(x, y));
                 }
             }
         }
@@ -574,6 +742,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         {
             northSouth = false;
             if (!data.InBounds(x, y) || !data.IsRoad(x, y)) return false;
+            if (data.IsRamp(x, y) || data.HasDeck(x, y) || data.HasCenterOffset(x, y)) return false; // slopes, underpasses and seam roads are no launch runway
             EdgeMask mask = data.GetConnections(x, y);
             if (mask == (EdgeMask.North | EdgeMask.South))
             {
@@ -623,7 +792,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// mask equals the cell's mask. Symmetric pieces match at several
         /// rotations; each counts as its own candidate so weights stay honest.
         /// </summary>
-        bool TryPickPiece(EdgeMask target, System.Random rng, out RoadPieceDefinition picked, out int quarterTurns)
+        bool TryPickPiece(EdgeMask target, System.Random rng, out RoadPieceDefinition picked, out int quarterTurns, RoadPieceRole role = RoadPieceRole.Standard)
         {
             picked = null;
             quarterTurns = 0;
@@ -631,7 +800,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
             foreach (var piece in settings.roadPieces)
             {
-                if (piece?.prefab == null) continue;
+                if (piece?.prefab == null || piece.role != role || piece.IsMultiCell) continue; // templates and ramps/pillars are stamped elsewhere
                 for (int turns = 0; turns < 4; turns++)
                 {
                     if (piece.connectionMask.RotateCw(turns) != target) continue;
@@ -692,20 +861,39 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             for (int y = 0; y < data.SizeInCells; y++)
             for (int x = 0; x < data.SizeInCells; x++)
             {
+                Vector3 cellCenter = origin + new Vector3((x + 0.5f) * cell, 0.05f, (y + 0.5f) * cell);
+                var slab = new Vector3(cell * 0.85f, 0.05f, cell * 0.85f);
+
+                if (data.HasDeck(x, y))
+                {
+                    // Upper level at deck height; the street underneath (if any) keeps its own slab below.
+                    Gizmos.color = new Color(0.3f, 0.9f, 1f, 0.8f);
+                    Gizmos.DrawCube(cellCenter + Vector3.up * DeckWorldHeight, slab);
+                }
+                if (data.IsReserved(x, y))
+                {
+                    Gizmos.color = new Color(0.35f, 0.35f, 0.35f, 0.6f);  // feature-owned, no road, no building
+                    Gizmos.DrawCube(cellCenter, slab);
+                    continue;
+                }
                 if (!data.IsRoad(x, y)) continue;
                 EdgeMask mask = data.GetConnections(x, y);
-                Gizmos.color = mask.ConnectionCount() switch
-                {
-                    1 => Color.red,                                  // dead end
-                    2 => mask.RotateCw(2) == mask
-                        ? new Color(0.3f, 0.9f, 1f)                  // straight
-                        : Color.yellow,                              // corner
-                    3 => Color.magenta,                              // T-junction
-                    4 => Color.white,                                // crossroad
-                    _ => Color.grey,
-                };
-                Vector3 cellCenter = origin + new Vector3((x + 0.5f) * cell, 0.05f, (y + 0.5f) * cell);
-                Gizmos.DrawCube(cellCenter, new Vector3(cell * 0.85f, 0.05f, cell * 0.85f));
+                Gizmos.color = data.IsRamp(x, y)
+                    ? new Color(1f, 0.55f, 0.1f)                         // ramp
+                    : mask.ConnectionCount() switch
+                    {
+                        1 => Color.red,                                  // dead end
+                        2 => mask.RotateCw(2) == mask
+                            ? new Color(0.3f, 0.9f, 1f)                  // straight
+                            : Color.yellow,                              // corner
+                        3 => Color.magenta,                              // T-junction
+                        4 => Color.white,                                // crossroad
+                        _ => Color.grey,
+                    };
+                if (data.IsRamp(x, y)) cellCenter.y += DeckWorldHeight * data.RampHeight01(x, y);
+                Vector2 shift = data.GetCenterOffset(x, y) * cell; // fork seam roads draw where their node is
+                cellCenter += new Vector3(shift.x, 0f, shift.y);
+                Gizmos.DrawCube(cellCenter, slab);
             }
         }
     }

@@ -27,9 +27,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         CinemachineCamera cinemachineCamera;
         CinemachineOrbitalFollow orbital;
         CinemachineRotationComposer composer;
+        CinemachineDeoccluder deoccluder;
         CarController target;
         float idleTimer;
         bool built;
+
+        /// <summary>Built-in tag the rig stamps on its target's colliders so the deoccluder ignores them.</summary>
+        const string PlayerTag = "Player";
 
         public CarController Target => target;
 
@@ -38,6 +42,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             target = car;
             if (!built) Build();
             Transform follow = car != null ? car.transform : null;
+            if (car != null) TagRecursively(car.transform, PlayerTag);
             cinemachineCamera.Follow = follow;
             cinemachineCamera.LookAt = follow;
             // Fresh car: start resting behind it.
@@ -51,6 +56,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             cinemachineCamera = gameObject.AddComponent<CinemachineCamera>();
             orbital = gameObject.AddComponent<CinemachineOrbitalFollow>();
             composer = gameObject.AddComponent<CinemachineRotationComposer>();
+
+            // Ramps and overpass decks would otherwise put the orbit camera
+            // under the road surface while the car climbs (8 m back on a
+            // slope is several metres lower); the deoccluder pulls it forward
+            // past anything solid between car and camera. The car itself is
+            // excluded by layer (PlayerCar, when the glitch feature created
+            // it) and by tag, so it can never push the camera off its target.
+            deoccluder = gameObject.AddComponent<CinemachineDeoccluder>();
+            int playerLayer = LayerMask.NameToLayer("PlayerCar");
+            deoccluder.CollideAgainst = playerLayer >= 0 ? ~(1 << playerLayer) : ~0;
+            deoccluder.IgnoreTag = PlayerTag;
+            deoccluder.MinimumDistanceFromTarget = 1.5f;
+            deoccluder.AvoidObstacles.Enabled = true;
+            deoccluder.AvoidObstacles.Strategy = CinemachineDeoccluder.ObstacleAvoidance.ResolutionStrategy.PullCameraForward;
+            deoccluder.AvoidObstacles.DistanceLimit = 0f;
+            deoccluder.AvoidObstacles.MinimumOcclusionTime = 0f;
+            deoccluder.AvoidObstacles.CameraRadius = 0.4f;
 
             orbital.OrbitStyle = CinemachineOrbitalFollow.OrbitStyles.Sphere;
             // Locked to the target's heading: horizontal axis 0 is always
@@ -104,6 +126,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // Speed FOV kick.
             cinemachineCamera.Lens.FieldOfView = settings.baseFov
                 + Mathf.Min(settings.maxFovBoost, target.SpeedKmh * settings.fovPerKmh);
+        }
+
+        static void TagRecursively(Transform root, string tag)
+        {
+            root.gameObject.tag = tag;
+            for (int i = 0; i < root.childCount; i++)
+                TagRecursively(root.GetChild(i), tag);
         }
 
         /// <summary>Pan input in degrees this frame: mouse delta, right stick, arrow keys — first non-zero source wins.</summary>

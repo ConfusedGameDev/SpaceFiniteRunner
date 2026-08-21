@@ -1,28 +1,83 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 {
     /// <summary>
+    /// A navigable spot on the road network: a world grid cell plus a level —
+    /// 0 = ground (including ramp cells), 1 = overpass deck. Two nodes may
+    /// share a cell (a street passing under a bridge); they are distinct keys.
+    /// </summary>
+    public readonly struct RoadNode : IEquatable<RoadNode>
+    {
+        public readonly Vector2Int Cell;
+        public readonly int Level;
+
+        public RoadNode(Vector2Int cell, int level)
+        {
+            Cell = cell;
+            Level = level;
+        }
+
+        public bool Equals(RoadNode other) => Cell == other.Cell && Level == other.Level;
+        public override bool Equals(object obj) => obj is RoadNode other && Equals(other);
+        public override int GetHashCode() => unchecked(Cell.x * 73856093 ^ Cell.y * 19349663 ^ Level * 83492791);
+        public static bool operator ==(RoadNode a, RoadNode b) => a.Equals(b);
+        public static bool operator !=(RoadNode a, RoadNode b) => !a.Equals(b);
+        public override string ToString() => $"({Cell.x}, {Cell.y}) L{Level}";
+    }
+
+    /// <summary>Per-node data baked at registration: socket mask, world centre (with height) and whether the node is a ramp cell.</summary>
+    public readonly struct RoadNodeData
+    {
+        public readonly EdgeMask Mask;
+        public readonly Vector3 Center;
+        public readonly bool IsRamp;
+
+        public RoadNodeData(EdgeMask mask, Vector3 center, bool isRamp)
+        {
+            Mask = mask;
+            Center = center;
+            IsRamp = isRamp;
+        }
+    }
+
+    /// <summary>
     /// Runtime waypoint graph derived from the generated roads — the AI's
     /// navigation source, per the plan's "RoadGraph, not NavMesh" rule: the
-    /// generator already knows exactly where roads are. Nodes are world cell
-    /// coordinates (cell units, not meters); edges follow each cell's socket
-    /// mask, so paths can never cut through connections the road data says
-    /// don't exist. Chunks register their cells after generation; A* answers
-    /// route queries. Rebuilt from scratch on every Recalculate.
+    /// generator already knows exactly where roads are. Nodes are
+    /// <see cref="RoadNode"/>s (world cell + level); edges follow each node's
+    /// socket mask, so paths can never cut through connections the road data
+    /// says don't exist. The one neighbour rule (<see cref="TryGetNeighbour"/>)
+    /// is mutual connection: the target node must connect back. That is what
+    /// links a ramp (level 0) to the deck (level 1) and keeps a deck from
+    /// leaking into the street underneath. Chunks register their cells after
+    /// generation; A* answers route queries. Rebuilt from scratch on every
+    /// Recalculate.
     /// </summary>
     public class RoadGraph
     {
-        readonly Dictionary<Vector2Int, EdgeMask> cells = new();
+        readonly Dictionary<RoadNode, RoadNodeData> nodes = new();
         readonly float cellSize;
+        readonly float deckHeight;
 
-        public RoadGraph(float cellSize) => this.cellSize = cellSize;
+        /// <summary>Vertical distance is weighted this much more than horizontal in nearest-node searches, so a car under a bridge never snaps onto it.</summary>
+        const float VerticalPenalty = 3f;
 
-        public int Count => cells.Count;
+        public RoadGraph(float cellSize, float deckHeight = 0f)
+        {
+            this.cellSize = cellSize;
+            this.deckHeight = deckHeight;
+        }
 
-        /// <summary>All registered road cells with their connection masks.</summary>
-        public IEnumerable<KeyValuePair<Vector2Int, EdgeMask>> Cells => cells;
+        public int Count => nodes.Count;
+
+        /// <summary>World height of the upper (deck) level.</summary>
+        public float DeckHeight => deckHeight;
+
+        /// <summary>All registered nodes with their baked data.</summary>
+        public IEnumerable<KeyValuePair<RoadNode, RoadNodeData>> Nodes => nodes;
 
         public void RegisterChunk(ChunkData data)
         {
@@ -30,70 +85,147 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             for (int y = 0; y < data.SizeInCells; y++)
             for (int x = 0; x < data.SizeInCells; x++)
             {
-                if (!data.IsRoad(x, y)) continue;
-                cells[new Vector2Int(origin.x + x, origin.y + y)] = data.GetConnections(x, y);
+                var cell = new Vector2Int(origin.x + x, origin.y + y);
+                EdgeMask ground = data.GetConnections(x, y);
+                if (data.IsRoad(x, y) && ground != EdgeMask.None)
+                {
+                    bool ramp = data.IsRamp(x, y);
+                    float height = ramp ? deckHeight * data.RampHeight01(x, y) : 0f;
+                    // A fork stem runs on the seam between two cells: the data shifts both nodes onto it.
+                    Vector2 shift = data.GetCenterOffset(x, y) * cellSize;
+                    Vector3 center = CellCenterAt(cell, height) + new Vector3(shift.x, 0f, shift.y);
+                    nodes[new RoadNode(cell, 0)] = new RoadNodeData(ground, center, ramp);
+                }
+                EdgeMask upper = data.GetUpperConnections(x, y);
+                if (upper != EdgeMask.None)
+                    nodes[new RoadNode(cell, 1)] = new RoadNodeData(upper, CellCenterAt(cell, deckHeight), false);
             }
         }
 
-        /// <summary>Drop an unloaded chunk's cells — the AI can no longer route through space that no longer exists.</summary>
+        /// <summary>Drop an unloaded chunk's nodes — the AI can no longer route through space that no longer exists.</summary>
         public void UnregisterChunk(ChunkData data)
         {
             Vector2Int origin = data.WorldCellOrigin;
             for (int y = 0; y < data.SizeInCells; y++)
             for (int x = 0; x < data.SizeInCells; x++)
             {
-                if (!data.IsRoad(x, y)) continue;
-                cells.Remove(new Vector2Int(origin.x + x, origin.y + y));
+                var cell = new Vector2Int(origin.x + x, origin.y + y);
+                nodes.Remove(new RoadNode(cell, 0));
+                nodes.Remove(new RoadNode(cell, 1));
             }
         }
 
-        public bool IsRoad(Vector2Int cell) => cells.ContainsKey(cell);
+        public bool Contains(RoadNode node) => nodes.ContainsKey(node);
 
-        public EdgeMask Connections(Vector2Int cell) =>
-            cells.TryGetValue(cell, out EdgeMask mask) ? mask : EdgeMask.None;
+        public EdgeMask Connections(RoadNode node) =>
+            nodes.TryGetValue(node, out RoadNodeData data) ? data.Mask : EdgeMask.None;
+
+        /// <summary>World centre of the node's drivable surface (deck height on level 1, part-way up on ramps).</summary>
+        public Vector3 Center(RoadNode node) =>
+            nodes.TryGetValue(node, out RoadNodeData data) ? data.Center : CellCenterAt(node.Cell, node.Level == 1 ? deckHeight : 0f);
+
+        public bool IsRamp(RoadNode node) => nodes.TryGetValue(node, out RoadNodeData data) && data.IsRamp;
+
+        /// <summary>Flat ground node — neither a ramp nor a deck. The only kind cars are spawned on.</summary>
+        public bool IsFlatGround(RoadNode node) => node.Level == 0 && nodes.TryGetValue(node, out RoadNodeData data) && !data.IsRamp;
 
         public Vector2Int WorldToCell(Vector3 position) =>
             new(Mathf.FloorToInt(position.x / cellSize), Mathf.FloorToInt(position.z / cellSize));
 
-        public Vector3 CellCenter(Vector2Int cell) =>
-            new((cell.x + 0.5f) * cellSize, 0f, (cell.y + 0.5f) * cellSize);
+        Vector3 CellCenterAt(Vector2Int cell, float height) =>
+            new((cell.x + 0.5f) * cellSize, height, (cell.y + 0.5f) * cellSize);
 
-        /// <summary>Nearest registered road cell to a world position. O(n) scan — fine at v1 sizes, revisit with spatial buckets if streaming makes it hot.</summary>
-        public bool TryGetNearestCell(Vector3 position, out Vector2Int nearest)
+        /// <summary>
+        /// The node under a world position: the level whose surface height is
+        /// closest to the position's Y (a car on the deck gets the deck, a car
+        /// underneath gets the street). False when the cell holds no road.
+        /// </summary>
+        public bool TryGetNodeAt(Vector3 position, out RoadNode node)
+        {
+            Vector2Int cell = WorldToCell(position);
+            var ground = new RoadNode(cell, 0);
+            var upper = new RoadNode(cell, 1);
+            bool hasGround = nodes.TryGetValue(ground, out RoadNodeData groundData);
+            bool hasUpper = nodes.TryGetValue(upper, out RoadNodeData upperData);
+            if (hasGround && hasUpper)
+            {
+                node = Mathf.Abs(position.y - upperData.Center.y) < Mathf.Abs(position.y - groundData.Center.y) ? upper : ground;
+                return true;
+            }
+            node = hasGround ? ground : upper;
+            return hasGround || hasUpper;
+        }
+
+        /// <summary>
+        /// Nearest registered node to a world position, with height counting
+        /// <see cref="VerticalPenalty"/>× so the street below a bridge beats the
+        /// deck above. O(n) scan — fine at v1 sizes, revisit with spatial
+        /// buckets if streaming makes it hot.
+        /// </summary>
+        public bool TryGetNearestNode(Vector3 position, out RoadNode nearest, bool flatGroundOnly = false)
         {
             nearest = default;
-            float bestSqr = float.MaxValue;
-            foreach (var pair in cells)
+            float best = float.MaxValue;
+            foreach (var pair in nodes)
             {
-                Vector3 center = CellCenter(pair.Key);
-                float sqr = (center - position).sqrMagnitude;
-                if (sqr >= bestSqr) continue;
-                bestSqr = sqr;
+                if (flatGroundOnly && (pair.Key.Level != 0 || pair.Value.IsRamp)) continue;
+                Vector3 delta = pair.Value.Center - position;
+                float score = delta.x * delta.x + delta.z * delta.z + VerticalPenalty * VerticalPenalty * delta.y * delta.y;
+                if (score >= best) continue;
+                best = score;
                 nearest = pair.Key;
             }
-            return bestSqr < float.MaxValue;
+            return best < float.MaxValue;
+        }
+
+        /// <summary>
+        /// The node reached by leaving <paramref name="from"/> through edge
+        /// <paramref name="direction"/> (0..3 = N,E,S,W). Mutual connection is
+        /// the criterion: the target must carry the opposite socket. The own
+        /// level is tried first, then the other one — that is how a ramp
+        /// (level 0) continues onto the deck (level 1) while the crossing
+        /// street under that deck, which has no socket facing the ramp, is
+        /// never entered.
+        /// </summary>
+        public bool TryGetNeighbour(RoadNode from, int direction, out RoadNode to)
+        {
+            to = default;
+            if ((Connections(from) & EdgeMaskUtility.DirectionBit(direction)) == 0) return false;
+            Vector2Int cell = from.Cell + EdgeMaskUtility.Offset(direction);
+            EdgeMask back = EdgeMaskUtility.DirectionBit(direction + 2);
+            for (int i = 0; i < 2; i++)
+            {
+                var candidate = new RoadNode(cell, i == 0 ? from.Level : 1 - from.Level);
+                if (nodes.TryGetValue(candidate, out RoadNodeData data) && (data.Mask & back) != 0)
+                {
+                    to = candidate;
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
         /// A* route over the road network, start and goal included in the
-        /// result. Neighbours come from the connection masks, Manhattan
-        /// heuristic (uniform cell cost). The open list uses linear min
-        /// extraction — city-sized searches are a few hundred nodes, so
-        /// clarity wins over a heap until profiling says otherwise.
+        /// result. Neighbours come from <see cref="TryGetNeighbour"/>, Manhattan
+        /// heuristic on the cell grid (uniform cell cost, level changes are
+        /// free — still admissible). The open list uses linear min extraction —
+        /// city-sized searches are a few hundred nodes, so clarity wins over a
+        /// heap until profiling says otherwise.
         /// </summary>
-        public bool TryFindPath(Vector2Int start, Vector2Int goal, List<Vector2Int> path, int maxExpansions = 8192)
+        public bool TryFindPath(RoadNode start, RoadNode goal, List<RoadNode> path, int maxExpansions = 8192)
         {
             path.Clear();
-            if (!IsRoad(start) || !IsRoad(goal)) return false;
+            if (!Contains(start) || !Contains(goal)) return false;
             if (start == goal)
             {
                 path.Add(start);
                 return true;
             }
 
-            var open = new List<Vector2Int> { start };
-            var cameFrom = new Dictionary<Vector2Int, Vector2Int>();
-            var gScore = new Dictionary<Vector2Int, int> { [start] = 0 };
+            var open = new List<RoadNode> { start };
+            var cameFrom = new Dictionary<RoadNode, RoadNode>();
+            var gScore = new Dictionary<RoadNode, int> { [start] = 0 };
 
             int expansions = 0;
             while (open.Count > 0 && expansions++ < maxExpansions)
@@ -109,7 +241,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                     bestIndex = i;
                 }
 
-                Vector2Int current = open[bestIndex];
+                RoadNode current = open[bestIndex];
                 open.RemoveAt(bestIndex);
                 if (current == goal)
                 {
@@ -117,12 +249,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                     return true;
                 }
 
-                EdgeMask mask = Connections(current);
                 for (int dir = 0; dir < 4; dir++)
                 {
-                    if ((mask & EdgeMaskUtility.DirectionBit(dir)) == 0) continue;
-                    Vector2Int neighbour = current + EdgeMaskUtility.Offset(dir);
-                    if (!IsRoad(neighbour)) continue;
+                    if (!TryGetNeighbour(current, dir, out RoadNode neighbour)) continue;
 
                     int tentative = gScore[current] + 1;
                     if (gScore.TryGetValue(neighbour, out int known) && tentative >= known) continue;
@@ -134,13 +263,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             return false;
         }
 
-        static int Heuristic(Vector2Int a, Vector2Int b) =>
-            Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+        static int Heuristic(RoadNode a, RoadNode b) =>
+            Mathf.Abs(a.Cell.x - b.Cell.x) + Mathf.Abs(a.Cell.y - b.Cell.y);
 
-        static void Reconstruct(Dictionary<Vector2Int, Vector2Int> cameFrom, Vector2Int current, List<Vector2Int> path)
+        static void Reconstruct(Dictionary<RoadNode, RoadNode> cameFrom, RoadNode current, List<RoadNode> path)
         {
             path.Add(current);
-            while (cameFrom.TryGetValue(current, out Vector2Int previous))
+            while (cameFrom.TryGetValue(current, out RoadNode previous))
             {
                 current = previous;
                 path.Add(current);

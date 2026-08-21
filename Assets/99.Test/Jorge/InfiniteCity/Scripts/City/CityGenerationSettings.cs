@@ -135,9 +135,85 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public float roadScaleMultiplier = 1f;
 
         [TitleGroup("Road pieces")]
-        [TableList(AlwaysExpanded = true)]
-        [ValidateInput(nameof(ValidatePieces), "Need at least one piece matching each shape the generator emits: straight (2 opposite sockets), corner (2 adjacent), T (3) and crossroad (4).")]
+        [ListDrawerSettings(ShowIndexLabels = true, ListElementLabelName = nameof(RoadPieceDefinition.Label))]
+        [ValidateInput(nameof(ValidatePieces), "Need at least one single-cell piece matching each shape the generator emits: straight (2 opposite sockets), corner (2 adjacent), T (3) and crossroad (4).")]
+        [Tooltip("Every piece the generator may stamp. Single-cell Standard pieces are socket-matched per cell; multi-cell ones are templates (roundabout, split); Ramp/Deck/Pillar build the overpasses. Fill from the Kenney kit with Tools → Police Escape → Create Kenney Road Set.")]
         public List<RoadPieceDefinition> roadPieces = new();
+
+        // ------------------------------------------------------------ features
+        [TitleGroup("Road features")]
+        [Tooltip("Master switch for the feature pass: overpasses and multi-cell templates (roundabouts, splits). Off = the plain one-piece-per-cell network.")]
+        public bool placeFeatures = true;
+
+        [TitleGroup("Road features")]
+        [Tooltip("Chance that an eligible arterial crossing becomes a flyover: ramp up → deck over the crossing street → ramp down. Needs Ramp + Deck pieces in the list.")]
+        [PropertyRange(0f, 1f), EnableIf(nameof(placeFeatures))]
+        public float overpassChance = 0.5f;
+
+        [TitleGroup("Road features")]
+        [Tooltip("How many elevated deck cells a flyover may span (the crossing street sits under one of them). Longer decks need longer straight runs, so they appear less often.")]
+        [MinMaxSlider(1f, 4f, true), EnableIf(nameof(placeFeatures))]
+        public Vector2 overpassDeckCells = new(1f, 2f);
+
+        [TitleGroup("Road features")]
+        [Tooltip("Cells a ramp run occupies from street to deck. The ramp chain pieces are spread evenly over them (stretched or compressed along the slope), so 1 = steep jump kicker, 2+ = gentle climb. Create Kenney Road Set sets it to the kit's native chain length.")]
+        [PropertyRange(1, 3), EnableIf(nameof(placeFeatures))]
+        public int rampLengthInCells = 2;
+
+        [TitleGroup("Road features")]
+        [Tooltip("Chance that a straight side street forks right after leaving its arterial: the road-split piece turns one entrance into two parallel exits that both rejoin the next arterial. Needs Fork + HalfStraight pieces in the list.")]
+        [PropertyRange(0f, 1f), EnableIf(nameof(placeFeatures))]
+        public float forkChance = 0.5f;
+
+        [TitleGroup("Road features")]
+        [Tooltip("Straight stem cells between the arterial junction and the split piece. 0 = the road forks immediately.")]
+        [MinMaxSlider(0f, 3f, true), EnableIf(nameof(placeFeatures))]
+        public Vector2 forkStemCells = new(0f, 1f);
+
+        public int OverpassDeckMin => Mathf.Max(1, Mathf.RoundToInt(Mathf.Min(overpassDeckCells.x, overpassDeckCells.y)));
+        public int OverpassDeckMax => Mathf.Max(OverpassDeckMin, Mathf.RoundToInt(overpassDeckCells.y));
+        public int ForkStemMin => Mathf.Max(0, Mathf.RoundToInt(Mathf.Min(forkStemCells.x, forkStemCells.y)));
+        public int ForkStemMax => Mathf.Max(ForkStemMin, Mathf.RoundToInt(forkStemCells.y));
+
+        /// <summary>Forks need the split piece and the half straight that fills the seam junction.</summary>
+        public bool HasForkPieces => FirstPieceWithRole(RoadPieceRole.Fork) != null && FirstPieceWithRole(RoadPieceRole.HalfStraight) != null;
+
+        /// <summary>Ramp links ordered from the street up, each with its prefab assigned.</summary>
+        public List<RoadPieceDefinition> RampChain
+        {
+            get
+            {
+                var chain = new List<RoadPieceDefinition>();
+                if (roadPieces == null) return chain;
+                foreach (var piece in roadPieces)
+                    if (piece != null && piece.prefab != null && piece.role == RoadPieceRole.Ramp) chain.Add(piece);
+                chain.Sort((a, b) => a.rampStartHeight.CompareTo(b.rampStartHeight));
+                return chain;
+            }
+        }
+
+        public RoadPieceDefinition FirstPieceWithRole(RoadPieceRole role)
+        {
+            if (roadPieces == null) return null;
+            foreach (var piece in roadPieces)
+                if (piece != null && piece.prefab != null && piece.role == role) return piece;
+            return null;
+        }
+
+        public RoadPieceDefinition PillarPiece => FirstPieceWithRole(RoadPieceRole.Pillar);
+
+        /// <summary>Overpasses need at least one ramp link and one deck piece.</summary>
+        public bool HasOverpassPieces => FirstPieceWithRole(RoadPieceRole.Ramp) != null && FirstPieceWithRole(RoadPieceRole.Deck) != null;
+
+        /// <summary>Deck surface height in the pieces' native units (the Deck piece's value; 0.5 for the Kenney kit).</summary>
+        public float DeckNativeHeight
+        {
+            get
+            {
+                var deck = FirstPieceWithRole(RoadPieceRole.Deck);
+                return deck != null ? deck.deckHeight : 0.5f;
+            }
+        }
 
         // ------------------------------------------------------------- buttons
         [TitleGroup("Actions")]
@@ -171,7 +247,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         [TitleGroup("Actions")]
         [Button("Auto-Fill Road Pieces", ButtonSizes.Medium)]
-        [Tooltip("Populate the list with the kit's basic straight/bend/T/cross/end pieces. Masks are best guesses — verify visually after the first Recalculate and fix connectionMask or rotationOffset per piece.")]
+        [Tooltip("Populate the list with the kit's basic straight/bend/T/cross/end pieces only. Prefer Tools → Police Escape → Create Kenney Road Set, which also adds the roundabout, split and overpass parts and measures the ramps. Masks are best guesses — verify in the Road Kit Showcase scene and fix connectionMask or rotationOffset per piece.")]
         void AutoFillRoadPieces()
         {
             (string file, EdgeMask mask)[] wanted =
@@ -226,7 +302,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             bool straight = false, corner = false, tee = false, cross = false;
             foreach (var piece in pieces)
             {
-                if (piece?.prefab == null) continue;
+                if (piece?.prefab == null || !piece.IsStandard || piece.IsMultiCell) continue; // templates and overpass parts don't cover the basic shapes
                 int count = piece.connectionMask.ConnectionCount();
                 switch (count)
                 {

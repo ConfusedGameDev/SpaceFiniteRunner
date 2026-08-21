@@ -50,7 +50,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
                     position = straightCenter;
                     yaw = straightYaw;
                 }
-                else if (city.TryFindNearestRoadCell(transform.position, out Vector3 roadCenter, out EdgeMask connections))
+                else if (city.TryFindNearestRoadCell(transform.position, out Vector3 roadCenter, out EdgeMask connections, groundOnly: true))
                 {
                     position = roadCenter;
                     // Face along a connected road direction: north/south = +Z, else +X.

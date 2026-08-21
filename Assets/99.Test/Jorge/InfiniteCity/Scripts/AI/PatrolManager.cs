@@ -84,20 +84,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             float minSqr = settings.SpawnDistanceMin * settings.SpawnDistanceMin;
             float maxSqr = settings.SpawnDistanceMax * settings.SpawnDistanceMax;
 
-            // Reservoir pick among road cells inside the band with clear airspace.
-            Vector2Int pickedCell = default;
+            // Reservoir pick among flat ground nodes inside the band with clear
+            // airspace — never on a ramp or an overpass deck.
+            RoadNode pickedNode = default;
             EdgeMask pickedMask = EdgeMask.None;
             int seen = 0;
-            foreach (var pair in graph.Cells)
+            foreach (var pair in graph.Nodes)
             {
-                Vector3 center = graph.CellCenter(pair.Key);
+                if (pair.Key.Level != 0 || pair.Value.IsRamp) continue;
+                Vector3 center = pair.Value.Center;
                 float sqr = (center - anchor).sqrMagnitude;
                 if (sqr < minSqr || sqr > maxSqr) continue;
                 if (!city.IsCellClear(center)) continue;
                 seen++;
                 if (Random.Range(0, seen) != 0) continue;
-                pickedCell = pair.Key;
-                pickedMask = pair.Value;
+                pickedNode = pair.Key;
+                pickedMask = pair.Value.Mask;
             }
             if (seen == 0) return false;
 
@@ -112,7 +114,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
             // Instantiate at the spawn pose — never move it afterwards (see CarFactory).
             var go = Instantiate(policeCarPrefab,
-                graph.CellCenter(pickedCell) + Vector3.up * 0.6f,
+                graph.Center(pickedNode) + Vector3.up * 0.6f,
                 Quaternion.Euler(0f, direction * 90f, 0f));
             go.name = $"PoliceCar_{++spawnedTotal}";
 

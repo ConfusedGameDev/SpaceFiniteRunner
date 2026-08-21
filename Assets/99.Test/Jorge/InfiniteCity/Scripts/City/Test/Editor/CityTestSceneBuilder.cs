@@ -182,10 +182,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             bool isNew = settings == null;
             if (isNew) settings = ScriptableObject.CreateInstance<CityGenerationSettings>();
 
-            settings.roadPieces = pieces;
-            settings.cellSize = 20f;
-            settings.pieceNativeSize = 1f; // test cubes are built on a 1 m footprint
-            settings.scaleToCellSize = true;
+            // Only a fresh asset gets the primitive pieces and the 20 m cell:
+            // re-running the builder must not clobber a Kenney road set or a
+            // tuned cell size on the live settings (Tools → Police Escape →
+            // Use Box Road Pieces switches back on purpose).
+            if (isNew)
+            {
+                settings.roadPieces = pieces;
+                settings.cellSize = 20f;
+                settings.pieceNativeSize = 1f; // test cubes are built on a 1 m footprint
+                settings.scaleToCellSize = true;
+            }
 
             if (isNew) AssetDatabase.CreateAsset(settings, SettingsPath);
             else EditorUtility.SetDirty(settings);

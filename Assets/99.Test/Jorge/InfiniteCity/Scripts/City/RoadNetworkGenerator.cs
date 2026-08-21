@@ -32,6 +32,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             CarveConnectors(settings, data, rng);
             if (!settings.allowDeadEnds) RepairDeadEnds(settings, data);
             ResolveConnections(settings, data);
+            // Features (overpasses, roundabouts…) rewrite interior cells only,
+            // after the masks are final — border cells stay untouched so the
+            // cross-chunk arterial contract above still holds.
+            RoadFeaturePlacer.Place(settings, data);
             return data;
         }
 

@@ -37,7 +37,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         bool offRoad;
         float cruiseSpeedKmh = 30f;
         readonly List<Vector3> waypoints = new();
-        Vector2Int wanderFrom;
+        RoadNode wanderFrom;
+        // Graph node of the LAST queued waypoint — an overpass deck shares its
+        // XZ with the street below, so the level travels with the plan.
+        RoadNode? planHead;
         Vector3 previousWaypoint;
         float stopTimer, stoppedTimer, stuckTimer, reverseTimer, noProgressTime;
         Vector3 progressAnchor;
@@ -109,16 +112,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             // into a lot), drop the plan and creep straight back to the
             // nearest road cell instead of wandering onward through buildings.
             RoadGraph graph = city.Graph;
-            offRoad = !graph.IsRoad(graph.WorldToCell(transform.position));
+            offRoad = !graph.TryGetNodeAt(transform.position, out _);
             if (offRoad)
             {
-                // Replan unless we're already creeping to that exact cell —
+                // Replan unless we're already creeping to that exact node —
                 // a stale single-waypoint plan must not block recovery.
-                if (graph.TryGetNearestCell(transform.position, out Vector2Int nearest)
-                    && (waypoints.Count != 1 || graph.WorldToCell(waypoints[0]) != nearest))
+                if (graph.TryGetNearestNode(transform.position, out RoadNode nearest)
+                    && (waypoints.Count != 1 || planHead != nearest))
                 {
-                    waypoints.Clear();
-                    waypoints.Add(graph.CellCenter(nearest));
+                    ClearPlan();
+                    waypoints.Add(graph.Center(nearest));
+                    planHead = nearest;
                     previousWaypoint = transform.position;
                 }
             }
@@ -129,6 +133,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
 
             Drive(dt);
+        }
+
+        /// <summary>Drop the current plan — waypoints and the node they ended on go together.</summary>
+        void ClearPlan()
+        {
+            waypoints.Clear();
+            planHead = null;
         }
 
         /// <summary>Work-vehicle rhythm: drive a while, pull to a stop for a few seconds, repeat — each interval rolled fresh.</summary>
@@ -196,7 +207,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             float approachFactor = 1f;
             if (waypoints.Count >= 2)
             {
-                float turnAhead = Vector3.Angle(waypoints[1] - waypoints[0], waypoints[0] - transform.position);
+                float turnAhead = Vector3.Angle(Flat(waypoints[1] - waypoints[0]), Flat(waypoints[0] - transform.position)); // XZ only — a ramp is a climb, not a corner
                 if (turnAhead > 30f)
                     approachFactor = Mathf.Clamp01(FlatDistance(transform.position, waypoints[0]) / (CellSize * 1.2f));
             }
@@ -232,9 +243,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 reverseSteer = obstacleHitSide != 0f
                     ? obstacleHitSide * 0.7f
                     : -Mathf.Sign(lastForwardSteer) * 0.7f;
-                waypoints.Clear();
+                ClearPlan();
                 previousWaypoint = transform.position;
-                wanderFrom = city.Graph.WorldToCell(transform.position); // stale value could allow an instant U-turn into the wreck
+                if (city.Graph.TryGetNodeAt(transform.position, out RoadNode here)) wanderFrom = here; // stale value could allow an instant U-turn into the wreck
             }
         }
 
@@ -274,18 +285,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         bool HardRecover()
         {
             RoadGraph graph = city.Graph;
-            if (!graph.TryGetNearestCell(transform.position, out Vector2Int cell)) return false;
-            Vector3 center = graph.CellCenter(cell);
+            if (!graph.TryGetNearestNode(transform.position, out RoadNode node)) return false;
+            Vector3 center = graph.Center(node);
             if (!CellClearOfOtherCars(center)) return false;
 
             if (settings.logTrafficEvents)
-                Debug.Log($"[Traffic] HardRecover to {cell}", this);
+                Debug.Log($"[Traffic] HardRecover to {node}", this);
             noProgressTime = 0f;
             progressAnchor = center;
             stuckTimer = 0f;
             reverseTimer = 0f;
-            waypoints.Clear();
-            float yaw = CityManager.RandomConnectedYaw(graph.Connections(cell));
+            ClearPlan();
+            float yaw = CityManager.RandomConnectedYaw(graph.Connections(node));
             car.Body.linearVelocity = Vector3.zero;
             car.Body.angularVelocity = Vector3.zero;
             CarFactory.Teleport(car.Body, center + Vector3.up * 0.5f, Quaternion.Euler(0f, yaw, 0f));
@@ -332,6 +343,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 // corner facade by itself, and grazing hits are normal there.
                 if (hit.rigidbody == null)
                 {
+                    // A drivable slope — a ramp surface, or the flat street seen
+                    // from the top of a down-ramp — is not a wall to stop for.
+                    if (hit.normal.y > 0.35f)
+                    {
+                        obstacleHitSide = 0f;
+                        continue;
+                    }
                     if (hit.distance < 1.2f) return ObstacleKind.Wall;
                     bool headOn = Vector3.Dot(hit.normal, transform.forward) < -0.5f;
                     if (hit.distance < settings.wallBrakeDistance && headOn && Mathf.Abs(Steer) < 0.5f)
@@ -361,42 +379,45 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         void ExtendWander()
         {
             RoadGraph graph = city.Graph;
-            Vector2Int from;
-            if (waypoints.Count > 0) from = graph.WorldToCell(waypoints[^1]);
-            else if (!TryGetCellOn(graph, transform.position, out from)) return;
+            RoadNode from;
+            if (waypoints.Count > 0 && planHead.HasValue) from = planHead.Value;
+            else if (waypoints.Count > 0 && graph.TryGetNodeAt(waypoints[^1], out from)) { }
+            else if (!TryGetNodeOn(graph, transform.position, out from)) return;
 
-            EdgeMask mask = graph.Connections(from);
-            Vector2Int pick = default;
+            RoadNode pick = default;
             int seen = 0;
             for (int dir = 0; dir < 4; dir++)
             {
-                if ((mask & EdgeMaskUtility.DirectionBit(dir)) == 0) continue;
-                Vector2Int neighbour = from + EdgeMaskUtility.Offset(dir);
-                if (!graph.IsRoad(neighbour) || neighbour == wanderFrom) continue;
+                if (!graph.TryGetNeighbour(from, dir, out RoadNode neighbour) || neighbour == wanderFrom) continue;
                 seen++;
                 if (Random.Range(0, seen) == 0) pick = neighbour;
             }
             if (seen == 0)
             {
-                if (!graph.IsRoad(wanderFrom)) return;
+                if (!graph.Contains(wanderFrom)) return;
                 pick = wanderFrom; // dead end — U-turn is the only option
             }
 
             wanderFrom = from;
-            waypoints.Add(graph.CellCenter(pick));
+            waypoints.Add(graph.Center(pick));
+            planHead = pick;
         }
 
-        static bool TryGetCellOn(RoadGraph graph, Vector3 position, out Vector2Int cell)
-        {
-            cell = graph.WorldToCell(position);
-            return graph.IsRoad(cell) || graph.TryGetNearestCell(position, out cell);
-        }
+        /// <summary>The node a position stands on (level chosen by height), else the nearest one.</summary>
+        static bool TryGetNodeOn(RoadGraph graph, Vector3 position, out RoadNode node) =>
+            graph.TryGetNodeAt(position, out node) || graph.TryGetNearestNode(position, out node);
 
         static float FlatDistance(Vector3 a, Vector3 b)
         {
             a.y = 0f;
             b.y = 0f;
             return Vector3.Distance(a, b);
+        }
+
+        static Vector3 Flat(Vector3 v)
+        {
+            v.y = 0f;
+            return v;
         }
     }
 }

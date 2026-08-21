@@ -85,7 +85,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             if (city == null) city = FindFirstObjectByType<CityManager>();
             if (city == null || city.settings == null) { snapped = true; return; } // no city: the authored spot is final
 
-            if (!city.TryFindNearestRoadCell(transform.position, out Vector3 center, out _)) return;
+            // Ground only: the arrival test is horizontal, so a target on an overpass deck would be "reached" from the street below.
+            if (!city.TryFindNearestRoadCell(transform.position, out Vector3 center, out _, groundOnly: true)) return;
             float accept = 2f * city.settings.cellSize;
             if (HorizontalDistance(center, transform.position) > accept) return; // our chunk isn't built yet
 

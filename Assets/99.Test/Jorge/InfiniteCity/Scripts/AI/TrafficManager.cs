@@ -70,20 +70,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             float minSqr = settings.minSpawnDistance * settings.minSpawnDistance;
             float maxSqr = settings.activeRadius * settings.activeRadius;
 
-            // Reservoir pick among clear road cells inside the active band.
-            Vector2Int pickedCell = default;
+            // Reservoir pick among clear flat ground nodes inside the active
+            // band — never on a ramp or an overpass deck.
+            RoadNode pickedNode = default;
             EdgeMask pickedMask = EdgeMask.None;
             int seen = 0;
-            foreach (var pair in graph.Cells)
+            foreach (var pair in graph.Nodes)
             {
-                Vector3 center = graph.CellCenter(pair.Key);
+                if (pair.Key.Level != 0 || pair.Value.IsRamp) continue;
+                Vector3 center = pair.Value.Center;
                 float sqr = (center - anchor).sqrMagnitude;
                 if (sqr < minSqr || sqr > maxSqr) continue;
                 if (!city.IsCellClear(center)) continue;
                 seen++;
                 if (Random.Range(0, seen) != 0) continue;
-                pickedCell = pair.Key;
-                pickedMask = pair.Value;
+                pickedNode = pair.Key;
+                pickedMask = pair.Value.Mask;
             }
             if (seen == 0) return false;
 
@@ -101,7 +103,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
             (CarController controller, TrafficCarInput driver) = VehicleRigBuilder.Build<TrafficCarInput>(
                 definition.model, settings.carConfig, settings.modelScale,
-                graph.CellCenter(pickedCell) + Vector3.up * 0.5f,
+                graph.Center(pickedNode) + Vector3.up * 0.5f,
                 Quaternion.Euler(0f, direction * 90f, 0f));
             if (controller == null) return false; // model not riggable — warned by the builder
 

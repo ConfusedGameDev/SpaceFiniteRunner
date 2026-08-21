@@ -51,7 +51,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
             for (int x = 0; x < data.SizeInCells; x++)
             {
                 int index = y * data.SizeInCells + x;
-                if (visited[index] || data.IsRoad(x, y)) continue;
+                if (visited[index] || !data.IsBuildable(x, y)) continue; // roads AND Reserved feature cells are off limits
 
                 var lot = new List<Vector2Int>();
                 stack.Push(new Vector2Int(x, y));
@@ -65,7 +65,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
                         Vector2Int n = cell + EdgeMaskUtility.Offset(dir);
                         if (!data.InBounds(n.x, n.y)) continue;
                         int ni = n.y * data.SizeInCells + n.x;
-                        if (visited[ni] || data.IsRoad(n.x, n.y)) continue;
+                        if (visited[ni] || !data.IsBuildable(n.x, n.y)) continue;
                         visited[ni] = true;
                         stack.Push(n);
                     }
@@ -134,7 +134,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
             for (int y = cell.y; y < cell.y + h; y++)
             for (int x = cell.x; x < cell.x + w; x++)
             {
-                if (!data.InBounds(x, y) || data.IsRoad(x, y) || occupied[y * data.SizeInCells + x])
+                if (!data.InBounds(x, y) || !data.IsBuildable(x, y) || occupied[y * data.SizeInCells + x])
                     return false;
             }
             return true;
