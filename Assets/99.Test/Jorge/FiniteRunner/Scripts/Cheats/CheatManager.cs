@@ -30,6 +30,10 @@ namespace FiniteRunner
 
         static CheatManager instance;
 
+        public bool isMegaCarEnabled;
+        public bool isDebugEnabled;
+
+        public bool resetCheatsOnExit=true;
         /// <summary>
         /// The manager, auto-created on first use if the scene has none — the
         /// cheats page must work in the bare MainMenu scene. A hand-placed one
@@ -54,6 +58,7 @@ namespace FiniteRunner
                         // belongs to its own scene. Guarded because editor
                         // tooling can reach Instance outside play mode, where
                         // DontDestroyOnLoad throws.
+                        Debug.Log("created new instance");
                         if (Application.isPlaying) DontDestroyOnLoad(go);
                     }
                 }
@@ -107,10 +112,16 @@ namespace FiniteRunner
                 Destroy(instance.gameObject);
             }
             instance = this;
+            if (Application.isPlaying) DontDestroyOnLoad(gameObject);
+
         }
 
         void OnDestroy()
         {
+            if(resetCheatsOnExit)
+            {
+                ResetActivated();
+            }
             if (instance == this) instance = null;
         }
 
@@ -175,5 +186,20 @@ namespace FiniteRunner
             }
             return null;
         }
+
+        public void OnCheatActivated(string id)
+        {
+            switch(id)
+            {
+                 case "MegaCar":
+                 isMegaCarEnabled= true;
+                 break;
+                 case "DebugON": 
+                 isDebugEnabled=true;
+                 break;
+            }
+        }
+
+         
     }
 }

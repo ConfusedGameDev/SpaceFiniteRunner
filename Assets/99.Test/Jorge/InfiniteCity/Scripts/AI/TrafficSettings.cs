@@ -18,7 +18,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         // --------------------------------------------------------------- fleet
         [TitleGroup("Fleet")]
         [Tooltip("How many civilian vehicles the TrafficManager keeps alive around the player.")]
-        [PropertyRange(0, 30)]
+        [PropertyRange(0, 300)]
         public int targetVehicleCount = 12;
 
         [TitleGroup("Fleet")]

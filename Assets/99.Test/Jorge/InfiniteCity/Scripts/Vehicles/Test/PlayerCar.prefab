@@ -364,8 +364,9 @@ GameObject:
   - component: {fileID: 3074927988621021820}
   - component: {fileID: 5984313252667847331}
   - component: {fileID: 7341657587064262744}
+  - component: {fileID: 6393089205632707766}
   m_Layer: 0
-  m_Name: TestCar
+  m_Name: PlayerCar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -482,6 +483,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bdbc85b6f6de040afb4df57806559404, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.CarRespawner
+--- !u!114 &6393089205632707766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2862266193195909051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bb0582fa45c440da8ecc31989f96e8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerScaleController
+  megaScale: 2
 --- !u!1 &3449047407732937542
 GameObject:
   m_ObjectHideFlags: 0
