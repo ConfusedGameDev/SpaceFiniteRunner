@@ -37,8 +37,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     ///
     /// The glitch doubles as the damage meter: every hard impact pulses it,
     /// police hits permanently raise the base level, and at full corruption
-    /// the level reboots (scene reload). Damage knobs stay here — they are
-    /// the chase's feel, not a level's design.
+    /// the run ends: the glitch holds at max, then the
+    /// <see cref="UI.GameOverScreen"/> asks RETRY? — YES reloads the scene,
+    /// NO returns to the main menu. Damage knobs stay here — they are the
+    /// chase's feel, not a level's design.
     /// </summary>
     public class LevelManager : MonoBehaviour
     {
@@ -317,7 +319,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// <summary>
         /// External game-over switch: anything that ends the run (the car
         /// wrecked on its roof, a scripted fail) asks for the same death the
-        /// damage meter gives — glitch slammed to max, held, scene reload.
+        /// damage meter gives — glitch slammed to max, held, game-over screen.
         /// False when the level is already resetting or completing, so a
         /// caller knows the request was swallowed and must not fall back to
         /// its own recovery (a teleport during the glitch would be visible).
@@ -330,7 +332,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             return true;
         }
 
-        /// <summary>The shared death: hold the maxed glitch a beat, then reboot the level.</summary>
+        /// <summary>
+        /// The shared death: hold the maxed glitch a beat, then ask instead of
+        /// rebooting on our own — GAME OVER, RETRY? YES reloads the level, NO
+        /// abandons the run back to the main menu. The screen freezes scaled
+        /// time itself and unfreezes before the chosen callback runs.
+        /// </summary>
         IEnumerator ResetLevel()
         {
             resetting = true;
@@ -342,9 +349,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                 GlitchController.Instance.Pulse(1f);
             }
             yield return new WaitForSeconds(resetDelaySeconds);
-            Debug.Log("[Level] reloading scene now", this);
+            GameOverScreen.Show(onRetry: ReloadLevel, onGiveUp: ExitToMainMenu);
+        }
+
+        void ReloadLevel()
+        {
+            Debug.Log("[Level] retry — reloading scene now", this);
             SceneManager.LoadScene(gameObject.scene.name);
         }
+
+        void ExitToMainMenu() => SceneManager.LoadScene(0); // MainMenu is build index 0, same as the pause menu's exit
 
         /// <summary>
         /// Player impact, relayed by the sensor: hard hits pulse the glitch,

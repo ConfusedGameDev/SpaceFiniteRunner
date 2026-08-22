@@ -43,7 +43,8 @@ namespace FiniteRunner
         PolicePatrolSpeed, PoliceChaseSpeed, PoliceCornerSpeed,
         DebugTabLevel,
         ObjectiveReachSpeed, ObjectiveEscapePolice, ObjectiveGoTo, ObjectiveSurvive,
-        CheatEnterCode, CheatUnlocked
+        CheatEnterCode, CheatUnlocked,
+        GameOver, RetryPrompt
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -322,6 +323,11 @@ namespace FiniteRunner
         [TitleGroup("City level objectives")]
         [SerializeField] LocalizedString objectiveSurvive = new("SURVIVE", "SOBREVIVIR", "生き延びる", "SURVIVRE");
 
+        [TitleGroup("Game over")]
+        [SerializeField] LocalizedString gameOver = new("GAME OVER", "FIN DE LA PARTIDA", "ゲームオーバー", "PARTIE TERMINÉE");
+        [TitleGroup("Game over")]
+        [SerializeField] LocalizedString retryPrompt = new("RETRY?", "¿REINTENTAR?", "リトライしますか？", "RÉESSAYER ?");
+
         static MenuTextLibrary cached;
 
         /// <summary>The library asset, or a throwaway on the C# defaults if none is in a Resources folder.</summary>
@@ -506,6 +512,8 @@ namespace FiniteRunner
             MenuTextId.ObjectiveSurvive => objectiveSurvive,
             MenuTextId.CheatEnterCode => cheatEnterCode,
             MenuTextId.CheatUnlocked => cheatUnlocked,
+            MenuTextId.GameOver => gameOver,
+            MenuTextId.RetryPrompt => retryPrompt,
             _ => start
         };
     }
