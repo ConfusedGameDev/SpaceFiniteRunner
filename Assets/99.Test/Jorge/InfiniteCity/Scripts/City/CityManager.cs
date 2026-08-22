@@ -321,7 +321,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         [TitleGroup("Actions")]
         [Button("Repopulate", ButtonSizes.Large)]
-        [Tooltip("Rebuild buildings only, keeping the current roads — much faster iteration on the building set than a full Recalculate.")]
+        [Tooltip("Rebuild buildings and decorations only, keeping the current roads — much faster iteration on those sets than a full Recalculate.")]
         public void Repopulate()
         {
             foreach (var chunk in GetComponentsInChildren<CityChunk>())
@@ -331,13 +331,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                     Debug.LogWarning("CityManager: chunk data was lost (domain reload) — press Recalculate instead.");
                     return;
                 }
-                var oldBuildings = chunk.transform.Find("Buildings");
-                if (oldBuildings != null)
+                foreach (string groupName in new[] { "Buildings", "Decorations" })
                 {
-                    if (Application.isPlaying) Destroy(oldBuildings.gameObject);
-                    else DestroyImmediate(oldBuildings.gameObject);
+                    var old = chunk.transform.Find(groupName);
+                    if (old == null) continue;
+                    if (Application.isPlaying) Destroy(old.gameObject);
+                    else DestroyImmediate(old.gameObject);
                 }
                 PopulateChunk(chunk.transform, chunk.Data);
+                DecorateChunk(chunk.transform, chunk.Data);
             }
         }
 
@@ -516,6 +518,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 Debug.LogWarning($"CityManager: no road piece matches socket mask [{mask}] — those cells were left empty. Add a matching piece to the settings (dead ends need a single-socket piece, overpasses a Deck piece).");
 
             PopulateChunk(chunkGo.transform, data, instant ? null : spawnQueue.Enqueue);
+            DecorateChunk(chunkGo.transform, data, instant ? null : spawnQueue.Enqueue);
         }
 
         /// <summary>
@@ -734,14 +737,25 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// box covers 90% of the cell from just above the ground slab up to
         /// ~4 m, so the chunk ground colliders (top at y = 0) never trip it
         /// and tiny roof overhangs at the very border are tolerated.
+        /// Decoration props are ignored — they live on the sidewalk band of
+        /// nearly every road tile, and counting them would disqualify most of
+        /// the network as a spawn spot.
         /// </summary>
         public bool IsCellClear(Vector3 cellCenter)
         {
             float half = settings.cellSize * 0.45f;
             var halfExtents = new Vector3(half, 2f, half);
-            return !Physics.CheckBox(cellCenter + Vector3.up * (halfExtents.y + 0.05f), halfExtents,
-                Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
+            int count = Physics.OverlapBoxNonAlloc(cellCenter + Vector3.up * (halfExtents.y + 0.05f), halfExtents,
+                clearanceHits, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
+            if (count >= clearanceHits.Length) return false; // buffer overflow — too cluttered to trust, treat as blocked
+            for (int i = 0; i < count; i++)
+            {
+                if (clearanceHits[i].GetComponentInParent<Decoration.DecorationProp>() == null) return false;
+            }
+            return true;
         }
+
+        static readonly Collider[] clearanceHits = new Collider[32];
 
         /// <summary>
         /// Random spawn pose on a straight road cell with at least
@@ -881,6 +895,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             ApplyGeneratedFlags(buildingsGo);
             buildingsGo.transform.SetParent(chunkRoot, false);
             Population.CityPopulator.Populate(settings, data, buildingsGo.transform, scheduler);
+        }
+
+        void DecorateChunk(Transform chunkRoot, ChunkData data, System.Action<System.Action> scheduler = null)
+        {
+            if (settings.decorationSet == null) return;
+            var decorationsGo = new GameObject("Decorations");
+            ApplyGeneratedFlags(decorationsGo);
+            decorationsGo.transform.SetParent(chunkRoot, false);
+            Decoration.CityDecorator.Decorate(settings, data, decorationsGo.transform, scheduler);
         }
 
         /// <summary>
