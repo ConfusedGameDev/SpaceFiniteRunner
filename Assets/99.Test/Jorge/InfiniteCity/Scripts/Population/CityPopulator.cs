@@ -163,9 +163,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
             float cellSize = settings.cellSize;
             float jitterX = ((float)rng.NextDouble() * 2f - 1f) * def.positionJitter * cellSize;
             float jitterZ = ((float)rng.NextDouble() * 2f - 1f) * def.positionJitter * cellSize;
+            // Buildings are authored with their base on the same terrain plane
+            // as the road tiles' base plate, so they sink with the roads (see
+            // CityManager.RoadSurfaceHeight) — the whole stamped city drops
+            // together and the road/lot relationship stays exactly as authored.
             var localPosition = new Vector3(
                 (cell.x + w * 0.5f) * cellSize + jitterX,
-                0f,
+                -settings.RoadSurfaceNativeHeight * settings.PieceScale,
                 (cell.y + h * 0.5f) * cellSize + jitterZ);
 
             var localRotation = Quaternion.Euler(0f, facing * 90f + def.rotationOffset, 0f);

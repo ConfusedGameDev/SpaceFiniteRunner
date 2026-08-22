@@ -86,7 +86,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 
             // Overpass parts.
             GameObject bridge = LoadRoad("road-bridge");
-            float deckTop = bridge != null ? MeasureBounds(bridge).max.y : 0.5f;
+            // The LANE, not the bounds top: the top of a tile is its curb, and
+            // measuring that is what put the drivable plane a curb below the
+            // asphalt and left a step at the foot of every ramp.
+            float deckTop = bridge != null ? MeasureLaneHeight(bridge, MidHeight(bridge)) : 0.5f;
             List<RoadPieceDefinition> chain = BuildRampChain(deckTop, out string rampReport);
             pieces.AddRange(chain);
             if (bridge != null)
@@ -105,6 +108,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             if (pillarPrefab != null)
                 pieces.Add(new RoadPieceDefinition { prefab = pillarPrefab, role = RoadPieceRole.Pillar });
 
+            // Every flat piece's driving lane. The generator sinks the whole
+            // stamped city by this so the asphalt lands on the chunk's ground
+            // slab — see CityManager.RoadSurfaceHeight.
+            float lane = MeasureLaneHeight(straight);
+            foreach (RoadPieceDefinition piece in pieces)
+            {
+                if (piece.role != RoadPieceRole.Standard || piece.prefab == null) continue;
+                float pieceLane = MeasureLaneHeight(piece.prefab);
+                if (Mathf.Abs(pieceLane - lane) > HeightTolerance)
+                    Debug.LogWarning($"KenneyRoadSetBuilder: '{piece.prefab.name}' lane sits at {pieceLane:0.###}, " +
+                                     $"but road-straight's is {lane:0.###}. Mixed lane heights leave steps between tiles.");
+                piece.laneHeight = lane;
+            }
+
             settings.roadPieces = pieces;
             settings.pieceNativeSize = nativeCell;
             settings.scaleToCellSize = true;
@@ -114,7 +131,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
 
-            Debug.Log($"KenneyRoadSetBuilder: {pieces.Count} pieces → {SettingsPath} (native cell {nativeCell:0.##} m, deck top {deckTop:0.##}).\n{rampReport}" +
+            Debug.Log($"KenneyRoadSetBuilder: {pieces.Count} pieces → {SettingsPath} (native cell {nativeCell:0.##} m, " +
+                      $"lane {lane:0.###}, deck lane {deckTop:0.###}).\n{rampReport}" +
                       "Open Tools → Police Escape → Road Kit Showcase Scene to verify sockets and facings, then Recalculate the CityManager.");
         }
 
@@ -147,6 +165,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 
             settings.roadPieces = pieces;
             settings.pieceNativeSize = 1f; // test cubes are built on a 1 m footprint
+            // The primitive set is authored flat on the drivable plane, so it
+            // must not inherit a lane offset from a previously loaded kit.
+            foreach (RoadPieceDefinition piece in pieces) piece.laneHeight = 0f;
             settings.scaleToCellSize = true;
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
@@ -302,22 +323,112 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             foreach (Vector3 p in points) bounds.Encapsulate(p);
             float tolerance = Mathf.Max(bounds.size.x, bounds.size.z) * 0.03f;
 
+            // Two passes: the whole edge decides which way is uphill (a curb
+            // runs the length of the ramp, so it ranks the sides just as well),
+            // then the LANE at each end gives the heights the generator uses.
+            // Taking the edge maximum for those would return the curb, which is
+            // a whole lane-height above the surface a wheel actually rests on.
             var sideTop = new[] { float.MinValue, float.MinValue, float.MinValue, float.MinValue }; // N, E, S, W
+            var sideLane = new[] { float.MinValue, float.MinValue, float.MinValue, float.MinValue };
+            float laneBandX = bounds.size.x * 0.15f;
+            float laneBandZ = bounds.size.z * 0.15f;
             foreach (Vector3 p in points)
             {
-                if (p.z > bounds.max.z - tolerance) sideTop[0] = Mathf.Max(sideTop[0], p.y);
-                if (p.x > bounds.max.x - tolerance) sideTop[1] = Mathf.Max(sideTop[1], p.y);
-                if (p.z < bounds.min.z + tolerance) sideTop[2] = Mathf.Max(sideTop[2], p.y);
-                if (p.x < bounds.min.x + tolerance) sideTop[3] = Mathf.Max(sideTop[3], p.y);
+                bool onLaneX = Mathf.Abs(p.x - bounds.center.x) < laneBandX;
+                bool onLaneZ = Mathf.Abs(p.z - bounds.center.z) < laneBandZ;
+                if (p.z > bounds.max.z - tolerance)
+                {
+                    sideTop[0] = Mathf.Max(sideTop[0], p.y);
+                    if (onLaneX) sideLane[0] = Mathf.Max(sideLane[0], p.y);
+                }
+                if (p.x > bounds.max.x - tolerance)
+                {
+                    sideTop[1] = Mathf.Max(sideTop[1], p.y);
+                    if (onLaneZ) sideLane[1] = Mathf.Max(sideLane[1], p.y);
+                }
+                if (p.z < bounds.min.z + tolerance)
+                {
+                    sideTop[2] = Mathf.Max(sideTop[2], p.y);
+                    if (onLaneX) sideLane[2] = Mathf.Max(sideLane[2], p.y);
+                }
+                if (p.x < bounds.min.x + tolerance)
+                {
+                    sideTop[3] = Mathf.Max(sideTop[3], p.y);
+                    if (onLaneZ) sideLane[3] = Mathf.Max(sideLane[3], p.y);
+                }
             }
 
             int foot = 0;
             for (int i = 1; i < 4; i++)
                 if (sideTop[i] < sideTop[foot]) foot = i;
             uphill = (foot + 2) & 3;
-            start = sideTop[foot];
-            end = sideTop[uphill];
+            // A ramp end with no vertex in the lane band is a mesh we don't
+            // understand; fall back to the edge rather than reporting nonsense.
+            start = sideLane[foot] > float.MinValue ? sideLane[foot] : sideTop[foot];
+            end = sideLane[uphill] > float.MinValue ? sideLane[uphill] : sideTop[uphill];
             return end - start > 0.05f;
+        }
+
+        /// <summary>
+        /// Height of a piece's driving lane above its pivot: the height of the
+        /// widest flat, upward-facing surface, measured by triangle area.
+        ///
+        /// Deliberately NOT the bounds maximum — that is the curb at the tile
+        /// edge, and taking it is what left the drivable plane a curb below the
+        /// road and put a step at the foot of every ramp. Nor a vertex sample
+        /// at the tile centre: these are low-poly quads with no vertices in the
+        /// middle at all. Area is the one signal that works, because on every
+        /// piece in the kit the lane is far wider than the curb beside it.
+        /// </summary>
+        /// <param name="minHeight">Ignore surfaces below this — pass the piece's mid-height for a deck, so its lane wins over the street modelled underneath it.</param>
+        static float MeasureLaneHeight(GameObject prefab, float minHeight = float.MinValue)
+        {
+            var areaByHeight = new Dictionary<int, float>();
+            Matrix4x4 worldToRoot = prefab.transform.worldToLocalMatrix;
+            foreach (MeshFilter filter in prefab.GetComponentsInChildren<MeshFilter>())
+            {
+                Mesh mesh = filter.sharedMesh;
+                if (mesh == null) continue;
+                Matrix4x4 toRoot = worldToRoot * filter.transform.localToWorldMatrix;
+                Vector3[] verts = mesh.vertices;
+                int[] tris = mesh.triangles;
+                for (int i = 0; i + 2 < tris.Length; i += 3)
+                {
+                    Vector3 a = toRoot.MultiplyPoint3x4(verts[tris[i]]);
+                    Vector3 b = toRoot.MultiplyPoint3x4(verts[tris[i + 1]]);
+                    Vector3 c = toRoot.MultiplyPoint3x4(verts[tris[i + 2]]);
+
+                    Vector3 cross = Vector3.Cross(b - a, c - a);
+                    float area = cross.magnitude * 0.5f;
+                    if (area < 1e-6f) continue;
+                    if (cross.y / (area * 2f) < 0.9f) continue; // flat and facing up
+
+                    float y = (a.y + b.y + c.y) / 3f;
+                    if (y < minHeight) continue;
+                    int key = Mathf.RoundToInt(y * 1000f);
+                    areaByHeight[key] = areaByHeight.TryGetValue(key, out float acc) ? acc + area : area;
+                }
+            }
+
+            float bestArea = 0f;
+            float lane = 0f;
+            foreach (KeyValuePair<int, float> level in areaByHeight)
+                if (level.Value > bestArea)
+                {
+                    bestArea = level.Value;
+                    lane = level.Key / 1000f;
+                }
+            return bestArea > 0f ? lane : 0f;
+        }
+
+        /// <summary>Mid-height of a piece in its own frame — the cut that separates a bridge's deck from the street modelled beneath it.</summary>
+        static float MidHeight(GameObject prefab)
+        {
+            List<Vector3> points = CollectVertices(prefab);
+            if (points.Count == 0) return float.MinValue;
+            var bounds = new Bounds(points[0], Vector3.zero);
+            foreach (Vector3 p in points) bounds.Encapsulate(p);
+            return bounds.center.y;
         }
 
         static List<Vector3> CollectVertices(GameObject prefab)

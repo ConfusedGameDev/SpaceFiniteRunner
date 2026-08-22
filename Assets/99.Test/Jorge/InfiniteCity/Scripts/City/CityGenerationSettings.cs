@@ -215,6 +215,42 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             }
         }
 
+        /// <summary>
+        /// Uniform scale every stamped piece gets, so a kit authored at
+        /// <see cref="pieceNativeSize"/> fills one <see cref="cellSize"/> cell.
+        /// Lives here rather than on the CityManager because the populator and
+        /// the road builder need it too, and it reads nothing but settings.
+        /// </summary>
+        public float PieceScale
+        {
+            get
+            {
+                float scale = roadScaleMultiplier;
+                if (scaleToCellSize && pieceNativeSize > 0.0001f) scale *= cellSize / pieceNativeSize;
+                return scale;
+            }
+        }
+
+        /// <summary>World height the stamped city is sunk by so its lanes land on the drivable plane.</summary>
+        public float RoadSurfaceHeight => RoadSurfaceNativeHeight * PieceScale;
+
+        /// <summary>
+        /// Height of the flat roads' driving lane in native units (the first
+        /// Standard piece's value; 0.01 for the Kenney kit). The chunk ground
+        /// slab and the road graph's ground nodes both sit at this height, so
+        /// the plane cars actually drive on is the asphalt they can see —
+        /// leave it at 0 and every ramp, which carries a real collider,
+        /// presents a step the height of a curb at its foot.
+        /// </summary>
+        public float RoadSurfaceNativeHeight
+        {
+            get
+            {
+                var road = FirstPieceWithRole(RoadPieceRole.Standard);
+                return road != null ? road.laneHeight : 0f;
+            }
+        }
+
         // ------------------------------------------------------------- buttons
         [TitleGroup("Actions")]
         [Button("Randomize Seed", ButtonSizes.Medium)]

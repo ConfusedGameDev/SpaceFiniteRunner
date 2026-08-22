@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e3bfe90a7e2c2e498d40e8d5f2a5eb2, type: 3}
   m_Name: CityTestSettings
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.City.CityGenerationSettings
-  globalSeed: -404971914
+  globalSeed: 678078637
   useSavedSeed: 0
   savedSeed: 130284619
   savedSeeds: f576bad64bfcc307i
@@ -42,6 +42,7 @@ MonoBehaviour:
     footprintInCells: {x: 1, y: 1}
     cellMasks: 
     placeChance: 0.35
+    laneHeight: 0.01
     rampStartHeight: 0
     rampEndHeight: 0.5
     deckHeight: 0.5
@@ -54,6 +55,7 @@ MonoBehaviour:
     footprintInCells: {x: 1, y: 1}
     cellMasks: 
     placeChance: 0.35
+    laneHeight: 0.01
     rampStartHeight: 0
     rampEndHeight: 0.5
     deckHeight: 0.5
@@ -66,6 +68,7 @@ MonoBehaviour:
     footprintInCells: {x: 1, y: 1}
     cellMasks: 
     placeChance: 0.35
+    laneHeight: 0.01
     rampStartHeight: 0
     rampEndHeight: 0.5
     deckHeight: 0.5
@@ -78,6 +81,7 @@ MonoBehaviour:
     footprintInCells: {x: 1, y: 1}
     cellMasks: 
     placeChance: 0.35
+    laneHeight: 0.01
     rampStartHeight: 0
     rampEndHeight: 0.5
     deckHeight: 0.5
@@ -90,6 +94,7 @@ MonoBehaviour:
     footprintInCells: {x: 1, y: 1}
     cellMasks: 
     placeChance: 0.35
+    laneHeight: 0.01
     rampStartHeight: 0
     rampEndHeight: 0.5
     deckHeight: 0.5
@@ -102,6 +107,7 @@ MonoBehaviour:
     footprintInCells: {x: 3, y: 3}
     cellMasks: 0000000005000000000000000a0000000f0000000a000000000000000500000000000000i
     placeChance: 0.35
+    laneHeight: 0.01
     rampStartHeight: 0
     rampEndHeight: 0.5
     deckHeight: 0.5
@@ -114,6 +120,7 @@ MonoBehaviour:
     footprintInCells: {x: 1, y: 2}
     cellMasks: 
     placeChance: 0.35
+    laneHeight: 0.01
     rampStartHeight: 0
     rampEndHeight: 0.5
     deckHeight: 0.5
@@ -126,6 +133,7 @@ MonoBehaviour:
     footprintInCells: {x: 1, y: 1}
     cellMasks: 
     placeChance: 0.35
+    laneHeight: 0.01
     rampStartHeight: 0
     rampEndHeight: 0.5
     deckHeight: 0.5
@@ -138,8 +146,9 @@ MonoBehaviour:
     footprintInCells: {x: 1, y: 1}
     cellMasks: 
     placeChance: 0.35
-    rampStartHeight: 0.02
-    rampEndHeight: 0.52
+    laneHeight: 0.01
+    rampStartHeight: 0.01
+    rampEndHeight: 0.51
     deckHeight: 0.5
     includesUnderpass: 1
   - prefab: {fileID: 919132149155446097, guid: 8424dd7f4b6f8f64b9472fd2a6548717, type: 3}
@@ -150,9 +159,10 @@ MonoBehaviour:
     footprintInCells: {x: 1, y: 1}
     cellMasks: 
     placeChance: 0.35
+    laneHeight: 0.01
     rampStartHeight: 0
     rampEndHeight: 0.5
-    deckHeight: 0.52
+    deckHeight: 0.51
     includesUnderpass: 1
   - prefab: {fileID: 919132149155446097, guid: 49292932f75399f478c452381c24d5b6, type: 3}
     role: 3
@@ -162,6 +172,7 @@ MonoBehaviour:
     footprintInCells: {x: 1, y: 1}
     cellMasks: 
     placeChance: 0.35
+    laneHeight: 0.01
     rampStartHeight: 0
     rampEndHeight: 0.5
     deckHeight: 0.5

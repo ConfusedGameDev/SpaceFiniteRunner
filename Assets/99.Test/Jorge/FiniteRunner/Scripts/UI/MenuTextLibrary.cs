@@ -34,6 +34,7 @@ namespace FiniteRunner
         DebugTabCarDrive, DebugTabCarGrip, DebugTabCamera,
         CarMass, CarCenterOfMass, CarDownforce, CarMotorTorque, CarTopSpeed, CarBrakeTorque,
         CarSteerAngle, CarHandbrakeTorque, CarHandbrakeGrip, CarForwardGrip, CarSideGrip,
+        CarHillRollback,
         CamDistance, CamHeight, CamPitch, CamDamping,
         CamRecenterDelay, CamRecenterSpeed, CamBaseFov, CamSpeedFov,
         DebugTabPoliceFleet, DebugTabPoliceChase,
@@ -254,6 +255,8 @@ namespace FiniteRunner
         [TitleGroup("Car stats")]
         [SerializeField] LocalizedString carBrakeTorque = new("BRAKE TORQUE", "PAR DE FRENADO", "ブレーキトルク", "COUPLE DE FREIN");
         [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carHillRollback = new("HILL ASSIST", "AYUDA EN PENDIENTE", "ヒルアシスト", "ASSIST. EN CÔTE");
+        [TitleGroup("Car stats")]
         [SerializeField] LocalizedString carSteerAngle = new("STEER ANGLE", "ÁNGULO DE GIRO", "操舵角", "ANGLE DE BRAQUAGE");
         [TitleGroup("Car stats")]
         [SerializeField] LocalizedString carHandbrakeTorque = new("HANDBRAKE TORQUE", "PAR DEL FRENO DE MANO", "ハンドブレーキトルク", "COUPLE DE FREIN À MAIN");
@@ -469,6 +472,7 @@ namespace FiniteRunner
             MenuTextId.CarMotorTorque => carMotorTorque,
             MenuTextId.CarTopSpeed => carTopSpeed,
             MenuTextId.CarBrakeTorque => carBrakeTorque,
+            MenuTextId.CarHillRollback => carHillRollback,
             MenuTextId.CarSteerAngle => carSteerAngle,
             MenuTextId.CarHandbrakeTorque => carHandbrakeTorque,
             MenuTextId.CarHandbrakeGrip => carHandbrakeGrip,

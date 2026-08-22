@@ -78,6 +78,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [PropertyRange(0f, 1f)]
         public float placeChance = 0.35f;
 
+        // ----------------------------------------------------- drivable surface
+        /// <summary>
+        /// Height of the piece's **driving lane** above its pivot, in native
+        /// units — the surface a wheel rests on, NOT the raised curb at the
+        /// tile's edge. The two differ (Kenney: lane 0.01, curb 0.02) and
+        /// taking the piece's bounds max would silently pick the curb, which
+        /// is how the chunk ground slab ended up half a curb below the road
+        /// and left a step at the foot of every ramp.
+        /// </summary>
+        [ShowIf(nameof(IsStandard))]
+        [Tooltip("Height of the DRIVING LANE above the pivot, in native units — not the curb at the tile edge (Kenney: lane 0.01, curb 0.02). The chunk's ground slab is lifted to this, so cars drive on the asphalt instead of inside it.")]
+        [PropertyRange(0f, 0.5f)]
+        public float laneHeight = 0.01f;
+
         // -------------------------------------------------------------- ramps
         [ShowIf(nameof(IsRamp))]
         [Tooltip("Surface height (native units) at the foot of this ramp link — 0 for the first link of the chain.")]

@@ -58,20 +58,31 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public RoadGraph Graph { get; private set; }
 
         /// <summary>Uniform scale applied to every spawned road piece: cell fit (cellSize ÷ native footprint) × the extra multiplier.</summary>
-        public float PieceScale
-        {
-            get
-            {
-                if (settings == null) return 1f;
-                float scale = settings.roadScaleMultiplier;
-                if (settings.scaleToCellSize && settings.pieceNativeSize > 0.0001f)
-                    scale *= settings.cellSize / settings.pieceNativeSize;
-                return scale;
-            }
-        }
+        public float PieceScale => settings != null ? settings.PieceScale : 1f;
 
-        /// <summary>World height of overpass decks — the Deck piece's native surface height at the piece scale, so it tracks roadScaleMultiplier too.</summary>
-        public float DeckWorldHeight => settings != null ? settings.DeckNativeHeight * PieceScale : 0f;
+        /// <summary>
+        /// World height of an overpass deck's LANE above the drivable ground
+        /// plane. Measured from the sunk city, so it tracks both the piece
+        /// scale and the surface offset and lands on the deck's asphalt.
+        /// </summary>
+        public float DeckWorldHeight =>
+            settings != null ? (settings.DeckNativeHeight - settings.RoadSurfaceNativeHeight) * PieceScale : 0f;
+
+        /// <summary>
+        /// How far every stamped piece is sunk so its driving lane lands on the
+        /// chunk ground slab at y = 0.
+        ///
+        /// The Kenney tiles carry their asphalt above their pivot (lane 0.01,
+        /// curb 0.02 native). Flat tiles have no collider and ride the slab,
+        /// but ramps and decks carry real mesh colliders — so stamping
+        /// everything at y = 0 left the flat plane a whole lane-height BELOW
+        /// the ramp collider, i.e. a curb-high step at the foot of every ramp
+        /// (and at the mouth of every bridge underpass). Sinking the art is
+        /// the one-line-per-funnel fix: "y = 0 is the drivable surface" then
+        /// holds everywhere, so the slab, the road graph, the cell-clearance
+        /// boxes, the spawn runways and the gizmos all stay as they are.
+        /// </summary>
+        public float RoadSurfaceHeight => settings != null ? settings.RoadSurfaceNativeHeight * PieceScale : 0f;
 
         [TitleGroup("Gizmos")]
         [Tooltip("Draw the grid model overlay (road cells, chunk borders, seed labels).")]
@@ -354,6 +365,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 // One flat slab per chunk, top at road level (y = 0) — roads and
                 // lots alike are drivable; buildings block with their own boxes.
                 // Immediate, so a car never drives onto a floorless chunk.
+                // Every stamped piece is sunk by RoadSurfaceHeight so its
+                // asphalt lands exactly here, which is what keeps the ramps
+                // (they carry real colliders) flush with the flat tiles (they
+                // carry none and ride this slab).
                 float side = settings.chunkSizeInCells * settings.cellSize;
                 var ground = chunkGo.AddComponent<BoxCollider>();
                 ground.center = new Vector3(side * 0.5f, -0.5f, side * 0.5f);
@@ -446,6 +461,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         void Stamp(Transform parent, GameObject prefab, Vector3 localPosition, float yaw, Vector3 localScale, System.Action<System.Action> schedule)
         {
             var localRotation = Quaternion.Euler(0f, yaw, 0f);
+            // Sink the piece so its lane, not its pivot, sits on the drivable
+            // plane — see RoadSurfaceHeight. Resolved out here with every other
+            // placement value, so a streamed chunk equals an instant one.
+            localPosition.y -= RoadSurfaceHeight;
             schedule(() =>
             {
                 if (parent == null) return; // chunk unloaded before its turn in the queue

@@ -84,6 +84,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [PropertyRange(0.1f, 1f)]
         public float handbrakeGrip = 0.5f;
 
+        [TitleGroup("Brakes")]
+        [Tooltip("Road gradient above which throttling against a slow gravity rollback drives instead of braking — the anti-stall rule for climbs. 0 turns it off, so throttle against travel always brakes.")]
+        [PropertyRange(0f, 15f), SuffixLabel("°", true)]
+        public float hillRollbackSlope = 3f;
+
         // ------------------------------------------------------------ steering
         [TitleGroup("Steering")]
         [Tooltip("Front wheel steer angle at standstill.")]

@@ -130,6 +130,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                        40f, 300f, 5f, "0", c => c.topSpeedKmh, (c, v) => c.topSpeedKmh = v);
             AddCarStat(screen, config, refreshers, MenuTextId.CarBrakeTorque,
                        500f, 12000f, 250f, "0", c => c.brakeTorque, (c, v) => c.brakeTorque = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarHillRollback,
+                       0f, 15f, 0.5f, "0.0", c => c.hillRollbackSlope, (c, v) => c.hillRollbackSlope = v);
             return screen;
         }
 

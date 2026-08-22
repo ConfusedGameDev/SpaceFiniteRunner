@@ -150,15 +150,34 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             frontRight.steerAngle = steerAngle;
         }
 
+        /// <summary>Rollback speed under which a gravity-driven drift counts as a stalled climb rather than a brake request.</summary>
+        const float RollbackDriveSpeed = 3f;
+
         void ApplyDrive(float throttle, bool handbrake, float speed01)
         {
             float forwardSpeed = ForwardSpeed;
+
+            // A gradient drags the car along its own forward axis. Drifting
+            // slowly in THAT direction while the driver asks for the other way
+            // is a stalled climb, not a brake request — braking it locks the
+            // wheels, gravity keeps winning, the car dips back under the
+            // threshold, drive returns, and it stutters in place instead of
+            // ever setting off. Only real gradients qualify, so the two-pedal
+            // brake is untouched on level road, and only crawling speeds, so a
+            // deliberate brake stays authoritative downhill at pace.
+            float noseGrade = -transform.forward.y; // > 0 nose-down, < 0 nose-up
+            bool rollingWithGravity =
+                config.hillRollbackSlope > 0f
+                && Mathf.Abs(noseGrade) > Mathf.Sin(config.hillRollbackSlope * Mathf.Deg2Rad)
+                && Mathf.Abs(forwardSpeed) < RollbackDriveSpeed
+                && Mathf.Sign(noseGrade) == Mathf.Sign(forwardSpeed);
 
             // Two-pedal arcade rule: throttle against the travel direction is a
             // brake until (nearly) stopped, then becomes drive the other way.
             bool opposing = Mathf.Abs(forwardSpeed) > 0.5f
                 && throttle != 0f
-                && Mathf.Sign(throttle) != Mathf.Sign(forwardSpeed);
+                && Mathf.Sign(throttle) != Mathf.Sign(forwardSpeed)
+                && !rollingWithGravity;
 
             float motor = 0f;
             float brake = 0f;
