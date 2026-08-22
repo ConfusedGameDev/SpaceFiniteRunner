@@ -45,7 +45,15 @@ M2 [x] DONE - Implement the controllers to move around the map on the map menu
     - Zoom never repaints (it rescales the RawImage); only panning into new cells does.
     - Chunks are generated a bounded number per frame, so a fast pan reveals the city without hitching.
 
-M3  Implement the Point marker system  (should persist trough sessions)
+M3 [x] DONE - Implement the Point marker system (should persist trough sessions)
+    - One marker; placing again moves it. ENTER / gamepad A places, X / DELETE / gamepad West removes.
+    - Aimed with a crosshair pinned at the view centre - one mechanism that works the same
+      on stick, keyboard and mouse, so the map needs no second focus system.
+    - Snaps to the nearest road (rings outward), so a marker is always somewhere you can drive to.
+    - Persisted in PlayerPrefs as a CELL, tagged with the seed of the city it was placed in:
+      it survives relaunches but is discarded when you generate a new city, rather than
+      pointing at a junction that no longer exists.
+    - Also fixed: the map's cached chunk data is rebuilt when the city is regenerated.
 
 M4 Implement the Navigation system make sure that it is visible in both map and mini map 
 

@@ -66,6 +66,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
         Vector3 viewCenterWorld;      // world point at the middle of the viewport
         float pixelsPerCell;
+        int modelSeed;                // city the cached chunk data belongs to
         bool built;
         bool open;
         float openedTime;
@@ -118,6 +119,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 }
                 HandleZoom(dt);
                 HandlePan(dt);
+                HandleMarker();
             }
 
             RefreshTargets();
@@ -145,6 +147,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             Gamepad.current?.ResetHaptics();
 
             pixelsPerCell = settings.ClampZoom(settings.defaultPixelsPerCell);
+            // The city can be regenerated under us ("Clear & Generate New
+            // City"), and cached chunk data is only valid for the seed it was
+            // generated from — so both the schematic and the marker are
+            // rebuilt against whatever city is actually in force now.
+            SyncToCity();
             RefreshTargets();
             CenterOnPlayer();
         }
@@ -155,6 +162,25 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             IsOpen = false;
             Time.timeScale = 1f;
             panel.SetActive(false);
+        }
+
+        /// <summary>
+        /// Throw away anything generated for a different city. Chunk data is a
+        /// pure function of the seed, so a stale cache would draw streets that
+        /// no longer exist — and a marker placed in the old city would point at
+        /// one of them.
+        /// </summary>
+        void SyncToCity()
+        {
+            int seed = city.settings.globalSeed;
+            if (seed != modelSeed)
+            {
+                model.Clear();
+                renderer.Release();
+                MapRoute.ClearCurrent();
+                modelSeed = seed;
+            }
+            MapMarkerStore.DiscardIfForeign(seed);
         }
 
         void CenterOnPlayer()
@@ -211,6 +237,90 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             float distance = settings.panSpeedPixels * metresPerPixel * dt;
             viewCenterWorld += new Vector3(axis.x, 0f, axis.y) * distance;
         }
+
+        // ------------------------------------------------------------- marker
+
+        void HandleMarker()
+        {
+            if (MenuNavigator.ConfirmPressed())
+            {
+                PlaceMarkerAtCursor();
+                return;
+            }
+            if (DeleteMarkerPressed() && MapMarkerStore.HasMarker)
+            {
+                MapMarkerStore.ClearMarker();
+                ClearRoute();
+            }
+        }
+
+        /// <summary>X / gamepad West removes the marker. Not B/East — that is Back everywhere in this UI.</summary>
+        static bool DeleteMarkerPressed() =>
+            Keyboard.current is { deleteKey: { wasPressedThisFrame: true } } ||
+            Keyboard.current is { xKey: { wasPressedThisFrame: true } } ||
+            Gamepad.current is { buttonWest: { wasPressedThisFrame: true } };
+
+        /// <summary>
+        /// Drop the marker on whatever the centre crosshair is over, snapped to
+        /// the nearest road. Snapping is the point: a marker in the middle of a
+        /// city block has no route to it, so aiming roughly at a district still
+        /// gives a marker you can actually drive to.
+        /// </summary>
+        void PlaceMarkerAtCursor()
+        {
+            Vector3 target = viewCenterWorld;
+            if (TrySnapToRoad(target, out Vector2Int snapped))
+            {
+                MapMarkerStore.SetMarker(snapped, city.settings.globalSeed);
+                RebuildRoute();
+            }
+            else
+            {
+                statusLabel.text = "NO ROAD HERE";
+            }
+        }
+
+        /// <summary>
+        /// Nearest road cell to a world point, searched outward through the
+        /// map model's generated data. Rings out from the aimed cell rather
+        /// than scanning the whole graph, which would be an O(n) sweep over
+        /// every chunk the player has ever looked at.
+        /// </summary>
+        bool TrySnapToRoad(Vector3 world, out Vector2Int roadCell)
+        {
+            Vector2Int centre = model.WorldToCell(world);
+            roadCell = centre;
+            if (model.TryGetCell(centre, out _, out bool isRoad) && isRoad) return true;
+
+            const int maxRadius = 12;
+            for (int r = 1; r <= maxRadius; r++)
+            {
+                for (int dx = -r; dx <= r; dx++)
+                for (int dy = -r; dy <= r; dy++)
+                {
+                    // Only the ring itself — the inside was covered by smaller r.
+                    if (Mathf.Abs(dx) != r && Mathf.Abs(dy) != r) continue;
+                    var candidate = new Vector2Int(centre.x + dx, centre.y + dy);
+                    if (!model.TryGetCell(candidate, out _, out bool road) || !road) continue;
+                    roadCell = candidate;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        string MarkerStatusText()
+        {
+            if (player == null) return string.Empty;
+            Vector3 markerWorld = model.CellToWorld(MapMarkerStore.Cell);
+            Vector3 delta = markerWorld - player.transform.position;
+            float straight = new Vector2(delta.x, delta.z).magnitude;
+            return $"MARKER  {straight:0} M";
+        }
+
+        void ClearRoute() { }      // M4
+
+        void RebuildRoute() { }    // M4
 
         Vector2 ReadPanAxis()
         {
@@ -299,7 +409,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             return (cell - centre) * pixelsPerCell;
         }
 
-        Vector2Int? MarkerCell() => null;   // M3 supplies this
+        static Vector2Int? MarkerCell() =>
+            MapMarkerStore.HasMarker ? MapMarkerStore.Cell : null;
 
         // -------------------------------------------------------------- icons
 
@@ -315,13 +426,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 playerIcon.localEulerAngles = new Vector3(0f, 0f, -player.transform.eulerAngles.y);
             }
 
-            markerIcon.gameObject.SetActive(false);   // M3
-            cursorIcon.gameObject.SetActive(false);   // M3
+            bool hasMarker = MapMarkerStore.HasMarker;
+            markerIcon.gameObject.SetActive(hasMarker);
+            if (hasMarker)
+                markerIcon.anchoredPosition = WorldToViewport(model.CellToWorld(MapMarkerStore.Cell));
+
+            // The cursor is pinned at the viewport centre: one aiming mechanism
+            // that behaves identically on stick, keyboard and mouse, so the map
+            // needs no second focus system.
+            cursorIcon.gameObject.SetActive(true);
+            cursorIcon.anchoredPosition = Vector2.zero;
 
             int pending = model.PendingCount;
-            statusLabel.text = pending > 0
-                ? $"MAPPING… {pending}"
-                : hasPlayer ? string.Empty : "NO VEHICLE";
+            if (pending > 0) statusLabel.text = $"MAPPING… {pending}";
+            else if (!hasPlayer) statusLabel.text = "NO VEHICLE";
+            else if (hasMarker) statusLabel.text = MarkerStatusText();
+            else statusLabel.text = string.Empty;
         }
 
         // ----------------------------------------------------------- missions
@@ -380,6 +500,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             theme = MenuTheme.Load();
             model = new CityMapModel(city.settings, city.transform.position, city.DeckWorldHeight);
             renderer = new CityMapRenderer(settings);
+            modelSeed = city.settings.globalSeed;
             pixelsPerCell = settings.ClampZoom(settings.defaultPixelsPerCell);
 
             canvas = gameObject.AddComponent<Canvas>();
@@ -486,7 +607,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             statusRect.anchoredPosition = new Vector2(-40f, -40f);
 
             Text hints = CreateText("Hints", parent, 22, TextAnchor.MiddleLeft, theme.TextDim);
-            hints.text = "WASD / STICK  PAN     +/- / LT-RT  ZOOM     TAB / BACK  CLOSE";
+            hints.text = "WASD / STICK  PAN      +/- / LT-RT  ZOOM      ENTER / A  SET MARKER      X  DELETE      TAB / BACK  CLOSE";
             var hintRect = hints.rectTransform;
             hintRect.anchorMin = new Vector2(0f, 0f);
             hintRect.anchorMax = new Vector2(1f, 0f);
