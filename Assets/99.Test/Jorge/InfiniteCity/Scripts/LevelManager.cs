@@ -314,11 +314,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             SceneManager.UnloadSceneAsync(gameObject.scene);
         }
 
-        /// <summary>Full corruption from police damage: hold the maxed glitch a beat, then reboot the level.</summary>
+        /// <summary>
+        /// External game-over switch: anything that ends the run (the car
+        /// wrecked on its roof, a scripted fail) asks for the same death the
+        /// damage meter gives — glitch slammed to max, held, scene reload.
+        /// False when the level is already resetting or completing, so a
+        /// caller knows the request was swallowed and must not fall back to
+        /// its own recovery (a teleport during the glitch would be visible).
+        /// </summary>
+        public bool RequestReboot(string reason)
+        {
+            if (resetting || Completed) return false;
+            Debug.Log($"[Level] {reason} — rebooting level", this);
+            StartCoroutine(ResetLevel());
+            return true;
+        }
+
+        /// <summary>The shared death: hold the maxed glitch a beat, then reboot the level.</summary>
         IEnumerator ResetLevel()
         {
             resetting = true;
-            Debug.Log("[Level] full corruption — rebooting level", this);
             // Healing stops here: the death screen must hold at full glitch.
             if (GlitchController.Instance != null)
             {
@@ -349,7 +364,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             if (!policeHit) return;
             glitch.SetBaseIntensity(glitch.baseIntensity + policeHitIntensity);
             Debug.Log($"[Level] police hit — corruption {glitch.baseIntensity:F2}", this);
-            if (glitch.baseIntensity >= 0.999f) StartCoroutine(ResetLevel());
+            if (glitch.baseIntensity >= 0.999f) RequestReboot("full corruption");
         }
 
         /// <summary>Player and patrols come and go at runtime (spawn managers), so re-find them on a slow tick instead of every frame.</summary>
