@@ -674,6 +674,7 @@ MonoBehaviour:
   trafficSettings: {fileID: 11400000, guid: fde82596462774cdb8170cc2c127354b, type: 2}
   minimapSettings: {fileID: 11400000, guid: 43b08e7108a854584b63ebb5831d3e22, type: 2}
   speedometerSettings: {fileID: 11400000, guid: 2e35f956724754cd485670624868b7bc, type: 2}
+  mapSettings: {fileID: 11400000, guid: d690dbff0ec45426d96f3f6d4641091c, type: 2}
   drawGizmos: 1
 --- !u!4 &1686207027
 Transform:

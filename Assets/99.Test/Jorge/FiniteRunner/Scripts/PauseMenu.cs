@@ -57,6 +57,9 @@ namespace FiniteRunner
         float lockTimer;   // input frozen while a screen transition plays
         float openedTime;  // grace so the press that paused can't also confirm
 
+        /// <summary>True while the pause menu is up — the city map checks this so the two screens can never stack.</summary>
+        public bool IsPaused => isPaused;
+
         public static PauseMenu Spawn(GameManager gameManager, ShipMotor motor)
         {
             var go = new GameObject("PauseMenu");
@@ -148,6 +151,9 @@ namespace FiniteRunner
         bool CanPause()
         {
             if (MainMenuController.IsOpen) return false;
+            // The city map is a full-screen takeover with its own toggle; the
+            // two must never stack, or Esc would unfreeze the game underneath it.
+            if (CityMapScreen.IsOpen) return false;
             if (motor != null) return !motor.Paused && (gameManager == null || !gameManager.RunOver);
             return Time.timeScale > 0f;
         }

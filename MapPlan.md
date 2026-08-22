@@ -30,9 +30,20 @@ M0 [x] DONE - change the City builder system to be persistent. we should always 
     - Side effect fixed: CityTestSettings.asset no longer gets dirtied on every play session.
 
 
-M1 create a new branch for this feature/map  and implement the pause map menu  
+M1 [x] DONE - create a new branch for this feature/map and implement the pause map menu
+    - Branch `feature/map`.
+    - `CityMapScreen` (InfiniteCity/Scripts/UI/Map/) - full-screen overlay, opens on Tab / gamepad Back, freezes the game.
+    - Drawn as a SCHEMATIC from generated chunk data, not a camera render: the city streams and unloads,
+      so a camera would show a small island in a void. `CityMapModel` generates ChunkData on demand
+      (pure function of seed+coords, no GameObjects) and `CityMapRenderer` paints it one texel per cell.
+    - Mission list side panel: done / active / greyed-out-locked, straight off LevelManager.
+    - PauseMenu and the map lock each other out, both directions.
 
-M2 Implement the controllers to move around the map on the map menu 
+M2 [x] DONE - Implement the controllers to move around the map on the map menu
+    - Pan: WASD / arrows / left stick. Authored in screen px/sec so it feels the same at every zoom.
+    - Zoom: mouse wheel, LT/RT, +/- keys. Multiplicative, clamped to the settings' range.
+    - Zoom never repaints (it rescales the RawImage); only panning into new cells does.
+    - Chunks are generated a bounded number per frame, so a fast pan reveals the city without hitching.
 
 M3  Implement the Point marker system  (should persist trough sessions)
 

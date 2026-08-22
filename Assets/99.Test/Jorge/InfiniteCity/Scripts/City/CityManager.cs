@@ -54,6 +54,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Speedometer settings — when assigned, an analog gauge is spawned at play start (bottom-left).")]
         public UI.SpeedometerSettings speedometerSettings;
 
+        [TitleGroup("UI")]
+        [Tooltip("Full-screen city map settings — when assigned, the Tab/Back map screen is spawned at play start.")]
+        public UI.CityMapSettings mapSettings;
+
         /// <summary>Waypoint graph over the generated roads — the AI's navigation source. Rebuilt on every Recalculate; null before the first one.</summary>
         public RoadGraph Graph { get; private set; }
 
@@ -131,6 +135,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 var speedometerGo = new GameObject("Speedometer");
                 speedometerGo.AddComponent<UI.Speedometer>().settings = speedometerSettings;
             }
+            if (mapSettings != null) UI.CityMapScreen.Spawn(this, mapSettings);
         }
 
         // ------------------------------------------------------------- buttons

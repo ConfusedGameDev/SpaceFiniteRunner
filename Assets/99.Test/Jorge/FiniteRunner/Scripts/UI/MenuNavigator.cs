@@ -59,6 +59,20 @@ namespace FiniteRunner
                    Gamepad.current is { startButton: { wasPressedThisFrame: true } };
         }
 
+        /// <summary>
+        /// Tab or the gamepad's Back/View button — opens and closes the city
+        /// map. Deliberately a different chord from
+        /// <see cref="PauseTogglePressed"/> (Start) and
+        /// <see cref="BackPressed"/> (B/East): the map is its own screen, not a
+        /// page of the pause menu, and both of those buttons already mean
+        /// something everywhere else in the UI.
+        /// </summary>
+        public static bool MapTogglePressed()
+        {
+            return Keyboard.current is { tabKey: { wasPressedThisFrame: true } } ||
+                   Gamepad.current is { selectButton: { wasPressedThisFrame: true } };
+        }
+
         int RawVertical()
         {
             int direction = 0;
