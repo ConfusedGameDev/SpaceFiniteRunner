@@ -55,20 +55,33 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// leaking into the street underneath. Chunks register their cells after
     /// generation; A* answers route queries. Rebuilt from scratch on every
     /// Recalculate.
+    ///
+    /// Every position it hands out is a WORLD position. Cell coordinates are
+    /// relative to the city root, so the root's own transform is baked in at
+    /// construction (<paramref name="origin"/>): chunks are children of that
+    /// root and inherit the same offset, and every consumer — spawners, AI
+    /// waypoints, nearest-cell queries — treats <see cref="Center"/> as a
+    /// place to drive to. Deriving centres from cell indices alone would put
+    /// the whole graph at the world origin while the city it describes sits
+    /// somewhere else entirely. The root is assumed not to move after the
+    /// graph is built; rebuild it if it ever does.
     /// </summary>
     public class RoadGraph
     {
         readonly Dictionary<RoadNode, RoadNodeData> nodes = new();
         readonly float cellSize;
         readonly float deckHeight;
+        readonly Vector3 origin;
 
         /// <summary>Vertical distance is weighted this much more than horizontal in nearest-node searches, so a car under a bridge never snaps onto it.</summary>
         const float VerticalPenalty = 3f;
 
-        public RoadGraph(float cellSize, float deckHeight = 0f)
+        /// <param name="origin">World position of the city root the chunks hang off. Cell (0,0) starts here.</param>
+        public RoadGraph(float cellSize, float deckHeight = 0f, Vector3 origin = default)
         {
             this.cellSize = cellSize;
             this.deckHeight = deckHeight;
+            this.origin = origin;
         }
 
         public int Count => nodes.Count;
@@ -130,10 +143,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public bool IsFlatGround(RoadNode node) => node.Level == 0 && nodes.TryGetValue(node, out RoadNodeData data) && !data.IsRamp;
 
         public Vector2Int WorldToCell(Vector3 position) =>
-            new(Mathf.FloorToInt(position.x / cellSize), Mathf.FloorToInt(position.z / cellSize));
+            new(Mathf.FloorToInt((position.x - origin.x) / cellSize),
+                Mathf.FloorToInt((position.z - origin.z) / cellSize));
 
+        // Heights (deck, ramp step) are offsets from the city root, so the
+        // root's own Y rides along with the horizontal offset.
         Vector3 CellCenterAt(Vector2Int cell, float height) =>
-            new((cell.x + 0.5f) * cellSize, height, (cell.y + 0.5f) * cellSize);
+            origin + new Vector3((cell.x + 0.5f) * cellSize, height, (cell.y + 0.5f) * cellSize);
 
         /// <summary>
         /// The node under a world position: the level whose surface height is

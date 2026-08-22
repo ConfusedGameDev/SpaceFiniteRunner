@@ -135,7 +135,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             settings.PrepareSeedForRecalculate();
 
             Clear();
-            Graph = new RoadGraph(settings.cellSize, DeckWorldHeight);
+
+            // The grid model is axis-aligned and unscaled: cell size is in
+            // world metres and the clearance boxes are world-axis boxes. A
+            // moved root is fine (the graph is built around it), a turned or
+            // scaled one is not, and the failure is silent — so say so.
+            if (transform.rotation != Quaternion.identity || transform.localScale != Vector3.one)
+                Debug.LogWarning($"CityManager: the city root is rotated or scaled ({transform.rotation.eulerAngles}, " +
+                                 $"{transform.localScale}). The road graph and cell clearance checks assume an " +
+                                 "axis-aligned, unscaled root — move it if you need to, but leave rotation and scale alone.", this);
+
+            // The graph hands out world positions cars drive to, and chunks are
+            // children of this transform — so it has to start where they do.
+            Graph = new RoadGraph(settings.cellSize, DeckWorldHeight, transform.position);
             int half = settings.initialCitySizeInChunks / 2;
             int size = settings.initialCitySizeInChunks;
             for (int cy = -half; cy < size - half; cy++)
