@@ -51,6 +51,7 @@ namespace FiniteRunner
         MenuScreen mainScreen;
         MenuScreen settingsScreen;
         MenuScreen cheatsScreen;
+        CheatConsole cheatConsole;
         MenuScreen creditsScreen;
         MenuScreen exitScreen;
         MenuScreen current;
@@ -182,6 +183,17 @@ namespace FiniteRunner
 
         void UpdateNavigation(float dt)
         {
+            // The cheats page reads raw presses instead of navigating: it has
+            // no rows, and letting the d-pad drive both a (no-op) focus move
+            // and a cheat token would double every blip. Only Back survives —
+            // which is exactly why B / Esc can never appear in a code.
+            if (current == cheatsScreen && cheatConsole != null)
+            {
+                cheatConsole.CaptureTick();
+                if (MenuNavigator.BackPressed()) Back();
+                return;
+            }
+
             int vertical = nav.StepVertical(dt);
             if (vertical != 0)
             {
@@ -454,15 +466,22 @@ namespace FiniteRunner
         // Shared with the pause menu, so the two settings pages never drift.
         void BuildSettings() => settingsScreen = MenuScreenFactory.BuildSettings(root, theme);
 
+        // The page has no rows on purpose: every press on it is a cheat
+        // token, so a focus list would be competing for the same buttons.
+        // Only Back stays reserved, which is why B / Esc can never appear in
+        // a code (see CheatButton / CheatKey).
         void BuildCheats()
         {
-            // Intentionally empty. Rows can be added with AddRow<> exactly like
-            // Settings does — the navigation code needs no changes for them.
             cheatsScreen = MenuScreen.Create("CheatsScreen", root, theme, 0f, 100f);
             cheatsScreen.SetTitle(MenuTextId.Cheats);
-            cheatsScreen.AddLabel("Placeholder", new Vector2(0f, 20f), new Vector2(900f, 60f),
-                                  MenuTextId.NothingHereYet, 34, theme.TextDim, theme.BodyFont,
-                                  TextAnchor.MiddleCenter, theme.TitleLead);
+
+            cheatConsole = CheatConsole.Create(cheatsScreen, theme);
+            cheatConsole.TokenPushed += () =>
+            {
+                Blip(theme.MoveClip);
+                HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
+            };
+            cheatConsole.CheatRevealed += _ => Blip(theme.ConfirmClip);
         }
 
         void BuildCredits()

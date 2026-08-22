@@ -61,6 +61,14 @@ namespace FiniteRunner
 
         public RectTransform Root => root;
         public bool Visible => phase != Phase.Hidden;
+
+        /// <summary>
+        /// True once the page has finished arriving and nothing is animating
+        /// its root. Effects that write <see cref="Root"/> directly (the
+        /// cheats console's screen shake) check this so they never fight a
+        /// slide transition for the same property.
+        /// </summary>
+        public bool Interactive => phase == Phase.Shown;
         public IReadOnlyList<MenuRow> Rows => rows;
         public MenuRow Focused => focus >= 0 && focus < rows.Count ? rows[focus] : null;
 
@@ -192,6 +200,14 @@ namespace FiniteRunner
             LocalizedLabel.Bind(text, id);
             return text;
         }
+
+        /// <summary>
+        /// Enrolls an arbitrary widget in the page's staggered entrance, for
+        /// content built outside <see cref="AddRow{T}"/> / <see cref="AddLabel(string, Vector2, Vector2, string, int, Color, Font, TextAnchor, float)"/>
+        /// — the cheats console, which builds its own sub-tree.
+        /// </summary>
+        public void AddEntranceItem(RectTransform rect, CanvasGroup itemGroup, float delay)
+            => AddEntranceItem(rect, itemGroup, null, delay);
 
         /// <summary>Shows the screen. <paramref name="staggered"/> plays the slow item-by-item entrance.</summary>
         public void Show(bool staggered)

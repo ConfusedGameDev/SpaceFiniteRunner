@@ -20,15 +20,67 @@ MonoBehaviour:
   sliderFill: {fileID: 21300000, guid: 3d658e5ed19844d5498518e497b0df0a, type: 3}
   toggleBox: {fileID: 21300000, guid: db5084dcddbce4189a4e257530c218f7, type: 3}
   selectionMarker: {fileID: 21300000, guid: d63de7b3b21b242b796d9defd7a9b5c0, type: 3}
-  glyphConfirm: {fileID: 21300000, guid: dfe23cc467b4d9044822194b3c6473df, type: 3}
-  glyphBack: {fileID: 21300000, guid: da634deeda298154083c7047443c947c, type: 3}
-  glyphNavigate: {fileID: 21300000, guid: 723482a838f1a314899d27609d021519, type: 3}
-  glyphAdjust: {fileID: 21300000, guid: 7d774c45743f92d4da07887e72b2cbfe, type: 3}
-  glyphStart: {fileID: 21300000, guid: 0fee7badf73365447874bfd88bda357e, type: 3}
-  glyphBumperLeft: {fileID: 21300000, guid: bb4fca19ea4a47641836e03a3420c480, type: 3}
-  glyphBumperRight: {fileID: 21300000, guid: 3d3f11b6a53fc104a8630ea0237f2827, type: 3}
+  glyphConfirm: {fileID: -7956427973557797689, guid: dfe23cc467b4d9044822194b3c6473df, type: 3}
+  glyphBack: {fileID: 643402748272714948, guid: da634deeda298154083c7047443c947c, type: 3}
+  glyphNavigate: {fileID: 2359391360792562025, guid: 723482a838f1a314899d27609d021519, type: 3}
+  glyphAdjust: {fileID: -5985726356368612277, guid: 7d774c45743f92d4da07887e72b2cbfe, type: 3}
+  glyphStart: {fileID: -8211830279039031973, guid: 0fee7badf73365447874bfd88bda357e, type: 3}
+  glyphBumperLeft: {fileID: 2267800731179639549, guid: bb4fca19ea4a47641836e03a3420c480, type: 3}
+  glyphBumperRight: {fileID: 4249578791139060025, guid: 3d3f11b6a53fc104a8630ea0237f2827, type: 3}
+  backdrop: {r: 0.03, g: 0.04, b: 0.07, a: 0.97}
+  accent: {r: 1, g: 0.29, b: 0.16, a: 1}
+  textPrimary: {r: 1, g: 1, b: 1, a: 1}
+  textDim: {r: 0.62, g: 0.66, b: 0.74, a: 1}
+  plateIdle: {r: 1, g: 1, b: 1, a: 0.35}
+  plateFocused: {r: 1, g: 1, b: 1, a: 1}
+  rowWidth: 620
+  rowHeight: 86
+  rowSpacing: 18
+  mainColumnX: -430
+  entranceDuration: 0.8
+  entranceSlide: 120
+  entranceStagger: 0.06
+  titleLead: 0.12
+  entranceCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 2.2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  focusEaseSeconds: 0.15
+  focusScale: 1.06
+  unfocusedAlpha: 0.75
+  screenTransition: 0.35
+  screenSlide: 520
+  attractPulseSeconds: 1.6
+  attractPulseAlpha: {x: 0.35, y: 1}
+  stickDeadZone: 0.5
+  repeatDelay: 0.45
+  repeatInterval: 0.12
+  inputGrace: 0.3
   mixer: {fileID: 24100000, guid: 5c8a24d1f0b74e2ab6d3915c47e0a8f3, type: 2}
   uiOutput: {fileID: 24300006, guid: 5c8a24d1f0b74e2ab6d3915c47e0a8f3, type: 2}
   moveClip: {fileID: 0}
   confirmClip: {fileID: 0}
   backClip: {fileID: 0}
+  uiVolume: 0.8
+  moveRumble: 0.12
+  confirmRumble: 0.4

@@ -41,7 +41,8 @@ namespace FiniteRunner
         PoliceDetection, PoliceLoseSight, PoliceSearchTime,
         PolicePatrolSpeed, PoliceChaseSpeed, PoliceCornerSpeed,
         DebugTabLevel,
-        ObjectiveReachSpeed, ObjectiveEscapePolice, ObjectiveGoTo, ObjectiveSurvive
+        ObjectiveReachSpeed, ObjectiveEscapePolice, ObjectiveGoTo, ObjectiveSurvive,
+        CheatEnterCode, CheatUnlocked
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -123,6 +124,11 @@ namespace FiniteRunner
         [SerializeField] LocalizedString yes = new("YES", "SÍ", "はい", "OUI");
         [TitleGroup("Screens")]
         [SerializeField] LocalizedString no = new("NO", "NO", "いいえ", "NON");
+
+        [TitleGroup("Cheats page")]
+        [SerializeField] LocalizedString cheatEnterCode = new("ENTER A CODE", "INTRODUCE UN CÓDIGO", "コードを入力", "ENTREZ UN CODE");
+        [TitleGroup("Cheats page")]
+        [SerializeField] LocalizedString cheatUnlocked = new("CHEAT UNLOCKED", "TRUCO DESBLOQUEADO", "チート解除", "TRICHE DÉBLOQUÉE");
 
         [TitleGroup("Attract prompt")]
         [SerializeField] LocalizedString pressEnter = new("PRESS ENTER", "PULSA ENTER", "ENTERキーを押してください", "APPUYEZ SUR ENTRÉE");
@@ -494,6 +500,8 @@ namespace FiniteRunner
             MenuTextId.ObjectiveEscapePolice => objectiveEscapePolice,
             MenuTextId.ObjectiveGoTo => objectiveGoTo,
             MenuTextId.ObjectiveSurvive => objectiveSurvive,
+            MenuTextId.CheatEnterCode => cheatEnterCode,
+            MenuTextId.CheatUnlocked => cheatUnlocked,
             _ => start
         };
     }
