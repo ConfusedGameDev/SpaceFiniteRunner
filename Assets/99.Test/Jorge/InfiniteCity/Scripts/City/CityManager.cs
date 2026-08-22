@@ -98,6 +98,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             // Generated content is never saved with the scene, so a play-mode
             // session always starts empty and rebuilds from seed + settings.
             if (!Application.isPlaying) return;
+            // Resolve the seed once, here, and never again: booting must not
+            // roll a new city, or every saved marker and route would be stale.
+            if (settings != null) ResolveSeed();
             Recalculate();
 
             // Police fleet: the manager is spawned, not scene-placed, so any
@@ -132,6 +135,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         // ------------------------------------------------------------- buttons
 
+        /// <summary>
+        /// Rebuild the city from the seed that is already in force. Pressing
+        /// this must never change the layout — the seed is the player's save
+        /// (see <see cref="CitySaveData"/>), so only
+        /// <see cref="GenerateNewCity"/> is allowed to roll a different one.
+        /// </summary>
         [TitleGroup("Actions")]
         [Button("Recalculate", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
         public void Recalculate()
@@ -141,10 +150,61 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 Debug.LogWarning("CityManager: assign a CityGenerationSettings asset first.");
                 return;
             }
+            Build();
+        }
 
-            // Fresh seed every press — unless a saved seed is locked in on the settings.
-            settings.PrepareSeedForRecalculate();
+        /// <summary>
+        /// Throw the current city away and roll a brand-new one, pinning it so
+        /// every future launch gets this city. The single destructive path: a
+        /// saved map marker placed in the old city no longer matches the stored
+        /// seed and is discarded rather than left pointing at a road that is
+        /// no longer there.
+        /// </summary>
+        [TitleGroup("Actions")]
+        [Button("Clear & Generate New City", ButtonSizes.Large), GUIColor(1f, 0.7f, 0.4f)]
+        public void GenerateNewCity()
+        {
+            if (settings == null)
+            {
+                Debug.LogWarning("CityManager: assign a CityGenerationSettings asset first.");
+                return;
+            }
+            ApplySeed(CitySaveData.RollNewSeed());
+            Build();
+        }
 
+        /// <summary>
+        /// Pick the seed this session runs on, once, before anything generates.
+        /// Precedence: the designer's lock on the settings asset wins (it is an
+        /// explicit authoring choice), then the player's pinned city, and only
+        /// a machine that has never generated one rolls — and immediately pins —
+        /// a fresh seed.
+        /// </summary>
+        void ResolveSeed()
+        {
+            int resolved = settings.useSavedSeed && settings.HasSavedSeeds
+                ? settings.savedSeed
+                : CitySaveData.HasSeed ? CitySaveData.Seed : CitySaveData.RollNewSeed();
+            ApplySeed(resolved);
+        }
+
+        /// <summary>
+        /// Push the seed at the settings asset, but only when it actually
+        /// changes. Assigning a ScriptableObject field dirties the asset, and
+        /// an unconditional write on every Awake is what used to leave
+        /// CityTestSettings.asset showing up modified in source control after
+        /// each play session. Writing only on a real change means the file
+        /// settles after the first run and stays put.
+        /// </summary>
+        void ApplySeed(int seed)
+        {
+            if (settings.globalSeed == seed) return;
+            settings.globalSeed = seed;
+        }
+
+        /// <summary>Clear and regenerate everything from <see cref="CityGenerationSettings.globalSeed"/> as it currently stands.</summary>
+        void Build()
+        {
             Clear();
 
             // The grid model is axis-aligned and unscaled: cell size is in

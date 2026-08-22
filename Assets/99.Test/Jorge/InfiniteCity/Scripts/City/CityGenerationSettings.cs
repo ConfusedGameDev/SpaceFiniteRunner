@@ -17,11 +17,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     {
         // ----------------------------------------------------------- seed/grid
         [TitleGroup("Seed & grid")]
-        [Tooltip("Master seed — every chunk derives its own RNG from this. Same seed = same city. Recalculate rolls a fresh one each press unless a saved seed is locked in below.")]
+        [Tooltip("Master seed — every chunk derives its own RNG from this. Same seed = same city. Play and Recalculate never change it: the seed in force is the player's pinned city (CitySaveData), or the saved seed below when locked. Use the CityManager's 'Clear & Generate New City' button to roll and pin a new one.")]
         public int globalSeed = 1;
 
         [TitleGroup("Seed & grid")]
-        [Tooltip("Lock generation to the saved seed picked below instead of rolling a fresh one on every Recalculate.")]
+        [Tooltip("Author-time override: lock generation to the saved seed picked below, ignoring the player's pinned city. Leave off for normal play.")]
         [ShowIf(nameof(HasSavedSeeds))]
         public bool useSavedSeed;
 
@@ -38,16 +38,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public List<int> savedSeeds = new();
 
         public bool HasSavedSeeds => savedSeeds != null && savedSeeds.Count > 0;
-
-        /// <summary>
-        /// Called by CityManager right before generating: every Recalculate gets
-        /// a fresh random seed, unless a saved seed is locked in via the dropdown.
-        /// </summary>
-        public void PrepareSeedForRecalculate()
-        {
-            if (useSavedSeed && HasSavedSeeds) globalSeed = savedSeed;
-            else RandomizeSeed();
-        }
 
         [TitleGroup("Seed & grid")]
         [Tooltip("Side length of one grid cell in meters — should match the road piece footprint. Use 'Measure Cell Size' below to read it off the assigned pieces.")]
@@ -253,7 +243,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         // ------------------------------------------------------------- buttons
         [TitleGroup("Actions")]
-        [Button("Randomize Seed", ButtonSizes.Medium)]
+        /// <summary>
+        /// Author-time seed shuffling for previewing layouts. It does NOT pin
+        /// the result — the player's city is only changed by the CityManager's
+        /// "Clear &amp; Generate New City" button, which writes through to
+        /// <see cref="CitySaveData"/>. Press Recalculate after this to see the
+        /// rolled layout, and note the next Play reverts to the pinned city.
+        /// </summary>
+        [Button("Randomize Seed (preview only)", ButtonSizes.Medium)]
+        [Tooltip("Rolls a seed for previewing layouts in the editor. Does not pin it — use the CityManager's 'Clear & Generate New City' to actually change the player's city.")]
         void RandomizeSeed()
         {
             globalSeed = Random.Range(int.MinValue / 2, int.MaxValue / 2);
@@ -262,7 +260,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         [TitleGroup("Actions")]
         [Button("Save Current Seed", ButtonSizes.Medium)]
-        [Tooltip("Keep the current seed in the saved list (and select it in the dropdown) so a layout you like can be locked in and recalled later.")]
+        [Tooltip("Keep the current seed in the saved list (and select it in the dropdown) so a layout you like can be locked in and recalled later. Locking needs 'Use Saved Seed' ticked above.")]
         void SaveCurrentSeed()
         {
             savedSeeds ??= new List<int>();

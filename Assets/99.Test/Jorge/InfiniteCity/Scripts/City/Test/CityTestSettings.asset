@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e3bfe90a7e2c2e498d40e8d5f2a5eb2, type: 3}
   m_Name: CityTestSettings
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.City.CityGenerationSettings
-  globalSeed: 678078637
+  globalSeed: 837973496
   useSavedSeed: 0
   savedSeed: 130284619
   savedSeeds: f576bad64bfcc307i
