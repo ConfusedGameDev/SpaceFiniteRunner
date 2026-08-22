@@ -34,6 +34,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         RectTransform playerArrow;
         Sprite circleSprite;
         readonly List<Image> blips = new();
+        readonly List<Image> routeDots = new();
+        RectTransform routeRoot;
         readonly List<PoliceCarInput> police = new();
         CarController player;
         float refreshTimer;
@@ -54,6 +56,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             if (!visible) return;
 
             UpdateCamera();
+            UpdateRoute();
             UpdateBlips();
         }
 
@@ -107,6 +110,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             map.raycastTarget = false;
             CenterRect(map.rectTransform, new Vector2(size, size));
 
+            routeRoot = CreateRect("Route", maskImage.transform, new Vector2(size, size));
             blipRoot = CreateRect("Blips", maskImage.transform, new Vector2(size, size));
 
             Image arrow = CreateImage("PlayerArrow", maskImage.transform, CreateArrowSprite(64), settings.playerColor,
@@ -193,6 +197,77 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 blip.enabled = true;
             }
             for (int i = used; i < blips.Count; i++) blips[i].enabled = false;
+        }
+
+        /// <summary>
+        /// Draw the map's route as a dotted line on the radar, using exactly
+        /// the same projection as the police blips — the route has to sit on
+        /// the streets under it, so it must rotate with the map and clamp to
+        /// the rim the same way. Read from the shared
+        /// <see cref="MapRoute.Current"/>, so the radar never needs a reference
+        /// to the map screen (which only exists while it is open).
+        ///
+        /// Dots are resampled at a fixed spacing in metres rather than one per
+        /// path node: nodes are one per cell, so at radar scale they would
+        /// bunch into a blob, and a long route would spawn hundreds of images.
+        /// </summary>
+        void UpdateRoute()
+        {
+            MapRoute route = MapRoute.Current;
+            int used = 0;
+
+            if (route != null && route.HasRoute)
+            {
+                float uiRadius = settings.sizePixels * 0.5f;
+                float scale = uiRadius / Mathf.Max(1f, settings.viewRadius);
+                float maxRadius = uiRadius * 0.92f;
+
+                Vector3 forward = settings.rotateWithPlayer ? player.transform.forward : Vector3.forward;
+                forward.y = 0f;
+                forward = forward.sqrMagnitude > 0.001f ? forward.normalized : Vector3.forward;
+                Vector3 right = new(forward.z, 0f, -forward.x);
+                Vector3 origin = player.transform.position;
+
+                float spacing = Mathf.Max(1f, settings.routeDotSpacing);
+                IReadOnlyList<Vector3> points = route.Points;
+                float carry = 0f;
+
+                for (int i = 1; i < points.Count && used < settings.routeMaxDots; i++)
+                {
+                    Vector3 a = points[i - 1];
+                    Vector3 b = points[i];
+                    Vector3 segment = b - a;
+                    segment.y = 0f;
+                    float length = segment.magnitude;
+                    if (length < 0.0001f) continue;
+                    Vector3 step = segment / length;
+
+                    for (float travelled = carry; travelled < length && used < settings.routeMaxDots; travelled += spacing)
+                    {
+                        Vector3 world = a + step * travelled;
+                        Vector3 delta = world - origin;
+                        var position = new Vector2(Vector3.Dot(delta, right), Vector3.Dot(delta, forward)) * scale;
+                        if (position.sqrMagnitude > maxRadius * maxRadius) continue;   // off-radar, skip rather than pile on the rim
+
+                        Image dot = GetRouteDot(used++);
+                        dot.rectTransform.anchoredPosition = position;
+                        dot.rectTransform.sizeDelta = new Vector2(settings.routeDotSize, settings.routeDotSize);
+                        dot.color = settings.routeColor;
+                        dot.enabled = true;
+                    }
+                    carry = Mathf.Repeat(carry - length, spacing);
+                }
+            }
+
+            for (int i = used; i < routeDots.Count; i++) routeDots[i].enabled = false;
+        }
+
+        Image GetRouteDot(int index)
+        {
+            while (routeDots.Count <= index)
+                routeDots.Add(CreateImage($"Route_{routeDots.Count}", routeRoot, circleSprite, Color.white,
+                    new Vector2(settings.routeDotSize, settings.routeDotSize)));
+            return routeDots[index];
         }
 
         Image GetBlip(int index)

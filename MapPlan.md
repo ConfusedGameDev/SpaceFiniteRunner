@@ -55,7 +55,19 @@ M3 [x] DONE - Implement the Point marker system (should persist trough sessions)
       pointing at a junction that no longer exists.
     - Also fixed: the map's cached chunk data is rebuilt when the city is regenerated.
 
-M4 Implement the Navigation system make sure that it is visible in both map and mini map 
+M4 [x] DONE - Implement the Navigation system make sure that it is visible in both map and mini map
+    - Routes over the MAP's own road graph, not CityManager.Graph: that one only holds streamed
+      chunks, so it does not even contain the far end of the city. The corridor between car and
+      marker is generated first, then A* runs.
+    - RoadGraph.TryFindPath upgraded from a linear-scan open list to a binary heap. The old one was
+      fine for short police chases but quadratic across town; a 1575 m route over a 31,888-node
+      graph now paths in ~0.8 ms. The police AI gets the same speedup for free.
+    - Bounded: a marker beyond the corridor budget reports NO ROUTE - TOO FAR rather than stalling.
+    - Drawn on the FULL MAP as route-coloured cells in the schematic (so it scales with zoom for free)
+      and on the MINIMAP as pooled dots, resampled at a fixed metre spacing and projected with exactly
+      the same maths as the police blips, so it rotates and rim-clamps like everything else there.
+    - Route lives on a shared MapRoute.Current, so the minimap needs no reference to the map screen
+      and the route survives closing the map - which is the point, since you close it to drive.
 
 
 IMPLEMENT MILESTONE BY MILESTONE AND MARK THEM AS COMPLETE IN THIS MAPPLAN.md file

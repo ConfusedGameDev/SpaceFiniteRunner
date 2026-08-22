@@ -67,6 +67,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         Vector3 viewCenterWorld;      // world point at the middle of the viewport
         float pixelsPerCell;
         int modelSeed;                // city the cached chunk data belongs to
+
+        // Routing. A route long enough to cross the city is still bounded —
+        // both by how much city may be generated for it and by the search.
+        const int RouteMaxExpansions = 200_000;
+        const int MaxCorridorChunks = 121;      // an 11x11 chunk slab, ~10 km at the live cell size
+
+        readonly MapRoute route = new();
+        readonly List<RoadNode> pathBuffer = new();
+        readonly List<Vector2Int> routeCells = new();
+        readonly List<Vector3> routePoints = new();
+        bool routeFailed;
+        bool routeDirty;
+        Vector2Int lastRouteCell;
         bool built;
         bool open;
         float openedTime;
@@ -100,6 +113,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             if (city == null) city = FindAnyObjectByType<CityManager>();
             if (city == null || city.settings == null) return;
             if (!built) Build();
+            // Build is one-shot; if anything in it failed the screen has no
+            // model to draw and must stay out of the way rather than throw
+            // every frame.
+            if (model == null || renderer == null) return;
 
             if (!open)
             {
@@ -123,6 +140,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             }
 
             RefreshTargets();
+            MaintainRoute();
             UpdateSchematic();
             UpdateIcons();
             UpdateMissions();
@@ -138,6 +156,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
         void Open()
         {
+            if (!built || model == null) return;   // nothing to show yet
             open = true;
             IsOpen = true;
             openedTime = Time.unscaledTime;
@@ -177,7 +196,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             {
                 model.Clear();
                 renderer.Release();
-                MapRoute.ClearCurrent();
+                ClearRoute();
                 modelSeed = seed;
             }
             MapMarkerStore.DiscardIfForeign(seed);
@@ -315,12 +334,121 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             Vector3 markerWorld = model.CellToWorld(MapMarkerStore.Cell);
             Vector3 delta = markerWorld - player.transform.position;
             float straight = new Vector2(delta.x, delta.z).magnitude;
-            return $"MARKER  {straight:0} M";
+            return route.HasRoute
+                ? $"MARKER  {straight:0} M      ROUTE  {route.LengthMeters:0} M"
+                : $"MARKER  {straight:0} M";
         }
 
-        void ClearRoute() { }      // M4
+        /// <summary>
+        /// Keep the route in step with the car without pathing every frame:
+        /// only when there is a marker and either no route yet or the car has
+        /// moved to a different cell since the last one was built.
+        /// </summary>
+        void MaintainRoute()
+        {
+            if (!MapMarkerStore.HasMarker)
+            {
+                if (route.HasRoute) ClearRoute();
+                return;
+            }
+            if (player == null) return;
 
-        void RebuildRoute() { }    // M4
+            Vector2Int cell = model.WorldToCell(player.transform.position);
+            if (route.HasRoute && cell == lastRouteCell) return;
+            if (routeFailed && cell == lastRouteCell) return;
+
+            lastRouteCell = cell;
+            RebuildRoute();
+        }
+
+        // -------------------------------------------------------------- route
+
+        void ClearRoute()
+        {
+            route.Clear();
+            routeFailed = false;
+            routeDirty = true;
+        }
+
+        /// <summary>
+        /// Path from the car to the marker over the map's own graph.
+        ///
+        /// It cannot use <see cref="CityManager.Graph"/>: that only holds
+        /// streamed chunks, so it does not even contain the marker's end of the
+        /// city. Instead the corridor between the two is generated first (the
+        /// chunk bounding box, inflated by a chunk so the route can bend around
+        /// obstacles), then A* runs over <see cref="CityMapModel.Graph"/>.
+        /// </summary>
+        void RebuildRoute()
+        {
+            routeFailed = false;
+            if (!MapMarkerStore.HasMarker || player == null)
+            {
+                route.Clear();
+                return;
+            }
+
+            Vector3 from = player.transform.position;
+            Vector3 to = model.CellToWorld(MapMarkerStore.Cell);
+
+            if (!EnsureCorridor(from, to))
+            {
+                route.Clear();
+                routeFailed = true;
+                return;
+            }
+
+            RoadGraph graph = model.Graph;
+            if (!TryGetNodeOn(graph, from, out RoadNode start) ||
+                !TryGetNodeOn(graph, to, out RoadNode goal) ||
+                !graph.TryFindPath(start, goal, pathBuffer, RouteMaxExpansions))
+            {
+                route.Clear();
+                routeFailed = true;
+                return;
+            }
+
+            routeCells.Clear();
+            routePoints.Clear();
+            foreach (RoadNode node in pathBuffer)
+            {
+                routeCells.Add(node.Cell);
+                routePoints.Add(graph.Center(node));
+            }
+            route.Set(routeCells, routePoints);
+            routeDirty = true;
+        }
+
+        /// <summary>
+        /// Generate every chunk between the car and the marker before pathing —
+        /// A* can only route through data that exists. Bounded: a marker on the
+        /// far side of the world would otherwise mean generating an unbounded
+        /// slab of city in one frame, so beyond the budget the route is simply
+        /// reported as too far.
+        /// </summary>
+        bool EnsureCorridor(Vector3 from, Vector3 to)
+        {
+            Vector2Int a = model.CellToChunk(model.WorldToCell(from));
+            Vector2Int b = model.CellToChunk(model.WorldToCell(to));
+
+            var window = new RectInt(
+                Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y),
+                Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
+
+            int wide = window.width + 1 + settings.chunkMargin * 2;
+            int high = window.height + 1 + settings.chunkMargin * 2;
+            if (wide * high > MaxCorridorChunks) return false;
+
+            model.EnsureArea(window, settings.chunkMargin);
+            // Route generation is a one-off on marker placement, so it drains
+            // the queue in full rather than trickling like the pan does.
+            while (model.PendingCount > 0) model.Pump(64, settings.chunkCacheSize);
+            return true;
+        }
+
+        /// <summary>The node a world position sits on, falling back to the nearest. Same rule PoliceCarInput uses.</summary>
+        static bool TryGetNodeOn(RoadGraph graph, Vector3 position, out RoadNode node) =>
+            graph.TryGetNodeAt(position, out node) || graph.TryGetNearestNode(position, out node);
 
         Vector2 ReadPanAxis()
         {
@@ -354,8 +482,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             model.EnsureArea(chunkWindow, settings.chunkMargin);
             bool grew = model.Pump(settings.chunksPerFrame, settings.chunkCacheSize);
 
-            if (grew || renderer.NeedsRepaint(cellWindow))
-                renderer.Paint(model, cellWindow, MapRoute.Current, MarkerCell());
+            if (grew || routeDirty || renderer.NeedsRepaint(cellWindow))
+            {
+                renderer.Paint(model, cellWindow, route, MarkerCell());
+                routeDirty = false;
+            }
 
             schematic.texture = renderer.Texture;
 
@@ -440,6 +571,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             int pending = model.PendingCount;
             if (pending > 0) statusLabel.text = $"MAPPING… {pending}";
             else if (!hasPlayer) statusLabel.text = "NO VEHICLE";
+            else if (routeFailed) statusLabel.text = "NO ROUTE — TOO FAR";
             else if (hasMarker) statusLabel.text = MarkerStatusText();
             else statusLabel.text = string.Empty;
         }
@@ -503,16 +635,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             modelSeed = city.settings.globalSeed;
             pixelsPerCell = settings.ClampZoom(settings.defaultPixelsPerCell);
 
-            canvas = gameObject.AddComponent<Canvas>();
+            canvas = gameObject.GetComponent<Canvas>();
+            if (canvas == null) canvas = gameObject.AddComponent<Canvas>();
             gameObject.layer = UiLayer;
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = SortingOrder;
 
-            var scaler = gameObject.AddComponent<CanvasScaler>();
+            var scaler = gameObject.GetComponent<CanvasScaler>();
+            if (scaler == null) scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
-            gameObject.AddComponent<GraphicRaycaster>();
+            if (gameObject.GetComponent<GraphicRaycaster>() == null) gameObject.AddComponent<GraphicRaycaster>();
 
             panel = new GameObject("Panel", typeof(RectTransform));
             var panelRect = (RectTransform)panel.transform;

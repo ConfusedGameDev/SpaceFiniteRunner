@@ -225,9 +225,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// A* route over the road network, start and goal included in the
         /// result. Neighbours come from <see cref="TryGetNeighbour"/>, Manhattan
         /// heuristic on the cell grid (uniform cell cost, level changes are
-        /// free — still admissible). The open list uses linear min extraction —
-        /// city-sized searches are a few hundred nodes, so clarity wins over a
-        /// heap until profiling says otherwise.
+        /// free — still admissible).
+        ///
+        /// The open set is a binary heap plus a membership set. It used to be a
+        /// plain List with linear extract-min and an O(n) Contains, on the
+        /// reasoning that chase routes are only a few hundred nodes — true for
+        /// the AI, but the city map routes right across town over a graph of
+        /// tens of thousands of nodes, where that quadratic behaviour is the
+        /// difference between instant and a visible stall. The AI gets the
+        /// speedup for free; the results are identical either way.
         /// </summary>
         public bool TryFindPath(RoadNode start, RoadNode goal, List<RoadNode> path, int maxExpansions = 8192)
         {
@@ -239,26 +245,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 return true;
             }
 
-            var open = new List<RoadNode> { start };
+            var open = new MinHeap();
+            var closed = new HashSet<RoadNode>();
             var cameFrom = new Dictionary<RoadNode, RoadNode>();
             var gScore = new Dictionary<RoadNode, int> { [start] = 0 };
+
+            open.Push(start, Heuristic(start, goal));
 
             int expansions = 0;
             while (open.Count > 0 && expansions++ < maxExpansions)
             {
-                // Linear extract-min on f = g + h.
-                int bestIndex = 0;
-                int bestF = int.MaxValue;
-                for (int i = 0; i < open.Count; i++)
-                {
-                    int f = gScore[open[i]] + Heuristic(open[i], goal);
-                    if (f >= bestF) continue;
-                    bestF = f;
-                    bestIndex = i;
-                }
+                RoadNode current = open.Pop();
 
-                RoadNode current = open[bestIndex];
-                open.RemoveAt(bestIndex);
+                // A node can be queued more than once with different scores;
+                // the first pop is the cheapest, so later ones are stale.
+                if (!closed.Add(current)) continue;
+
                 if (current == goal)
                 {
                     Reconstruct(cameFrom, current, path);
@@ -268,15 +270,73 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 for (int dir = 0; dir < 4; dir++)
                 {
                     if (!TryGetNeighbour(current, dir, out RoadNode neighbour)) continue;
+                    if (closed.Contains(neighbour)) continue;
 
                     int tentative = gScore[current] + 1;
                     if (gScore.TryGetValue(neighbour, out int known) && tentative >= known) continue;
                     cameFrom[neighbour] = current;
                     gScore[neighbour] = tentative;
-                    if (!open.Contains(neighbour)) open.Add(neighbour);
+                    open.Push(neighbour, tentative + Heuristic(neighbour, goal));
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Minimal binary min-heap over (node, f). Only what A* needs — no
+        /// decrease-key: a cheaper route to a node is pushed again and the
+        /// stale entry is skipped when popped, which is smaller and faster than
+        /// maintaining handles.
+        /// </summary>
+        class MinHeap
+        {
+            readonly List<RoadNode> nodes = new();
+            readonly List<int> scores = new();
+
+            public int Count => nodes.Count;
+
+            public void Push(RoadNode node, int score)
+            {
+                nodes.Add(node);
+                scores.Add(score);
+                int child = nodes.Count - 1;
+                while (child > 0)
+                {
+                    int parent = (child - 1) / 2;
+                    if (scores[parent] <= scores[child]) break;
+                    Swap(parent, child);
+                    child = parent;
+                }
+            }
+
+            public RoadNode Pop()
+            {
+                RoadNode top = nodes[0];
+                int last = nodes.Count - 1;
+                nodes[0] = nodes[last];
+                scores[0] = scores[last];
+                nodes.RemoveAt(last);
+                scores.RemoveAt(last);
+
+                int parent = 0;
+                while (true)
+                {
+                    int left = parent * 2 + 1;
+                    if (left >= nodes.Count) break;
+                    int right = left + 1;
+                    int smallest = right < nodes.Count && scores[right] < scores[left] ? right : left;
+                    if (scores[parent] <= scores[smallest]) break;
+                    Swap(parent, smallest);
+                    parent = smallest;
+                }
+                return top;
+            }
+
+            void Swap(int a, int b)
+            {
+                (nodes[a], nodes[b]) = (nodes[b], nodes[a]);
+                (scores[a], scores[b]) = (scores[b], scores[a]);
+            }
         }
 
         static int Heuristic(RoadNode a, RoadNode b) =>

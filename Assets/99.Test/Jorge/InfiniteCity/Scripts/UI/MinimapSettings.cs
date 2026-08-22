@@ -56,6 +56,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         [Tooltip("Radar background where nothing is rendered (beyond the city).")]
         public Color backgroundColor = new(0.06f, 0.07f, 0.08f, 1f);
 
+        // --------------------------------------------------------------- route
+        [TitleGroup("Route")]
+        [Tooltip("Colour of the map route drawn on the radar. The route is set on the full-screen map and followed while driving.")]
+        public Color routeColor = new(0.35f, 1f, 0.6f, 0.95f);
+
+        [TitleGroup("Route")]
+        [Tooltip("Size of each route dot on the radar.")]
+        [PropertyRange(2f, 20f), SuffixLabel("px", true)]
+        public float routeDotSize = 7f;
+
+        [TitleGroup("Route")]
+        [Tooltip("Spacing between route dots along the path, in meters. Lower = a more solid line, at the cost of more dots.")]
+        [PropertyRange(2f, 60f), SuffixLabel("m", true)]
+        public float routeDotSpacing = 12f;
+
+        [TitleGroup("Route")]
+        [Tooltip("Most route dots drawn at once — the cap that keeps a cross-city route from flooding the radar.")]
+        [PropertyRange(10, 400)]
+        public int routeMaxDots = 160;
+
         // --------------------------------------------------------------- blips
         [TitleGroup("Blips")]
         [Tooltip("Player arrow color.")]
