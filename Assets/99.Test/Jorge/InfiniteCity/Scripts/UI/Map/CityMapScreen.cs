@@ -165,7 +165,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             panel.SetActive(true);
             Gamepad.current?.ResetHaptics();
 
-            pixelsPerCell = settings.ClampZoom(settings.defaultPixelsPerCell);
+            pixelsPerCell = ClampZoomSustainable(settings.defaultPixelsPerCell);
             // The city can be regenerated under us ("Clear & Generate New
             // City"), and cached chunk data is only valid for the seed it was
             // generated from — so both the schematic and the marker are
@@ -242,7 +242,32 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             if (Mathf.Abs(step) < 0.0001f) return;
 
             // Multiplicative, so each notch feels the same at every zoom level.
-            pixelsPerCell = settings.ClampZoom(pixelsPerCell * Mathf.Pow(settings.zoomSpeed, step));
+            pixelsPerCell = ClampZoomSustainable(pixelsPerCell * Mathf.Pow(settings.zoomSpeed, step));
+        }
+
+        /// <summary>
+        /// The authored zoom clamp, plus the floor the system can actually
+        /// sustain: every chunk the viewport shows must stay in the model's
+        /// LRU cache. Past that point the cache evicts chunks that are still
+        /// on screen — they repaint as void, get re-queued, and the map
+        /// thrashes forever instead of settling. So the max zoom-out is
+        /// whichever is higher: the settings' minPixelsPerCell slider, or
+        /// what the settings' chunkCacheSize can hold. Raising the cache is
+        /// how a designer buys more zoom-out.
+        /// </summary>
+        float ClampZoomSustainable(float value)
+        {
+            float clamped = settings.ClampZoom(value);
+            if (model == null || mapViewport == null) return clamped;
+
+            Vector2 size = mapViewport.rect.size;
+            float cellsPerChunk = model.ChunkSizeInCells * (float)model.ChunkSizeInCells;
+            // 70% of the cache for the visible window — the rest is headroom
+            // for the chunkMargin ring and the route corridor, which share it.
+            float cacheCells = settings.chunkCacheSize * cellsPerChunk * 0.7f;
+            if (cacheCells <= 0f) return clamped;
+            float sustainableFloor = Mathf.Sqrt(size.x * size.y / cacheCells);
+            return Mathf.Max(clamped, sustainableFloor);
         }
 
         void HandlePan(float dt)
@@ -622,6 +647,33 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 missionRows.Add(row);
             }
             return missionRows[index];
+        }
+
+        // ------------------------------------------------------------ rebuild
+
+        /// <summary>
+        /// Tear the built UI down and build it again from the settings asset
+        /// as it stands now. Build() bakes much of the asset into the
+        /// hierarchy — panel width, backdrop colours, icon sprites and sizes,
+        /// viewport offsets — so slider tweaks on <see cref="CityMapSettings"/>
+        /// only show after this runs; the asset's own Rebuild Map button calls
+        /// it. If the map was open it comes straight back up, so tuning with
+        /// the map on screen is a one-click loop.
+        /// </summary>
+        public void Rebuild()
+        {
+            if (!built) return; // nothing built yet — the next Update builds fresh anyway
+            bool wasOpen = open;
+            if (wasOpen) Close();
+            renderer?.Release();
+            renderer = null;
+            model = null;
+            missionRows.Clear();
+            if (panel != null) Destroy(panel);
+            panel = null;
+            built = false;
+            Build();
+            if (wasOpen) Open();
         }
 
         // -------------------------------------------------------------- build

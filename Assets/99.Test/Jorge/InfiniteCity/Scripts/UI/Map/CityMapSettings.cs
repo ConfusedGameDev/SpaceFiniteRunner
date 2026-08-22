@@ -17,6 +17,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     [CreateAssetMenu(fileName = "CityMapSettings", menuName = "PoliceEscape/City Map Settings")]
     public class CityMapSettings : ScriptableObject
     {
+        // ------------------------------------------------------------- rebuild
+        /// <summary>
+        /// One-click iteration loop for this asset: it is InlineEditor-ed into
+        /// the spawned CityMapScreen, and the screen bakes these knobs into
+        /// its built hierarchy — so after dragging any slider this rebuilds
+        /// the live map right from where you are tuning. Play mode only: the
+        /// screen is spawned at play start by the CityManager.
+        /// </summary>
+        [Button("Rebuild Map", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
+        [PropertyOrder(-10)]
+        void RebuildMap()
+        {
+            var map = FindFirstObjectByType<CityMapScreen>();
+            if (map == null)
+            {
+                Debug.LogWarning("CityMapSettings: no CityMapScreen alive — it is spawned at play start by a CityManager with this asset wired.");
+                return;
+            }
+            map.Rebuild();
+        }
+
         // ------------------------------------------------------------- palette
         [TitleGroup("Palette")]
         [Tooltip("Behind everything — also what un-generated chunks read as, so keep it clearly 'nothing here'.")]
@@ -70,13 +91,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         public float defaultPixelsPerCell = 8f;
 
         [TitleGroup("Zoom")]
-        [Tooltip("Most zoomed OUT — smaller means more city on screen.")]
+        [Tooltip("Most zoomed OUT — the max zoom-out; smaller means more city on screen. The screen additionally clamps zoom-out so every visible chunk fits in the Schematic group's chunk cache — to actually reach low values here, raise Chunk Cache Size too.")]
         [PropertyRange(0.5f, 20f), SuffixLabel("px/cell", true)]
         public float minPixelsPerCell = 2f;
 
         [TitleGroup("Zoom")]
-        [Tooltip("Most zoomed IN.")]
-        [PropertyRange(2f, 80f), SuffixLabel("px/cell", true)]
+        [Tooltip("Most zoomed IN — the max zoom. Applies live, no rebuild needed. Safe to push high: zooming in shrinks the painted window, so big values cost nothing (unlike the zoom-out floor, which grows it).")]
+        [PropertyRange(2f, 200f), SuffixLabel("px/cell", true)]
         public float maxPixelsPerCell = 28f;
 
         [TitleGroup("Zoom")]
@@ -102,13 +123,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         public int chunkMargin = 1;
 
         [TitleGroup("Schematic")]
-        [Tooltip("How many chunks may be generated per frame. Generation is pure data (no GameObjects) but it is not free — this bounds the hitch.")]
-        [PropertyRange(1, 32)]
+        [Tooltip("How many chunks may be generated per frame. Generation is pure data (no GameObjects) but it is not free — this bounds the hitch. Raise it together with the cache size, or filling a far-zoom view takes seconds.")]
+        [PropertyRange(1, 64)]
         public int chunksPerFrame = 6;
 
         [TitleGroup("Schematic")]
-        [Tooltip("How many generated chunks stay cached before the least recently used ones are dropped.")]
-        [PropertyRange(16, 1024)]
+        [Tooltip("How many generated chunks stay cached before the least recently used ones are dropped. This is also the real max zoom-out: the screen refuses to zoom out past what fits in the cache, because evicting chunks that are still on screen would repaint them as void and thrash. ~13 KB per chunk.")]
+        [PropertyRange(16, 4096)]
         public int chunkCacheSize = 256;
 
         // -------------------------------------------------------------- layout

@@ -15,28 +15,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     [CreateAssetMenu(fileName = "CityGenerationSettings", menuName = "PoliceEscape/City Generation Settings")]
     public class CityGenerationSettings : ScriptableObject
     {
-        // -------------------------------------------------------------- rebuild
-        /// <summary>
-        /// One-click iteration loop for this asset: it is InlineEditor-ed into
-        /// the CityManager, so after dragging any slider the rebuild is right
-        /// here instead of down in the manager's Actions section. Same seed,
-        /// same rules as the manager's own Recalculate button — only the knobs
-        /// you changed alter the layout, and the player's pinned city is never
-        /// rerolled.
-        /// </summary>
-        [Button("Rebuild City", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
-        [PropertyOrder(-10)]
-        void RebuildCity()
-        {
-            var manager = FindFirstObjectByType<CityManager>();
-            if (manager == null)
-            {
-                Debug.LogWarning("CityGenerationSettings: no CityManager in the open scene — nothing to rebuild.");
-                return;
-            }
-            manager.Recalculate();
-        }
-
         // ----------------------------------------------------------- seed/grid
         [TitleGroup("Seed & grid")]
         [Tooltip("Master seed — every chunk derives its own RNG from this. Same seed = same city. Play and Recalculate never change it: the seed in force is the player's pinned city (CitySaveData), or the saved seed below when locked. Use the CityManager's 'Clear & Generate New City' button to roll and pin a new one.")]

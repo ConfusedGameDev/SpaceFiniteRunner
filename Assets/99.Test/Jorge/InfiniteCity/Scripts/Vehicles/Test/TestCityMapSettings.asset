@@ -12,27 +12,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b0cb5fb7ec0b4259a3c6d36c671da28, type: 3}
   m_Name: TestCityMapSettings
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.UI.CityMapSettings
-  backgroundColor: {r: 0.06, g: 0.07, b: 0.09, a: 1}
-  blockColor: {r: 0.13, g: 0.15, b: 0.19, a: 1}
-  roadColor: {r: 0.45, g: 0.48, b: 0.54, a: 1}
-  arterialColor: {r: 0.72, g: 0.76, b: 0.82, a: 1}
-  reservedColor: {r: 0.2, g: 0.22, b: 0.27, a: 1}
-  playerColor: {r: 0.4, g: 0.85, b: 1, a: 1}
+  backgroundColor: {r: 0, g: 0, b: 0, a: 1}
+  blockColor: {r: 0.4056604, g: 0.4056604, b: 0.4056604, a: 1}
+  roadColor: {r: 1, g: 1, b: 1, a: 1}
+  arterialColor: {r: 1, g: 1, b: 1, a: 1}
+  reservedColor: {r: 0, g: 0, b: 0, a: 1}
+  playerColor: {r: 0.14244394, g: 0.7231941, b: 0.9150943, a: 1}
   markerColor: {r: 1, g: 0.78, b: 0.25, a: 1}
   routeColor: {r: 0.35, g: 1, b: 0.6, a: 1}
-  cursorColor: {r: 1, g: 1, b: 1, a: 0.85}
-  playerIconSize: 26
-  markerIconSize: 26
-  defaultPixelsPerCell: 8
-  minPixelsPerCell: 2
-  maxPixelsPerCell: 28
-  zoomSpeed: 2.6
-  panSpeedPixels: 900
+  cursorColor: {r: 1, g: 0, b: 0, a: 0.85}
+  playerIconSize: 50.4
+  markerIconSize: 50.9
+  defaultPixelsPerCell: 18
+  minPixelsPerCell: 2.37
+  maxPixelsPerCell: 31.6
+  zoomSpeed: 3.13
+  panSpeedPixels: 200
   stickDeadZone: 0.2
   chunkMargin: 1
-  chunksPerFrame: 6
-  chunkCacheSize: 256
-  missionPanelWidth: 420
+  chunksPerFrame: 15
+  chunkCacheSize: 4096
+  missionPanelWidth: 327
   missionDoneColor: {r: 0.45, g: 1, b: 0.55, a: 1}
   missionActiveColor: {r: 1, g: 0.85, b: 0.3, a: 1}
   missionLockedColor: {r: 0.45, g: 0.47, b: 0.52, a: 1}
