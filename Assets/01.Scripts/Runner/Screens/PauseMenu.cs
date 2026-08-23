@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.Ship;
@@ -198,6 +199,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
+            RainDebugPage.Flush();
             Blip(theme.BackClip);
         }
 
@@ -246,7 +248,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         // Abandons the run and returns to the attract screen. The scene load
         // destroys this menu (and the run) — hand the next scene a running
         // clock first, and let the menu scene's own controller take over.
-        void ExitToMainMenu()
+        /// <summary>Back to the attract screen. Static and public: the game-over screen's NO answer is the same trip.</summary>
+        public static void ExitToMainMenu()
         {
             Time.timeScale = 1f;
             SceneManager.LoadScene(0); // MainMenu is build index 0
@@ -272,6 +275,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
+            RainDebugPage.Flush();
         }
 
         /// <summary>Editor bake: regenerates the menu and leaves the pause page visible, so the prefab shows before play.</summary>
@@ -389,9 +393,13 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // over the city it replaces, so for a beat both worlds exist and
             // its menu must not sprout car tabs that are about to unload.
             DebugMenuHooks.IDebugTabs city = generator == null ? DebugMenuHooks.Discover?.Invoke() : null;
+            // Weather belongs to neither game — both scenes spawn the same
+            // RainSystem — so its page is added here rather than by either
+            // side's factory, and only when the scene is actually raining.
+            RainSettings rain = RainDebugPage.Discover();
 
             int tabCount = (generator != null ? 2 : 0) + (shipReady ? 4 : 0)
-                         + (patrolReady ? 1 : 0) + (city?.TabCount ?? 0);
+                         + (patrolReady ? 1 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0);
             if (tabCount == 0) return;
 
             debugMenu = new DebugMenu();
@@ -430,6 +438,11 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // track sliders do — and reloading the city would reroll the whole
             // layout under the player for nothing.
             city?.AddTabs(debugMenu, panelRect, theme, debugRefreshers, ref tab, tabCount);
+
+            // Same rule as the city pages: the rain re-reads its asset every
+            // frame, so nothing here needs a reload either.
+            if (rain != null)
+                debugMenu.AddTab(RainDebugPage.Build(panelRect, theme, rain, debugRefreshers, tab++, tabCount));
         }
 
         // The debug sliders saved their values into the TrackDebugSettings
@@ -441,6 +454,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
+            RainDebugPage.Flush();
 
             Time.timeScale = 1f;
             var scene = SceneManager.GetActiveScene();

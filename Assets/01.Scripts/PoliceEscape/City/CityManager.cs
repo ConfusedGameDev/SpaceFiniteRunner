@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.FX;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -57,6 +58,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [TitleGroup("UI")]
         [Tooltip("Full-screen city map settings — when assigned, the Tab/Back map screen is spawned at play start.")]
         public UI.CityMapSettings mapSettings;
+
+        [ToggleGroup("rain", "Weather")]
+        [Tooltip("Spawn the rain over the chase. The downpour's own knobs live on the RainSettings asset below — this is only the on/off for this scene.")]
+        public bool rain = true;
+
+        [ToggleGroup("rain"), InlineEditor]
+        [Tooltip("Override asset pushed onto the scene's RainSystem on boot. Empty = leave that system with the asset it was authored with (the shipped FiniteRunner_Rain from Resources).")]
+        public RainSettings rainSettings;
 
         /// <summary>Waypoint graph over the generated roads — the AI's navigation source. Rebuilt on every Recalculate; null before the first one.</summary>
         public RoadGraph Graph { get; private set; }
@@ -136,6 +145,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 speedometerGo.AddComponent<UI.Speedometer>().settings = speedometerSettings;
             }
             if (FindAnyObjectByType<UI.CityMapScreen>() == null && mapSettings != null) UI.CityMapScreen.Spawn(this, mapSettings);
+
+            // Weather: a camera-sized volume, so it needs neither the city nor
+            // the car — it just has to exist before the first frame is drawn.
+            // The scene's own RainSystem wins; switching this off parks it.
+            RainSystem.Apply(rain, rainSettings);
         }
 
         // ------------------------------------------------------------- buttons

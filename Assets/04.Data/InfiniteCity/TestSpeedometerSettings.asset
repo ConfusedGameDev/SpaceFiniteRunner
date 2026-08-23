@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f98382b22cde43d9aec93a5cb6e1cdc, type: 3}
   m_Name: TestSpeedometerSettings
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.UI.SpeedometerSettings
-  sizePixels: 230
-  marginPixels: 24
-  borderWidth: 6
-  borderColor: {r: 0.05, g: 0.05, b: 0.08, a: 0.9}
+  sizePixels: 293
+  marginPixels: 39.3
+  borderWidth: 18.38
+  borderColor: {r: 0.23584908, g: 0.22806162, b: 0.22806162, a: 0.9}
   backgroundColor: {r: 0.07, g: 0.08, b: 0.1, a: 0.82}
-  maxSpeedKmh: 220
+  maxSpeedKmh: 316
   sweepDegrees: 270
   tickIntervalKmh: 20
   tickColor: {r: 0.8, g: 0.85, b: 0.9, a: 0.9}
-  redlineFraction: 0.8
+  redlineFraction: 0.746
   redlineColor: {r: 1, g: 0.25, b: 0.2, a: 1}
   needleColor: {r: 1, g: 0.3, b: 0.25, a: 1}
   needleLength: 0.78

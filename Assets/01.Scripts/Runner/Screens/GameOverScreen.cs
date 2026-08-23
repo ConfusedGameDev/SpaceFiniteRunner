@@ -4,24 +4,34 @@ using UnityEngine.UI;
 
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.UI;
-namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
+namespace ConfusedGameDev.FiniteRunner.Screens
 {
     /// <summary>
-    /// The city chase's death screen: once the glitch has filled and held,
-    /// the LevelManager shows GAME OVER — RETRY? YES / NO on the shared
-    /// themed menu framework instead of reloading the scene on its own.
-    /// YES replays the level, NO returns to the main menu; there is no Back
-    /// out — the screen demands an answer, so Esc/B do nothing here. It
-    /// freezes scaled time while it is up (which also keeps the pause menu
-    /// and the city map from opening — both refuse to stack over a stopped
-    /// clock) and animates on unscaled time like every other menu. Built
-    /// from code on its own overlay canvas, above the maxed glitch: the
-    /// glitch is a render feature on the camera, and an overlay canvas draws
-    /// after it, so the choice stays readable through full corruption.
+    /// The shared death screen: GAME OVER — RETRY? YES / NO on the themed
+    /// menu framework, driven by two callbacks so each game decides what an
+    /// answer means. The city chase raises it once the glitch has filled and
+    /// held; the runner raises it when the patrol's parting line finishes.
+    /// It lives next to the PauseMenu rather than in either game's UI folder
+    /// for that reason — both scenes show the same screen.
+    /// YES replays, NO returns to the main menu; there is no Back out — the
+    /// screen demands an answer, so Esc/B do nothing here. It freezes scaled
+    /// time while it is up (which also keeps the pause menu and the city map
+    /// from opening — both refuse to stack over a stopped clock) and animates
+    /// on unscaled time like every other menu. Built from code on its own
+    /// overlay canvas, above the maxed glitch: the glitch is a render feature
+    /// on the camera, and an overlay canvas draws after it, so the choice
+    /// stays readable through full corruption.
     /// </summary>
     public class GameOverScreen : MonoBehaviour
     {
         const int SortingOrder = 25; // above the pause menu (20), below the main menu (30)
+
+        /// <summary>
+        /// True while the screen is waiting for an answer. HUDs poll it: the
+        /// runner's own "PRESS R TO RUN AGAIN" prompt would otherwise restart
+        /// the run out from under a question the player has not answered yet.
+        /// </summary>
+        public static bool IsOpen { get; private set; }
 
         MenuTheme theme;
         MenuNavigator nav;
@@ -71,6 +81,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         {
             TearDown();
             var canvas = GetOrAdd<Canvas>(gameObject);
+            canvas.enabled = true; // a previous answer switched it off
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = SortingOrder;
 
@@ -105,6 +116,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                                  (PromptAction.Confirm, MenuTextId.HintSelect));
 
             MenuScreenFactory.EnsureEventSystem(); // the city scene has none; mouse clicks need one
+            IsOpen = true;
             Time.timeScale = 0f;
             openedTime = Time.unscaledTime;
             screen.Show(staggered: false);
@@ -131,15 +143,34 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         {
             if (decided) return;
             decided = true;
+            IsOpen = false;
             Blip(theme.ConfirmClip);
             Time.timeScale = 1f;
+            Hide();
             choice?.Invoke();
+        }
+
+        /// <summary>
+        /// Clears the overlay before the answer runs. The city reloads its
+        /// scene on either answer so it would go away by itself, but the
+        /// runner retries IN PLACE — the dim panel would otherwise sit over
+        /// the new run still asking a question that has been answered. The
+        /// root (canvas, audio source) survives for the next death, which is
+        /// also what keeps the confirm blip audible through the teardown.
+        /// </summary>
+        void Hide()
+        {
+            enabled = false;
+            TearDown();
+            var canvas = GetComponent<Canvas>();
+            if (canvas != null) canvas.enabled = false;
         }
 
         // Safety: never leave the game frozen if this object goes away without
         // an answer — this also fires on the way out of play mode.
         void OnDestroy()
         {
+            IsOpen = false;
             if (!decided) Time.timeScale = 1f;
         }
 

@@ -171,9 +171,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         }
 
         /// <summary>
-        /// Chase camera: framing, recentering and the speed FOV kick. The rig
-        /// re-applies the settings in Update, which keeps running on a frozen
-        /// clock — so these move the camera while the menu is still open.
+        /// Chase camera: framing, recentering, the speed FOV kick and the
+        /// look-back swing. The rig re-applies the settings in Update, which
+        /// keeps running on a frozen clock — so these move the camera while the
+        /// menu is still open.
         /// </summary>
         public static MenuScreen BuildCameraTab(RectTransform parent, MenuTheme theme, OrbitCameraSettings settings,
                                                 List<System.Action> refreshers, int tabIndex, int tabCount)
@@ -198,6 +199,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                           40f, 90f, 1f, "0", s => s.baseFov, (s, v) => s.baseFov = v);
             AddCameraStat(screen, settings, refreshers, MenuTextId.CamSpeedFov,
                           0f, 0.3f, 0.01f, "0.00", s => s.fovPerKmh, (s, v) => s.fovPerKmh = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamLookBackAngle,
+                          90f, 180f, 5f, "0", s => s.lookBackAngle, (s, v) => s.lookBackAngle = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamLookBackIn,
+                          0.02f, 1.5f, 0.02f, "0.00", s => s.lookBackInSeconds, (s, v) => s.lookBackInSeconds = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamLookBackOut,
+                          0.02f, 2f, 0.02f, "0.00", s => s.lookBackOutSeconds, (s, v) => s.lookBackOutSeconds = v);
             return screen;
         }
 

@@ -26,6 +26,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string ScenePath = SceneFolder + "/CityTest.unity";
         const string SettingsPath = DataFolder + "/CityTestSettings.asset";
         const string BuildingSetPath = DataFolder + "/CityTestBuildingSet.asset";
+        // Weather is shared by both games, so it lives with the other Resources
+        // singletons rather than in this scene's data folder.
+        const string RainSettingsPath = "Assets/04.Data/Resources/FiniteRunner_Rain.asset";
 
         [MenuItem("Tools/Police Escape/Create City Test Scene")]
         public static void CreateTestScene()
@@ -226,6 +229,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             manager.minimapSettings = AssetDatabase.LoadAssetAtPath<UI.MinimapSettings>(DataFolder + "/TestMinimapSettings.asset");
             manager.speedometerSettings = AssetDatabase.LoadAssetAtPath<UI.SpeedometerSettings>(DataFolder + "/TestSpeedometerSettings.asset");
             manager.trafficSettings = AssetDatabase.LoadAssetAtPath<AI.TrafficSettings>(DataFolder + "/TestTrafficSettings.asset");
+            manager.rainSettings = AssetDatabase.LoadAssetAtPath<FX.RainSettings>(RainSettingsPath);
+
+            // Weather as a real scene object, so the downpour can be tuned (and
+            // previewed) before pressing play — the CityManager only switches
+            // it on and hands it an override asset.
+            var rain = new GameObject("RainSystem").AddComponent<FX.RainSystem>();
+            rain.settings = AssetDatabase.LoadAssetAtPath<FX.RainSettings>(RainSettingsPath);
 
             // Overhead vantage so one glance shows the whole first chunk.
             var camera = Camera.main;

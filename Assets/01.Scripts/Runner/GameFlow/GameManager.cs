@@ -107,6 +107,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol = null;
             }
 
+            // Weather rides with the camera and needs nothing from the run, so
+            // it goes up before the menu — the debug page binds to the live
+            // system the same way the patrol tab binds to the patrol. Apply,
+            // not spawn: the scene's own RainSystem is the one the designer
+            // tuned before play, and switching the weather off has to park it.
+            RainSystem.Apply(settings.rainEnabled, settings.rainSettings);
+
             // After the patrol init, so the debug menu's patrol tab can bind
             // to the live definition clone.
             PauseMenu.Spawn(this, motor);
@@ -149,15 +156,30 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             ResultLabel = label;
             motor.Paused = true; // freeze the sim; the hover keeps the ship floating
 
-            // RPG message on both outcomes. Losing waits for the line to
-            // disappear and only then resets the run.
+            // RPG message on both outcomes. Losing waits for the patrol's
+            // parting line to disappear and only then asks the question — the
+            // screen would otherwise cover the line that sets it up.
             if (HasWon)
                 RpgMessageSystem.Instance.ShowMessage(
                     "PILOT", settings.winMessage, settings.messageHoldSeconds, settings.pilotMessageColor);
             else
                 RpgMessageSystem.Instance.ShowMessage(
                     "PATROL", settings.loseMessage, settings.messageHoldSeconds, settings.patrolMessageColor,
-                    onFinished: Restart);
+                    onFinished: ShowGameOver);
+        }
+
+        /// <summary>
+        /// GAME OVER — RETRY? on the shared screen: YES runs the track again,
+        /// NO goes back to the attract screen. It is the same screen the city
+        /// chase raises, so both games answer death the same way. Guarded on
+        /// <see cref="RunOver"/> because a manual restart (R on the HUD) can
+        /// land while the lose line is still on screen — the question must not
+        /// arrive over a run that is already going again.
+        /// </summary>
+        void ShowGameOver()
+        {
+            if (!RunOver) return;
+            GameOverScreen.Show(onRetry: Restart, onGiveUp: PauseMenu.ExitToMainMenu);
         }
 
         // Story beat: hype line every time the rare orb tier is grabbed.

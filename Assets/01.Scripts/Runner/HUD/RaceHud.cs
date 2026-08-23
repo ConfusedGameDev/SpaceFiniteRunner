@@ -3,6 +3,7 @@ using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 using ConfusedGameDev.FiniteRunner.GameFlow;
+using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
 namespace ConfusedGameDev.FiniteRunner.HUD
 {
@@ -11,6 +12,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// Light Speed and pulses on pad hits, the Light Speed goal, a countdown
     /// bar (time is the limit, not distance), the win/lose result, and
     /// floating "+boost" text spawned at the ship on every booster hit.
+    /// Its own "PRESS R TO RUN AGAIN" shortcut only covers a WIN: a loss ends
+    /// on the <see cref="GameOverScreen"/>, which owns that answer.
     /// </summary>
     public class RaceHud : MonoBehaviour
     {
@@ -106,12 +109,21 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             bool restartPressed =
                 UnityEngine.InputSystem.Keyboard.current is { rKey: { wasPressedThisFrame: true } } ||
                 UnityEngine.InputSystem.Gamepad.current is { buttonSouth: { wasPressedThisFrame: true } };
-            if (runOver && restartPressed)
+            if (runOver && restartPressed && !GameOverOwnsRetry)
             {
                 if (gameManager != null) gameManager.Restart();
                 else motor.Launch();
             }
         }
+
+        /// <summary>
+        /// True from the moment a run is lost until the GAME OVER screen has
+        /// been answered. The screen is raised only after the patrol's parting
+        /// line finishes, so this also covers the seconds before it appears —
+        /// the HUD must not offer a second, quieter way out of the same moment.
+        /// </summary>
+        bool GameOverOwnsRetry => GameOverScreen.IsOpen
+                                  || (gameManager != null && gameManager.RunOver && !gameManager.HasWon);
 
         void UpdateCountdown()
         {
@@ -150,7 +162,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                     resultText.color = gameManager != null && gameManager.HasWon ? winColor : failColor;
             }
             if (promptText != null)
-                promptText.text = label != null ? "PRESS R TO RUN AGAIN" : "";
+                promptText.text = label != null && !GameOverOwnsRetry ? "PRESS R TO RUN AGAIN" : "";
         }
     }
 }

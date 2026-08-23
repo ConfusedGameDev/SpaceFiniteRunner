@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 
 using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.HUD;
+using ConfusedGameDev.FiniteRunner.Screens;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
     /// <summary>
@@ -38,7 +39,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// The glitch doubles as the damage meter: every hard impact pulses it,
     /// police hits permanently raise the base level, and at full corruption
     /// the run ends: the glitch holds at max, then the
-    /// <see cref="UI.GameOverScreen"/> asks RETRY? — YES reloads the scene,
+    /// <see cref="Screens.GameOverScreen"/> asks RETRY? — YES reloads the scene,
     /// NO returns to the main menu. Damage knobs stay here — they are the
     /// chase's feel, not a level's design.
     /// </summary>

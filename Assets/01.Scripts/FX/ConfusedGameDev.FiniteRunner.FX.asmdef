@@ -1,7 +1,10 @@
 {
     "name": "ConfusedGameDev.FiniteRunner.FX",
     "rootNamespace": "ConfusedGameDev.FiniteRunner.FX",
-    "references": [],
+    "references": [
+        "ConfusedGameDev.FiniteRunner.UI",
+        "UnityEngine.UI"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

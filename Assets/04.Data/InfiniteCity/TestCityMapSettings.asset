@@ -23,11 +23,15 @@ MonoBehaviour:
   cursorColor: {r: 1, g: 0, b: 0, a: 0.85}
   playerIconSize: 50.4
   markerIconSize: 50.9
+  arrivalRadius: 35
+  offRouteDistance: 45
+  offRouteGrace: 0.75
+  recalcCooldown: 2
   defaultPixelsPerCell: 18
   minPixelsPerCell: 2.37
   maxPixelsPerCell: 31.6
   zoomSpeed: 3.13
-  panSpeedPixels: 200
+  panSpeedPixels: 726
   stickDeadZone: 0.2
   chunkMargin: 1
   chunksPerFrame: 15

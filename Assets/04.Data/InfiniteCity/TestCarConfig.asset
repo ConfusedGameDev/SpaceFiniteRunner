@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a42b45643a61b44689896663f214515a, type: 3}
   m_Name: TestCarConfig
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.CarConfig
-  mass: 1200
+  mass: 1250
   centerOfMassDrop: 0.6
   downforce: 40
   antiRollForce: 8000
@@ -48,6 +48,7 @@ MonoBehaviour:
   coastBrakeTorque: 250
   handbrakeTorque: 6000
   handbrakeGrip: 0.5
+  hillRollbackSlope: 3
   maxSteerAngle: 35
   steerBySpeed:
     serializedVersion: 2

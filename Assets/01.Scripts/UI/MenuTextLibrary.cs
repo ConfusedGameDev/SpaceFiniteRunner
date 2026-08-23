@@ -37,6 +37,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CarHillRollback,
         CamDistance, CamHeight, CamPitch, CamDamping,
         CamRecenterDelay, CamRecenterSpeed, CamBaseFov, CamSpeedFov,
+        CamLookBackAngle, CamLookBackIn, CamLookBackOut,
+        DebugTabWeather,
+        RainIntensity, RainAmount, RainFallSpeed, RainDropSize, RainStreak,
+        RainWind, RainWindDirection, RainArea,
+        ThunderFrequency, ThunderFlash,
         DebugTabPoliceFleet, DebugTabPoliceChase,
         PolicePatrolCount, PoliceSpawnMin, PoliceSpawnMax, PoliceDespawn,
         PoliceDetection, PoliceLoseSight, PoliceSearchTime,
@@ -286,6 +291,35 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString camBaseFov = new("BASE FOV", "FOV BASE", "基本FOV", "FOV DE BASE");
         [TitleGroup("Chase camera stats")]
         [SerializeField] LocalizedString camSpeedFov = new("SPEED FOV", "FOV POR VELOCIDAD", "速度FOV", "FOV VITESSE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camLookBackAngle = new("LOOK BACK ANGLE", "ÁNGULO DE MIRAR ATRÁS", "後方視の角度", "ANGLE REGARD ARRIÈRE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camLookBackIn = new("LOOK BACK TIME", "TIEMPO DE GIRO ATRÁS", "後方視の時間", "TEMPS REGARD ARRIÈRE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camLookBackOut = new("LOOK BACK RETURN", "REGRESO DE MIRAR ATRÁS", "後方視の復帰", "RETOUR REGARD ARRIÈRE");
+
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString debugTabWeather = new("DEBUG — WEATHER", "DEPURACIÓN — CLIMA", "デバッグ — 天候", "DÉBOGAGE — MÉTÉO");
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString rainIntensity = new("RAIN INTENSITY", "INTENSIDAD DE LLUVIA", "雨の強さ", "INTENSITÉ DE PLUIE");
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString rainAmount = new("DROPS PER SECOND", "GOTAS POR SEGUNDO", "毎秒の雨粒", "GOUTTES PAR SECONDE");
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString rainFallSpeed = new("FALL SPEED", "VELOCIDAD DE CAÍDA", "落下速度", "VITESSE DE CHUTE");
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString rainDropSize = new("DROP SIZE", "TAMAÑO DE GOTA", "雨粒の大きさ", "TAILLE DES GOUTTES");
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString rainStreak = new("STREAK LENGTH", "LARGO DEL TRAZO", "雨脚の長さ", "LONGUEUR DES TRAÎNÉES");
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString rainWind = new("WIND SPEED", "VELOCIDAD DEL VIENTO", "風速", "VITESSE DU VENT");
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString rainWindDirection = new("WIND DIRECTION", "DIRECCIÓN DEL VIENTO", "風向き", "DIRECTION DU VENT");
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString rainArea = new("RAIN RADIUS", "RADIO DE LLUVIA", "降雨半径", "RAYON DE PLUIE");
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString thunderFrequency = new("THUNDER RATE", "FRECUENCIA DE TRUENOS", "雷の頻度", "FRÉQUENCE DU TONNERRE");
+        [TitleGroup("Weather stats")]
+        [SerializeField] LocalizedString thunderFlash = new("FLASH STRENGTH", "FUERZA DEL DESTELLO", "閃光の強さ", "FORCE DE L'ÉCLAIR");
 
         [TitleGroup("City police stats")]
         [SerializeField] LocalizedString debugTabPoliceFleet = new("DEBUG — POLICE FLEET", "DEPURACIÓN — FLOTA POLICIAL", "デバッグ — 警察の台数", "DÉBOGAGE — FLOTTE DE POLICE");
@@ -493,6 +527,20 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.CamRecenterSpeed => camRecenterSpeed,
             MenuTextId.CamBaseFov => camBaseFov,
             MenuTextId.CamSpeedFov => camSpeedFov,
+            MenuTextId.CamLookBackAngle => camLookBackAngle,
+            MenuTextId.CamLookBackIn => camLookBackIn,
+            MenuTextId.CamLookBackOut => camLookBackOut,
+            MenuTextId.DebugTabWeather => debugTabWeather,
+            MenuTextId.RainIntensity => rainIntensity,
+            MenuTextId.RainAmount => rainAmount,
+            MenuTextId.RainFallSpeed => rainFallSpeed,
+            MenuTextId.RainDropSize => rainDropSize,
+            MenuTextId.RainStreak => rainStreak,
+            MenuTextId.RainWind => rainWind,
+            MenuTextId.RainWindDirection => rainWindDirection,
+            MenuTextId.RainArea => rainArea,
+            MenuTextId.ThunderFrequency => thunderFrequency,
+            MenuTextId.ThunderFlash => thunderFlash,
             MenuTextId.DebugTabPoliceFleet => debugTabPoliceFleet,
             MenuTextId.DebugTabPoliceChase => debugTabPoliceChase,
             MenuTextId.PolicePatrolCount => policePatrolCount,

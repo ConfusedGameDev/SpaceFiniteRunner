@@ -82,6 +82,31 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [PropertyRange(30f, 360f), SuffixLabel("°/s", true)]
         public float recenterSpeed = 120f;
 
+        // ----------------------------------------------------------- look back
+        [ToggleGroup("lookBack", "Look back")]
+        [Tooltip("Hold the right stick button (R3) or Right Shift to whip the camera round and watch the road behind; releasing swings it back to where it was.")]
+        public bool lookBack = true;
+
+        [ToggleGroup("lookBack")]
+        [Tooltip("How far round the orbit swings. 180 is straight behind the car; less leaves the car's flank in frame.")]
+        [PropertyRange(90f, 180f), SuffixLabel("°", true)]
+        public float lookBackAngle = 180f;
+
+        [ToggleGroup("lookBack")]
+        [Tooltip("Seconds to swing round. Short is a snap over the shoulder, long is cinematic — and too slow to be useful at speed.")]
+        [PropertyRange(0.02f, 1.5f), SuffixLabel("s", true)]
+        public float lookBackInSeconds = 0.18f;
+
+        [ToggleGroup("lookBack")]
+        [Tooltip("Seconds to swing back on release. Usually slower than the way in — the return should not yank the view off the road.")]
+        [PropertyRange(0.02f, 2f), SuffixLabel("s", true)]
+        public float lookBackOutSeconds = 0.32f;
+
+        [ToggleGroup("lookBack")]
+        [Tooltip("Pitch held while looking back, clamped to the range above. Flatter than the default reads as a glance over the shoulder rather than a drone shot.")]
+        [PropertyRange(-20f, 80f), SuffixLabel("°", true)]
+        public float lookBackPitch = 12f;
+
         // ----------------------------------------------------------------- fov
         [TitleGroup("Speed FOV")]
         [Tooltip("Field of view at standstill.")]

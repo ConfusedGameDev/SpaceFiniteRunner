@@ -21,7 +21,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     /// handling tuning survives; 'Rebuild Vehicle Prefabs' refreshes just the
     /// prefabs in place (same assets, scene wiring keeps working). Drive with
     /// WASD or gamepad; Space/South = handbrake, R/North = respawn; mouse /
-    /// right stick / arrows pan the camera.
+    /// right stick / arrows pan the camera, R3 / Right Shift looks back.
     /// </summary>
     public static class CarTestSceneBuilder
     {
@@ -42,6 +42,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string VehiclesFolder = "Assets/02.Art/01.Models/InfiniteCity/Vehicles";
         const string CitySettingsPath = DataFolder + "/CityTestSettings.asset";
         const string GlitchMaterialPath = "Assets/02.Art/02.Materials/InfiniteCity/GlitchPost.mat";
+        // Weather is shared by both games, so it lives with the other Resources
+        // singletons rather than in this scene's data folder.
+        const string RainSettingsPath = "Assets/04.Data/Resources/FiniteRunner_Rain.asset";
         const string PlayerModelPath = VehiclesFolder + "/sedan-sports.fbx";
         const string PoliceModelPath = VehiclesFolder + "/police.fbx";
         const float TargetCarLength = 4.4f; // the Kenney models are ~2.6-3.1 units long — scale them to real-car meters
@@ -86,6 +89,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 city.minimapSettings = minimapSettings;  // wired minimap settings spawn the radar at play
                 city.speedometerSettings = speedometerSettings;
                 city.trafficSettings = trafficSettings;  // wired traffic settings spawn the TrafficManager at play
+                city.rainSettings = AssetDatabase.LoadAssetAtPath<RainSettings>(RainSettingsPath);
                 city.Recalculate();
             }
             else
@@ -128,6 +132,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 glitch.glitchMaterial = glitchMaterial;
                 glitch.baseFadePerSecond = 0.05f;
             }
+
+            // Weather as a real scene object, so the downpour can be tuned (and
+            // previewed) before pressing play — the CityManager only switches
+            // it on and hands it an override asset.
+            var rain = new GameObject("RainSystem").AddComponent<RainSystem>();
+            rain.settings = AssetDatabase.LoadAssetAtPath<RainSettings>(RainSettingsPath);
 
             // Overhead vantage for edit mode; the ChaseCamera takes over in play.
             var camera = Camera.main;

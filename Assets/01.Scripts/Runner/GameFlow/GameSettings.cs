@@ -1,11 +1,13 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.FX;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>
     /// Every knob of a chase run — win condition, timer, police behaviour,
-    /// power-up strength and story messages — in one designer-facing asset.
+    /// power-up strength, story messages and weather — in one designer-facing
+    /// asset.
     /// The GameManager owns no tunables of its own: it draws this asset inline
     /// in its inspector, so balancing happens here and survives scene changes.
     /// Everything is a slider (Odin) with an explicit range, and values that
@@ -155,6 +157,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         [TitleGroup("Story messages")]
         public Color patrolMessageColor = new(1f, 0.4f, 0.35f);
+
+        // ------------------------------------------------------------ weather
+        [ToggleGroup("rainEnabled", "Weather")]
+        [Tooltip("Spawn the rain over the run. The downpour's own knobs live on the RainSettings asset below — this is only the on/off for this scene.")]
+        public bool rainEnabled = true;
+
+        [ToggleGroup("rainEnabled"), InlineEditor]
+        [Tooltip("Override asset pushed onto the scene's RainSystem on boot. Empty = leave that system with the asset it was authored with (the shipped FiniteRunner_Rain from Resources).")]
+        public RainSettings rainSettings;
 
         // --------------------------------------------------------- accessors
         /// <summary>How far behind the ship a fresh patrol drops in, in meters (band X).</summary>
