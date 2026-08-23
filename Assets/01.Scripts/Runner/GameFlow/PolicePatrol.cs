@@ -29,6 +29,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
         PatrolDefinition definition;
 
+        [Tooltip("All cruiser look tunables live on this asset — add new knobs there, not here.")]
+        [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        PatrolVisualSettings visualSettings;
+
         ShipMotor target;
         TrackManager track;
         PatrolDefinition runtimeDef; // clone of the asset, the only copy ever mutated
@@ -213,32 +217,65 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (blueLight != null) blueLight.SetActive(!blinkState);
         }
 
+        /// <summary>Destroys the built cruiser visual — the runtime build or the baked editor preview.</summary>
+        void TearDownVisual()
+        {
+            var existing = visual != null ? visual : transform.Find("Visual");
+            if (existing != null) Kill(existing.gameObject);
+            visual = null;
+            redLight = null;
+            blueLight = null;
+        }
+
+        /// <summary>Editor bake: regenerates the cruiser preview from the visual settings so the prefab is visible before play.</summary>
+        [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
+        public void RebuildPreview() => BuildVisual();
+
         // Cop cruiser built from primitives: dark hull, white cabin, two side
-        // skids and an alternating red/blue light bar.
+        // skids and an alternating red/blue light bar. Materials and
+        // proportions come from the PatrolVisualSettings asset (hardcoded
+        // fallbacks keep an unwired patrol working).
         void BuildVisual()
         {
+            TearDownVisual();
+            var vs = visualSettings;
+
             visual = new GameObject("Visual").transform;
             visual.SetParent(transform, false);
-            visual.localScale = Vector3.one * 1.6f;
+            visual.localScale = Vector3.one * (vs != null ? vs.overallScale : 1.6f);
 
-            var bodyMat = MakeMaterial(new Color(0.08f, 0.09f, 0.14f));
-            var trimMat = MakeMaterial(Color.white);
+            Material bodyMat = vs != null && vs.bodyMaterial != null ? vs.bodyMaterial : MakeMaterial(new Color(0.08f, 0.09f, 0.14f));
+            Material trimMat = vs != null && vs.trimMaterial != null ? vs.trimMaterial : MakeMaterial(Color.white);
+            Material redMat = vs != null && vs.redLightMaterial != null ? vs.redLightMaterial : MakeMaterial(new Color(1f, 0.1f, 0.1f), emissive: true);
+            Material blueMat = vs != null && vs.blueLightMaterial != null ? vs.blueLightMaterial : MakeMaterial(new Color(0.25f, 0.45f, 1f), emissive: true);
 
-            AddPart(PrimitiveType.Cube, new Vector3(0f, 0f, 0f), new Vector3(3f, 0.9f, 6f), bodyMat);
-            AddPart(PrimitiveType.Cube, new Vector3(0f, 0.7f, -0.4f), new Vector3(2f, 0.7f, 2.6f), trimMat);
-            AddPart(PrimitiveType.Cube, new Vector3(-1.8f, -0.1f, 0f), new Vector3(0.6f, 0.5f, 4f), bodyMat);
-            AddPart(PrimitiveType.Cube, new Vector3(1.8f, -0.1f, 0f), new Vector3(0.6f, 0.5f, 4f), bodyMat);
+            Vector3 hullSize = vs != null ? vs.hullSize : new Vector3(3f, 0.9f, 6f);
+            Vector3 cabinPos = vs != null ? vs.cabinPosition : new Vector3(0f, 0.7f, -0.4f);
+            Vector3 cabinSize = vs != null ? vs.cabinSize : new Vector3(2f, 0.7f, 2.6f);
+            Vector3 skidPos = vs != null ? vs.skidPosition : new Vector3(1.8f, -0.1f, 0f);
+            Vector3 skidSize = vs != null ? vs.skidSize : new Vector3(0.6f, 0.5f, 4f);
+            Vector3 lightPos = vs != null ? vs.lightPosition : new Vector3(0.55f, 1.35f, -0.4f);
+            Vector3 lightScale = Vector3.one * (vs != null ? vs.lightDiameter : 0.7f);
 
-            redLight = AddPart(PrimitiveType.Sphere, new Vector3(-0.55f, 1.35f, -0.4f), Vector3.one * 0.7f,
-                               MakeMaterial(new Color(1f, 0.1f, 0.1f), emissive: true));
-            blueLight = AddPart(PrimitiveType.Sphere, new Vector3(0.55f, 1.35f, -0.4f), Vector3.one * 0.7f,
-                                MakeMaterial(new Color(0.25f, 0.45f, 1f), emissive: true));
+            AddPart(PrimitiveType.Cube, Vector3.zero, hullSize, bodyMat);
+            AddPart(PrimitiveType.Cube, cabinPos, cabinSize, trimMat);
+            AddPart(PrimitiveType.Cube, new Vector3(-skidPos.x, skidPos.y, skidPos.z), skidSize, bodyMat);
+            AddPart(PrimitiveType.Cube, skidPos, skidSize, bodyMat);
+
+            redLight = AddPart(PrimitiveType.Sphere, new Vector3(-lightPos.x, lightPos.y, lightPos.z), lightScale, redMat);
+            blueLight = AddPart(PrimitiveType.Sphere, lightPos, lightScale, blueMat);
+        }
+
+        static void Kill(Object o)
+        {
+            if (Application.isPlaying) Destroy(o);
+            else DestroyImmediate(o);
         }
 
         GameObject AddPart(PrimitiveType type, Vector3 localPos, Vector3 scale, Material mat)
         {
             var part = GameObject.CreatePrimitive(type);
-            Destroy(part.GetComponent<Collider>()); // purely visual
+            Kill(part.GetComponent<Collider>()); // purely visual
             part.transform.SetParent(visual, false);
             part.transform.localPosition = localPos;
             part.transform.localScale = scale;

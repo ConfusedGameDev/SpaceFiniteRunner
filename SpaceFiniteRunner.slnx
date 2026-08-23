@@ -2,8 +2,8 @@
   <Project Path="ConfusedGameDev.FiniteRunner.PoliceEscape.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
-  <Project Path="ConfusedGameDev.FiniteRunner.UI.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Runner.csproj" />
+  <Project Path="ConfusedGameDev.FiniteRunner.UI.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.PoliceEscape.Editor.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Cheats.csproj" />
   <Project Path="Sirenix.OdinInspector.Modules.UnityMathematics.csproj" />

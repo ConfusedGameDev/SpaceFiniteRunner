@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -35,6 +36,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 return instance;
             }
         }
+
+        [Tooltip("All dialogue-box look tunables live on this asset — add new knobs there, not here.")]
+        [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        RpgMessageStyle style;
 
         [Header("Typewriter")]
         [SerializeField, Min(1f)] float charactersPerSecond = 45f;
@@ -98,6 +103,43 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             instance = this;
             Build();
         }
+
+        /// <summary>Editor bake: regenerates the box and leaves it visible with sample text, so the prefab shows before play.</summary>
+        [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
+        public void RebuildPreview()
+        {
+            Build();
+            root.SetActive(true);
+            nameText.text = "PILOT";
+            bodyText.text = "Preview of the dialogue box — runtime rebuilds this from the style asset.";
+            initialText.text = "P";
+        }
+
+        // Root components (canvas, scaler, audio) are reused by Build, not
+        // torn down: play-mode Destroy is deferred, so removing and re-adding
+        // them in the same frame would collide.
+        void TearDown()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
+            root = null;
+            nameText = bodyText = initialText = null;
+            portraitImage = portraitFrame = null;
+            audioSource = null;
+        }
+
+        static void Kill(Object o)
+        {
+            if (o == null) return;
+            if (Application.isPlaying) Destroy(o);
+            else DestroyImmediate(o);
+        }
+
+        static T GetOrAdd<T>(GameObject go) where T : Component
+        {
+            var c = go.GetComponent<T>();
+            return c != null ? c : go.AddComponent<T>();
+        }
+
 
         /// <summary>Shows a message with the default hold time and a white accent.</summary>
         public void ShowMessage(string speaker, string text)
@@ -253,15 +295,18 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void Build()
         {
-            var canvas = gameObject.AddComponent<Canvas>();
+            TearDown();
+            var s = style != null ? style : ScriptableObject.CreateInstance<RpgMessageStyle>();
+
+            var canvas = GetOrAdd<Canvas>(gameObject);
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 15; // above the HUD, below the pause menu's dim
 
-            var scaler = gameObject.AddComponent<CanvasScaler>();
+            var scaler = GetOrAdd<CanvasScaler>(gameObject);
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
 
-            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource = GetOrAdd<AudioSource>(gameObject);
             audioSource.playOnAwake = false;
 
             root = new GameObject("MessageRoot", typeof(RectTransform));
@@ -276,29 +321,29 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             border.anchorMin = new Vector2(0f, 0f);
             border.anchorMax = new Vector2(1f, 0f);
             border.pivot = new Vector2(0.5f, 0f);
-            border.offsetMin = new Vector2(24f, 20f);
-            border.offsetMax = new Vector2(-24f, 256f);
-            border.gameObject.AddComponent<Image>().color = new Color(0.85f, 0.9f, 1f, 0.55f);
+            border.offsetMin = new Vector2(s.panelSideMargin, s.panelBottomMargin);
+            border.offsetMax = new Vector2(-s.panelSideMargin, s.panelHeight);
+            border.gameObject.AddComponent<Image>().color = s.borderColor;
 
             var inner = MakeRect("Background", border);
             inner.anchorMin = Vector2.zero;
             inner.anchorMax = Vector2.one;
             inner.offsetMin = new Vector2(3f, 3f);
             inner.offsetMax = new Vector2(-3f, -3f);
-            inner.gameObject.AddComponent<Image>().color = new Color(0.05f, 0.07f, 0.18f, 0.92f);
+            inner.gameObject.AddComponent<Image>().color = s.backgroundColor;
 
-            nameText = MakeText("Speaker", inner, TextAnchor.UpperLeft, 34);
+            nameText = MakeText("Speaker", inner, TextAnchor.UpperLeft, s.speakerFontSize);
             var nameRect = nameText.rectTransform;
             nameRect.anchorMin = nameRect.anchorMax = new Vector2(0f, 1f);
             nameRect.pivot = new Vector2(0f, 1f);
-            nameRect.anchoredPosition = new Vector2(330f, -16f);
+            nameRect.anchoredPosition = new Vector2(s.textLeftInset, -16f);
             nameRect.sizeDelta = new Vector2(900f, 44f);
 
-            bodyText = MakeText("Body", inner, TextAnchor.UpperLeft, 30);
+            bodyText = MakeText("Body", inner, TextAnchor.UpperLeft, s.bodyFontSize);
             var bodyRect = bodyText.rectTransform;
             bodyRect.anchorMin = Vector2.zero;
             bodyRect.anchorMax = Vector2.one;
-            bodyRect.offsetMin = new Vector2(330f, 18f);
+            bodyRect.offsetMin = new Vector2(s.textLeftInset, 18f);
             bodyRect.offsetMax = new Vector2(-28f, -66f);
             bodyText.fontStyle = FontStyle.Normal;
 
@@ -308,8 +353,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             var frameRect = portraitFrame.rectTransform;
             frameRect.anchorMin = frameRect.anchorMax = new Vector2(0f, 0f);
             frameRect.pivot = new Vector2(0f, 0f);
-            frameRect.anchoredPosition = new Vector2(40f, 28f);
-            frameRect.sizeDelta = new Vector2(280f, 300f);
+            frameRect.anchoredPosition = s.portraitPosition;
+            frameRect.sizeDelta = s.portraitSize;
 
             portraitImage = MakeRect("Sprite", frameRect).gameObject.AddComponent<Image>();
             var portraitRect = portraitImage.rectTransform;

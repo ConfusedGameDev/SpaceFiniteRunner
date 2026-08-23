@@ -1,3 +1,4 @@
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -75,8 +76,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         /// <summary>Spawned by the GameManager, like the pause menu — no scene wiring.</summary>
         public static MainMenuController Spawn(ShipMotor motor, TuningScreen tuningScreen)
         {
-            var go = new GameObject("MainMenu");
-            var menu = go.AddComponent<MainMenuController>();
+            var menu = FindFirstObjectByType<MainMenuController>();
+            if (menu == null) menu = new GameObject("MainMenu").AddComponent<MainMenuController>();
             menu.motor = motor;
             menu.tuningScreen = tuningScreen;
             menu.Open();
@@ -378,21 +379,58 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
         // -------------------------------------------------------------- build
 
+        /// <summary>Editor bake: regenerates the menu with the attract screen visible, so the prefab shows before play.</summary>
+        [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
+        public void RebuildPreview()
+        {
+            theme = MenuTheme.Load();
+            nav = new MenuNavigator(theme);
+            Build();
+        }
+
+        // Root components are reused by Build — see RpgMessageSystem.TearDown.
+        void TearDown()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
+            rootGroup = attractGroup = footerGroup = null;
+            attractText = null;
+            attractGlyph = null;
+            footer = null;
+            mainScreen = settingsScreen = cheatsScreen = creditsScreen = exitScreen = current = null;
+            cheatConsole = null;
+            ui = null;
+        }
+
+        static void Kill(Object o)
+        {
+            if (o == null) return;
+            if (Application.isPlaying) Destroy(o);
+            else DestroyImmediate(o);
+        }
+
+        static T GetOrAdd<T>(GameObject go) where T : Component
+        {
+            var c = go.GetComponent<T>();
+            return c != null ? c : go.AddComponent<T>();
+        }
+
+
         void Build()
         {
-            var canvas = gameObject.AddComponent<Canvas>();
+            TearDown();
+            var canvas = GetOrAdd<Canvas>(gameObject);
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = MenuSortingOrder;
 
-            var scaler = gameObject.AddComponent<CanvasScaler>();
+            var scaler = GetOrAdd<CanvasScaler>(gameObject);
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
 
-            gameObject.AddComponent<GraphicRaycaster>();
-            rootGroup = gameObject.AddComponent<CanvasGroup>();
+            GetOrAdd<GraphicRaycaster>(gameObject);
+            rootGroup = GetOrAdd<CanvasGroup>(gameObject);
             root = (RectTransform)transform;
 
-            ui = gameObject.AddComponent<AudioSource>();
+            ui = GetOrAdd<AudioSource>(gameObject);
             ui.playOnAwake = false;
             ui.outputAudioMixerGroup = theme.UiOutput;
 

@@ -35,8 +35,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         /// <summary>Puts the screen up and freezes the game under it. The chosen callback runs with time already unfrozen.</summary>
         public static GameOverScreen Show(System.Action onRetry, System.Action onGiveUp)
         {
-            var go = new GameObject("GameOverScreen");
-            var over = go.AddComponent<GameOverScreen>();
+            var over = FindFirstObjectByType<GameOverScreen>(FindObjectsInactive.Include);
+            if (over == null) over = new GameObject("GameOverScreen").AddComponent<GameOverScreen>();
+            over.enabled = true;
+            over.decided = false;
             over.onRetry = onRetry;
             over.onGiveUp = onGiveUp;
             over.theme = MenuTheme.Load();
@@ -45,19 +47,40 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             return over;
         }
 
+        // A scene-placed (prefab) instance idles until Show(): without a theme
+        // its Update would throw, so it disarms itself here.
+        void Awake()
+        {
+            if (theme == null) enabled = false;
+        }
+
+        // Root components are reused by Build: play-mode Destroy is deferred,
+        // so removing and re-adding them in the same frame would collide.
+        void TearDown()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--) Destroy(transform.GetChild(i).gameObject);
+        }
+
+        static T GetOrAdd<T>(GameObject go) where T : Component
+        {
+            var c = go.GetComponent<T>();
+            return c != null ? c : go.AddComponent<T>();
+        }
+
         void Build()
         {
-            var canvas = gameObject.AddComponent<Canvas>();
+            TearDown();
+            var canvas = GetOrAdd<Canvas>(gameObject);
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = SortingOrder;
 
-            var scaler = gameObject.AddComponent<CanvasScaler>();
+            var scaler = GetOrAdd<CanvasScaler>(gameObject);
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
 
-            gameObject.AddComponent<GraphicRaycaster>();
+            GetOrAdd<GraphicRaycaster>(gameObject);
 
-            ui = gameObject.AddComponent<AudioSource>();
+            ui = GetOrAdd<AudioSource>(gameObject);
             ui.playOnAwake = false;
             ui.outputAudioMixerGroup = theme.UiOutput;
 

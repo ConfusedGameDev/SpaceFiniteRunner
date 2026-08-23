@@ -107,9 +107,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (settings != null) ResolveSeed();
             Recalculate();
 
-            // Police fleet: the manager is spawned, not scene-placed, so any
-            // scene with a wired CityManager gets patrols with zero setup.
-            if (policeCarPrefab != null && pursuitSettings != null)
+            // Police fleet: prefer a scene-placed (prefab) manager so it is
+            // visible before play; spawn one only when the scene has none.
+            if (FindAnyObjectByType<AI.PatrolManager>() == null && policeCarPrefab != null && pursuitSettings != null)
             {
                 var managerGo = new GameObject("PatrolManager");
                 var patrolManager = managerGo.AddComponent<AI.PatrolManager>();
@@ -117,25 +117,25 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 patrolManager.policeCarPrefab = policeCarPrefab;
             }
 
-            // Civilian traffic: same spawn-when-wired pattern as the police.
-            if (trafficSettings != null)
+            // Civilian traffic: same scene-first pattern as the police.
+            if (FindAnyObjectByType<AI.TrafficManager>() == null && trafficSettings != null)
             {
                 var trafficGo = new GameObject("TrafficManager");
                 trafficGo.AddComponent<AI.TrafficManager>().settings = trafficSettings;
             }
 
             // HUD pieces: same deal — spawned when wired, each builds its own canvas.
-            if (minimapSettings != null)
+            if (FindAnyObjectByType<UI.Minimap>() == null && minimapSettings != null)
             {
                 var minimapGo = new GameObject("Minimap");
                 minimapGo.AddComponent<UI.Minimap>().settings = minimapSettings;
             }
-            if (speedometerSettings != null)
+            if (FindAnyObjectByType<UI.Speedometer>() == null && speedometerSettings != null)
             {
                 var speedometerGo = new GameObject("Speedometer");
                 speedometerGo.AddComponent<UI.Speedometer>().settings = speedometerSettings;
             }
-            if (mapSettings != null) UI.CityMapScreen.Spawn(this, mapSettings);
+            if (FindAnyObjectByType<UI.CityMapScreen>() == null && mapSettings != null) UI.CityMapScreen.Spawn(this, mapSettings);
         }
 
         // ------------------------------------------------------------- buttons

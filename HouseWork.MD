@@ -46,7 +46,7 @@ as much as possible do not change any of the code outside of the namespace and a
 
 
 
-M3
+M3 ✅ DONE (2026-08-23)
 
 currently several systems spawn systems on runtime such as the main menu or the pause menu.
 we need to be able to visualize the systems before we enter runtime so prefer to have the objects in the scene when possible.

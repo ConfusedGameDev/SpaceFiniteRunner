@@ -23,7 +23,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     public static class KenneyRoadSetBuilder
     {
         const string RoadsFolder = "Assets/02.Art/01.Models/InfiniteCity/Roads";
-        const string TestFolder = "Assets/03.Prefabs/InfiniteCity";
+        const string TestFolder = "Assets/03.Prefabs/PoliceEscape";
         const string SettingsPath = "Assets/04.Data/InfiniteCity/CityTestSettings.asset";
 
         /// <summary>Two ramp surfaces count as meeting when their heights differ by less than this (native units; the deck railing alone is 0.02).</summary>

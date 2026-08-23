@@ -1,3 +1,4 @@
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -19,6 +20,14 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// </summary>
     public class DashPromptController : MonoBehaviour
     {
+        [Tooltip("Game settings the hint text and message knobs come from; Spawn's argument overrides this.")]
+        [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        GameSettings settingsAsset;
+
+        [Tooltip("Menu theme for glyphs and fonts; empty falls back to the Resources default.")]
+        [SerializeField, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        MenuTheme themeOverride;
+
         ShipMotor motor;
         GameSettings settings;
         MenuTheme theme;
@@ -36,8 +45,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         public static DashPromptController Spawn(ShipMotor motor, GameSettings settings)
         {
-            var go = new GameObject("DashPrompt");
-            var prompt = go.AddComponent<DashPromptController>();
+            var prompt = FindFirstObjectByType<DashPromptController>();
+            if (prompt == null) prompt = new GameObject("DashPrompt").AddComponent<DashPromptController>();
             prompt.motor = motor;
             prompt.settings = settings;
             prompt.Build();
@@ -46,6 +55,44 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             motor.DashPerformed += prompt.OnDashPerformed;
             return prompt;
         }
+
+        void Awake()
+        {
+            // Scene-placed instance whose Spawn never came (dash disabled):
+            // drop the baked preview so no dead hint lingers on screen.
+            if (motor == null) TearDown();
+        }
+
+        /// <summary>Editor bake: regenerates the hint preview (fully visible) so the prefab shows before play.</summary>
+        [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
+        public void RebuildPreview()
+        {
+            Build();
+            hintGroup.alpha = 1f;
+        }
+
+        // Root components are reused by Build — see RpgMessageSystem.TearDown.
+        void TearDown()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
+            hintGroup = null;
+            leftGlyph = rightGlyph = null;
+            leftKey = rightKey = null;
+        }
+
+        static void Kill(Object o)
+        {
+            if (o == null) return;
+            if (Application.isPlaying) Destroy(o);
+            else DestroyImmediate(o);
+        }
+
+        static T GetOrAdd<T>(GameObject go) where T : Component
+        {
+            var c = go.GetComponent<T>();
+            return c != null ? c : go.AddComponent<T>();
+        }
+
 
         void OnDestroy()
         {
@@ -56,13 +103,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void Build()
         {
-            theme = MenuTheme.Load();
+            TearDown();
+            if (settings == null) settings = settingsAsset;
+            theme = themeOverride != null ? themeOverride : MenuTheme.Load();
 
-            var canvas = gameObject.AddComponent<Canvas>();
+            var canvas = GetOrAdd<Canvas>(gameObject);
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 12; // above the HUD and minimap, below the RPG box
 
-            var scaler = gameObject.AddComponent<CanvasScaler>();
+            var scaler = GetOrAdd<CanvasScaler>(gameObject);
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
 
@@ -85,7 +134,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                                           "[N]", 30, theme.TextPrimary, theme.BodyFont, TextAnchor.MiddleCenter);
 
             MenuScreen.MakeText("Caption", rect, Vector2.zero, new Vector2(480f, 48f),
-                                settings.dashHintText, 30, theme.TextPrimary, theme.BodyFont,
+                                settings != null ? settings.dashHintText : "DASH", 30, theme.TextPrimary, theme.BodyFont,
                                 TextAnchor.MiddleCenter);
 
             rightGlyph = MenuScreen.MakeImage("BumperR", rect, new Vector2(300f, 0f), new Vector2(48f, 48f),

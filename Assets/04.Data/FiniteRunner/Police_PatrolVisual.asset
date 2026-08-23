@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb069e7fa2f8645e3acc08600f738d56, type: 3}
+  m_Name: Police_PatrolVisual
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.GameFlow.PatrolVisualSettings
+  bodyMaterial: {fileID: 2100000, guid: ec734ad7799ad433bb142a489fcdc2e9, type: 2}
+  trimMaterial: {fileID: 2100000, guid: f182689e1b1a44eb8bacd3e77eae3d7b, type: 2}
+  redLightMaterial: {fileID: 2100000, guid: 4c6c0a1cd126d4a838207811c68d376f, type: 2}
+  blueLightMaterial: {fileID: 2100000, guid: 8497a54b49f9e4e72aebc7770bd31225, type: 2}
+  overallScale: 1.6
+  hullSize: {x: 3, y: 0.9, z: 6}
+  cabinPosition: {x: 0, y: 0.7, z: -0.4}
+  cabinSize: {x: 2, y: 0.7, z: 2.6}
+  skidPosition: {x: 1.8, y: -0.1, z: 0}
+  skidSize: {x: 0.6, y: 0.5, z: 4}
+  lightPosition: {x: 0.55, y: 1.35, z: -0.4}
+  lightDiameter: 0.7

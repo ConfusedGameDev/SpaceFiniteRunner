@@ -72,8 +72,34 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
         // --------------------------------------------------------------- build
 
+        /// <summary>Editor bake: regenerates the gauge preview so the prefab shows before play.</summary>
+        [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
+        public void RebuildPreview()
+        {
+            Build();
+            canvas.enabled = true;
+            if (digital != null) digital.text = "88";
+        }
+
+        void TearDown()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
+            canvas = null;
+            needle = null;
+            needleImage = null;
+            digital = unitLabel = null;
+        }
+
+        static void Kill(Object o)
+        {
+            if (o == null) return;
+            if (Application.isPlaying) Destroy(o);
+            else DestroyImmediate(o);
+        }
+
         void Build()
         {
+            TearDown();
             built = true;
             circleSprite = CreateCircleSprite(128);
             float size = settings.sizePixels;

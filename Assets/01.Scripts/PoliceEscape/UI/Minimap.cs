@@ -69,8 +69,36 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
         // --------------------------------------------------------------- build
 
+        /// <summary>Editor bake: regenerates the radar chrome preview so the prefab shows before play (the map texture itself is runtime-only).</summary>
+        [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
+        public void RebuildPreview()
+        {
+            Build();
+            canvas.enabled = true;
+            mapCamera.enabled = false; // no stray fullscreen render in edit mode
+        }
+
+        void TearDown()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
+            if (mapTexture != null) { mapTexture.Release(); Kill(mapTexture); mapTexture = null; }
+            canvas = null;
+            mapCamera = null;
+            blipRoot = playerArrow = routeRoot = null;
+            blips.Clear();
+            routeDots.Clear();
+        }
+
+        static void Kill(Object o)
+        {
+            if (o == null) return;
+            if (Application.isPlaying) Destroy(o);
+            else DestroyImmediate(o);
+        }
+
         void Build()
         {
+            TearDown();
             built = true;
             circleSprite = CreateCircleSprite(128);
             float size = settings.sizePixels;

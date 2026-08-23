@@ -1,3 +1,4 @@
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -28,12 +29,41 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
         public static ObjectiveHud Spawn(LevelManager manager)
         {
-            var go = new GameObject("ObjectiveHud");
-            go.transform.SetParent(manager.transform, false);
-            var hud = go.AddComponent<ObjectiveHud>();
+            var hud = FindFirstObjectByType<ObjectiveHud>();
+            if (hud == null)
+            {
+                var go = new GameObject("ObjectiveHud");
+                go.transform.SetParent(manager.transform, false);
+                hud = go.AddComponent<ObjectiveHud>();
+            }
             hud.manager = manager;
             return hud;
         }
+
+        /// <summary>Editor bake: regenerates the readout preview (with sample text) so the prefab shows before play.</summary>
+        [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
+        public void RebuildPreview()
+        {
+            Build();
+            canvas.enabled = true;
+            caption.text = "OBJECTIVE 1/3";
+            line.text = "REACH SPEED  130 KM/H   (0)";
+        }
+
+        void TearDown()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
+            canvas = null;
+            line = caption = null;
+        }
+
+        static void Kill(Object o)
+        {
+            if (o == null) return;
+            if (Application.isPlaying) Destroy(o);
+            else DestroyImmediate(o);
+        }
+
 
         void Update()
         {
@@ -84,6 +114,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
         void Build()
         {
+            TearDown();
             built = true;
 
             canvas = new GameObject("ObjectiveCanvas").AddComponent<Canvas>();

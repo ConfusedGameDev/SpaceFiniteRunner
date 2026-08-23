@@ -27,7 +27,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     {
         const string SceneFolder = "Assets/05.Scenes";
         const string DataFolder = "Assets/04.Data/InfiniteCity";
-        const string PrefabFolder = "Assets/03.Prefabs/InfiniteCity";
+        const string PrefabFolder = "Assets/03.Prefabs/PoliceEscape";
         const string MaterialFolder = "Assets/02.Art/02.Materials/InfiniteCity/Test";
         const string ScenePath = SceneFolder + "/CarTest.unity";
         const string CarPrefabPath = PrefabFolder + "/TestCar.prefab";

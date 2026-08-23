@@ -77,7 +77,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // itself off the motor in Start, after ConfigureDash above.
                 if (settings.dashEnabled)
                 {
-                    motor.gameObject.AddComponent<DashGhostTrail>().Init(motor, settings);
+                    var trail = motor.GetComponent<DashGhostTrail>();
+                    if (trail == null) trail = motor.gameObject.AddComponent<DashGhostTrail>();
+                    trail.Init(motor, settings);
                     dashPrompt = DashPromptController.Spawn(motor, settings);
                 }
             }
