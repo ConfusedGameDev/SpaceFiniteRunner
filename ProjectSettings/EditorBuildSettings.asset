@@ -6,13 +6,13 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/99.Test/Jorge/FiniteRunner/Scenes/MainMenu.unity
+    path: Assets/05.Scenes/MainMenu.unity
     guid: 8f3e6a1d5c2b4e7f9a0d1c3b5e7a9c60
   - enabled: 1
-    path: Assets/99.Test/Jorge/InfiniteCity/Scripts/Vehicles/Test/CarTest.unity
+    path: Assets/05.Scenes/CarTest.unity
     guid: 259c7a4fc38c44b118b54e3e3dd1b5f3
   - enabled: 1
-    path: Assets/99.Test/Jorge/FiniteRunner/Scenes/FiniteRunner_Test.unity
+    path: Assets/05.Scenes/FiniteRunner_Test.unity
     guid: b4f920b23b6464f6097abdfc32367f33
   - enabled: 0
     path: Assets/05.Scenes/SampleScene.unity
