@@ -72,6 +72,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         public float routeDotSpacing = 12f;
 
         [TitleGroup("Route")]
+        [Tooltip("Colour of the destination pin at the end of the route. It clears itself the moment the car arrives, because the map clears route and marker together.")]
+        public Color destinationColor = new(1f, 0.78f, 0.25f, 1f);
+
+        [TitleGroup("Route")]
+        [Tooltip("Size of the destination pin. Bigger than a route dot — it is the thing you are steering at, and it sits on the rim while it is out of range.")]
+        [PropertyRange(4f, 32f), SuffixLabel("px", true)]
+        public float destinationSize = 12f;
+
+        [TitleGroup("Route")]
         [Tooltip("Most route dots drawn at once — the cap that keeps a cross-city route from flooding the radar.")]
         [PropertyRange(10, 400)]
         public int routeMaxDots = 160;

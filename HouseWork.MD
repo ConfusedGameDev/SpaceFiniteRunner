@@ -62,7 +62,7 @@ A) have an odin button to regenerate
 B) expose the parameters as an inline Scriptable Object File 
 
 
-M4
+M4 ✅ DONE (2026-08-23) — Documentation.html at project root
 Create a general Documentation File use HTML to make it easy to read for humans.
 this should outline all the systems in the project.
 This should have uml diagrams for all the systems to understand their relations

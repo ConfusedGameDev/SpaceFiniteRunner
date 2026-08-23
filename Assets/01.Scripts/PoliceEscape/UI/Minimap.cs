@@ -36,6 +36,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         readonly List<Image> blips = new();
         readonly List<Image> routeDots = new();
         RectTransform routeRoot;
+        Image destinationBlip;
         readonly List<PoliceCarInput> police = new();
         CarController player;
         float refreshTimer;
@@ -85,6 +86,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             canvas = null;
             mapCamera = null;
             blipRoot = playerArrow = routeRoot = null;
+            destinationBlip = null;
             blips.Clear();
             routeDots.Clear();
         }
@@ -141,6 +143,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             routeRoot = CreateRect("Route", maskImage.transform, new Vector2(size, size));
             blipRoot = CreateRect("Blips", maskImage.transform, new Vector2(size, size));
 
+            // On the blip layer, not the route layer: the pin has to stay
+            // readable over its own dotted line as the route shrinks into it.
+            destinationBlip = CreateImage("Destination", blipRoot, circleSprite, settings.destinationColor,
+                new Vector2(settings.destinationSize, settings.destinationSize));
+            destinationBlip.enabled = false;
+
             Image arrow = CreateImage("PlayerArrow", maskImage.transform, CreateArrowSprite(64), settings.playerColor,
                 new Vector2(settings.playerArrowSize * 0.8f, settings.playerArrowSize));
             playerArrow = arrow.rectTransform;
@@ -189,16 +197,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 : new Vector3(0f, 0f, -player.transform.eulerAngles.y);
         }
 
+        /// <summary>
+        /// Radar axes: with rotation, up = player forward; else up = world +Z.
+        /// Everything projected onto the radar — blips, route dots, the
+        /// destination pin — has to use the same pair, or it drifts off the
+        /// streets rendered underneath it.
+        /// </summary>
+        void RadarBasis(out Vector3 forward, out Vector3 right)
+        {
+            forward = settings.rotateWithPlayer ? player.transform.forward : Vector3.forward;
+            forward.y = 0f;
+            forward = forward.sqrMagnitude > 0.001f ? forward.normalized : Vector3.forward;
+            right = new Vector3(forward.z, 0f, -forward.x);
+        }
+
         void UpdateBlips()
         {
             float uiRadius = settings.sizePixels * 0.5f;
             float scale = uiRadius / Mathf.Max(1f, settings.viewRadius);
 
-            // Radar axes: with rotation, up = player forward; else up = world +Z.
-            Vector3 forward = settings.rotateWithPlayer ? player.transform.forward : Vector3.forward;
-            forward.y = 0f;
-            forward = forward.sqrMagnitude > 0.001f ? forward.normalized : Vector3.forward;
-            Vector3 right = new(forward.z, 0f, -forward.x);
+            RadarBasis(out Vector3 forward, out Vector3 right);
 
             bool flashA = Mathf.FloorToInt(Time.time / settings.chaseFlashInterval) % 2 == 0;
 
@@ -238,11 +256,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         /// Dots are resampled at a fixed spacing in metres rather than one per
         /// path node: nodes are one per cell, so at radar scale they would
         /// bunch into a blob, and a long route would spawn hundreds of images.
+        ///
+        /// The route only ever holds what is still to be driven (the map screen
+        /// trims it behind the car as it goes), so the line drawn here starts at
+        /// the car and shrinks into the destination without the radar tracking
+        /// any progress of its own.
         /// </summary>
         void UpdateRoute()
         {
             MapRoute route = MapRoute.Current;
             int used = 0;
+            UpdateDestination(route);
 
             if (route != null && route.HasRoute)
             {
@@ -250,10 +274,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 float scale = uiRadius / Mathf.Max(1f, settings.viewRadius);
                 float maxRadius = uiRadius * 0.92f;
 
-                Vector3 forward = settings.rotateWithPlayer ? player.transform.forward : Vector3.forward;
-                forward.y = 0f;
-                forward = forward.sqrMagnitude > 0.001f ? forward.normalized : Vector3.forward;
-                Vector3 right = new(forward.z, 0f, -forward.x);
+                RadarBasis(out Vector3 forward, out Vector3 right);
                 Vector3 origin = player.transform.position;
 
                 float spacing = Mathf.Max(1f, settings.routeDotSpacing);
@@ -288,6 +309,35 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             }
 
             for (int i = used; i < routeDots.Count; i++) routeDots[i].enabled = false;
+        }
+
+        /// <summary>
+        /// The destination pin — the end of the route, clamped to the rim so it
+        /// still points the way once it is beyond radar range.
+        ///
+        /// It is driven by the route rather than by the marker store on
+        /// purpose: the map screen clears route and marker together the moment
+        /// the car arrives, so the pin vanishing IS the arrival, and the radar
+        /// needs to know nothing about markers to show it.
+        /// </summary>
+        void UpdateDestination(MapRoute route)
+        {
+            bool has = route != null && route.HasRoute;
+            destinationBlip.enabled = has;
+            if (!has) return;
+
+            float uiRadius = settings.sizePixels * 0.5f;
+            float scale = uiRadius / Mathf.Max(1f, settings.viewRadius);
+            float maxRadius = uiRadius * 0.92f;
+
+            RadarBasis(out Vector3 forward, out Vector3 right);
+            Vector3 delta = route.Destination - player.transform.position;
+            var position = new Vector2(Vector3.Dot(delta, right), Vector3.Dot(delta, forward)) * scale;
+            if (position.sqrMagnitude > maxRadius * maxRadius) position = position.normalized * maxRadius;
+
+            destinationBlip.rectTransform.anchoredPosition = position;
+            destinationBlip.rectTransform.sizeDelta = new Vector2(settings.destinationSize, settings.destinationSize);
+            destinationBlip.color = settings.destinationColor;
         }
 
         Image GetRouteDot(int index)

@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpaceFiniteRunner — Systems Documentation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", themeVariables: { fontSize: "14px" } });
+    } else {
+      document.querySelectorAll("pre.mermaid").forEach(function (el) {
+        el.style.whiteSpace = "pre"; el.style.fontFamily = "monospace";
+      });
+    }
+  });
+</script>
+<style>
+  :root {
+    --bg: #ffffff; --ink: #1c2430; --dim: #5b6674; --line: #dde3ea;
+    --accent: #e04a29; --accent-soft: #fdeee9;
+    --runner: #2563eb; --runner-soft: #e8effd;
+    --city: #0e9488; --city-soft: #e6f6f4;
+    --shared: #7c3aed; --shared-soft: #f1eafd;
+    --code-bg: #f4f6f8; --card: #fafbfc; --paper: #fafbfc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161d; --ink: #e2e8f1; --dim: #94a0b0; --line: #2b3644;
+      --accent: #f06a48; --accent-soft: #372018;
+      --runner: #7fb0ff; --runner-soft: #1b2940;
+      --city: #3cc9ba; --city-soft: #12302c;
+      --shared: #b494ff; --shared-soft: #271d3d;
+      --code-bg: #1b222d; --card: #171d27; --paper: #f3f5f8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12161d; --ink: #e2e8f1; --dim: #94a0b0; --line: #2b3644;
+    --accent: #f06a48; --accent-soft: #372018;
+    --runner: #7fb0ff; --runner-soft: #1b2940;
+    --city: #3cc9ba; --city-soft: #12302c;
+    --shared: #b494ff; --shared-soft: #271d3d;
+    --code-bg: #1b222d; --card: #171d27; --paper: #f3f5f8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  code, pre { font-family: "IBM Plex Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 0.88em; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre.block { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; }
+  a { color: var(--runner); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .layout { display: flex; min-height: 100vh; }
+  nav.toc {
+    width: 280px; flex: 0 0 280px; position: sticky; top: 0; align-self: flex-start;
+    height: 100vh; overflow-y: auto; border-right: 1px solid var(--line);
+    padding: 28px 20px; background: var(--card);
+  }
+  nav.toc h1 { font-size: 17px; margin: 0 0 4px; }
+  nav.toc .sub { font-size: 12px; color: var(--dim); margin-bottom: 18px; }
+  nav.toc ul { list-style: none; margin: 0 0 10px; padding: 0; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { display: block; padding: 3px 8px; border-radius: 6px; color: var(--ink); font-size: 13.5px; }
+  nav.toc a:hover { background: var(--accent-soft); text-decoration: none; }
+  nav.toc .lvl2 { padding-left: 22px; color: var(--dim); font-size: 12.5px; }
+  nav.toc .group { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); margin: 16px 0 4px; }
+
+  main { flex: 1; min-width: 0; padding: 44px 56px 120px; max-width: 1100px; }
+  h1.doc-title { font-size: 34px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .doc-sub { color: var(--dim); margin-bottom: 34px; font-size: 15px; }
+  h2 { font-size: 26px; margin: 64px 0 14px; padding-top: 18px; border-top: 2px solid var(--line); letter-spacing: -0.01em; }
+  h3 { font-size: 20px; margin: 36px 0 10px; }
+  h4 { font-size: 16px; margin: 26px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 8px 0 12px; padding-left: 26px; }
+  li { margin: 3px 0; }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 10px; border-radius: 99px; vertical-align: 3px; margin-left: 10px; }
+  .badge.runner { background: var(--runner-soft); color: var(--runner); }
+  .badge.city { background: var(--city-soft); color: var(--city); }
+  .badge.shared { background: var(--shared-soft); color: var(--shared); }
+
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 16px 0; font-size: 14.5px; }
+  .callout.info { border-color: var(--runner); background: var(--runner-soft); }
+  .callout.rule { border-color: var(--shared); background: var(--shared-soft); }
+  .callout b:first-child { display: block; margin-bottom: 2px; }
+
+  .table-wrap { overflow-x: auto; margin: 14px 0; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--card); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td code { white-space: nowrap; }
+
+  .diagram { border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin: 18px 0;
+    background: var(--paper); color: #1c2430; overflow-x: auto; }
+  .diagram .cap { font-size: 12.5px; color: #5b6674; margin-top: 8px; border-top: 1px dashed #cdd5de; padding-top: 8px; }
+  .diagram .cap code { background: #eceff3; }
+  pre.mermaid { margin: 0; display: flex; justify-content: center; background: transparent; }
+
+  .legend { font-size: 13px; color: var(--dim); background: var(--card); border: 1px dashed var(--line);
+    border-radius: 8px; padding: 10px 14px; margin: 12px 0; }
+  .filepath { color: var(--dim); font-size: 13px; }
+  .kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px;
+    font-family: ui-monospace, monospace; font-size: 12.5px; background: var(--card); }
+
+  @media (max-width: 900px) {
+    .layout { display: block; }
+    nav.toc { position: static; width: auto; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+    main { padding: 24px 18px 80px; }
+  }
+  @media print { nav.toc { display: none; } main { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc">
+  <h1>SpaceFiniteRunner</h1>
+  <div class="sub">Systems documentation · generated 2026-08-23</div>
+  <div class="group">Orientation</div>
+  <ul>
+    <li><a href="#overview">1. Project overview</a></li>
+    <li><a href="#assemblies">2. Assemblies &amp; namespaces</a></li>
+  </ul>
+  <div class="group">Finite Runner (space)</div>
+  <ul>
+    <li><a href="#runner">3. Runner gameplay systems</a></li>
+    <li><a href="#runner-uml" class="lvl2">3.1 Class UML</a></li>
+    <li><a href="#runner-flow" class="lvl2">3.2 Runtime flow</a></li>
+    <li><a href="#runner-scene" class="lvl2">3.3 Scene wiring</a></li>
+  </ul>
+  <div class="group">Police Escape (city)</div>
+  <ul>
+    <li><a href="#city">4. City-chase systems</a></li>
+    <li><a href="#city-gen" class="lvl2">4.1 City generation</a></li>
+    <li><a href="#city-vehicles" class="lvl2">4.2 Vehicle stack</a></li>
+    <li><a href="#city-ai" class="lvl2">4.3 Pursuit &amp; traffic AI</a></li>
+    <li><a href="#city-level" class="lvl2">4.4 Level flow &amp; HUD</a></li>
+    <li><a href="#city-scene" class="lvl2">4.5 Scene wiring</a></li>
+  </ul>
+  <div class="group">Shared foundations</div>
+  <ul>
+    <li><a href="#shared">5. Shared systems</a></li>
+    <li><a href="#shared-menu" class="lvl2">5.1 Menu framework</a></li>
+    <li><a href="#shared-cheats" class="lvl2">5.2 Cheat system</a></li>
+    <li><a href="#shared-fx" class="lvl2">5.3 Haptics, glitch &amp; rendering</a></li>
+  </ul>
+  <div class="group">Working with the project</div>
+  <ul>
+    <li><a href="#extending">6. How to extend each system</a></li>
+    <li><a href="#tuning">7. Tuning guide (all knobs)</a></li>
+  </ul>
+</nav>
+<main>
+
+<h1 class="doc-title">SpaceFiniteRunner — Systems Documentation</h1>
+<div class="doc-sub">
+  Unity 6 (6000.7.0a3, URP 17) · two game prototypes in one project: a spline-based hover-ship endless
+  runner and a procedurally generated city police-chase. This document maps every system, how the classes
+  relate (UML), how the scenes are wired, how to extend each system, and what every tunable does.
+</div>
+
+<div class="callout info">
+  <b>How to read the diagrams</b>
+  UML diagrams are rendered with Mermaid (loaded from a CDN — open this file with an internet connection,
+  or view the published copy). Arrow conventions used throughout:
+  <b>solid arrow</b> = serialized/inspector reference (composition) ·
+  <b>dashed arrow</b> = runtime lookup (<code>FindFirstObjectByType</code>, singleton <code>Instance</code>, <code>GetComponent</code>) ·
+  <b>circle-ended “subscribes”</b> label = C# event subscription ·
+  <b>“spawns”</b> label = runtime instantiation ·
+  <b>diamond “SO”</b> label = consumes a ScriptableObject asset.
+</div>
+
+<h2 id="overview">1. Project overview</h2>
+
+<p>The repository contains <b>two playable prototypes</b> that share one UI/FX foundation and hand off to
+each other at runtime:</p>
+<ul>
+  <li><b>Finite Runner</b> <span class="badge runner">Runner</span> — a hover-ship launches with one speed
+      impulse and constantly bleeds speed; boost orbs and brake pads on an endlessly streamed spline track
+      are the only way to change speed. Win by reaching <i>Light Speed</i> before the countdown ends;
+      lose if the rubber-banding police patrol catches up, the timer hits zero, or the ship stops.</li>
+  <li><b>Police Escape</b> <span class="badge city">City</span> — a physics-based car chase through an
+      infinite, deterministically generated city (Kenney road kit), with a police fleet AI, traffic,
+      street decoration, and an objective-driven level flow that glitch-transitions between scenes.</li>
+  <li><b>Shared foundations</b> <span class="badge shared">Shared</span> — the themed menu framework
+      (main menu, pause menu, debug pages, localization in four languages), the cheat-code system,
+      gamepad haptics, and the fullscreen glitch / X-ray silhouette render features.</li>
+</ul>
+
+<h3>Folder layout</h3>
+<div class="table-wrap"><table>
+  <tr><th>Folder</th><th>Contents</th></tr>
+  <tr><td><code>Assets/00.Plugins</code></td><td>Third-party (Odin Inspector etc.)</td></tr>
+  <tr><td><code>Assets/01.Scripts</code></td><td>All game code, one subfolder per assembly (see <a href="#assemblies">§2</a>)</td></tr>
+  <tr><td><code>Assets/02.Art</code></td><td>Models / materials / textures</td></tr>
+  <tr><td><code>Assets/03.Prefabs</code></td><td>Scene-placeable systems: <code>Runner/</code>, <code>PoliceEscape/</code>, <code>Shared/</code></td></tr>
+  <tr><td><code>Assets/04.Data</code></td><td>ScriptableObject assets: <code>FiniteRunner/</code>, <code>InfiniteCity/</code>, <code>Resources/</code> (assets loaded by name at runtime)</td></tr>
+  <tr><td><code>Assets/05.Scenes</code></td><td><code>MainMenu</code> (build 0), <code>CarTest</code> (city chase), <code>FiniteRunner_Test</code> (runner), <code>CityTest</code></td></tr>
+  <tr><td><code>Assets/06.UI</code></td><td>Sprites (<code>01.Sprites</code>: Kenney UI kit, key caps, Xbox glyphs) and fonts (<code>02.Fonts</code>)</td></tr>
+</table></div>
+
+<h3>Scene flow</h3>
+<div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  MM["MainMenu.unity<br/>(build 0, standalone menu)"] -- "START →<br/>LoadScene(index+1)" --> CT["CarTest.unity<br/>(city chase)"]
+  CT -- "LevelManager completes →<br/>glitch handoff to nextSceneName" --> FR["FiniteRunner_Test.unity<br/>(space runner)"]
+  FR -- "PauseMenu → EXIT TO MENU<br/>LoadScene(0)" --> MM
+  CT -- "PauseMenu → EXIT TO MENU" --> MM
+</pre>
+<div class="cap">The runner scene opens with <code>GlitchController.startIntensity = 1</code> and <code>TuningScreen.autoLaunch = 1</code>
+precisely so the glitch-transition entry from the city chase lands seamlessly.</div>
+</div>
+
+<div class="callout rule">
+  <b>Project-wide rules</b>
+  <ul>
+    <li><b>New Input System only</b> — never the legacy <code>Input</code> class. Input is polled (there is no <code>.inputactions</code> asset).</li>
+    <li><b>Tunables live in ScriptableObjects</b> in <code>Assets/04.Data/</code>, drawn with Odin attributes
+        (<code>[PropertyRange]</code> sliders, <code>[MinMaxSlider]</code> bands, <code>[InlineEditor]</code> inlined into consumers). Add knobs there, not as hardcoded fields.</li>
+    <li><b>Runtime clones, never assets</b> — systems that let the player/debug menu change values at runtime
+        (<code>ShipMotor</code>, <code>PolicePatrol</code>) clone their definition asset first. City-chase settings are the
+        deliberate exception: they are edited live and flushed to disk at menu commit points.</li>
+    <li><b>Spawnable systems are prefabs</b> under <code>Assets/03.Prefabs</code>, pre-placed in scenes so they can be
+        seen before entering play mode; code-built ones expose an Odin <i>Rebuild Preview</i> button.</li>
+    <li>Editor-only code goes in <code>Editor/</code> subfolders with editor-only asmdefs.</li>
+  </ul>
+</div>
+
+<h2 id="assemblies">2. Assemblies &amp; namespaces</h2>
+
+<p>All code lives under <code>Assets/01.Scripts/</code>, split into assemblies with a strictly one-way
+reference graph (no cycles). The root namespace is <code>ConfusedGameDev.FiniteRunner.*</code>.</p>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart BT
+  subgraph leaves ["Leaf assemblies (no game references)"]
+    UI["…UI<br/>menu framework"]
+    HAP["…Haptics"]
+    FX["…FX<br/>GlitchController"]
+    REN["…Rendering<br/>GlitchSilhouetteFeature<br/><i>(isolated, URP only)</i>"]
+  end
+  CHT["…Cheats"] --> UI
+  CHT --> HAP
+  CHT --> FX
+  RUN["…Runner<br/>ns ConfusedGameDev.FiniteRunner"] --> UI
+  RUN --> CHT
+  RUN --> HAP
+  RUN --> FX
+  PE["…PoliceEscape"] --> RUN
+  PE --> UI
+  PE --> CHT
+  PE --> HAP
+  PE --> FX
+  RUNE["…Runner.Editor<br/><i>(Editor only)</i>"] -.-> RUN
+  PEE["…PoliceEscape.Editor<br/><i>(Editor only)</i>"] -.-> PE
+  style UI fill:#f1eafd,stroke:#7c3aed
+  style HAP fill:#f1eafd,stroke:#7c3aed
+  style FX fill:#f1eafd,stroke:#7c3aed
+  style REN fill:#f1eafd,stroke:#7c3aed
+  style CHT fill:#f1eafd,stroke:#7c3aed
+  style RUN fill:#e8effd,stroke:#2563eb
+  style PE fill:#e6f6f4,stroke:#0e9488
+</pre>
+<div class="cap">Assembly reference graph (arrows point at the referenced assembly). Prefix
+<code>ConfusedGameDev.FiniteRunner</code> omitted. External refs: InputSystem (UI, Haptics, Cheats, Runner, PoliceEscape),
+Splines + Mathematics + URP (Runner), Cinemachine (PoliceEscape), URP (Rendering).
+<code>Assets/01.Scripts/Editor/OpenLogMenu.cs</code> has no asmdef and compiles into <code>Assembly-CSharp-Editor</code>.</div>
+</div>
+
+<div class="table-wrap"><table>
+  <tr><th>Assembly</th><th>Folder</th><th>Namespaces</th><th>What lives there</th></tr>
+  <tr><td><code>…UI</code></td><td><code>01.Scripts/UI</code></td><td><code>…UI</code></td><td>MenuTheme/MenuScreen/MenuRow framework, localization, debug-menu shell, prompt glyphs, UserSettings</td></tr>
+  <tr><td><code>…Cheats</code></td><td><code>01.Scripts/Cheats</code></td><td><code>…Cheats</code></td><td>Cheat model (buffer/matcher), console view, glyph + definition assets</td></tr>
+  <tr><td><code>…Haptics</code></td><td><code>01.Scripts/Haptics</code></td><td><code>…Haptics</code></td><td>HapticsSystem singleton (gamepad rumble)</td></tr>
+  <tr><td><code>…FX</code></td><td><code>01.Scripts/FX</code></td><td><code>…FX</code></td><td>GlitchController (fullscreen post dial)</td></tr>
+  <tr><td><code>…Rendering</code></td><td><code>01.Scripts/Rendering</code></td><td><code>…Rendering</code></td><td>GlitchSilhouetteFeature (URP render feature, X-ray pass)</td></tr>
+  <tr><td><code>…Runner</code></td><td><code>01.Scripts/Runner</code></td><td><code>…GameFlow ·Ship ·Track ·HUD ·Screens ·CameraFX</code></td><td>The space runner game</td></tr>
+  <tr><td><code>…PoliceEscape</code></td><td><code>01.Scripts/PoliceEscape</code></td><td><code>…PoliceEscape(.City ·AI ·Vehicles ·Population ·Decoration ·UI)</code></td><td>The city chase game</td></tr>
+  <tr><td><code>…Runner.Editor</code></td><td><code>01.Scripts/Runner/Editor</code></td><td><code>…EditorTools</code></td><td>TrackGenerator inspector, cheat asset builder</td></tr>
+  <tr><td><code>…PoliceEscape.Editor</code></td><td><code>01.Scripts/PoliceEscape/Editor</code></td><td><code>…PoliceEscape.Editor</code></td><td>Kenney set builders, scene builders, feature installers</td></tr>
+</table></div>
+
+<div class="callout">
+  <b>The one inversion point: <code>DebugMenuHooks</code></b>
+  The UI assembly must never reference the game assemblies, yet the pause menu (Runner) must host
+  city-chase debug tabs (PoliceEscape). <code>DebugMenuHooks</code> (in UI) exposes three static hooks —
+  <code>Discover</code>, <code>Flush</code>, <code>FullScreenTakeoverOpen</code> — that
+  <code>CityDebugMenuFactory</code> fills in from a <code>[RuntimeInitializeOnLoadMethod]</code>. This keeps the
+  reference graph acyclic. Follow the same pattern for any future cross-assembly UI extension.
+</div>
+<h2 id="runner">3. Finite Runner — gameplay systems <span class="badge runner">Runner</span></h2>
+
+<p class="filepath">Code: <code>Assets/01.Scripts/Runner/</code> · Scene: <code>Assets/05.Scenes/FiniteRunner_Test.unity</code> · Data: <code>Assets/04.Data/FiniteRunner/</code></p>
+
+<p><b>Core mechanic:</b> the ship launches with a single speed impulse (<code>ShipDefinition.initialImpulse</code>)
+and constantly bleeds speed (<code>passiveDeceleration</code>). Boost orbs and brake pads on the track are the
+only way to change speed — there is <b>no speed cap</b>. The game is <b>spline-based, not physics-based</b>:
+the ship is moved kinematically along a <code>SplineContainer</code>; pads detect it via trigger colliders
+against its kinematic rigidbody.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Class</th><th>Namespace</th><th>Role</th></tr>
+  <tr><td><code>GameManager</code></td><td><code>…GameFlow</code></td><td>Win/lose + countdown. Wires the whole run in <code>Awake</code>: dash system, patrol, minimap, pause menu. Owns <b>no tunables</b> — everything lives on the <code>GameSettings</code> asset.</td></tr>
+  <tr><td><code>ShipMotor</code></td><td><code>…Ship</code></td><td>The simulation: launch impulse, passive decay, queued pad impulses, lateral steering + dash, distance→spline-t mapping. Hover/bank are visual-only on a <code>visual</code> child.</td></tr>
+  <tr><td><code>SteeringInput</code></td><td><code>…Ship</code></td><td>Implements <code>ISteeringInput</code> + <code>IDashInput</code>: keyboard/gamepad/touch steering and double-tap dash. Swap in a VR implementation by replacing this component.</td></tr>
+  <tr><td><code>TrackManager</code></td><td><code>…Track</code></td><td>Owns the spline; converts (t, lateral) → world pose. <b>Distance from track start is the authoritative coordinate</b> (<code>DistanceToT()</code> via cached arc-length tables).</td></tr>
+  <tr><td><code>TrackGenerator</code></td><td><code>…Track</code></td><td>Procedural builder + endless streamer: appends knots ahead of the ship, places pads from a weighted spawn table, culls spawned objects behind. Knots are never removed.</td></tr>
+  <tr><td><code>TrackDecorator</code></td><td><code>…Track</code></td><td>Stamps road/barrier meshes along the spline, streaming-style (<code>DecorateUpTo</code> / <code>CullBefore</code>).</td></tr>
+  <tr><td><code>SpeedPad</code> / <code>OrbHover</code></td><td><code>…Track</code></td><td>Trigger pad → <code>motor.AddSpeedImpulse</code> + static <code>Collected</code> event; orb bob/spin/sway.</td></tr>
+  <tr><td><code>PolicePatrol</code></td><td><code>…GameFlow</code></td><td>Rubber-band chaser advancing by distance along the track center; redeploys as “patrol N+1” when out-run. Clones its <code>PatrolDefinition</code> at Init.</td></tr>
+  <tr><td><code>TuningScreen</code></td><td><code>…Screens</code></td><td>Pre-run point allocation; applies to a <b>runtime clone</b> of <code>ShipDefinition</code>.</td></tr>
+  <tr><td><code>RaceHud</code>, <code>ChaseMinimap</code>, <code>DashMeterUI</code>, <code>DashPromptController</code></td><td><code>…HUD</code></td><td>Speed readout / countdown, right-edge chase gauge, dash bar, dash tutorial prompts.</td></tr>
+  <tr><td><code>FloatingTextSystem</code>, <code>RpgMessageSystem</code></td><td><code>…HUD</code></td><td>Singletons: floating world texts ahead of the ship; queued RPG dialogue box with typewriter reveal.</td></tr>
+  <tr><td><code>CameraShaker</code>, <code>ShakeOnPad</code>, <code>PadEffects</code>, <code>LensDistortionController</code>, <code>DashGhostTrail</code></td><td><code>…CameraFX</code> / <code>…Ship</code></td><td>Feedback: Perlin camera shake, lens-distortion warp on boosts, glitch pulse on brakes, dash onion-skin ghosts.</td></tr>
+  <tr><td><code>PauseMenu</code>, <code>MainMenuController</code>, <code>DebugMenuFactory</code></td><td><code>…Screens</code></td><td>Pause/debug pages and the main menu, on the shared menu framework (<a href="#shared-menu">§5.1</a>).</td></tr>
+</table></div>
+
+<h3 id="runner-uml">3.1 Class UML — how the classes relate</h3>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  subgraph flow ["Game flow"]
+    GM["GameManager"]
+    GS[/"GameSettings (SO)"/]
+    PAT["PolicePatrol"]
+    PD[/"PatrolDefinition (SO)<br/>cloned at Init"/]
+    TS["TuningScreen"]
+  end
+  subgraph sim ["Simulation"]
+    SM["ShipMotor"]
+    SI["SteeringInput<br/>ISteeringInput + IDashInput"]
+    SD[/"ShipDefinition (SO)<br/>cloned by TuningScreen"/]
+    TM["TrackManager<br/>spline · DistanceToT"]
+  end
+  subgraph track ["Track streaming"]
+    TG["TrackGenerator"]
+    TD["TrackDecorator"]
+    SP["SpeedPad"]
+    PDEF[/"PadDefinition (SO)"/]
+    OH["OrbHover"]
+  end
+
+  GM -->|"serialized"| SM
+  GM -->|"serialized"| TG
+  GM -->|"serialized"| TS
+  GM -->|"serialized"| PAT
+  GM -.->|"SO"| GS
+  GM -.->|"subscribes PadImpulse,<br/>WallHit, DashPerformed,<br/>SpeedPad.Collected"| SM
+  SM -->|"serialized"| TM
+  SM -.->|"SO"| SD
+  SM -.->|"GetComponent"| SI
+  TS -->|"serialized"| SM
+  TS -.->|"clones"| SD
+  PAT -.->|"SO clone"| PD
+  PAT -.->|"FindFirstObjectByType"| TM
+  PAT -.->|"injected target"| SM
+  TG -->|"serialized"| TM
+  TG -->|"serialized"| TD
+  TG -.->|"finds"| GM
+  TG -.->|"finds"| SM
+  TG ==>|"spawns"| SP
+  TG ==>|"spawns"| OH
+  TD -->|"serialized"| TM
+  SP -.->|"SO"| PDEF
+  SP -.->|"OnTriggerEnter →<br/>AddSpeedImpulse"| SM
+  style GS fill:#e8effd
+  style PD fill:#e8effd
+  style SD fill:#e8effd
+  style PDEF fill:#e8effd
+</pre>
+<div class="cap">Core gameplay classes. Solid = serialized reference · dashed = runtime lookup / SO consumption / event ·
+double = spawns at runtime. The debug-settings SOs (<code>TrackDebugSettings</code>, <code>ShipDebugSettings</code>,
+<code>PatrolDebugSettings</code> in <code>04.Data/Resources/</code>) capture pause-menu tweaks and re-apply them on load
+while their <code>applyOnLoad</code> is ticked.</div>
+</div>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  SM["ShipMotor"] -- "PadImpulse event" --> GM["GameManager<br/>haptic pulse"]
+  SM -- "PadImpulse" --> RH["RaceHud<br/>pulse + '+N' text"]
+  SM -- "PadImpulse" --> SOP["ShakeOnPad"]
+  SM -- "PadImpulse" --> PE["PadEffects"]
+  SOP --> CS["CameraShaker"]
+  CS -.-> CSS[/"CameraShakeSettings ×2 (SO)"/]
+  PE -.->|"boost"| LDC["LensDistortionController<br/>(singleton)"]
+  PE -.->|"brake"| GC["GlitchController<br/>(singleton, FX asm)"]
+  RH -.-> FTS["FloatingTextSystem<br/>(singleton)"]
+  FTS ==> FWT["FloatingWorldText"]
+  PATR["PolicePatrol"] -.->|"warnings"| FTS
+  PATR -.->|"SetChaseIntensity"| HAP["HapticsSystem<br/>(singleton, Haptics asm)"]
+  GM2["GameManager"] -.->|"win/lose/orb lines"| RPG["RpgMessageSystem<br/>(singleton)"]
+  GM2 -.->|"pulses"| HAP
+  DPC["DashPromptController"] -.->|"tutorial lines"| RPG
+  SM -- "MeterFilled / DashPerformed" --> DPC
+  SM -- "WallHit" --> GM2
+  style CSS fill:#e8effd
+</pre>
+<div class="cap">Feedback fan-out: one <code>PadImpulse</code> event drives haptics, HUD pulse, floating text,
+camera shake, lens warp and glitch — all decoupled subscribers. Every effect system is a singleton or
+event subscriber, so adding a new feedback layer never touches <code>ShipMotor</code>.</div>
+</div>
+
+<h3 id="runner-flow">3.2 Runtime flow of a run</h3>
+
+<div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant GM as GameManager
+  participant TG as TrackGenerator
+  participant TS as TuningScreen
+  participant SM as ShipMotor
+  participant PAT as PolicePatrol
+  participant UI as HUD and Menus
+  Note over TG: Awake — Generate(): apply TrackDebugSettings,<br/>build initial 700 m, place pads, decorate
+  Note over GM: Awake — subscribe motor events, ConfigureDash,<br/>spawn DashPrompt + ghosts
+  GM->>PAT: Init(motor) → clone PatrolDefinition,<br/>apply PatrolDebugSettings, Launch at −startGap
+  GM->>UI: ChaseMinimap.Spawn · PauseMenu.Spawn
+  TS->>SM: StartRun(): clone ShipDefinition + points<br/>+ ShipDebugSettings → SetDefinition, Launch
+  loop every frame
+    SM->>SM: speed decay + queued impulses,<br/>steer/dash, distance += speed·dt
+    TG->>TG: StreamTo(ship + aheadDistance),<br/>CullBehind(ship − behindDistance)
+    PAT->>PAT: rubber-band toward ship speed,<br/>redeploy if gap &gt; band.y
+    GM->>GM: win at lightSpeedKmh · lose on catch,<br/>timeout, or standstill
+  end
+  GM->>UI: RpgMessageSystem line (win or lose)
+  UI-->>GM: lose line onFinished → Restart()
+  GM->>TG: RegenerateForRun()
+  GM->>SM: Launch()
+  GM->>PAT: Launch()
+  GM->>TS: Show() → autoLaunch → StartRun()
+</pre>
+<div class="cap">Boot, per-frame loop, and the restart cycle. The lose line's <code>onFinished</code> is
+<code>Restart</code>, so the reset happens only after the message disappears; <code>Restart()</code> calls
+<code>ClearMessages()</code> first so a manual restart can't double-reset.</div>
+</div>
+
+<h4>Pickup chain (the most-traveled path)</h4>
+<ol>
+  <li><code>SpeedPad.OnTriggerEnter</code> → <code>motor.AddSpeedImpulse(SpeedDelta)</code> + static <code>SpeedPad.Collected(pad, motor)</code>.</li>
+  <li><code>ShipMotor</code> queues <code>definition.ScalePadEffect(raw)</code> (divided by <code>weight</code>), blends it in at the ship's <code>acceleration</code> rate, and raises <code>PadImpulse(raw)</code>.</li>
+  <li>Subscribers fan out (see diagram above). <code>GameManager.OnPadCollected</code> shows the story line when <code>pad.TierName == settings.messageOrbTierName</code> (“Purple”).</li>
+</ol>
+<p>Boost strength per orb = <code>GameSettings.powerUpSpeedBoost × PadSpawnEntry.multiplier</code>, then ÷ <code>ShipDefinition.weight</code>.
+Brakes ignore the multiplier and use <code>PadDefinition.speedDelta</code> directly.</p>
+
+<div class="callout">
+  <b>Key invariants — do not break these</b>
+  <ul>
+    <li><b>Spline knots are never removed</b> during a run — distances must stay valid; only spawned objects are culled. <code>RegenerateForRun()</code> fully rebuilds between runs.</li>
+    <li>Nothing is placed on the trailing <code>SettleMargin</code> (2 × max segment length) — AutoSmooth reshapes those curves when the next knot lands.</li>
+    <li>Hover bob and banking apply <b>only to the <code>visual</code> child</b>; the root stays exactly on the flight line so trigger detection is unaffected.</li>
+    <li>Never mutate the ScriptableObject assets at runtime — <code>ShipMotor</code>/<code>PolicePatrol</code> work on clones; tiered orbs override per-instance via <code>SetDefinition(def, delta, tint)</code>.</li>
+    <li>Speeds are stored in m/s; UI converts with <code>× 3.6</code>.</li>
+  </ul>
+</div>
+
+<h3 id="runner-scene">3.3 Scene wiring — <code>FiniteRunner_Test.unity</code></h3>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  subgraph scene ["Scene objects (hand-placed)"]
+    direction TB
+    subgraph player ["===PLAYER=== / Ship"]
+      SHIP["Ship<br/>SteeringInput · ShipMotor ·<br/>Rigidbody kinematic · trigger BoxCollider ·<br/>DashGhostTrail"]
+      CAM["Main Camera<br/>CameraShaker · ShakeOnPad"]
+      DM["DashMeter canvas<br/>DashMeterUI"]
+      VIS["nabucodonosor model<br/>= ShipMotor.visual"]
+    end
+    subgraph env ["===ENV==="]
+      TRACK["Track<br/>SplineContainer · TrackManager ·<br/>TrackGenerator · TrackDecorator"]
+      PADS["Pads (spawn parent)"]
+      DECOR["Decor (spawn parent)"]
+    end
+    subgraph sys ["===SYSTEMS==="]
+      GMGO["GameManager"]
+      PATGO["Patrol — prefab<br/>PolicePatrol"]
+      EVT["EventSystem"]
+    end
+    subgraph ui ["===UI=== / RaceHUD"]
+      HUD["RaceHUD canvas<br/>RaceHud + TuningScreen"]
+    end
+    FXGO["GlitchController · OrbFx<br/>LensDistortionController + PadEffects"]
+  end
+  subgraph prefabs ["Prefab instances (Assets/03.Prefabs)"]
+    P1["CheatManager (Shared)"]
+    P2["HapticsSystem (Shared)"]
+    P3["ChaseMinimap (Runner)"]
+    P4["RpgMessageSystem (Runner)"]
+    P5["FloatingTextSystem (Runner)"]
+    P6["DashPrompt (Runner)"]
+    P7["PauseMenu (Runner)"]
+  end
+  GMGO -->|"motor"| SHIP
+  GMGO -->|"generator"| TRACK
+  GMGO -->|"tuningScreen"| HUD
+  GMGO -->|"patrol"| PATGO
+  SHIP -->|"track"| TRACK
+  SHIP -->|"visual"| VIS
+  TRACK -->|"padsParent"| PADS
+  TRACK -->|"decorParent"| DECOR
+  HUD -->|"motor"| SHIP
+  CAM -->|"motor"| SHIP
+  GMGO -.->|"Spawn wires at Awake"| P3
+  GMGO -.->|"Spawn"| P6
+  GMGO -.->|"Spawn"| P7
+</pre>
+<div class="cap">Root objects of the runner test scene. The <code>===HEADERS===</code> are organizational empties.
+Prefab instances are pre-placed so every system is visible before play mode (HouseWork M3); their <code>Awake</code>
+self-tears-down the baked preview until <code>GameManager</code> calls their <code>Spawn</code> with live references.
+Canvas sorting orders: HUD/minimap 10 · DashPrompt 12 · RpgMessage 15 · PauseMenu 20 · MainMenu 30.</div>
+</div>
+
+<p><b><code>MainMenu.unity</code></b> (build index 0) is minimal: <code>Main Camera</code>, the
+<code>MainMenu</code> prefab (<code>MainMenuController</code> in standalone mode — START loads build index 1),
+plus the <code>EventSystem</code>, <code>HapticsSystem</code> and <code>CheatManager</code> shared prefabs.
+No GameManager, no ship — nothing needs freezing.</p>
+<h2 id="city">4. Police Escape — city-chase systems <span class="badge city">City</span></h2>
+
+<p class="filepath">Code: <code>Assets/01.Scripts/PoliceEscape/</code> · Scene: <code>Assets/05.Scenes/CarTest.unity</code> · Data: <code>Assets/04.Data/InfiniteCity/</code></p>
+
+<p>A physics-based (WheelCollider) car chase through an infinite, <b>deterministically generated</b> city.
+Five subsystems: city generation (<code>City/</code>), buildings (<code>Population/</code>), street props
+(<code>Decoration/</code>), the vehicle stack (<code>Vehicles/</code>), pursuit &amp; traffic AI (<code>AI/</code>) —
+tied together by an objective-driven level flow (<code>LevelManager</code>) and a set of code-built HUDs (<code>UI/</code>).</p>
+
+<h3 id="city-gen">4.1 City generation</h3>
+
+<p><b>Determinism is the foundation:</b> every decision derives from <code>globalSeed</code> through
+<code>DeterministicHash</code> (FNV-1a, platform-stable — never <code>string.GetHashCode</code>). Arterial roads are a
+pure function of <i>world</i> cell coordinates, so neighbouring chunks agree without communicating. Each
+subsystem draws from its own salted RNG stream, so changing one never reshuffles the others:</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Salt</th><th>Constant</th><th>Stream</th></tr>
+  <tr><td>101 / 202</td><td><code>RoadNetworkGenerator.SaltRow/SaltCol</code></td><td>Arterial row/column lines (world bands)</td></tr>
+  <tr><td>303</td><td><code>RoadNetworkGenerator.SaltChunk</code></td><td>Connector layout per chunk</td></tr>
+  <tr><td>404</td><td><code>CityManager.SaltPiecePick</code></td><td>Road piece / rotation selection</td></tr>
+  <tr><td>505</td><td><code>CityPopulator.SaltPopulate</code></td><td>Building placement</td></tr>
+  <tr><td>606</td><td><code>RoadFeaturePlacer.SaltFeatures</code></td><td>Overpasses / forks / templates</td></tr>
+  <tr><td>707</td><td><code>CityDecorator.SaltDecorate</code></td><td>Street prop placement</td></tr>
+</table></div>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  CM["CityManager<br/>orchestrator + chunk streamer"]
+  SET[/"CityGenerationSettings (SO)<br/>CityTestSettings.asset"/]
+  SAVE["CitySaveData<br/>seed in PlayerPrefs —<br/>the seed IS the save file"]
+  RNG["RoadNetworkGenerator (static)<br/>arterials → connectors →<br/>dead-end repair → connections"]
+  RFP["RoadFeaturePlacer (static)<br/>overpasses → forks → templates"]
+  CD["ChunkData<br/>ground + upper layers,<br/>ramps, features, offsets"]
+  RG["RoadGraph<br/>RoadNode = cell + level ·<br/>mutual-connection rule · A*"]
+  CC["CityChunk (marker MB)"]
+  POP["CityPopulator (static)<br/>flood-fill lots →<br/>weighted buildings"]
+  DEC["CityDecorator (static)<br/>corner light posts,<br/>edge cones/barriers"]
+  BS[/"BuildingSet (SO)"/]
+  DS[/"DecorationSet (SO)"/]
+  DP["DecorationProp<br/>player-only pushable physics"]
+  RPD["RoadPieceDefinition<br/>role · mask · lane height"]
+
+  CM -.->|"SO"| SET
+  CM -.->|"resolve seed"| SAVE
+  CM -->|"Generate(settings, coord)"| RNG
+  RNG -->|"final pass"| RFP
+  RNG ==>|"produces"| CD
+  CM -->|"RegisterChunk"| RG
+  CM ==>|"per chunk"| CC
+  CM -->|"stamp pieces via"| RPD
+  CM -->|"Populate"| POP
+  CM -->|"Decorate"| DEC
+  POP -.->|"SO"| BS
+  DEC -.->|"SO"| DS
+  DEC ==>|"Configure"| DP
+  SET -.->|"holds list of"| RPD
+  style SET fill:#e6f6f4
+  style BS fill:#e6f6f4
+  style DS fill:#e6f6f4
+</pre>
+<div class="cap">Generation pipeline per chunk. <code>RoadNetworkGenerator</code> and the placers are pure/static —
+settings + chunk coordinate in, <code>ChunkData</code> out — which is what makes the city map screen able to
+generate chunks anywhere without touching the streamed world.</div>
+</div>
+
+<h4>Pipeline order (per chunk)</h4>
+<ol>
+  <li><b>Carve arterials</b> — hash of world cell coords (salts 101/202); they continue seamlessly across chunk borders.</li>
+  <li><b>Carve connectors</b> — interior secondary streets (<code>connectorDensity</code>, <code>turnProbability</code> for L-shapes), never touching borders.</li>
+  <li><b>Repair dead ends</b> (unless <code>allowDeadEnds</code>), then <b>resolve 4-bit <code>EdgeMask</code> connections</b> per cell.</li>
+  <li><b><code>RoadFeaturePlacer</code></b> (salt 606, ≥1 cell from borders): <b>overpasses</b> at arterial crossings (ramps → <code>road-bridge</code> deck → ramps; ground under decks becomes <code>Reserved</code> + pillar), <b>forks</b> (Y-splits on cell seams with <code>SetCenterOffset</code> so graph edges stay axis-aligned), <b>multi-cell templates</b> (3×3 roundabout, matched in 4 rotations).</li>
+  <li><b><code>RoadGraph.RegisterChunk</code></b> — ground nodes (level 0) + deck nodes (level 1). Neighbour rule = <i>mutual connection</i>; that's what links ramp↔deck and keeps a deck from leaking into the street beneath. <code>TryGetNearestNode</code> penalizes vertical distance ×3.</li>
+  <li><b><code>BuildChunk</code></b> — stamp pieces (salt 404). Every piece is sunk by <code>RoadSurfaceHeight</code> (lane height × scale) so the <b>asphalt lane, not the pivot</b>, lands at y = 0 on the chunk's ground slab. Flat tiles have no collider (they ride the slab); ramps/decks/pillars carry mesh colliders.</li>
+  <li><b><code>CityPopulator.Populate</code></b> (salt 505) — buildings on <code>IsBuildable</code> (Empty) cells only; <code>Reserved</code> is neither road nor lot.</li>
+  <li><b><code>CityDecorator.Decorate</code></b> (salt 707) — props on plain flat road tiles at curb height, facing the tile centre.</li>
+</ol>
+
+<div class="callout info">
+  <b>Streaming</b>
+  In play mode <code>CityManager</code> keeps a <code>(2·loadRadiusInChunks+1)²</code> block around the player
+  (anchor = player car, else camera), unloading with hysteresis. All RNG decisions happen synchronously at
+  build time — only <code>Instantiate</code> calls are queued (<code>maxSpawnsPerFrame</code>) — so a streamed chunk is
+  <b>bit-identical</b> to an instantly built one. Generated objects carry <code>DontSave</code> flags and are always
+  rebuilt from seed + settings.
+</div>
+
+<div class="callout rule">
+  <b>Kenney kit facts (read off the FBX vertices — Unity mirrors the FBX X axis on import)</b>
+  <code>road-straight</code> runs E–W at yaw 0 · <code>road-end</code> opens West · <code>road-bend</code> connects N+E ·
+  <code>road-slant-high</code> climbs its <b>lane</b> 0.01→0.51 in one tile · <code>road-bridge</code> carries an N–S deck
+  lane at 0.51 <i>plus</i> the E–W street underneath (<code>includesUnderpass</code>).
+  <b>Every height is a LANE height, never the tile's bounds top</b> — the curb sits 0.01 native above the lane.
+  The builder measures lanes by triangle area (widest flat up-facing surface) because the low-poly tiles have
+  no vertex at the tile centre.
+</div>
+
+<h3 id="city-vehicles">4.2 Vehicle stack</h3>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  ICI["«interface» ICarInput<br/>Steer · Throttle · Handbrake · RespawnPressed"]
+  CI["CarInput<br/>player (also the<br/>player-identity marker)"]
+  PCI["PoliceCarInput<br/>Patrol / Chase / Search AI"]
+  TCI["TrafficCarInput<br/>wander + random stops"]
+  CC["CarController<br/>WheelCollider sim,<br/>shared by everyone"]
+  CFG[/"CarConfig (SO)<br/>TestCarConfig.asset"/]
+  CF["CarFactory (static)<br/>Spawn · Teleport ·<br/>AttachOrbitCamera"]
+  VRB["VehicleRigBuilder (static)<br/>FBX → drivable car at runtime"]
+  CR["CarRespawner<br/>R = teleport to road ·<br/>flipped → RequestReboot"]
+  PCS["PlayerCarSpawner"]
+  OCR["OrbitCameraRig<br/>Cinemachine chase cam"]
+  OCS[/"OrbitCameraSettings (SO)"/]
+
+  CI -.->|"implements"| ICI
+  PCI -.->|"implements"| ICI
+  TCI -.->|"implements"| ICI
+  CC -.->|"reads sibling"| ICI
+  CC -.->|"SO, live-read"| CFG
+  PCS ==>|"via"| CF
+  CF ==>|"Instantiate PlayerCar.prefab"| CC
+  CF -->|"SetTarget"| OCR
+  OCR -.->|"SO"| OCS
+  VRB ==>|"builds traffic rigs"| CC
+  CR -->|"RequireComponent"| CC
+  CR -.->|"warp via"| CF
+  style CFG fill:#e6f6f4
+  style OCS fill:#e6f6f4
+</pre>
+<div class="cap">One physics sim (<code>CarController</code>), three drivers behind one interface. Police use the same
+<code>CarConfig</code> as the player; traffic shares it via <code>TrafficSettings.carConfig</code>. Suspension/friction
+are re-pushed every FixedUpdate (live tuning); mass/COM/substeps need <code>ApplyConfig()</code>.</div>
+</div>
+
+<div class="callout">
+  <b>Vehicle-stack rules</b>
+  <ul>
+    <li><b>Single player car</b> — <code>CarFactory.Spawn</code> destroys only cars carrying a <code>CarInput</code>; AI cars belong to their managers.</li>
+    <li><b>Never teleport after Instantiate</b> — rigidbody interpolation history overwrites a post-hoc move. Spawn at the final pose; all warps go through <code>CarFactory.Teleport</code> (which also notifies Cinemachine).</li>
+    <li><code>VehicleRigBuilder</code> expects wheels named <code>wheel-front-left/right</code>, <code>wheel-back-left/right</code>; the <code>CarController</code> must be added <i>before</i> the driver component.</li>
+    <li><code>PatrolManager.FindPlayerCar()</code> (a <code>CarController</code> with a <code>CarInput</code>) is the project-wide “who is the player” resolver — use it, don't roll your own.</li>
+  </ul>
+</div>
+
+<h3 id="city-ai">4.3 Pursuit &amp; traffic AI</h3>
+
+<div class="diagram">
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --> Patrol
+  Patrol --> Chase : sees player<br/>(detectionRange + raycast LOS)
+  Chase --> Search : no LOS for<br/>loseSightSeconds
+  Search --> Chase : sees player again
+  Search --> Patrol : searchDuration expires
+  note right of Patrol : wander RoadGraph, right-hand lane,<br/>patrolSpeedKmh
+  note right of Chase : A* to player + velocity × predictionLead,<br/>repath every repathInterval,<br/>chaseSpeedKmh, no lane offset
+  note left of Search : path to last known position,<br/>then wander-sweep
+</pre>
+<div class="cap"><code>PoliceCarInput.AiState</code>. <code>LevelManager</code> reads <code>State != Patrol</code> as “hunting”
+for the EscapePolice objective; the minimap colors blips by the same enum. Both AI drivers share the driving
+core: steer = angle/<code>maxSteerAngle</code>, corner slowdown, 3-ray obstacle checks (Vehicle → brake, Wall → stop),
+stuck → timed reverse, and <code>HardRecover()</code> teleport after prolonged zero progress (never during Chase).</div>
+</div>
+
+<p><b><code>PatrolManager</code></b> keeps <code>targetPatrolCount</code> cruisers alive on a 1 s tick: spawns on clear
+flat ground nodes inside <code>spawnDistanceBand</code>, despawns beyond <code>despawnDistance</code>.
+<b><code>TrafficManager</code></b> is the same pattern for civilians (<code>VehicleRigBuilder</code>-built from a
+weighted FBX pool): no perception or A* — wander only, plus a right-hand junction-yield whisker; work
+vehicles cycle random stops. Spawners only ever use flat ground nodes (<code>Level == 0 &amp;&amp; !IsRamp</code>).</p>
+
+<h3 id="city-level">4.4 Level flow, HUDs &amp; map</h3>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  LM["LevelManager<br/>reads the asset LIVE each frame"]
+  LD[/"LevelDefinition (SO)<br/>ordered LevelObjective list ·<br/>Independent / AllMustHold"/]
+  TO["TargetObject<br/>static id registry ·<br/>snapToRoad · beam"]
+  OH["ObjectiveHud<br/>active step readout"]
+  GOS["GameOverScreen<br/>retry / give up"]
+  RPG["RpgMessageSystem<br/>(Runner asm)"]
+  GC["GlitchController<br/>(FX asm)"]
+  PIS["PlayerImpactSensor<br/>bolted onto player car"]
+  PM["PatrolManager.FindPlayerCar"]
+
+  LM -.->|"SO live"| LD
+  LM -.->|"TryFind(targetId)"| TO
+  LM ==>|"Spawn"| OH
+  LM ==>|"Show on death"| GOS
+  LM -.->|"briefings + completion"| RPG
+  LM -.->|"damage meter + handoff"| GC
+  LM ==>|"AddComponent"| PIS
+  PIS -->|"Impacted event"| LM
+  LM -.->|"player lookup"| PM
+  style LD fill:#e6f6f4
+</pre>
+<div class="cap">Objective types: <b>ReachSpeed</b> / <b>EscapePolice</b> are <i>state</i> steps,
+<b>SurviveTime</b> / <b>GoToTarget</b> are <i>progress</i> steps. In <code>AllMustHold</code> mode a finished state
+step is re-checked every frame (speed with 3 km/h hysteresis) and regression silently resets later steps.
+Completion → message → glitch slammed to max → additive scene handoff to <code>nextSceneName</code>.
+Damage: collisions pulse the glitch; police hits add <code>policeHitIntensity</code> permanently; full corruption
+(or a wrecked flip via <code>CarRespawner</code>) → <code>RequestReboot</code> → <code>GameOverScreen</code>.</div>
+</div>
+
+<p><b>HUDs</b> (all code-built on their own overlay canvases, scene-placed as prefabs): <code>Minimap</code>
+(circular radar, render-texture camera, police blips by AI state, draws <code>MapRoute.Current</code>),
+<code>Speedometer</code> (analog gauge), <code>ObjectiveHud</code>, and <code>CityMapScreen</code>
+(<span class="kbd">Tab</span> / gamepad Select) — a full-screen schematic map that draws <b>generated data,
+never the streamed world</b>: it owns a <code>CityMapModel</code> (LRU-cached chunks generated on demand
+anywhere + a grow-only <code>RoadGraph</code> for city-wide A* routing) and a <code>CityMapRenderer</code>
+(one texel per cell). The marker is stored in PlayerPrefs pinned to the city seed (<code>MapMarkerStore</code>);
+the computed route is shared with the minimap through the static <code>MapRoute.Current</code> so the two never
+reference each other.</p>
+
+<div class="callout info">
+  <b>Two road graphs, on purpose</b>
+  <code>CityManager.Graph</code> covers only streamed chunks (a few hundred metres — what the AI needs).
+  <code>CityMapModel.Graph</code> grows over everything the map ever generated (city-wide routing). The map
+  deliberately never uses the former.
+</div>
+
+<h3 id="city-scene">4.5 Scene wiring — <code>CarTest.unity</code></h3>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  subgraph roots ["Hand-placed roots"]
+    CM["CityManager<br/>all 9 settings SOs wired"]
+    LM["LevelManager → TestLevelDefinition"]
+    PCS["PlayerCarSpawner → PlayerCar.prefab"]
+    TO["TargetObject id='target' snapToRoad"]
+    GC["GlitchController"]
+    MISC["Main Camera · Ground slab ·<br/>Directional Light · Postpro volume"]
+  end
+  subgraph prefabs ["Prefab instances (03.Prefabs)"]
+    OCR["OrbitCameraRig"]
+    MINI["Minimap"]
+    SPD["Speedometer"]
+    CMAP["CityMap"]
+    OHUD["ObjectiveHud"]
+    GOSP["GameOverScreen"]
+    PATM["PatrolManager → TestPoliceCar.prefab"]
+    TRFM["TrafficManager"]
+    SHARED["PauseMenu · RpgMessageSystem ·<br/>EventSystem · HapticsSystem · CheatManager"]
+  end
+  PCS ==>|"Start: CarFactory.Spawn"| CAR["PlayerCar (runtime)<br/>CarController · CarInput ·<br/>CarRespawner · PlayerScaleController"]
+  CAR -.->|"SetTarget"| OCR
+  PATM ==>|"spawns fleet"| COPS["TestPoliceCar ×N<br/>PoliceCarInput · PoliceLights"]
+  TRFM ==>|"VehicleRigBuilder"| CIV["traffic rigs ×N"]
+  LM -.-> TO
+  CM ==>|"streams"| CHUNKS["Chunk_x_y<br/>Roads · Buildings · Decorations"]
+</pre>
+<div class="cap">Scene-first pattern: because the HUD/manager prefabs are pre-placed, <code>CityManager.Awake</code>'s
+“spawn only when wired <i>and</i> absent” guards spawn none of them at runtime. The PauseMenu prefab is the
+same one the runner uses — its city debug tabs arrive through <code>DebugMenuHooks</code> (<a href="#assemblies">§2</a>).</div>
+</div>
+<h2 id="shared">5. Shared foundations <span class="badge shared">Shared</span></h2>
+
+<h3 id="shared-menu">5.1 Menu framework <span class="filepath">(<code>01.Scripts/UI/</code>)</span></h3>
+
+<p>Every menu in the game — main menu, pause menu, debug tabs, game-over screen — is built from the same
+themed, localized, code-built framework. It runs entirely on <b>unscaled time</b> (menus hold
+<code>timeScale = 0</code>) and is driven by two Resources assets loaded by name:
+<code>MenuTheme</code> (fonts, Kenney sprites, palette, motion spec, audio mixer) and
+<code>MenuTextLibrary</code> (~110 <code>MenuTextId</code> entries × 4 languages: English, Spanish, Japanese, French).</p>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  THEME[/"MenuTheme (SO)<br/>Resources: FiniteRunner_MenuTheme"/]
+  TEXTS[/"MenuTextLibrary (SO)<br/>Resources: FiniteRunner_MenuTexts"/]
+  US["UserSettings (static)<br/>PlayerPrefs: volumes ·<br/>subtitles · language"]
+  MS["MenuScreen<br/>one page: focus list, entrance,<br/>slide transitions, marker"]
+  MR["MenuRow<br/>plate + label + Activated"]
+  ROWS["MenuSlider · MenuToggle ·<br/>MenuChoice · DebugSliderRow ·<br/>DebugLabelRow"]
+  NAV["MenuNavigator<br/>input poller: steps, Confirm,<br/>Back, PauseToggle"]
+  MSF["MenuScreenFactory (static)<br/>BuildSettings · BuildConfirm ·<br/>EnsureEventSystem"]
+  LL["LocalizedLabel<br/>re-fetches on LanguageChanged"]
+  PS["PromptStrip → PromptHint<br/>footer glyph hints"]
+  IPB["InputPromptBinder (static)<br/>last-used device"]
+  DM["DebugMenu + DebugMenuHooks<br/>tab shell + inversion point"]
+  OWN["Owners: MainMenuController ·<br/>PauseMenu · GameOverScreen"]
+
+  OWN -.->|"Load()"| THEME
+  OWN -->|"new"| NAV
+  OWN ==>|"Create pages"| MS
+  OWN -->|"builds via"| MSF
+  MS ==>|"AddRow of T"| MR
+  MR --- ROWS
+  MS -.->|"measures all 4 languages"| TEXTS
+  MR ==>|"Bind"| LL
+  LL -.->|"LanguageChanged"| US
+  OWN ==> PS
+  PS -.->|"DeviceChanged"| IPB
+  OWN --> DM
+  style THEME fill:#f1eafd
+  style TEXTS fill:#f1eafd
+</pre>
+<div class="cap">The menu framework. <code>UserSettings</code> pushes volumes at the theme's AudioMixer and fires
+static <code>LanguageChanged</code>/<code>SubtitlesChanged</code> events; <code>MenuScreenFactory.BuildSettings</code> wires
+the settings page straight to it, so both menus share one pixel-identical page.</div>
+</div>
+
+<div class="callout rule">
+  <b>The auto-fit rule (don't hardcode plate widths)</b>
+  <code>MenuScreen.AddRow</code> measures every label with <code>MenuTextLibrary.MaxWidth(id, font, size)</code> —
+  the widest rendering <b>across all four languages</b> — adds the row type's <code>ReservedRightWidth</code>,
+  and re-widens <i>every</i> plate on the page to the maximum. Plates never resize on language change.
+  A new row type with right-side widgets must override <code>ReservedRightWidth</code> and <code>SetWidth</code>.
+</div>
+
+<p><b>Per-frame contract</b>: the owner calls <code>InputPromptBinder.Poll()</code>, then
+<code>nav.StepVertical/Horizontal(dt)</code> → <code>MoveFocus</code>/<code>Adjust</code>,
+<code>ConfirmPressed()</code> → <code>Activate()</code>, <code>BackPressed()</code> → back. Mouse hover/click enters the same
+funnel through <code>MenuRow</code>'s pointer handlers, so pointer and pad share one focus index. Movement and
+confirm fire <code>HapticsSystem.Pulse</code> with the theme's rumble values.</p>
+
+<p><b>Debug tabs</b>: <code>DebugMenu</code> is just the tab tracker (<span class="kbd">Q</span>/<span class="kbd">E</span>
+or LB/RB cycle); <code>PauseMenu</code> owns input and builds the pages — runner tabs directly via
+<code>DebugMenuFactory</code> (Core Settings, Multipliers, 4 ship tabs, Patrol), city tabs indirectly via
+<code>DebugMenuHooks.Discover</code> → <code>CityDebugMenuFactory</code> (Car Drive, Car Grip, Chase Camera, Police
+Fleet, Police Chase, Level). Runner tabs edit <b>runtime clones</b> and persist through the
+<code>*DebugSettings</code> Resources assets; city tabs edit the <b>assets themselves</b> (live-read design) and
+persist via <code>Flush()</code> at the menu's commit points (resume, reload, destroy). Backing out of a dirty
+runner tab prompts a scene reload; city pages apply live and never prompt.</p>
+
+<h3 id="shared-cheats">5.2 Cheat system <span class="filepath">(<code>01.Scripts/Cheats/</code>)</span></h3>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  CDEF[/"CheatDefinition (SO)<br/>Resources: FiniteRunner_Cheats<br/>per cheat: id + keyboard code<br/>+ controller code (4–10 tokens)"/]
+  CGS[/"CheatGlyphSet (SO)<br/>Resources: FiniteRunner_CheatGlyphs<br/>key caps + Xbox sprites"/]
+  CMGR["CheatManager (MB, singleton)<br/>MODEL: rolling token buffer,<br/>tail matcher, static activated set"]
+  CCON["CheatConsole (MB)<br/>VIEW: glyph strip, glitch slam,<br/>input gate"]
+  MMC["MainMenuController<br/>cheats page owner"]
+  CONS["Consumers<br/>PlayerScaleController (MegaCar) ·<br/>anything via IsActive(id) /<br/>static CheatActivated"]
+
+  CMGR -.->|"SO"| CDEF
+  CCON -.->|"SO"| CGS
+  CCON -.->|"Push(token) · BufferChanged"| CMGR
+  MMC ==>|"Create + CaptureTick()"| CCON
+  CMGR -.->|"static event + IsActive"| CONS
+  style CDEF fill:#f1eafd
+  style CGS fill:#f1eafd
+</pre>
+<div class="cap">Strict model/view split: <code>CheatManager</code> owns no UI and reads no input;
+<code>CheatConsole</code> owns no matching logic. Shipped cheats: <code>MegaCar</code> (“RUMRUM”) and
+<code>DebugON</code> (“ArrayKing”), each with a pad code. Unlocks live in a static set so they survive the
+scene load out of the menu; a hand-placed <code>CheatManager</code> always wins the singleton so its inspector
+wiring survives.</div>
+</div>
+
+<div class="callout rule">
+  <b>Cheat-code rules</b>
+  <ul>
+    <li><b>B / East and Escape can never appear in a code</b> — they are the menu's Back. <code>CheatKey</code> has no Escape; <code>CheatButton</code> has no East. The stick is deliberately not read.</li>
+    <li>Codes are 4–10 tokens, letters/digits only for keyboard, validated by an Odin InfoBox on the entry.</li>
+    <li>A token from a different device than the buffer holds <b>wipes the buffer first</b> — two half-codes on different devices must never add up to a match.</li>
+    <li>The console reads whichever device is <i>plugged in</i> (unlike <code>InputPromptBinder</code>'s last-touched rule) and is polled from the menu's <code>CaptureTick()</code> so the press that opened the page can't land in the buffer.</li>
+    <li><code>Tools → FiniteRunner → Build Cheat Assets</code> regenerates the glyph set and creates the definition asset if missing (never overwrites).</li>
+  </ul>
+</div>
+
+<h3 id="shared-fx">5.3 Haptics, glitch &amp; rendering</h3>
+
+<div class="table-wrap"><table>
+  <tr><th>System</th><th>What it is</th><th>Who drives it</th></tr>
+  <tr>
+    <td><code>HapticsSystem</code><br/><span class="filepath">Haptics asm, singleton</span></td>
+    <td>Gamepad rumble, two channels combined per frame onto the pad's motors: <b>Pulse</b> (one-shots; overlaps keep the max) and <b>Chase</b> (continuous, must be refreshed each frame, auto-fades after <code>chaseTimeout</code> so stale rumble can't persist). Runs on <b>unscaled time</b> so rumble decays while paused; motors reset on disable/quit.</td>
+    <td>Menus (move/confirm), <code>GameManager</code> (pad hits, dash, wall, busted), <code>PolicePatrol</code> (the only <code>SetChaseIntensity</code> caller), <code>CheatConsole</code>, <code>GameOverScreen</code>.</td>
+  </tr>
+  <tr>
+    <td><code>GlitchController</code><br/><span class="filepath">FX asm, singleton</span></td>
+    <td>Game-facing dial for the fullscreen glitch post effect: writes <code>_Intensity</code> on the shared material of the URP <b>GlitchPost</b> fullscreen feature every frame as base level + decaying pulse. <code>startIntensity = 1</code> in scenes entered through a glitch transition. Loudest pulse wins; <code>OnDisable</code> only resets the material if it still owns <code>Instance</code> (additive handoff safety).</td>
+    <td><code>PadEffects</code> (brakes), <code>GameManager</code> (dash-wall), <code>CheatConsole</code> (bursts), <code>LevelManager</code> (damage meter + scene handoff).</td>
+  </tr>
+  <tr>
+    <td><code>GlitchSilhouetteFeature</code><br/><span class="filepath">Rendering asm</span></td>
+    <td>URP RenderGraph feature: draws the <code>PlayerCar</code> layer a second time with a ZTest-Greater material, so pixels land only where the car is <i>behind</i> geometry — X-ray juice through buildings. Two passes: stencil mask (so it never draws against the car's own parts), then the silhouette. Static config on the renderer asset — no runtime script drives it.</td>
+    <td>Installed by <code>Tools → Police Escape → Install Glitch Silhouette Feature</code> on <code>04.Data/URP Asset_Renderer.asset</code>.</td>
+  </tr>
+</table></div>
+
+<p><b>Shared prefabs</b> (<code>03.Prefabs/Shared/</code>): <code>CheatManager</code>, <code>HapticsSystem</code>,
+<code>EventSystem</code> — dropped into every scene so the singletons are visible before play mode. All
+find-or-create singletons still auto-create themselves if a scene forgets one.</p>
+<h2 id="extending">6. How to extend each system</h2>
+
+<p>Recipes for the most likely additions. The common thread: <b>add a ScriptableObject knob, subscribe to an
+existing event, or implement an existing interface</b> — the architecture is built so new features rarely
+touch the core classes.</p>
+
+<h3>Runner <span class="badge runner">Runner</span></h3>
+
+<h4>Add a new pad / orb type</h4>
+<ol>
+  <li>Create a <code>PadDefinition</code> asset (<i>Create → FiniteRunner → Pad Definition</i>): set <code>speedDelta</code> (+boost / −brake), <code>color</code>, <code>sizeMultiplier</code>, and <code>floatingOrb</code> (hovering sphere on the flight line vs. flat pad).</li>
+  <li>Add a <code>PadSpawnEntry</code> to <code>TrackGenerator.spawnTable</code> in the scene: name, optional prefab (falls back to the code-built primitive with a recolored material), the definition, a probability (sliders auto-rebalance to 100 %), a boost <code>multiplier</code> (× <code>GameSettings.powerUpSpeedBoost</code>), color, and sway amplitude/frequency for moving orbs.</li>
+  <li>That's it — the streamer rolls the table once per spacing step. A prefab entry keeps its own materials and gets its colliders forced to triggers; a moving orb's spawn lateral is auto-clamped so its sway arc stays inside the track.</li>
+  <li>To give the new tier a story line, set <code>GameSettings.messageOrbTierName</code> to the entry's name — <code>GameManager</code> listens to the static <code>SpeedPad.Collected</code> event and matches <code>TierName</code>.</li>
+</ol>
+
+<h4>Add a new gameplay tunable</h4>
+<p>Add the field to <code>GameSettings</code> (run rules), <code>ShipDefinition</code> (ship feel) or
+<code>PatrolDefinition</code> (chase feel) — never to <code>GameManager</code>. Give it an Odin
+<code>[PropertyRange]</code> with a hand-picked range, or a <code>[MinMaxSlider]</code> band with accessor properties
+(the <code>patrolRedeployBand</code> pattern) so gameplay code never touches <code>.x/.y</code>. If it should be
+debug-tweakable at runtime, mirror it in the matching <code>*DebugSettings</code>
+(<code>CaptureFrom</code>/<code>ApplyTo</code>) and add a <code>DebugSliderRow</code> in <code>DebugMenuFactory</code>.</p>
+
+<h4>Add a new feedback effect (shake, sound, particles…)</h4>
+<p>Subscribe to <code>ShipMotor</code>'s events (<code>PadImpulse</code>, <code>DashPerformed</code>, <code>WallHit</code>,
+<code>MeterFilled</code>) or the static <code>SpeedPad.Collected</code> — the pattern <code>ShakeOnPad</code> and
+<code>PadEffects</code> use. Never poll or modify the motor. For world-space text use
+<code>FloatingTextSystem.Instance.DisplayText(...)</code>; for dialogue use
+<code>RpgMessageSystem.Instance.ShowMessage(...)</code> (queued, one at a time, duplicates dropped with their
+<code>onFinished</code> still fired so callers can't stall).</p>
+
+<h4>Swap in a different input device (e.g. VR)</h4>
+<p><code>ShipMotor</code> only reads <code>ISteeringInput.SteerAxis</code> (−1..+1) and <code>IDashInput</code> from a
+component on the same GameObject. Replace <code>SteeringInput</code> with your implementation — the motor is
+untouched.</p>
+
+<h4>Change what the track looks like</h4>
+<p><code>TrackDecorator</code> owns the meshes: swap <code>roadPrefab</code>/<code>barrierPrefab</code> and their
+scale/spacing/yaw fields (authored for a 60 m track, stretched by <code>trackWidth / 60</code>). Use the
+material-override fields, not MaterialPropertyBlocks — MPB tints are unreliable with the SRP Batcher.
+Respect the streaming contract: anything you add must be spawned in <code>DecorateUpTo</code> and destroyed in
+<code>CullBefore</code>.</p>
+
+<h3>Police Escape <span class="badge city">City</span></h3>
+
+<h4>Add a new road piece</h4>
+<ol>
+  <li>Add a <code>RoadPieceDefinition</code> entry to <code>CityGenerationSettings.roadPieces</code>: prefab, <code>role</code> (<b>Standard</b> pieces are the only ones socket-matched by <code>TryPickPiece</code>; Ramp/Deck/Pillar/Fork/HalfStraight are placed by the feature placer), <code>connectionMask</code> (EdgeMask at yaw 0 — remember Unity mirrors the FBX X axis), <code>weight</code>, <code>rotationOffset</code>, and the measured <code>laneHeight</code>.</li>
+  <li>Multi-cell pieces: set <code>footprintInCells</code> &gt; 1×1 and declare per-cell <code>cellMasks</code> (<code>None</code> = must be empty → becomes Reserved); the placer stamps it at the footprint centre wherever the grid matches, in any rotation, rolled by <code>placeChance</code>.</li>
+    <li>Verify visually: <code>Tools → Police Escape → Road Kit Showcase Scene</code> lays every piece out with its sockets drawn live (<code>RoadPieceSocketGizmo</code>).</li>
+  <li>For Kenney pieces prefer regenerating the whole list: <code>Tools → Police Escape → Create Kenney Road Set</code> measures lane heights and ramp chains off the FBX vertices and flips importer colliders on elevated pieces.</li>
+</ol>
+
+<h4>Add a new road feature (like overpasses/forks)</h4>
+<p>Extend <code>RoadFeaturePlacer.Place</code> — it must stay a <b>pure function</b> of settings + <code>ChunkData</code>,
+draw only from its salted RNG stream (salt 606, or claim a new salt), touch only interior cells
+(≥ <code>BorderMargin</code> from chunk borders), and record placement in <code>ChunkData</code>
+(features list / Reserved cells / upper connections) so <code>RoadGraph</code> and the stamper agree. Never read
+scene state from generation code.</p>
+
+<h4>Add a new building / decoration</h4>
+<p>Buildings: add a <code>BuildingDefinition</code> to the <code>BuildingSet</code> asset (footprint in cells, weight,
+jitters). Decorations: add a <code>DecorationDefinition</code> to the <code>DecorationSet</code> —
+choose <code>IntersectionCorner</code> (corner quads of 3+-socket tiles) or <code>RoadEdge</code> (socket-less tile
+edges) placement, and remember <b>mass is the whole feel dial</b>: lighter than the car (~1200 kg) flies on
+contact, heavier stops the car. The Kenney builder menu items rebuild the tuned sets from the kit folders.</p>
+
+<h4>Add a new AI driver</h4>
+<p>Implement <code>ICarInput</code> in a MonoBehaviour, then spawn with
+<code>VehicleRigBuilder.Build&lt;YourDriver&gt;(modelPrefab, config, scale, pos, rot)</code> — you get a fully rigged
+car with your driver reading its own logic and <code>CarController</code> doing the physics. Steal the driving
+core (waypoints from <code>RoadGraph</code>, corner slowdown, obstacle rays, stuck/reverse, <code>HardRecover</code>)
+from <code>TrafficCarInput</code>. Use <code>PatrolManager.FindPlayerCar()</code> to locate the player and
+<code>CarFactory.Teleport</code> for any warp.</p>
+
+<h4>Add a new level objective type</h4>
+<ol>
+  <li><b>Append</b> to <code>ObjectiveType</code> (order is the save format — never reorder), add its knobs to <code>LevelObjective</code> with <code>[ShowIf]</code> on the type, and extend <code>DefaultAccent</code>/<code>DefaultBriefing</code>/<code>ValueText</code>/<code>Summary</code>.</li>
+  <li>Implement evaluation in <code>LevelManager.Evaluate</code>; decide whether it's a <i>state</i> step (also extend <code>StillHolds</code> for <code>AllMustHold</code> mode) or a <i>progress</i> step (per-step runtime state goes in the private <code>ObjectiveState</code>, never on the asset).</li>
+  <li>Add a display case to <code>ObjectiveHud</code> (+ a <code>MenuTextId</code> prefix, translated in all four languages) and, if it has an adjustable value, a row in <code>CityDebugMenuFactory.BuildLevelTab</code>.</li>
+</ol>
+<p>“Go to” destinations are <code>TargetObject</code>s: root scene objects (chunks are streamed and destroyed)
+with a unique string <code>id</code>; <code>snapToRoad</code> slides them onto the nearest ground road cell once their
+chunk exists.</p>
+
+<h3>Shared <span class="badge shared">Shared</span></h3>
+
+<h4>Add a menu screen or row type</h4>
+<p>Screens: <code>MenuScreen.Create(...)</code> → <code>SetTitle(MenuTextId)</code> → <code>AddRow&lt;T&gt;(MenuTextId)</code>;
+add new strings as <code>MenuTextId</code> entries with all four translations in <code>MenuTextLibrary</code> —
+never raw strings (debug/generated labels may use the string overload). Row types subclass
+<code>MenuRow</code>: override <code>Build</code>, <code>ApplyFocus</code>, <code>Adjust</code>, and — if it has right-side
+widgets — <code>ReservedRightWidth</code> + <code>SetWidth</code> (the auto-fit rule, <a href="#shared-menu">§5.1</a>).
+Shared pages (settings, confirm) belong in <code>MenuScreenFactory</code> so both menus stay identical.</p>
+
+<h4>Add a debug tab</h4>
+<p>Runner: add a builder to <code>DebugMenuFactory</code>, register it in <code>PauseMenu.BuildDebugTabs</code>, and
+persist through a <code>*DebugSettings</code> Resources asset. City: add a builder to
+<code>CityDebugMenuFactory</code> and count it in <code>CityDebugTabs.TabCount</code> — city sliders edit the live
+settings assets directly, so also make sure the asset is marked dirty for <code>Flush()</code>. From any other
+future assembly, register through <code>DebugMenuHooks</code> — never add a UI→game assembly reference.</p>
+
+<h4>Add a cheat</h4>
+<p>Add a <code>CheatEntry</code> to <code>FiniteRunner_Cheats.asset</code>: id, keyboard code (4–10 letters/digits) and
+controller code (4–10 buttons, no East/B). React either by wiring the <code>CheatManager</code> prefab's
+<code>onCheatActivated</code> UnityEvent, subscribing to the static <code>CheatManager.CheatActivated</code>, or
+polling <code>CheatManager.IsActive("YourId")</code> from late-spawned objects (the
+<code>PlayerScaleController</code> pattern).</p>
+
+<h4>New spawnable system (HouseWork M3 pattern)</h4>
+<p>Any system a manager spawns at runtime should also exist as a prefab under <code>Assets/03.Prefabs</code>,
+pre-placed in the scenes that use it. Follow the established contract: <code>Awake</code> self-tears-down the
+baked preview when the real <code>Spawn(...)</code> injection hasn't arrived; expose an Odin
+<i>Rebuild Preview</i> button; parameters live on an <code>[InlineEditor]</code> ScriptableObject field.</p>
+<h2 id="tuning">7. Tuning guide — what each parameter does and what you can achieve</h2>
+
+<p>All tunables are ScriptableObjects with Odin sliders, inlined into the components that use them —
+balance without leaving the scene. Current values below are the shipped asset values.</p>
+
+<div class="callout">
+  <b>Before tuning the runner: check the debug overrides</b>
+  The pause-menu debug assets in <code>04.Data/Resources/</code> re-apply saved tweaks on top of the authored
+  values while <code>applyOnLoad</code> is ticked. Right now <code>FiniteRunner_TrackDebug</code> and
+  <code>FiniteRunner_ShipDebug</code> have it <b>on</b> (track: width 120, 100 % straight, Green ×5.7 …; ship:
+  hover/bob tweaks) — untick <code>applyOnLoad</code> on those assets or your inspector edits won't be what runs.
+</div>
+
+<h3 id="tune-ship">7.1 Spaceship controls <span class="badge runner">Runner</span> — <code>Fighter_ShipDefinition.asset</code></h3>
+
+<p><b>What you can achieve:</b> the whole “speed pressure” curve of a run. <code>initialImpulse</code> vs.
+<code>passiveDeceleration</code> sets how long the launch carries before the first orb matters;
+<code>acceleration</code> makes boosts hit instantly (high) or surge in (low); <code>weight</code> scales every pad
+effect at once (a heavy ship blunts brakes <i>and</i> boosts); the lateral pair
+(<code>lateralSpeed</code>/<code>handlingResponse</code>) spans twitchy arcade to heavy drift; the dash trio sets
+burst distance, snappiness, and how often it's available. Hover/bank fields are purely cosmetic —
+they act on the visual child only.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Field</th><th>Range · unit</th><th>Value</th><th>Meaning</th></tr>
+  <tr><td><code>initialImpulse</code></td><td>0–1000 m/s</td><td>249</td><td>Launch speed each run (the tuning screen's first stat raises this)</td></tr>
+  <tr><td><code>passiveDeceleration</code></td><td>0–50 m/s²</td><td>6</td><td>Constant bleed — the core pressure of the game</td></tr>
+  <tr><td><code>acceleration</code></td><td>0.01–200 m/s²</td><td>60</td><td>How fast queued pad deltas blend into current speed</td></tr>
+  <tr><td><code>lateralSpeed</code></td><td>0–100 m/s</td><td>30</td><td>Cross-track speed at full steer</td></tr>
+  <tr><td><code>handlingResponse</code></td><td>0.01–30 /s</td><td>10</td><td>Steering responsiveness (low = heavy, drifty)</td></tr>
+  <tr><td><code>dashDistance</code> / <code>dashDuration</code> / <code>dashRechargeSeconds</code></td><td>2–30 m · 0.05–1 s · 1–60 s</td><td>20.7 · 0.43 · 1.8</td><td>Lateral dash reach, burst length, meter refill time</td></tr>
+  <tr><td><code>weight</code></td><td>0.1–5</td><td>1</td><td>Divides ALL pad effects (boost and brake)</td></tr>
+  <tr><td><code>hoverHeight</code> · <code>bobAmplitude</code> · <code>bobFrequency</code> · <code>hoverPitchDegrees</code></td><td>—</td><td>3.5 · 0.35 · 1.5 · 2.5</td><td>Visual-only float/bob (visual child, never the collider)</td></tr>
+  <tr><td><code>maxBankAngle</code> / <code>bankResponse</code></td><td>0–90° · 0.01–20 /s</td><td>45 · 7</td><td>Roll at full steer and how fast it eases (dash pushes to ×1.25)</td></tr>
+</table></div>
+
+<p>Run-level rules live on <b><code>GameSettings</code></b> (<code>FiniteRunner_GameSettings.asset</code>):
+win threshold <code>lightSpeedKmh</code> 4000 · <code>timeLimitSeconds</code> 60 · orb base gain
+<code>powerUpSpeedBoost</code> 42.6 m/s · the whole dash block (cost 0.5, double-tap 0.3 s, ghost look, tutorial
+copy) · story messages + hold time · <code>boostTextLeadMeters</code> 60. Pre-run allocation lives on the scene's
+<code>TuningScreen</code> (8 points, max 5/stat, per-point effects +10 launch / +10 accel / +4 lateral / −0.08 weight).</p>
+
+<h3 id="tune-track">7.2 Finite-runner track generation <span class="badge runner">Runner</span> — <code>TrackGenerator</code> (scene component)</h3>
+
+<p><b>What you can achieve:</b> track personality per run. <code>straightness</code> spans dead-straight drag
+strip (100) to winding slalom (0); <code>trackWidth</code> is <b>one knob</b> that simultaneously moves the
+steering clamp, pad bounds and road-mesh stretch; the <code>spawnTable</code> is the economy — probabilities
+set how often the player can refuel vs. must dodge, multipliers set how much a hit matters, sway makes rare
+orbs demand aim. <code>seed</code> makes runs repeatable for A/B tuning.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Field</th><th>Value</th><th>Meaning</th></tr>
+  <tr><td><code>trackWidth</code> (10–120 m)</td><td>104.4</td><td>Steering clamp + pad bounds + mesh stretch (meshes authored for 60 m)</td></tr>
+  <tr><td><code>straightness</code> (0–100 %)</td><td>19.5</td><td>Scales <code>maxTurnPerSegment</code> (24°) and <code>maxHeading</code> (55°) down; 100 = dead straight</td></tr>
+  <tr><td><code>endless</code> / <code>randomize</code> / <code>seed</code></td><td>on / on / 0</td><td>Stream forever; new layout each run; 0 = non-repeatable</td></tr>
+  <tr><td><code>aheadDistance</code> / <code>behindDistance</code></td><td>700 / 150 m</td><td>Finished track kept ahead; cull distance behind. <b>Keep <code>behindDistance</code> &gt; the patrol's <code>startGap</code></b> (750!) or the chase runs on bare spline — currently violated.</td></tr>
+  <tr><td><code>segmentLength</code></td><td>300–420 m</td><td>Spline segment span; trailing 2×max is the no-spawn settle margin (AutoSmooth reshapes it)</td></tr>
+  <tr><td><code>padSpacing</code> / <code>padSize</code></td><td>150–220 m / (10, 0.5, 20)</td><td>One spawn-table roll per spacing step; base pad footprint (× <code>sizeMultiplier</code>)</td></tr>
+</table></div>
+
+<div class="table-wrap"><table>
+  <tr><th>Spawn entry</th><th>Probability</th><th>Multiplier</th><th>Effective @ base 42.6</th><th>Sway</th></tr>
+  <tr><td>Green orb (0.5×, orb)</td><td>45.4 %</td><td>×1</td><td>+42.6 m/s</td><td>—</td></tr>
+  <tr><td>Blue orb</td><td>15.8 %</td><td>×2.5</td><td>+106.5 m/s</td><td>4 m @ 0.45 Hz</td></tr>
+  <tr><td>Purple orb (story line)</td><td>3.0 %</td><td>×10</td><td>+426 m/s</td><td>8 m @ 0.8 Hz</td></tr>
+  <tr><td>Brake pad (0.7×, flat)</td><td>35.8 %</td><td>—</td><td>−25 m/s (from <code>PadDefinition</code>)</td><td>—</td></tr>
+</table></div>
+
+<p>Probability sliders auto-rebalance to always total 100 %. The rarity↔reward↔sway coupling is the intended
+design: the higher the multiplier, the scarcer and the harder to hit. Road/barrier looks are on
+<code>TrackDecorator</code> (piece prefabs, 19 m stamp spacing, width-stretched).</p>
+
+<h3 id="tune-runner-patrol">7.3 Finite-runner patrol <span class="badge runner">Runner</span> — <code>Police_PatrolDefinition.asset</code> (all m/s · meters)</h3>
+
+<p><b>What you can achieve:</b> how oppressive the chase feels. <code>rubberBand</code> &lt; 1 means the patrol
+paces slightly under the ship — tension without inevitability; <code>catchUpAccel</code> is the forgiveness dial
+(lower = boosts buy more room); <code>ramp</code> makes long runs tighten; the redeploy rule
+(on <code>GameSettings</code>) guarantees the chase never goes stale: coasting can't shake it, only boosts can.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Field</th><th>Range</th><th>Value</th><th>Meaning</th></tr>
+  <tr><td><code>baseSpeed</code></td><td>1–600 m/s</td><td>33.1</td><td>Launch speed and initial rubber-band floor</td></tr>
+  <tr><td><code>ramp</code></td><td>0–15 m/s²</td><td>0.083</td><td>Floor growth per second — the run tightens over time</td></tr>
+  <tr><td><code>rubberBand</code></td><td>0.5–2 ×</td><td>0.95</td><td>Target = ship speed × this (never below the floor)</td></tr>
+  <tr><td><code>catchUpAccel</code></td><td>0.5–150 m/s²</td><td>3.33</td><td>Convergence rate toward the target speed</td></tr>
+  <tr><td><code>startGap</code></td><td>0–1000 m</td><td>750</td><td>Meters behind the start line at launch</td></tr>
+  <tr><td><code>catchDistance</code> / <code>warnDistance</code></td><td>0–100 / 0–500 m</td><td>10 / 130</td><td>Game-over gap; alert + proximity-rumble threshold (also minimap red zone)</td></tr>
+  <tr><td><code>alertLead</code></td><td>0–500 m</td><td>180</td><td>How far ahead of the ship “PATROL x M” texts spawn</td></tr>
+</table></div>
+
+<p>Run-level patrol rules stay on <code>GameSettings</code>: <code>patrolEnabled</code> ·
+<code>minimapRangeMeters</code> 1012 · <code>patrolRedeployBand</code> (1050 drop-in, 1372 retire) ·
+<code>patrolRedeploySpeedFactor</code> 1.0 — the redeployed patrol arrives at ship speed × factor and that speed
+becomes the new rubber-band floor. (Note: the drop-in gap is currently just outside the minimap range, so
+patrol N+1 appears slightly off the bottom of the gauge.)</p>
+
+<h3 id="tune-citygen">7.4 City generation <span class="badge city">City</span> — <code>CityTestSettings.asset</code></h3>
+
+<p><b>What you can achieve:</b> the whole character of the city without touching code — block size and
+street rhythm (<code>arterialSpacing</code>, <code>arterialJitter</code>: 0 = Manhattan grid, 1 = organic),
+back-street density (<code>connectorDensity</code>, <code>turnProbability</code>), skyline (the
+<code>BuildingSet</code>'s weights/jitters), and the 3-D drama of flyovers, Y-forks and roundabouts (the feature
+block). Because everything derives from <code>globalSeed</code>, a layout you like can be pinned
+(<i>Save Current Seed</i>) and shipped.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Group</th><th>Field</th><th>Value</th><th>Meaning / effect of changing it</th></tr>
+  <tr><td rowspan="3">Grid</td><td><code>cellSize</code></td><td>25.4 m</td><td>Side of one cell — must match the road piece footprint (<i>Measure Cell Size From Pieces</i>)</td></tr>
+  <tr><td><code>chunkSizeInCells</code></td><td>37</td><td>Streaming unit (≈ 940 m per chunk here)</td></tr>
+  <tr><td><code>initialCitySizeInChunks</code></td><td>1</td><td>Chunks per side built up front</td></tr>
+  <tr><td rowspan="4">Network</td><td><code>arterialSpacing</code></td><td>7 cells</td><td>Lower = denser main-street network, smaller blocks</td></tr>
+  <tr><td><code>arterialJitter</code></td><td>1</td><td>0 = perfectly regular grid → 1 = fully random within the band</td></tr>
+  <tr><td><code>connectorDensity</code> / <code>turnProbability</code></td><td>0.96 / 0.60</td><td>Chance of secondary streets; chance they are L-shaped</td></tr>
+  <tr><td><code>allowDeadEnds</code></td><td>on</td><td>Keep stubs (needs the dead-end piece) instead of repairing them</td></tr>
+  <tr><td rowspan="4">Features</td><td><code>placeFeatures</code> / <code>overpassChance</code></td><td>on / 0.5</td><td>Master switch; chance an eligible arterial crossing becomes a flyover</td></tr>
+  <tr><td><code>overpassDeckCells</code></td><td>1–4</td><td>Elevated deck span</td></tr>
+  <tr><td><code>rampLengthInCells</code></td><td>3</td><td>Ramp run length (1 = steep kicker, jumpable)</td></tr>
+  <tr><td><code>forkChance</code> / <code>forkStemCells</code></td><td>1 / 0–3</td><td>Y-splits off arterial Ts; straight stem before the split</td></tr>
+  <tr><td rowspan="3">Streaming</td><td><code>endlessStreaming</code> / <code>loadRadiusInChunks</code></td><td>on / 1</td><td>Stream around the player; 1 = 3×3 chunks loaded</td></tr>
+  <tr><td><code>unloadPaddingInChunks</code></td><td>1</td><td>Hysteresis ring before unload</td></tr>
+  <tr><td><code>maxSpawnsPerFrame</code></td><td>80</td><td>Instantiate budget — raise if chunks visibly build at speed</td></tr>
+  <tr><td>Content</td><td><code>buildingSet</code> / <code>decorationSet</code></td><td>Kenney sets</td><td>Building pool (density 0.95 — below 1 leaves plazas) and prop pool (density 0.35, mass = feel)</td></tr>
+</table></div>
+
+<h3 id="tune-car">7.5 Player car <span class="badge city">City</span> — <code>TestCarConfig.asset</code></h3>
+
+<p><b>What you can achieve:</b> anything from planted GT to drifty arcade. The three grip levers are
+<code>sideStiffness</code> (cornering), <code>forwardStiffness</code> (traction) and
+<code>handbrakeGrip</code> (drift depth); <code>centerOfMassDrop</code> is the number-one anti-rollover knob;
+<code>torqueBySpeed</code>/<code>steerBySpeed</code> curves give a soft top speed and high-speed stability without
+hard caps. Chassis knobs (mass, COM, substeps) need <i>Apply Config</i>; everything else applies live —
+which is why the debug menu can tune the car mid-chase.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Group</th><th>Field</th><th>Value</th><th>Meaning</th></tr>
+  <tr><td rowspan="3">Chassis</td><td><code>mass</code> / <code>centerOfMassDrop</code></td><td>1200 kg / 0.6 m</td><td>Rigidbody mass; COM drop (anti-rollover) — both need ApplyConfig. Mass is also the reference for “heavier prop wins”.</td></tr>
+  <tr><td><code>downforce</code></td><td>40 N per m/s</td><td>Glues the car at pace</td></tr>
+  <tr><td><code>antiRollForce</code></td><td>8000 N</td><td>Anti-roll bar per axle</td></tr>
+  <tr><td rowspan="3">Power</td><td><code>drivetrain</code> / <code>maxMotorTorque</code></td><td>AWD / 4900 N·m</td><td>Driven axle(s); total torque split among driven wheels</td></tr>
+  <tr><td><code>torqueBySpeed</code> → <code>topSpeedKmh</code></td><td>1→0.15 / 300</td><td>Soft top speed via torque falloff</td></tr>
+  <tr><td><code>brakeTorque</code> / <code>coastBrakeTorque</code> / <code>handbrakeTorque</code></td><td>4000 / 250 / 6000</td><td>Two-pedal arcade brake · engine braking · handbrake (with <code>handbrakeGrip</code> 0.5 rear-grip cut = drift)</td></tr>
+  <tr><td rowspan="2">Steering</td><td><code>maxSteerAngle</code> × <code>steerBySpeed</code></td><td>35° · 1→0.3</td><td>Standstill angle, faded by speed (also the AI's steer normaliser)</td></tr>
+  <tr><td><code>steerResponse</code></td><td>360 °/s</td><td>Wheel swing rate</td></tr>
+  <tr><td rowspan="2">Suspension / tires</td><td><code>suspensionDistance</code> / <code>springForce</code> / <code>damperForce</code></td><td>0.25 / 35000 / 4500</td><td>Travel, spring, damping</td></tr>
+  <tr><td><code>forwardStiffness</code> / <code>sideStiffness</code></td><td>1.5 / 2.0</td><td>Longitudinal traction / lateral grip</td></tr>
+  <tr><td>Spawn &amp; recovery</td><td><code>spawnSpeedKmh</code> · <code>spawnRunwayCells</code> · <code>flipTimeout</code> · <code>respawnHeight</code></td><td>40 · 4 · 1.5 s · 0.6 m</td><td>Rolling start, straight runway required, wreck timer, drop height</td></tr>
+</table></div>
+
+<p>The chase camera reads <code>TestOrbitCameraSettings</code> live: orbit distance 9 m, damping 1.1,
+auto-recenter after 2.3 s, and the speed-sensation dial <code>baseFov</code> 71° + 0.08°/km/h (max +15°).</p>
+
+<h3 id="tune-pursuit">7.6 City patrol system <span class="badge city">City</span> — <code>TestPursuitSettings.asset</code></h3>
+
+<p><b>What you can achieve:</b> pressure vs. escapability. <code>targetPatrolCount</code> and
+<code>spawnDistanceBand</code> set encounter frequency; <code>detectionRange</code>/<code>loseSightSeconds</code> decide
+how sticky a chase is once started; <code>searchDuration</code> is what makes escaping feel earned (they sweep,
+then give up); <code>chaseSpeedKmh</code> vs. the player's pace defines whether escapes come from speed or from
+line-of-sight play; <code>predictionLead</code> makes them cut corners instead of tail-chasing.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Field</th><th>Value</th><th>Meaning</th></tr>
+  <tr><td><code>targetPatrolCount</code> / <code>spawnDistanceBand</code> / <code>despawnDistance</code></td><td>2 · 100–250 m · 450 m</td><td>Fleet size; spawn ring (min = out of sight); removal distance</td></tr>
+  <tr><td><code>detectionRange</code></td><td>180 m</td><td>Max spotting distance — still needs raycast line of sight (buildings block)</td></tr>
+  <tr><td><code>loseSightSeconds</code> / <code>searchDuration</code></td><td>3 s / 15 s</td><td>Broken LOS before Chase→Search; sweep window before giving up</td></tr>
+  <tr><td><code>patrolSpeedKmh</code> / <code>chaseSpeedKmh</code> / <code>cornerSpeedKmh</code></td><td>65 / 90 / 25</td><td>Cruise, pursuit and sharp-turn speeds</td></tr>
+  <tr><td><code>repathInterval</code> / <code>predictionLead</code></td><td>1 s / 0.6 s</td><td>Chase A* cadence; player velocity added to the target (corner-cutting)</td></tr>
+  <tr><td><code>throttleGain</code> · <code>waypointReachDistance</code> · <code>laneOffsetFraction</code></td><td>0.15 · 6 m · 0.18</td><td>Pedal gain; waypoint pop radius; right-hand lane discipline (off in Chase)</td></tr>
+  <tr><td><code>forwardBrakeDistance</code> / <code>wallBrakeDistance</code></td><td>9 / 3.5 m</td><td>Anti-pileup ray; emergency wall stop</td></tr>
+  <tr><td><code>stuckSeconds</code> / <code>reverseSeconds</code> / <code>hardRecoverSeconds</code></td><td>1.5 / 1.4 / 15</td><td>Stuck detection → timed reverse → teleport recovery (never during Chase)</td></tr>
+</table></div>
+
+<p>Civilian traffic mirrors most of these on <code>TestTrafficSettings.asset</code> (30 vehicles inside a 250 m
+active radius, cruise 25–40 km/h, weighted 10-model pool, work vehicles that stop randomly, right-hand
+yield whiskers) — its <code>activeRadius</code> is the main performance dial.</p>
+
+<h3>7.7 Where the remaining knobs live</h3>
+<div class="table-wrap"><table>
+  <tr><th>Area</th><th>Asset / component</th><th>Highlights</th></tr>
+  <tr><td>Level objectives</td><td><code>TestLevelDefinition.asset</code> + <code>LevelManager</code></td><td>Ordered objective list with per-step values and briefings; damage knobs on the manager (<code>policeHitIntensity</code> 0.34 ⇒ 3 police hits to game over)</td></tr>
+  <tr><td>City HUDs</td><td><code>TestMinimapSettings</code> / <code>TestSpeedometerSettings</code> / <code>TestCityMapSettings</code></td><td>Radar radius/rotation/blips; gauge sweep/redline; map zoom limits (<code>chunkCacheSize</code> is the real max-zoom-out knob)</td></tr>
+  <tr><td>Runner feedback</td><td><code>BoostShake/BrakeShake_Settings</code>, <code>ChaseMinimap_Style</code>, <code>RpgMessage_Style</code>, scene <code>LensDistortionController</code>/<code>PadEffects</code></td><td>Camera shake profiles, chase-gauge look, dialogue-box look, warp/glitch strengths</td></tr>
+  <tr><td>Menus &amp; UX</td><td><code>FiniteRunner_MenuTheme</code> / <code>FiniteRunner_MenuTexts</code></td><td>Fonts, sprites, palette, all motion timings, input repeat rates, audio mixer; every UI string × 4 languages</td></tr>
+  <tr><td>Cheats</td><td><code>FiniteRunner_Cheats.asset</code></td><td>Codes, buffer length, glitch/hold presentation timings</td></tr>
+  <tr><td>Haptics</td><td><code>HapticsSystem</code> prefab</td><td><code>chaseMaxLow/High</code>, <code>chaseTimeout</code>; per-event pulse values are in <code>GameManager</code></td></tr>
+</table></div>
+
+</main>
+</div>
+</body>
+</html>

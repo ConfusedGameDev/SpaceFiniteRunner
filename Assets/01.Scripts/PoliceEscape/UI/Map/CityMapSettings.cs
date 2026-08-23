@@ -84,6 +84,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         [PropertyRange(8f, 64f), SuffixLabel("px", true)]
         public float markerIconSize = 26f;
 
+        // ------------------------------------------------------------ guidance
+        [TitleGroup("Guidance")]
+        [Tooltip("How close the car has to get to the marker to count as arrived. On arrival the route and the marker are both cleared — so this is also 'how near is near enough' for the pin to have done its job. Roughly a cell is a good starting point.")]
+        [PropertyRange(5f, 150f), SuffixLabel("m", true)]
+        public float arrivalRadius = 35f;
+
+        [TitleGroup("Guidance")]
+        [Tooltip("How far off the drawn line the car may stray before the route is rebuilt from where it actually is. Keep it wider than a street: swerving round traffic must not count as leaving the route.")]
+        [PropertyRange(10f, 200f), SuffixLabel("m", true)]
+        public float offRouteDistance = 45f;
+
+        [TitleGroup("Guidance")]
+        [Tooltip("How long the car has to stay off the line before it re-paths. Stops a corner cut or a pavement clip from triggering a recalculation.")]
+        [PropertyRange(0f, 5f), SuffixLabel("s", true)]
+        public float offRouteGrace = 0.75f;
+
+        [TitleGroup("Guidance")]
+        [Tooltip("Shortest gap between two route calculations. Every one generates the corridor of city between car and marker, so this is the knob that keeps a lost car from re-pathing every frame.")]
+        [PropertyRange(0.25f, 10f), SuffixLabel("s", true)]
+        public float recalcCooldown = 2f;
+
         // ---------------------------------------------------------------- zoom
         [TitleGroup("Zoom")]
         [Tooltip("Screen pixels per city cell when the map is opened.")]

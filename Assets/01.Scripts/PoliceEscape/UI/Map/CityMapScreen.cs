@@ -72,6 +72,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         // Routing. A route long enough to cross the city is still bounded —
         // both by how much city may be generated for it and by the search.
         const int RouteMaxExpansions = 200_000;
+        // How long the status line keeps saying ARRIVED after the marker is
+        // cleared. Long enough to still be there when the player opens the map
+        // to ask what happened to their pin.
+        const float ArrivedMessageSeconds = 6f;
         const int MaxCorridorChunks = 121;      // an 11x11 chunk slab, ~10 km at the live cell size
 
         readonly MapRoute route = new();
@@ -81,6 +85,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         bool routeFailed;
         bool routeDirty;
         Vector2Int lastRouteCell;
+        float offRouteTimer;          // how long the car has been off the line
+        float recalcTimer;            // cooldown before another path may be built
+        float arrivedTimer;           // how long "ARRIVED" stays on the status line
+        bool routeStale;              // the marker moved — the path no longer leads to it
         bool built;
         bool open;
         float openedTime;
@@ -96,6 +104,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             map.settings = settings;
             return map;
         }
+
+        void OnEnable() => MapMarkerStore.Changed += OnMarkerChanged;
+
+        void OnDisable() => MapMarkerStore.Changed -= OnMarkerChanged;
+
+        /// <summary>
+        /// A marker that moved invalidates the path to it. Going through the
+        /// store's own event rather than the place that moved it means every
+        /// route the game ever builds is triggered from one spot, whoever set
+        /// the marker.
+        /// </summary>
+        void OnMarkerChanged() => routeStale = true;
 
         void OnDestroy()
         {
@@ -121,6 +141,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
             if (!open)
             {
+                // The GPS keeps working with the map shut — that is when it is
+                // actually used. Everything else on this screen sleeps.
+                RefreshTargets();
+                TickGuidance();
                 if (MenuNavigator.MapTogglePressed() && CanOpen()) Open();
                 return;
             }
@@ -141,7 +165,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             }
 
             RefreshTargets();
-            MaintainRoute();
+            TickGuidance();
             UpdateSchematic();
             UpdateIcons();
             UpdateMissions();
@@ -208,10 +232,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             if (player != null) viewCenterWorld = player.transform.position;
         }
 
+        /// <summary>
+        /// Re-find the car (and, once, the level) on a one-second tick. Strictly
+        /// timer-bound: this now runs during gameplay for the guidance tick, and
+        /// a scene with no LevelManager must not turn that into an object sweep
+        /// every frame.
+        /// </summary>
         void RefreshTargets()
         {
             refreshTimer -= Time.unscaledDeltaTime;
-            if (refreshTimer > 0f && player != null && level != null) return;
+            if (refreshTimer > 0f && player != null) return;
             refreshTimer = 1f;
             player = PatrolManager.FindPlayerCar();
             if (level == null) level = FindFirstObjectByType<LevelManager>();
@@ -316,8 +346,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             Vector3 target = viewCenterWorld;
             if (TrySnapToRoad(target, out Vector2Int snapped))
             {
+                // No RebuildRoute here: setting the marker raises Changed, and
+                // the guidance tick later this frame builds the path from it.
                 MapMarkerStore.SetMarker(snapped, city.settings.globalSeed);
-                RebuildRoute();
             }
             else
             {
@@ -361,31 +392,100 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             Vector3 delta = markerWorld - player.transform.position;
             float straight = new Vector2(delta.x, delta.z).magnitude;
             return route.HasRoute
-                ? $"MARKER  {straight:0} M      ROUTE  {route.LengthMeters:0} M"
+                ? $"MARKER  {straight:0} M      ROUTE  {route.RemainingMeters:0} M"
                 : $"MARKER  {straight:0} M";
         }
 
         /// <summary>
-        /// Keep the route in step with the car without pathing every frame:
-        /// only when there is a marker and either no route yet or the car has
-        /// moved to a different cell since the last one was built.
+        /// The guidance tick — the one part of this screen that also runs
+        /// while the map is closed, because following a route is something you
+        /// do with the map shut.
+        ///
+        /// Three jobs, in this order. <b>Arrive</b>: the marker exists to be
+        /// driven to, so reaching it clears both the marker and the route
+        /// rather than leaving a spent destination on every screen.
+        /// <b>Consume</b>: <see cref="MapRoute.Advance"/> drops the part
+        /// already driven, so the schematic and the radar only ever show what
+        /// is left. <b>Recover</b>: a car that has been off the line for longer
+        /// than the grace period gets a new path from where it actually is.
+        ///
+        /// Re-pathing is never done per frame or per cell: each attempt has to
+        /// generate the corridor of city between the car and the marker, which
+        /// is far too heavy to spend on a frame that is only going to reach the
+        /// same answer. The cooldown is what bounds that.
         /// </summary>
-        void MaintainRoute()
+        void TickGuidance()
         {
+            float dt = Time.unscaledDeltaTime;
+            if (arrivedTimer > 0f) arrivedTimer -= dt;
+
             if (!MapMarkerStore.HasMarker)
             {
                 if (route.HasRoute) ClearRoute();
+                routeStale = false;
                 return;
             }
             if (player == null) return;
 
-            Vector2Int cell = model.WorldToCell(player.transform.position);
-            if (route.HasRoute && cell == lastRouteCell) return;
-            if (routeFailed && cell == lastRouteCell) return;
+            if (recalcTimer > 0f) recalcTimer -= dt;
 
-            lastRouteCell = cell;
+            Vector3 position = player.transform.position;
+            if (routeStale)
+            {
+                // A brand-new marker gets its path immediately — the cooldown
+                // exists to bound automatic re-pathing, not to make the player
+                // wait for the route they just asked for.
+                routeStale = false;
+                RebuildRoute();
+                return;
+            }
+
+            if (FlatDistance(position, model.CellToWorld(MapMarkerStore.Cell)) <= settings.arrivalRadius)
+            {
+                Arrive();
+                return;
+            }
+
+            if (!route.HasRoute)
+            {
+                // No route yet, or the last attempt failed (marker out of
+                // corridor range). Retry on the cooldown, and only once the car
+                // has moved somewhere new when the last try genuinely failed.
+                Vector2Int cell = model.WorldToCell(position);
+                if (recalcTimer <= 0f && (!routeFailed || cell != lastRouteCell)) RebuildRoute();
+                return;
+            }
+
+            if (route.Advance(position)) routeDirty = true;
+
+            if (route.OffRouteMeters <= settings.offRouteDistance)
+            {
+                offRouteTimer = 0f;
+                return;
+            }
+
+            // Off the line — but not on the first frame of it: swerving round
+            // a prop, cutting a corner or clipping the pavement all read as off
+            // route for a moment, and re-pathing on those would thrash.
+            offRouteTimer += dt;
+            if (offRouteTimer < settings.offRouteGrace || recalcTimer > 0f) return;
             RebuildRoute();
         }
+
+        /// <summary>
+        /// Destination reached. The marker goes with the route: it was the
+        /// request, and the request has been served — leaving it would put a
+        /// dead pin on the map and a line the car is already standing on.
+        /// </summary>
+        void Arrive()
+        {
+            ClearRoute();
+            arrivedTimer = ArrivedMessageSeconds;
+            MapMarkerStore.ClearMarker();   // fires Changed, which TickGuidance consumes
+            routeStale = false;
+        }
+
+        static float FlatDistance(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
 
         // -------------------------------------------------------------- route
 
@@ -394,6 +494,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             route.Clear();
             routeFailed = false;
             routeDirty = true;
+            offRouteTimer = 0f;
         }
 
         /// <summary>
@@ -408,6 +509,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         void RebuildRoute()
         {
             routeFailed = false;
+            offRouteTimer = 0f;
+            recalcTimer = settings.recalcCooldown;
             if (!MapMarkerStore.HasMarker || player == null)
             {
                 route.Clear();
@@ -415,6 +518,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             }
 
             Vector3 from = player.transform.position;
+            lastRouteCell = model.WorldToCell(from);
             Vector3 to = model.CellToWorld(MapMarkerStore.Cell);
 
             if (!EnsureCorridor(from, to))
@@ -597,6 +701,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             int pending = model.PendingCount;
             if (pending > 0) statusLabel.text = $"MAPPING… {pending}";
             else if (!hasPlayer) statusLabel.text = "NO VEHICLE";
+            else if (!hasMarker && arrivedTimer > 0f) statusLabel.text = "ARRIVED";
             else if (routeFailed) statusLabel.text = "NO ROUTE — TOO FAR";
             else if (hasMarker) statusLabel.text = MarkerStatusText();
             else statusLabel.text = string.Empty;
@@ -686,6 +791,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             model = new CityMapModel(city.settings, city.transform.position, city.DeckWorldHeight);
             renderer = new CityMapRenderer(settings);
             modelSeed = city.settings.globalSeed;
+            // A stored marker outlives the session, and guidance now runs
+            // before the map is ever opened — so a marker from another city
+            // has to be dropped here, not left for the first Open().
+            MapMarkerStore.DiscardIfForeign(modelSeed);
             pixelsPerCell = settings.ClampZoom(settings.defaultPixelsPerCell);
 
             canvas = gameObject.GetComponent<Canvas>();
