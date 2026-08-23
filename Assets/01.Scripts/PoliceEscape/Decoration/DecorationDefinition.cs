@@ -57,5 +57,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
         [Tooltip("Angular damping — high values make a tall prop keel over in slow motion instead of snapping flat.")]
         [PropertyRange(0f, 10f)]
         public float angularDamping = 0.5f;
+
+        [Tooltip("This prop answers a car with a blast instead of a shove (see ExplosiveBarrel). The blast itself — damage, radius, fireball — is shared, and lives on the set.")]
+        public bool explosive;
     }
 }

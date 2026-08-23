@@ -13,7 +13,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
     /// halts against it, exactly the "heavier wins" rule. The first real
     /// player contact adds the set's impact impulse for juice. The per-prop
     /// mass is what differentiates the feel: cones fly, light posts keel over
-    /// slowly, barriers shrug the hit off. City clearance checks
+    /// slowly, barriers shrug the hit off — and a prop flagged explosive gets
+    /// an <see cref="ExplosiveBarrel"/> on top, which answers a hard enough
+    /// contact with a blast instead. City clearance checks
     /// (<see cref="City.CityManager.IsCellClear"/>) look for this component to
     /// ignore props, so a cone on the sidewalk never blocks a car spawn.
     /// </summary>
@@ -58,6 +60,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
             prop.upBias = set.impactUpBias;
 
             AddWakeTrigger(instance, set.wakeDistance);
+
+            // Explosive props keep everything above — they are ordinary street
+            // furniture until something hits them hard enough.
+            if (definition.explosive) ExplosiveBarrel.Configure(instance, set);
         }
 
         /// <summary>

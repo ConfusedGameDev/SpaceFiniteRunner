@@ -56,6 +56,51 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
         [PropertyRange(0f, 1f)]
         public float impactUpBias = 0.25f;
 
+        // ---------------------------------------------------------- explosive
+        [TitleGroup("Explosive")]
+        [Tooltip("Permanent corruption an exploding prop adds to the player's damage meter when the car is caught in the blast — the same meter police shunts fill. 0.35 = a third of the run per barrel.")]
+        [PropertyRange(0f, 1f)]
+        public float explosionDamage = 0.35f;
+
+        [TitleGroup("Explosive")]
+        [Tooltip("Everything inside this radius is caught: the player takes the damage above, police cruisers are wrecked outright, loose props are thrown.")]
+        [PropertyRange(1f, 30f), SuffixLabel("m", true)]
+        public float blastRadius = 7f;
+
+        [TitleGroup("Explosive")]
+        [Tooltip("Impulse handed to a body at the centre of the blast, falling off to nothing at the radius.")]
+        [PropertyRange(0f, 5000f)]
+        public float blastForce = 900f;
+
+        [TitleGroup("Explosive")]
+        [Tooltip("Metres the blast's origin is sunk below itself when throwing bodies — the lower it sits, the more the blast lifts rather than shoves.")]
+        [PropertyRange(0f, 5f), SuffixLabel("m", true)]
+        public float blastUpModifier = 1.2f;
+
+        [TitleGroup("Explosive")]
+        [Tooltip("Contact slower than this is a nudge, not a detonation — traffic brushing a barrel in the gutter must not level the street.")]
+        [PropertyRange(0.5f, 40f), SuffixLabel("m/s", true)]
+        public float detonationSpeed = 3f;
+
+        [TitleGroup("Explosive")]
+        [Tooltip("Size of the fireball, in metres. Independent of the blast radius so the look and the damage can be tuned apart.")]
+        [PropertyRange(0.5f, 20f), SuffixLabel("m", true)]
+        public float explosionScale = 6f;
+
+        [TitleGroup("Explosive")]
+        [Tooltip("How long a fireball billboard lives.")]
+        [PropertyRange(0.1f, 4f), SuffixLabel("s", true)]
+        public float explosionLifetime = 0.9f;
+
+        [TitleGroup("Explosive")]
+        [Tooltip("Billboards in one blast.")]
+        [PropertyRange(1, 40)]
+        public int explosionParticles = 14;
+
+        [TitleGroup("Explosive")]
+        [Tooltip("Fireball sprites — one is picked at random per blast, so no two barrels look alike. Filled from 02.Art/05.Particles/SmokeAndExplosions/Explosion by the decoration-set builder.")]
+        public List<Texture2D> explosionTextures = new();
+
         [TableList(AlwaysExpanded = true)]
         public List<DecorationDefinition> decorations = new();
     }

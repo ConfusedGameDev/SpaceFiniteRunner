@@ -37,7 +37,7 @@ MonoBehaviour:
   splashTexture: {fileID: 2800000, guid: 4078da546dc414918af0425c7b3cfa20, type: 3}
   thunder: 1
   strikeInterval: {x: 8, y: 26}
-  thunderFrequency: 1
+  thunderFrequency: 5
   thunderMinIntensity: 0.15
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   flashPeak: 0.85

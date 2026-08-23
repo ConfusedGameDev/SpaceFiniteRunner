@@ -376,10 +376,31 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
             bool policeHit = collision.rigidbody != null
                 && collision.rigidbody.GetComponent<PoliceCarInput>() != null;
-            if (!policeHit) return;
-            glitch.SetBaseIntensity(glitch.baseIntensity + policeHitIntensity);
-            Debug.Log($"[Level] police hit — corruption {glitch.baseIntensity:F2}", this);
+            if (policeHit) ApplyDamage(policeHitIntensity, "police hit");
+        }
+
+        /// <summary>
+        /// Permanent corruption from anything that is not a police shunt — an
+        /// exploding barrel today, a scripted hazard tomorrow. One entry point
+        /// so every source fills the same meter and trips the same reboot at
+        /// full. Returns false when the hit was swallowed (the run is already
+        /// ending, or there is no glitch controller in the scene), so a caller
+        /// knows not to expect a reaction.
+        /// </summary>
+        public bool ApplyDamage(float amount, string reason)
+        {
+            if (resetting || Completed) return false;
+
+            var glitch = GlitchController.Instance;
+            if (glitch == null) return false;
+
+            // Never quieter than the hit is heavy: a barrel to the face should
+            // white out the feed even if the collision pulse is tuned gentle.
+            glitch.Pulse(Mathf.Max(collisionPulse, amount));
+            glitch.SetBaseIntensity(glitch.baseIntensity + amount);
+            Debug.Log($"[Level] {reason} — corruption {glitch.baseIntensity:F2}", this);
             if (glitch.baseIntensity >= 0.999f) RequestReboot("full corruption");
+            return true;
         }
 
         /// <summary>Player and patrols come and go at runtime (spawn managers), so re-find them on a slow tick instead of every frame.</summary>

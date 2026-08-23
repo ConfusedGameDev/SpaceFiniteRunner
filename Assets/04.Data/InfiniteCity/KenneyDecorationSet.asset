@@ -20,6 +20,24 @@ MonoBehaviour:
   impactMomentum: 150
   maxLaunchFactor: 2
   impactUpBias: 0.25
+  explosionDamage: 0.35
+  blastRadius: 7
+  blastForce: 900
+  blastUpModifier: 1.2
+  detonationSpeed: 3
+  explosionScale: 6
+  explosionLifetime: 0.9
+  explosionParticles: 14
+  explosionTextures:
+  - {fileID: 2800000, guid: a96c4488e59bb435d8aaa0cff43270fe, type: 3}
+  - {fileID: 2800000, guid: 1c846224768ab4d11ae85c0dde9fc69a, type: 3}
+  - {fileID: 2800000, guid: d98f18ebb21b44d03a8f2847c5999b86, type: 3}
+  - {fileID: 2800000, guid: 8c9f1958f431f48a491b1a254a7f1207, type: 3}
+  - {fileID: 2800000, guid: ef8c7540bd3234f33b8d5ab008294d24, type: 3}
+  - {fileID: 2800000, guid: 8235e261889ee4b4c8e34e7c66246e56, type: 3}
+  - {fileID: 2800000, guid: 6fddb8dfa38c94a4394e6b3bbbcbb133, type: 3}
+  - {fileID: 2800000, guid: 8281bac6ed4ca42b3a7a3e7629485344, type: 3}
+  - {fileID: 2800000, guid: 08c8fb6595d634540806f7e021e09e67, type: 3}
   decorations:
   - prefab: {fileID: 919132149155446097, guid: aeac33b3a043006459411136bbf7e50f, type: 3}
     placement: 0
@@ -29,6 +47,7 @@ MonoBehaviour:
     yawJitter: 0
     mass: 350
     angularDamping: 4
+    explosive: 0
   - prefab: {fileID: 919132149155446097, guid: 4b21fc1917fbd0b4fb0900a0a75bbaa8, type: 3}
     placement: 0
     weight: 3
@@ -37,14 +56,16 @@ MonoBehaviour:
     yawJitter: 0
     mass: 350
     angularDamping: 4
+    explosive: 0
   - prefab: {fileID: 919132149155446097, guid: ce2adec5ed1abd64ead88d595ecfdce9, type: 3}
     placement: 1
     weight: 6
     scaleMultiplier: 1
     rotationOffset: 0
     yawJitter: 180
-    mass: 0.5
+    mass: 2
     angularDamping: 0.05
+    explosive: 0
   - prefab: {fileID: 919132149155446097, guid: 5f7da3222739d044a9f5b6db3d18829f, type: 3}
     placement: 1
     weight: 2
@@ -53,11 +74,22 @@ MonoBehaviour:
     yawJitter: 10
     mass: 3000
     angularDamping: 1
+    explosive: 0
   - prefab: {fileID: 919132149155446097, guid: 743efc4366215794ab39ba5d2045be2e, type: 3}
     placement: 1
     weight: 1
     scaleMultiplier: 1
-    rotationOffset: 90
+    rotationOffset: 0
     yawJitter: 15
-    mass: 5
+    mass: 250
     angularDamping: 3
+    explosive: 0
+  - prefab: {fileID: 6668619109786879136, guid: e9579340166124ccea05b40619ea5634, type: 3}
+    placement: 1
+    weight: 1.5
+    scaleMultiplier: 1
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 60
+    angularDamping: 0.5
+    explosive: 1

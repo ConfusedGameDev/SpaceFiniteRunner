@@ -535,7 +535,7 @@ namespace ConfusedGameDev.FiniteRunner.FX
             if (dropMaterial == null || appliedDropTexture != dropTexture || appliedAdditive != settings.additive)
             {
                 Discard(dropMaterial);
-                dropMaterial = BuildParticleMaterial("Rain_Drop", dropTexture, settings.additive);
+                dropMaterial = ParticleMaterials.Unlit("Rain_Drop", dropTexture, settings.additive);
                 dropsRenderer.sharedMaterial = dropMaterial;
                 appliedDropTexture = dropTexture;
                 appliedAdditive = settings.additive;
@@ -543,47 +543,10 @@ namespace ConfusedGameDev.FiniteRunner.FX
             if (splashMaterial == null || appliedSplashTexture != splashTexture)
             {
                 Discard(splashMaterial);
-                splashMaterial = BuildParticleMaterial("Rain_Splash", splashTexture, false);
+                splashMaterial = ParticleMaterials.Unlit("Rain_Splash", splashTexture, false);
                 splashRenderer.sharedMaterial = splashMaterial;
                 appliedSplashTexture = splashTexture;
             }
-        }
-
-        /// <summary>
-        /// A transparent unlit particle material, set up for URP first and for
-        /// the built-in particle shaders as a fallback — the raw blend/ZWrite
-        /// ints are written either way, because only the URP shader reads the
-        /// _Surface/_Blend pair that drives them.
-        /// </summary>
-        static Material BuildParticleMaterial(string name, Texture texture, bool additive)
-        {
-            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
-                            ?? Shader.Find("Particles/Standard Unlit")
-                            ?? Shader.Find("Sprites/Default");
-            var material = new Material(shader) { name = name, hideFlags = HideFlags.HideAndDontSave };
-
-            material.SetOverrideTag("RenderType", "Transparent");
-            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);            // transparent
-            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", additive ? 1f : 0f); // additive / alpha
-            if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0f);                   // double sided
-            if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0f);
-            if (material.HasProperty("_SrcBlend")) material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            if (material.HasProperty("_DstBlend"))
-                material.SetFloat("_DstBlend", (float)(additive
-                    ? UnityEngine.Rendering.BlendMode.One
-                    : UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha));
-            material.DisableKeyword("_ALPHATEST_ON");
-            material.EnableKeyword("_ALPHABLEND_ON");
-            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-
-            if (texture != null)
-            {
-                material.mainTexture = texture;
-                if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", texture);
-            }
-            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", Color.white);
-            return material;
         }
 
         // ------------------------------------------------------------ thunder
