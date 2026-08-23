@@ -1,0 +1,26 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.PoliceEscape.Editor",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.PoliceEscape.Editor",
+    "references": [
+        "ConfusedGameDev.FiniteRunner.PoliceEscape",
+        "ConfusedGameDev.FiniteRunner.Runner",
+        "ConfusedGameDev.FiniteRunner.UI",
+        "ConfusedGameDev.FiniteRunner.FX",
+        "ConfusedGameDev.FiniteRunner.Rendering",
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,14 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.FX",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.FX",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

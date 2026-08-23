@@ -1,0 +1,20 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.Cheats",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.Cheats",
+    "references": [
+        "ConfusedGameDev.FiniteRunner.UI",
+        "ConfusedGameDev.FiniteRunner.Haptics",
+        "ConfusedGameDev.FiniteRunner.FX",
+        "Unity.InputSystem",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

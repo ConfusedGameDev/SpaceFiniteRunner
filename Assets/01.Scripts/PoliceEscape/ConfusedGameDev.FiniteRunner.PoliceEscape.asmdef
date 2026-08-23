@@ -1,0 +1,23 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.PoliceEscape",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.PoliceEscape",
+    "references": [
+        "ConfusedGameDev.FiniteRunner.Runner",
+        "ConfusedGameDev.FiniteRunner.UI",
+        "ConfusedGameDev.FiniteRunner.Cheats",
+        "ConfusedGameDev.FiniteRunner.Haptics",
+        "ConfusedGameDev.FiniteRunner.FX",
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "Unity.Cinemachine"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

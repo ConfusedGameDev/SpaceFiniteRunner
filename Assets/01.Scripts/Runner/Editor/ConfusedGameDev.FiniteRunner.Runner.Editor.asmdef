@@ -1,0 +1,20 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.Runner.Editor",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.EditorTools",
+    "references": [
+        "ConfusedGameDev.FiniteRunner.Runner",
+        "ConfusedGameDev.FiniteRunner.Cheats",
+        "ConfusedGameDev.FiniteRunner.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

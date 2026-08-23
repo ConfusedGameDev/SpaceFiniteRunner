@@ -1,0 +1,25 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.Runner",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner",
+    "references": [
+        "ConfusedGameDev.FiniteRunner.UI",
+        "ConfusedGameDev.FiniteRunner.Cheats",
+        "ConfusedGameDev.FiniteRunner.Haptics",
+        "ConfusedGameDev.FiniteRunner.FX",
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "Unity.Splines",
+        "Unity.Mathematics",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -30,7 +30,7 @@ Scenes should go into
 Assets/05.Scenes
 
 
-M2
+M2 ✅ DONE (2026-08-23)
 
 we need to separate the scripts into sub folders based on their system
 and create assembly definitions to have a clean project.
