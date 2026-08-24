@@ -38,6 +38,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         RectTransform routeRoot;
         Image destinationBlip;
         readonly List<PoliceCarInput> police = new();
+        readonly List<TrafficCarInput> escapees = new();
         CarController player;
         float refreshTimer;
         bool built;
@@ -179,6 +180,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             player = PatrolManager.FindPlayerCar();
             police.Clear();
             police.AddRange(FindObjectsByType<PoliceCarInput>(FindObjectsSortMode.None));
+            TrafficCarInput.GetEscaping(escapees);
         }
 
         void UpdateCamera()
@@ -224,25 +226,37 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             foreach (PoliceCarInput cruiser in police)
             {
                 if (cruiser == null) continue;
-                Image blip = GetBlip(used++);
-
-                Vector3 delta = cruiser.transform.position - player.transform.position;
-                var position = new Vector2(Vector3.Dot(delta, right), Vector3.Dot(delta, forward)) * scale;
-                float maxRadius = uiRadius * 0.92f;
-                if (position.sqrMagnitude > maxRadius * maxRadius)
-                    position = position.normalized * maxRadius; // clamp to the rim, GTA-style
-
-                blip.rectTransform.anchoredPosition = position;
-                blip.rectTransform.sizeDelta = new Vector2(settings.blipSize, settings.blipSize);
-                blip.color = cruiser.State switch
+                Color color = cruiser.State switch
                 {
                     PoliceCarInput.AiState.Chase => flashA ? settings.chaseColorA : settings.chaseColorB,
                     PoliceCarInput.AiState.Search => settings.searchColor,
                     _ => settings.patrolColor,
                 };
-                blip.enabled = true;
+                PlaceBlip(ref used, cruiser.transform.position, color, uiRadius, scale, forward, right);
+            }
+            // The escaping car of a Chase Car objective — yellow, rim-clamped
+            // like the cruisers so it points the way even out of radar range.
+            foreach (TrafficCarInput escapee in escapees)
+            {
+                if (escapee == null) continue;
+                PlaceBlip(ref used, escapee.transform.position, settings.escapeColor, uiRadius, scale, forward, right);
             }
             for (int i = used; i < blips.Count; i++) blips[i].enabled = false;
+        }
+
+        void PlaceBlip(ref int used, Vector3 world, Color color, float uiRadius, float scale, Vector3 forward, Vector3 right)
+        {
+            Image blip = GetBlip(used++);
+            Vector3 delta = world - player.transform.position;
+            var position = new Vector2(Vector3.Dot(delta, right), Vector3.Dot(delta, forward)) * scale;
+            float maxRadius = uiRadius * 0.92f;
+            if (position.sqrMagnitude > maxRadius * maxRadius)
+                position = position.normalized * maxRadius; // clamp to the rim, GTA-style
+
+            blip.rectTransform.anchoredPosition = position;
+            blip.rectTransform.sizeDelta = new Vector2(settings.blipSize, settings.blipSize);
+            blip.color = color;
+            blip.enabled = true;
         }
 
         /// <summary>

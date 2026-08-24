@@ -73,6 +73,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         public Color routeColor = new(0.35f, 1f, 0.6f, 1f);
 
         [TitleGroup("Markers")]
+        [Tooltip("The escaping car of a Chase Car objective — same yellow family as the minimap's blip, so the prey reads the same on both.")]
+        public Color chaseCarColor = new(1f, 0.9f, 0.2f, 1f);
+
+        [TitleGroup("Markers")]
         [Tooltip("The centre crosshair used to aim when placing a marker.")]
         public Color cursorColor = new(1f, 1f, 1f, 0.85f);
 

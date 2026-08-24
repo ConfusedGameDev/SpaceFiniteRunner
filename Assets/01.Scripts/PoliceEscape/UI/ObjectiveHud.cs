@@ -102,6 +102,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                         color = MissingColor;
                     }
                     break;
+                case ObjectiveType.ChaseCar:
+                    // No red "missing" state: the escapee is promoted from live
+                    // traffic a beat after the step activates, so absence just
+                    // means the mark hasn't been picked yet.
+                    text = manager.TryGetTargetDistance(index, out float chaseMeters)
+                        ? $"{texts.Get(MenuTextId.ObjectiveChaseCar)} {(step.targetId ?? "").ToUpperInvariant()}  —  {chaseMeters:0} M"
+                        : $"{texts.Get(MenuTextId.ObjectiveChaseCar)} {(step.targetId ?? "").ToUpperInvariant()}";
+                    break;
                 default:
                     text = texts.Get(MenuTextId.ObjectiveEscapePolice);
                     break;

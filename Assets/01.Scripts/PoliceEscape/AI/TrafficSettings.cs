@@ -105,6 +105,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float CruiseMin => cruiseSpeedBand.x;
         public float CruiseMax => cruiseSpeedBand.y;
 
+        // ---------------------------------------------------------- escape car
+        [TitleGroup("Escape car")]
+        [Tooltip("A fleeing car this far ahead of the player parks and waits — it must never outrun the streamed city (keep well inside the fleet's active radius).")]
+        [PropertyRange(60f, 400f), SuffixLabel("m", true)]
+        public float fleeHoldDistance = 180f;
+
+        [TitleGroup("Escape car")]
+        [Tooltip("Corner speed while fleeing — a getaway driver takes turns far harder than a civilian.")]
+        [PropertyRange(10f, 80f), SuffixLabel("km/h", true)]
+        public float fleeCornerSpeedKmh = 40f;
+
         // --------------------------------------------------------------- stops
         [TitleGroup("Stops")]
         [Tooltip("How long a stop-prone vehicle drives between stops (random per cycle).")]

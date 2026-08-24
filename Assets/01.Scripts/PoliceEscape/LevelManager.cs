@@ -81,6 +81,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             public bool done;
             public float timer;      // SurviveTime: seconds this step has been current
             public bool huntSeen;    // EscapePolice: a pursuit was observed since activation
+            public bool carKilled;   // ChaseCar: the escaping car was seen dead
             public bool briefed;     // the step's dialogue line has played
             public bool warnedMissingTarget;
         }
@@ -90,6 +91,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         CarController player;
         PoliceCarInput[] patrols = System.Array.Empty<PoliceCarInput>();
         float retargetTimer;
+        float promoteTimer;
         bool loading;
         bool resetting;
         bool warnedEmpty;
@@ -113,18 +115,28 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public float Timer(int index) => index >= 0 && index < states.Length ? states[index].timer : 0f;
 
         /// <summary>
-        /// Horizontal distance from the player to a GoToTarget step's target.
-        /// False when the step is not a go-to, there is no player, or the id
-        /// is not registered in the scene (see <see cref="IsTargetMissing"/>).
+        /// Horizontal distance from the player to a GoToTarget step's target
+        /// or a ChaseCar step's escaping car. False when the step is another
+        /// kind, there is no player, or the id resolves to nothing right now
+        /// (target not in the scene, escapee not yet promoted).
         /// </summary>
         public bool TryGetTargetDistance(int index, out float meters)
         {
             meters = 0f;
             var step = Objective(index);
-            if (step == null || step.type != ObjectiveType.GoToTarget || player == null) return false;
-            if (!TargetObject.TryFind(step.targetId, out var target)) return false;
-            meters = TargetObject.HorizontalDistance(player.transform.position, target.Position);
-            return true;
+            if (step == null || player == null) return false;
+            switch (step.type)
+            {
+                case ObjectiveType.GoToTarget:
+                    if (!TargetObject.TryFind(step.targetId, out var target)) return false;
+                    meters = TargetObject.HorizontalDistance(player.transform.position, target.Position);
+                    return true;
+                case ObjectiveType.ChaseCar:
+                    if (!TrafficCarInput.TryFindEscaping(step.targetId, out var escapee)) return false;
+                    meters = TargetObject.HorizontalDistance(player.transform.position, escapee.transform.position);
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>True for a go-to step whose id has no enabled TargetObject in the scene.</summary>
@@ -226,8 +238,70 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                     }
                     return TargetObject.HorizontalDistance(player.transform.position, target.Position) <= step.arriveRadius;
                 }
+
+                case ObjectiveType.ChaseCar:
+                {
+                    if (TrafficCarInput.TryFindEscaping(step.targetId, out TrafficCarInput escapee))
+                    {
+                        // Done means SEEN DEAD, not deregistered: the death fuse
+                        // burns for seconds before the wreck tears the driver
+                        // off, and the kill should count the moment it lands.
+                        var health = escapee.GetComponent<CarHealth>();
+                        if (health == null || !health.IsDead) return false;
+                        state.carKilled = true;
+                        return true;
+                    }
+                    if (state.carKilled) return true;
+                    // No escapee under this id: never promoted, or it vanished
+                    // without being killed (fell out of the world) — promote a
+                    // fresh civilian rather than softlocking the step.
+                    TryPromoteEscapeCar(index, step, state);
+                    return false;
+                }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Turn the nearest live civilian into the step's escaping car — any
+        /// NPC car can be the getaway driver, which is the point: the chase
+        /// starts from whatever traffic is already on the street. On a slow
+        /// tick, because the fleet may simply not have spawned yet and a
+        /// scene sweep per frame while waiting is wasted work. The escapee's
+        /// top speed is the PLAYER'S top speed, read off the player's own
+        /// config, so the chase is winnable on cornering, not raw pace.
+        /// </summary>
+        void TryPromoteEscapeCar(int index, LevelObjective step, ObjectiveState state)
+        {
+            if (string.IsNullOrEmpty(step.targetId))
+            {
+                if (!state.warnedMissingTarget)
+                    Debug.LogWarning($"[Level] objective {index + 1} is a Chase Car step with no id — it can never complete.", this);
+                state.warnedMissingTarget = true;
+                return;
+            }
+
+            promoteTimer -= Time.deltaTime;
+            if (promoteTimer > 0f) return;
+            promoteTimer = 1f;
+
+            TrafficCarInput best = null;
+            float bestSqr = float.MaxValue;
+            foreach (TrafficCarInput car in FindObjectsByType<TrafficCarInput>(FindObjectsSortMode.None))
+            {
+                if (car.Fleeing) continue;
+                var health = car.GetComponent<CarHealth>();
+                if (health != null && health.IsDead) continue;
+                float sqr = (car.transform.position - player.transform.position).sqrMagnitude;
+                if (sqr >= bestSqr) continue;
+                bestSqr = sqr;
+                best = car;
+            }
+            if (best == null) return; // no traffic alive yet — retry next tick
+
+            float topSpeedKmh = player.config != null ? player.config.topSpeedKmh : 140f;
+            best.BecomeEscapeCar(step.targetId, topSpeedKmh);
+            Debug.Log($"[Level] '{best.name}' promoted to escaping car '{step.targetId}'", this);
         }
 
         /// <summary>Does a finished STATE step still hold? Progress steps always do — they latch.</summary>
@@ -257,7 +331,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             for (int i = index; i < states.Length; i++)
             {
                 states[i].done = false;
-                if (i > index) states[i].timer = 0f; // later progress is forfeited; the regressed step's own state stays
+                if (i > index) { states[i].timer = 0f; states[i].carKilled = false; } // later progress is forfeited; the regressed step's own state stays
             }
             current = index;
         }

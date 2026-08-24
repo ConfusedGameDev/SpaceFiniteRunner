@@ -49,7 +49,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DebugTabLevel,
         ObjectiveReachSpeed, ObjectiveEscapePolice, ObjectiveGoTo, ObjectiveSurvive,
         CheatEnterCode, CheatUnlocked,
-        GameOver, RetryPrompt
+        GameOver, RetryPrompt,
+        ObjectiveChaseCar
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -356,6 +357,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString objectiveGoTo = new("GO TO", "IR A", "目的地へ", "ALLER À");
         [TitleGroup("City level objectives")]
         [SerializeField] LocalizedString objectiveSurvive = new("SURVIVE", "SOBREVIVIR", "生き延びる", "SURVIVRE");
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString objectiveChaseCar = new("CHASE", "PERSEGUIR", "追跡", "POURSUIVRE");
 
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString gameOver = new("GAME OVER", "FIN DE LA PARTIDA", "ゲームオーバー", "PARTIE TERMINÉE");
@@ -558,6 +561,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.ObjectiveEscapePolice => objectiveEscapePolice,
             MenuTextId.ObjectiveGoTo => objectiveGoTo,
             MenuTextId.ObjectiveSurvive => objectiveSurvive,
+            MenuTextId.ObjectiveChaseCar => objectiveChaseCar,
             MenuTextId.CheatEnterCode => cheatEnterCode,
             MenuTextId.CheatUnlocked => cheatUnlocked,
             MenuTextId.GameOver => gameOver,

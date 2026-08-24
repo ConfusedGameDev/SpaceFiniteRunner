@@ -57,6 +57,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         RectTransform playerIcon;
         RectTransform markerIcon;
         RectTransform cursorIcon;
+        readonly List<RectTransform> chaseIcons = new();
+        readonly List<TrafficCarInput> escapees = new();
         Text titleLabel;
         Text statusLabel;
         readonly List<Text> missionRows = new();
@@ -692,6 +694,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             if (hasMarker)
                 markerIcon.anchoredPosition = WorldToViewport(model.CellToWorld(MapMarkerStore.Cell));
 
+            // The escaping car(s) of Chase Car objectives — live positions, the
+            // one thing on this screen that isn't generated data; the viewport
+            // mask clips them once they're outside the drawn city.
+            TrafficCarInput.GetEscaping(escapees);
+            int chaseUsed = 0;
+            foreach (TrafficCarInput escapee in escapees)
+            {
+                if (escapee == null) continue;
+                RectTransform icon = GetChaseIcon(chaseUsed++);
+                icon.gameObject.SetActive(true);
+                icon.anchoredPosition = WorldToViewport(escapee.transform.position);
+            }
+            for (int i = chaseUsed; i < chaseIcons.Count; i++) chaseIcons[i].gameObject.SetActive(false);
+
             // The cursor is pinned at the viewport centre: one aiming mechanism
             // that behaves identically on stick, keyboard and mouse, so the map
             // needs no second focus system.
@@ -736,6 +752,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             }
         }
 
+        /// <summary>
+        /// Lazily-built yellow diamond for an escaping car. Kept under the
+        /// cursor in the hierarchy so the aiming crosshair always draws on top.
+        /// </summary>
+        RectTransform GetChaseIcon(int index)
+        {
+            while (chaseIcons.Count <= index)
+            {
+                RectTransform icon = CreateIconRect($"ChaseIcon_{chaseIcons.Count}", mapViewport,
+                    settings.chaseCarColor, settings.markerIconSize, CreateDiamondSprite(64));
+                icon.SetSiblingIndex(cursorIcon.GetSiblingIndex());
+                chaseIcons.Add(icon);
+            }
+            return chaseIcons[index];
+        }
+
         Text GetMissionRow(int index)
         {
             while (missionRows.Count <= index)
@@ -775,6 +807,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             renderer = null;
             model = null;
             missionRows.Clear();
+            chaseIcons.Clear();
             if (panel != null) Destroy(panel);
             panel = null;
             built = false;

@@ -4,8 +4,8 @@ using UnityEngine;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
-    /// <summary>The four things a level can ask of the player. Order is the save format — append only.</summary>
-    public enum ObjectiveType { ReachSpeed = 0, EscapePolice = 1, GoToTarget = 2, SurviveTime = 3 }
+    /// <summary>The things a level can ask of the player. Order is the save format — append only.</summary>
+    public enum ObjectiveType { ReachSpeed = 0, EscapePolice = 1, GoToTarget = 2, SurviveTime = 3, ChaseCar = 4 }
 
     /// <summary>
     /// How the objective list completes. <see cref="Independent"/>: steps
@@ -42,8 +42,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [PropertyRange(5f, 300f), SuffixLabel("s", true)]
         public float surviveSeconds = 30f;
 
-        [ShowIf("type", ObjectiveType.GoToTarget)]
-        [Tooltip("Id of the TargetObject placed in the scene. Unknown ids never complete — the HUD flags them.")]
+        [ShowIf("@this.type == ObjectiveType.GoToTarget || this.type == ObjectiveType.ChaseCar")]
+        [Tooltip("Go To: id of the TargetObject placed in the scene (unknown ids never complete — the HUD flags them). Chase Car: the id given to the escaping car — the LevelManager promotes a nearby traffic car to it when the step activates.")]
         public string targetId = "";
 
         [ShowIf("type", ObjectiveType.GoToTarget)]
@@ -74,6 +74,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.ReachSpeed => targetSpeedKmh.ToString("0"),
             ObjectiveType.SurviveTime => surviveSeconds.ToString("0"),
             ObjectiveType.GoToTarget => string.IsNullOrEmpty(targetId) ? "?" : targetId,
+            ObjectiveType.ChaseCar => string.IsNullOrEmpty(targetId) ? "?" : targetId,
             _ => ""
         };
 
@@ -84,6 +85,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.EscapePolice => mustBeHuntedFirst ? "ESCAPE POLICE (after a chase)" : "ESCAPE POLICE",
             ObjectiveType.GoToTarget => $"GO TO {(string.IsNullOrEmpty(targetId) ? "?" : targetId)}",
             ObjectiveType.SurviveTime => $"SURVIVE {surviveSeconds:0} S",
+            ObjectiveType.ChaseCar => $"CHASE {(string.IsNullOrEmpty(targetId) ? "?" : targetId)}",
             _ => type.ToString()
         };
 
@@ -103,6 +105,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.EscapePolice => new Color(1f, 0.4f, 0.35f),
             ObjectiveType.GoToTarget => new Color(1f, 0.85f, 0.4f),
             ObjectiveType.SurviveTime => new Color(0.75f, 0.6f, 1f),
+            ObjectiveType.ChaseCar => new Color(1f, 0.9f, 0.2f),
             _ => new Color(0.45f, 0.9f, 1f)
         };
 
@@ -112,6 +115,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.EscapePolice => "We need to escape the police, NOW!",
             ObjectiveType.GoToTarget => "Get to {0} — I'll mark the distance.",
             ObjectiveType.SurviveTime => "Stay alive for {0} seconds!",
+            ObjectiveType.ChaseCar => "Chase down {0} and take it out — don't let it get away!",
             _ => ""
         };
     }

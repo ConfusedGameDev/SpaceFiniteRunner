@@ -41,13 +41,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
             vehicles.RemoveAll(vehicle => vehicle == null);
 
-            // Cull: beyond the active radius (+ padding) or fallen out of the world.
+            // Cull: beyond the active radius (+ padding) or fallen out of the
+            // world. An escaping car is exempt from the distance cull — it IS
+            // an objective, and despawning it would silently complete the
+            // chase; its own flee-hold leash keeps it near the player anyway.
             float despawnDistance = settings.activeRadius + settings.despawnPadding;
             for (int i = vehicles.Count - 1; i >= 0; i--)
             {
                 Vector3 position = vehicles[i].transform.position;
                 if (position.y > -25f
-                    && Vector3.Distance(position, player.transform.position) <= despawnDistance)
+                    && (vehicles[i].Fleeing
+                        || Vector3.Distance(position, player.transform.position) <= despawnDistance))
                     continue;
                 Destroy(vehicles[i].gameObject);
                 vehicles.RemoveAt(i);

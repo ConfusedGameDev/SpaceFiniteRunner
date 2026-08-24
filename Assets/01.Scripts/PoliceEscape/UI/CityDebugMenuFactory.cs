@@ -321,6 +321,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                         screen.AddRow<DebugLabelRow>($"{texts.Get(MenuTextId.ObjectiveGoTo)}  [{objective.targetId}]")
                               .SetLabelTintProvider(StatusTint(manager, i, theme));
                         break;
+                    case ObjectiveType.ChaseCar:
+                        screen.AddRow<DebugLabelRow>($"{texts.Get(MenuTextId.ObjectiveChaseCar)}  [{objective.targetId}]")
+                              .SetLabelTintProvider(StatusTint(manager, i, theme));
+                        break;
                     default:
                         screen.AddRow<DebugLabelRow>(MenuTextId.ObjectiveEscapePolice)
                               .SetLabelTintProvider(StatusTint(manager, i, theme));

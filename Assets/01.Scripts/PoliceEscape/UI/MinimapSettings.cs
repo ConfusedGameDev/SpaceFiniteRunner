@@ -119,5 +119,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         [Tooltip("Seconds per half-cycle of the chase blip flash.")]
         [PropertyRange(0.05f, 1f), SuffixLabel("s", true)]
         public float chaseFlashInterval = 0.25f;
+
+        [TitleGroup("Blips")]
+        [Tooltip("Blip color of the escaping car of a Chase Car objective — yellow, so the prey never reads as a cop.")]
+        public Color escapeColor = new(1f, 0.9f, 0.2f, 1f);
     }
 }

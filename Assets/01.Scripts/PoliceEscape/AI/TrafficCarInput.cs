@@ -15,6 +15,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
     /// No perception, no pathfinding — that keeps a whole fleet cheap; the
     /// wander/drive core intentionally mirrors PoliceCarInput's Patrol
     /// behavior. All knobs live on TrafficSettings.
+    ///
+    /// Any civilian can be promoted into the ESCAPING CAR of a Chase Car
+    /// objective (<see cref="BecomeEscapeCar"/>): it registers under the
+    /// objective's id, drives at the PLAYER'S top speed, picks wander nodes
+    /// away from the player instead of at random, and — because the city only
+    /// exists around the player — parks and waits whenever it gets more than
+    /// the flee hold distance ahead, so it can never flee off the edge of the
+    /// streamed world. Everything else (queues, stuck recovery, health) is the
+    /// same civilian core, which is the point: the escapee is just a scared
+    /// citizen, not a second police AI.
     /// </summary>
     [RequireComponent(typeof(CarController))]
     public class TrafficCarInput : MonoBehaviour, ICarInput
@@ -23,8 +33,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         [Tooltip("All traffic tunables live on this asset — assigned by the TrafficManager at spawn.")]
         public TrafficSettings settings;
 
+        // The escaping cars of Chase Car objectives, by objective id — same
+        // registry idiom as TargetObject, so the LevelManager and both maps
+        // resolve the car without holding references across its destruction.
+        static readonly Dictionary<string, TrafficCarInput> EscapeRegistry = new();
+
         [TitleGroup("Debug"), ShowInInspector, ReadOnly]
         public bool Stopped { get; private set; }
+
+        [TitleGroup("Debug"), ShowInInspector, ReadOnly]
+        public bool Fleeing { get; private set; }
+
+        /// <summary>The Chase Car objective id this car escapes under (null for ordinary traffic).</summary>
+        public string EscapeId { get; private set; }
 
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
@@ -51,8 +72,150 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         float recentContactTimer;
         float obstacleHitSide;
         ObstacleKind lastObstacle;
+        CarController playerCar;
+        float playerRefreshTimer;
+        Transform escapeArrow;
+        Vector3 escapeArrowAnchor;
 
         static readonly Collider[] OverlapBuffer = new Collider[8];
+
+        // Shared by every escape arrow in the run — same caching rule as the
+        // smoke plume materials.
+        static Mesh arrowHeadMesh;
+        static Material arrowMaterial;
+
+        /// <summary>The live escaping car registered under a Chase Car objective id, if any.</summary>
+        public static bool TryFindEscaping(string id, out TrafficCarInput car)
+        {
+            car = null;
+            if (string.IsNullOrEmpty(id)) return false;
+            return EscapeRegistry.TryGetValue(id.Trim(), out car) && car != null;
+        }
+
+        /// <summary>Copy every live escaping car into the buffer — how the minimap and the city map draw their yellow markers.</summary>
+        public static void GetEscaping(List<TrafficCarInput> into)
+        {
+            into.Clear();
+            foreach (TrafficCarInput car in EscapeRegistry.Values)
+                if (car != null) into.Add(car);
+        }
+
+        /// <summary>
+        /// Promote this civilian into the escaping car of a Chase Car
+        /// objective: register under the id, flee at the player's own top
+        /// speed (the chase is winnable on driving skill, never on raw pace),
+        /// and drop any work-vehicle stop habit — nobody pulls over mid-getaway.
+        /// </summary>
+        public void BecomeEscapeCar(string id, float topSpeedKmh)
+        {
+            if (string.IsNullOrEmpty(id)) return;
+            EscapeId = id.Trim();
+            if (EscapeRegistry.TryGetValue(EscapeId, out var other) && other != null && other != this)
+                Debug.LogWarning($"Two escaping cars under id '{EscapeId}' — the newest wins.", this);
+            EscapeRegistry[EscapeId] = this;
+            Fleeing = true;
+            stopsRandomly = false;
+            Stopped = false;
+            cruiseSpeedKmh = topSpeedKmh;
+            ClearPlan(); // the wander plan was aimless — replan away from the player right away
+            previousWaypoint = transform.position;
+            BuildEscapeArrow();
+        }
+
+        void OnDestroy()
+        {
+            if (EscapeId != null && EscapeRegistry.TryGetValue(EscapeId, out var current) && current == this)
+                EscapeRegistry.Remove(EscapeId);
+            // The wreck strips this driver but keeps the hull — the arrow must
+            // go with the driver, because a dead car is no longer the mark.
+            if (escapeArrow != null) Destroy(escapeArrow.gameObject);
+        }
+
+        /// <summary>
+        /// The over-head marker: a red arrow hovering above the roof, tip
+        /// down — built from code like the police cruiser's visual, and
+        /// collider-free so it can never trip a trigger or a spawn check.
+        /// Rides the car as a child but is kept upright and spun in WORLD
+        /// space by the animator, so the car's roll and pitch never tilt it.
+        /// </summary>
+        void BuildEscapeArrow()
+        {
+            if (escapeArrow != null) return;
+            escapeArrow = new GameObject("EscapeArrow").transform;
+            escapeArrow.SetParent(transform, false);
+
+            // Anchor off the chassis box, so trucks carry it above their taller roof.
+            var box = GetComponent<BoxCollider>();
+            float roof = box != null ? box.center.y + box.size.y * 0.5f : 1.6f;
+            escapeArrowAnchor = new Vector3(0f, roof + 1.4f, 0f);
+            escapeArrow.localPosition = escapeArrowAnchor;
+
+            // Head: a pyramid with the tip at the group's origin, pointing down.
+            var head = new GameObject("Head");
+            head.transform.SetParent(escapeArrow, false);
+            head.AddComponent<MeshFilter>().sharedMesh = ArrowHeadMesh();
+            SetupArrowRenderer(head.AddComponent<MeshRenderer>());
+
+            // Shaft: a slim cube sitting on the head's base.
+            var shaft = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            shaft.name = "Shaft";
+            Destroy(shaft.GetComponent<Collider>());
+            shaft.transform.SetParent(escapeArrow, false);
+            shaft.transform.localPosition = new Vector3(0f, 1.0f, 0f);
+            shaft.transform.localScale = new Vector3(0.28f, 0.7f, 0.28f);
+            SetupArrowRenderer(shaft.GetComponent<MeshRenderer>());
+        }
+
+        /// <summary>Bob on the car, spin upright in world space — a tilted arrow would stop reading as "down".</summary>
+        void AnimateEscapeArrow()
+        {
+            float bob = Mathf.Sin(Time.time * 3.2f) * 0.25f;
+            escapeArrow.localPosition = escapeArrowAnchor + Vector3.up * bob;
+            escapeArrow.rotation = Quaternion.Euler(0f, Time.time * 140f % 360f, 0f);
+        }
+
+        static void SetupArrowRenderer(MeshRenderer meshRenderer)
+        {
+            meshRenderer.sharedMaterial = ArrowMaterial();
+            meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            meshRenderer.receiveShadows = false;
+        }
+
+        /// <summary>Unlit red, so the marker reads at any time of day — same shader idiom as TargetObject's beam.</summary>
+        static Material ArrowMaterial()
+        {
+            if (arrowMaterial != null) return arrowMaterial;
+            var color = new Color(1f, 0.12f, 0.1f);
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            arrowMaterial = new Material(shader) { color = color };
+            if (arrowMaterial.HasProperty("_BaseColor")) arrowMaterial.SetColor("_BaseColor", color);
+            return arrowMaterial;
+        }
+
+        /// <summary>Four-sided pyramid, apex at the origin pointing down, base square at the top.</summary>
+        static Mesh ArrowHeadMesh()
+        {
+            if (arrowHeadMesh != null) return arrowHeadMesh;
+            const float w = 0.5f;  // base half-width
+            const float h = 1.0f;  // apex-to-base height
+            var vertices = new[]
+            {
+                Vector3.zero,             // 0 apex (the tip, pointing down)
+                new Vector3(-w, h, -w),   // 1
+                new Vector3( w, h, -w),   // 2
+                new Vector3( w, h,  w),   // 3
+                new Vector3(-w, h,  w),   // 4
+            };
+            var triangles = new[]
+            {
+                0, 1, 2,   0, 2, 3,   0, 3, 4,   0, 4, 1,   // sides, outward-facing
+                1, 4, 3,   1, 3, 2,                          // base cap, facing up
+            };
+            arrowHeadMesh = new Mesh { name = "EscapeArrowHead", vertices = vertices, triangles = triangles };
+            arrowHeadMesh.RecalculateNormals();
+            arrowHeadMesh.RecalculateBounds();
+            return arrowHeadMesh;
+        }
 
         float CellSize => city != null && city.settings != null ? city.settings.cellSize : 20f;
 
@@ -84,6 +247,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
 
             if (recentContactTimer > 0f) recentContactTimer -= dt;
+            if (escapeArrow != null) AnimateEscapeArrow();
 
             // A dead car is a wreck burning its fuse: brake to a stop and hold.
             // Before the self-heal on purpose — a wreck must never be teleported
@@ -112,7 +276,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             if (noProgressTime >= settings.hardRecoverSeconds && HardRecover())
                 return;
 
-            if (stopsRandomly) UpdateStopCycle(dt);
+            if (Fleeing) UpdateFleeHold(dt);
+            else if (stopsRandomly) UpdateStopCycle(dt);
             if (Stopped)
             {
                 Steer = 0f;
@@ -152,6 +317,24 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         {
             waypoints.Clear();
             planHead = null;
+        }
+
+        /// <summary>
+        /// Flee-mode leash: the city only exists around the player, so an
+        /// escapee that gets more than the hold distance ahead parks (the
+        /// handbrake hold of Stopped) and waits for the chase to catch up
+        /// rather than driving off the edge of the streamed world.
+        /// </summary>
+        void UpdateFleeHold(float dt)
+        {
+            playerRefreshTimer -= dt;
+            if (playerRefreshTimer <= 0f || playerCar == null)
+            {
+                playerRefreshTimer = 1f;
+                playerCar = PatrolManager.FindPlayerCar();
+            }
+            Stopped = playerCar != null
+                && FlatDistance(transform.position, playerCar.transform.position) > settings.fleeHoldDistance;
         }
 
         /// <summary>Work-vehicle rhythm: drive a while, pull to a stop for a few seconds, repeat — each interval rolled fresh.</summary>
@@ -223,8 +406,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 if (turnAhead > 30f)
                     approachFactor = Mathf.Clamp01(FlatDistance(transform.position, waypoints[0]) / (CellSize * 1.2f));
             }
-            float desired = Mathf.Lerp(settings.cornerSpeedKmh, cruiseSpeedKmh, Mathf.Min(steerFactor, approachFactor));
-            if (offRoad) desired = Mathf.Min(desired, settings.cornerSpeedKmh); // creep back onto the road
+            float cornerSpeed = Fleeing ? settings.fleeCornerSpeedKmh : settings.cornerSpeedKmh;
+            float desired = Mathf.Lerp(cornerSpeed, cruiseSpeedKmh, Mathf.Min(steerFactor, approachFactor));
+            if (offRoad) desired = Mathf.Min(desired, cornerSpeed); // creep back onto the road
             ObstacleKind obstacle = ObstacleAhead();
             lastObstacle = obstacle;
             if (obstacle != ObstacleKind.None) desired = 0f; // queue politely / don't wedge into the wall
@@ -388,7 +572,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             return ObstacleKind.None;
         }
 
-        /// <summary>Append one more wander cell: a random connected neighbour, biased against turning straight back.</summary>
+        /// <summary>
+        /// Append one more wander cell: a random connected neighbour, biased
+        /// against turning straight back. A fleeing car swaps the random pick
+        /// for the neighbour farthest from the player (with a little jitter so
+        /// a grid-perfect player can't predict every turn) — flight as greedy
+        /// node choice, no pathfinding, so it costs what a civilian costs.
+        /// </summary>
         void ExtendWander()
         {
             RoadGraph graph = city.Graph;
@@ -397,13 +587,24 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             else if (waypoints.Count > 0 && graph.TryGetNodeAt(waypoints[^1], out from)) { }
             else if (!TryGetNodeOn(graph, transform.position, out from)) return;
 
+            bool flee = Fleeing && playerCar != null;
+            Vector3 threat = flee ? playerCar.transform.position : Vector3.zero;
+
             RoadNode pick = default;
             int seen = 0;
+            float bestScore = float.MinValue;
             for (int dir = 0; dir < 4; dir++)
             {
                 if (!graph.TryGetNeighbour(from, dir, out RoadNode neighbour) || neighbour == wanderFrom) continue;
                 seen++;
-                if (Random.Range(0, seen) == 0) pick = neighbour;
+                if (flee)
+                {
+                    float score = FlatDistance(graph.Center(neighbour), threat) + Random.Range(0f, CellSize * 0.5f);
+                    if (score <= bestScore) continue;
+                    bestScore = score;
+                    pick = neighbour;
+                }
+                else if (Random.Range(0, seen) == 0) pick = neighbour;
             }
             if (seen == 0)
             {
