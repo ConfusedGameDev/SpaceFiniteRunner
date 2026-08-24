@@ -35,10 +35,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
-        public bool Handbrake => false;
+        public bool Handbrake => health != null && health.IsDead;
         public bool RespawnPressed => false;
 
         CarController car;
+        CarHealth health;
         CityManager city;
         CarController player;
 
@@ -69,6 +70,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         {
             settings = pursuitSettings;
             city = cityManager;
+            health = GetComponent<CarHealth>(); // attached by the manager before Initialize
         }
 
         void Awake()
@@ -89,6 +91,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
 
             if (recentContactTimer > 0f) recentContactTimer -= dt;
+
+            // A dead cruiser is a wreck burning its fuse: brake to a stop and
+            // hold. Before the self-heal on purpose — a wreck must never be
+            // teleported back onto the road, and must not reverse out either.
+            if (health != null && health.IsDead)
+            {
+                Steer = 0f;
+                Throttle = car.SpeedKmh > 3f ? -0.5f : 0f;
+                return; // Handbrake holds the wreck
+            }
 
             // Last-resort self-heal outside Chase: NO NET PROGRESS for too
             // long → snap onto the nearest road cell. Displacement, not speed:
@@ -299,6 +311,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             lastObstacle = obstacle;
             if (obstacle == ObstacleKind.Wall) desired = 0f;
             else if (obstacle == ObstacleKind.Vehicle) desired = Mathf.Min(desired, settings.cornerSpeedKmh * 0.5f);
+            if (health != null) desired *= health.SpeedFactor; // a wounded engine can't hold cruise speed
             Throttle = Mathf.Clamp((desired - car.SpeedKmh) * settings.throttleGain, -1f, 1f);
 
             // Stuck escalation while standing still: walls escalate fast,

@@ -125,6 +125,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 Destroy(go);
                 return false;
             }
+            // Health before Initialize, so the driver's fetch finds it — the
+            // prefab stays untouched, attachment in code same as traffic.
+            go.AddComponent<CarHealth>();
             driver.Initialize(settings, city);
             patrols.Add(driver);
             return true;

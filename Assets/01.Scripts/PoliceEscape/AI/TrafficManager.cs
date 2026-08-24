@@ -107,6 +107,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 Quaternion.Euler(0f, direction * 90f, 0f));
             if (controller == null) return false; // model not riggable — warned by the builder
 
+            // Health before Initialize, so the driver's fetch finds it.
+            controller.gameObject.AddComponent<CarHealth>();
             driver.Initialize(settings, city, definition.stopsRandomly);
             vehicles.Add(driver);
             // Push the fresh rig into the physics world now, so the next

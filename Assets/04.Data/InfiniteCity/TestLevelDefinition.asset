@@ -28,14 +28,14 @@ MonoBehaviour:
     mustBeHuntedFirst: 0
     briefing: 'I need 30 seconds to finish the hack hang on '
     accent: {r: 0.45, g: 0.9, b: 1, a: 1}
-  - type: 1
+  - type: 2
     targetSpeedKmh: 130
     surviveSeconds: 30
-    targetId: 
-    arriveRadius: 12
+    targetId: Target1
+    arriveRadius: 8.3
     mustBeHuntedFirst: 0
-    briefing: we need to loose the pollice Hurry!
-    accent: {r: 1, g: 0.4, b: 0.35, a: 1}
+    briefing: Lets get those chips
+    accent: {r: 0.34901965, g: 1, b: 0.5226403, a: 1}
   - type: 0
     targetSpeedKmh: 130
     surviveSeconds: 30
@@ -43,4 +43,12 @@ MonoBehaviour:
     arriveRadius: 12
     mustBeHuntedFirst: 0
     briefing: We need to hit 130km/h to trigger the portal
+    accent: {r: 0.45, g: 0.9, b: 1, a: 1}
+  - type: 0
+    targetSpeedKmh: 130
+    surviveSeconds: 30
+    targetId: 
+    arriveRadius: 12
+    mustBeHuntedFirst: 0
+    briefing: 
     accent: {r: 0.45, g: 0.9, b: 1, a: 1}

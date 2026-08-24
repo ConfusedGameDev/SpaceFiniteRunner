@@ -1,0 +1,91 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d5db5d448a98d84fa0a10c82f83a62c, type: 3}
+  m_Name: PoliceEscape_VehicleHealth
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.VehicleHealthSettings
+  minImpactSpeed: 3
+  damagePerImpactSpeed: 0.03
+  crawlSpeedFactor: 0.3
+  speedEasePerSecond: 0.4
+  lightSmokeHealth: 0.5
+  heavySmokeHealth: 0.2
+  fuseSeconds: 5
+  wreckLingerSeconds: 12
+  blastRadius: 7
+  blastForce: 900
+  blastUpModifier: 1.2
+  blastDamage: 1
+  explosionScale: 5
+  explosionLifetime: 0.9
+  explosionParticles: 14
+  lightSmokeTextures:
+  - {fileID: 2800000, guid: fa547804022154e49a3dda9afd0d43e4, type: 3}
+  - {fileID: 2800000, guid: f6877d05271f347469950314d2f93428, type: 3}
+  - {fileID: 2800000, guid: 8cc9ba3d7e20b4ab9b728a62ec941ec6, type: 3}
+  - {fileID: 2800000, guid: ab8f7db6a4d974c219cf475139ee39c8, type: 3}
+  - {fileID: 2800000, guid: abfe0121dac3649f0a73c4a398686fd5, type: 3}
+  - {fileID: 2800000, guid: 9de57a20ca811434facc29abe60dc992, type: 3}
+  - {fileID: 2800000, guid: 8c6365ca20567422ea633e266f836783, type: 3}
+  - {fileID: 2800000, guid: ecb27bfb32a2540cc92a48a0094d0fb6, type: 3}
+  - {fileID: 2800000, guid: cefed74b1a1314c4ea67ca96610a0235, type: 3}
+  - {fileID: 2800000, guid: 0612a7dfc063b4460b27636b22ebab59, type: 3}
+  - {fileID: 2800000, guid: 39e7fa41958944b85bb7fccdcb61ed01, type: 3}
+  - {fileID: 2800000, guid: 00a905eaf408a482b958b3cca0af88af, type: 3}
+  - {fileID: 2800000, guid: efb96be86a27e4c6eaf5f24f793d0421, type: 3}
+  - {fileID: 2800000, guid: 0a5e1b2b53c864f4492d1014cb5901eb, type: 3}
+  - {fileID: 2800000, guid: 42ed877a032454c5698b2a4c3032ed1b, type: 3}
+  - {fileID: 2800000, guid: 161719c1077794f149f89d89822e6abc, type: 3}
+  - {fileID: 2800000, guid: 710e33570672145a38ab24c5db6dd663, type: 3}
+  - {fileID: 2800000, guid: c6be6f1a114384977b0c85ce276bfaa7, type: 3}
+  - {fileID: 2800000, guid: 9076e015471944f0ab16ee98bc53080f, type: 3}
+  - {fileID: 2800000, guid: 3e236a3cbb2d54494baaf46c302f669d, type: 3}
+  - {fileID: 2800000, guid: f0c19a208a45143a99ba8931593f8c25, type: 3}
+  - {fileID: 2800000, guid: e8b15087fc54049efb11f188735aacf9, type: 3}
+  - {fileID: 2800000, guid: 7129a5ec4a5ed46f3aa8a1c15d845f93, type: 3}
+  - {fileID: 2800000, guid: aab5e7d3c9af94b509b72d98bb18dd9a, type: 3}
+  - {fileID: 2800000, guid: e6ca6efa5b689496cbeff2008749b8d4, type: 3}
+  heavySmokeTextures:
+  - {fileID: 2800000, guid: 6fd04d5fc7dcd42aaaad148c85b41fa9, type: 3}
+  - {fileID: 2800000, guid: c4c09a5e677be4ab295f6ea9fb3e907b, type: 3}
+  - {fileID: 2800000, guid: 42b29f21c93d64da589eeb82d2563494, type: 3}
+  - {fileID: 2800000, guid: 85e8a1a01771e4fc896110e94130a521, type: 3}
+  - {fileID: 2800000, guid: 0119d1d76e0304358a5490b4f6723941, type: 3}
+  - {fileID: 2800000, guid: 4cf126434d1a7461989116dd7ea80cf9, type: 3}
+  - {fileID: 2800000, guid: 2e2f7ed43d37e4460b89eb91cb6c4aec, type: 3}
+  - {fileID: 2800000, guid: 91a748c396fee41258e7052883b8260a, type: 3}
+  - {fileID: 2800000, guid: 6bd4792093f9c4229805e4ffc689be94, type: 3}
+  - {fileID: 2800000, guid: ced67ea39b03d441383bddeb8ebcaf1a, type: 3}
+  - {fileID: 2800000, guid: 7b65ef923a3d44c4ca5c2845afb32fd3, type: 3}
+  - {fileID: 2800000, guid: 9b94c7c434d8d40628cd9d666da90eff, type: 3}
+  - {fileID: 2800000, guid: 78407c48e698f4e81bd14b2163ce158d, type: 3}
+  - {fileID: 2800000, guid: 1e8c250e20eed437aa19e143338584d2, type: 3}
+  - {fileID: 2800000, guid: e7945eaf8466044849bafdaddea04182, type: 3}
+  - {fileID: 2800000, guid: b2032a1b6fc574033b25b2c20628a92c, type: 3}
+  - {fileID: 2800000, guid: a3a18ed8d373c4d0a94a32fc54f5d77b, type: 3}
+  - {fileID: 2800000, guid: a16375ba266ee4f78a7a15db5e119aa9, type: 3}
+  - {fileID: 2800000, guid: 643fe264058ce455fbfdd17e897ca7d8, type: 3}
+  - {fileID: 2800000, guid: 725922f0a61494de894d1259c1653f15, type: 3}
+  - {fileID: 2800000, guid: c296f4ca9a45645af88cde45a028daec, type: 3}
+  - {fileID: 2800000, guid: b3b0370e9d3604416af48a1af20d4be0, type: 3}
+  - {fileID: 2800000, guid: de73f1e80902f4b46b11f842a77c5753, type: 3}
+  - {fileID: 2800000, guid: 4fd90395b16244079bf809f768723946, type: 3}
+  - {fileID: 2800000, guid: f2221adf3c6b3497e8ae33a6959a2b8b, type: 3}
+  explosionTextures:
+  - {fileID: 2800000, guid: a96c4488e59bb435d8aaa0cff43270fe, type: 3}
+  - {fileID: 2800000, guid: 1c846224768ab4d11ae85c0dde9fc69a, type: 3}
+  - {fileID: 2800000, guid: d98f18ebb21b44d03a8f2847c5999b86, type: 3}
+  - {fileID: 2800000, guid: 8c9f1958f431f48a491b1a254a7f1207, type: 3}
+  - {fileID: 2800000, guid: ef8c7540bd3234f33b8d5ab008294d24, type: 3}
+  - {fileID: 2800000, guid: 8235e261889ee4b4c8e34e7c66246e56, type: 3}
+  - {fileID: 2800000, guid: 6fddb8dfa38c94a4394e6b3bbbcbb133, type: 3}
+  - {fileID: 2800000, guid: 8281bac6ed4ca42b3a7a3e7629485344, type: 3}
+  - {fileID: 2800000, guid: 08c8fb6595d634540806f7e021e09e67, type: 3}

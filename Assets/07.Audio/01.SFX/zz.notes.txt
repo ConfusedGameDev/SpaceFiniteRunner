@@ -1,0 +1,1 @@
+Gear 0 is the car stopped, 0_Accelerate should play and start going up in pitch when the player accelerates before the start signal, gear 1 and onwards should rise in pitch by 4 semitones throughout the gear

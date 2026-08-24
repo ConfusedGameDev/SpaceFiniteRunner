@@ -46,6 +46,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             go.name = "PlayerCar";
             var car = go.GetComponent<CarController>();
 
+            // Blasts reach the player through the same IDamageable interface
+            // as every NPC car and barrel — this is the player's half of it.
+            if (go.GetComponent<PlayerDamageReceiver>() == null)
+                go.AddComponent<PlayerDamageReceiver>();
+
             // The PlayerCar layer feeds the glitch silhouette render feature
             // (car visible through buildings). Added by Tools → Police Escape →
             // Install Glitch Silhouette Feature; harmless while it doesn't exist.

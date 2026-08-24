@@ -58,12 +58,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
 
         // ---------------------------------------------------------- explosive
         [TitleGroup("Explosive")]
-        [Tooltip("Permanent corruption an exploding prop adds to the player's damage meter when the car is caught in the blast — the same meter police shunts fill. 0.35 = a third of the run per barrel.")]
+        [Tooltip("Normalized damage dealt to every IDamageable caught in the blast — 1 is a full NPC health bar (an outright kill). The player's receiver scales it down by their plating before it hits the corruption meter; another barrel detonates at any amount.")]
         [PropertyRange(0f, 1f)]
-        public float explosionDamage = 0.35f;
+        public float blastDamage = 1f;
 
         [TitleGroup("Explosive")]
-        [Tooltip("Everything inside this radius is caught: the player takes the damage above, police cruisers are wrecked outright, loose props are thrown.")]
+        [Tooltip("Everything inside this radius is caught: damageables take the damage above, loose props are thrown.")]
         [PropertyRange(1f, 30f), SuffixLabel("m", true)]
         public float blastRadius = 7f;
 

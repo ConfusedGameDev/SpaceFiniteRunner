@@ -28,10 +28,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
-        public bool Handbrake => Stopped;
+        public bool Handbrake => Stopped || (health != null && health.IsDead);
         public bool RespawnPressed => false;
 
         CarController car;
+        CarHealth health;
         CityManager city;
         bool stopsRandomly;
         bool offRoad;
@@ -60,6 +61,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             settings = trafficSettings;
             city = cityManager;
             stopsRandomly = stops;
+            health = GetComponent<CarHealth>(); // attached by the manager before Initialize
             cruiseSpeedKmh = Random.Range(settings.CruiseMin, settings.CruiseMax);
             stopTimer = Random.Range(settings.StopEveryMin, settings.StopEveryMax);
         }
@@ -82,6 +84,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
 
             if (recentContactTimer > 0f) recentContactTimer -= dt;
+
+            // A dead car is a wreck burning its fuse: brake to a stop and hold.
+            // Before the self-heal on purpose — a wreck must never be teleported
+            // back onto the road, and must not reverse out of anything either.
+            if (health != null && health.IsDead)
+            {
+                Steer = 0f;
+                Throttle = car.SpeedKmh > 3f ? -0.5f : 0f;
+                return; // Handbrake holds the wreck
+            }
 
             // Last-resort self-heal: NO NET PROGRESS for too long → snap onto
             // the road. Displacement, not speed: a reverse-crash-reverse loop
@@ -216,6 +228,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             ObstacleKind obstacle = ObstacleAhead();
             lastObstacle = obstacle;
             if (obstacle != ObstacleKind.None) desired = 0f; // queue politely / don't wedge into the wall
+            if (health != null) desired *= health.SpeedFactor; // a wounded engine can't hold cruise speed
             Throttle = Mathf.Clamp((desired - car.SpeedKmh) * settings.throttleGain, -1f, 1f);
 
             // Stuck escalation while standing still: walls escalate fast (we're
