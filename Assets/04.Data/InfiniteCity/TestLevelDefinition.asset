@@ -20,13 +20,13 @@ MonoBehaviour:
   completionMessage: Hack complete. LFG!
   completionGlitchHoldSeconds: 1.2
   objectives:
-  - type: 3
+  - type: 4
     targetSpeedKmh: 130
     surviveSeconds: 30
-    targetId: 
+    targetId: Petronila
     arriveRadius: 12
     mustBeHuntedFirst: 0
-    briefing: 'I need 30 seconds to finish the hack hang on '
+    briefing: 'chase petronila '
     accent: {r: 0.45, g: 0.9, b: 1, a: 1}
   - type: 2
     targetSpeedKmh: 130
@@ -36,7 +36,7 @@ MonoBehaviour:
     mustBeHuntedFirst: 0
     briefing: Lets get those chips
     accent: {r: 0.34901965, g: 1, b: 0.5226403, a: 1}
-  - type: 0
+  - type: 1
     targetSpeedKmh: 130
     surviveSeconds: 30
     targetId: 
