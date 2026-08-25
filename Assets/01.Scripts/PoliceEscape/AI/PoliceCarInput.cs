@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.Debugging;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.City;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using Sirenix.OdinInspector;
@@ -22,7 +23,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
     /// behind other cars (v1 anti-pileup). All knobs live on PursuitSettings.
     /// </summary>
     [RequireComponent(typeof(CarController))]
-    public class PoliceCarInput : MonoBehaviour, ICarInput
+    public class PoliceCarInput : MonoBehaviour, ICarInput, IAiDebugDriver
     {
         public enum AiState { Patrol, Chase, Search }
 
@@ -61,6 +62,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         float recentContactTimer;
         float obstacleHitSide;
         ObstacleKind lastObstacle;
+
+        // Debug mirror: what the driver actually decided this frame, kept so
+        // the overlay can show the real decision instead of re-deriving one.
+        readonly AiProbeLog probeLog = new();
+        Vector3 steerAim;
+        Vector3 sightFrom, sightTo;
+        bool sightValid, sightClear;
 
         static readonly Collider[] OverlapBuffer = new Collider[8];
 
@@ -284,10 +292,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             {
                 Steer = 0f;
                 Throttle = car.SpeedKmh > 5f ? -0.3f : 0f; // ease to a stop until the next plan
+                steerAim = transform.position;
                 return;
             }
 
             Vector3 target = SteerTarget(waypoints[0], previousWaypoint);
+            steerAim = target;
             Vector3 local = transform.InverseTransformPoint(target);
             float angle = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
             float maxSteerAngle = car.config != null ? car.config.maxSteerAngle : 35f;
@@ -405,12 +415,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             return true;
         }
 
-        enum ObstacleKind { None, Vehicle, Wall }
-
-        /// <summary>Another car dead ahead (brake, don't shunt) — or a wall close ahead, meaning we've left the road line.</summary>
+        /// <summary>
+        /// Another car dead ahead (brake, don't shunt) — or a wall close ahead,
+        /// meaning we've left the road line. Every cast is recorded into
+        /// <see cref="probeLog"/> while the debug overlay is on, verdict
+        /// included: the visualizer must show the decision that was made, not
+        /// one it re-derives a frame later.
+        /// </summary>
         ObstacleKind ObstacleAhead()
         {
             obstacleHitSide = 0f;
+            bool log = DebugManager.ShowCollisionProbes;
+            if (log) probeLog.Begin();
             Vector3 origin = transform.position + Vector3.up * 0.6f + transform.forward * 2.6f;
 
             // Three forward rays — center plus both fenders. A single center
@@ -419,31 +435,34 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             for (int i = 0; i < 3; i++)
             {
                 Vector3 rayOrigin = origin + transform.right * ((i - 1) * 0.85f);
-                if (!Physics.Raycast(rayOrigin, transform.forward, out RaycastHit hit,
-                        settings.forwardBrakeDistance, ~0, QueryTriggerInteraction.Ignore)
-                    || hit.transform.IsChildOf(transform))
-                    continue;
-                obstacleHitSide = Mathf.Sign(transform.InverseTransformPoint(hit.point).x);
-                if (hit.rigidbody != null && hit.rigidbody != car.Body) return ObstacleKind.Vehicle;
-                // Static geometry: a genuinely-close hit is an imminent wedge
-                // regardless of steering; farther hits only count when head-on
-                // and not mid-turn — a hard-steering cruiser's ray sweeps off a
-                // corner facade by itself, and grazing hits are normal there.
-                if (hit.rigidbody == null)
+                bool blocked = Physics.Raycast(rayOrigin, transform.forward, out RaycastHit hit,
+                                   settings.forwardBrakeDistance, ~0, QueryTriggerInteraction.Ignore)
+                               && !hit.transform.IsChildOf(transform);
+                ObstacleKind verdict = ObstacleKind.None;
+                if (blocked)
                 {
-                    // A drivable slope — a ramp surface, or the flat street seen
-                    // from the top of a down-ramp — is not a wall to stop for.
-                    if (hit.normal.y > 0.35f)
+                    obstacleHitSide = Mathf.Sign(transform.InverseTransformPoint(hit.point).x);
+                    if (hit.rigidbody != null && hit.rigidbody != car.Body) verdict = ObstacleKind.Vehicle;
+                    // Static geometry: a genuinely-close hit is an imminent wedge
+                    // regardless of steering; farther hits only count when head-on
+                    // and not mid-turn — a hard-steering cruiser's ray sweeps off a
+                    // corner facade by itself, and grazing hits are normal there.
+                    else if (hit.rigidbody == null)
                     {
-                        obstacleHitSide = 0f;
-                        continue;
+                        // A drivable slope — a ramp surface, or the flat street seen
+                        // from the top of a down-ramp — is not a wall to stop for.
+                        bool headOn = Vector3.Dot(hit.normal, transform.forward) < -0.5f;
+                        if (hit.normal.y > 0.35f) verdict = ObstacleKind.None;
+                        else if (hit.distance < 1.2f) verdict = ObstacleKind.Wall;
+                        else if (hit.distance < settings.wallBrakeDistance && headOn && Mathf.Abs(Steer) < 0.5f)
+                            verdict = ObstacleKind.Wall;
                     }
-                    if (hit.distance < 1.2f) return ObstacleKind.Wall;
-                    bool headOn = Vector3.Dot(hit.normal, transform.forward) < -0.5f;
-                    if (hit.distance < settings.wallBrakeDistance && headOn && Mathf.Abs(Steer) < 0.5f)
-                        return ObstacleKind.Wall;
+                    if (verdict == ObstacleKind.None) obstacleHitSide = 0f;
                 }
-                obstacleHitSide = 0f;
+                if (log)
+                    probeLog.Add(i == 1 ? AiProbeRole.Forward : AiProbeRole.Fender, rayOrigin, transform.forward,
+                        settings.forwardBrakeDistance, blocked, hit.point, verdict);
+                if (verdict != ObstacleKind.None) return verdict;
             }
 
             return ObstacleKind.None;
@@ -509,6 +528,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             Vector3 aim = player.transform.position + Vector3.up * 0.8f;
             Vector3 delta = aim - eye;
             float distance = delta.magnitude;
+            sightFrom = eye;
+            sightTo = aim;
+            sightValid = true;
+            sightClear = false;
             if (distance > settings.detectionRange) return false;
 
             // Anything solid between eye and player (that is neither of us) blocks the view.
@@ -519,6 +542,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 if (hit.transform.IsChildOf(player.transform)) continue;
                 return false;
             }
+            sightClear = true;
             return true;
         }
 
@@ -547,6 +571,34 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         {
             v.y = 0f;
             return v;
+        }
+
+        // --------------------------------------------------------- debug view
+
+        string IAiDebugDriver.StateLabel => State.ToString().ToUpperInvariant();
+
+        Color IAiDebugDriver.StateColor => State switch
+        {
+            AiState.Chase => new Color(1f, 0.25f, 0.2f),
+            AiState.Search => new Color(1f, 0.8f, 0.15f),
+            _ => new Color(0.35f, 0.7f, 1f),
+        };
+
+        IReadOnlyList<Vector3> IAiDebugDriver.Waypoints => waypoints;
+        Vector3 IAiDebugDriver.PreviousWaypoint => previousWaypoint;
+        Vector3 IAiDebugDriver.SteerAim => steerAim;
+        bool IAiDebugDriver.OffRoad => offRoad;
+        bool IAiDebugDriver.Reversing => reverseTimer > 0f;
+        float IAiDebugDriver.StuckTime => stuckTimer;
+        ObstacleKind IAiDebugDriver.Obstacle => lastObstacle;
+        IReadOnlyList<AiProbe> IAiDebugDriver.Probes => probeLog.Probes;
+
+        bool IAiDebugDriver.TryGetSightLine(out Vector3 from, out Vector3 to, out bool clear)
+        {
+            from = sightFrom;
+            to = sightTo;
+            clear = sightClear;
+            return sightValid && player != null;
         }
 
         // -------------------------------------------------------------- gizmos

@@ -1,0 +1,14 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.Debugging",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.Debugging",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

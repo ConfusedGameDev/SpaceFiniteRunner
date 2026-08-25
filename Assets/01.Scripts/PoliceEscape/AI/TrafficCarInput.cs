@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.Debugging;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.City;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using Sirenix.OdinInspector;
@@ -27,7 +28,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
     /// citizen, not a second police AI.
     /// </summary>
     [RequireComponent(typeof(CarController))]
-    public class TrafficCarInput : MonoBehaviour, ICarInput
+    public class TrafficCarInput : MonoBehaviour, ICarInput, IAiDebugDriver
     {
         [Required, InlineEditor]
         [Tooltip("All traffic tunables live on this asset — assigned by the TrafficManager at spawn.")]
@@ -72,6 +73,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         float recentContactTimer;
         float obstacleHitSide;
         ObstacleKind lastObstacle;
+
+        // Debug mirror: what the driver actually decided this frame, kept so
+        // the overlay can show the real decision instead of re-deriving one.
+        readonly AiProbeLog probeLog = new();
+        Vector3 steerAim;
+
         CarController playerCar;
         float playerRefreshTimer;
         Transform escapeArrow;
@@ -386,10 +393,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             {
                 Steer = 0f;
                 Throttle = car.SpeedKmh > 5f ? -0.3f : 0f;
+                steerAim = transform.position;
                 return;
             }
 
             Vector3 target = SteerTarget(waypoints[0], previousWaypoint);
+            steerAim = target;
             Vector3 local = transform.InverseTransformPoint(target);
             float angle = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
             float maxSteerAngle = car.config != null ? car.config.maxSteerAngle : 35f;
@@ -515,11 +524,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             return true;
         }
 
-        enum ObstacleKind { None, Vehicle, Wall }
-
+        /// <summary>
+        /// The avoidance fan. Every cast is recorded into <see cref="probeLog"/>
+        /// while the debug overlay is on, verdict included: the visualizer must
+        /// show the decision that was made, not one it re-derives a frame later.
+        /// </summary>
         ObstacleKind ObstacleAhead()
         {
             obstacleHitSide = 0f;
+            bool log = DebugManager.ShowCollisionProbes;
+            if (log) probeLog.Begin();
             Vector3 origin = transform.position + Vector3.up * 0.6f + transform.forward * 2.6f;
 
             // Three forward rays — center plus both fenders. A single center
@@ -528,31 +542,34 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             for (int i = 0; i < 3; i++)
             {
                 Vector3 rayOrigin = origin + transform.right * ((i - 1) * 0.85f);
-                if (!Physics.Raycast(rayOrigin, transform.forward, out RaycastHit hit,
-                        settings.forwardBrakeDistance, ~0, QueryTriggerInteraction.Ignore)
-                    || hit.transform.IsChildOf(transform))
-                    continue;
-                obstacleHitSide = Mathf.Sign(transform.InverseTransformPoint(hit.point).x);
-                if (hit.rigidbody != null && hit.rigidbody != car.Body) return ObstacleKind.Vehicle;
-                // Static geometry: a genuinely-close hit is an imminent wedge
-                // regardless of steering; farther hits only count when head-on
-                // and not mid-turn — a hard-steering car's ray sweeps off a
-                // corner facade by itself, and grazing hits are normal there.
-                if (hit.rigidbody == null)
+                bool blocked = Physics.Raycast(rayOrigin, transform.forward, out RaycastHit hit,
+                                   settings.forwardBrakeDistance, ~0, QueryTriggerInteraction.Ignore)
+                               && !hit.transform.IsChildOf(transform);
+                ObstacleKind verdict = ObstacleKind.None;
+                if (blocked)
                 {
-                    // A drivable slope — a ramp surface, or the flat street seen
-                    // from the top of a down-ramp — is not a wall to stop for.
-                    if (hit.normal.y > 0.35f)
+                    obstacleHitSide = Mathf.Sign(transform.InverseTransformPoint(hit.point).x);
+                    if (hit.rigidbody != null && hit.rigidbody != car.Body) verdict = ObstacleKind.Vehicle;
+                    // Static geometry: a genuinely-close hit is an imminent wedge
+                    // regardless of steering; farther hits only count when head-on
+                    // and not mid-turn — a hard-steering car's ray sweeps off a
+                    // corner facade by itself, and grazing hits are normal there.
+                    else if (hit.rigidbody == null)
                     {
-                        obstacleHitSide = 0f;
-                        continue;
+                        // A drivable slope — a ramp surface, or the flat street seen
+                        // from the top of a down-ramp — is not a wall to stop for.
+                        bool headOn = Vector3.Dot(hit.normal, transform.forward) < -0.5f;
+                        if (hit.normal.y > 0.35f) verdict = ObstacleKind.None;
+                        else if (hit.distance < 1.2f) verdict = ObstacleKind.Wall;
+                        else if (hit.distance < settings.wallBrakeDistance && headOn && Mathf.Abs(Steer) < 0.5f)
+                            verdict = ObstacleKind.Wall;
                     }
-                    if (hit.distance < 1.2f) return ObstacleKind.Wall;
-                    bool headOn = Vector3.Dot(hit.normal, transform.forward) < -0.5f;
-                    if (hit.distance < settings.wallBrakeDistance && headOn && Mathf.Abs(Steer) < 0.5f)
-                        return ObstacleKind.Wall;
+                    if (verdict == ObstacleKind.None) obstacleHitSide = 0f;
                 }
-                obstacleHitSide = 0f;
+                if (log)
+                    probeLog.Add(i == 1 ? AiProbeRole.Forward : AiProbeRole.Fender, rayOrigin, transform.forward,
+                        settings.forwardBrakeDistance, blocked, hit.point, verdict);
+                if (verdict != ObstacleKind.None) return verdict;
             }
 
             // Junction yield: a right-hand whisker sees crossing traffic the
@@ -560,10 +577,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             // normal at corners. Right-only is the tiebreak (priority to the
             // right): of two converging cars, exactly one yields.
             Vector3 whisker = Quaternion.AngleAxis(settings.yieldWhiskerAngle, Vector3.up) * transform.forward;
-            if (Physics.Raycast(origin, whisker, out RaycastHit side,
-                    settings.yieldWhiskerDistance, ~0, QueryTriggerInteraction.Ignore)
-                && !side.transform.IsChildOf(transform)
-                && side.rigidbody != null && side.rigidbody != car.Body)
+            bool sideHit = Physics.Raycast(origin, whisker, out RaycastHit side,
+                               settings.yieldWhiskerDistance, ~0, QueryTriggerInteraction.Ignore)
+                           && !side.transform.IsChildOf(transform);
+            bool yields = sideHit && side.rigidbody != null && side.rigidbody != car.Body;
+            if (log)
+                probeLog.Add(AiProbeRole.Whisker, origin, whisker, settings.yieldWhiskerDistance, sideHit, side.point,
+                    yields ? ObstacleKind.Vehicle : ObstacleKind.None);
+            if (yields)
             {
                 obstacleHitSide = 1f;
                 return ObstacleKind.Vehicle;
@@ -615,6 +636,33 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             wanderFrom = from;
             waypoints.Add(graph.Center(pick));
             planHead = pick;
+        }
+
+        // --------------------------------------------------------- debug view
+
+        string IAiDebugDriver.StateLabel => Fleeing ? (Stopped ? "FLEE HOLD" : "FLEE") : Stopped ? "STOPPED" : "WANDER";
+
+        Color IAiDebugDriver.StateColor => Fleeing
+            ? new Color(1f, 0.4f, 0.9f)
+            : Stopped
+                ? new Color(0.6f, 0.6f, 0.6f)
+                : new Color(0.4f, 0.95f, 0.5f);
+
+        IReadOnlyList<Vector3> IAiDebugDriver.Waypoints => waypoints;
+        Vector3 IAiDebugDriver.PreviousWaypoint => previousWaypoint;
+        Vector3 IAiDebugDriver.SteerAim => steerAim;
+        bool IAiDebugDriver.OffRoad => offRoad;
+        bool IAiDebugDriver.Reversing => reverseTimer > 0f;
+        float IAiDebugDriver.StuckTime => stuckTimer;
+        ObstacleKind IAiDebugDriver.Obstacle => lastObstacle;
+        IReadOnlyList<AiProbe> IAiDebugDriver.Probes => probeLog.Probes;
+
+        /// <summary>Civilians have no perception system — nothing to draw.</summary>
+        bool IAiDebugDriver.TryGetSightLine(out Vector3 from, out Vector3 to, out bool clear)
+        {
+            from = to = Vector3.zero;
+            clear = false;
+            return false;
         }
 
         /// <summary>The node a position stands on (level chosen by height), else the nearest one.</summary>
