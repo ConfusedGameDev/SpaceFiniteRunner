@@ -33,13 +33,70 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         const int SaltFeatures = 606;
         const int BorderMargin = 1;
 
-        public static void Place(CityGenerationSettings settings, ChunkData data)
+        public static void Place(CityGenerationSettings settings, in BlockKnobs knobs, ChunkData data, int blockSeed)
         {
-            if (settings == null || !settings.placeFeatures) return;
-            var rng = new System.Random(DeterministicHash.Combine(settings.globalSeed, SaltFeatures, data.Coord.x, data.Coord.y));
-            if (settings.HasOverpassPieces) PlaceOverpasses(settings, data, rng);
-            if (settings.HasForkPieces) PlaceForks(settings, data, rng);
+            if (settings == null || !knobs.PlaceFeatures) return;
+            // Feature stream runs on the BLOCK seed: rerolling one block moves
+            // its overpasses and forks without touching any neighbour.
+            var rng = new System.Random(DeterministicHash.Combine(blockSeed, SaltFeatures, data.Coord.x, data.Coord.y));
+            if (settings.HasOverpassPieces) PlaceOverpasses(settings, knobs.OverpassChance, data, rng);
+            if (settings.HasForkPieces) PlaceForks(settings, knobs.ForkChance, data, rng);
             PlaceTemplates(settings, data, rng);
+        }
+
+        // --------------------------------------------------------------- bridge
+
+        /// <summary>
+        /// Turn a connector-only block's single carved line into a bridge:
+        /// flat border cells (the arterial contract with the axis
+        /// neighbours), a ramp run climbing from each end, and an elevated
+        /// deck spanning everything between. Ground under the deck becomes
+        /// Reserved — a connector block has no crossing streets, the
+        /// perpendicular arterials were suppressed by the layout. Runs AFTER
+        /// ResolveConnections, mirroring ApplyOverpass: ramp cells keep their
+        /// ground masks (the graph links ramp → deck through the upper
+        /// level), deck cells carry only upper connections.
+        /// </summary>
+        public static void PlaceBridge(CityGenerationSettings settings, ChunkData data, int axis, int line)
+        {
+            if (settings == null || line < 0) return;
+            if (!settings.HasOverpassPieces)
+            {
+                Debug.LogWarning("RoadFeaturePlacer: connector block needs Ramp and Deck pieces in the city piece list - leaving its road at ground level.");
+                return;
+            }
+
+            int rampLength = Mathf.Max(1, settings.rampLengthInCells);
+            int n = data.SizeInCells;
+            int deckStart = 1 + rampLength;
+            int deckEnd = n - 2 - rampLength;                    // inclusive
+            if (deckEnd < deckStart)
+            {
+                Debug.LogWarning($"RoadFeaturePlacer: block size {n} is too small for a bridge with ramp length {rampLength} - leaving its road at ground level.");
+                return;
+            }
+
+            int dirUp = axis == 0 ? 1 : 0;                       // uphill toward +axis: East for a row bridge, North for a column one
+            EdgeMask axisPair = EdgeMaskUtility.DirectionBit(dirUp) | EdgeMaskUtility.DirectionBit(dirUp + 2);
+            Vector2Int Cell(int along) => axis == 0 ? new Vector2Int(along, line) : new Vector2Int(line, along);
+
+            for (int i = 1; i <= rampLength; i++)
+            {
+                Vector2Int c = Cell(i);
+                data.SetRamp(c.x, c.y, dirUp, i - 1, rampLength);                       // climbing toward the deck
+            }
+            for (int i = deckStart; i <= deckEnd; i++)
+            {
+                Vector2Int c = Cell(i);
+                data.SetUpperConnections(c.x, c.y, axisPair);
+                data.SetKind(c.x, c.y, ChunkData.CellKind.Reserved);                    // nothing crosses underneath
+                data.SetConnections(c.x, c.y, EdgeMask.None);
+            }
+            for (int i = deckEnd + 1; i <= n - 2; i++)
+            {
+                Vector2Int c = Cell(i);
+                data.SetRamp(c.x, c.y, dirUp + 2, n - 2 - i, rampLength);               // climbing back toward the deck
+            }
         }
 
         // --------------------------------------------------------------- forks
@@ -54,7 +111,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// In the graph the stem/split cells of both rows exist with their
         /// centres pulled onto the seam, so every edge stays axis-aligned.
         /// </summary>
-        static void PlaceForks(CityGenerationSettings settings, ChunkData data, System.Random rng)
+        static void PlaceForks(CityGenerationSettings settings, float forkChance, ChunkData data, System.Random rng)
         {
             var candidates = new List<(int side, int stem)>();
             for (int y = BorderMargin; y < data.SizeInCells - BorderMargin; y++)
@@ -64,7 +121,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 EdgeMask mask = data.GetConnections(x, y);
                 if (mask.ConnectionCount() != 3) continue;
                 int dir = StemDirection(mask);
-                if (rng.NextDouble() >= settings.forkChance) continue;
+                if (rng.NextDouble() >= forkChance) continue;
 
                 candidates.Clear();
                 for (int side = -1; side <= 1; side += 2)
@@ -189,7 +246,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         // ---------------------------------------------------------- overpasses
 
-        static void PlaceOverpasses(CityGenerationSettings settings, ChunkData data, System.Random rng)
+        static void PlaceOverpasses(CityGenerationSettings settings, float overpassChance, ChunkData data, System.Random rng)
         {
             int rampLength = Mathf.Max(1, settings.rampLengthInCells);
             int deckMin = settings.OverpassDeckMin;
@@ -200,7 +257,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             for (int x = BorderMargin; x < data.SizeInCells - BorderMargin; x++)
             {
                 if (!data.IsRoad(x, y) || data.GetConnections(x, y) != EdgeMask.All || data.IsFeatureCell(x, y)) continue;
-                if (rng.NextDouble() >= settings.overpassChance) continue;
+                if (rng.NextDouble() >= overpassChance) continue;
 
                 // Every (axis, deck length, crossing position within the deck) that fits.
                 candidates.Clear();

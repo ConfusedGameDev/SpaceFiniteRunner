@@ -41,6 +41,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string LevelDefinitionPath = DataFolder + "/TestLevelDefinition.asset";
         const string VehiclesFolder = "Assets/02.Art/01.Models/InfiniteCity/Vehicles";
         const string CitySettingsPath = DataFolder + "/CityTestSettings.asset";
+        const string CityDefinitionPath = DataFolder + "/CityDefinition.asset";
         const string GlitchMaterialPath = "Assets/02.Art/02.Materials/InfiniteCity/GlitchPost.mat";
         // Weather is shared by both games, so it lives with the other Resources
         // singletons rather than in this scene's data folder.
@@ -75,13 +76,30 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
 
-            // City roads + buildings, if the city test assets have been built.
+            // City roads + buildings: the BAKED city prefab (baked on demand
+            // from the CityDefinition — edit it in Tools → Police Escape →
+            // City Designer) plus the CityManager facade wired to it. Play
+            // mode does zero generation.
             var citySettings = AssetDatabase.LoadAssetAtPath<CityGenerationSettings>(CitySettingsPath);
+            CityRoot cityRoot = null;
             if (citySettings != null)
             {
+                CityDefinition definition = CityBaker.EnsureDefinition(CityDefinitionPath, citySettings);
+                GameObject cityPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CityBaker.DefaultPrefabPath);
+                if (cityPrefab == null) cityPrefab = CityBaker.BakeCity(definition);
+                if (cityPrefab != null)
+                {
+                    var cityInstance = (GameObject)PrefabUtility.InstantiatePrefab(cityPrefab);
+                    // The grid model is axis-aligned; keeping the root at the
+                    // world origin keeps every cell/world conversion trivial.
+                    cityInstance.transform.position = Vector3.zero;
+                    cityRoot = cityInstance.GetComponent<CityRoot>();
+                }
+
                 var cityGo = new GameObject("CityManager");
                 var city = cityGo.AddComponent<CityManager>();
                 city.settings = citySettings;
+                city.cityRoot = cityRoot;
                 city.carPrefab = carPrefab;              // enables the Create Car button
                 city.orbitCameraSettings = cameraSettings;
                 city.policeCarPrefab = policeCarPrefab;  // wired police fields spawn the PatrolManager at play
@@ -90,16 +108,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 city.speedometerSettings = speedometerSettings;
                 city.trafficSettings = trafficSettings;  // wired traffic settings spawn the TrafficManager at play
                 city.rainSettings = AssetDatabase.LoadAssetAtPath<RainSettings>(RainSettingsPath);
-                city.Recalculate();
             }
             else
             {
                 Debug.LogWarning("CarTestSceneBuilder: no city test settings found — run 'Tools/Police Escape/Create City Test Scene' first for roads. Spawning the car on bare ground.");
             }
 
-            // Chunks now carry their own ground colliders; this big slab is a
-            // safety net (and visual floor) beyond the city edge.
-            Vector3 cityCenter = CityCenter(citySettings);
+            // Blocks carry their own ground colliders; this big slab is a
+            // safety net (and visual floor) beyond the city edge — props and
+            // wrecks knocked past the perimeter still land on something.
+            Vector3 cityCenter = CityCenter(cityRoot);
             BuildGround(cityCenter);
 
             // Car + chase camera arrive at runtime: every play rolls a fresh
@@ -153,17 +171,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             Debug.Log("CarTestSceneBuilder: car test scene ready — press Play and drive (WASD/arrows, Space handbrake, R respawn). Tune TestCarConfig live from the PlayerCar inspector.");
         }
 
-        /// <summary>World center of the initial chunk grid, matching CityManager's -half .. size-half chunk loop.</summary>
-        static Vector3 CityCenter(CityGenerationSettings settings)
+        /// <summary>World center of the baked city's ground rectangle.</summary>
+        static Vector3 CityCenter(CityRoot cityRoot)
         {
-            if (settings == null) return Vector3.zero;
-            float side = settings.chunkSizeInCells * settings.cellSize;
-            int size = settings.initialCitySizeInChunks;
-            int half = size / 2;
-            float min = -half * side;
-            float max = (size - half) * side;
-            float mid = (min + max) * 0.5f;
-            return new Vector3(mid, 0f, mid);
+            if (cityRoot == null) return Vector3.zero;
+            return cityRoot.transform.position + new Vector3(cityRoot.CitySizeX * 0.5f, 0f, cityRoot.CitySizeZ * 0.5f);
         }
 
         // ------------------------------------------------------------- prefab

@@ -9,9 +9,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
     /// <summary>
     /// Keeps the civilian fleet alive around the player — and ONLY around
     /// the player: vehicles spawn on clear road cells between the minimum
-    /// spawn distance and the active radius, and are removed once they fall
-    /// beyond activeRadius + despawnPadding (hysteresis so boundary cars
-    /// don't churn). Vehicles are rigged straight from the Kenney FBX
+    /// spawn distance and the active radius, inside an allowed city block
+    /// (the player's block plus edge-close neighbours — see CityBounds), and
+    /// are removed once they fall beyond activeRadius + despawnPadding
+    /// (hysteresis so boundary cars don't churn) or their block stops being
+    /// allowed. Hand-placed DefaultVehicles are exempt by construction: this
+    /// manager only ever culls cars it spawned itself. Vehicles are rigged straight from the Kenney FBX
     /// assets at spawn time by VehicleRigBuilder — no per-type prefabs.
     /// Spawned by CityManager when its traffic settings field is wired;
     /// maintenance runs on a 1 s tick, not per-frame.
@@ -51,7 +54,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 Vector3 position = vehicles[i].transform.position;
                 if (position.y > -25f
                     && (vehicles[i].Fleeing
-                        || Vector3.Distance(position, player.transform.position) <= despawnDistance))
+                        || (Vector3.Distance(position, player.transform.position) <= despawnDistance
+                            && city.IsNpcPositionAllowed(position))))
                     continue;
                 Destroy(vehicles[i].gameObject);
                 vehicles.RemoveAt(i);
@@ -85,6 +89,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 Vector3 center = pair.Value.Center;
                 float sqr = (center - anchor).sqrMagnitude;
                 if (sqr < minSqr || sqr > maxSqr) continue;
+                if (!city.IsNpcPositionAllowed(center)) continue;
                 if (!city.IsCellClear(center)) continue;
                 seen++;
                 if (Random.Range(0, seen) != 0) continue;

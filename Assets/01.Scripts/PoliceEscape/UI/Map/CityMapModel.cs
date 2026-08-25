@@ -5,196 +5,99 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 {
     /// <summary>
-    /// The map's own view of the city: chunk data generated on demand for
-    /// anywhere in the world, cached, and registered into a road graph that is
-    /// never torn down.
-    ///
-    /// The design rule this exists to enforce: <b>the map must not depend on
-    /// what is currently streamed</b>. CityManager keeps only
-    /// loadRadiusInChunks around the car and calls
-    /// <see cref="RoadGraph.UnregisterChunk"/> on everything else, so
-    /// <see cref="CityManager.Graph"/> covers a few hundred metres — useless
-    /// for drawing a city-wide map or routing to a distant marker. Road
-    /// generation is a pure function of (seed, chunk coord) through
-    /// <see cref="DeterministicHash"/>, so this class simply calls
-    /// <see cref="RoadNetworkGenerator.Generate"/> for whatever it needs and
-    /// gets back exactly the streets the player would drive on, with no
-    /// GameObjects created.
+    /// The map's view of the city — a thin adapter over the baked
+    /// <see cref="CityRoot"/>. The city is a fixed prefab now: every block's
+    /// grid model is serialized on its <see cref="CityBlock"/> and the road
+    /// graph covers the whole city from the first frame, so the on-demand
+    /// generation, LRU cache and pump budget the streaming era needed are
+    /// gone. What remains is the coordinate mapping the map screen paints
+    /// with, cell queries against the baked layouts, and the shared graph for
+    /// routing. The streaming-era surface (EnsureArea/Pump/PendingCount) is
+    /// kept as no-ops so the screen's paint loop reads unchanged.
     ///
     /// Cells are GLOBAL cell coordinates, matching <see cref="RoadNode.Cell"/>.
-    /// World conversion deliberately copies <see cref="RoadGraph.WorldToCell"/>
-    /// (which subtracts the city root's origin) and NOT
-    /// CityManager.StreamAroundAnchor's version, which omits that subtraction
-    /// and is only correct while the city root sits at the world origin.
+    /// World conversion mirrors <see cref="RoadGraph.WorldToCell"/> (which
+    /// subtracts the city root's origin).
     /// </summary>
     public class CityMapModel
     {
-        readonly CityGenerationSettings settings;
+        readonly CityRoot root;
         readonly Vector3 origin;
-        readonly int chunkSize;
+        readonly float cellSize;
+        readonly int blockSize;
+        readonly Dictionary<Vector2Int, ChunkData> blocks = new();
 
-        readonly Dictionary<Vector2Int, ChunkData> chunks = new();
-        readonly LinkedList<Vector2Int> recent = new();                       // LRU: most recent at the front
-        readonly Dictionary<Vector2Int, LinkedListNode<Vector2Int>> recentNodes = new();
-        readonly Queue<Vector2Int> pending = new();
-        readonly HashSet<Vector2Int> queued = new();
-
-        /// <summary>Road graph over every chunk this model has generated. Grows only — nothing here is unregistered by streaming.</summary>
-        public RoadGraph Graph { get; }
-
-        public float CellSize => settings.cellSize;
-        public int ChunkSizeInCells => chunkSize;
-
-        /// <summary>Chunks still waiting to be generated — the map paints these as background until they land.</summary>
-        public int PendingCount => pending.Count;
-
-        public CityMapModel(CityGenerationSettings settings, Vector3 cityOrigin, float deckHeight)
+        public CityMapModel(CityRoot root)
         {
-            this.settings = settings;
-            origin = cityOrigin;
-            chunkSize = Mathf.Max(1, settings.chunkSizeInCells);
-            Graph = new RoadGraph(settings.cellSize, deckHeight, cityOrigin);
+            this.root = root;
+            origin = root != null ? root.transform.position : Vector3.zero;
+            cellSize = root != null ? root.cellSize : 20f;
+            blockSize = root != null ? Mathf.Max(1, root.blockSizeInCells) : 1;
+            if (root != null)
+            {
+                foreach (CityBlock block in root.GetComponentsInChildren<CityBlock>())
+                {
+                    ChunkData data = block.Data;
+                    if (data != null) blocks[block.coord] = data;
+                }
+            }
         }
+
+        /// <summary>Road graph over the whole baked city — shared with the AI, never shrinks.</summary>
+        public RoadGraph Graph => root != null ? root.Graph : emptyGraph ??= new RoadGraph(cellSize);
+        RoadGraph emptyGraph;
+
+        public float CellSize => cellSize;
+        public int ChunkSizeInCells => blockSize;
+
+        /// <summary>Always 0 — the whole city exists up front. Kept for the screen's status line.</summary>
+        public int PendingCount => 0;
 
         // ------------------------------------------------------- coordinates
 
         /// <summary>World position to global cell. Mirrors <see cref="RoadGraph.WorldToCell"/> exactly.</summary>
         public Vector2Int WorldToCell(Vector3 position) =>
-            new(Mathf.FloorToInt((position.x - origin.x) / settings.cellSize),
-                Mathf.FloorToInt((position.z - origin.z) / settings.cellSize));
+            new(Mathf.FloorToInt((position.x - origin.x) / cellSize),
+                Mathf.FloorToInt((position.z - origin.z) / cellSize));
 
         /// <summary>Centre of a global cell in world space, on the ground plane.</summary>
         public Vector3 CellToWorld(Vector2Int cell) =>
-            origin + new Vector3((cell.x + 0.5f) * settings.cellSize, 0f, (cell.y + 0.5f) * settings.cellSize);
+            origin + new Vector3((cell.x + 0.5f) * cellSize, 0f, (cell.y + 0.5f) * cellSize);
 
-        /// <summary>Which chunk a global cell belongs to. Floor division, so negative coordinates behave.</summary>
+        /// <summary>Which block a global cell belongs to. Floor division, so negative coordinates behave.</summary>
         public Vector2Int CellToChunk(Vector2Int cell) =>
-            new(FloorDiv(cell.x, chunkSize), FloorDiv(cell.y, chunkSize));
-
-        static int FloorDiv(int value, int divisor)
-        {
-            int q = value / divisor;
-            if ((value % divisor != 0) && ((value < 0) != (divisor < 0))) q--;
-            return q;
-        }
-
-        static int Mod(int value, int divisor)
-        {
-            int r = value % divisor;
-            return r < 0 ? r + divisor : r;
-        }
+            new(DeterministicHash.FloorDiv(cell.x, blockSize), DeterministicHash.FloorDiv(cell.y, blockSize));
 
         // ------------------------------------------------------------ queries
 
         /// <summary>
-        /// What occupies a global cell, if its chunk has been generated.
-        /// Returns false for cells whose chunk is not built yet — the caller
-        /// paints those as background rather than guessing.
+        /// What occupies a global cell. False outside the baked city — the
+        /// caller paints those as background (the void beyond the wrap seam).
         /// </summary>
         public bool TryGetCell(Vector2Int cell, out ChunkData.CellKind kind, out bool isRoad)
         {
             kind = ChunkData.CellKind.Empty;
             isRoad = false;
-            Vector2Int coord = CellToChunk(cell);
-            if (!chunks.TryGetValue(coord, out ChunkData data)) return false;
+            if (!blocks.TryGetValue(CellToChunk(cell), out ChunkData data)) return false;
 
-            int lx = Mod(cell.x, chunkSize);
-            int ly = Mod(cell.y, chunkSize);
+            int lx = DeterministicHash.Mod(cell.x, blockSize);
+            int ly = DeterministicHash.Mod(cell.y, blockSize);
             kind = data.GetKind(lx, ly);
             isRoad = data.IsRoad(lx, ly);
             return true;
         }
 
-        public bool IsChunkReady(Vector2Int coord) => chunks.ContainsKey(coord);
+        public bool IsChunkReady(Vector2Int coord) => blocks.ContainsKey(coord);
 
-        // ---------------------------------------------------------- streaming
+        // ------------------------------------------- streaming-era no-ops
 
-        /// <summary>
-        /// Ask for every chunk in this window (inclusive), plus the settings'
-        /// margin. Already-built chunks are just touched for LRU purposes;
-        /// missing ones are queued for <see cref="Pump"/>.
-        /// </summary>
-        public void EnsureArea(RectInt chunkWindow, int margin)
-        {
-            for (int y = chunkWindow.yMin - margin; y <= chunkWindow.yMax + margin; y++)
-            for (int x = chunkWindow.xMin - margin; x <= chunkWindow.xMax + margin; x++)
-            {
-                var coord = new Vector2Int(x, y);
-                if (chunks.ContainsKey(coord))
-                {
-                    Touch(coord);
-                    continue;
-                }
-                if (queued.Add(coord)) pending.Enqueue(coord);
-            }
-        }
+        /// <summary>No-op — every block already exists. Kept so the paint loop reads unchanged.</summary>
+        public void EnsureArea(RectInt chunkWindow, int margin) { }
 
-        /// <summary>
-        /// Generate up to <paramref name="budget"/> queued chunks. Bounded per
-        /// frame because a fast pan can queue hundreds at once and generating
-        /// them all in one frame would hitch even with the map paused.
-        /// Returns true if anything was built, i.e. the schematic changed.
-        /// </summary>
-        public bool Pump(int budget, int cacheSize)
-        {
-            bool built = false;
-            while (budget-- > 0 && pending.Count > 0)
-            {
-                Vector2Int coord = pending.Dequeue();
-                queued.Remove(coord);
-                if (chunks.ContainsKey(coord)) continue;
+        /// <summary>No-op — nothing is ever pending. Returns false: the schematic repaints on window changes instead.</summary>
+        public bool Pump(int budget, int cacheSize) => false;
 
-                ChunkData data = RoadNetworkGenerator.Generate(settings, coord);
-                chunks[coord] = data;
-                Graph.RegisterChunk(data);
-                Touch(coord);
-                built = true;
-            }
-            if (built) Trim(cacheSize);
-            return built;
-        }
-
-        void Touch(Vector2Int coord)
-        {
-            if (recentNodes.TryGetValue(coord, out var node))
-            {
-                recent.Remove(node);
-                recent.AddFirst(node);
-                return;
-            }
-            recentNodes[coord] = recent.AddFirst(coord);
-        }
-
-        // Evict the coldest chunks once the cache is over budget. Their nodes
-        // leave the graph too, otherwise a long session would grow it without
-        // bound and every nearest-node scan would pay for city we stopped
-        // looking at. Anything evicted regenerates identically on demand.
-        void Trim(int cacheSize)
-        {
-            while (recent.Count > Mathf.Max(16, cacheSize))
-            {
-                LinkedListNode<Vector2Int> coldest = recent.Last;
-                if (coldest == null) return;
-                Vector2Int coord = coldest.Value;
-                recent.RemoveLast();
-                recentNodes.Remove(coord);
-                if (chunks.TryGetValue(coord, out ChunkData data))
-                {
-                    Graph.UnregisterChunk(data);
-                    chunks.Remove(coord);
-                }
-            }
-        }
-
-        /// <summary>Drop everything — used when the city itself is regenerated under us.</summary>
-        public void Clear()
-        {
-            foreach (var pair in chunks) Graph.UnregisterChunk(pair.Value);
-            chunks.Clear();
-            recent.Clear();
-            recentNodes.Clear();
-            pending.Clear();
-            queued.Clear();
-        }
+        /// <summary>No-op — the baked city cannot change under us mid-session.</summary>
+        public void Clear() { }
     }
 }

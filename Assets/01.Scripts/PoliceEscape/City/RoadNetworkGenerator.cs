@@ -4,73 +4,66 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 {
     /// <summary>
-    /// Turns settings + a chunk coordinate into a <see cref="ChunkData"/> —
-    /// pure computation, no GameObjects. Layout bias: long arterial straights
-    /// first, then secondary connectors so blocks vary and there's always more
-    /// than one way around.
+    /// Turns a <see cref="CityLayout"/> + a block coordinate into a
+    /// <see cref="ChunkData"/> — pure computation, no GameObjects. Layout
+    /// bias: long arterial straights first, then secondary connectors so
+    /// blocks vary and there's always more than one way around.
     ///
-    /// Determinism rules (the infinite-streaming contract):
-    /// arterial lines are a function of *world* cell coordinates hashed with
-    /// the global seed, so neighbouring chunks compute the same crossings
-    /// independently and arterials continue across borders for free. Only
-    /// arterials touch chunk edges — connectors stay strictly interior — so a
-    /// chunk never needs to know a neighbour's connector layout.
+    /// Determinism rules (the fixed-city contract): everything that can touch
+    /// a block border comes from the layout's periodic, city-seeded arterial
+    /// field, so any two blocks — including the pair across the pacman wrap
+    /// seam — compute the same border sockets independently. Everything
+    /// strictly interior (connectors, features) runs on the BLOCK seed, which
+    /// is what lets a single block be rerolled without moving any border road.
+    /// Connector-only blocks skip the interior entirely and get a bridge
+    /// instead (see <see cref="RoadFeaturePlacer.PlaceBridge"/>).
     /// </summary>
     public static class RoadNetworkGenerator
     {
-        // Hash salts keep independent random streams from correlating.
-        const int SaltRow = 101;
-        const int SaltCol = 202;
+        // Hash salt keeping the interior-layout stream uncorrelated with the
+        // feature/piece/building/decoration streams derived from the same
+        // block seed.
         const int SaltChunk = 303;
 
-        public static ChunkData Generate(CityGenerationSettings settings, Vector2Int chunkCoord)
+        public static ChunkData Generate(CityLayout layout, Vector2Int blockCoord)
         {
-            var data = new ChunkData(chunkCoord, settings.chunkSizeInCells);
-            var rng = new System.Random(DeterministicHash.Combine(settings.globalSeed, SaltChunk, chunkCoord.x, chunkCoord.y));
+            CityLayout.BlockSpec spec = layout.SpecFor(blockCoord);
+            var data = new ChunkData(blockCoord, layout.BlockSize);
 
-            CarveArterials(settings, data);
-            CarveConnectors(settings, data, rng);
-            if (!settings.allowDeadEnds) RepairDeadEnds(settings, data);
-            ResolveConnections(settings, data);
-            // Features (overpasses, roundabouts…) rewrite interior cells only,
-            // after the masks are final — border cells stay untouched so the
-            // cross-chunk arterial contract above still holds.
-            RoadFeaturePlacer.Place(settings, data);
+            CarveArterials(layout, data);
+
+            if (spec.ConnectorOnly)
+            {
+                // A bridge block has no interior: masks resolve over the one
+                // carved line, then the placer turns its middle into
+                // ramps → deck → ramps. No connectors, no features, and the
+                // baker skips buildings and decorations for it.
+                ResolveConnections(layout, data);
+                RoadFeaturePlacer.PlaceBridge(layout.Settings, data, spec.ConnectorAxis, spec.BridgeLineLocal);
+                return data;
+            }
+
+            BlockKnobs knobs = layout.KnobsFor(blockCoord);
+            var rng = new System.Random(DeterministicHash.Combine(spec.Seed, SaltChunk, blockCoord.x, blockCoord.y));
+            CarveConnectors(layout, knobs, data, rng);
+            if (!knobs.AllowDeadEnds) RepairDeadEnds(layout, data);
+            ResolveConnections(layout, data);
+            // Features (overpasses, forks, roundabouts…) rewrite interior cells
+            // only, after the masks are final — border cells stay untouched so
+            // the cross-block arterial contract above still holds.
+            RoadFeaturePlacer.Place(layout.Settings, knobs, data, spec.Seed);
             return data;
         }
 
-        /// <summary>Chunk seed exposed for gizmo labels.</summary>
-        public static int ChunkSeed(CityGenerationSettings settings, Vector2Int chunkCoord)
-            => DeterministicHash.Combine(settings.globalSeed, SaltChunk, chunkCoord.x, chunkCoord.y);
-
         // ------------------------------------------------------------ arterials
 
-        /// <summary>Is this world cell on an arterial line? Pure function of world coords — chunk-independent.</summary>
-        public static bool IsArterialWorldCell(CityGenerationSettings settings, int worldX, int worldY)
-            => IsArterialLine(settings, SaltCol, worldX) || IsArterialLine(settings, SaltRow, worldY);
-
-        /// <summary>
-        /// World rows/columns are split into bands of arterialSpacing cells and
-        /// each band hosts exactly one arterial line; jitter blends its offset
-        /// between band-center (regular grid) and a hashed random position.
-        /// </summary>
-        static bool IsArterialLine(CityGenerationSettings settings, int salt, int worldIndex)
-        {
-            int spacing = settings.arterialSpacing;
-            int band = DeterministicHash.FloorDiv(worldIndex, spacing);
-            float random01 = DeterministicHash.Value01(settings.globalSeed, salt, band);
-            int randomOffset = Mathf.Min((int)(random01 * spacing), spacing - 1);
-            int offset = Mathf.RoundToInt(Mathf.Lerp(spacing * 0.5f, randomOffset, settings.arterialJitter));
-            return DeterministicHash.Mod(worldIndex, spacing) == Mathf.Clamp(offset, 0, spacing - 1);
-        }
-
-        static void CarveArterials(CityGenerationSettings settings, ChunkData data)
+        static void CarveArterials(CityLayout layout, ChunkData data)
         {
             Vector2Int origin = data.WorldCellOrigin;
             for (int y = 0; y < data.SizeInCells; y++)
             for (int x = 0; x < data.SizeInCells; x++)
             {
-                if (IsArterialWorldCell(settings, origin.x + x, origin.y + y))
+                if (layout.IsRoadCell(origin.x + x, origin.y + y))
                     data.SetKind(x, y, ChunkData.CellKind.Arterial);
             }
         }
@@ -78,19 +71,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         // ----------------------------------------------------------- connectors
 
         /// <summary>
-        /// For every block bounded by arterials that lie fully inside the chunk,
+        /// For every lot bounded by arterials that lie fully inside the block,
         /// roll connectorDensity; a hit carves either a straight span between two
         /// facing arterials or (turnProbability) an L that meets one arterial row
         /// and one arterial column — that's where corner pieces come from.
         /// </summary>
-        static void CarveConnectors(CityGenerationSettings settings, ChunkData data, System.Random rng)
+        static void CarveConnectors(CityLayout layout, in BlockKnobs knobs, ChunkData data, System.Random rng)
         {
             Vector2Int origin = data.WorldCellOrigin;
             List<int> rows = new(), cols = new();
             for (int y = 0; y < data.SizeInCells; y++)
-                if (IsArterialLine(settings, SaltRow, origin.y + y)) rows.Add(y);
+                if (layout.IsArterialRow(origin.y + y)) rows.Add(y);
             for (int x = 0; x < data.SizeInCells; x++)
-                if (IsArterialLine(settings, SaltCol, origin.x + x)) cols.Add(x);
+                if (layout.IsArterialColumn(origin.x + x)) cols.Add(x);
 
             for (int ri = 0; ri < rows.Count - 1; ri++)
             for (int ci = 0; ci < cols.Count - 1; ci++)
@@ -99,9 +92,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 int c1 = cols[ci], c2 = cols[ci + 1];
                 // Interior must fit at least one cell in both axes.
                 if (r2 - r1 < 2 || c2 - c1 < 2) continue;
-                if (rng.NextDouble() >= settings.connectorDensity) continue;
+                if (rng.NextDouble() >= knobs.ConnectorDensity) continue;
 
-                if (rng.NextDouble() < settings.turnProbability)
+                if (rng.NextDouble() < knobs.TurnProbability)
                     CarveLConnector(data, rng, r1, r2, c1, c2);
                 else
                     CarveStraightConnector(data, rng, r1, r2, c1, c2);
@@ -150,10 +143,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         /// <summary>
         /// Iteratively strip connector cells with fewer than two road neighbours.
-        /// Arterials are exempt — they always continue past the chunk border, so
+        /// Arterials are exempt — they always continue past the block border, so
         /// what looks like a stub at the edge is actually a through road.
         /// </summary>
-        static void RepairDeadEnds(CityGenerationSettings settings, ChunkData data)
+        static void RepairDeadEnds(CityLayout layout, ChunkData data)
         {
             bool removedAny = true;
             while (removedAny)
@@ -163,7 +156,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 for (int x = 0; x < data.SizeInCells; x++)
                 {
                     if (data.GetKind(x, y) != ChunkData.CellKind.Connector) continue;
-                    if (NeighbourMask(settings, data, x, y).ConnectionCount() < 2)
+                    if (NeighbourMask(layout, data, x, y).ConnectionCount() < 2)
                     {
                         data.SetKind(x, y, ChunkData.CellKind.Empty);
                         removedAny = true;
@@ -172,23 +165,24 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             }
         }
 
-        static void ResolveConnections(CityGenerationSettings settings, ChunkData data)
+        static void ResolveConnections(CityLayout layout, ChunkData data)
         {
             for (int y = 0; y < data.SizeInCells; y++)
             for (int x = 0; x < data.SizeInCells; x++)
             {
                 data.SetConnections(x, y, data.IsRoad(x, y)
-                    ? NeighbourMask(settings, data, x, y)
+                    ? NeighbourMask(layout, data, x, y)
                     : EdgeMask.None);
             }
         }
 
         /// <summary>
         /// Which edges of a cell face a road neighbour. Neighbours outside the
-        /// chunk are resolved through the world-space arterial function — valid
-        /// because only arterials ever touch a chunk border.
+        /// block are resolved through the layout's city-wide road predicate —
+        /// valid because only city-level roads (arterials, bridge lines) ever
+        /// touch a block border, and periodic, so the wrap seam matches too.
         /// </summary>
-        static EdgeMask NeighbourMask(CityGenerationSettings settings, ChunkData data, int x, int y)
+        static EdgeMask NeighbourMask(CityLayout layout, ChunkData data, int x, int y)
         {
             Vector2Int origin = data.WorldCellOrigin;
             EdgeMask mask = EdgeMask.None;
@@ -198,7 +192,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 int nx = x + offset.x, ny = y + offset.y;
                 bool neighbourIsRoad = data.InBounds(nx, ny)
                     ? data.IsRoad(nx, ny)
-                    : IsArterialWorldCell(settings, origin.x + nx, origin.y + ny);
+                    : layout.IsRoadCell(origin.x + nx, origin.y + ny);
                 if (neighbourIsRoad) mask |= EdgeMaskUtility.DirectionBit(dir);
             }
             return mask;

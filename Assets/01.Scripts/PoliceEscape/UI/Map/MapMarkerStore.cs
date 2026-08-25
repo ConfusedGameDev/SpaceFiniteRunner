@@ -14,7 +14,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     /// Second, and more important, the marker is stored <b>against the seed of
     /// the city it was placed in</b>. A marker only means anything relative to
     /// a particular layout, so when the player generates a new city
-    /// (<see cref="City.CitySaveData.RollNewSeed"/>) the old marker is
+    /// (a rebake of the city prefab with a new seed) the old marker is
     /// discarded rather than left pointing at a junction that no longer
     /// exists. Checking the seed here means no other code has to remember to.
     ///

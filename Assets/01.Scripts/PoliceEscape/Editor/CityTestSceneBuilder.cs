@@ -215,9 +215,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
 
+            // The baked city prefab — baked on demand from the definition.
+            CityDefinition definition = CityBaker.EnsureDefinition(DataFolder + "/CityDefinition.asset", settings);
+            GameObject cityPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CityBaker.DefaultPrefabPath);
+            if (cityPrefab == null) cityPrefab = CityBaker.BakeCity(definition);
+            CityRoot cityRoot = null;
+            if (cityPrefab != null)
+            {
+                var cityInstance = (GameObject)PrefabUtility.InstantiatePrefab(cityPrefab);
+                cityInstance.transform.position = Vector3.zero;
+                cityRoot = cityInstance.GetComponent<CityRoot>();
+            }
+
             var managerGo = new GameObject("CityManager");
             var manager = managerGo.AddComponent<CityManager>();
             manager.settings = settings;
+            manager.cityRoot = cityRoot;
 
             // Wire the car test assets when they exist, so the Create Car
             // button and the police fleet work in this scene too (assets are
@@ -237,17 +250,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             var rain = new GameObject("RainSystem").AddComponent<FX.RainSystem>();
             rain.settings = AssetDatabase.LoadAssetAtPath<FX.RainSettings>(RainSettingsPath);
 
-            // Overhead vantage so one glance shows the whole first chunk.
+            // Overhead vantage so one glance shows the whole city.
             var camera = Camera.main;
             if (camera != null)
             {
-                float side = settings.chunkSizeInCells * settings.cellSize;
+                float side = cityRoot != null ? Mathf.Max(cityRoot.CitySizeX, cityRoot.CitySizeZ) : 500f;
                 camera.transform.position = new Vector3(side * 0.5f, side * 1.2f, -side * 0.25f);
                 camera.transform.LookAt(new Vector3(side * 0.5f, 0f, side * 0.5f));
                 camera.farClipPlane = Mathf.Max(camera.farClipPlane, side * 4f);
             }
 
-            manager.Recalculate();
             Selection.activeGameObject = managerGo;
             EditorSceneManager.SaveScene(scene, ScenePath);
         }

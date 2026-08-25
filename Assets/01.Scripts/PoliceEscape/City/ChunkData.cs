@@ -144,6 +144,21 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         /// <summary>World-grid coordinate of this chunk's cell (0,0) — cell units, not meters.</summary>
         public Vector2Int WorldCellOrigin => new(Coord.x * SizeInCells, Coord.y * SizeInCells);
+
+        // ------------------------------------------------------ serialization
+
+        // Raw array access for BlockLayoutData, the serialized twin this model
+        // round-trips through when a baked block is saved into the city
+        // prefab. Internal on purpose: gameplay code goes through the typed
+        // accessors above, only the (de)serializer copies whole arrays.
+        internal CellKind[] RawKinds => kinds;
+        internal EdgeMask[] RawConnections => connections;
+        internal EdgeMask[] RawUpperConnections => upperConnections;
+        internal byte[] RawRampDirection => rampDirection;
+        internal byte[] RawRampStep => rampStep;
+        internal byte[] RawRampLength => rampLength;
+        internal int[] RawFeatureIndex => featureIndex;
+        internal Vector2[] RawCenterOffset => centerOffset;
     }
 
     /// <summary>What a <see cref="RoadFeature"/> record describes.</summary>

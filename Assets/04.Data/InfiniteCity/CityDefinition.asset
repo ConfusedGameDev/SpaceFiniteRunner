@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a343d15744ce2c4da294f19219d002e, type: 3}
+  m_Name: CityDefinition
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.City.CityDefinition
+  generation: {fileID: 11400000, guid: c9332aaf5c158de489354c3081458a2c, type: 2}
+  gridWidth: 4
+  gridHeight: 4
+  blockSizeInCells: 23
+  citySeed: 258134563
+  defaultBlockSettings: {fileID: 0}
+  blocks:
+  - coord: {x: 0, y: 0}
+    seed: -141751797
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 1, y: 0}
+    seed: -1708414230
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 2, y: 0}
+    seed: 1019890633
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 3, y: 0}
+    seed: -546771800
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 0, y: 1}
+    seed: -1486828806
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 1, y: 1}
+    seed: -363337221
+    settingsOverride: {fileID: 0}
+    connectorOnly: 1
+    connectorAxis: 1
+  - coord: {x: 2, y: 1}
+    seed: -325186376
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 3, y: 1}
+    seed: 798305209
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 0, y: 2}
+    seed: 1463061481
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 1, y: 2}
+    seed: -103600952
+    settingsOverride: {fileID: 0}
+    connectorOnly: 1
+    connectorAxis: 1
+  - coord: {x: 2, y: 2}
+    seed: -584922645
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 3, y: 2}
+    seed: 2143382218
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 0, y: 3}
+    seed: 117984472
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 1, y: 3}
+    seed: 1241476057
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 2, y: 3}
+    seed: -1929999654
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+  - coord: {x: 3, y: 3}
+    seed: -806508069
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0

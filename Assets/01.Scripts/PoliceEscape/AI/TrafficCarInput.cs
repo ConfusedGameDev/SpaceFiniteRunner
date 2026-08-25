@@ -617,6 +617,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             for (int dir = 0; dir < 4; dir++)
             {
                 if (!graph.TryGetNeighbour(from, dir, out RoadNode neighbour) || neighbour == wanderFrom) continue;
+                // Civilians keep to the allowed blocks; the escaping car is
+                // exempt — gating its greedy flight could force a U-turn into
+                // the player, and its flee-hold leash bounds it anyway.
+                if (!flee && !city.IsNpcPositionAllowed(graph.Center(neighbour))) continue;
                 seen++;
                 if (flee)
                 {

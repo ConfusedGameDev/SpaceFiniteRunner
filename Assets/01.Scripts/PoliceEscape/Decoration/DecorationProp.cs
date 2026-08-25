@@ -21,10 +21,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
     /// </summary>
     public class DecorationProp : MonoBehaviour
     {
-        Rigidbody body;
-        float impactMomentum;
-        float maxLaunchFactor;
-        float upBias;
+        // Serialized: props are baked into the city prefab, so the tuning
+        // Configure computed must survive serialization — a plain private
+        // field would deserialize as zero and silently kill the prop physics.
+        [SerializeField, HideInInspector] Rigidbody body;
+        [SerializeField, HideInInspector] float impactMomentum;
+        [SerializeField, HideInInspector] float maxLaunchFactor;
+        [SerializeField, HideInInspector] float upBias;
         bool dynamicBody;
         bool impulseDone;
 

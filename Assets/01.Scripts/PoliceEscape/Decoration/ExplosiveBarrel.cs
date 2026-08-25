@@ -31,7 +31,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
     /// </summary>
     public class ExplosiveBarrel : MonoBehaviour, IDamageable
     {
-        DecorationSet set;
+        // Serialized: barrels are baked into the city prefab, and losing this
+        // asset reference on load would leave them inert.
+        [SerializeField, HideInInspector] DecorationSet set;
         bool spent;
 
         /// <summary>Arms a freshly configured prop. Called by <see cref="DecorationProp.Configure"/>, never by hand.</summary>

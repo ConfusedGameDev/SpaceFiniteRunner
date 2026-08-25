@@ -10,10 +10,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
     /// Keeps the police fleet alive: maintains PursuitSettings.targetPatrolCount
     /// cars, spawning each on a random physically-clear road cell inside the
     /// spawn distance band around the player (far enough to not pop into
-    /// view, close enough to matter) and despawning any that fall too far
-    /// behind. Spawned by CityManager at play start when its police fields
-    /// are wired — no scene object needed. Maintenance runs on a 1 s tick,
-    /// not per-frame.
+    /// view, close enough to matter) AND inside an allowed city block (the
+    /// player's block plus edge-close neighbours — see CityBounds), and
+    /// despawning any that fall too far behind. A patrol outside the allowed
+    /// blocks is retired too, but ONLY while it is in the Patrol state:
+    /// LevelManager treats "every patrol is patrolling" as escaped, so
+    /// despawning a chasing or searching car would silently complete an
+    /// EscapePolice objective the player never earned. Spawned by CityManager
+    /// at play start when its police fields are wired — no scene object
+    /// needed. Maintenance runs on a 1 s tick, not per-frame.
     /// </summary>
     public class PatrolManager : MonoBehaviour
     {
@@ -47,8 +52,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
             for (int i = patrols.Count - 1; i >= 0; i--)
             {
-                if (Vector3.Distance(patrols[i].transform.position, player.transform.position) <= settings.despawnDistance)
-                    continue;
+                Vector3 position = patrols[i].transform.position;
+                bool tooFar = Vector3.Distance(position, player.transform.position) > settings.despawnDistance;
+                // Block rule only for patrolling cars — never break a live chase
+                // from the outside (see the class comment).
+                bool outOfBlock = patrols[i].State == PoliceCarInput.AiState.Patrol
+                    && !city.IsNpcPositionAllowed(position);
+                if (!tooFar && !outOfBlock) continue;
                 Destroy(patrols[i].gameObject);
                 patrols.RemoveAt(i);
             }
@@ -95,6 +105,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 Vector3 center = pair.Value.Center;
                 float sqr = (center - anchor).sqrMagnitude;
                 if (sqr < minSqr || sqr > maxSqr) continue;
+                if (!city.IsNpcPositionAllowed(center)) continue;
                 if (!city.IsCellClear(center)) continue;
                 seen++;
                 if (Random.Range(0, seen) != 0) continue;

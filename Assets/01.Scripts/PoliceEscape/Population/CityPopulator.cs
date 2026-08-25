@@ -5,37 +5,33 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
 {
     /// <summary>
-    /// Fills a chunk's non-road cells with buildings from the settings'
+    /// Fills a block's non-road cells with buildings from its effective
     /// <see cref="BuildingSet"/>. Contiguous empty cells are grouped into lots
     /// (blocks bounded by roads), each lot is filled greedily — largest fitting
     /// footprint first, weighted random among same-size candidates — and every
     /// building is yawed to face the road side with the most frontage.
-    /// Deterministic: its RNG derives from the same global seed as the road
-    /// layout (different salt), so recalculating reproduces identical results
-    /// and Repopulate never has to touch the roads.
+    /// Deterministic: its RNG derives from the BLOCK seed (own salt), so
+    /// rebaking a block reproduces identical results and rerolling one block
+    /// never moves another block's buildings. Frontage beyond the block's own
+    /// grid is answered by the caller's road predicate, which knows the whole
+    /// city (including connector blocks and the wrap seam).
     /// </summary>
     public static class CityPopulator
     {
         const int SaltPopulate = 505;
 
-        /// <summary>
-        /// Fill the chunk's lots. With a <paramref name="scheduler"/>, every
-        /// Instantiate is handed off to it (the streamer's per-frame budget
-        /// queue) instead of run inline — but all placement decisions and RNG
-        /// draws still happen here, in order, so a streamed chunk is
-        /// identical to an instantly built one.
-        /// </summary>
-        public static void Populate(CityGenerationSettings settings, ChunkData data, Transform buildingsRoot,
-            System.Action<System.Action> scheduler = null)
+        /// <summary>Fill the block's lots. All RNG draws happen in deterministic scan order off the block seed.</summary>
+        public static void Populate(CityGenerationSettings settings, BuildingSet set, float densityMultiplier,
+            int blockSeed, System.Func<int, int, bool> isRoadOutside, ChunkData data, Transform buildingsRoot)
         {
-            BuildingSet set = settings.buildingSet;
             if (set == null || set.buildings == null || set.buildings.Count == 0) return;
 
-            var rng = new System.Random(DeterministicHash.Combine(settings.globalSeed, SaltPopulate, data.Coord.x, data.Coord.y));
+            var rng = new System.Random(DeterministicHash.Combine(blockSeed, SaltPopulate, data.Coord.x, data.Coord.y));
             var occupied = new bool[data.SizeInCells * data.SizeInCells];
+            float density = Mathf.Clamp01(set.density * densityMultiplier);
 
             foreach (List<Vector2Int> lot in FindLots(data))
-                FillLot(settings, set, data, lot, occupied, rng, buildingsRoot, scheduler);
+                FillLot(settings, set, density, isRoadOutside, data, lot, occupied, rng, buildingsRoot);
         }
 
         // ----------------------------------------------------------------- lots
@@ -79,9 +75,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
 
         // ------------------------------------------------------------ placement
 
-        static void FillLot(CityGenerationSettings settings, BuildingSet set, ChunkData data,
-            List<Vector2Int> lot, bool[] occupied, System.Random rng, Transform buildingsRoot,
-            System.Action<System.Action> scheduler)
+        static void FillLot(CityGenerationSettings settings, BuildingSet set, float density,
+            System.Func<int, int, bool> isRoadOutside, ChunkData data,
+            List<Vector2Int> lot, bool[] occupied, System.Random rng, Transform buildingsRoot)
         {
             foreach (Vector2Int cell in lot)
             {
@@ -92,7 +88,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
 
                 // Density: a skipped spot stays empty for good (marked occupied)
                 // so later smaller footprints don't quietly fill the plaza.
-                if (rng.NextDouble() >= set.density)
+                if (rng.NextDouble() >= density)
                 {
                     occupied[cell.y * data.SizeInCells + cell.x] = true;
                     continue;
@@ -111,7 +107,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
                 }
 
                 Occupy(data, occupied, cell, picked.w, picked.h, picked.def.minSpacing);
-                Spawn(settings, set, data, cell, picked, rng, buildingsRoot, scheduler);
+                Spawn(settings, set, isRoadOutside, data, cell, picked, rng, buildingsRoot);
             }
         }
 
@@ -151,12 +147,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
 
         // ------------------------------------------------------------- spawning
 
-        static void Spawn(CityGenerationSettings settings, BuildingSet set, ChunkData data,
-            Vector2Int cell, (BuildingDefinition def, int w, int h) placed, System.Random rng, Transform buildingsRoot,
-            System.Action<System.Action> scheduler)
+        static void Spawn(CityGenerationSettings settings, BuildingSet set,
+            System.Func<int, int, bool> isRoadOutside, ChunkData data,
+            Vector2Int cell, (BuildingDefinition def, int w, int h) placed, System.Random rng, Transform buildingsRoot)
         {
             (BuildingDefinition def, int w, int h) = placed;
-            int facing = PickFacing(settings, data, cell, w, h, def.footprintInCells.x != def.footprintInCells.y && w != def.footprintInCells.x);
+            int facing = PickFacing(isRoadOutside, data, cell, w, h, def.footprintInCells.x != def.footprintInCells.y && w != def.footprintInCells.x);
 
             // All RNG draws happen here, in the same order as instant builds —
             // only the Instantiate below may be deferred to the spawn budget.
@@ -179,20 +175,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
             float height = uniform * (1f + (float)rng.NextDouble() * def.heightJitter);
             var localScale = new Vector3(uniform, height, uniform);
 
-            bool addCollider = settings.generateColliders;
-            void SpawnNow()
-            {
-                if (buildingsRoot == null) return; // chunk unloaded before its turn in the queue
-                var instance = Object.Instantiate(def.prefab, buildingsRoot);
-                CityManager.ApplyGeneratedFlags(instance);
-                instance.transform.localPosition = localPosition;
-                instance.transform.localRotation = localRotation;
-                instance.transform.localScale = localScale;
-                if (addCollider) AddMeshColliders(instance);
-            }
-
-            if (scheduler != null) scheduler(SpawnNow);
-            else SpawnNow();
+            var instance = CityBlockBuilder.Instantiate(def.prefab, buildingsRoot);
+            instance.transform.localPosition = localPosition;
+            instance.transform.localRotation = localRotation;
+            instance.transform.localScale = localScale;
+            if (settings.generateColliders) AddMeshColliders(instance);
         }
 
         /// <summary>
@@ -220,10 +207,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
         /// the road side with the most frontage. Non-square footprints may only
         /// face along their depth axis (the model can't yaw 90° without
         /// breaking cell alignment), square ones may face any side. Neighbours
-        /// beyond the chunk border count via the world arterial function, same
-        /// as the road generator.
+        /// beyond the block border count via the caller's city-wide road
+        /// predicate, same as the road generator.
         /// </summary>
-        static int PickFacing(CityGenerationSettings settings, ChunkData data, Vector2Int cell, int w, int h, bool rotated)
+        static int PickFacing(System.Func<int, int, bool> isRoadOutside, ChunkData data, Vector2Int cell, int w, int h, bool rotated)
         {
             bool square = w == h;
             bool northSouthAllowed = square || !rotated;
@@ -234,7 +221,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
             {
                 bool allowed = (dir == 0 || dir == 2) ? northSouthAllowed : eastWestAllowed;
                 if (!allowed) continue;
-                int count = CountRoadOnSide(settings, data, cell, w, h, dir);
+                int count = CountRoadOnSide(isRoadOutside, data, cell, w, h, dir);
                 if (count > bestCount)
                 {
                     bestCount = count;
@@ -244,7 +231,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
             return best < 0 ? 0 : best;
         }
 
-        static int CountRoadOnSide(CityGenerationSettings settings, ChunkData data, Vector2Int cell, int w, int h, int dir)
+        static int CountRoadOnSide(System.Func<int, int, bool> isRoadOutside, ChunkData data, Vector2Int cell, int w, int h, int dir)
         {
             Vector2Int origin = data.WorldCellOrigin;
             int count = 0;
@@ -258,7 +245,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
                 int y = y0 + ((dir == 1 || dir == 3) ? i : 0);
                 bool road = data.InBounds(x, y)
                     ? data.IsRoad(x, y)
-                    : RoadNetworkGenerator.IsArterialWorldCell(settings, origin.x + x, origin.y + y);
+                    : isRoadOutside != null && isRoadOutside(origin.x + x, origin.y + y);
                 if (road) count++;
             }
             return count;

@@ -5,54 +5,23 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 {
     /// <summary>
-    /// Every knob of the procedural city in one designer-facing asset: seed,
-    /// grid dimensions, layout bias (long arterials, occasional connectors) and
-    /// the socket-tagged road piece list. The CityManager draws this inline in
-    /// its inspector, so tuning happens without leaving the scene. Same seed +
-    /// same settings always reproduce the same city — generated content is
-    /// never saved into the scene.
+    /// The CITY-WIDE half of the generation knobs: cell size, arterial
+    /// spacing/jitter, feature geometry and the socket-tagged road piece
+    /// list — everything that must be identical across every block so block
+    /// borders (and the pacman wrap seam) always match. Per-block interior
+    /// knobs live on <see cref="BlockSettings"/>; the grid, the seeds and the
+    /// per-block overrides live on <see cref="CityDefinition"/>. The layout
+    /// values kept here double as the defaults for blocks without a
+    /// BlockSettings.
     /// </summary>
     [CreateAssetMenu(fileName = "CityGenerationSettings", menuName = "PoliceEscape/City Generation Settings")]
     public class CityGenerationSettings : ScriptableObject
     {
-        // ----------------------------------------------------------- seed/grid
-        [TitleGroup("Seed & grid")]
-        [Tooltip("Master seed — every chunk derives its own RNG from this. Same seed = same city. Play and Recalculate never change it: the seed in force is the player's pinned city (CitySaveData), or the saved seed below when locked. Use the CityManager's 'Clear & Generate New City' button to roll and pin a new one.")]
-        public int globalSeed = 1;
-
-        [TitleGroup("Seed & grid")]
-        [Tooltip("Author-time override: lock generation to the saved seed picked below, ignoring the player's pinned city. Leave off for normal play.")]
-        [ShowIf(nameof(HasSavedSeeds))]
-        public bool useSavedSeed;
-
-        [TitleGroup("Seed & grid")]
-        [Tooltip("Which saved seed to lock to. Save the current one with the button under Actions.")]
-        [ShowIf(nameof(HasSavedSeeds)), EnableIf(nameof(useSavedSeed))]
-        [ValueDropdown(nameof(savedSeeds))]
-        public int savedSeed;
-
-        [TitleGroup("Seed & grid")]
-        [Tooltip("Seeds worth keeping — layouts you liked. Remove entries here to forget them.")]
-        [ShowIf(nameof(HasSavedSeeds))]
-        [ListDrawerSettings(DefaultExpandedState = false)]
-        public List<int> savedSeeds = new();
-
-        public bool HasSavedSeeds => savedSeeds != null && savedSeeds.Count > 0;
-
-        [TitleGroup("Seed & grid")]
+        // ---------------------------------------------------------------- grid
+        [TitleGroup("Grid")]
         [Tooltip("Side length of one grid cell in meters — should match the road piece footprint. Use 'Measure Cell Size' below to read it off the assigned pieces.")]
         [PropertyRange(0.5f, 60f), SuffixLabel("m", true)]
         public float cellSize = 20f;
-
-        [TitleGroup("Seed & grid")]
-        [Tooltip("Chunk side length in cells. Chunks are the streaming unit later; for now they size the generated stretch.")]
-        [PropertyRange(8, 64)]
-        public int chunkSizeInCells = 24;
-
-        [TitleGroup("Seed & grid")]
-        [Tooltip("Start parameters: how many chunks per side are generated up front (3 = a 3×3 block around the origin).")]
-        [PropertyRange(1, 7)]
-        public int initialCitySizeInChunks = 1;
 
         // -------------------------------------------------------------- layout
         [TitleGroup("Layout")]
@@ -88,26 +57,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [TitleGroup("Decoration")]
         [Tooltip("Street prop set the decorator scatters on road tiles (light posts at intersection corners, cones/barriers on sidewalk edges). Leave empty for bare streets. Build one with Tools → Police Escape → Create Kenney Decoration Set.")]
         public Decoration.DecorationSet decorationSet;
-
-        // ----------------------------------------------------------- streaming
-        [TitleGroup("Streaming")]
-        [Tooltip("Stream chunks around the player at runtime: generate ahead as they approach an edge, unload far-behind chunks so the scene never overloads. Off = only the initial grid exists.")]
-        public bool endlessStreaming = true;
-
-        [TitleGroup("Streaming")]
-        [Tooltip("Chunks kept loaded in every direction around the player's chunk (1 = a 3×3 block).")]
-        [PropertyRange(1, 4)]
-        public int loadRadiusInChunks = 1;
-
-        [TitleGroup("Streaming")]
-        [Tooltip("Extra ring beyond the load radius a chunk may drift into before it is unloaded — hysteresis, so driving along a chunk border doesn't load/unload in a loop.")]
-        [PropertyRange(1, 3)]
-        public int unloadPaddingInChunks = 1;
-
-        [TitleGroup("Streaming")]
-        [Tooltip("Spawn operations (road pieces, buildings) executed per frame while streaming — the time-slice budget that keeps chunk builds hitch-free. Raise it if chunks visibly build too slowly at speed.")]
-        [PropertyRange(10, 500)]
-        public int maxSpawnsPerFrame = 80;
 
         // ------------------------------------------------------------- physics
         [TitleGroup("Physics")]
@@ -247,40 +196,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         }
 
         // ------------------------------------------------------------- buttons
-        [TitleGroup("Actions")]
-        /// <summary>
-        /// Author-time seed shuffling for previewing layouts. It does NOT pin
-        /// the result — the player's city is only changed by the CityManager's
-        /// "Clear &amp; Generate New City" button, which writes through to
-        /// <see cref="CitySaveData"/>. Press Recalculate after this to see the
-        /// rolled layout, and note the next Play reverts to the pinned city.
-        /// </summary>
-        [Button("Randomize Seed (preview only)", ButtonSizes.Medium)]
-        [Tooltip("Rolls a seed for previewing layouts in the editor. Does not pin it — use the CityManager's 'Clear & Generate New City' to actually change the player's city.")]
-        void RandomizeSeed()
-        {
-            globalSeed = Random.Range(int.MinValue / 2, int.MaxValue / 2);
-            MarkDirty();
-        }
-
-        [TitleGroup("Actions")]
-        [Button("Save Current Seed", ButtonSizes.Medium)]
-        [Tooltip("Keep the current seed in the saved list (and select it in the dropdown) so a layout you like can be locked in and recalled later. Locking needs 'Use Saved Seed' ticked above.")]
-        void SaveCurrentSeed()
-        {
-            savedSeeds ??= new List<int>();
-            if (!savedSeeds.Contains(globalSeed)) savedSeeds.Add(globalSeed);
-            savedSeed = globalSeed;
-            MarkDirty();
-        }
-
-        void MarkDirty()
-        {
-#if UNITY_EDITOR
-            UnityEditor.EditorUtility.SetDirty(this);
-#endif
-        }
-
 #if UNITY_EDITOR
         const string RoadsFolder = "Assets/02.Art/01.Models/InfiniteCity/Roads";
 

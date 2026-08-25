@@ -11,20 +11,21 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
     /// flat road cells qualify — ramps, deck/underpass cells, feature-covered
     /// cells and fork seam rows (offset centres) are skipped, so a prop never
     /// stands inside stamped feature geometry. Deterministic like the
-    /// populator: its RNG derives from the global seed (own salt), and all
-    /// draws happen at placement time so streamed chunks equal instant ones.
+    /// populator: its RNG derives from the BLOCK seed (own salt), so rebaking
+    /// a block reproduces identical props and rerolling one block never moves
+    /// another block's street furniture.
     /// </summary>
     public static class CityDecorator
     {
         const int SaltDecorate = 707;
 
-        public static void Decorate(CityGenerationSettings settings, ChunkData data, Transform decorationsRoot,
-            System.Action<System.Action> scheduler = null)
+        public static void Decorate(CityGenerationSettings settings, DecorationSet set, float densityMultiplier,
+            int blockSeed, ChunkData data, Transform decorationsRoot)
         {
-            DecorationSet set = settings.decorationSet;
             if (set == null || set.decorations == null || set.decorations.Count == 0) return;
 
-            var rng = new System.Random(DeterministicHash.Combine(settings.globalSeed, SaltDecorate, data.Coord.x, data.Coord.y));
+            var rng = new System.Random(DeterministicHash.Combine(blockSeed, SaltDecorate, data.Coord.x, data.Coord.y));
+            float density = Mathf.Clamp01(set.density * densityMultiplier);
             float cell = settings.cellSize;
             // Props stand on the curb, which the Kenney kit models one
             // lane-height above the lane — the same distance the whole city is
@@ -51,7 +52,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
                         float sx = (corner & 1) == 0 ? -1f : 1f;
                         float sz = (corner & 2) == 0 ? -1f : 1f;
                         Vector3 offset = new Vector3(sx, 0f, sz) * ((0.5f - set.cornerInset) * cell);
-                        TrySpawn(set, rng, DecorationPlacement.IntersectionCorner, center + offset, center, scale, decorationsRoot, scheduler);
+                        TrySpawn(set, density, rng, DecorationPlacement.IntersectionCorner, center + offset, center, scale, decorationsRoot);
                     }
                 }
 
@@ -62,7 +63,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
                     if ((mask & EdgeMaskUtility.DirectionBit(dir)) != 0) continue;
                     Vector2Int step = EdgeMaskUtility.Offset(dir);
                     Vector3 offset = new Vector3(step.x, 0f, step.y) * ((0.5f - set.edgeInset) * cell);
-                    TrySpawn(set, rng, DecorationPlacement.RoadEdge, center + offset, center, scale, decorationsRoot, scheduler);
+                    TrySpawn(set, density, rng, DecorationPlacement.RoadEdge, center + offset, center, scale, decorationsRoot);
                 }
             }
         }
@@ -71,13 +72,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
         /// Roll one spot: density gate, weighted pick among the props that
         /// claim this placement, then spawn facing the road (the tile centre)
         /// plus the prop's own offset and jitter. Every RNG draw happens here,
-        /// in order — only the Instantiate may be deferred to the spawn budget.
+        /// in deterministic order.
         /// </summary>
-        static void TrySpawn(DecorationSet set, System.Random rng, DecorationPlacement placement,
-            Vector3 localPosition, Vector3 faceTarget, float cellScale, Transform decorationsRoot,
-            System.Action<System.Action> scheduler)
+        static void TrySpawn(DecorationSet set, float density, System.Random rng, DecorationPlacement placement,
+            Vector3 localPosition, Vector3 faceTarget, float cellScale, Transform decorationsRoot)
         {
-            if (rng.NextDouble() >= set.density) return;
+            if (rng.NextDouble() >= density) return;
 
             float totalWeight = 0f;
             DecorationDefinition picked = null;
@@ -96,19 +96,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
             var localRotation = Quaternion.Euler(0f, yaw, 0f);
             float uniform = cellScale * picked.scaleMultiplier;
 
-            void SpawnNow()
-            {
-                if (decorationsRoot == null) return; // chunk unloaded before its turn in the queue
-                var instance = Object.Instantiate(picked.prefab, decorationsRoot);
-                CityManager.ApplyGeneratedFlags(instance);
-                instance.transform.localPosition = localPosition;
-                instance.transform.localRotation = localRotation;
-                instance.transform.localScale = picked.prefab.transform.localScale * uniform;
-                DecorationProp.Configure(instance, picked, set);
-            }
-
-            if (scheduler != null) scheduler(SpawnNow);
-            else SpawnNow();
+            var instance = CityBlockBuilder.Instantiate(picked.prefab, decorationsRoot);
+            instance.transform.localPosition = localPosition;
+            instance.transform.localRotation = localRotation;
+            instance.transform.localScale = picked.prefab.transform.localScale * uniform;
+            DecorationProp.Configure(instance, picked, set);
         }
     }
 }

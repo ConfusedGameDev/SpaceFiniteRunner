@@ -501,6 +501,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             for (int dir = 0; dir < 4; dir++)
             {
                 if (!graph.TryGetNeighbour(from, dir, out RoadNode neighbour) || neighbour == wanderFrom) continue;
+                // A patrolling car keeps to the allowed blocks — it may only
+                // roam into a neighbour block while the player is near that
+                // edge. Chase and Search ignore the gate: a car converging on
+                // the player is by definition heading toward allowed space.
+                if (State == AiState.Patrol && !city.IsNpcPositionAllowed(graph.Center(neighbour))) continue;
                 seen++;
                 if (Random.Range(0, seen) == 0) pick = neighbour;
             }

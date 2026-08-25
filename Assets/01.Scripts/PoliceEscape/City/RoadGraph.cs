@@ -52,9 +52,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// says don't exist. The one neighbour rule (<see cref="TryGetNeighbour"/>)
     /// is mutual connection: the target node must connect back. That is what
     /// links a ramp (level 0) to the deck (level 1) and keeps a deck from
-    /// leaking into the street underneath. Chunks register their cells after
-    /// generation; A* answers route queries. Rebuilt from scratch on every
-    /// Recalculate.
+    /// leaking into the street underneath. The baked city's blocks register
+    /// their cells at load; A* answers route queries. The graph covers the
+    /// whole city and never shrinks — nothing is streamed out any more, so a
+    /// plan can never go stale under a driver.
     ///
     /// Every position it hands out is a WORLD position. Cell coordinates are
     /// relative to the city root, so the root's own transform is baked in at
@@ -112,19 +113,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 EdgeMask upper = data.GetUpperConnections(x, y);
                 if (upper != EdgeMask.None)
                     nodes[new RoadNode(cell, 1)] = new RoadNodeData(upper, CellCenterAt(cell, deckHeight), false);
-            }
-        }
-
-        /// <summary>Drop an unloaded chunk's nodes — the AI can no longer route through space that no longer exists.</summary>
-        public void UnregisterChunk(ChunkData data)
-        {
-            Vector2Int origin = data.WorldCellOrigin;
-            for (int y = 0; y < data.SizeInCells; y++)
-            for (int x = 0; x < data.SizeInCells; x++)
-            {
-                var cell = new Vector2Int(origin.x + x, origin.y + y);
-                nodes.Remove(new RoadNode(cell, 0));
-                nodes.Remove(new RoadNode(cell, 1));
             }
         }
 

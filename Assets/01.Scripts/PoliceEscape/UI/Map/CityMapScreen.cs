@@ -218,7 +218,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         /// </summary>
         void SyncToCity()
         {
-            int seed = city.settings.globalSeed;
+            int seed = city.Root != null ? city.Root.citySeed : 0;
             if (seed != modelSeed)
             {
                 model.Clear();
@@ -350,7 +350,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             {
                 // No RebuildRoute here: setting the marker raises Changed, and
                 // the guidance tick later this frame builds the path from it.
-                MapMarkerStore.SetMarker(snapped, city.settings.globalSeed);
+                MapMarkerStore.SetMarker(snapped, city.Root != null ? city.Root.citySeed : 0);
             }
             else
             {
@@ -821,9 +821,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         {
             built = true;
             theme = MenuTheme.Load();
-            model = new CityMapModel(city.settings, city.transform.position, city.DeckWorldHeight);
+            model = new CityMapModel(city.Root);
             renderer = new CityMapRenderer(settings);
-            modelSeed = city.settings.globalSeed;
+            modelSeed = city.Root != null ? city.Root.citySeed : 0;
             // A stored marker outlives the session, and guidance now runs
             // before the map is ever opened — so a marker from another city
             // has to be dropped here, not left for the first Open().
