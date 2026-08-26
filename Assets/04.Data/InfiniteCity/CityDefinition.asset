@@ -15,87 +15,87 @@ MonoBehaviour:
   generation: {fileID: 11400000, guid: c9332aaf5c158de489354c3081458a2c, type: 2}
   gridWidth: 4
   gridHeight: 4
-  blockSizeInCells: 23
-  citySeed: -736716076
-  defaultBlockSettings: {fileID: 0}
+  blockSizeInCells: 21
+  citySeed: 237816080
+  defaultBlockSettings: {fileID: 11400000, guid: b889cc0f40226654fac15bbcaf61de3f, type: 2}
   blocks:
   - coord: {x: 0, y: 0}
-    seed: 451015216
+    seed: -122164964
     settingsOverride: {fileID: 11400000, guid: b889cc0f40226654fac15bbcaf61de3f, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 1, y: 0}
-    seed: 38668252
+    seed: 1444497469
     settingsOverride: {fileID: 11400000, guid: 8abb651c456dccb4c84ab9f7b6cc6d39, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 2, y: 0}
-    seed: 974187515
+    seed: -1283807394
     settingsOverride: {fileID: 0}
     connectorOnly: 1
     connectorAxis: 0
   - coord: {x: 3, y: 0}
-    seed: -612809301
+    seed: 282855039
     settingsOverride: {fileID: 11400000, guid: a12b9912cdcefd94b947b66c7cd3d545, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 0, y: 1}
-    seed: -925308007
+    seed: 1222912045
     settingsOverride: {fileID: 11400000, guid: 440e119e9bb408746b77b179f2d9e540, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 1, y: 1}
-    seed: 1914244521
+    seed: 99420460
     settingsOverride: {fileID: 0}
     connectorOnly: 1
     connectorAxis: 1
   - coord: {x: 2, y: 1}
-    seed: 1001406913
+    seed: 61269615
     settingsOverride: {fileID: 11400000, guid: 80d35261dd4d3574d9064436f805da57, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 3, y: 1}
-    seed: 299309957
+    seed: -1062221970
     settingsOverride: {fileID: 11400000, guid: f44a3f2c30cc55b42adb07c1540c156b, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 0, y: 2}
-    seed: -293880662
+    seed: -1726978242
     settingsOverride: {fileID: 11400000, guid: 3d5e1f2d9dbbbe045adebb10af3cd865, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 1, y: 2}
-    seed: -1035645766
+    seed: -160315809
     settingsOverride: {fileID: 0}
     connectorOnly: 1
     connectorAxis: 1
   - coord: {x: 2, y: 2}
-    seed: -707103090
+    seed: 321005884
     settingsOverride: {fileID: 11400000, guid: 91459db0e9a1eb14d979a597188e7d7e, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 3, y: 2}
-    seed: -534922789
+    seed: 1887668317
     settingsOverride: {fileID: 11400000, guid: edc2036f1725c284d8232ee4e362c1ea, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 0, y: 3}
-    seed: -814060342
+    seed: -381901233
     settingsOverride: {fileID: 11400000, guid: 506862574b4a5b645b7bd1e1fb1179d6, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 1, y: 3}
-    seed: -311592816
+    seed: -1505392818
     settingsOverride: {fileID: 11400000, guid: 6c7dc04503b29444ca90c648b3f73a73, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 2, y: 3}
-    seed: 759043321
+    seed: 1666082893
     settingsOverride: {fileID: 11400000, guid: 2a893704679ccf64f8c6adb2709b6a4b, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 3, y: 3}
-    seed: -927848810
+    seed: 542591308
     settingsOverride: {fileID: 11400000, guid: c6b3e6f9fde00024487a710ba9e81bba, type: 2}
     connectorOnly: 0
     connectorAxis: 0

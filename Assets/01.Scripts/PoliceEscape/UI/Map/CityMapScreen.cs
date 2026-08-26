@@ -16,10 +16,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     /// freezes the game and shows a schematic of the whole city, with the
     /// mission list down the side.
     ///
-    /// Two rules it enforces. First, <b>it draws generated data, never the
-    /// streamed world</b> — see <see cref="CityMapModel"/>; the city only
-    /// exists as geometry for a few hundred metres around the car, so a camera
-    /// render would show a small island in a void. Second, <b>it is the only
+    /// Two rules it enforces. First, <b>it draws the baked city's data, never
+    /// a camera render</b> — see <see cref="CityMapModel"/>, a thin adapter
+    /// over the CityRoot's serialized block layouts. The city is a fixed grid
+    /// now, and that frames the whole view: opening the map shows the block
+    /// the player is in, zooming out stops exactly where the full city fits,
+    /// and panning cannot leave the city. Second, <b>it is the only
     /// input owner while it is open</b>: like every other screen in this
     /// project it polls devices directly (there is no .inputactions asset) and
     /// runs entirely on unscaled time, because the whole point is that scaled
@@ -71,14 +73,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         float pixelsPerCell;
         int modelSeed;                // city the cached chunk data belongs to
 
-        // Routing. A route long enough to cross the city is still bounded —
-        // both by how much city may be generated for it and by the search.
+        // Routing. Crossing the whole baked city is fine — this only bounds a
+        // degenerate search (start and goal on disconnected islands).
         const int RouteMaxExpansions = 200_000;
         // How long the status line keeps saying ARRIVED after the marker is
         // cleared. Long enough to still be there when the player opens the map
         // to ask what happened to their pin.
         const float ArrivedMessageSeconds = 6f;
-        const int MaxCorridorChunks = 121;      // an 11x11 chunk slab, ~10 km at the live cell size
 
         readonly MapRoute route = new();
         readonly List<RoadNode> pathBuffer = new();
@@ -134,7 +135,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         {
             if (settings == null) return;
             if (city == null) city = FindAnyObjectByType<CityManager>();
-            if (city == null || city.settings == null) return;
+            // The baked CityRoot is the only city data the map needs — the
+            // manager's generation settings asset is not read here anymore.
+            if (city == null || city.Root == null) return;
             if (!built) Build();
             // Build is one-shot; if anything in it failed the screen has no
             // model to draw and must stay out of the way rather than throw
@@ -192,7 +195,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             panel.SetActive(true);
             Gamepad.current?.ResetHaptics();
 
-            pixelsPerCell = ClampZoomSustainable(settings.defaultPixelsPerCell);
+            // Default view: the block the player is standing in, filling the
+            // viewport — zooming out from there goes all the way to the whole
+            // baked city (see ClampZoomToCity).
+            pixelsPerCell = ClampZoomToCity(BlockFitZoom());
             // The city can be regenerated under us ("Clear & Generate New
             // City"), and cached chunk data is only valid for the seed it was
             // generated from — so both the schematic and the marker are
@@ -200,6 +206,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             SyncToCity();
             RefreshTargets();
             CenterOnPlayer();
+            ClampViewCenter();
         }
 
         void Close()
@@ -231,7 +238,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
         void CenterOnPlayer()
         {
-            if (player != null) viewCenterWorld = player.transform.position;
+            viewCenterWorld = player != null ? player.transform.position : model.CityWorldCenter;
         }
 
         /// <summary>
@@ -275,32 +282,44 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             if (Mathf.Abs(step) < 0.0001f) return;
 
             // Multiplicative, so each notch feels the same at every zoom level.
-            pixelsPerCell = ClampZoomSustainable(pixelsPerCell * Mathf.Pow(settings.zoomSpeed, step));
+            pixelsPerCell = ClampZoomToCity(pixelsPerCell * Mathf.Pow(settings.zoomSpeed, step));
         }
 
         /// <summary>
-        /// The authored zoom clamp, plus the floor the system can actually
-        /// sustain: every chunk the viewport shows must stay in the model's
-        /// LRU cache. Past that point the cache evicts chunks that are still
-        /// on screen — they repaint as void, get re-queued, and the map
-        /// thrashes forever instead of settling. So the max zoom-out is
-        /// whichever is higher: the settings' minPixelsPerCell slider, or
-        /// what the settings' chunkCacheSize can hold. Raising the cache is
-        /// how a designer buys more zoom-out.
+        /// Zoom limits come from the BAKED CITY, not the settings alone. The
+        /// city is a fixed grid now (no streaming, no chunk cache), so the max
+        /// zoom-out is exactly "the whole city fits in the viewport" and the
+        /// max zoom-in is the authored slider — raised to block-fit if needed,
+        /// so the default current-block view is always inside the range.
+        /// Falls back to the authored clamp while the viewport has no size yet.
         /// </summary>
-        float ClampZoomSustainable(float value)
+        float ClampZoomToCity(float value)
         {
-            float clamped = settings.ClampZoom(value);
-            if (model == null || mapViewport == null) return clamped;
+            float min = CityFitZoom();
+            if (min <= 0f) return settings.ClampZoom(value);
+            float max = Mathf.Max(settings.maxPixelsPerCell, BlockFitZoom());
+            return Mathf.Clamp(value, Mathf.Min(min, max), max);
+        }
 
+        /// <summary>Zoom at which the whole baked city just fits the viewport — the map's max zoom-out.</summary>
+        float CityFitZoom()
+        {
+            if (model == null || mapViewport == null) return 0f;
             Vector2 size = mapViewport.rect.size;
-            float cellsPerChunk = model.ChunkSizeInCells * (float)model.ChunkSizeInCells;
-            // 70% of the cache for the visible window — the rest is headroom
-            // for the chunkMargin ring and the route corridor, which share it.
-            float cacheCells = settings.chunkCacheSize * cellsPerChunk * 0.7f;
-            if (cacheCells <= 0f) return clamped;
-            float sustainableFloor = Mathf.Sqrt(size.x * size.y / cacheCells);
-            return Mathf.Max(clamped, sustainableFloor);
+            RectInt bounds = model.CityCellBounds;
+            if (size.x <= 0f || size.y <= 0f || bounds.width <= 0 || bounds.height <= 0) return 0f;
+            return Mathf.Min(size.x / bounds.width, size.y / bounds.height);
+        }
+
+        /// <summary>Zoom at which one city block fills the viewport's short side — the default view.</summary>
+        float BlockFitZoom()
+        {
+            if (model == null || mapViewport == null) return settings.defaultPixelsPerCell;
+            Vector2 size = mapViewport.rect.size;
+            if (size.x <= 0f || size.y <= 0f) return settings.defaultPixelsPerCell;
+            // A touch under a full fill, so the neighbouring streets peek in
+            // and the block reads as part of a city rather than an island.
+            return Mathf.Min(size.x, size.y) * 0.9f / Mathf.Max(1, model.ChunkSizeInCells);
         }
 
         void HandlePan(float dt)
@@ -310,9 +329,32 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
             // Pan is authored in SCREEN pixels/second, so it feels identical at
             // every zoom; convert to world metres through the current zoom.
-            float metresPerPixel = city.settings.cellSize / Mathf.Max(0.01f, pixelsPerCell);
+            float metresPerPixel = model.CellSize / Mathf.Max(0.01f, pixelsPerCell);
             float distance = settings.panSpeedPixels * metresPerPixel * dt;
             viewCenterWorld += new Vector3(axis.x, 0f, axis.y) * distance;
+        }
+
+        /// <summary>
+        /// Keep the view centre inside the baked city — but only just: the
+        /// centre is also the aiming cursor, so it must be able to reach EVERY
+        /// cell, city corners included. Clamping to the city rect itself (not
+        /// shrunk by the visible extent) means the map can show some void past
+        /// the edge, and that is the correct trade — a frame that can never
+        /// show void is a cursor that can never touch the border streets.
+        /// </summary>
+        void ClampViewCenter()
+        {
+            if (model == null) return;
+            RectInt bounds = model.CityCellBounds;
+            float cell = model.CellSize;
+            Vector3 centre = model.CityWorldCenter;
+            float extentX = bounds.width * cell * 0.5f;
+            float extentZ = bounds.height * cell * 0.5f;
+
+            viewCenterWorld = new Vector3(
+                Mathf.Clamp(viewCenterWorld.x, centre.x - extentX, centre.x + extentX),
+                0f,
+                Mathf.Clamp(viewCenterWorld.z, centre.z - extentZ, centre.z + extentZ));
         }
 
         // ------------------------------------------------------------- marker
@@ -523,13 +565,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             lastRouteCell = model.WorldToCell(from);
             Vector3 to = model.CellToWorld(MapMarkerStore.Cell);
 
-            if (!EnsureCorridor(from, to))
-            {
-                route.Clear();
-                routeFailed = true;
-                return;
-            }
-
+            // No corridor generation any more: the baked city's graph covers
+            // everything from the first frame, so A* can always reach the
+            // marker — the only "too far" left is the expansion budget.
             RoadGraph graph = model.Graph;
             if (!TryGetNodeOn(graph, from, out RoadNode start) ||
                 !TryGetNodeOn(graph, to, out RoadNode goal) ||
@@ -549,33 +587,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             }
             route.Set(routeCells, routePoints);
             routeDirty = true;
-        }
-
-        /// <summary>
-        /// Generate every chunk between the car and the marker before pathing —
-        /// A* can only route through data that exists. Bounded: a marker on the
-        /// far side of the world would otherwise mean generating an unbounded
-        /// slab of city in one frame, so beyond the budget the route is simply
-        /// reported as too far.
-        /// </summary>
-        bool EnsureCorridor(Vector3 from, Vector3 to)
-        {
-            Vector2Int a = model.CellToChunk(model.WorldToCell(from));
-            Vector2Int b = model.CellToChunk(model.WorldToCell(to));
-
-            var window = new RectInt(
-                Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y),
-                Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
-
-            int wide = window.width + 1 + settings.chunkMargin * 2;
-            int high = window.height + 1 + settings.chunkMargin * 2;
-            if (wide * high > MaxCorridorChunks) return false;
-
-            model.EnsureArea(window, settings.chunkMargin);
-            // Route generation is a one-off on marker placement, so it drains
-            // the queue in full rather than trickling like the pan does.
-            while (model.PendingCount > 0) model.Pump(64, settings.chunkCacheSize);
-            return true;
         }
 
         /// <summary>The node a world position sits on, falling back to the nearest. Same rule PoliceCarInput uses.</summary>
@@ -608,6 +619,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
         void UpdateSchematic()
         {
+            // After pan and zoom have both landed — the zoom changes how much
+            // of the city the viewport covers, which changes the clamp band.
+            ClampViewCenter();
+
             RectInt cellWindow = VisibleCellWindow();
             RectInt chunkWindow = ChunkWindowFor(cellWindow);
 
@@ -656,13 +671,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             return new RectInt(min.x, min.y, max.x - min.x, max.y - min.y);
         }
 
-        /// <summary>World to cell space without flooring — the map needs sub-cell precision to place icons.</summary>
-        Vector2 WorldToCellFloat(Vector3 world)
-        {
-            Vector3 origin = city.transform.position;
-            float cell = city.settings.cellSize;
-            return new Vector2((world.x - origin.x) / cell, (world.z - origin.z) / cell);
-        }
+        /// <summary>
+        /// World to cell space without flooring — the map needs sub-cell
+        /// precision to place icons. Delegated to the model: the ONE origin
+        /// and cell size are the baked CityRoot's, and deriving them from the
+        /// CityManager's transform (whose position is unrelated to the city
+        /// prefab's) is exactly the bug that shifted every icon off its street.
+        /// </summary>
+        Vector2 WorldToCellFloat(Vector3 world) => model.WorldToCellFloat(world);
 
         /// <summary>Viewport-local UI position for a world point, at the current zoom.</summary>
         Vector2 WorldToViewport(Vector3 world)

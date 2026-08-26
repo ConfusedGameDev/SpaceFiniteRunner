@@ -50,6 +50,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         public float CellSize => cellSize;
         public int ChunkSizeInCells => blockSize;
 
+        /// <summary>
+        /// The whole baked city in global cells: (0,0) at the south-west block,
+        /// gridWidth×gridHeight blocks of blockSize cells. This is the map's
+        /// hard frame — the default view fits one block of it, max zoom-out
+        /// fits all of it, and panning cannot leave it.
+        /// </summary>
+        public RectInt CityCellBounds => new(0, 0,
+            (root != null ? root.gridWidth : 1) * blockSize,
+            (root != null ? root.gridHeight : 1) * blockSize);
+
+        /// <summary>World-space centre of the baked city, on the ground plane.</summary>
+        public Vector3 CityWorldCenter
+        {
+            get
+            {
+                RectInt bounds = CityCellBounds;
+                return origin + new Vector3(bounds.width * 0.5f * cellSize, 0f, bounds.height * 0.5f * cellSize);
+            }
+        }
+
         /// <summary>Always 0 — the whole city exists up front. Kept for the screen's status line.</summary>
         public int PendingCount => 0;
 
@@ -63,6 +83,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         /// <summary>Centre of a global cell in world space, on the ground plane.</summary>
         public Vector3 CellToWorld(Vector2Int cell) =>
             origin + new Vector3((cell.x + 0.5f) * cellSize, 0f, (cell.y + 0.5f) * cellSize);
+
+        /// <summary>
+        /// World to cell space without flooring — the screen positions icons
+        /// and the view centre with sub-cell precision. Lives here so every
+        /// piece of map coordinate maths shares the ONE origin and cell size
+        /// (the baked CityRoot's) — the screen must never derive its own from
+        /// the CityManager, whose transform is unrelated to the city prefab's.
+        /// </summary>
+        public Vector2 WorldToCellFloat(Vector3 world) =>
+            new((world.x - origin.x) / cellSize, (world.z - origin.z) / cellSize);
 
         /// <summary>Which block a global cell belongs to. Floor division, so negative coordinates behave.</summary>
         public Vector2Int CellToChunk(Vector2Int cell) =>

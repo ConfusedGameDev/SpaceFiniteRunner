@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1248dc7314e2b974e92b371f81daa826, type: 3}
   m_Name: 2,1
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.City.BlockSettings
-  connectorDensity: 0.6
-  turnProbability: 0.35
-  allowDeadEnds: 0
+  connectorDensity: 1
+  turnProbability: 1
+  allowDeadEnds: 1
   placeFeatures: 1
-  overpassChance: 0.5
-  forkChance: 0.5
-  buildingSet: {fileID: 0}
-  decorationSet: {fileID: 0}
+  overpassChance: 0.47
+  forkChance: 0.79
+  buildingSet: {fileID: 11400000, guid: bbc70e693fb72094b98dfb6691e307fb, type: 2}
+  decorationSet: {fileID: 11400000, guid: 678557c4f331d45cb9788ae03337d83c, type: 2}
   buildingDensityMultiplier: 1
   decorationDensityMultiplier: 1
