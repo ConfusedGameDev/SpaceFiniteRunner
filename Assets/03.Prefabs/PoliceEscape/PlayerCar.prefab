@@ -365,6 +365,7 @@ GameObject:
   - component: {fileID: 5984313252667847331}
   - component: {fileID: 7341657587064262744}
   - component: {fileID: 6393089205632707766}
+  - component: {fileID: -4323746278417266288}
   m_Layer: 0
   m_Name: PlayerCar
   m_TagString: Untagged
@@ -496,6 +497,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerScaleController
   megaScale: 2
+--- !u!114 &-4323746278417266288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2862266193195909051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f330aa3e349df24682b3403b0e17d47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.SpeedMotionBlur
+  volume: {fileID: 0}
+  speedBandKmh: {x: 100, y: 200}
+  maxIntensity: 0.6
+  responseSharpness: 6
+  mode: 1
+  quality: 1
 --- !u!1 &3449047407732937542
 GameObject:
   m_ObjectHideFlags: 0

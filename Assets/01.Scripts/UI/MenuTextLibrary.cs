@@ -50,7 +50,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         ObjectiveReachSpeed, ObjectiveEscapePolice, ObjectiveGoTo, ObjectiveSurvive,
         CheatEnterCode, CheatUnlocked,
         GameOver, RetryPrompt,
-        ObjectiveChaseCar
+        ObjectiveChaseCar,
+        MissionBrief, OptionalChallenges, Reward, Accept
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -365,6 +366,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString retryPrompt = new("RETRY?", "¿REINTENTAR?", "リトライしますか？", "RÉESSAYER ?");
 
+        [TitleGroup("Mission brief")]
+        [SerializeField] LocalizedString missionBrief = new("MISSION BRIEF", "INFORME DE MISIÓN", "ミッションブリーフ", "BRIEFING DE MISSION");
+        [TitleGroup("Mission brief")]
+        [SerializeField] LocalizedString optionalChallenges = new("OPTIONAL CHALLENGES", "DESAFÍOS OPCIONALES", "追加チャレンジ", "DÉFIS OPTIONNELS");
+        [TitleGroup("Mission brief")]
+        [SerializeField] LocalizedString reward = new("REWARD", "RECOMPENSA", "報酬", "RÉCOMPENSE");
+        [TitleGroup("Mission brief")]
+        [SerializeField] LocalizedString accept = new("ACCEPT", "ACEPTAR", "承諾", "ACCEPTER");
+
         static MenuTextLibrary cached;
 
         /// <summary>The library asset, or a throwaway on the C# defaults if none is in a Resources folder.</summary>
@@ -566,6 +576,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.CheatUnlocked => cheatUnlocked,
             MenuTextId.GameOver => gameOver,
             MenuTextId.RetryPrompt => retryPrompt,
+            MenuTextId.MissionBrief => missionBrief,
+            MenuTextId.OptionalChallenges => optionalChallenges,
+            MenuTextId.Reward => reward,
+            MenuTextId.Accept => accept,
             _ => start
         };
     }

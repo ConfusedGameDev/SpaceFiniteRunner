@@ -19,6 +19,13 @@ MonoBehaviour:
   messageHoldSeconds: 4
   completionMessage: Hack complete. LFG!
   completionGlitchHoldSeconds: 1.2
+  briefVideo: {fileID: 0}
+  baseReward: 1000
+  optionalChallenges:
+  - description: destroy 10 cars
+    multiplier: 2
+  - description: Find the Secret Floppy
+    multiplier: 6
   objectives:
   - type: 4
     targetSpeedKmh: 130

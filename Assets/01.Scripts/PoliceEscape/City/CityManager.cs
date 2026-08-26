@@ -59,6 +59,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Full-screen city map settings — when assigned, the Tab/Back map screen is spawned at play start.")]
         public UI.CityMapSettings mapSettings;
 
+        [TitleGroup("Camera FX")]
+        [Tooltip("Speed-driven motion blur: fades in past 100 km/h by default. Tuning (speed band, intensity) lives on the spawned SpeedMotionBlur — hand-place one in the scene to change it.")]
+        public bool speedMotionBlur = true;
+
         [ToggleGroup("rain", "Weather")]
         [Tooltip("Spawn the rain over the chase. The downpour's own knobs live on the RainSettings asset below — this is only the on/off for this scene.")]
         public bool rain = true;
@@ -130,6 +134,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 speedometerGo.AddComponent<UI.Speedometer>().settings = speedometerSettings;
             }
             if (FindAnyObjectByType<UI.CityMapScreen>() == null && mapSettings != null) UI.CityMapScreen.Spawn(this, mapSettings);
+
+            // Camera FX: scene-first like everything above — a hand-placed
+            // SpeedMotionBlur keeps its tuning, this only fills the gap.
+            if (speedMotionBlur && FindAnyObjectByType<Vehicles.SpeedMotionBlur>() == null)
+                new GameObject("SpeedMotionBlur").AddComponent<Vehicles.SpeedMotionBlur>();
 
             // Weather: a camera-sized volume, so it needs neither the city nor
             // the car — it just has to exist before the first frame is drawn.

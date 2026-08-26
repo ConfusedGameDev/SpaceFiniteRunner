@@ -53,6 +53,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
         public LevelDefinition level;
 
+        [TitleGroup("Level")]
+        [Tooltip("Skip the mission-brief screen and launch straight into the run — no challenges accepted, base reward.")]
+        public bool skipMissionBrief;
+
         [TitleGroup("Damage")]
         [Tooltip("Glitch pulse on any hard impact.")]
         [PropertyRange(0f, 1f)]
@@ -87,6 +91,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         }
 
         ObjectiveState[] states = System.Array.Empty<ObjectiveState>();
+        readonly System.Collections.Generic.List<OptionalChallenge> acceptedChallenges = new();
+        bool briefOpen;
         int current;
         CarController player;
         PoliceCarInput[] patrols = System.Array.Empty<PoliceCarInput>();
@@ -104,6 +110,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         /// <summary>Every objective done — the completion line / handoff is playing.</summary>
         public bool Completed { get; private set; }
+
+        /// <summary>The optional challenges the player toggled on at the brief (empty when it was skipped).</summary>
+        public System.Collections.Generic.IReadOnlyList<OptionalChallenge> AcceptedChallenges => acceptedChallenges;
+
+        /// <summary>The payout on offer: base reward × every accepted challenge's multiplier.</summary>
+        public int MissionReward { get; private set; }
 
         /// <summary>The active step, or null when there is none.</summary>
         public LevelObjective CurrentObjective =>
@@ -162,9 +174,28 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveHud.Spawn(this);
         }
 
+        // The brief goes up in Start, after every Awake (city boot, HUD, menu
+        // singletons) has run — it freezes scaled time itself, so the whole
+        // scene holds under it until the player accepts.
+        void Start()
+        {
+            MissionReward = level.baseReward;
+            if (skipMissionBrief) return;
+            briefOpen = true;
+            MissionBriefScreen.Show(level, OnBriefAccepted);
+        }
+
+        void OnBriefAccepted(System.Collections.Generic.List<OptionalChallenge> challenges, int reward)
+        {
+            acceptedChallenges.Clear();
+            acceptedChallenges.AddRange(challenges);
+            MissionReward = reward;
+            briefOpen = false; // objectives (and the first briefing line) start now
+        }
+
         void Update()
         {
-            if (Completed || resetting) return;
+            if (briefOpen || Completed || resetting) return;
             float dt = Time.deltaTime;
             RefreshTargets(dt);
             if (player == null) return; // the car spawns a beat after play starts

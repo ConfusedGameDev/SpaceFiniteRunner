@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Video;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
@@ -121,6 +122,28 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     }
 
     /// <summary>
+    /// One optional goal offered on the mission brief: a free-text definition
+    /// and the reward multiplier taking it on earns. Conceptually a
+    /// dictionary entry (description → multiplier), stored as a list element
+    /// because Unity cannot serialize a Dictionary into an asset. Only the
+    /// DATA lives here for now — accepting a challenge is recorded by the
+    /// LevelManager, but nothing tracks its completion yet.
+    /// </summary>
+    [System.Serializable]
+    public class OptionalChallenge
+    {
+        [Tooltip("What the player must do, shown verbatim on the brief (e.g. \"Destroy 7 green cars\").")]
+        public string description = "";
+
+        [Tooltip("Reward multiplier for accepting this challenge — the brief shows it as ×N.")]
+        [PropertyRange(1, 20)]
+        public int multiplier = 2;
+
+        /// <summary>Inspector list label and the brief's row text.</summary>
+        public string Summary => $"{description} ×{multiplier}";
+    }
+
+    /// <summary>
     /// A city-chase level as data: the ordered objective list, how it
     /// completes, the dialogue framing and the scene handed over to at the
     /// end. The LevelManager reads this asset LIVE every frame (no runtime
@@ -163,6 +186,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Tooltip("How long the screen holds at full corruption after the completion line before the next scene loads.")]
         [PropertyRange(0.2f, 4f), SuffixLabel("s", true)]
         public float completionGlitchHoldSeconds = 1.2f;
+
+        [TitleGroup("Mission brief")]
+        [Tooltip("Clip looping in the brief screen's video panel. Empty = the panel shows a dead NO SIGNAL screen.")]
+        public VideoClip briefVideo;
+
+        [TitleGroup("Mission brief")]
+        [Tooltip("Payout for completing the mission with no optional challenges. Every challenge the player accepts multiplies it.")]
+        [PropertyRange(0, 100000), SuffixLabel("$", true)]
+        public int baseReward = 1000;
+
+        [TitleGroup("Mission brief")]
+        [Tooltip("Extra goals offered on the brief, each a toggle the player can take on for a bigger payout.")]
+        [ListDrawerSettings(DraggableItems = true, ListElementLabelName = nameof(OptionalChallenge.Summary))]
+        public List<OptionalChallenge> optionalChallenges = new();
 
         [TitleGroup("Objectives")]
         [Tooltip("Played top to bottom. Drag to reorder.")]
