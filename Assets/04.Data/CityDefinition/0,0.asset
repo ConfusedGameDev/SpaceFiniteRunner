@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1248dc7314e2b974e92b371f81daa826, type: 3}
+  m_Name: 0,0
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.City.BlockSettings
+  connectorDensity: 0.6
+  turnProbability: 0.35
+  allowDeadEnds: 0
+  placeFeatures: 1
+  overpassChance: 0.5
+  forkChance: 0.5
+  buildingSet: {fileID: 0}
+  decorationSet: {fileID: 0}
+  buildingDensityMultiplier: 1
+  decorationDensityMultiplier: 1

@@ -66,6 +66,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             public int seed;
 
             [Tooltip("Interior settings for this block. Empty = the definition's default block settings.")]
+            [InlineEditor]
             public BlockSettings settingsOverride;
 
             [Tooltip("Connector-only block: no streets, no buildings — just one elevated bridge crossing the block. Streets from perpendicular neighbours dead-end at its edge.")]
