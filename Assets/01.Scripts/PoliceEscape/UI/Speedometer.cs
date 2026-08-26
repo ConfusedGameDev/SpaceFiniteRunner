@@ -1,3 +1,4 @@
+using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using Sirenix.OdinInspector;
@@ -40,7 +41,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             if (!built) Build();
 
             RefreshTarget();
-            bool visible = player != null;
+            // HudSuppressed: the dialogue box can ask the gauges to step aside while it talks.
+            bool visible = player != null && !RpgMessageSystem.HudSuppressed;
             if (canvas.enabled != visible) canvas.enabled = visible;
             if (!visible) return;
 
@@ -109,7 +111,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             canvas.transform.SetParent(transform, false);
             canvas.gameObject.layer = UiLayer;
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 40;
+            canvas.sortingOrder = 10; // HUD tier — below the RPG messages (15) and the pause menu (20)
             var scaler = canvas.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);

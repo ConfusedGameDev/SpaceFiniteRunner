@@ -44,6 +44,10 @@ namespace ConfusedGameDev.FiniteRunner.Debugging
         [Tooltip("Draw the police line-of-sight ray to the player — the test that starts and ends a chase.")]
         public bool showPerception = true;
 
+        [TitleGroup("Channels")]
+        [Tooltip("Fill every dialogue trigger's volume with a translucent orange box, dimmed while it is on cooldown.")]
+        public bool showDialogueTriggers = true;
+
         static DebugManager instance;
         static readonly List<DebugVisualizer> visualizers = new();
         static bool quitting;
@@ -94,6 +98,7 @@ namespace ConfusedGameDev.FiniteRunner.Debugging
         public static bool ShowCarPaths => IsDebug && instance.showCarPaths;
         public static bool ShowCollisionProbes => IsDebug && instance.showCollisionProbes;
         public static bool ShowPerception => IsDebug && instance.showPerception;
+        public static bool ShowDialogueTriggers => IsDebug && instance.showDialogueTriggers;
 
         /// <summary>Every visualizer alive right now, enabled or not — the manager owns their enabled state.</summary>
         public static IReadOnlyList<DebugVisualizer> Visualizers => visualizers;

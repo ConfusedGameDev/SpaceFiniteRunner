@@ -129,7 +129,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             canvas.transform.SetParent(transform, false);
             canvas.gameObject.layer = UiLayer;
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 40;
+            canvas.sortingOrder = 10; // HUD tier — below the RPG messages (15) and the pause menu (20)
             var scaler = canvas.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);

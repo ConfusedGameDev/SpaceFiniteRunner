@@ -206,6 +206,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.HUD.RpgMessageSystem
   style: {fileID: 11400000, guid: fd1d92a31b54341d6ac57aa5680fddb5, type: 2}
+  hudMode: 1
   charactersPerSecond: 45
   defaultHoldSeconds: 2.5
   typeSound: {fileID: 0}

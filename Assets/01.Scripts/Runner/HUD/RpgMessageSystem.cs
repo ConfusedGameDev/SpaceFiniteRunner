@@ -21,6 +21,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// </summary>
     public class RpgMessageSystem : MonoBehaviour
     {
+        /// <summary>How the dialogue box shares the screen with the HUD gauges while a message is up.</summary>
+        public enum HudMode
+        {
+            /// <summary>The box simply renders over the gauges (its canvas sorts above the HUD tier).</summary>
+            DrawAboveHud,
+            /// <summary>Gauges that poll <see cref="HudSuppressed"/> hide while a message is on screen and return when the queue empties.</summary>
+            HideHudWhileTalking,
+        }
+
         static RpgMessageSystem instance;
 
         public static RpgMessageSystem Instance
@@ -40,6 +49,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Tooltip("All dialogue-box look tunables live on this asset — add new knobs there, not here.")]
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
         RpgMessageStyle style;
+
+        [Header("HUD")]
+        [Tooltip("While a message is up: draw over the speedometer/map, or hide them until the message queue empties.")]
+        [SerializeField] HudMode hudMode = HudMode.DrawAboveHud;
 
         [Header("Typewriter")]
         [SerializeField, Min(1f)] float charactersPerSecond = 45f;
@@ -93,6 +106,18 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         /// <summary>True while a message is on screen or waiting in the queue.</summary>
         public bool IsBusy => showing || queue.Count > 0;
 
+        /// <summary>
+        /// True while HUD gauges should stay off the screen: the system is set
+        /// to <see cref="HudMode.HideHudWhileTalking"/> and a message is up or
+        /// queued (IsBusy, not just showing — the gap between two queued lines
+        /// must not blink the gauges back for a frame). Computed, never stored
+        /// — gauges poll it in their own Update (they already re-decide
+        /// visibility every frame), so there is no stale hidden state to
+        /// unwind if a message is cleared mid-line.
+        /// </summary>
+        public static bool HudSuppressed =>
+            instance != null && instance.hudMode == HudMode.HideHudWhileTalking && instance.IsBusy;
+
         void Awake()
         {
             if (instance != null && instance != this)
@@ -104,6 +129,9 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             Build();
         }
 
+        const string TestSpeaker = "Author";
+        const string TestLine = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+
         /// <summary>Editor bake: regenerates the box and leaves it visible with sample text, so the prefab shows before play.</summary>
         [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
         public void RebuildPreview()
@@ -113,6 +141,79 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             nameText.text = "PILOT";
             bodyText.text = "Preview of the dialogue box — runtime rebuilds this from the style asset.";
             initialText.text = "P";
+        }
+
+        /// <summary>
+        /// Reverse of Build: reads the box as it currently stands in the scene
+        /// — panel rect and colors, portrait rect, font sizes, text inset —
+        /// back into the style asset and saves it. The edit-mode tuning loop:
+        /// Show Test Message, move/resize the built pieces by hand in the
+        /// scene view, fetch, then Rebuild Preview to confirm the asset now
+        /// reproduces the tweak.
+        /// </summary>
+        [Button("Fetch Current Setup", ButtonSizes.Large), GUIColor(1f, 0.85f, 0.5f)]
+        public void FetchCurrentSetup()
+        {
+            if (style == null)
+            {
+                Debug.LogWarning("Assign a style asset first — there is nothing to save the setup into.", this);
+                return;
+            }
+            if (root == null || nameText == null || bodyText == null || portraitFrame == null)
+            {
+                Debug.LogWarning("Nothing built to fetch — press Show Test Message or Rebuild Preview, tweak the box in the scene, then fetch.", this);
+                return;
+            }
+
+            var inner = (RectTransform)bodyText.rectTransform.parent; // "Background"
+            var border = (RectTransform)inner.parent;                 // "Panel"
+            style.borderColor = border.GetComponent<Image>().color;
+            style.backgroundColor = inner.GetComponent<Image>().color;
+            style.panelSideMargin = border.offsetMin.x;
+            style.panelBottomMargin = border.offsetMin.y;
+            style.panelHeight = border.offsetMax.y;
+
+            var frameRect = portraitFrame.rectTransform;
+            style.portraitPosition = frameRect.anchoredPosition;
+            style.portraitSize = frameRect.sizeDelta;
+
+            style.speakerFontSize = nameText.fontSize;
+            style.bodyFontSize = bodyText.fontSize;
+            style.textLeftInset = bodyText.rectTransform.offsetMin.x;
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(style);
+            UnityEditor.AssetDatabase.SaveAssetIfDirty(style);
+#endif
+            Debug.Log($"Fetched the current dialogue-box setup into '{style.name}'.", style);
+        }
+
+        /// <summary>
+        /// Shows a sample line — "{TestSpeaker}", lorem ipsum, the default
+        /// portrait, five seconds. In play mode it goes through the real queue
+        /// (typewriter, blips, hold); in edit mode it rebuilds the box and
+        /// leaves it fully visible, ready to be hand-tweaked and fetched.
+        /// </summary>
+        [Button("Show Test Message", ButtonSizes.Large), GUIColor(0.6f, 0.8f, 1f)]
+        public void ShowTestMessage()
+        {
+            if (Application.isPlaying)
+            {
+                ShowMessage(TestSpeaker, TestLine, 5f, Color.white, defaultAvatar);
+                return;
+            }
+
+            Build();
+            root.SetActive(true);
+            nameText.text = $"-{TestSpeaker}-";
+            nameText.color = Color.white;
+            bodyText.text = TestLine;
+            portraitImage.enabled = defaultAvatar != null;
+            portraitImage.sprite = defaultAvatar;
+            initialText.gameObject.SetActive(defaultAvatar == null);
+            initialText.text = TestSpeaker[..1];
+            initialText.color = Color.white;
+            portraitFrame.color = Color.Lerp(Color.white, Color.black, 0.78f);
         }
 
         // Root components (canvas, scaler, audio) are reused by Build, not
@@ -317,6 +418,9 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             rootRect.offsetMin = rootRect.offsetMax = Vector2.zero;
 
             // Bottom panel: light border with a deep translucent blue inside.
+            // The style asset is the source of truth for this layout: tweak
+            // the built rects by hand in edit mode, then Fetch Current Setup
+            // to persist them — Build always reapplies from the asset.
             var border = MakeRect("Panel", rootRect);
             border.anchorMin = new Vector2(0f, 0f);
             border.anchorMax = new Vector2(1f, 0f);
