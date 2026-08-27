@@ -70,13 +70,17 @@ namespace ConfusedGameDev.FiniteRunner.Debugging
 
         // Once per rendering camera, so the same overlay lands in the Game
         // view and the Scene view. Preview and reflection cameras are skipped:
-        // an asset thumbnail must not pick up a debug line.
+        // an asset thumbnail must not pick up a debug line. So is any camera
+        // rendering into a texture — the minimap and the city map are real
+        // scene cameras into RTs, and a debug overlay on the radar reads as
+        // gameplay UI, not as a developer view.
         void OnRenderObject()
         {
             if (Lines.Count == 0) return;
             Camera camera = Camera.current;
             if (camera == null) return;
             if (camera.cameraType is CameraType.Preview or CameraType.Reflection) return;
+            if (camera.targetTexture != null) return;
             Lines.Render(xray);
         }
     }
