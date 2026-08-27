@@ -38,6 +38,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         readonly List<Image> routeDots = new();
         RectTransform routeRoot;
         Image destinationBlip;
+        Image objectivePin;
         readonly List<PoliceCarInput> police = new();
         readonly List<TrafficCarInput> escapees = new();
         CarController player;
@@ -90,6 +91,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             mapCamera = null;
             blipRoot = playerArrow = routeRoot = null;
             destinationBlip = null;
+            objectivePin = null;
             blips.Clear();
             routeDots.Clear();
         }
@@ -151,6 +153,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             destinationBlip = CreateImage("Destination", blipRoot, circleSprite, settings.destinationColor,
                 new Vector2(settings.destinationSize, settings.destinationSize));
             destinationBlip.enabled = false;
+
+            // The objective GPS pin — the yellow twin of the marker pin.
+            objectivePin = CreateImage("ObjectivePin", blipRoot, circleSprite, settings.objectiveRouteColor,
+                new Vector2(settings.destinationSize, settings.destinationSize));
+            objectivePin.enabled = false;
+
+            // The guidance brain that feeds ObjectiveGps.Route — lives with the
+            // radar because the radar is its only view; no scene wiring.
+            if (Application.isPlaying)
+            {
+                var gps = GetComponent<ObjectiveGps>();
+                if (gps == null) gps = gameObject.AddComponent<ObjectiveGps>();
+                gps.settings = settings;
+            }
 
             Image arrow = CreateImage("PlayerArrow", maskImage.transform, CreateArrowSprite(64), settings.playerColor,
                 new Vector2(settings.playerArrowSize * 0.8f, settings.playerArrowSize));
@@ -280,66 +296,77 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         /// </summary>
         void UpdateRoute()
         {
-            MapRoute route = MapRoute.Current;
+            // Two independent lines share the dot pool: the player's own
+            // marker route (green) and the objective GPS (yellow). They may
+            // coexist — following your marker mid-objective is legitimate.
+            MapRoute marker = MapRoute.Current;
+            MapRoute objective = ObjectiveGps.Route;
+
+            UpdatePin(destinationBlip, marker, settings.destinationColor);
+            UpdatePin(objectivePin, objective, settings.objectiveRouteColor);
+
             int used = 0;
-            UpdateDestination(route);
-
-            if (route != null && route.HasRoute)
-            {
-                float uiRadius = settings.sizePixels * 0.5f;
-                float scale = uiRadius / Mathf.Max(1f, settings.viewRadius);
-                float maxRadius = uiRadius * 0.92f;
-
-                RadarBasis(out Vector3 forward, out Vector3 right);
-                Vector3 origin = player.transform.position;
-
-                float spacing = Mathf.Max(1f, settings.routeDotSpacing);
-                IReadOnlyList<Vector3> points = route.Points;
-                float carry = 0f;
-
-                for (int i = 1; i < points.Count && used < settings.routeMaxDots; i++)
-                {
-                    Vector3 a = points[i - 1];
-                    Vector3 b = points[i];
-                    Vector3 segment = b - a;
-                    segment.y = 0f;
-                    float length = segment.magnitude;
-                    if (length < 0.0001f) continue;
-                    Vector3 step = segment / length;
-
-                    for (float travelled = carry; travelled < length && used < settings.routeMaxDots; travelled += spacing)
-                    {
-                        Vector3 world = a + step * travelled;
-                        Vector3 delta = world - origin;
-                        var position = new Vector2(Vector3.Dot(delta, right), Vector3.Dot(delta, forward)) * scale;
-                        if (position.sqrMagnitude > maxRadius * maxRadius) continue;   // off-radar, skip rather than pile on the rim
-
-                        Image dot = GetRouteDot(used++);
-                        dot.rectTransform.anchoredPosition = position;
-                        dot.rectTransform.sizeDelta = new Vector2(settings.routeDotSize, settings.routeDotSize);
-                        dot.color = settings.routeColor;
-                        dot.enabled = true;
-                    }
-                    carry = Mathf.Repeat(carry - length, spacing);
-                }
-            }
-
+            DrawRouteDots(marker, settings.routeColor, ref used);
+            DrawRouteDots(objective, settings.objectiveRouteColor, ref used);
             for (int i = used; i < routeDots.Count; i++) routeDots[i].enabled = false;
         }
 
+        void DrawRouteDots(MapRoute route, Color color, ref int used)
+        {
+            if (route == null || !route.HasRoute) return;
+
+            float uiRadius = settings.sizePixels * 0.5f;
+            float scale = uiRadius / Mathf.Max(1f, settings.viewRadius);
+            float maxRadius = uiRadius * 0.92f;
+
+            RadarBasis(out Vector3 forward, out Vector3 right);
+            Vector3 origin = player.transform.position;
+
+            float spacing = Mathf.Max(1f, settings.routeDotSpacing);
+            IReadOnlyList<Vector3> points = route.Points;
+            float carry = 0f;
+
+            for (int i = 1; i < points.Count && used < settings.routeMaxDots; i++)
+            {
+                Vector3 a = points[i - 1];
+                Vector3 b = points[i];
+                Vector3 segment = b - a;
+                segment.y = 0f;
+                float length = segment.magnitude;
+                if (length < 0.0001f) continue;
+                Vector3 step = segment / length;
+
+                for (float travelled = carry; travelled < length && used < settings.routeMaxDots; travelled += spacing)
+                {
+                    Vector3 world = a + step * travelled;
+                    Vector3 delta = world - origin;
+                    var position = new Vector2(Vector3.Dot(delta, right), Vector3.Dot(delta, forward)) * scale;
+                    if (position.sqrMagnitude > maxRadius * maxRadius) continue;   // off-radar, skip rather than pile on the rim
+
+                    Image dot = GetRouteDot(used++);
+                    dot.rectTransform.anchoredPosition = position;
+                    dot.rectTransform.sizeDelta = new Vector2(settings.routeDotSize, settings.routeDotSize);
+                    dot.color = color;
+                    dot.enabled = true;
+                }
+                carry = Mathf.Repeat(carry - length, spacing);
+            }
+        }
+
         /// <summary>
-        /// The destination pin — the end of the route, clamped to the rim so it
+        /// A destination pin — the end of a route, clamped to the rim so it
         /// still points the way once it is beyond radar range.
         ///
-        /// It is driven by the route rather than by the marker store on
-        /// purpose: the map screen clears route and marker together the moment
-        /// the car arrives, so the pin vanishing IS the arrival, and the radar
-        /// needs to know nothing about markers to show it.
+        /// Pins are driven by their route rather than by any store on purpose:
+        /// the map screen clears route and marker together on arrival, and the
+        /// objective GPS clears its route when the objective changes or the
+        /// car closes within range — so a pin vanishing IS the arrival, and
+        /// the radar needs to know nothing about either owner to show it.
         /// </summary>
-        void UpdateDestination(MapRoute route)
+        void UpdatePin(Image pin, MapRoute route, Color color)
         {
             bool has = route != null && route.HasRoute;
-            destinationBlip.enabled = has;
+            pin.enabled = has;
             if (!has) return;
 
             float uiRadius = settings.sizePixels * 0.5f;
@@ -351,9 +378,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             var position = new Vector2(Vector3.Dot(delta, right), Vector3.Dot(delta, forward)) * scale;
             if (position.sqrMagnitude > maxRadius * maxRadius) position = position.normalized * maxRadius;
 
-            destinationBlip.rectTransform.anchoredPosition = position;
-            destinationBlip.rectTransform.sizeDelta = new Vector2(settings.destinationSize, settings.destinationSize);
-            destinationBlip.color = settings.destinationColor;
+            pin.rectTransform.anchoredPosition = position;
+            pin.rectTransform.sizeDelta = new Vector2(settings.destinationSize, settings.destinationSize);
+            pin.color = color;
         }
 
         Image GetRouteDot(int index)

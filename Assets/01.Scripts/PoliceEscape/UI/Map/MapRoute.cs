@@ -37,6 +37,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
         readonly List<Vector2Int> cells = new();
         readonly List<Vector3> points = new();
+        readonly bool shared;
+
+        /// <summary>
+        /// A shared route (the default) publishes itself to <see cref="Current"/>
+        /// on Set — the marker-route contract. Pass false for a private route
+        /// (the objective GPS) that other views find through its own owner
+        /// instead, so it can never hijack the marker slot.
+        /// </summary>
+        public MapRoute(bool shared = true) => this.shared = shared;
 
         /// <summary>The route currently being followed, or null when none is set.</summary>
         public static MapRoute Current { get; private set; }
@@ -74,7 +83,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
             OffRouteMeters = 0f;
             RecomputeRemaining();
-            Current = this;
+            if (shared) Current = this;
         }
 
         /// <summary>

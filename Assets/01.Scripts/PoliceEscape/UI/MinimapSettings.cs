@@ -85,6 +85,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         [PropertyRange(10, 400)]
         public int routeMaxDots = 160;
 
+        // ------------------------------------------------------- objective GPS
+        [TitleGroup("Objective GPS")]
+        [Tooltip("Colour of the GPS line to the active objective (Go To / Chase Car) — yellow, matching the escapee blip, so it never reads as the player's own green marker route.")]
+        public Color objectiveRouteColor = new(1f, 0.9f, 0.2f, 0.95f);
+
+        [TitleGroup("Objective GPS")]
+        [Tooltip("The objective GPS switches itself off within this range of the target — that close, the target is in sight and the line is clutter.")]
+        [PropertyRange(5f, 100f), SuffixLabel("m", true)]
+        public float objectiveGpsRange = 15f;
+
         // --------------------------------------------------------------- blips
         [TitleGroup("Blips")]
         [Tooltip("Player arrow color.")]
