@@ -34,6 +34,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         WheelFrictionCurve[] savedForward;
         WheelFrictionCurve[] savedSideways;
 
+        // Player-car effects (EVP demo audio + skid marks), torn down with the backend.
+        VehicleAudio audioModule;
+        VehicleTireEffects tireEffects;
+        GameObject audioRoot;
+
         public VehicleController Vehicle => vehicle;
 
         /// <summary>
@@ -46,6 +51,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// </summary>
         public static EvpCarBackend Install(CarController car)
         {
+            // The ground-material catch-all must exist before any
+            // VehicleController's OnEnable — that is where EVP caches its
+            // GroundMaterialManager lookup.
+            EnsureGroundEffects();
+
             GameObject go = car.gameObject;
             var body = go.GetComponent<Rigidbody>();
             Vector3 velocity = body.linearVelocity;
@@ -56,6 +66,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
             var vehicle = go.AddComponent<VehicleController>();
             vehicle.wheels = BuildWheels(car);
+            ApplyL200Baseline(vehicle);
             ApplySuspension(car);
 
             var backend = go.AddComponent<EvpCarBackend>();
@@ -65,10 +76,56 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             backend.ApplyChassis();
             backend.ApplyLiveConfig();
 
+            // Demo-grade juice for the car the player is actually in: engine /
+            // skid / impact audio and skid marks. AI cars stay silent — a
+            // twenty-car fleet of engine loops is noise, not comparison data.
+            if (car.GetComponent<CarInput>() != null)
+                backend.InstallEffects();
+
             go.SetActive(wasActive);
             body.linearVelocity = velocity;
             body.angularVelocity = angular;
             return backend;
+        }
+
+        /// <summary>
+        /// The parts of the L200 demo tuning with no CarConfig knob: curve
+        /// shapes, slip limits, balance and the driving aids. Copied verbatim
+        /// from Assets/00.Plugins/EVP5/Prefabs/L200-Red.prefab so EVP mode
+        /// reproduces that vehicle's character; the quantities a designer
+        /// actually dials live on the config's EVP section instead.
+        /// </summary>
+        static void ApplyL200Baseline(VehicleController vehicle)
+        {
+            vehicle.maxSpeedReverse = 14f;
+            vehicle.aeroDrag = 2f;
+
+            vehicle.driveBalance = 0.5f;
+            vehicle.brakeBalance = 0.7f;
+            vehicle.tireFrictionBalance = 0.5f;
+            vehicle.aeroBalance = 0.5f;
+            vehicle.handlingBias = 0.5f;
+
+            vehicle.forceCurveShape = 0.8f;
+            vehicle.maxDriveSlip = 4f;
+            vehicle.driveForceToMaxSlip = 500f;
+
+            vehicle.brakeForceToMaxSlip = 1000f;
+            vehicle.brakeMode = VehicleController.BrakeMode.Ratio;
+            vehicle.maxBrakeSlip = 2f;
+            vehicle.maxBrakeRatio = 1f;
+            vehicle.handbrakeMode = VehicleController.BrakeMode.Slip;
+            vehicle.maxHandbrakeSlip = 4f;
+            vehicle.maxHandbrakeRatio = 0.5f;
+
+            vehicle.tractionControl = true;
+            vehicle.tractionControlRatio = 0.8f;
+            vehicle.brakeAssist = true;
+            vehicle.brakeAssistRatio = 1f;
+            vehicle.steeringLimit = true;
+            vehicle.steeringLimitRatio = 0.8f;
+            vehicle.steeringAssist = true;
+            vehicle.steeringAssistRatio = 0.5f;
         }
 
         /// <summary>
@@ -88,6 +145,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
                     wheels[i].steerAngle = 0f;
                 }
 
+            if (audioModule != null) Destroy(audioModule);
+            if (tireEffects != null) Destroy(tireEffects);
+            if (audioRoot != null) Destroy(audioRoot);
             if (vehicle != null) Destroy(vehicle);
             Destroy(this);
         }
@@ -168,9 +228,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             var body = GetComponent<Rigidbody>();
             body.mass = config.mass;
 
+            // Parametric center of mass: the L200's fore-aft weight
+            // distribution, but the HEIGHT is the config's own EVP knob — the
+            // demo truck's -0.116 flips at this game's cornering speeds, and
+            // CoM height is the number-one rollover dial. (The debug CENTER OF
+            // MASS slider is a different scale and only moves the built-in sim.)
             vehicle.centerOfMassMode = VehicleController.CenterOfMassMode.Parametric;
-            vehicle.centerOfMassPosition = 0.5f;
-            vehicle.centerOfMassHeightOffset = -Mathf.Clamp(config.centerOfMassDrop, 0f, 1f);
+            vehicle.centerOfMassPosition = 0.569f;
+            vehicle.centerOfMassHeightOffset = Mathf.Clamp(config.evpCenterOfMassHeight, -1f, 0f);
 
             if (vehicle.enabled && gameObject.activeInHierarchy)
             {
@@ -191,7 +256,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             if (config == null || vehicle == null) return;
             vehicle.maxSteerAngle = config.maxSteerAngle;
             vehicle.maxSpeedForward = config.topSpeedKmh / 3.6f;
-            vehicle.maxSpeedReverse = config.topSpeedKmh / 3.6f * config.reverseTorqueFactor;
+            // maxSpeedReverse stays at the L200 baseline's 14 m/s.
             vehicle.maxDriveForce = config.evpDriveForce;
             vehicle.maxBrakeForce = config.evpBrakeForce;
             vehicle.tireFriction = config.evpTireFriction;
@@ -231,24 +296,181 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         }
 
         /// <summary>
-        /// With the built-in sim's per-step wheel setup gone, the config's
-        /// suspension lands on the WheelColliders once here — EVP keeps
+        /// With the built-in sim's per-step wheel setup gone, the L200 demo's
+        /// wheel rig lands on the WheelColliders once here — EVP keeps
         /// whatever suspension the colliders carry (only raising the spring to
         /// its computed minimum) and zeroes their friction to run its own.
+        /// L200 values, not the config's: its 1500 N·s/m damper against the
+        /// config's 4500 is most of the difference between the demo's lively
+        /// body motion and an overdamped kart.
         /// </summary>
         static void ApplySuspension(CarController car)
         {
-            CarConfig config = car.config;
-            if (config == null) return;
             foreach (var wheel in new[] { car.frontLeft, car.frontRight, car.rearLeft, car.rearRight })
             {
                 if (wheel == null) continue;
-                wheel.suspensionDistance = config.suspensionDistance;
+                wheel.suspensionDistance = 0.3f;
+                wheel.mass = 20f;
+                wheel.wheelDampingRate = 0.25f;
                 JointSpring spring = wheel.suspensionSpring;
-                spring.spring = config.springForce;
-                spring.damper = config.damperForce;
+                spring.spring = 35000f;
+                spring.damper = 1500f;
                 wheel.suspensionSpring = spring;
             }
+        }
+
+        // ------------------------------------------------------------- effects
+
+        /// <summary>
+        /// The L200 demo's audio rig and tire effects, rebuilt in code on the
+        /// player's car: engine loop over simulated RPM and gears, tire skid
+        /// on braking and hard cornering, wind, body drags, one-shot impacts —
+        /// every number copied from the L200-Red prefab (only its values that
+        /// differ from the component defaults are set here). Clips come off
+        /// the settings asset; anything left unassigned is silently skipped
+        /// (VehicleAudio null-checks every source).
+        /// </summary>
+        void InstallEffects()
+        {
+            var settings = VehiclePhysicsSettings.Current;
+
+            tireEffects = gameObject.AddComponent<VehicleTireEffects>();
+            tireEffects.tireWidth = 0.2f;
+            tireEffects.minSlip = 1.5f;
+            tireEffects.maxSlip = 6f;
+            tireEffects.intensity = 1f;
+            tireEffects.updateInterval = 0.02f;
+            tireEffects.minIntensityTime = 1f;
+            tireEffects.maxIntensityTime = 7f;
+            tireEffects.limitIntensityTime = 8f;
+
+            audioRoot = new GameObject("EvpAudio");
+            audioRoot.transform.SetParent(transform, false);
+
+            audioModule = gameObject.AddComponent<VehicleAudio>();
+
+            var template = MakeSource("OneShotTemplate", null);
+            template.loop = false;
+            audioModule.audioClipTemplate = template;
+
+            audioModule.engine.audioSource = MakeSource("Engine", settings.engineClip);
+            audioModule.engine.idlePitch = 0.6f;
+            audioModule.engine.maxRpm = 5000f;
+            audioModule.engine.maxPitch = 3.5f;
+            audioModule.engine.maxVolume = 0.55f;
+            audioModule.engine.wheelsToEngineRatio = 13.6f;
+            audioModule.engine.gears = 4;
+            audioModule.engine.gearDownRpm = 1800f;
+            audioModule.engine.gearUpRpm = 4000f;
+            audioModule.engine.gearDownRpmRate = 20f;
+
+            audioModule.wheels.skidAudioSource = MakeSource("Skid", settings.skidClip);
+            audioModule.wheels.skidMinSlip = 1f;
+            audioModule.wheels.offroadAudioSource = MakeSource("Offroad", settings.offroadClip);
+            audioModule.wheels.bumpAudioClip = settings.bumpClip;
+
+            audioModule.impacts.hardImpactAudioClip = settings.hardImpactClip;
+            audioModule.impacts.softImpactAudioClip = settings.softImpactClip;
+            audioModule.impacts.minPitch = 0.4f;
+
+            audioModule.drags.hardDragAudioSource = MakeSource("HardDrag", settings.hardDragClip);
+            audioModule.drags.softDragAudioSource = MakeSource("SoftDrag", settings.softDragClip);
+            audioModule.drags.scratchAudioClip = settings.scratchClip;
+
+            audioModule.wind.windAudioSource = MakeSource("Wind", settings.windClip);
+            audioModule.wind.maxVolume = 0.4f;
+        }
+
+        /// <summary>A 3D looping source under EvpAudio, spatialized like the L200's (1–110 m, half volume).</summary>
+        AudioSource MakeSource(string name, AudioClip clip)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(audioRoot.transform, false);
+            var source = go.AddComponent<AudioSource>();
+            source.clip = clip;
+            source.playOnAwake = false;
+            source.loop = true;
+            source.spatialBlend = 1f;
+            source.minDistance = 1f;
+            source.maxDistance = 110f;
+            source.volume = 0.55f;
+            return source;
+        }
+
+        /// <summary>
+        /// The scene-side half of skid marks, built once: a
+        /// GroundMaterialManager whose single catch-all entry (no physic
+        /// material — which is exactly what every city collider reports)
+        /// mirrors the demo's default ground, pointing at a TireMarksRenderer
+        /// with the demo's skidmarks decal settings. It stays through backend
+        /// switches; built-in cars simply never query it.
+        /// </summary>
+        static void EnsureGroundEffects()
+        {
+            if (FindAnyObjectByType<GroundMaterialManager>() != null) return;
+
+            var root = new GameObject("EVP Ground Effects");
+            var manager = root.AddComponent<GroundMaterialManager>();
+
+            TireMarksRenderer marks = null;
+            Material marksMaterial = UsableMarksMaterial(VehiclePhysicsSettings.Current.tireMarksMaterial);
+            if (marksMaterial != null)
+            {
+                // Configured while INACTIVE: TireMarksRenderer.OnEnable is
+                // where it creates its MeshRenderer (taking the material) and
+                // sizes its mark arrays (taking maxMarks) — on an active
+                // object AddComponent would fire OnEnable before any of these
+                // fields land, leaving a materialless (pink) mesh.
+                var marksGo = new GameObject("Skidmarks Renderer");
+                marksGo.transform.SetParent(root.transform, false);
+                marksGo.SetActive(false);
+                marks = marksGo.AddComponent<TireMarksRenderer>();
+                marks.mode = TireMarksRenderer.Mode.PressureAndSkid;
+                marks.maxMarks = 4000;
+                marks.minDistance = 0.1f;
+                marks.groundOffset = 0.01f;
+                marks.textureOffsetY = 0.05f;
+                marks.fadeOutRange = 0.5f;
+                marks.material = marksMaterial;
+                marksGo.SetActive(true);
+            }
+
+            manager.groundMaterials = new[]
+            {
+                new GroundMaterial
+                {
+                    physicMaterial = null,
+                    grip = 1f,
+                    drag = 0.1f,
+                    marksRenderer = marks,
+                    particleEmitter = null,
+                    surfaceType = GroundMaterial.SurfaceType.Hard,
+                },
+            };
+        }
+
+        /// <summary>
+        /// The authored skidmarks material, unless its shader failed to
+        /// compile in this pipeline (the marks render as error-pink) — then an
+        /// equivalent is built on Sprites/Default, which is always available,
+        /// alpha-blends, and multiplies the same vertex color the marks
+        /// renderer fades segments with. Same texture, same black tint; it is
+        /// only unlit, which black tread marks can't visibly tell.
+        /// </summary>
+        static Material UsableMarksMaterial(Material authored)
+        {
+            if (authored == null) return null;
+            if (authored.shader != null && authored.shader.isSupported) return authored;
+
+            Shader fallback = Shader.Find("Sprites/Default");
+            if (fallback == null) return null; // nothing sane to draw with — better no marks than pink ones
+            Debug.LogWarning($"EvpCarBackend: skid-mark material '{authored.name}' uses an unsupported shader " +
+                             $"('{(authored.shader != null ? authored.shader.name : "none")}') — using a Sprites/Default fallback.");
+
+            var material = new Material(fallback) { name = authored.name + " (fallback)" };
+            material.mainTexture = authored.mainTexture;
+            material.color = authored.HasProperty("_Color") ? authored.color : Color.black;
+            return material;
         }
     }
 }

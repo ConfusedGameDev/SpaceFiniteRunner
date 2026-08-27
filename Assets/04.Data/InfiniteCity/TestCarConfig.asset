@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.CarConfig
   mass: 1250
   centerOfMassDrop: 0.6
-  downforce: 40
+  downforce: 115
   antiRollForce: 8000
   drivetrain: 2
   maxMotorTorque: 4900
@@ -85,5 +85,12 @@ MonoBehaviour:
   substepsAboveThreshold: 6
   spawnSpeedKmh: 40
   spawnRunwayCells: 4
+  evpDriveForce: 4000
+  evpBrakeForce: 6000
+  evpTireFriction: 1
+  evpAntiRoll: 0.5
+  evpAeroDownforce: 1
+  evpRollingResistance: 0.1
+  evpCenterOfMassHeight: -0.45
   flipTimeout: 1.5
   respawnHeight: 0.6

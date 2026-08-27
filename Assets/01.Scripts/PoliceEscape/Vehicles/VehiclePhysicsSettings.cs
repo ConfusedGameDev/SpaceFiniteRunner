@@ -25,6 +25,54 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [EnumToggleButtons]
         public Backend backend = Backend.BuiltIn;
 
+        // ------------------------------------------------------------- effects
+        // Sound and skid-mark assets for the player's car in EVP mode, wired to
+        // the EVP5 demo assets (the L200's setup). Referenced from here rather
+        // than loaded by path because none of them live in Resources.
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("Engine loop, pitched over simulated RPM and gears.")]
+        public AudioClip engineClip;
+
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("Tire skid loop — brakes, handbrake and hard cornering.")]
+        public AudioClip skidClip;
+
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("Rumble loop while rolling over soft (offroad) surfaces.")]
+        public AudioClip offroadClip;
+
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("Body scraping along a hard surface (wall grinding).")]
+        public AudioClip hardDragClip;
+
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("Body dragging over a soft surface.")]
+        public AudioClip softDragClip;
+
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("Wind noise over speed.")]
+        public AudioClip windClip;
+
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("One-shot suspension bump.")]
+        public AudioClip bumpClip;
+
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("One-shot hard collision.")]
+        public AudioClip hardImpactClip;
+
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("One-shot soft collision.")]
+        public AudioClip softImpactClip;
+
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("One-shot scratch while grinding a wall.")]
+        public AudioClip scratchClip;
+
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("Skid-mark decal material (EVP's URP-ported tire marks shader). No material = no marks.")]
+        public Material tireMarksMaterial;
+
         static VehiclePhysicsSettings cached;
 
         /// <summary>The shipped asset from Resources, or an in-memory default (built-in backend).</summary>

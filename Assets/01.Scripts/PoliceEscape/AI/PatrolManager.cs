@@ -50,10 +50,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
             patrols.RemoveAll(patrol => patrol == null);
 
+            // The despawn radius must always contain the spawn band, or every
+            // fresh patrol is born "too far" and dies on the next tick — an
+            // endless spawn/despawn churn. The two are separate sliders on the
+            // debug menu and the asset, so the invariant is enforced here
+            // rather than trusted to tuning.
+            float despawnDistance = Mathf.Max(settings.despawnDistance, settings.SpawnDistanceMax + 50f);
+
             for (int i = patrols.Count - 1; i >= 0; i--)
             {
                 Vector3 position = patrols[i].transform.position;
-                bool tooFar = Vector3.Distance(position, player.transform.position) > settings.despawnDistance;
+                bool tooFar = Vector3.Distance(position, player.transform.position) > despawnDistance;
                 // Block rule only for patrolling cars — never break a live chase
                 // from the outside (see the class comment).
                 bool outOfBlock = patrols[i].State == PoliceCarInput.AiState.Patrol

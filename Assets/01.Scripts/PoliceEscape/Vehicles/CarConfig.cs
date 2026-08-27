@@ -164,35 +164,47 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         // max steer angle, top speed, center-of-mass drop, drivetrain,
         // suspension) are mapped across from the sections above — only the
         // quantities with no built-in equivalent live here.
+        // Defaults are copied from the EVP5 demo's L200 pickup
+        // (Assets/00.Plugins/EVP5/Prefabs/L200-Red.prefab) — the reference
+        // feel the comparison is judged against. The rest of the L200's
+        // character (drive/brake curve shapes, driving aids, balance) is the
+        // fixed baseline EvpCarBackend applies at install.
         [TitleGroup("EVP (comparison backend)")]
-        [Tooltip("EVP total drive force at full throttle. Roughly mass × desired acceleration in m/s².")]
+        [Tooltip("EVP total drive force at full throttle — the power dial. The L200 reference is 1000 N; raise this if the game's higher top speed leaves the car sluggish.")]
         [PropertyRange(500f, 12000f), SuffixLabel("N", true)]
-        public float evpDriveForce = 4000f;
+        public float evpDriveForce = 1000f;
 
         [TitleGroup("EVP (comparison backend)")]
         [Tooltip("EVP total brake force.")]
         [PropertyRange(1000f, 20000f), SuffixLabel("N", true)]
-        public float evpBrakeForce = 6000f;
+        public float evpBrakeForce = 3000f;
 
         [TitleGroup("EVP (comparison backend)")]
-        [Tooltip("EVP tire friction coefficient — overall grip. 1 = street tires, 2+ = arcade glue.")]
+        [Tooltip("EVP tire friction coefficient — overall grip. 1 = street tires (the L200 reference), 2+ = arcade glue.")]
         [PropertyRange(0f, 3f)]
-        public float evpTireFriction = 1.6f;
+        public float evpTireFriction = 1f;
 
         [TitleGroup("EVP (comparison backend)")]
         [Tooltip("EVP anti-roll ratio — how much the chassis resists body roll in corners.")]
         [PropertyRange(0f, 1f)]
-        public float evpAntiRoll = 0.4f;
+        public float evpAntiRoll = 0.5f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP parametric center-of-mass height (relative to the wheel rig, 0 = axle height). " +
+                 "THE anti-rollover dial: the L200 reference sits at -0.116 and tips over at this game's " +
+                 "cornering speeds — more negative = harder to flip. Mid-run changes need Apply Config.")]
+        [PropertyRange(-1f, 0f)]
+        public float evpCenterOfMassHeight = -0.45f;
 
         [TitleGroup("EVP (comparison backend)")]
         [Tooltip("EVP aerodynamic downforce factor — high-speed road glue, the counterpart of the built-in downforce knob.")]
         [PropertyRange(0f, 2f)]
-        public float evpAeroDownforce = 1f;
+        public float evpAeroDownforce = 0.1f;
 
         [TitleGroup("EVP (comparison backend)")]
         [Tooltip("EVP rolling resistance — how quickly a coasting car bleeds speed (the counterpart of the coast-brake torque).")]
         [PropertyRange(0f, 1f)]
-        public float evpRollingResistance = 0.1f;
+        public float evpRollingResistance = 0.05f;
 
         // ------------------------------------------------------------- recovery
         [TitleGroup("Recovery")]
