@@ -26,6 +26,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     /// too), or placed as a bare GameObject in a scene with no ship (the city
     /// chase), where it pauses on timeScale alone. Everything animates on
     /// unscaled time, because the whole point is that scaled time is stopped.
+    /// Pausing also crossfades the audio mixer into its Paused snapshot
+    /// (<see cref="UI.GameAudio.SetPaused"/>): the Gameplay bus — music, FX,
+    /// voice — fades to silence while the UI bus keeps sounding and an
+    /// optional pause-music loop (MenuTheme.PauseMusicClip) fades in.
     /// The DEBUG entry follows the same rule: <see cref="BuildDebugTabs"/>
     /// builds only the pages the current scene can actually edit — track,
     /// ship and patrol in the runner, car, chase camera and police in the city.
@@ -57,6 +61,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         MenuScreen current;
         PromptStrip footer;
         AudioSource ui;
+        AudioSource pauseMusic;     // loops on the mixer's PauseMusic bus — audible only in the Paused snapshot
+        float pauseMusicStopTime;   // resume keeps it playing until the crossfade has carried it out
 
         bool isPaused;
         bool debugDirty;   // a debug slider moved this pause — offer a reload on the way out
@@ -95,6 +101,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             if (!isPaused)
             {
+                // The resume crossfade already muted it; now it can actually stop.
+                if (pauseMusic != null && pauseMusic.isPlaying && Time.unscaledTime >= pauseMusicStopTime)
+                    pauseMusic.Stop();
                 if (MenuNavigator.PauseTogglePressed() && CanPause()) Pause();
                 return;
             }
@@ -169,6 +178,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             isPaused = true;
             if (motor != null) motor.Paused = true;
             Time.timeScale = 0f;
+
+            // Duck the world, not the menu: the Paused snapshot fades the
+            // Gameplay bus (music, FX, voice) out and PauseMusic in — the
+            // mixer updates on unscaled time, so the timeScale 0 set just
+            // above can't freeze the fade. UI blips are on their own bus and
+            // keep sounding.
+            GameAudio.SetPaused(true, theme.PauseAudioFade);
+            if (pauseMusic != null && pauseMusic.clip != null) pauseMusic.Play();
+
             MenuScreenFactory.EnsureEventSystem(); // the city scene has none; mouse clicks need one
             panel.SetActive(true);
 
@@ -195,6 +213,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             Time.timeScale = 1f;
             if (motor != null) motor.Paused = false;
             panel.SetActive(false);
+            GameAudio.SetPaused(false, theme.PauseAudioFade);
+            pauseMusicStopTime = Time.unscaledTime + theme.PauseAudioFade; // stop only once the fade has hidden it
             debugSettings?.Flush();     // commit any debug tweaks to disk
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
@@ -271,6 +291,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         void OnDestroy()
         {
             if (isPaused) Time.timeScale = 1f;
+            // The mixer outlives every scene, so a menu destroyed while
+            // paused (exit to menu, debug reload) must hand the next scene a
+            // gameplay mix, not a muted one.
+            if (isPaused) GameAudio.SetPaused(false, 0f);
             debugSettings?.Flush();
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
@@ -298,6 +322,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             pauseScreen = settingsScreen = confirmMenuScreen = confirmQuitScreen = confirmReloadScreen = current = null;
             footer = null;
             ui = null;
+            pauseMusic = null;
             debugMenu = null;
             debugRefreshers.Clear();
         }
@@ -332,6 +357,18 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             ui = GetOrAdd<AudioSource>(gameObject);
             ui.playOnAwake = false;
             ui.outputAudioMixerGroup = theme.UiOutput;
+
+            // Its bus is muted outside the Paused snapshot, so this source is
+            // only ever heard through the pause crossfade. Own child object:
+            // the root's AudioSource is the UI blip source.
+            var pauseMusicGo = new GameObject("PauseMusic");
+            pauseMusicGo.transform.SetParent(transform, false);
+            pauseMusic = pauseMusicGo.AddComponent<AudioSource>();
+            pauseMusic.playOnAwake = false;
+            pauseMusic.loop = true;
+            pauseMusic.spatialBlend = 0f;
+            pauseMusic.clip = theme.PauseMusicClip;
+            pauseMusic.outputAudioMixerGroup = GameAudio.PauseMusic;
 
             // Full-screen dim that also blocks clicks reaching the HUD below.
             // Everything hangs off it, so hiding the panel hides the menu.

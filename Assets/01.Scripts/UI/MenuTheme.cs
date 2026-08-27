@@ -203,7 +203,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         // -------------------------------------------------------------- audio
         [TitleGroup("Audio")]
-        [Tooltip("Master / Music / SFX mixer. Must expose MasterVolume, MusicVolume and SFXVolume.")]
+        [Tooltip("The game mixer (Master → Gameplay → Music/FX/Voice, plus UI and PauseMusic). Must expose MasterVolume, MusicVolume, SFXVolume and UIVolume, and carry the Gameplay/Paused snapshots — see GameAudio.")]
         [SerializeField] AudioMixer mixer;
 
         [TitleGroup("Audio")]
@@ -223,6 +223,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Audio")]
         [PropertyRange(0f, 1f)]
         [SerializeField] float uiVolume = 0.8f;
+
+        [TitleGroup("Audio")]
+        [Tooltip("Loops on the mixer's PauseMusic bus while the pause menu is up. Left empty on purpose: no placeholder audio ships with the menu.")]
+        [SerializeField] AudioClip pauseMusicClip;
+
+        [TitleGroup("Audio")]
+        [Tooltip("Seconds the pause crossfade takes — gameplay buses fade out, pause music fades in. The mixer updates on unscaled time, so it plays out at timeScale 0.")]
+        [PropertyRange(0f, 2f), SuffixLabel("s", true)]
+        [SerializeField] float pauseAudioFade = 0.4f;
 
         // ------------------------------------------------------------ haptics
         [TitleGroup("Haptics")]
@@ -312,6 +321,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         public AudioClip ConfirmClip => confirmClip;
         public AudioClip BackClip => backClip;
         public float UiVolume => uiVolume;
+        public AudioClip PauseMusicClip => pauseMusicClip;
+        public float PauseAudioFade => pauseAudioFade;
 
         public float MoveRumble => moveRumble;
         public float ConfirmRumble => confirmRumble;

@@ -1,3 +1,4 @@
+using ConfusedGameDev.FiniteRunner.UI;
 using EVP;
 using UnityEngine;
 
@@ -381,7 +382,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             audioModule.wind.maxVolume = 0.4f;
         }
 
-        /// <summary>A 3D looping source under EvpAudio, spatialized like the L200's (1–110 m, half volume).</summary>
+        /// <summary>
+        /// A 3D looping source under EvpAudio, spatialized like the L200's
+        /// (1–110 m, half volume). Routed through the mixer's FX bus so the
+        /// whole car — engine, skid, wind, drags, and the one-shots
+        /// VehicleAudio clones off the template — ducks with the pause
+        /// snapshot and follows the SFX volume slider.
+        /// </summary>
         AudioSource MakeSource(string name, AudioClip clip)
         {
             var go = new GameObject(name);
@@ -394,6 +401,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             source.minDistance = 1f;
             source.maxDistance = 110f;
             source.volume = 0.55f;
+            source.outputAudioMixerGroup = GameAudio.Fx;
             return source;
         }
 

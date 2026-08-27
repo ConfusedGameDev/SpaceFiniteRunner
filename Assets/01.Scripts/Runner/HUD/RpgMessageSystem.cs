@@ -409,6 +409,9 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
             audioSource = GetOrAdd<AudioSource>(gameObject);
             audioSource.playOnAwake = false;
+            // Dialogue rides the Voice bus: it ducks with the pause snapshot,
+            // matching this system's scaled-time freeze while the menu is up.
+            audioSource.outputAudioMixerGroup = UI.GameAudio.Voice;
 
             root = new GameObject("MessageRoot", typeof(RectTransform));
             var rootRect = (RectTransform)root.transform;

@@ -82,5 +82,7 @@ MonoBehaviour:
   confirmClip: {fileID: 0}
   backClip: {fileID: 0}
   uiVolume: 0.8
+  pauseMusicClip: {fileID: 0}
+  pauseAudioFade: 0.4
   moveRumble: 0.12
   confirmRumble: 0.4

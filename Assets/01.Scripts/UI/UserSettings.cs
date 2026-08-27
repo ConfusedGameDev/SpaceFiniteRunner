@@ -21,6 +21,13 @@ namespace ConfusedGameDev.FiniteRunner.UI
         public const string MusicVolumeParam = "MusicVolume";
         public const string SfxVolumeParam = "SFXVolume";
 
+        /// <summary>
+        /// The UI bus sits outside the pause-ducked Gameplay bus (menu blips
+        /// must stay audible while paused), so the SFX slider drives it as a
+        /// second parameter rather than as a child group.
+        /// </summary>
+        public const string UiVolumeParam = "UIVolume";
+
         /// <summary>Mixer floor. Log10(0) is -Infinity, which would silently poison the mixer, so every conversion clamps here instead.</summary>
         public const float MinDecibels = -80f;
 
@@ -68,11 +75,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
             set => Apply(ref music, MusicKey, MusicVolumeParam, value);
         }
 
-        /// <summary>SFX bus volume, 0..1 linear.</summary>
+        /// <summary>SFX bus volume, 0..1 linear. Also drives the UI bus — one "effects" slider for the player.</summary>
         public static float SfxVolume
         {
             get { EnsureLoaded(); return sfx; }
-            set => Apply(ref sfx, SfxKey, SfxVolumeParam, value);
+            set
+            {
+                Apply(ref sfx, SfxKey, SfxVolumeParam, value);
+                Push(UiVolumeParam, sfx);
+            }
         }
 
         /// <summary>Whether story messages should be subtitled.</summary>
@@ -145,6 +156,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             Push(MasterVolumeParam, master);
             Push(MusicVolumeParam, music);
             Push(SfxVolumeParam, sfx);
+            Push(UiVolumeParam, sfx);
         }
 
         static void EnsureLoaded()
