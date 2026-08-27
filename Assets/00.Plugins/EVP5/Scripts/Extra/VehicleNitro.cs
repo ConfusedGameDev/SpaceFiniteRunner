@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.InputSystem;
 using System.Collections;
 
 public class VehicleNitro : MonoBehaviour
@@ -7,7 +8,7 @@ public class VehicleNitro : MonoBehaviour
 	public Mode mode = Mode.Acceleration;
 	public float value = 10.0f;
 	public float maxVelocity = 50.0f;
-	public KeyCode key = KeyCode.N;
+	public Key key = Key.N;
 
 
 	Rigidbody m_rigidbody;
@@ -23,7 +24,7 @@ public class VehicleNitro : MonoBehaviour
 		{
 		if (mode == Mode.Impulse)
 			{
-			if (Input.GetKeyDown(key) && m_rigidbody.linearVelocity.magnitude < maxVelocity)
+			if (EVP.InputCompat.KeyDown(key) && m_rigidbody.linearVelocity.magnitude < maxVelocity)
 			m_rigidbody.AddRelativeForce(Vector3.forward * value, ForceMode.VelocityChange);
 			}
 		}
@@ -33,7 +34,7 @@ public class VehicleNitro : MonoBehaviour
 		{
 		if (mode == Mode.Acceleration)
 			{
-			if (Input.GetKey(key) && m_rigidbody.linearVelocity.magnitude < maxVelocity)
+			if (EVP.InputCompat.KeyPressed(key) && m_rigidbody.linearVelocity.magnitude < maxVelocity)
 				m_rigidbody.AddRelativeForce(Vector3.forward * value, ForceMode.Acceleration);
 			}
 		}

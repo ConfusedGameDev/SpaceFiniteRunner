@@ -5,6 +5,7 @@
 //------------------------------------------------------------------------------------------------
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 using System.Collections.Generic;
 
 namespace EVP
@@ -15,9 +16,9 @@ public class VehicleManager : MonoBehaviour
 	public VehicleController[] vehicles = new VehicleController[0];
 	public int defaultVehicle = 0;
 
-	public KeyCode previousVehicleKey = KeyCode.PageUp;
-	public KeyCode nextVehicleKey = KeyCode.PageDown;
-	public KeyCode alternateNextVehicleKey = KeyCode.Tab;
+	public Key previousVehicleKey = Key.PageUp;
+	public Key nextVehicleKey = Key.PageDown;
+	public Key alternateNextVehicleKey = Key.Tab;
 
 	public VehicleCameraController cameraController;
 	public bool overrideVehicleComponents = true;
@@ -48,8 +49,8 @@ public class VehicleManager : MonoBehaviour
 
 	void Update ()
 		{
-		if (Input.GetKeyDown(previousVehicleKey)) SelectPreviousVehicle();
-		if (Input.GetKeyDown(nextVehicleKey) || Input.GetKeyDown(alternateNextVehicleKey))
+		if (InputCompat.KeyDown(previousVehicleKey)) SelectPreviousVehicle();
+		if (InputCompat.KeyDown(nextVehicleKey) || InputCompat.KeyDown(alternateNextVehicleKey))
 			SelectNextVehicle();
 		}
 

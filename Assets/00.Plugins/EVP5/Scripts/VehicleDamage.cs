@@ -13,6 +13,7 @@
 
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace EVP
 {
@@ -42,7 +43,7 @@ public class VehicleDamage : MonoBehaviour
 	public float vertexRepairRate = 0.1f;
 
 	public bool enableRepairKey = true;
-	public KeyCode repairKey = KeyCode.R;
+	public Key repairKey = Key.R;
 
 
 	VehicleController m_vehicle;
@@ -129,7 +130,7 @@ public class VehicleDamage : MonoBehaviour
 
 	void Update ()
 		{
-		if (enableRepairKey && Input.GetKeyDown(repairKey))
+		if (enableRepairKey && InputCompat.KeyDown(repairKey))
 			m_repairing = true;
 
 		ProcessRepair();

@@ -26,22 +26,23 @@ public class VehicleStandardInputInspector : Editor
 
 		SerializedProperty propThrottleAndBrakeInput = serializedObject.FindProperty("throttleAndBrakeInput");
 		EditorGUILayout.PropertyField(propThrottleAndBrakeInput);
-		EditorGUILayout.PropertyField(serializedObject.FindProperty("steerAxis"));
+		EditorGUILayout.PropertyField(serializedObject.FindProperty("steerAction"));
 
 		VehicleStandardInput.ThrottleAndBrakeInput throttleAndBrakeInput = (VehicleStandardInput.ThrottleAndBrakeInput)propThrottleAndBrakeInput.enumValueIndex;
 
 		if (throttleAndBrakeInput == VehicleStandardInput.ThrottleAndBrakeInput.SeparateAxes)
 			{
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("throttleAxis"));
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("brakeAxis"));
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("throttleAction"));
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("brakeAction"));
 			}
 		else
 			{
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("throttleAndBrakeAxis"));
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("throttleAndBrakeAction"));
 			}
 
-		EditorGUILayout.PropertyField(serializedObject.FindProperty("handbrakeAxis"));
-		EditorGUILayout.PropertyField(serializedObject.FindProperty("resetVehicleKey"));
+		EditorGUILayout.PropertyField(serializedObject.FindProperty("handbrakeAction"));
+		EditorGUILayout.PropertyField(serializedObject.FindProperty("reverseModifierAction"));
+		EditorGUILayout.PropertyField(serializedObject.FindProperty("resetVehicleAction"));
 
 		serializedObject.ApplyModifiedProperties();
 		InspectorTools.EndContent();

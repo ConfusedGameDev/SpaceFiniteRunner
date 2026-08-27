@@ -6,6 +6,7 @@
 
 using UnityEngine;
 using UnityEngine.Serialization;
+using UnityEngine.InputSystem;
 using System;
 
 namespace EVP
@@ -15,7 +16,7 @@ namespace EVP
 
 public class CameraMode
 	{
-	public KeyCode hotKey = KeyCode.None;
+	public Key hotKey = Key.None;
 
 	// controller gets populated externally
 
@@ -45,11 +46,68 @@ public class CameraMode
 
 	public virtual void OnDisable (Transform self, Transform target, Vector3 targetOffset) { }
 
-	// Utility method for getting the input for a given axis
+	// Utility method for getting the input for a given axis.
+	//
+	// Ported to the Unity Input System: the legacy Input Manager axis names the camera
+	// modes are serialized with ("Mouse X", "Horizontal", ...) are mapped onto the
+	// equivalent Input System device controls, so existing configurations keep working.
 
 	public static float GetInputForAxis (string axisName)
 		{
-		return string.IsNullOrEmpty(axisName)? 0.0f : Input.GetAxis(axisName);
+		if (string.IsNullOrEmpty(axisName)) return 0.0f;
+
+		switch (axisName)
+			{
+			case "Mouse X":
+				// Legacy Mouse X = pixel delta * 0.1 default sensitivity.
+				return Mouse.current != null? Mouse.current.delta.x.ReadValue() * 0.1f : 0.0f;
+
+			case "Mouse Y":
+				return Mouse.current != null? Mouse.current.delta.y.ReadValue() * 0.1f : 0.0f;
+
+			case "Mouse ScrollWheel":
+				{
+				if (Mouse.current == null) return 0.0f;
+
+				// Windows reports raw wheel detents (±120); other platforms ±1.
+				// Normalize to the legacy 0.1-per-notch value either way.
+				float scroll = Mouse.current.scroll.y.ReadValue();
+				if (Mathf.Abs(scroll) > 1.0f) scroll /= 120.0f;
+				return Mathf.Clamp(scroll, -1.0f, 1.0f) * 0.1f;
+				}
+
+			case "Horizontal":
+				{
+				float axis = 0.0f;
+				Keyboard keyboard = Keyboard.current;
+				if (keyboard != null)
+					{
+					if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) axis -= 1.0f;
+					if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) axis += 1.0f;
+					}
+				if (axis == 0.0f && Gamepad.current != null)
+					axis = Gamepad.current.leftStick.x.ReadValue();
+				return axis;
+				}
+
+			case "Vertical":
+				{
+				float axis = 0.0f;
+				Keyboard keyboard = Keyboard.current;
+				if (keyboard != null)
+					{
+					if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) axis -= 1.0f;
+					if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) axis += 1.0f;
+					}
+				if (axis == 0.0f && Gamepad.current != null)
+					axis = Gamepad.current.leftStick.y.ReadValue();
+				return axis;
+				}
+
+			default:
+				// Unknown legacy axis name — no Input Manager to resolve it anymore.
+				return 0.0f;
+			}
 		}
 	}
 
@@ -561,7 +619,7 @@ public class VehicleCameraController : MonoBehaviour
 	public LayerMask collisionMask = Physics.DefaultRaycastLayers;
 
 	[Space(5)]
-	public KeyCode changeCameraKey = KeyCode.C;
+	public Key changeCameraKey = Key.C;
 
 	[Space(5)]
 	public CameraAttachTo attachTo = new CameraAttachTo();
@@ -637,7 +695,7 @@ public class VehicleCameraController : MonoBehaviour
 
 		// Detect camera hotkey
 
-		if (Input.GetKeyDown(changeCameraKey))
+		if (InputCompat.KeyDown(changeCameraKey))
 			{
 			NextCameraMode();
 			}
@@ -645,7 +703,7 @@ public class VehicleCameraController : MonoBehaviour
 			{
 			for (int i=0; i<m_cameraModes.Length; i++)
 				{
-				if (Input.GetKeyDown(m_cameraModes[i].hotKey))
+				if (InputCompat.KeyDown(m_cameraModes[i].hotKey))
 					mode = (Mode)i;
 				}
 			}

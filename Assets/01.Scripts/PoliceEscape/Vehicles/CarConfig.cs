@@ -158,6 +158,42 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [PropertyRange(0, 10), SuffixLabel("cells", true)]
         public int spawnRunwayCells = 4;
 
+        // ------------------------------------------------------- EVP comparison
+        // The Edy's Vehicle Physics backend thinks in forces and ratios, not
+        // wheel torques, so it gets its own small knob set. Shared knobs (mass,
+        // max steer angle, top speed, center-of-mass drop, drivetrain,
+        // suspension) are mapped across from the sections above — only the
+        // quantities with no built-in equivalent live here.
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP total drive force at full throttle. Roughly mass × desired acceleration in m/s².")]
+        [PropertyRange(500f, 12000f), SuffixLabel("N", true)]
+        public float evpDriveForce = 4000f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP total brake force.")]
+        [PropertyRange(1000f, 20000f), SuffixLabel("N", true)]
+        public float evpBrakeForce = 6000f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP tire friction coefficient — overall grip. 1 = street tires, 2+ = arcade glue.")]
+        [PropertyRange(0f, 3f)]
+        public float evpTireFriction = 1.6f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP anti-roll ratio — how much the chassis resists body roll in corners.")]
+        [PropertyRange(0f, 1f)]
+        public float evpAntiRoll = 0.4f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP aerodynamic downforce factor — high-speed road glue, the counterpart of the built-in downforce knob.")]
+        [PropertyRange(0f, 2f)]
+        public float evpAeroDownforce = 1f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP rolling resistance — how quickly a coasting car bleeds speed (the counterpart of the coast-brake torque).")]
+        [PropertyRange(0f, 1f)]
+        public float evpRollingResistance = 0.1f;
+
         // ------------------------------------------------------------- recovery
         [TitleGroup("Recovery")]
         [Tooltip("Seconds the car may sit flipped (and nearly stopped) before it auto-respawns onto the nearest road.")]

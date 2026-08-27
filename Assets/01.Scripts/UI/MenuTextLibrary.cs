@@ -35,6 +35,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CarMass, CarCenterOfMass, CarDownforce, CarMotorTorque, CarTopSpeed, CarBrakeTorque,
         CarSteerAngle, CarHandbrakeTorque, CarHandbrakeGrip, CarForwardGrip, CarSideGrip,
         CarHillRollback,
+        CarPhysicsBackend, CarPhysicsBuiltIn, CarPhysicsEvp,
         CamDistance, CamHeight, CamPitch, CamDamping,
         CamRecenterDelay, CamRecenterSpeed, CamBaseFov, CamSpeedFov,
         CamLookBackAngle, CamLookBackIn, CamLookBackOut,
@@ -274,6 +275,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString carForwardGrip = new("FORWARD GRIP", "AGARRE LONGITUDINAL", "前後グリップ", "ADHÉRENCE LONGITUDINALE");
         [TitleGroup("Car stats")]
         [SerializeField] LocalizedString carSideGrip = new("SIDE GRIP", "AGARRE LATERAL", "横方向グリップ", "ADHÉRENCE LATÉRALE");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carPhysicsBackend = new("VEHICLE PHYSICS", "FÍSICA DE VEHÍCULOS", "車両物理エンジン", "PHYSIQUE DES VÉHICULES");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carPhysicsBuiltIn = new("BUILT-IN", "INTEGRADA", "標準", "INTÉGRÉE");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carPhysicsEvp = new("EVP", "EVP", "EVP", "EVP");
 
         [TitleGroup("Chase camera stats")]
         [SerializeField] LocalizedString debugTabCamera = new("DEBUG — CHASE CAMERA", "DEPURACIÓN — CÁMARA", "デバッグ — カメラ", "DÉBOGAGE — CAMÉRA");
@@ -526,6 +533,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.CarTopSpeed => carTopSpeed,
             MenuTextId.CarBrakeTorque => carBrakeTorque,
             MenuTextId.CarHillRollback => carHillRollback,
+            MenuTextId.CarPhysicsBackend => carPhysicsBackend,
+            MenuTextId.CarPhysicsBuiltIn => carPhysicsBuiltIn,
+            MenuTextId.CarPhysicsEvp => carPhysicsEvp,
             MenuTextId.CarSteerAngle => carSteerAngle,
             MenuTextId.CarHandbrakeTorque => carHandbrakeTorque,
             MenuTextId.CarHandbrakeGrip => carHandbrakeGrip,

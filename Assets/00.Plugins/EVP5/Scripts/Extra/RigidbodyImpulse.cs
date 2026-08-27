@@ -5,6 +5,7 @@
 //------------------------------------------------------------------------------------------------
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 using System.Collections;
 
 namespace EVP
@@ -15,7 +16,7 @@ public class RigidbodyImpulse : MonoBehaviour
 	{
 	public float velocity = 6.0f;
 	public Vector3 direction = Vector3.up;
-	public KeyCode key = KeyCode.E;
+	public Key key = Key.E;
 
 	Rigidbody m_rigidbody;
 
@@ -28,7 +29,7 @@ public class RigidbodyImpulse : MonoBehaviour
 
 	void Update ()
 		{
-		if (Input.GetKeyDown(key))
+		if (InputCompat.KeyDown(key))
 			m_rigidbody.AddForce(direction.normalized * velocity, ForceMode.VelocityChange);
 		}
 	}

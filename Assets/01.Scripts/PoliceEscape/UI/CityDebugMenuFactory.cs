@@ -130,6 +130,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             screen.SetRowMetrics(RowHeight, RowSpacing);
             DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabCarDrive, tabIndex, tabCount);
 
+            AddPhysicsBackendRow(screen, refreshers);
+
             AddCarStat(screen, config, refreshers, MenuTextId.CarMass,
                        400f, 3000f, 50f, "0", c => c.mass, (c, v) => c.mass = v, chassis: true);
             AddCarStat(screen, config, refreshers, MenuTextId.CarCenterOfMass,
@@ -335,6 +337,35 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         }
 
         // --------------------------------------------------------------- rows
+
+        /// <summary>
+        /// The physics backend switch: built-in WheelCollider sim vs the EVP5
+        /// comparison backend. Applies live — every car on the road (player,
+        /// police, traffic) is converted on the spot, and later spawns follow
+        /// the setting — so the two feels can be A/B'd mid-chase.
+        /// </summary>
+        static void AddPhysicsBackendRow(MenuScreen screen, List<System.Action> refreshers)
+        {
+            MenuTextLibrary texts = MenuTextLibrary.Load();
+            string[] options = { texts.Get(MenuTextId.CarPhysicsBuiltIn), texts.Get(MenuTextId.CarPhysicsEvp) };
+
+            void OnPicked(int index)
+            {
+                var settings = VehiclePhysicsSettings.Current;
+                settings.backend = index == 1
+                    ? VehiclePhysicsSettings.Backend.EdyVehiclePhysics
+                    : VehiclePhysicsSettings.Backend.BuiltIn;
+                VehiclePhysicsSettings.ApplyToLiveCars();
+                MarkDirty(settings);
+            }
+
+            var row = screen.AddRow<MenuChoice>(MenuTextId.CarPhysicsBackend);
+            row.Configure(options, VehiclePhysicsSettings.UseEvp ? 1 : 0, OnPicked);
+            // Re-Configure rather than Adjust on reopen: the setting may have
+            // been flipped on the asset itself, and Adjust would fire the
+            // conversion sweep just for catching the readout up.
+            refreshers?.Add(() => row.Configure(options, VehiclePhysicsSettings.UseEvp ? 1 : 0, OnPicked));
+        }
 
         static void AddObjectiveStat(MenuScreen screen, MenuTheme theme, LevelManager manager, int index,
                                      List<System.Action> refreshers, MenuTextId label,

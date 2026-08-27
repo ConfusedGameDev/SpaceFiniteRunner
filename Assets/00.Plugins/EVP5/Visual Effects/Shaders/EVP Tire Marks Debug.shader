@@ -1,4 +1,9 @@
-﻿Shader "Custom/EVP Tire Marks Debug"
+// Edy's Vehicle Physics — tire marks debug view.
+// Ported from a Built-in RP surface shader to URP. Visualizes the tire mark
+// strip's vertex color alpha (the mark's fade value) as grayscale — unlit on
+// purpose: it is a data view, not a material.
+
+Shader "Custom/EVP Tire Marks Debug"
 {
 
 Properties
@@ -11,46 +16,52 @@ Properties
 
 SubShader
 	{
-	Tags { "RenderType"="Opaque" }
+	Tags { "RenderType"="Opaque" "Queue"="Geometry+1" "RenderPipeline"="UniversalPipeline" }
 	LOD 200
 
-	CGPROGRAM
-	#pragma surface surf Standard fullforwardshadows vertex:vert
-	#pragma target 3.0
-
-	sampler2D _MainTex;
-
-	struct Input
+	Pass
 		{
-		float2 uv_MainTex;
-		fixed4 vertexColor;
-		};
+		Name "Unlit"
+		Tags { "LightMode"="UniversalForward" }
 
-	half _Glossiness;
-	half _Metallic;
-	fixed4 _Color;
+		HLSLPROGRAM
+		#pragma vertex vert
+		#pragma fragment frag
 
-	void vert (inout appdata_full v, out Input o)
-		{
-		UNITY_INITIALIZE_OUTPUT(Input, o);
-		o.vertexColor = v.color;
+		#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+		CBUFFER_START(UnityPerMaterial)
+		float4 _MainTex_ST;
+		half4 _Color;
+		half _Glossiness;
+		half _Metallic;
+		CBUFFER_END
+
+		struct Attributes
+			{
+			float4 positionOS : POSITION;
+			half4 color : COLOR;
+			};
+
+		struct Varyings
+			{
+			float4 positionCS : SV_POSITION;
+			half4 color : COLOR;
+			};
+
+		Varyings vert (Attributes input)
+			{
+			Varyings output;
+			output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+			output.color = input.color;
+			return output;
+			}
+
+		half4 frag (Varyings input) : SV_Target
+			{
+			return half4(input.color.aaa, 1.0);
+			}
+		ENDHLSL
 		}
-
-	void surf (Input IN, inout SurfaceOutputStandard o)
-		{
-		fixed4 c = tex2D (_MainTex, IN.uv_MainTex) * _Color;
-		// o.Albedo = c.rgb;
-		o.Albedo = IN.vertexColor.aaa;
-
-		o.Metallic = _Metallic;
-		o.Smoothness = _Glossiness;
-
-		// o.Alpha = c.a * IN.vertexColor.a;
-		o.Alpha = 1;
-		}
-
-	ENDCG
 	}
-
-FallBack "Diffuse"
 }

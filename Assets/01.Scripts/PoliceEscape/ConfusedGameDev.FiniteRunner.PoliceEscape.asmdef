@@ -8,6 +8,7 @@
         "ConfusedGameDev.FiniteRunner.Haptics",
         "ConfusedGameDev.FiniteRunner.FX",
         "ConfusedGameDev.FiniteRunner.Debugging",
+        "EVP5",
         "Unity.InputSystem",
         "UnityEngine.UI",
         "Unity.Cinemachine",

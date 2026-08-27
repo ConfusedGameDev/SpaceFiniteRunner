@@ -37,6 +37,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         Rigidbody body;
         ICarInput input;
         float steerAngle;
+        EvpCarBackend evpBackend;
+
+        /// <summary>True when the EVP5 comparison backend drives this car instead of the built-in sim.</summary>
+        public bool UsingEvp => evpBackend != null;
 
         public Rigidbody Body => body;
         public Vector3 Velocity => body != null ? body.linearVelocity : Vector3.zero;
@@ -59,7 +63,35 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // add the driver after this component, and Start runs once all
             // same-frame AddComponent calls are done but before any FixedUpdate.
             input = GetComponent<ICarInput>();
+
+            // Backend toggle: with EVP selected, an EVP5 VehicleController is
+            // installed over this same rigidbody and wheels, and this component
+            // stops simulating — it stays as the car's identity and read-only
+            // API (speed, body, config) for everything else in the game.
+            SetBackend(VehiclePhysicsSettings.UseEvp);
+
             ApplyConfig();
+        }
+
+        /// <summary>
+        /// Install or remove the EVP5 comparison sim on this live car — the
+        /// runtime half of the <see cref="VehiclePhysicsSettings"/> toggle.
+        /// Idempotent, so the debug menu can sweep every car on a flip and
+        /// newly spawned cars can call it from Start unconditionally.
+        /// </summary>
+        public void SetBackend(bool evp)
+        {
+            if (evp == UsingEvp || !HasWheels) return;
+            if (evp)
+            {
+                evpBackend = EvpCarBackend.Install(this);
+            }
+            else
+            {
+                evpBackend.Uninstall();
+                evpBackend = null;
+                ApplyConfig(); // hand the chassis and wheel substeps back to the built-in sim
+            }
         }
 
         /// <summary>
@@ -72,6 +104,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         public void ApplyConfig()
         {
             if (config == null || body == null || !HasWheels) return;
+
+            // EVP owns the chassis in EVP mode (parametric center of mass,
+            // its own substep policy) — hand the re-apply over instead of
+            // fighting it.
+            if (evpBackend != null)
+            {
+                evpBackend.ApplyChassis();
+                return;
+            }
 
             body.mass = config.mass;
             body.ResetCenterOfMass();
@@ -86,6 +127,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
         void FixedUpdate()
         {
+            if (evpBackend != null) return; // EVP simulates; this is a bystander.
             if (config == null || !HasWheels) return;
 
             float steer = input?.Steer ?? 0f;
@@ -106,6 +148,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
         void LateUpdate()
         {
+            if (evpBackend != null) return; // EVP places the wheel pivots itself.
             SyncVisual(frontLeft, frontLeftVisual);
             SyncVisual(frontRight, frontRightVisual);
             SyncVisual(rearLeft, rearLeftVisual);

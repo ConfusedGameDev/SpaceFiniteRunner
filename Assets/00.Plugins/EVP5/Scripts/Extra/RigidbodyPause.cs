@@ -5,6 +5,7 @@
 //------------------------------------------------------------------------------------------------
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 using System.Collections;
 
 namespace EVP
@@ -14,7 +15,7 @@ namespace EVP
 public class RigidbodyPause : MonoBehaviour
 	{
 	public bool pause = false;
-	public KeyCode key = KeyCode.P;
+	public Key key = Key.P;
 
 	Rigidbody m_rigidbody;
 
@@ -91,7 +92,7 @@ public class RigidbodyPause : MonoBehaviour
 
 	void Update ()
 		{
-		if (Input.GetKeyDown(key)) pause = !pause;
+		if (InputCompat.KeyDown(key)) pause = !pause;
 		}
 	}
 

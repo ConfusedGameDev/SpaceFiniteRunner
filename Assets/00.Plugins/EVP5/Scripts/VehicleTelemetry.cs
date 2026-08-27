@@ -9,6 +9,7 @@
 #endif
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace EVP
 {
@@ -20,7 +21,7 @@ public class VehicleTelemetry : MonoBehaviour
 	public DataMode dataMode;
 	public Font font;
 
-	public KeyCode toggleKey = KeyCode.Y;
+	public Key toggleKey = Key.Y;
 
 	public bool show = true;
 	public bool gizmos = false;
@@ -54,9 +55,9 @@ public class VehicleTelemetry : MonoBehaviour
 		if (target != null && gizmos)
 			DrawGizmos();
 
-		if (Input.GetKeyDown(toggleKey))
+		if (InputCompat.KeyDown(toggleKey))
 			{
-			if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+			if (InputCompat.ShiftPressed())
 				{
 				dataMode++;
 				if (dataMode > DataMode.GroundMaterial) dataMode = DataMode.TireSlipAndForce;

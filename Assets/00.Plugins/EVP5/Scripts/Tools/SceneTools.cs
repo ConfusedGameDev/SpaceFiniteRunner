@@ -9,6 +9,7 @@
 #endif
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 using System.Collections;
 #if UNITY_53_OR_GREATER
 using UnityEngine.SceneManagement;
@@ -23,8 +24,8 @@ public class SceneTools : MonoBehaviour
 	public bool slowTimeMode = false;
 	public float slowTime = 0.3f;
 
-	public KeyCode hotkeyReset = KeyCode.R;
-	public KeyCode hotkeyTime = KeyCode.T;
+	public Key hotkeyReset = Key.R;
+	public Key hotkeyTime = Key.T;
 
 	// Use this for initialization
 	void Start ()
@@ -35,7 +36,7 @@ public class SceneTools : MonoBehaviour
 	// Update is called once per frame
 	void Update ()
 		{
-		if (Input.GetKeyDown(hotkeyReset))
+		if (InputCompat.KeyDown(hotkeyReset))
 			{
 			#if UNITY_53_OR_GREATER
 			SceneManager.LoadScene(0, LoadSceneMode.Single);
@@ -44,7 +45,7 @@ public class SceneTools : MonoBehaviour
 			#endif
 			}
 
-		if (Input.GetKeyDown(hotkeyTime))
+		if (InputCompat.KeyDown(hotkeyTime))
 			slowTimeMode = !slowTimeMode;
 
 		Time.timeScale = slowTimeMode? slowTime : 1.0f;
