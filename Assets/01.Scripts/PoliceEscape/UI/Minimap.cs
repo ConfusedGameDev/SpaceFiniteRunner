@@ -14,7 +14,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     /// shown through a circular mask. The camera follows the player and (by
     /// default) rotates with them, so up is always "ahead"; the player is a
     /// centered arrow, police are blips colored by AI state (Chase flashes
-    /// red/blue), clamped to the rim when beyond radar range. Built entirely
+    /// red/blue), clamped to the rim when beyond radar range. A chasing
+    /// cruiser also casts its detection radius as a translucent disc that
+    /// tints from red to blue as the player nears its edge (or its line of
+    /// sight runs out), so "out of range" is a place you can see. Built entirely
     /// from code on its own overlay canvas — no scene wiring, no layers, no
     /// fonts; sprites are generated at runtime. CityManager spawns it when
     /// its minimap settings field is assigned; hides itself while no player
@@ -36,7 +39,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         Sprite circleSprite;
         readonly List<Image> blips = new();
         readonly List<Image> routeDots = new();
+        readonly List<Image> searchDiscs = new();
         RectTransform routeRoot;
+        RectTransform discRoot;
         Image destinationBlip;
         Image objectivePin;
         readonly List<PoliceCarInput> police = new();
@@ -61,6 +66,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             if (!visible) return;
 
             UpdateCamera();
+            UpdateSearchDiscs();
             UpdateRoute();
             UpdateBlips();
         }
@@ -89,11 +95,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             if (mapTexture != null) { mapTexture.Release(); Kill(mapTexture); mapTexture = null; }
             canvas = null;
             mapCamera = null;
-            blipRoot = playerArrow = routeRoot = null;
+            blipRoot = playerArrow = routeRoot = discRoot = null;
             destinationBlip = null;
             objectivePin = null;
             blips.Clear();
             routeDots.Clear();
+            searchDiscs.Clear();
         }
 
         static void Kill(Object o)
@@ -145,6 +152,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             map.raycastTarget = false;
             CenterRect(map.rectTransform, new Vector2(size, size));
 
+            // Discs sit under the route and the blips: they are a wash over
+            // the streets, never something that hides a cruiser or the line.
+            discRoot = CreateRect("SearchDiscs", maskImage.transform, new Vector2(size, size));
             routeRoot = CreateRect("Route", maskImage.transform, new Vector2(size, size));
             blipRoot = CreateRect("Blips", maskImage.transform, new Vector2(size, size));
 
@@ -260,6 +270,56 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 PlaceBlip(ref used, escapee.transform.position, settings.escapeColor, uiRadius, scale, forward, right);
             }
             for (int i = used; i < blips.Count; i++) blips[i].enabled = false;
+        }
+
+        /// <summary>
+        /// One translucent disc per chasing cruiser, its radius the cruiser's
+        /// detection range in radar scale, centred on the cruiser's TRUE
+        /// projected position (never rim-clamped — the edge of the disc has to
+        /// land where the range really ends, even when the cruiser itself is
+        /// off the radar; the circular mask trims the overflow).
+        ///
+        /// The tint is the escape read-out: red while the player sits deep in
+        /// range under a clear line of sight, sliding to blue over the outer
+        /// part of the disc (<see cref="MinimapSettings.searchDiscBlendStart"/>)
+        /// — and, independently, as the cruiser's lose-sight timer fills once
+        /// buildings break its view. Whichever of the two says "safer" wins,
+        /// so ducking behind a block turns the disc blue even at close range.
+        /// </summary>
+        void UpdateSearchDiscs()
+        {
+            int used = 0;
+            if (settings.searchDisc)
+            {
+                float uiRadius = settings.sizePixels * 0.5f;
+                float scale = uiRadius / Mathf.Max(1f, settings.viewRadius);
+                RadarBasis(out Vector3 forward, out Vector3 right);
+                Vector3 origin = player.transform.position;
+
+                foreach (PoliceCarInput cruiser in police)
+                {
+                    if (cruiser == null || cruiser.State != PoliceCarInput.AiState.Chase) continue;
+                    float range = cruiser.DetectionRange;
+                    if (range <= 0f) continue;
+
+                    Vector3 delta = cruiser.transform.position - origin;
+                    delta.y = 0f;
+                    var position = new Vector2(Vector3.Dot(delta, right), Vector3.Dot(delta, forward)) * scale;
+
+                    // Distance fraction, remapped so the inner part stays pure danger.
+                    float distance01 = Mathf.Clamp01(delta.magnitude / range);
+                    float byDistance = Mathf.InverseLerp(settings.searchDiscBlendStart, 1f, distance01);
+                    float safety = Mathf.Max(byDistance, cruiser.LoseSightProgress);
+
+                    Image disc = GetSearchDisc(used++);
+                    disc.rectTransform.anchoredPosition = position;
+                    float diameter = range * 2f * scale;
+                    disc.rectTransform.sizeDelta = new Vector2(diameter, diameter);
+                    disc.color = Color.Lerp(settings.searchDiscDangerColor, settings.searchDiscSafeColor, safety);
+                    disc.enabled = true;
+                }
+            }
+            for (int i = used; i < searchDiscs.Count; i++) searchDiscs[i].enabled = false;
         }
 
         void PlaceBlip(ref int used, Vector3 world, Color color, float uiRadius, float scale, Vector3 forward, Vector3 right)
@@ -389,6 +449,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 routeDots.Add(CreateImage($"Route_{routeDots.Count}", routeRoot, circleSprite, Color.white,
                     new Vector2(settings.routeDotSize, settings.routeDotSize)));
             return routeDots[index];
+        }
+
+        Image GetSearchDisc(int index)
+        {
+            while (searchDiscs.Count <= index)
+                searchDiscs.Add(CreateImage($"SearchDisc_{searchDiscs.Count}", discRoot, circleSprite, Color.clear, Vector2.zero));
+            return searchDiscs[index];
         }
 
         Image GetBlip(int index)

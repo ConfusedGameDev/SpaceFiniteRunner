@@ -133,5 +133,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         [TitleGroup("Blips")]
         [Tooltip("Blip color of the escaping car of a Chase Car objective — yellow, so the prey never reads as a cop.")]
         public Color escapeColor = new(1f, 0.9f, 0.2f, 1f);
+
+        // --------------------------------------------------------- search disc
+        [ToggleGroup(nameof(searchDisc), "Search Disc")]
+        [Tooltip("While a cruiser is in Chase, draw its detection radius on the radar as a translucent disc so the player can see where 'out of range' begins.")]
+        public bool searchDisc = true;
+
+        [ToggleGroup(nameof(searchDisc))]
+        [Tooltip("Disc tint while the player sits deep inside the cruiser's range with a clear line of sight — danger.")]
+        public Color searchDiscDangerColor = new(1f, 0.15f, 0.15f, 0.28f);
+
+        [ToggleGroup(nameof(searchDisc))]
+        [Tooltip("Disc tint as the player reaches the edge of the range, or the cruiser is about to lose sight — safe.")]
+        public Color searchDiscSafeColor = new(0.2f, 0.4f, 1f, 0.28f);
+
+        [ToggleGroup(nameof(searchDisc))]
+        [Tooltip("How far into the disc the tint starts sliding from danger toward safe (fraction of the radius). 0.5 = the outer half of the disc is the gradient.")]
+        [PropertyRange(0f, 0.95f)]
+        public float searchDiscBlendStart = 0.5f;
     }
 }

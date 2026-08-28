@@ -34,6 +34,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         [TitleGroup("Debug"), ShowInInspector, ReadOnly]
         public AiState State { get; private set; } = AiState.Patrol;
 
+        /// <summary>Distance this cruiser can spot the player from — what the radar draws as its search disc.</summary>
+        public float DetectionRange => settings != null ? settings.detectionRange : 0f;
+
+        /// <summary>
+        /// 0..1 progress of a chasing cruiser toward giving the player up:
+        /// how long its line of sight has been broken, as a fraction of
+        /// <see cref="PursuitSettings.loseSightSeconds"/>. 0 while it can
+        /// see the player, 1 the moment it drops to Search.
+        /// </summary>
+        public float LoseSightProgress => State == AiState.Chase && settings != null && settings.loseSightSeconds > 0f
+            ? Mathf.Clamp01(lostSightTimer / settings.loseSightSeconds)
+            : 0f;
+
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
         public bool Handbrake => health != null && health.IsDead;
