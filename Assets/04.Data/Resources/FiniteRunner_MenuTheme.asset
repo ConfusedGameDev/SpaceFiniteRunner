@@ -78,9 +78,10 @@ MonoBehaviour:
   inputGrace: 0.3
   mixer: {fileID: 24100000, guid: 5c8a24d1f0b74e2ab6d3915c47e0a8f3, type: 2}
   uiOutput: {fileID: 24300006, guid: 5c8a24d1f0b74e2ab6d3915c47e0a8f3, type: 2}
-  moveClip: {fileID: 0}
-  confirmClip: {fileID: 0}
-  backClip: {fileID: 0}
+  moveClip: {fileID: 8300000, guid: 7a125b87cd6282947bbbf8235f3b5ae7, type: 3}
+  confirmClip: {fileID: 8300000, guid: b8db834e45436404c825dd0d8154aaf3, type: 3}
+  backClip: {fileID: 8300000, guid: 41107b74b2c95894b80682f78014673a, type: 3}
+  adjustClip: {fileID: 8300000, guid: 2255e196007747a43ba95b9ce7cea3dd, type: 3}
   uiVolume: 0.8
   pauseMusicClip: {fileID: 0}
   pauseAudioFade: 0.4

@@ -207,18 +207,24 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] AudioMixer mixer;
 
         [TitleGroup("Audio")]
-        [Tooltip("Group the menu's own blips route through — normally SFX.")]
+        [Tooltip("Group the menu's own blips route through — the mixer's UI bus, which sits under Master (not Gameplay) so it is never ducked by the pause snapshot.")]
         [SerializeField] AudioMixerGroup uiOutput;
 
         [TitleGroup("Audio")]
-        [Tooltip("Left empty on purpose: no placeholder audio ships with the menu.")]
+        [Tooltip("Focus moved to another row, or a debug tab flipped. 07.Audio/02.UI rollover*.")]
         [SerializeField] AudioClip moveClip;
 
         [TitleGroup("Audio")]
+        [Tooltip("Row activated, sub-screen opened, run started. 07.Audio/02.UI click*.")]
         [SerializeField] AudioClip confirmClip;
 
         [TitleGroup("Audio")]
+        [Tooltip("Backed out of a screen / returned to attract. 07.Audio/02.UI click*.")]
         [SerializeField] AudioClip backClip;
+
+        [TitleGroup("Audio")]
+        [Tooltip("A slider or toggle stepped left/right. Falls back to the move clip when empty. 07.Audio/02.UI switch*.")]
+        [SerializeField] AudioClip adjustClip;
 
         [TitleGroup("Audio")]
         [PropertyRange(0f, 1f)]
@@ -320,6 +326,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         public AudioClip MoveClip => moveClip;
         public AudioClip ConfirmClip => confirmClip;
         public AudioClip BackClip => backClip;
+        /// <summary>Slider / toggle step. Borrows the move blip when nothing is assigned so an adjust is never silent.</summary>
+        public AudioClip AdjustClip => adjustClip != null ? adjustClip : moveClip;
         public float UiVolume => uiVolume;
         public AudioClip PauseMusicClip => pauseMusicClip;
         public float PauseAudioFade => pauseAudioFade;

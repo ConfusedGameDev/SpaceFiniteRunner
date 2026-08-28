@@ -249,7 +249,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
             int horizontal = nav.StepHorizontal(dt);
             if (horizontal != 0 && screen.Focused != null && screen.Focused.Adjust(horizontal))
-                Blip(theme.MoveClip);
+                Blip(theme.AdjustClip);
 
             if (MenuNavigator.ConfirmPressed()) screen.Focused?.Activate();
         }

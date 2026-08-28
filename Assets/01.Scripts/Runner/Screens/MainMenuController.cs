@@ -210,7 +210,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             int horizontal = nav.StepHorizontal(dt);
             if (horizontal != 0 && current.Focused != null && current.Focused.Adjust(horizontal))
             {
-                Blip(theme.MoveClip);
+                Blip(theme.AdjustClip);
                 HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
             }
 

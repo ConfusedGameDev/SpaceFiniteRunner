@@ -154,7 +154,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             int horizontal = nav.StepHorizontal(dt);
             if (horizontal != 0 && current.Focused != null && current.Focused.Adjust(horizontal))
-                Blip(theme.MoveClip);
+                Blip(theme.AdjustClip);
 
             if (MenuNavigator.ConfirmPressed()) current.Focused?.Activate();
         }
