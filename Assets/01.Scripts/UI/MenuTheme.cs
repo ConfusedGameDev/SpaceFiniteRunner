@@ -203,7 +203,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         // -------------------------------------------------------------- audio
         [TitleGroup("Audio")]
-        [Tooltip("The game mixer (Master → Gameplay → Music/FX/Voice, plus UI and PauseMusic). Must expose MasterVolume, MusicVolume, SFXVolume and UIVolume, and carry the Gameplay/Paused snapshots — see GameAudio.")]
+        [Tooltip("The game mixer (Master → Gameplay → Music/FX/Voice, plus UI and PauseMusic). Must expose MasterVolume, MusicVolume, SFXVolume, UIVolume and VoiceVolume, and carry the Gameplay/Paused snapshots — see GameAudio.")]
         [SerializeField] AudioMixer mixer;
 
         [TitleGroup("Audio")]

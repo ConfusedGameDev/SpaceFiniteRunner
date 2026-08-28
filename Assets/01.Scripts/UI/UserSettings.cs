@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.Audio;
-using UnityEngine.SceneManagement;
 
 namespace ConfusedGameDev.FiniteRunner.UI
 {
@@ -27,6 +26,14 @@ namespace ConfusedGameDev.FiniteRunner.UI
         /// second parameter rather than as a child group.
         /// </summary>
         public const string UiVolumeParam = "UIVolume";
+
+        /// <summary>
+        /// Dialogue blips (RpgMessageSystem) sit on their own Voice bus under
+        /// Gameplay so they duck with the pause snapshot. To the player they
+        /// are still "effects", so the SFX slider drives this one too — one
+        /// effects slider, three buses.
+        /// </summary>
+        public const string VoiceVolumeParam = "VoiceVolume";
 
         /// <summary>Mixer floor. Log10(0) is -Infinity, which would silently poison the mixer, so every conversion clamps here instead.</summary>
         public const float MinDecibels = -80f;
@@ -75,7 +82,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             set => Apply(ref music, MusicKey, MusicVolumeParam, value);
         }
 
-        /// <summary>SFX bus volume, 0..1 linear. Also drives the UI bus — one "effects" slider for the player.</summary>
+        /// <summary>SFX bus volume, 0..1 linear. Also drives the UI and Voice buses — one "effects" slider for the player.</summary>
         public static float SfxVolume
         {
             get { EnsureLoaded(); return sfx; }
@@ -83,6 +90,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             {
                 Apply(ref sfx, SfxKey, SfxVolumeParam, value);
                 Push(UiVolumeParam, sfx);
+                Push(VoiceVolumeParam, sfx);
             }
         }
 
@@ -126,17 +134,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
         {
             EnsureLoaded();
 
-            // The mixer can stomp values applied before its first snapshot
-            // settles, and a scene change is the natural moment audio state
-            // resets — re-push the saved levels after every load so the
-            // sliders' values survive the menu → chase → runner hand-offs.
-            // (Unsubscribe first: with domain reload disabled, statics — and
-            // this subscription — outlive a play session.)
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-            SceneManager.sceneLoaded += OnSceneLoaded;
+            // The mixer applies its start snapshot on its first audio update,
+            // which lands AFTER this method and after sceneLoaded — a SetFloat
+            // made before it is silently overwritten. The bootstrap object
+            // re-pushes one frame after every scene load, so the sliders'
+            // values survive boot and the menu → chase → runner hand-offs.
+            // (Ensure is idempotent: with domain reload disabled, statics
+            // outlive a play session.)
+            UserSettingsBootstrap.Ensure();
         }
-
-        static void OnSceneLoaded(Scene scene, LoadSceneMode mode) => PushAll();
 
         /// <summary>
         /// Linear 0..1 to mixer decibels. 0 (and anything non-finite) maps to
@@ -157,6 +163,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             Push(MusicVolumeParam, music);
             Push(SfxVolumeParam, sfx);
             Push(UiVolumeParam, sfx);
+            Push(VoiceVolumeParam, sfx);
         }
 
         static void EnsureLoaded()

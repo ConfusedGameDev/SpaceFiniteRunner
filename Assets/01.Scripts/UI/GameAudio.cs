@@ -15,7 +15,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
     /// mixer's two snapshots — "Gameplay" (PauseMusic muted) and "Paused"
     /// (the whole Gameplay bus muted, PauseMusic up). Snapshots are the one
     /// mixer control that still works on the buses the user-volume sliders
-    /// don't touch: exposed parameters (MasterVolume, MusicVolume…) leave
+    /// don't touch: exposed parameters (MasterVolume, MusicVolume, SFXVolume,
+    /// UIVolume, VoiceVolume) leave
     /// snapshot control the moment <see cref="UserSettings"/> sets them,
     /// which is exactly why the duck handle is the un-exposed Gameplay
     /// parent group and not the Music/FX volumes themselves. The mixer runs
