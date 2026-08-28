@@ -121,7 +121,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
             if (seen == 0) return false;
 
-            // Face along a random direction the cell actually connects to.
+            // Face along a random direction the cell actually connects to —
+            // and stand in that direction's right-hand lane, not on the centre
+            // line, so the cruiser is born already obeying the traffic rules
+            // its driver enforces outside Chase.
             int count = 0, direction = 0;
             for (int dir = 0; dir < 4; dir++)
             {
@@ -129,10 +132,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 count++;
                 if (Random.Range(0, count) == 0) direction = dir;
             }
+            float cellSize = city.settings != null ? city.settings.cellSize : 20f;
+            float lane = graph.IsCenterLineOnly(pickedNode)
+                ? 0f
+                : Mathf.Min(cellSize * settings.laneOffsetFraction, settings.laneOffsetMaxMeters);
 
             // Instantiate at the spawn pose — never move it afterwards (see CarFactory).
             var go = Instantiate(policeCarPrefab,
-                graph.Center(pickedNode) + Vector3.up * 0.6f,
+                graph.Center(pickedNode) + LaneRules.RightOf(direction) * lane + Vector3.up * 0.6f,
                 Quaternion.Euler(0f, direction * 90f, 0f));
             go.name = $"PoliceCar_{++spawnedTotal}";
 

@@ -28,18 +28,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public override string ToString() => $"({Cell.x}, {Cell.y}) L{Level}";
     }
 
-    /// <summary>Per-node data baked at registration: socket mask, world centre (with height) and whether the node is a ramp cell.</summary>
+    /// <summary>Per-node data baked at registration: socket mask, world centre (with height), whether the node is a ramp cell, and whether lane discipline must collapse to the centre line there.</summary>
     public readonly struct RoadNodeData
     {
         public readonly EdgeMask Mask;
         public readonly Vector3 Center;
         public readonly bool IsRamp;
 
-        public RoadNodeData(EdgeMask mask, Vector3 center, bool isRamp)
+        /// <summary>
+        /// Cars must drive this node's centre line, no lane offset: fork seam
+        /// cells (two nodes share one seam line — an offset pushes cars off
+        /// the half-width stem) and template footprints like the roundabout,
+        /// where "right of travel" has no meaning.
+        /// </summary>
+        public readonly bool CenterLineOnly;
+
+        public RoadNodeData(EdgeMask mask, Vector3 center, bool isRamp, bool centerLineOnly = false)
         {
             Mask = mask;
             Center = center;
             IsRamp = isRamp;
+            CenterLineOnly = centerLineOnly;
         }
     }
 
@@ -108,7 +117,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                     // A fork stem runs on the seam between two cells: the data shifts both nodes onto it.
                     Vector2 shift = data.GetCenterOffset(x, y) * cellSize;
                     Vector3 center = CellCenterAt(cell, height) + new Vector3(shift.x, 0f, shift.y);
-                    nodes[new RoadNode(cell, 0)] = new RoadNodeData(ground, center, ramp);
+                    // Seam cells and feature footprints (roundabout) refuse
+                    // lane offsets — the geometry there isn't a plain two-way
+                    // street, and an offset pushes cars off the asphalt.
+                    bool centerLineOnly = data.HasCenterOffset(x, y) || data.IsCovered(x, y);
+                    nodes[new RoadNode(cell, 0)] = new RoadNodeData(ground, center, ramp, centerLineOnly);
                 }
                 EdgeMask upper = data.GetUpperConnections(x, y);
                 if (upper != EdgeMask.None)
@@ -126,6 +139,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             nodes.TryGetValue(node, out RoadNodeData data) ? data.Center : CellCenterAt(node.Cell, node.Level == 1 ? deckHeight : 0f);
 
         public bool IsRamp(RoadNode node) => nodes.TryGetValue(node, out RoadNodeData data) && data.IsRamp;
+
+        /// <summary>Lane discipline collapses to the centre line on this node (fork seams, roundabout footprints) — see <see cref="RoadNodeData.CenterLineOnly"/>.</summary>
+        public bool IsCenterLineOnly(RoadNode node) => nodes.TryGetValue(node, out RoadNodeData data) && data.CenterLineOnly;
+
+        /// <summary>Centre-line rule for a world position: the node under it, false off-graph. Seam centres sit on a cell boundary, but both seam cells carry the flag, so either resolution answers right.</summary>
+        public bool IsCenterLineOnlyAt(Vector3 position) => TryGetNodeAt(position, out RoadNode node) && IsCenterLineOnly(node);
 
         /// <summary>Flat ground node — neither a ramp nor a deck. The only kind cars are spawned on.</summary>
         public bool IsFlatGround(RoadNode node) => node.Level == 0 && nodes.TryGetValue(node, out RoadNodeData data) && !data.IsRamp;

@@ -101,7 +101,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             TrafficVehicleDefinition definition = PickVehicle();
             if (definition == null) return false;
 
-            // Face along a random direction the cell actually connects to.
+            // Face along a random direction the cell actually connects to —
+            // and stand in that direction's right-hand lane, not on the centre
+            // line, so the car is born already obeying the traffic rules its
+            // driver enforces.
             int count = 0, direction = 0;
             for (int dir = 0; dir < 4; dir++)
             {
@@ -109,10 +112,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 count++;
                 if (Random.Range(0, count) == 0) direction = dir;
             }
+            float cellSize = city.settings != null ? city.settings.cellSize : 20f;
+            float lane = graph.IsCenterLineOnly(pickedNode)
+                ? 0f
+                : Mathf.Min(cellSize * settings.laneOffsetFraction, settings.laneOffsetMaxMeters);
 
             (CarController controller, TrafficCarInput driver) = VehicleRigBuilder.Build<TrafficCarInput>(
                 definition.model, settings.carConfig, settings.modelScale,
-                graph.Center(pickedNode) + Vector3.up * 0.5f,
+                graph.Center(pickedNode) + LaneRules.RightOf(direction) * lane + Vector3.up * 0.5f,
                 Quaternion.Euler(0f, direction * 90f, 0f));
             if (controller == null) return false; // model not riggable — warned by the builder
 

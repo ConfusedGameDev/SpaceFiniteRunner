@@ -169,7 +169,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Debugging
             {
                 string obstacle = driver.Obstacle == ObstacleKind.None ? "clear" : driver.Obstacle.ToString().ToLowerInvariant();
                 string stuck = driver.StuckTime > 0.05f ? $"  stuck {driver.StuckTime:0.0}s" : string.Empty;
-                labels.Add((car.position + Vector3.up * 3f, $"{driver.StateLabel}  [{obstacle}]{stuck}", color));
+                // The lane rule's direction of travel — a car whose letter
+                // flips without a junction is breaking the no-U-turn rule.
+                string heading = driver.TravelDirection >= 0 ? $" >{"NESW"[driver.TravelDirection]}" : string.Empty;
+                labels.Add((car.position + Vector3.up * 3f, $"{driver.StateLabel}{heading}  [{obstacle}]{stuck}", color));
             }
 #endif
         }

@@ -80,6 +80,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float laneOffsetFraction = 0.18f;
 
         [TitleGroup("Driving")]
+        [Tooltip("Absolute cap on the lane offset — keeps very wide cells from pushing the lane onto the sidewalk. On the city's ~37 m cells the fraction above lands under this cap.")]
+        [PropertyRange(1f, 12f), SuffixLabel("m", true)]
+        public float laneOffsetMaxMeters = 8f;
+
+        [TitleGroup("Driving")]
+        [Tooltip("Chance a patrolling cruiser carries straight on through a junction when it can — the rest of the time it turns. Reverse is never picked outside dead ends. Lower than traffic's, so patrols roam more corners.")]
+        [PropertyRange(0f, 1f)]
+        public float straightBias = 0.45f;
+
+        [TitleGroup("Driving")]
         [Tooltip("Seconds between route recomputations while chasing.")]
         [PropertyRange(0.2f, 5f), SuffixLabel("s", true)]
         public float repathInterval = 1f;

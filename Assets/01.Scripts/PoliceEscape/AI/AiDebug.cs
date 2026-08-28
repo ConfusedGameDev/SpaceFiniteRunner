@@ -94,6 +94,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         /// <summary>The point actually steered at this frame, lane offset included.</summary>
         Vector3 SteerAim { get; }
 
+        /// <summary>Grid direction of travel (0..3 = N,E,S,W), -1 while unknown — the lane rule's "which way is this road being driven".</summary>
+        int TravelDirection { get; }
+
         /// <summary>Off the road graph and creeping back onto it.</summary>
         bool OffRoad { get; }
 

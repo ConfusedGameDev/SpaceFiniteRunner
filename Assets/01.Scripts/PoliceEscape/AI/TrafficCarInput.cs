@@ -65,6 +65,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         // XZ with the street below, so the level travels with the plan.
         RoadNode? planHead;
         Vector3 previousWaypoint;
+        // Grid direction the plan is travelling (0..3 = N,E,S,W, -1 unknown).
+        // The wander rule re-derives it from the plan (or the car's nose on a
+        // fresh plan), so this is the debug/recovery record, not the authority.
+        int travelDirection = -1;
         float stopTimer, stoppedTimer, stuckTimer, reverseTimer, noProgressTime;
         Vector3 progressAnchor;
         float lastForwardSteer;
@@ -380,7 +384,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             float reach = Mathf.Min(settings.waypointReachDistance, CellSize * 0.4f);
             while (waypoints.Count > 0)
             {
-                Vector3 to = SteerTarget(waypoints[0], previousWaypoint) - transform.position;
+                Vector3? next = waypoints.Count >= 2 ? waypoints[1] : (Vector3?)null;
+                Vector3 to = SteerTarget(waypoints[0], previousWaypoint, next) - transform.position;
                 to.y = 0f;
                 bool reached = to.magnitude < reach;
                 bool passed = Vector3.Dot(transform.forward, to) < 0f && to.magnitude < reach * 2.5f;
@@ -397,7 +402,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 return;
             }
 
-            Vector3 target = SteerTarget(waypoints[0], previousWaypoint);
+            Vector3 target = SteerTarget(waypoints[0], previousWaypoint, waypoints.Count >= 2 ? waypoints[1] : (Vector3?)null);
             steerAim = target;
             Vector3 local = transform.InverseTransformPoint(target);
             float angle = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
@@ -455,21 +460,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
         }
 
+        /// <summary>Lane offset in metres: the designer fraction of a cell under an absolute cap, so wide cells can't push the lane onto the sidewalk.</summary>
+        float LaneOffset => Mathf.Min(CellSize * settings.laneOffsetFraction, settings.laneOffsetMaxMeters);
+
         /// <summary>
         /// The point we actually steer at: the waypoint pushed into the
-        /// right-hand lane. Anchored to the SEGMENT direction (previous →
-        /// current waypoint) so the target is a fixed point in space —
-        /// offsetting by the live approach vector rotates the target with the
-        /// car and creates merry-go-rounds. Absolute cap keeps wide roads
-        /// from pushing the lane too far out.
+        /// right-hand lane (a miter join when the next waypoint is known, so
+        /// corner arrivals land in the OUTGOING leg's lane — see
+        /// <see cref="LaneRules.LaneTarget"/>). Anchored to the SEGMENT
+        /// direction (previous → current waypoint) so the target is a fixed
+        /// point in space — offsetting by the live approach vector rotates the
+        /// target with the car and creates merry-go-rounds. Fork seams and
+        /// roundabout footprints collapse to the centre line.
         /// </summary>
-        Vector3 SteerTarget(Vector3 waypoint, Vector3 previous)
+        Vector3 SteerTarget(Vector3 waypoint, Vector3 previous, Vector3? next)
         {
-            Vector3 segment = waypoint - previous;
-            segment.y = 0f;
-            if (segment.sqrMagnitude <= 0.25f) return waypoint;
-            float laneOffset = Mathf.Min(CellSize * settings.laneOffsetFraction, 2.2f);
-            return waypoint + Vector3.Cross(Vector3.up, segment.normalized) * laneOffset;
+            float lane = city.Graph.IsCenterLineOnlyAt(waypoint) ? 0f : LaneOffset;
+            return LaneRules.LaneTarget(previous, waypoint, next, lane);
         }
 
         void OnCollisionEnter(Collision collision)
@@ -498,15 +505,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             if (settings.logTrafficEvents)
                 Debug.Log($"[Traffic] HardRecover to {node}", this);
             noProgressTime = 0f;
-            progressAnchor = center;
             stuckTimer = 0f;
             reverseTimer = 0f;
             ClearPlan();
-            float yaw = CityManager.RandomConnectedYaw(graph.Connections(node));
+            // Re-enter traffic legally: resume the nearest connected direction
+            // to the old heading, standing in that direction's lane — a random
+            // yaw here points a recovered car into oncoming traffic half the
+            // time.
+            int dir = LaneRules.NearestConnectedDirection(graph.Connections(node), transform.forward);
+            float lane = graph.IsCenterLineOnly(node) ? 0f : LaneOffset;
+            Vector3 pose = center + LaneRules.RightOf(dir) * lane;
+            progressAnchor = pose;
             car.Body.linearVelocity = Vector3.zero;
             car.Body.angularVelocity = Vector3.zero;
-            CarFactory.Teleport(car.Body, center + Vector3.up * 0.5f, Quaternion.Euler(0f, yaw, 0f));
+            CarFactory.Teleport(car.Body, pose + Vector3.up * 0.5f, Quaternion.Euler(0f, dir * 90f, 0f));
             previousWaypoint = transform.position;
+            travelDirection = dir;
             return true;
         }
 
@@ -594,11 +608,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         }
 
         /// <summary>
-        /// Append one more wander cell: a random connected neighbour, biased
-        /// against turning straight back. A fleeing car swaps the random pick
-        /// for the neighbour farthest from the player (with a little jitter so
-        /// a grid-perfect player can't predict every turn) — flight as greedy
-        /// node choice, no pathfinding, so it costs what a civilian costs.
+        /// Append one more wander cell under the traffic rules: never the
+        /// reverse of the direction of travel (a U-turn puts the car in the
+        /// oncoming lane — dead ends stay the one legal flip), a straight
+        /// bias so junctions read as through-traffic, otherwise a random
+        /// connected neighbour. The direction of travel is re-derived from
+        /// the plan itself — or from the car's own nose on a fresh plan, so a
+        /// crash-spun car legally resumes in whichever direction it now
+        /// faces. A fleeing car swaps the random pick for the neighbour
+        /// farthest from the player (with a little jitter so a grid-perfect
+        /// player can't predict every turn) — flight as greedy node choice,
+        /// no pathfinding, so it costs what a civilian costs.
         /// </summary>
         void ExtendWander()
         {
@@ -608,20 +628,37 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             else if (waypoints.Count > 0 && graph.TryGetNodeAt(waypoints[^1], out from)) { }
             else if (!TryGetNodeOn(graph, transform.position, out from)) return;
 
+            // The direction we arrive at 'from' with: the plan's last segment
+            // when there is one (seam twins can share a centre — fall through),
+            // else the car's own heading.
+            int incoming = waypoints.Count > 0
+                ? LaneRules.SegmentDirection(waypoints.Count >= 2 ? waypoints[^2] : previousWaypoint, waypoints[^1])
+                : -1;
+            if (incoming < 0) incoming = LaneRules.HeadingToDirection(transform.forward);
+            int banned = LaneRules.ReverseOf(incoming);
+
             bool flee = Fleeing && playerCar != null;
             Vector3 threat = flee ? playerCar.transform.position : Vector3.zero;
 
             RoadNode pick = default;
+            RoadNode straightPick = default;
+            bool straightSeen = false;
             int seen = 0;
             float bestScore = float.MinValue;
             for (int dir = 0; dir < 4; dir++)
             {
+                if (dir == banned) continue; // wrong-way turn — never, outside a dead end
                 if (!graph.TryGetNeighbour(from, dir, out RoadNode neighbour) || neighbour == wanderFrom) continue;
                 // Civilians keep to the allowed blocks; the escaping car is
                 // exempt — gating its greedy flight could force a U-turn into
                 // the player, and its flee-hold leash bounds it anyway.
                 if (!flee && !city.IsNpcPositionAllowed(graph.Center(neighbour))) continue;
                 seen++;
+                if (dir == incoming)
+                {
+                    straightSeen = true;
+                    straightPick = neighbour;
+                }
                 if (flee)
                 {
                     float score = FlatDistance(graph.Center(neighbour), threat) + Random.Range(0f, CellSize * 0.5f);
@@ -631,15 +668,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 }
                 else if (Random.Range(0, seen) == 0) pick = neighbour;
             }
+            if (!flee && straightSeen && Random.value < settings.straightBias) pick = straightPick;
             if (seen == 0)
             {
-                if (!graph.Contains(wanderFrom)) return;
-                pick = wanderFrom; // dead end — U-turn is the only option
+                // Dead end (or everything else filtered): the U-turn is the
+                // one legal direction flip left.
+                if (!graph.TryGetNeighbour(from, banned, out pick))
+                {
+                    if (!graph.Contains(wanderFrom)) return;
+                    pick = wanderFrom;
+                }
             }
 
             wanderFrom = from;
             waypoints.Add(graph.Center(pick));
             planHead = pick;
+            travelDirection = LaneRules.SegmentDirection(graph.Center(from), graph.Center(pick));
         }
 
         // --------------------------------------------------------- debug view
@@ -655,6 +699,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         IReadOnlyList<Vector3> IAiDebugDriver.Waypoints => waypoints;
         Vector3 IAiDebugDriver.PreviousWaypoint => previousWaypoint;
         Vector3 IAiDebugDriver.SteerAim => steerAim;
+
+        /// <summary>The current leg's direction while driving one; the last recorded one otherwise.</summary>
+        int IAiDebugDriver.TravelDirection => waypoints.Count > 0
+            ? LaneRules.SegmentDirection(previousWaypoint, waypoints[0])
+            : travelDirection;
         bool IAiDebugDriver.OffRoad => offRoad;
         bool IAiDebugDriver.Reversing => reverseTimer > 0f;
         float IAiDebugDriver.StuckTime => stuckTimer;
