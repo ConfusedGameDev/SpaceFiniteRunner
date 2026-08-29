@@ -58,9 +58,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             block.isWater = spec.IsWater;
             block.SetData(data);
 
+            // Every content root goes on this list: it is what CityStreamer
+            // toggles at runtime, while the block object (and its colliders)
+            // stays alive. Recorded rather than found, so the streamer never
+            // matches names.
+            var streamed = new List<GameObject>();
+
             if (spec.IsWater)
             {
-                BuildWater(layout, coord, data, blockGo, side);
+                BuildWater(layout, coord, data, blockGo, side, streamed);
             }
             else if (settings.generateColliders)
             {
@@ -77,12 +83,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
             var roadsGo = new GameObject("Roads");
             roadsGo.transform.SetParent(blockGo.transform, false);
+            streamed.Add(roadsGo);
 
             StampRoads(settings, spec.Seed, data, roadsGo.transform);
             if (spec.IsWater && settings.shorelineSet != null)
             {
                 var shoreGo = new GameObject("Shoreline");
                 shoreGo.transform.SetParent(blockGo.transform, false);
+                streamed.Add(shoreGo);
                 ShorelinePlacer.Place(layout, coord, data, shoreGo.transform);
             }
 
@@ -96,12 +104,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                     // (ParkLot flags), the populator skips them, this fills them.
                     var natureGo = new GameObject("Nature");
                     natureGo.transform.SetParent(blockGo.transform, false);
+                    streamed.Add(natureGo);
                     Decoration.LotNaturePlacer.Populate(settings, knobs.NatureSet, spec.Seed, data, natureGo.transform);
                 }
                 if (knobs.BuildingSet != null)
                 {
                     var buildingsGo = new GameObject("Buildings");
                     buildingsGo.transform.SetParent(blockGo.transform, false);
+                    streamed.Add(buildingsGo);
                     Population.CityPopulator.Populate(settings, knobs.BuildingSet, knobs.BuildingDensityMultiplier,
                         spec.Seed, roadAt, data, buildingsGo.transform);
                 }
@@ -109,11 +119,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 {
                     var decorationsGo = new GameObject("Decorations");
                     decorationsGo.transform.SetParent(blockGo.transform, false);
+                    streamed.Add(decorationsGo);
                     Decoration.CityDecorator.Decorate(settings, knobs.DecorationSet, knobs.DecorationDensityMultiplier,
                         spec.Seed, data, decorationsGo.transform);
                 }
             }
 
+            block.SetStreamedRoots(streamed.ToArray());
             return blockGo;
         }
 
@@ -133,9 +145,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// flat road cells (the bridge line's two border tiles — flat tiles
         /// carry no collider of their own and there is no slab here) get a
         /// per-cell mini-slab with its top at exactly y = 0, flush with the
-        /// ramp foot the way the block slab is on land.
+        /// ramp foot the way the block slab is on land. Under the surface sits
+        /// an opaque SEA-FLOOR quad: the depth-based distance fog (DistanceFog)
+        /// fogs a transparent surface by whatever depth lies behind it, and with
+        /// nothing behind the water that is the far plane, i.e. the sea would
+        /// fog solid a few metres from the shore. The floor gives it a finite
+        /// depth a few metres below, which is exactly how deep water should read.
         /// </summary>
-        static void BuildWater(CityLayout layout, Vector2Int coord, ChunkData data, GameObject blockGo, float side)
+        static void BuildWater(CityLayout layout, Vector2Int coord, ChunkData data, GameObject blockGo, float side, List<GameObject> streamed)
         {
             CityGenerationSettings settings = layout.Settings;
             float cell = settings.cellSize;
@@ -180,6 +197,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             var surfaceRenderer = surface.GetComponent<MeshRenderer>();
             surfaceRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             if (settings.waterMaterial != null) surfaceRenderer.sharedMaterial = settings.waterMaterial;
+            streamed.Add(surface);
+
+            // The sea floor, a hair above the floor collider's top so the two
+            // never z-fight, and still several metres under the surface.
+            GameObject seaFloor = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            seaFloor.name = "SeaFloor";
+            Object.DestroyImmediate(seaFloor.GetComponent<Collider>()); // the box collider on the block is the physical floor
+            seaFloor.transform.SetParent(blockGo.transform, false);
+            seaFloor.transform.localPosition = new Vector3(side * 0.5f, floorDepth + 0.02f, side * 0.5f);
+            seaFloor.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            seaFloor.transform.localScale = new Vector3(side * 1.002f, side * 1.002f, 1f);
+            var floorRenderer = seaFloor.GetComponent<MeshRenderer>();
+            floorRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            Material floorMaterial = settings.seaFloorMaterial != null ? settings.seaFloorMaterial : settings.waterMaterial;
+            if (floorMaterial != null) floorRenderer.sharedMaterial = floorMaterial;
+            streamed.Add(seaFloor);
         }
 
         // ------------------------------------------------------------ stamping

@@ -383,7 +383,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     var coord = new Vector2Int(x, y);
                     if (onlyCoords != null && !onlyCoords.Contains(coord)) continue;
                     ChunkData data = layout.GenerateBlock(coord);
-                    CityBlockBuilder.BuildBlock(layout, coord, data, root.transform);
+                    GameObject blockGo = CityBlockBuilder.BuildBlock(layout, coord, data, root.transform);
+                    // Static flags are a bake product (see CityStaticFlags):
+                    // set here so a rebuilt block is occlusion-ready the
+                    // moment it lands, never hand-set in the prefab.
+                    if (definition.generation.staticFlags)
+                        CityStaticFlags.ApplyToBlock(blockGo, definition.generation.staticBatching);
                 }
 
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath);

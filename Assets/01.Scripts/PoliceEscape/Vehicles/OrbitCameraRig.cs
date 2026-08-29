@@ -1,3 +1,4 @@
+using ConfusedGameDev.FiniteRunner.FX;
 using Sirenix.OdinInspector;
 using Unity.Cinemachine;
 using Unity.Cinemachine.TargetTracking;
@@ -33,6 +34,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         CarController target;
         float idleTimer;
         bool built;
+        float defaultFarClip;
 
         // Look-back state. The swing is driven by a 0..1 blend off a REMEMBERED
         // orbit rather than by nudging the live axis: the axis wraps at +/-180,
@@ -92,6 +94,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             orbital.TrackerSettings.BindingMode = BindingMode.LockToTargetWithWorldUp;
             orbital.HorizontalAxis = new InputAxis { Value = 0f, Range = new Vector2(-180f, 180f), Wrap = true, Center = 0f };
             orbital.VerticalAxis = new InputAxis { Value = 18f, Range = new Vector2(2f, 55f), Wrap = false, Center = 18f };
+            // The scene camera's far clip is the authored default; the lens
+            // (which the brain pushes onto the camera every frame) starts there.
+            defaultFarClip = Camera.main != null ? Camera.main.farClipPlane : cinemachineCamera.Lens.FarClipPlane;
+            cinemachineCamera.Lens.FarClipPlane = defaultFarClip;
             ApplySettings();
         }
 
@@ -141,6 +147,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // Speed FOV kick.
             cinemachineCamera.Lens.FieldOfView = settings.baseFov
                 + Mathf.Min(settings.maxFovBoost, target.SpeedKmh * settings.fovPerKmh);
+
+            // Far clip follows the distance fog: past the solid fog there is
+            // nothing to draw. Cinemachine pushes the lens clip planes onto the
+            // camera every frame, so the clamp has to live on the lens, not on
+            // Camera.main. Back to the authored default when the fog is off.
+            float? fogFar = DistanceFog.Instance != null ? DistanceFog.Instance.FarClipPlane : null;
+            cinemachineCamera.Lens.FarClipPlane = fogFar ?? defaultFarClip;
         }
 
         /// <summary>

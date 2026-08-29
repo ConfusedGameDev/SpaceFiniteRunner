@@ -43,6 +43,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         RainIntensity, RainAmount, RainFallSpeed, RainDropSize, RainStreak,
         RainWind, RainWindDirection, RainArea,
         ThunderFrequency, ThunderFlash,
+        DebugTabDistanceFog,
+        FogIntensity, FogStart, FogEnd, FogDensity, FogSkyAmount, FogHeightFalloff,
+        FarGlitchStart, FarGlitchStrength, FarGlitchRate,
         DebugTabPoliceFleet, DebugTabPoliceChase,
         PolicePatrolCount, PoliceSpawnMin, PoliceSpawnMax, PoliceDespawn,
         PoliceDetection, PoliceLoseSight, PoliceSearchTime,
@@ -330,6 +333,27 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Weather stats")]
         [SerializeField] LocalizedString thunderFlash = new("FLASH STRENGTH", "FUERZA DEL DESTELLO", "閃光の強さ", "FORCE DE L'ÉCLAIR");
 
+        [TitleGroup("Fog stats")]
+        [SerializeField] LocalizedString debugTabDistanceFog = new("DEBUG — FOG", "DEPURACIÓN — NIEBLA", "デバッグ — 霧", "DÉBOGAGE — BROUILLARD");
+        [TitleGroup("Fog stats")]
+        [SerializeField] LocalizedString fogIntensity = new("FOG INTENSITY", "INTENSIDAD DE NIEBLA", "霧の強さ", "INTENSITÉ DU BROUILLARD");
+        [TitleGroup("Fog stats")]
+        [SerializeField] LocalizedString fogStart = new("FOG START", "INICIO DE NIEBLA", "霧の開始距離", "DÉBUT DU BROUILLARD");
+        [TitleGroup("Fog stats")]
+        [SerializeField] LocalizedString fogEnd = new("FOG END", "FIN DE NIEBLA", "霧の終了距離", "FIN DU BROUILLARD");
+        [TitleGroup("Fog stats")]
+        [SerializeField] LocalizedString fogDensity = new("FOG THICKNESS", "ESPESOR DE NIEBLA", "霧の濃さ", "ÉPAISSEUR DU BROUILLARD");
+        [TitleGroup("Fog stats")]
+        [SerializeField] LocalizedString fogSkyAmount = new("SKY FOG", "NIEBLA EN EL CIELO", "空の霧", "BROUILLARD DU CIEL");
+        [TitleGroup("Fog stats")]
+        [SerializeField] LocalizedString fogHeightFalloff = new("HEIGHT FALLOFF", "ATENUACIÓN POR ALTURA", "高さによる減衰", "ATTÉNUATION EN HAUTEUR");
+        [TitleGroup("Fog stats")]
+        [SerializeField] LocalizedString farGlitchStart = new("GLITCH START", "INICIO DEL GLITCH", "グリッチの開始距離", "DÉBUT DU GLITCH");
+        [TitleGroup("Fog stats")]
+        [SerializeField] LocalizedString farGlitchStrength = new("GLITCH STRENGTH", "FUERZA DEL GLITCH", "グリッチの強さ", "FORCE DU GLITCH");
+        [TitleGroup("Fog stats")]
+        [SerializeField] LocalizedString farGlitchRate = new("GLITCH RATE", "FRECUENCIA DEL GLITCH", "グリッチの頻度", "FRÉQUENCE DU GLITCH");
+
         [TitleGroup("City police stats")]
         [SerializeField] LocalizedString debugTabPoliceFleet = new("DEBUG — POLICE FLEET", "DEPURACIÓN — FLOTA POLICIAL", "デバッグ — 警察の台数", "DÉBOGAGE — FLOTTE DE POLICE");
         [TitleGroup("City police stats")]
@@ -564,6 +588,16 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.RainArea => rainArea,
             MenuTextId.ThunderFrequency => thunderFrequency,
             MenuTextId.ThunderFlash => thunderFlash,
+            MenuTextId.DebugTabDistanceFog => debugTabDistanceFog,
+            MenuTextId.FogIntensity => fogIntensity,
+            MenuTextId.FogStart => fogStart,
+            MenuTextId.FogEnd => fogEnd,
+            MenuTextId.FogDensity => fogDensity,
+            MenuTextId.FogSkyAmount => fogSkyAmount,
+            MenuTextId.FogHeightFalloff => fogHeightFalloff,
+            MenuTextId.FarGlitchStart => farGlitchStart,
+            MenuTextId.FarGlitchStrength => farGlitchStrength,
+            MenuTextId.FarGlitchRate => farGlitchRate,
             MenuTextId.DebugTabPoliceFleet => debugTabPoliceFleet,
             MenuTextId.DebugTabPoliceChase => debugTabPoliceChase,
             MenuTextId.PolicePatrolCount => policePatrolCount,

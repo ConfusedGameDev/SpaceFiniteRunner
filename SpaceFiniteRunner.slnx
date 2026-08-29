@@ -3,6 +3,7 @@
   <Project Path="ConfusedGameDev.FiniteRunner.PoliceEscape.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="ConfusedGameDev.FiniteRunner.Rendering.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Runner.csproj" />
   <Project Path="EVP5.Editor.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.UI.csproj" />
@@ -14,5 +15,4 @@
   <Project Path="ConfusedGameDev.FiniteRunner.Runner.Editor.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Haptics.csproj" />
   <Project Path="Assembly-CSharp-firstpass.csproj" />
-  <Project Path="ConfusedGameDev.FiniteRunner.Rendering.csproj" />
 </Solution>

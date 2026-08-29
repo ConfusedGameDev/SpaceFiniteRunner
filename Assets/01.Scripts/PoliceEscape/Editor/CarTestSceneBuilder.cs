@@ -46,6 +46,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         // Weather is shared by both games, so it lives with the other Resources
         // singletons rather than in this scene's data folder.
         const string RainSettingsPath = "Assets/04.Data/Resources/FiniteRunner_Rain.asset";
+        const string DistanceFogMaterialPath = "Assets/02.Art/02.Materials/InfiniteCity/DistanceFog.mat";
+        const string DistanceFogSettingsPath = "Assets/04.Data/Resources/FiniteRunner_DistanceFog.asset";
         const string PlayerModelPath = VehiclesFolder + "/sedan-sports.fbx";
         const string PoliceModelPath = VehiclesFolder + "/police.fbx";
         const float TargetCarLength = 4.4f; // the Kenney models are ~2.6-3.1 units long — scale them to real-car meters
@@ -156,6 +158,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // it on and hands it an override asset.
             var rain = new GameObject("RainSystem").AddComponent<RainSystem>();
             rain.settings = AssetDatabase.LoadAssetAtPath<RainSettings>(RainSettingsPath);
+
+            // Distance fog + far glitch: the renderer's DistanceFog feature runs
+            // the shader, this object feeds it the settings asset every frame.
+            // Both assets come from Tools → Police Escape → Install Distance
+            // Fog Feature; without them the scene simply has no fog.
+            var fogMaterial = AssetDatabase.LoadAssetAtPath<Material>(DistanceFogMaterialPath);
+            if (fogMaterial != null)
+            {
+                var fog = new GameObject("DistanceFog").AddComponent<DistanceFog>();
+                fog.fogMaterial = fogMaterial;
+                fog.settings = AssetDatabase.LoadAssetAtPath<DistanceFogSettings>(DistanceFogSettingsPath);
+            }
 
             // Overhead vantage for edit mode; the ChaseCamera takes over in play.
             var camera = Camera.main;

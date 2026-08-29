@@ -13,6 +13,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// loads with zero generator involvement, so the data rides in the asset
     /// and <see cref="Data"/> merely rehydrates it on demand. Gizmos draw the
     /// grid overlay per block, in the scene and in Prefab Mode alike.
+    /// The block object itself is NEVER deactivated: the road graph rebuild
+    /// and the spawn walks use active-only GetComponentsInChildren, and the
+    /// ground slab / sea floor / splash trigger colliders hang off it. What
+    /// <see cref="CityStreamer"/> toggles is the baked content roots listed
+    /// in <see cref="StreamedRoots"/>.
     /// </summary>
     public class CityBlock : MonoBehaviour
     {
@@ -37,8 +42,36 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [HideInInspector]
         public BlockLayoutData layout;
 
+        [SerializeField, HideInInspector]
+        GameObject[] streamedRoots;
+
         ChunkData cached;
         CityRoot root;
+        GameObject[] fallbackRoots;
+
+        /// <summary>
+        /// The content roots the streamer may deactivate (Roads, Buildings,
+        /// Decorations, Nature, Shoreline, WaterSurface, SeaFloor). Baked by
+        /// the builder so no name matching happens at runtime; a prefab baked
+        /// before the streamer existed falls back to every direct child except
+        /// the splash zone, which CityWrap looks up with GetComponentInChildren
+        /// and which must catch a car in an unloaded block too.
+        /// </summary>
+        public GameObject[] StreamedRoots
+        {
+            get
+            {
+                if (streamedRoots != null && streamedRoots.Length > 0) return streamedRoots;
+                if (fallbackRoots != null) return fallbackRoots;
+                var roots = new System.Collections.Generic.List<GameObject>();
+                foreach (Transform child in transform)
+                    if (child.GetComponent<WaterSplashZone>() == null) roots.Add(child.gameObject);
+                return fallbackRoots = roots.ToArray();
+            }
+        }
+
+        /// <summary>Record the content roots the builder just created (bake time only).</summary>
+        public void SetStreamedRoots(GameObject[] roots) => streamedRoots = roots;
 
         /// <summary>Grid model this block was baked from, rehydrated from the serialized layout. Null only for a component that was never baked.</summary>
         public ChunkData Data => cached ??= layout?.ToChunkData();

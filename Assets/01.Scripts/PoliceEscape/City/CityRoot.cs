@@ -15,8 +15,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// baking. All spatial queries (nearest road cell, straight spawn
     /// runways, cell clearance) live here; <see cref="CityManager"/> stays a
     /// thin facade over them so its ~15 consumers never changed. The graph
-    /// deliberately never shrinks — nothing is streamed out any more, so AI
-    /// plans can never go stale.
+    /// deliberately never shrinks: geometry is activity-culled by
+    /// <see cref="CityStreamer"/> (content roots off, block objects on), so
+    /// the graph and every block stay, and AI plans can never go stale.
     /// </summary>
     public class CityRoot : MonoBehaviour
     {
@@ -52,12 +53,32 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [PropertyRange(20f, 400f), SuffixLabel("m", true)]
         public float npcEdgeExitDistance = 90f;
 
+        [TitleGroup("Gameplay")]
+        [Tooltip("Keep only the blocks near the player loaded: the baked content of every other block is switched off (the block objects, their colliders and the road graph stay). Pair with the DistanceFog so the pop-in lands behind the fog.")]
+        public bool streamBlocks = true;
+
+        [TitleGroup("Gameplay")]
+        [Tooltip("A block's content is switched on once its rectangle is this close to the player. Must be at least the police despawn reach (PursuitSettings: despawnDistance, or spawn max + 50) and the traffic active radius + padding, or NPCs drive on missing colliders; and at least the fog end, or blocks pop in ahead of the fog.")]
+        [PropertyRange(200f, 1500f), SuffixLabel("m", true), EnableIf(nameof(streamBlocks))]
+        public float streamEnterDistance = 500f;
+
+        [TitleGroup("Gameplay")]
+        [Tooltip("A loaded block's content stays on until it is this far away. Hysteresis, so driving along a block edge cannot thrash a few hundred objects on and off.")]
+        [PropertyRange(250f, 2000f), SuffixLabel("m", true), EnableIf(nameof(streamBlocks))]
+        public float streamExitDistance = 650f;
+
+        [TitleGroup("Gameplay")]
+        [Tooltip("Content roots (Roads, Buildings, ...) toggled per frame. 1 spreads a block's arrival over a handful of frames; a Buildings root alone drops dozens of mesh colliders into PhysX.")]
+        [PropertyRange(1, 8), EnableIf(nameof(streamBlocks))]
+        public int activationsPerFrame = 1;
+
         [TitleGroup("Gizmos")]
         [Tooltip("Draw the per-block grid overlays (road cells, block borders, seed labels).")]
         public bool drawGizmos = true;
 
         RoadGraph graph;
         CityBounds bounds;
+        CityStreamer streamer;
         Dictionary<Vector2Int, CityBlock> blockLookup;
         Vehicles.CarController trackedPlayer;
         float boundsTimer;
@@ -91,6 +112,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (!Application.isPlaying) return;
             RebuildGraph();
             if (pacmanWrap && GetComponent<CityWrap>() == null) gameObject.AddComponent<CityWrap>();
+            if (streamBlocks)
+            {
+                streamer = GetComponent<CityStreamer>();
+                if (streamer == null) streamer = gameObject.AddComponent<CityStreamer>();
+            }
         }
 
         void Update()
@@ -101,7 +127,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (boundsTimer > 0f) return;
             boundsTimer = 1f;
             if (trackedPlayer == null) trackedPlayer = AI.PatrolManager.FindPlayerCar();
-            if (trackedPlayer != null) Bounds.Tick(trackedPlayer.transform.position);
+            if (trackedPlayer == null) return;
+            Bounds.Tick(trackedPlayer.transform.position);
+            // Same cadence, same player: the visual ring follows the NPC ring.
+            if (streamer != null && streamer.enabled) streamer.Tick(trackedPlayer.transform.position);
         }
 
         /// <summary>Rebuild the graph from the child blocks' serialized layouts. Editor tooling calls this after a rebake.</summary>

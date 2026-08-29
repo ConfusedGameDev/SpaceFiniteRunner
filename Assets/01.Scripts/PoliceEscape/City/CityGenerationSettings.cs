@@ -73,6 +73,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Add colliders to generated content: a flat ground slab per chunk (top at road level, y = 0) and a fitted box per building — enough for WheelCollider driving without per-mesh colliders.")]
         public bool generateColliders = true;
 
+        // ---------------------------------------------------------- performance
+        [TitleGroup("Performance")]
+        [Tooltip("Flag baked geometry Occluder + Occludee static at bake time so an occlusion map can be computed for the scene (Tools → Police Escape → Bake Occlusion Culling). Rigidbody props (cones, posts, barrels, nature props) are never flagged — a flagged mover would be culled against its bake-time position.")]
+        public bool staticFlags = true;
+
+        [TitleGroup("Performance")]
+        [Tooltip("Also flag Batching static. Off by default: the SRP batcher already batches the kit, and static batching duplicates vertex data for every one of the ~23k instances and fights the per-block activity culling.")]
+        public bool staticBatching;
+
         // --------------------------------------------------------------- water
         [TitleGroup("Water")]
         [Tooltip("Height of the sea surface below the road plane (y = 0). A water block has no ground slab: the car drops off the shore, crosses this surface and splashes.")]
@@ -92,6 +101,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [TitleGroup("Water")]
         [Tooltip("Material of the water surface quad every water block carries. Built by Tools → Police Escape → Create Kenney Shoreline Set; swap in a Shader Graph water later.")]
         public Material waterMaterial;
+
+        [TitleGroup("Water")]
+        [Tooltip("Opaque material of the sea-floor quad under the surface. It exists for the depth-based distance fog: without a floor the sea reads as the far plane and nearby water fogs solid. Null = the water material.")]
+        public Material seaFloorMaterial;
 
         [TitleGroup("Water")]
         [Tooltip("Cliff pieces stamped along every land-facing edge of a water block (edges, outer and inner corners). Empty = bare shores. Built by Tools → Police Escape → Create Kenney Shoreline Set.")]

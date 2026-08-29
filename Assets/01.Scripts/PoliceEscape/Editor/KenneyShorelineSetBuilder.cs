@@ -25,6 +25,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string NatureFolder = "Assets/02.Art/01.Models/InfiniteCity/NaturePack";
         const string MaterialFolder = "Assets/02.Art/02.Materials/InfiniteCity";
         const string WaterMaterialPath = MaterialFolder + "/Water.mat";
+        const string SeaFloorMaterialPath = MaterialFolder + "/SeaFloor.mat";
         const string SettingsFolder = "Assets/04.Data/InfiniteCity";
         const string SetPath = SettingsFolder + "/KenneyShorelineSet.asset";
         const string DefinitionPath = SettingsFolder + "/CityDefinition.asset";
@@ -64,6 +65,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             else EditorUtility.SetDirty(set);
 
             Material water = EnsureWaterMaterial();
+            Material seaFloor = EnsureSeaFloorMaterial();
 
             // Wire into the generation asset the designer actually bakes with,
             // falling back to the test settings by path.
@@ -75,6 +77,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             {
                 settings.shorelineSet = set;
                 if (settings.waterMaterial == null) settings.waterMaterial = water;
+                if (settings.seaFloorMaterial == null) settings.seaFloorMaterial = seaFloor;
                 EditorUtility.SetDirty(settings);
             }
             else
@@ -157,6 +160,30 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             if (!AssetDatabase.IsValidFolder(MaterialFolder))
                 AssetDatabase.CreateFolder("Assets/02.Art/02.Materials", "InfiniteCity");
             AssetDatabase.CreateAsset(material, WaterMaterialPath);
+            return material;
+        }
+
+        /// <summary>
+        /// The opaque, near-black floor under every water block (see
+        /// CityBlockBuilder.BuildWater for why the sea needs a floor at all).
+        /// Never overwritten, so a hand-tuned floor survives.
+        /// </summary>
+        static Material EnsureSeaFloorMaterial()
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(SeaFloorMaterialPath);
+            if (material != null) return material;
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            material = new Material(shader) { name = "SeaFloor" };
+            material.SetFloat("_Smoothness", 0.1f);
+            material.SetFloat("_Metallic", 0f);
+            var color = new Color(0.02f, 0.04f, 0.06f, 1f);
+            material.SetColor("_BaseColor", color);
+            material.color = color;
+
+            if (!AssetDatabase.IsValidFolder(MaterialFolder))
+                AssetDatabase.CreateFolder("Assets/02.Art/02.Materials", "InfiniteCity");
+            AssetDatabase.CreateAsset(material, SeaFloorMaterialPath);
             return material;
         }
     }
