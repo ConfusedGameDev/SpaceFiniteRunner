@@ -52,6 +52,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             Color32 road = settings.roadColor;
             Color32 arterial = settings.arterialColor;
             Color32 reserved = settings.reservedColor;
+            Color32 water = settings.waterColor;
 
             for (int y = 0; y < cellWindow.height; y++)
             {
@@ -72,6 +73,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                             ChunkData.CellKind.Arterial => arterial,
                             ChunkData.CellKind.Connector => road,
                             ChunkData.CellKind.Reserved => reserved,
+                            ChunkData.CellKind.Water => water,
                             _ => block,
                         };
                     }

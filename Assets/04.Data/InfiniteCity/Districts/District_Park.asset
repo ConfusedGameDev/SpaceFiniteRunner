@@ -19,5 +19,5 @@ MonoBehaviour:
   isPark: 1
   parkLotChance: 0
   natureSet: {fileID: 11400000, guid: 84916aa2810a3794baf288caf6e7c3d0, type: 2}
-  curveChance: 0
+  curveChance: 0.941
   maxCurvedAvenues: 1

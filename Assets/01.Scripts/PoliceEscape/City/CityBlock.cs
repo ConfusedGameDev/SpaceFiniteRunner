@@ -31,6 +31,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [ReadOnly, ShowIf(nameof(connectorOnly)), Tooltip("0 = bridge runs East–West, 1 = North–South.")]
         public int connectorAxis;
 
+        [ReadOnly, Tooltip("Baked as open water (with connectorOnly: a causeway). No ground slab — a sea floor, a splash trigger and the water surface instead.")]
+        public bool isWater;
+
         [HideInInspector]
         public BlockLayoutData layout;
 
@@ -63,13 +66,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             Vector3 origin = transform.position;
             float sideMeters = data.SizeInCells * cell;
 
-            Gizmos.color = connectorOnly ? new Color(1f, 0.55f, 0.1f) : Color.green;
+            Gizmos.color = isWater ? new Color(0.2f, 0.5f, 1f) : connectorOnly ? new Color(1f, 0.55f, 0.1f) : Color.green;
             Vector3 center = origin + new Vector3(sideMeters * 0.5f, 0f, sideMeters * 0.5f);
             Gizmos.DrawWireCube(center, new Vector3(sideMeters, 0.1f, sideMeters));
 #if UNITY_EDITOR
-            UnityEditor.Handles.Label(
-                origin + new Vector3(0.5f, 0f, 0.5f) * cell,
-                $"Block {coord}  seed {seed}{(connectorOnly ? "  [bridge]" : string.Empty)}");
+            string tag = isWater && connectorOnly ? "  [causeway]" : isWater ? "  [water]" : connectorOnly ? "  [bridge]" : string.Empty;
+            UnityEditor.Handles.Label(origin + new Vector3(0.5f, 0f, 0.5f) * cell, $"Block {coord}  seed {seed}{tag}");
 #endif
 
             for (int y = 0; y < data.SizeInCells; y++)
@@ -87,6 +89,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 if (data.IsReserved(x, y))
                 {
                     Gizmos.color = new Color(0.35f, 0.35f, 0.35f, 0.6f);  // feature-owned, no road, no building
+                    Gizmos.DrawCube(cellCenter, slab);
+                    continue;
+                }
+                if (data.IsWater(x, y))
+                {
+                    Gizmos.color = new Color(0.2f, 0.45f, 1f, 0.25f);      // open sea
                     Gizmos.DrawCube(cellCenter, slab);
                     continue;
                 }

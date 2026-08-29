@@ -56,8 +56,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         public Color arterialColor = new(0.72f, 0.76f, 0.82f, 1f);
 
         [TitleGroup("Palette")]
-        [Tooltip("Cells swallowed by a road feature (bridge shadow, roundabout island) — neither road nor lot.")]
+        [Tooltip("Cells swallowed by a road feature (bridge shadow, roundabout island) — neither road nor lot. A causeway's under-deck cells keep this, so the bridge reads as a shadow over the sea.")]
         public Color reservedColor = new(0.20f, 0.22f, 0.27f, 1f);
+
+        [TitleGroup("Palette")]
+        [Tooltip("Open sea — the water blocks that carve the city into islands.")]
+        public Color waterColor = new(0.10f, 0.28f, 0.48f, 1f);
 
         // ------------------------------------------------------------- markers
         [TitleGroup("Markers")]

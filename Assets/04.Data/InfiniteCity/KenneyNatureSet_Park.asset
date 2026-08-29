@@ -176,6 +176,6 @@ MonoBehaviour:
     explosive: 0
   groundTilePrefab: {fileID: 919132149155446097, guid: 63bd68eebc2d1ee48b7b53743db29fd6, type: 3}
   pathTilePrefab: {fileID: 919132149155446097, guid: e1b76817836362145b170e1c536ad87f, type: 3}
-  interiorDensity: 0.4
+  interiorDensity: 0.768
   perimeterDensity: 0.55
   clearingRadius: 0.8

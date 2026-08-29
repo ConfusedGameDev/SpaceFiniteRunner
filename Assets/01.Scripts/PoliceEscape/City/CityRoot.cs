@@ -58,6 +58,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         RoadGraph graph;
         CityBounds bounds;
+        Dictionary<Vector2Int, CityBlock> blockLookup;
         Vehicles.CarController trackedPlayer;
         float boundsTimer;
 
@@ -107,11 +108,42 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public void RebuildGraph()
         {
             graph = new RoadGraph(cellSize, deckWorldHeight, transform.position);
+            blockLookup = new Dictionary<Vector2Int, CityBlock>();
             foreach (CityBlock block in GetComponentsInChildren<CityBlock>())
             {
+                blockLookup[block.coord] = block;
                 ChunkData data = block.Data;
                 if (data != null) graph.RegisterChunk(data);
             }
+        }
+
+        /// <summary>The baked block at a grid coordinate (wrapped). False for a coordinate no block was baked for.</summary>
+        public bool TryGetBlock(Vector2Int coord, out CityBlock block)
+        {
+            if (blockLookup == null) RebuildGraph();
+            return blockLookup.TryGetValue(WrapBlockCoord(coord), out block) && block != null;
+        }
+
+        /// <summary>Was this block baked as water (open sea or a causeway)?</summary>
+        public bool IsWaterBlock(Vector2Int coord) => TryGetBlock(coord, out CityBlock block) && block.isWater;
+
+        /// <summary>
+        /// Is a world position over open sea — a water block's cell that
+        /// carries no road? A causeway's bridge line answers false, so a
+        /// wrap landing on its deck road is still a wrap. Positions outside
+        /// the city rectangle are wrapped in first.
+        /// </summary>
+        public bool IsOpenWater(Vector3 world)
+        {
+            Vector2Int coord = BlockCoordAt(world);
+            if (!TryGetBlock(coord, out CityBlock block) || !block.isWater) return false;
+            ChunkData data = block.Data;
+            if (data == null) return true;
+            Vector3 origin = transform.position;
+            int size = Mathf.Max(1, blockSizeInCells);
+            int cx = DeterministicHash.Mod(Mathf.FloorToInt((world.x - origin.x) / cellSize), size);
+            int cy = DeterministicHash.Mod(Mathf.FloorToInt((world.z - origin.z) / cellSize), size);
+            return data.IsWater(cx, cy);
         }
 
         // -------------------------------------------------------- coordinates

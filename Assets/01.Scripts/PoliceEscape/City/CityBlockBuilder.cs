@@ -55,9 +55,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             block.settingsOverride = spec.Settings;
             block.connectorOnly = spec.ConnectorOnly;
             block.connectorAxis = spec.ConnectorAxis;
+            block.isWater = spec.IsWater;
             block.SetData(data);
 
-            if (settings.generateColliders)
+            if (spec.IsWater)
+            {
+                BuildWater(layout, coord, data, blockGo, side);
+            }
+            else if (settings.generateColliders)
             {
                 // One flat slab per block, top at road level (y = 0) — roads and
                 // lots alike are drivable; buildings block with their own boxes.
@@ -74,8 +79,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             roadsGo.transform.SetParent(blockGo.transform, false);
 
             StampRoads(settings, spec.Seed, data, roadsGo.transform);
+            if (spec.IsWater && settings.shorelineSet != null)
+            {
+                var shoreGo = new GameObject("Shoreline");
+                shoreGo.transform.SetParent(blockGo.transform, false);
+                ShorelinePlacer.Place(layout, coord, data, shoreGo.transform);
+            }
 
-            if (!spec.ConnectorOnly)
+            if (!spec.ConnectorOnly && !spec.IsWater)
             {
                 BlockKnobs knobs = layout.KnobsFor(coord);
                 System.Func<int, int, bool> roadAt = layout.IsRoadCell;
@@ -104,6 +115,71 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             }
 
             return blockGo;
+        }
+
+        // --------------------------------------------------------------- water
+
+        /// <summary>
+        /// What a water block carries INSTEAD of the ground slab. There must
+        /// be no collider at y = 0 over the sea, or the water is invisibly
+        /// drivable; so the block gets a sea floor (a box whose top is
+        /// <see cref="CityGenerationSettings.seaFloorDepth"/>), a splash
+        /// trigger filling the water column from the surface down to that
+        /// floor (a full-depth box rather than a thin slab, so no fall speed
+        /// can tunnel through it) carrying <see cref="WaterSplashZone"/>, and
+        /// the visible surface — a quad at <see cref="CityGenerationSettings.waterLevel"/>
+        /// a hair larger than the block so adjacent sea blocks show no seam;
+        /// the minimap's top-down camera picks it up for free. A causeway's
+        /// flat road cells (the bridge line's two border tiles — flat tiles
+        /// carry no collider of their own and there is no slab here) get a
+        /// per-cell mini-slab with its top at exactly y = 0, flush with the
+        /// ramp foot the way the block slab is on land.
+        /// </summary>
+        static void BuildWater(CityLayout layout, Vector2Int coord, ChunkData data, GameObject blockGo, float side)
+        {
+            CityGenerationSettings settings = layout.Settings;
+            float cell = settings.cellSize;
+            float waterLevel = Mathf.Min(settings.waterLevel, -0.05f);
+            float floorDepth = Mathf.Min(settings.seaFloorDepth, waterLevel - 0.5f);
+
+            if (settings.generateColliders)
+            {
+                var floor = blockGo.AddComponent<BoxCollider>();
+                floor.center = new Vector3(side * 0.5f, floorDepth - 0.5f, side * 0.5f);
+                floor.size = new Vector3(side, 1f, side);
+
+                var splashGo = new GameObject("WaterSplashZone");
+                splashGo.transform.SetParent(blockGo.transform, false);
+                var splash = splashGo.AddComponent<BoxCollider>();
+                splash.isTrigger = true;
+                float depth = waterLevel - floorDepth;
+                splash.center = new Vector3(side * 0.5f, waterLevel - depth * 0.5f, side * 0.5f);
+                splash.size = new Vector3(side, depth, side);
+                WaterSplashZone.Configure(splashGo, settings.splashDamage);
+
+                for (int y = 0; y < data.SizeInCells; y++)
+                for (int x = 0; x < data.SizeInCells; x++)
+                {
+                    if (!data.IsRoad(x, y) || data.IsRamp(x, y)) continue;
+                    var slab = blockGo.AddComponent<BoxCollider>();
+                    slab.center = new Vector3((x + 0.5f) * cell, -0.5f, (y + 0.5f) * cell);
+                    slab.size = new Vector3(cell, 1f, cell);
+                }
+            }
+
+            // The surface. A primitive quad rather than a hand-built mesh:
+            // its mesh is the engine's built-in asset, so the prefab keeps a
+            // valid reference — a Mesh created here would not be saved with it.
+            GameObject surface = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            surface.name = "WaterSurface";
+            Object.DestroyImmediate(surface.GetComponent<Collider>()); // never a surface to drive on
+            surface.transform.SetParent(blockGo.transform, false);
+            surface.transform.localPosition = new Vector3(side * 0.5f, waterLevel, side * 0.5f);
+            surface.transform.localRotation = Quaternion.Euler(90f, 0f, 0f); // the quad faces -Z; tipped to face up
+            surface.transform.localScale = new Vector3(side * 1.002f, side * 1.002f, 1f);
+            var surfaceRenderer = surface.GetComponent<MeshRenderer>();
+            surfaceRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            if (settings.waterMaterial != null) surfaceRenderer.sharedMaterial = settings.waterMaterial;
         }
 
         // ------------------------------------------------------------ stamping

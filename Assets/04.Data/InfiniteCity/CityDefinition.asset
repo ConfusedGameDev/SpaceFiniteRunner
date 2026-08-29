@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: CityDefinition
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.City.CityDefinition
   generation: {fileID: 11400000, guid: c9332aaf5c158de489354c3081458a2c, type: 2}
-  gridWidth: 4
-  gridHeight: 4
+  gridWidth: 8
+  gridHeight: 8
   blockSizeInCells: 24
-  citySeed: 621869433
+  citySeed: 522574615
   defaultBlockSettings: {fileID: 11400000, guid: b889cc0f40226654fac15bbcaf61de3f, type: 2}
   downtownDistrict: {fileID: 11400000, guid: d88f8bd8b305c544eb89358f84553ac8, type: 2}
   innerRingDistrict: {fileID: 11400000, guid: fca6e74698d658d4382af670249598d0, type: 2}
@@ -33,98 +33,450 @@ MonoBehaviour:
   downtownAnchor: {x: 0, y: 0}
   blocks:
   - coord: {x: 0, y: 0}
-    seed: -257780736
+    seed: 1536742731
     districtOverride: {fileID: 0}
     settingsOverride: {fileID: 11400000, guid: b889cc0f40226654fac15bbcaf61de3f, type: 2}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
   - coord: {x: 1, y: 0}
-    seed: 1308881697
+    seed: -29919702
     districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
   - coord: {x: 2, y: 0}
-    seed: -1419423166
+    seed: -1596582135
     districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 1
     connectorAxis: 0
+    isWater: 0
   - coord: {x: 3, y: 0}
-    seed: 147239267
+    seed: 1131722728
+    districtOverride: {fileID: 11400000, guid: 36baf14c601f0df45bad698cae74ff71, type: 2}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 4, y: 0}
+    seed: -786542129
     districtOverride: {fileID: 11400000, guid: 3cf15da341717ea4e8e3db04689e3ab4, type: 2}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
+  - coord: {x: 5, y: 0}
+    seed: 1941762734
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 1
+  - coord: {x: 6, y: 0}
+    seed: 375100301
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 1
+  - coord: {x: 7, y: 0}
+    seed: -1191562132
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 1
   - coord: {x: 0, y: 1}
-    seed: 1087296273
+    seed: 191665722
     districtOverride: {fileID: 11400000, guid: 36baf14c601f0df45bad698cae74ff71, type: 2}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
   - coord: {x: 1, y: 1}
-    seed: -36195312
+    seed: 1315157307
     districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 1
     connectorAxis: 1
+    isWater: 0
   - coord: {x: 2, y: 1}
-    seed: -74346157
+    seed: 1353308152
     districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
   - coord: {x: 3, y: 1}
-    seed: -1197837742
+    seed: -1818167559
     districtOverride: {fileID: 11400000, guid: 3cf15da341717ea4e8e3db04689e3ab4, type: 2}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
-  - coord: {x: 0, y: 2}
-    seed: -1862594014
-    districtOverride: {fileID: 11400000, guid: 36baf14c601f0df45bad698cae74ff71, type: 2}
+    isWater: 0
+  - coord: {x: 4, y: 1}
+    seed: -2131619138
+    districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
+  - coord: {x: 5, y: 1}
+    seed: -1008127553
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 6, y: 1}
+    seed: -969976708
+    districtOverride: {fileID: 11400000, guid: 3cf15da341717ea4e8e3db04689e3ab4, type: 2}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 7, y: 1}
+    seed: 153514877
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 1
+  - coord: {x: 0, y: 2}
+    seed: -1153411287
+    districtOverride: {fileID: 11400000, guid: 36baf14c601f0df45bad698cae74ff71, type: 2}
+    settingsOverride: {fileID: 11400000, guid: 3d5e1f2d9dbbbe045adebb10af3cd865, type: 2}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
   - coord: {x: 1, y: 2}
-    seed: -295931581
+    seed: 1574893576
     districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 1
     connectorAxis: 1
+    isWater: 0
   - coord: {x: 2, y: 2}
-    seed: 185390112
+    seed: 1093571883
     districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
   - coord: {x: 3, y: 2}
-    seed: 1752052545
+    seed: -473090550
     districtOverride: {fileID: 11400000, guid: d88f8bd8b305c544eb89358f84553ac8, type: 2}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
+  - coord: {x: 4, y: 2}
+    seed: 818271149
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 5, y: 2}
+    seed: -748391284
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 6, y: 2}
+    seed: -1229712977
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 7, y: 2}
+    seed: 1498591886
+    districtOverride: {fileID: 11400000, guid: 3cf15da341717ea4e8e3db04689e3ab4, type: 2}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
   - coord: {x: 0, y: 3}
-    seed: -517517005
+    seed: 1796479000
     districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
   - coord: {x: 1, y: 3}
-    seed: -1641008590
+    seed: -1374996711
     districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
   - coord: {x: 2, y: 3}
-    seed: 1530467121
+    seed: -251505126
     districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
   - coord: {x: 3, y: 3}
-    seed: 406975536
+    seed: 871986459
     districtOverride: {fileID: 11400000, guid: fca6e74698d658d4382af670249598d0, type: 2}
     settingsOverride: {fileID: 11400000, guid: c6b3e6f9fde00024487a710ba9e81bba, type: 2}
     connectorOnly: 0
     connectorAxis: 0
+    isWater: 0
+  - coord: {x: 4, y: 3}
+    seed: -526805860
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 5, y: 3}
+    seed: 596685725
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 1
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 6, y: 3}
+    seed: 1720177310
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 1
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 7, y: 3}
+    seed: -1451298401
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 0, y: 4}
+    seed: -1672883825
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 1, y: 4}
+    seed: 1055421038
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 2, y: 4}
+    seed: -511241395
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 3, y: 4}
+    seed: -2077903828
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 4, y: 4}
+    seed: -1871882869
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 5, y: 4}
+    seed: 856421994
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 6, y: 4}
+    seed: -710240439
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 7, y: 4}
+    seed: 2018064424
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 0, y: 5}
+    seed: 1277006462
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 1, y: 5}
+    seed: -1894469249
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 2, y: 5}
+    seed: -1856318404
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 3, y: 5}
+    seed: -732826819
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 4, y: 5}
+    seed: 1078007418
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 5, y: 5}
+    seed: -2093468293
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 6, y: 5}
+    seed: -2055317448
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 7, y: 5}
+    seed: -931825863
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 0, y: 6}
+    seed: -68070547
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 1, y: 6}
+    seed: -1634732980
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 2, y: 6}
+    seed: -2116054673
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 3, y: 6}
+    seed: 612250190
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 4, y: 6}
+    seed: -267069591
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 5, y: 6}
+    seed: -1833732024
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 6, y: 6}
+    seed: 1979913579
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 1
+    connectorAxis: 1
+    isWater: 0
+  - coord: {x: 7, y: 6}
+    seed: 413251146
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 0, y: 7}
+    seed: -1413147556
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 1, y: 7}
+    seed: -289655971
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 2, y: 7}
+    seed: 833835614
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 3, y: 7}
+    seed: 1957327199
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 4, y: 7}
+    seed: -1612146600
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 5, y: 7}
+    seed: -488655015
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 6, y: 7}
+    seed: 634836570
+    districtOverride: {fileID: 11400000, guid: 3cf15da341717ea4e8e3db04689e3ab4, type: 2}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 0
+  - coord: {x: 7, y: 7}
+    seed: 1758328155
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
+    connectorOnly: 0
+    connectorAxis: 0
+    isWater: 1

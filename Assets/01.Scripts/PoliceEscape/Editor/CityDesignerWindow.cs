@@ -15,7 +15,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     /// into the city prefab. All edits land on the definition asset (dirty
     /// per change, saved at bake points); the window itself holds nothing but
     /// the current selection. Colours: orange = connector/bridge block,
-    /// blue = has a settings override, red = failed validation.
+    /// deep blue = water, sky blue = causeway (water + bridge), light blue =
+    /// has a settings override, red = failed validation (including a land
+    /// mass the water cut off from the mainland).
     /// </summary>
     public class CityDesignerWindow : OdinEditorWindow
     {
@@ -88,10 +90,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     CityDefinition.BlockEntry entry = definition.GetOrCreateEntry(coord);
                     DistrictDefinition district = definition.DistrictFor(coord);
 
-                    // District tint is the lowest layer; the override/bridge/error colours keep their precedence.
+                    // District tint is the lowest layer; the override/bridge/water/error colours keep their precedence.
                     Color color = district != null ? district.mapColor : new Color(0.55f, 0.55f, 0.55f);
                     if (entry.settingsOverride != null) color = new Color(0.45f, 0.65f, 1f);
                     if (entry.connectorOnly) color = new Color(1f, 0.6f, 0.2f);
+                    if (entry.isWater) color = entry.connectorOnly ? new Color(0.35f, 0.7f, 0.95f) : new Color(0.15f, 0.45f, 0.95f);
                     if (lastReport != null && lastReport.BadBlocks.Contains(coord)) color = new Color(1f, 0.3f, 0.3f);
                     if (coord == selected) color = Color.Lerp(color, Color.white, 0.45f);
                     GUI.backgroundColor = color;
@@ -99,8 +102,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     string content = entry.settingsOverride != null ? entry.settingsOverride.name
                         : district != null ? DistrictLabel(district)
                         : "default";
-                    string label = entry.connectorOnly
-                        ? (entry.connectorAxis == CityDefinition.BridgeAxis.EastWest ? $"{x},{y}\n═ bridge ═" : $"{x},{y}\n║ bridge ║")
+                    bool eastWest = entry.connectorAxis == CityDefinition.BridgeAxis.EastWest;
+                    string label = entry.IsCauseway ? (eastWest ? $"{x},{y}\n═ causeway ═" : $"{x},{y}\n║ causeway ║")
+                        : entry.isWater ? $"{x},{y}\n~ water ~"
+                        : entry.connectorOnly ? (eastWest ? $"{x},{y}\n═ bridge ═" : $"{x},{y}\n║ bridge ║")
                         : $"{x},{y}\n{content}";
                     if (GUILayout.Button(label, GUILayout.Height(40), GUILayout.MinWidth(64)))
                     {
@@ -171,7 +176,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         void RebuildSelectedNewSeed() => RebuildSelected(true);
 
         [ButtonGroup("Selected block/actions"), PropertyOrder(13), Button("Rebuild + Neighbours"), EnableIf(nameof(HasDefinition))]
-        [Tooltip("Rebuild this block AND its four (wrapped) neighbours. Needed after edits that move border roads — a district override changing the secondary-arterial tier, or connectorOnly — because the neighbours' baked sockets were computed against the old answer.")]
+        [Tooltip("Rebuild this block AND its four (wrapped) neighbours. Needed after edits that move border roads — a district override changing the secondary-arterial tier, connectorOnly, or isWater — because the neighbours' baked sockets were computed against the old answer.")]
         void RebuildSelectedWithNeighbours()
         {
             SaveDefinitionEdits();
@@ -192,7 +197,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 
         [TitleGroup("City"), PropertyOrder(20)]
         [Button(ButtonSizes.Medium), EnableIf(nameof(HasDefinition))]
-        [Tooltip("Check the connectivity rules without baking: arterial spacing vs block size, bridge feasibility, wrap-seam bands.")]
+        [Tooltip("Check the connectivity rules without baking: arterial spacing vs block size, bridge feasibility, wrap-seam bands — and, once any block is water, a full road-graph walk that flags every land mass the sea cut off from the mainland.")]
         void Validate()
         {
             SaveDefinitionEdits();

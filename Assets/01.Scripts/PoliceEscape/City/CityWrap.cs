@@ -13,6 +13,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// velocity is left untouched — the arterial field is periodic, so the
     /// road the player exits on is the road they re-enter on. Added to the
     /// city root by <see cref="CityRoot"/> when its wrap toggle is on.
+    ///
+    /// <b>Wraps only land on land.</b> A wrap that would put the car over
+    /// open sea (<see cref="CityRoot.IsOpenWater"/> — a causeway's deck road
+    /// still counts as land) is refused and treated as a splash instead:
+    /// beyond the map rectangle there is no slab and no splash trigger, so
+    /// letting the car continue would mean falling through the void forever.
+    /// The splash goes through the landing block's own
+    /// <see cref="WaterSplashZone"/> when it has one, so the charge and the
+    /// respawn are the same as driving in from the shore.
     /// </summary>
     public class CityWrap : MonoBehaviour
     {
@@ -38,9 +47,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             }
 
             if (!root.TryWrap(player.transform.position, out Vector3 wrapped)) return;
+
+            if (root.IsOpenWater(wrapped))
+            {
+                RefuseIntoWater(wrapped);
+                return;
+            }
+
             Rigidbody body = player.Body != null ? player.Body : player.GetComponent<Rigidbody>();
             if (body == null) return;
             Vehicles.CarFactory.Teleport(body, wrapped, body.rotation);
+        }
+
+        /// <summary>The landing is sea: no wrap — the car splashes (damage + respawn on the nearest road, which is back on the side it left).</summary>
+        void RefuseIntoWater(Vector3 landing)
+        {
+            WaterSplashZone zone = root.TryGetBlock(root.BlockCoordAt(landing), out CityBlock block)
+                ? block.GetComponentInChildren<WaterSplashZone>()
+                : null;
+            if (zone != null) zone.Splash(player);
+            else WaterSplashZone.Splash(player, WaterSplashZone.DefaultDamage);
         }
     }
 }

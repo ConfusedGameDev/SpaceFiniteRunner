@@ -16,7 +16,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// strictly interior (connectors, features) runs on the BLOCK seed, which
     /// is what lets a single block be rerolled without moving any border road.
     /// Connector-only blocks skip the interior entirely and get a bridge
-    /// instead (see <see cref="RoadFeaturePlacer.PlaceBridge"/>).
+    /// instead (see <see cref="RoadFeaturePlacer.PlaceBridge"/>); water
+    /// blocks skip it and flood every cell (<see cref="ChunkData.CellKind.Water"/>);
+    /// a causeway is the bridge with the sea flooded in around it.
     /// </summary>
     public static class RoadNetworkGenerator
     {
@@ -35,14 +37,29 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
             CarveArterials(layout, data);
 
+            if (spec.IsWater && !spec.ConnectorOnly)
+            {
+                // Open sea: the layout carved nothing (every road is
+                // suppressed city-wide), so the whole block becomes Water —
+                // not road, not buildable — and there is no interior to run.
+                FloodEmpty(data);
+                ResolveConnections(layout, data);
+                return data;
+            }
+
             if (spec.ConnectorOnly)
             {
                 // A bridge block has no interior: masks resolve over the one
                 // carved line, then the placer turns its middle into
                 // ramps → deck → ramps. No connectors, no features, and the
-                // baker skips buildings and decorations for it.
+                // baker skips buildings and decorations for it. A causeway is
+                // the same bridge with the sea flooded in around it: the
+                // under-deck cells stay Reserved (StampRoads puts the pillars
+                // there — pillars standing in the water ARE the causeway
+                // look), everything else still Empty becomes Water.
                 ResolveConnections(layout, data);
                 RoadFeaturePlacer.PlaceBridge(layout.Settings, data, spec.ConnectorAxis, spec.BridgeLineLocal);
+                if (spec.IsWater) FloodEmpty(data);
                 return data;
             }
 
@@ -85,6 +102,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 if (!knobs.IsPark && rng.NextDouble() >= knobs.ParkLotChance) continue;
                 foreach (Vector2Int cell in lot)
                     data.AddFlags(cell.x, cell.y, ChunkData.CellFlags.ParkLot);
+            }
+        }
+
+        // ---------------------------------------------------------------- water
+
+        /// <summary>Turn every still-Empty cell into open water. Roads, ramps and Reserved feature cells keep their kind.</summary>
+        static void FloodEmpty(ChunkData data)
+        {
+            for (int y = 0; y < data.SizeInCells; y++)
+            for (int x = 0; x < data.SizeInCells; x++)
+            {
+                if (data.GetKind(x, y) == ChunkData.CellKind.Empty)
+                    data.SetKind(x, y, ChunkData.CellKind.Water);
             }
         }
 

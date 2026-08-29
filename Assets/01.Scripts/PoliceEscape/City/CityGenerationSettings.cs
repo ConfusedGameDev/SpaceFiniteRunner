@@ -73,6 +73,30 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Add colliders to generated content: a flat ground slab per chunk (top at road level, y = 0) and a fitted box per building — enough for WheelCollider driving without per-mesh colliders.")]
         public bool generateColliders = true;
 
+        // --------------------------------------------------------------- water
+        [TitleGroup("Water")]
+        [Tooltip("Height of the sea surface below the road plane (y = 0). A water block has no ground slab: the car drops off the shore, crosses this surface and splashes.")]
+        [PropertyRange(-6f, -0.25f), SuffixLabel("m", true)]
+        public float waterLevel = -2f;
+
+        [TitleGroup("Water")]
+        [Tooltip("Height of the invisible sea floor a water block carries instead of its ground slab — where anything the splash did not catch comes to rest.")]
+        [PropertyRange(-20f, -1f), SuffixLabel("m", true)]
+        public float seaFloorDepth = -6f;
+
+        [TitleGroup("Water")]
+        [Tooltip("Corruption the player takes for driving into the sea (the explosive barrel deals 0.35). Applied through LevelManager.ApplyDamage, then the car respawns on the nearest road.")]
+        [PropertyRange(0f, 1f)]
+        public float splashDamage = 0.3f;
+
+        [TitleGroup("Water")]
+        [Tooltip("Material of the water surface quad every water block carries. Built by Tools → Police Escape → Create Kenney Shoreline Set; swap in a Shader Graph water later.")]
+        public Material waterMaterial;
+
+        [TitleGroup("Water")]
+        [Tooltip("Cliff pieces stamped along every land-facing edge of a water block (edges, outer and inner corners). Empty = bare shores. Built by Tools → Police Escape → Create Kenney Shoreline Set.")]
+        public ShorelineSet shorelineSet;
+
         // -------------------------------------------------------------- pieces
         [TitleGroup("Road pieces")]
         [Tooltip("Scale spawned pieces so their footprint fills the cell exactly (cell size ÷ native size). Leave on unless the assets already match the cell size.")]

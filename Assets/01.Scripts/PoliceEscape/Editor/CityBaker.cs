@@ -88,10 +88,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 report.Warnings.Add($"A district rolls curved avenues but blockSizeInCells ({definition.blockSizeInCells}) leaves them no room to sweep — expect few or none below 12.");
             if (parkWithoutNature)
                 report.Warnings.Add("A district rolls park lots but has no NatureSet — the generator skips park claiming without one, so those districts bake with ordinary buildings. Run 'Create Kenney Nature Sets' and assign one.");
-            if (anySecondary)
+            // ---- water
+            int waterBlocks = 0;
+            foreach (CityDefinition.BlockEntry entry in definition.blocks)
+                if (entry != null && entry.isWater && definition.InGrid(entry.coord)) waterBlocks++;
+            bool anyWater = waterBlocks > 0;
+            if (anyWater && waterBlocks >= definition.gridWidth * definition.gridHeight)
+                report.Errors.Add("Every block is water — there is no land left to drive on. Un-tick 'is water' on at least one block.");
+
+            if (anySecondary || anyWater)
             {
                 if (!HasDeadEndPiece(settings))
-                    report.Errors.Add("A district uses secondary arterials, but the piece list has no single-socket (dead-end) Standard piece — secondary streets ending at a sparse district's border would be left unstamped.");
+                    report.Errors.Add(anyWater
+                        ? "A block is water, but the piece list has no single-socket (dead-end) Standard piece — the streets ending at its shore would be left unstamped."
+                        : "A district uses secondary arterials, but the piece list has no single-socket (dead-end) Standard piece — secondary streets ending at a sparse district's border would be left unstamped.");
+            }
+            if (anySecondary)
+            {
                 if (definition.CellsPerAxisX % settings.secondaryArterialSpacing != 0 || definition.CellsPerAxisY % settings.secondaryArterialSpacing != 0)
                     report.Warnings.Add($"City size in cells ({definition.CellsPerAxisX}×{definition.CellsPerAxisY}) is not a multiple of secondaryArterialSpacing ({settings.secondaryArterialSpacing}) — the secondary band at the wrap seam is truncated and may drop its line there.");
                 if (settings.secondaryArterialSpacing >= settings.arterialSpacing)
@@ -117,7 +130,83 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     report.BadBlocks.Add(entry.coord);
                 }
             }
+
+            // Water is the only thing that can sever the network (arterials
+            // cross every land border by construction), so the graph walk is
+            // gated on it — it generates every block, ~1 s worst case on 8×8.
+            if (anyWater && waterBlocks < definition.gridWidth * definition.gridHeight)
+                ValidateConnectivity(definition, layout, report);
             return report;
+        }
+
+        /// <summary>
+        /// The one check no border rule can give: is every road reachable
+        /// from every other? Water blocks dead-end the streets around them,
+        /// so a channel painted across the city splits it into islands the
+        /// police A* (and the map's GPS) can never route between — silently,
+        /// with stale plans and "NO ROUTE". This runs on the exact structure
+        /// the AI drives: every block's generated model registered into a
+        /// <see cref="RoadGraph"/>, walked through <see cref="RoadGraph.TryGetNeighbour"/>
+        /// — mutual connection handles ramps, decks and curves for free, and
+        /// the graph's no-wrap rule correctly counts a land mass reachable
+        /// only across the pacman seam as severed (the player wraps, the
+        /// police never do). The largest component is the mainland; every
+        /// block holding a node of any other component is flagged.
+        /// </summary>
+        static void ValidateConnectivity(CityDefinition definition, CityLayout layout, ValidationReport report)
+        {
+            var graph = new RoadGraph(Mathf.Max(0.01f, definition.generation.cellSize));
+            for (int y = 0; y < definition.gridHeight; y++)
+            for (int x = 0; x < definition.gridWidth; x++)
+                graph.RegisterChunk(layout.GenerateBlock(new Vector2Int(x, y)));
+
+            if (graph.Count == 0)
+            {
+                report.Errors.Add("The land blocks carry no road at all — nothing to connect.");
+                return;
+            }
+
+            // Flood-fill every component; remember which block each node's
+            // component put it in so the losers can be painted red.
+            var componentOf = new Dictionary<RoadNode, int>();
+            var componentSizes = new List<int>();
+            var queue = new Queue<RoadNode>();
+            foreach (KeyValuePair<RoadNode, RoadNodeData> pair in graph.Nodes)
+            {
+                if (componentOf.ContainsKey(pair.Key)) continue;
+                int component = componentSizes.Count;
+                int size = 0;
+                componentOf[pair.Key] = component;
+                queue.Enqueue(pair.Key);
+                while (queue.Count > 0)
+                {
+                    RoadNode node = queue.Dequeue();
+                    size++;
+                    for (int dir = 0; dir < 4; dir++)
+                    {
+                        if (!graph.TryGetNeighbour(node, dir, out RoadNode next) || componentOf.ContainsKey(next)) continue;
+                        componentOf[next] = component;
+                        queue.Enqueue(next);
+                    }
+                }
+                componentSizes.Add(size);
+            }
+            if (componentSizes.Count <= 1) return;
+
+            int mainland = 0;
+            for (int i = 1; i < componentSizes.Count; i++)
+                if (componentSizes[i] > componentSizes[mainland]) mainland = i;
+
+            var severed = new HashSet<Vector2Int>();
+            int block = Mathf.Max(1, definition.blockSizeInCells);
+            foreach (KeyValuePair<RoadNode, int> pair in componentOf)
+            {
+                if (pair.Value == mainland) continue;
+                severed.Add(new Vector2Int(DeterministicHash.FloorDiv(pair.Key.Cell.x, block), DeterministicHash.FloorDiv(pair.Key.Cell.y, block)));
+            }
+            foreach (Vector2Int coord in severed) report.BadBlocks.Add(coord);
+            report.Errors.Add($"Water splits the roads into {componentSizes.Count} islands — the police and the GPS cannot route between them. " +
+                              $"{severed.Count} block(s) are cut off from the mainland (red): paint a causeway (water + connector only) across the channel, or reconnect them with land.");
         }
 
         static bool HasDeadEndPiece(CityGenerationSettings settings)

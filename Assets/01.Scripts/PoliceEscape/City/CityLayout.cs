@@ -80,7 +80,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// 2. <b>Connector-block suppression.</b> Inside a connector-only block
     ///    the ONLY road is its bridge line; every other arterial is answered
     ///    as "no road" city-wide, so neighbouring blocks correctly dead-end
-    ///    the streets that would have run into it.
+    ///    the streets that would have run into it. Water blocks use the same
+    ///    mechanism with NO surviving line — the shoreline is where every
+    ///    neighbour's street stops — and water + connector is a causeway.
     ///
     /// <see cref="RoadNetworkGenerator"/> carves single blocks against this
     /// model; the baker, the validation pass and the map all read the same
@@ -108,8 +110,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             public readonly int ConnectorAxis;
             /// <summary>Local index (within the block) of the arterial line the bridge follows; -1 when none qualifies.</summary>
             public readonly int BridgeLineLocal;
+            /// <summary>
+            /// Open water: the block carries no road at all (every arterial
+            /// of either tier is suppressed city-wide, so neighbours dead-end
+            /// at the shore), no lots, and a splash for whatever drives in.
+            /// With <see cref="ConnectorOnly"/> it is a causeway — the bridge
+            /// line is the one road that survives.
+            /// </summary>
+            public readonly bool IsWater;
 
-            public BlockSpec(int seed, BlockSettings settings, DistrictDefinition district, bool connectorOnly, int connectorAxis, int bridgeLineLocal)
+            public BlockSpec(int seed, BlockSettings settings, DistrictDefinition district, bool connectorOnly, int connectorAxis, int bridgeLineLocal, bool isWater = false)
             {
                 Seed = seed;
                 Settings = settings;
@@ -117,7 +127,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 ConnectorOnly = connectorOnly && bridgeLineLocal >= 0;
                 ConnectorAxis = connectorAxis;
                 BridgeLineLocal = bridgeLineLocal;
+                IsWater = isWater;
             }
+
+            /// <summary>A bridge over water — connector-only AND water.</summary>
+            public bool IsCauseway => ConnectorOnly && IsWater;
         }
 
         public readonly CityGenerationSettings Settings;
@@ -152,9 +166,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                         ? district.interiorSettings
                         : definition.defaultBlockSettings;
                 bool connector = entry != null && entry.connectorOnly;
+                bool water = entry != null && entry.isWater;
                 int axis = entry != null ? (int)entry.connectorAxis : 0;
                 int line = connector ? FindBridgeLine(coord, axis) : -1;
-                specs[coord] = new BlockSpec(seed, settings, district, connector, axis, line);
+                specs[coord] = new BlockSpec(seed, settings, district, connector, axis, line, water);
             }
         }
 
@@ -224,6 +239,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             int wx = DeterministicHash.Mod(worldX, PeriodX);
             int wy = DeterministicHash.Mod(worldY, PeriodY);
             BlockSpec spec = SpecFor(new Vector2Int(wx / BlockSize, wy / BlockSize));
+            // Open water suppresses EVERY road — the same city-wide answer
+            // the connector branch gives, so a neighbour's street dead-ends
+            // at the shore with both sides computing the identical mask. A
+            // causeway (water + connector) falls through to the bridge rule.
+            if (spec.IsWater && !spec.ConnectorOnly) return false;
             if (spec.ConnectorOnly)
             {
                 // Only the bridge line exists; everything else — including the

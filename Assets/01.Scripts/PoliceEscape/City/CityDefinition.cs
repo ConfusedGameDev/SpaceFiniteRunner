@@ -113,12 +113,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             [InlineEditor]
             public BlockSettings settingsOverride;
 
-            [Tooltip("Connector-only block: no streets, no buildings — just one elevated bridge crossing the block. Streets from perpendicular neighbours dead-end at its edge.")]
+            [Tooltip("Connector-only block: no streets, no buildings — just one elevated bridge crossing the block. Streets from perpendicular neighbours dead-end at its edge. Combined with 'is water' it is a CAUSEWAY: the same bridge, over sea instead of over a void block.")]
             public bool connectorOnly;
 
             [ShowIf(nameof(connectorOnly))]
             [Tooltip("Which way the bridge runs. It follows the arterial line nearest the block centre on that axis.")]
             public BridgeAxis connectorAxis = BridgeAxis.EastWest;
+
+            [Tooltip("Water block: open sea instead of streets — no roads, no lots, a splash for anything that drives in. Every neighbour's street dead-ends at the shore, so toggling this MOVES BORDER ROADS: rebake with 'Rebuild + Neighbours'. Tick 'connector only' as well for a causeway across it. Validate to make sure the land is not split into unreachable islands.")]
+            public bool isWater;
+
+            /// <summary>A bridge over water: <see cref="connectorOnly"/> and <see cref="isWater"/> together.</summary>
+            public bool IsCauseway => connectorOnly && isWater;
 
             public string Label => $"Block ({coord.x}, {coord.y})";
         }

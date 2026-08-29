@@ -12,25 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e3bfe90a7e2c2e498d40e8d5f2a5eb2, type: 3}
   m_Name: CityTestSettings
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.City.CityGenerationSettings
-  globalSeed: -109699716
-  useSavedSeed: 0
-  savedSeed: -695654703
-  savedSeeds: f576bad64bfcc307d12689d6i
   cellSize: 36.9
-  chunkSizeInCells: 37
-  initialCitySizeInChunks: 1
   arterialSpacing: 12
   arterialJitter: 1
+  secondaryArterialSpacing: 6
+  secondaryArterialJitter: 0.75
   connectorDensity: 0.962
   turnProbability: 0.937
   allowDeadEnds: 1
   buildingSet: {fileID: 11400000, guid: bbc70e693fb72094b98dfb6691e307fb, type: 2}
   decorationSet: {fileID: 11400000, guid: 678557c4f331d45cb9788ae03337d83c, type: 2}
-  endlessStreaming: 1
-  loadRadiusInChunks: 1
-  unloadPaddingInChunks: 1
-  maxSpawnsPerFrame: 80
   generateColliders: 1
+  waterLevel: -2
+  seaFloorDepth: -6
+  splashDamage: 0.3
+  waterMaterial: {fileID: 2100000, guid: 815dc5c44088023449bbd15f1f0cd2d2, type: 2}
+  shorelineSet: {fileID: 11400000, guid: 067c3d2621cf5764d8c1d326c9d4cfa4, type: 2}
   scaleToCellSize: 1
   pieceNativeSize: 1
   roadScaleMultiplier: 1
@@ -184,3 +181,4 @@ MonoBehaviour:
   rampLengthInCells: 3
   forkChance: 1
   forkStemCells: {x: 0, y: 3}
+  curveChordFraction: 0.5

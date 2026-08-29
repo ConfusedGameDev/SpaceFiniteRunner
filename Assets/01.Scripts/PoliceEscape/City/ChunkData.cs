@@ -20,8 +20,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// </summary>
     public class ChunkData
     {
-        /// <summary>What occupies a cell. Arterials are world-continuous and may cross chunk borders; connectors never do. Reserved = covered by a road feature, not drivable, not buildable.</summary>
-        public enum CellKind : byte { Empty, Arterial, Connector, Reserved }
+        /// <summary>
+        /// What occupies a cell. Arterials are world-continuous and may cross
+        /// chunk borders; connectors never do. Reserved = covered by a road
+        /// feature, not drivable, not buildable. Water = open sea: not a road
+        /// (no graph node, no spawn, no decoration spot), not buildable (no
+        /// lot, no park), painted as sea on the map — appended last so the
+        /// serialized byte values of every older kind are unchanged.
+        /// </summary>
+        public enum CellKind : byte { Empty, Arterial, Connector, Reserved, Water }
 
         /// <summary>
         /// Orthogonal per-cell markers layered over <see cref="CellKind"/>:
@@ -93,6 +100,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public bool IsBuildable(int x, int y) => kinds[Index(x, y)] == CellKind.Empty;
 
         public bool IsReserved(int x, int y) => kinds[Index(x, y)] == CellKind.Reserved;
+
+        /// <summary>Open sea — see <see cref="CellKind.Water"/>.</summary>
+        public bool IsWater(int x, int y) => kinds[Index(x, y)] == CellKind.Water;
 
         public EdgeMask GetConnections(int x, int y) => connections[Index(x, y)];
         public void SetConnections(int x, int y, EdgeMask mask) => connections[Index(x, y)] = mask;

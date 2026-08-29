@@ -21,4 +21,4 @@ MonoBehaviour:
   buildingSet: {fileID: 0}
   decorationSet: {fileID: 0}
   buildingDensityMultiplier: 0
-  decorationDensityMultiplier: 0.3
+  decorationDensityMultiplier: 1.078
