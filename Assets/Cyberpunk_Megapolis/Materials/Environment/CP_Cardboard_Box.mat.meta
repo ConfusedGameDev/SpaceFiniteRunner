@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: de24e1d4d01bfe4409f9dd7dad99b1d2
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Materials/Environment/CP_Cardboard_Box.mat
+  uploadId: 913114

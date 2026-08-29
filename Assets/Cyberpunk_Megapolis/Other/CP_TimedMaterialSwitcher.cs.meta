@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 8469e31fba794b4499e050e43ac9fa98
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Other/CP_TimedMaterialSwitcher.cs
+  uploadId: 913114

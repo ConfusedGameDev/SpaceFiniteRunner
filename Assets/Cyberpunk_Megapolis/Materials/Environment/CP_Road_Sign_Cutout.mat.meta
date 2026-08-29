@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a791a0177d0390a4bb195c4447b9fd00
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Materials/Environment/CP_Road_Sign_Cutout.mat
+  uploadId: 913114

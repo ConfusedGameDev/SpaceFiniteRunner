@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: b332dfb3d920aeb428945507de61cea9
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Prefabs/Street/CP_Road_Sign_No_Entry.prefab
+  uploadId: 913114

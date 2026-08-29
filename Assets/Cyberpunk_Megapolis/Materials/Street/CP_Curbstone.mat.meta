@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f8030dd28658ef84699537c1a167525e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Materials/Street/CP_Curbstone.mat
+  uploadId: 913114

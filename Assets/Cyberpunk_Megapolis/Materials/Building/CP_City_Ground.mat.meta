@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c6a517bb42cc49c4da38094e2a09f060
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Materials/Building/CP_City_Ground.mat
+  uploadId: 913114

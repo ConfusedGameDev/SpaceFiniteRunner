@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b1dd319bc9c62bd48a71154e0b844e44
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Materials/Environment/CP_Traffic_Light_NoEm.mat
+  uploadId: 913114

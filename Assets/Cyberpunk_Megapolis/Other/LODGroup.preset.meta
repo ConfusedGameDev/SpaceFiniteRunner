@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 28999f91d76c01b48ae72f1c27b78036
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2655988077585873504
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Other/LODGroup.preset
+  uploadId: 913114

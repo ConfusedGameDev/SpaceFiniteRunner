@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 37ebeeb325cd5ff4ea986731cd0e8d8b
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Other/CP_MetroTrainController.cs
+  uploadId: 913114

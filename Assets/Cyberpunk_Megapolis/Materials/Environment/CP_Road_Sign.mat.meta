@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6a9af358f2d48094fab1b4f7c7b896d9
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Materials/Environment/CP_Road_Sign.mat
+  uploadId: 913114

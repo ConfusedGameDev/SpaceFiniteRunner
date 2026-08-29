@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: eea7118ccabf1d64aa5a05fa5bd17148
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Other/CP_Grunge.shader
+  uploadId: 913114

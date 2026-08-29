@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 4f80f378b6a5bde4684e0d1060d55120
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Other/CP_Decals.shader
+  uploadId: 913114

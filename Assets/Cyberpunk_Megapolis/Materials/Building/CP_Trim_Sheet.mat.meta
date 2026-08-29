@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 311a8e491e83b9b48b29ce6585f14bba
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Materials/Building/CP_Trim_Sheet.mat
+  uploadId: 913114

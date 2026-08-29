@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: f9d64e3d4995cef48b49451284df3bb2
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376952
+  packageName: Cyberpunk Megapolis
+  packageVersion: 1.1
+  assetPath: Assets/Cyberpunk_Megapolis/Prefabs/Street/CP_Road_Sign_Speed_Limit.prefab
+  uploadId: 913114
