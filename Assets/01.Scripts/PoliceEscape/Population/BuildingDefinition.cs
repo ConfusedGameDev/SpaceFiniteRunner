@@ -33,6 +33,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
         [PropertyRange(-180f, 180f), SuffixLabel("°", true)]
         public float rotationOffset;
 
+        [Tooltip("Where the model's bounds centre sits relative to its pivot (X, Z in the model's own units). The populator subtracts it so the BOUNDS, not the pivot, land on the footprint centre — a kit whose pivots sit at a corner (the Cyberpunk hospital) otherwise overhangs its neighbours. Measured by the set builders; 0 for the Kenney kit.")]
+        public Vector2 pivotToCenter;
+
+        [Tooltip("Measured X × Z size of the model in its own units, so the populator can scale it to fill its lot (BuildingSet.lotFill). 0 = never fitted. Set by the set builders.")]
+        public Vector2 nativeSize;
+
         [Tooltip("Random XZ offset inside the footprint, as a fraction of a cell — breaks up perfect grid alignment.")]
         [PropertyRange(0f, 0.4f)]
         public float positionJitter = 0.05f;

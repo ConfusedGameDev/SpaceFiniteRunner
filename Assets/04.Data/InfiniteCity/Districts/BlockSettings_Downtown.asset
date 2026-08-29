@@ -1,24 +1,3 @@
-%YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1248dc7314e2b974e92b371f81daa826, type: 3}
-  m_Name: BlockSettings_Downtown
-  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.City.BlockSettings
-  connectorDensity: 0.9
-  turnProbability: 0.5
-  allowDeadEnds: 0
-  placeFeatures: 1
-  overpassChance: 0.6
-  forkChance: 0.6
-  buildingSet: {fileID: 11400000, guid: b9cf8e1cad57fc946933b73de5e19e50, type: 2}
-  decorationSet: {fileID: 0}
-  buildingDensityMultiplier: 1.1
-  decorationDensityMultiplier: 1.2
+version https://git-lfs.github.com/spec/v1
+oid sha256:a9c7db4dcac2c376fb4e7acd65aff312a325f8a375bf3381ab0748df528c280a
+size 819
