@@ -321,13 +321,25 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         /// a WheelCollider at the wheel's true center with its radius read
         /// off the mesh bounds.
         /// </summary>
-        static (WheelCollider collider, Transform pivot) BuildModelWheel(
+        internal static (WheelCollider collider, Transform pivot) BuildModelWheel(
             Transform model, string wheelName, Transform collidersRoot, Transform pivotsRoot, CarConfig config)
         {
             Transform mesh = model.Find(wheelName);
             if (mesh == null)
                 throw new System.InvalidOperationException("CarTestSceneBuilder: '" + wheelName + "' not found on " + model.name);
+            return BuildWheelFromMesh(mesh, wheelName, collidersRoot, pivotsRoot, config);
+        }
 
+        /// <summary>
+        /// Same rig around an already-resolved wheel mesh — for kits whose
+        /// wheels don't follow the Kenney names (QuadronPlayerCarBuilder
+        /// classifies them by position instead). The mesh keeps its world
+        /// pose when it moves under the pivot, so a kit whose axle isn't on X
+        /// simply ends up with the compensating local rotation on the mesh.
+        /// </summary>
+        internal static (WheelCollider collider, Transform pivot) BuildWheelFromMesh(
+            Transform mesh, string wheelName, Transform collidersRoot, Transform pivotsRoot, CarConfig config)
+        {
             Bounds worldBounds = mesh.GetComponent<Renderer>().bounds;
             float radius = worldBounds.extents.y;
             Vector3 center = worldBounds.center;
@@ -348,7 +360,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             return (wheel, pivot);
         }
 
-        static Bounds CombinedBounds(Transform root)
+        internal static Bounds CombinedBounds(Transform root)
         {
             var renderers = root.GetComponentsInChildren<Renderer>();
             if (renderers.Length == 0) return new Bounds(root.position, Vector3.one);

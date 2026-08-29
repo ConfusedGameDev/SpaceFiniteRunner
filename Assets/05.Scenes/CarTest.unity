@@ -119,6 +119,63 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1001 &151215768
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 5376.29
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.000000015578635
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2799.16
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
+      propertyPath: m_Name
+      value: CP_Minivan
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
 --- !u!1 &293847576
 GameObject:
   m_ObjectHideFlags: 0
@@ -317,7 +374,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc4070492084a4b43935a88590961f05, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.PlayerCarSpawner
-  carPrefab: {fileID: 6741745091234793338, guid: 10b95a29a29686047a3e501a223ca310, type: 3}
+  carPrefab: {fileID: 2862266193195909051, guid: cf44c16b0189644089abc1830c09fe3c, type: 3}
   cameraSettings: {fileID: 11400000, guid: 0e2f1dc811848429e88685cc4952eac4, type: 2}
 --- !u!4 &729163629
 Transform:
@@ -451,6 +508,63 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf4c0af9baf9c3542a2d753e8a16adbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.City.CityRoot
+--- !u!1001 &1081830569
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 5375.656
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.00002
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2795.5789
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
+      propertyPath: m_Name
+      value: CP_Quadron
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: bf0fdb3730bee474aa7e802dd686df0c, type: 3}
 --- !u!1 &1161520077
 GameObject:
   m_ObjectHideFlags: 0
@@ -698,8 +812,8 @@ Light:
   m_Enabled: 1
   serializedVersion: 13
   m_Type: 1
-  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
-  m_Intensity: 1
+  m_Color: {r: 0.71185625, g: 0.4509434, b: 1, a: 1}
+  m_Intensity: 0.6
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -869,6 +983,7 @@ SceneRoots:
   m_Roots:
   - {fileID: 1277634445}
   - {fileID: 1450184531}
+  - {fileID: 1081830569}
   - {fileID: 1064124111}
   - {fileID: 323002108}
   - {fileID: 293847580}
@@ -878,3 +993,4 @@ SceneRoots:
   - {fileID: 791850916}
   - {fileID: 1432560550}
   - {fileID: 1161520079}
+  - {fileID: 151215768}

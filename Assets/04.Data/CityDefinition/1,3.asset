@@ -1,24 +1,3 @@
-%YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1248dc7314e2b974e92b371f81daa826, type: 3}
-  m_Name: 1,3
-  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.City.BlockSettings
-  connectorDensity: 1
-  turnProbability: 1
-  allowDeadEnds: 1
-  placeFeatures: 1
-  overpassChance: 0.47
-  forkChance: 0.79
-  buildingSet: {fileID: 11400000, guid: bbc70e693fb72094b98dfb6691e307fb, type: 2}
-  decorationSet: {fileID: 11400000, guid: 678557c4f331d45cb9788ae03337d83c, type: 2}
-  buildingDensityMultiplier: 1
-  decorationDensityMultiplier: 1
+version https://git-lfs.github.com/spec/v1
+oid sha256:c20161c56e1e1e636537c43022de42d49decfeabad1c4d058ffc9927928dbb15
+size 850

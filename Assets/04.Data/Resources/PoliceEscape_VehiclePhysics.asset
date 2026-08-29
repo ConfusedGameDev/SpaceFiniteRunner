@@ -1,26 +1,3 @@
-%YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b3972da9ceb7cacad514db8f7b55c0ac, type: 3}
-  m_Name: PoliceEscape_VehiclePhysics
-  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.VehiclePhysicsSettings
-  backend: 1
-  engineClip: {fileID: 8300000, guid: faf79ee94d21a2242a883e33ad42d64f, type: 3}
-  skidClip: {fileID: 8300000, guid: a9e5666a2f10e18468e106a676e7c97c, type: 3}
-  offroadClip: {fileID: 8300000, guid: 160a8e1d728f6a042871767027cc5d5a, type: 3}
-  hardDragClip: {fileID: 8300000, guid: 4aeace27a5fb4104eba6b3971db9a68c, type: 3}
-  softDragClip: {fileID: 8300000, guid: 94d85d5be472aaf44942443663c2ab26, type: 3}
-  windClip: {fileID: 8300000, guid: cc81f5c6ca61b4f4d91c74fb995124fe, type: 3}
-  bumpClip: {fileID: 8300000, guid: 4ab75ff7e95e18b49b017cc1c4fc2de6, type: 3}
-  hardImpactClip: {fileID: 8300000, guid: 77cc21ec7d1226f45ab26f781cd8206c, type: 3}
-  softImpactClip: {fileID: 8300000, guid: 2442b3b7c0179504ab02df5d40856ad7, type: 3}
-  scratchClip: {fileID: 8300000, guid: b75c88da945e230429739740c8b1f102, type: 3}
-  tireMarksMaterial: {fileID: 2100000, guid: 6ba50c5d1a2980d48bd1524a13b93827, type: 2}
+version https://git-lfs.github.com/spec/v1
+oid sha256:3aa29d6a2f5a738f5806315d08cc41c535760aa79f2826b4af76fdbf57df03e0
+size 1451
