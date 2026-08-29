@@ -35,6 +35,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public float arterialJitter = 0.75f;
 
         [TitleGroup("Layout")]
+        [Tooltip("Band spacing of the SECONDARY arterial field — the denser street grid that only materializes inside districts with 'use secondary arterials' on (downtowns). City-wide like everything border-touching; should divide the city size in cells or the wrap-seam band is truncated. Must be smaller than arterialSpacing to add anything.")]
+        [PropertyRange(3, 16)]
+        public int secondaryArterialSpacing = 6;
+
+        [TitleGroup("Layout")]
+        [Tooltip("Placement jitter of the secondary field inside its bands, same meaning as arterialJitter.")]
+        [PropertyRange(0f, 1f)]
+        public float secondaryArterialJitter = 0.75f;
+
+        [TitleGroup("Layout")]
         [Tooltip("Chance that a block between arterials gets carved with a secondary connector road — more connectors = more alternate routes.")]
         [PropertyRange(0f, 1f)]
         public float connectorDensity = 0.6f;
@@ -113,6 +123,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Straight stem cells between the arterial junction and the split piece. 0 = the road forks immediately.")]
         [MinMaxSlider(0f, 3f, true), EnableIf(nameof(placeFeatures))]
         public Vector2 forkStemCells = new(0f, 1f);
+
+        [TitleGroup("Road features")]
+        [Tooltip("Chord length of a curved avenue's stamped road-straight segments, as a fraction of a cell. Shorter chords hug the curve tighter at the cost of more pieces.")]
+        [PropertyRange(0.25f, 1f)]
+        public float curveChordFraction = 0.5f;
 
         public int OverpassDeckMin => Mathf.Max(1, Mathf.RoundToInt(Mathf.Min(overpassDeckCells.x, overpassDeckCells.y)));
         public int OverpassDeckMax => Mathf.Max(OverpassDeckMin, Mathf.RoundToInt(overpassDeckCells.y));

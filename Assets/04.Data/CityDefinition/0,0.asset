@@ -20,5 +20,5 @@ MonoBehaviour:
   forkChance: 1
   buildingSet: {fileID: 11400000, guid: bbc70e693fb72094b98dfb6691e307fb, type: 2}
   decorationSet: {fileID: 11400000, guid: 678557c4f331d45cb9788ae03337d83c, type: 2}
-  buildingDensityMultiplier: 1
-  decorationDensityMultiplier: 1
+  buildingDensityMultiplier: 1.04
+  decorationDensityMultiplier: 0.4

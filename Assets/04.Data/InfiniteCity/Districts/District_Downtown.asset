@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 779de08c9946bc74a899ddf1b856b76e, type: 3}
+  m_Name: District_Downtown
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.City.DistrictDefinition
+  displayName: Downtown
+  mapColor: {r: 0.55, g: 0.5, b: 0.9, a: 1}
+  useSecondaryArterials: 1
+  interiorSettings: {fileID: 11400000, guid: 25659ab7c192ba249ad5e235633ca621, type: 2}
+  isPark: 0
+  parkLotChance: 0
+  natureSet: {fileID: 0}
+  curveChance: 0
+  maxCurvedAvenues: 1

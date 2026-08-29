@@ -31,7 +31,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     public static class RoadFeaturePlacer
     {
         const int SaltFeatures = 606;
+        // Own stream for curved avenues, so tuning curve chances never
+        // reshuffles the overpass/fork/template rolls.
+        const int SaltCurves = 1013;
         const int BorderMargin = 1;
+        // Junctions of a curve keep two cells of margin: their T masks are
+        // real road masks the neighbours' contract must never see move.
+        const int CurveJunctionMargin = 2;
 
         public static void Place(CityGenerationSettings settings, in BlockKnobs knobs, ChunkData data, int blockSeed)
         {
@@ -42,6 +48,217 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (settings.HasOverpassPieces) PlaceOverpasses(settings, knobs.OverpassChance, data, rng);
             if (settings.HasForkPieces) PlaceForks(settings, knobs.ForkChance, data, rng);
             PlaceTemplates(settings, data, rng);
+        }
+
+        // ---------------------------------------------------------------- curves
+
+        /// <summary>
+        /// Curved avenues. Logically a curve is a monotone, 4-connected
+        /// "staircase" of connector cells between two arterial junctions — so
+        /// ChunkData, the socket masks and the border contract are untouched —
+        /// while a seeded Bézier fitted between the junctions pulls every
+        /// chain cell's centre offset onto the smooth line. The graph bakes
+        /// those centres, so AI drives the curve with no driver changes; the
+        /// builder chord-stamps road-straight pieces along the same line.
+        /// Cells the ribbon sweeps but the chain doesn't occupy become
+        /// Reserved so buildings never overlap the asphalt. Runs BEFORE the
+        /// other features (the Curve flag makes chain cells feature cells, so
+        /// overpasses/forks keep off) and strictly inside the border margin.
+        /// </summary>
+        public static void PlaceCurves(in BlockKnobs knobs, ChunkData data, int blockSeed)
+        {
+            if (knobs.MaxCurves <= 0 || knobs.CurveChance <= 0f) return;
+            var rng = new System.Random(DeterministicHash.Combine(blockSeed, SaltCurves, data.Coord.x, data.Coord.y));
+            for (int attempt = 0; attempt < knobs.MaxCurves; attempt++)
+            {
+                if (rng.NextDouble() >= knobs.CurveChance) continue;
+                TryPlaceCurve(data, rng);
+            }
+        }
+
+        static void TryPlaceCurve(ChunkData data, System.Random rng)
+        {
+            // Junction candidates: plain arterial straights, two cells inside the border.
+            var straights = new List<Vector2Int>();
+            for (int y = CurveJunctionMargin; y < data.SizeInCells - CurveJunctionMargin; y++)
+            for (int x = CurveJunctionMargin; x < data.SizeInCells - CurveJunctionMargin; x++)
+            {
+                if (data.GetKind(x, y) != ChunkData.CellKind.Arterial || data.IsFeatureCell(x, y)) continue;
+                EdgeMask mask = data.GetConnections(x, y);
+                if (mask.ConnectionCount() == 2 && mask.RotateCw(2) == mask) straights.Add(new Vector2Int(x, y));
+            }
+            if (straights.Count < 2) return;
+
+            Vector2Int entry = straights[rng.Next(straights.Count)];
+            var exits = new List<Vector2Int>();
+            foreach (Vector2Int c in straights)
+            {
+                // A real sweep needs room on both axes; same-line exits can't curve.
+                if (Mathf.Abs(c.x - entry.x) >= 4 && Mathf.Abs(c.y - entry.y) >= 4) exits.Add(c);
+            }
+            if (exits.Count == 0) return;
+            Vector2Int exit = exits[rng.Next(exits.Count)];
+
+            bool entryVertical = IsVerticalStreet(data, entry);
+            bool exitVertical = IsVerticalStreet(data, exit);
+            int sx = exit.x > entry.x ? 1 : -1;
+            int sy = exit.y > entry.y ? 1 : -1;
+
+            // Seeded Bézier between the junction centres; the control point is
+            // bowed off the midpoint but clamped into the AB box so the curve
+            // stays monotone — which is what makes the staircase walk sound.
+            Vector2 a = Center(entry), b = Center(exit);
+            Vector2 dir = (b - a).normalized;
+            var perp = new Vector2(-dir.y, dir.x);
+            float bow = (0.15f + (float)rng.NextDouble() * 0.25f) * (b - a).magnitude * (rng.Next(2) == 0 ? 1f : -1f);
+            Vector2 control = (a + b) * 0.5f + perp * bow;
+            control.x = Mathf.Clamp(control.x, Mathf.Min(a.x, b.x) + 0.5f, Mathf.Max(a.x, b.x) - 0.5f);
+            control.y = Mathf.Clamp(control.y, Mathf.Min(a.y, b.y) + 0.5f, Mathf.Max(a.y, b.y) - 0.5f);
+
+            const int SampleCount = 128;
+            var samples = new Vector2[SampleCount + 1];
+            for (int i = 0; i <= SampleCount; i++)
+            {
+                float t = i / (float)SampleCount;
+                float u = 1f - t;
+                samples[i] = u * u * a + 2f * u * t * control + t * t * b;
+            }
+
+            // Greedy staircase toward the exit: of the two monotone steps, take
+            // the cell that hugs the curve. First step must leave the entry
+            // street sideways; last step must enter the exit street sideways.
+            var chain = new List<Vector2Int> { entry };
+            Vector2Int current = entry;
+            Vector2Int lastStep = Vector2Int.zero;
+            while (current != exit)
+            {
+                bool canX = current.x != exit.x;
+                bool canY = current.y != exit.y;
+                if (current == entry)
+                {
+                    canX &= entryVertical;
+                    canY &= !entryVertical;
+                }
+                Vector2Int stepX = new(sx, 0), stepY = new(0, sy);
+                // Never step ONTO the exit along its own street — that would be
+                // a merge, not a junction. Pruning here lets the walk route the
+                // other axis first instead of failing at the end.
+                if (current + stepX == exit && !exitVertical) canX = false;
+                if (current + stepY == exit && exitVertical) canY = false;
+                Vector2Int step;
+                if (canX && canY)
+                    step = DistanceToCurve(Center(current + stepX), samples) <= DistanceToCurve(Center(current + stepY), samples)
+                        ? stepX : stepY;
+                else if (canX) step = stepX;
+                else if (canY) step = stepY;
+                else return;
+                current += step;
+                lastStep = step;
+                chain.Add(current);
+                if (chain.Count > data.SizeInCells * 4) return; // cannot happen on a monotone walk; belt and braces
+            }
+            // Arriving along the exit street would need a merge, not a junction.
+            if (exitVertical != (lastStep.y == 0)) return;
+
+            // Chain interior must be free, inside the margin, and touch no road
+            // but its own neighbours — a curve brushing another street would
+            // create a junction the masks don't describe.
+            var chainCells = new HashSet<Vector2Int>(chain);
+            for (int i = 1; i < chain.Count - 1; i++)
+            {
+                Vector2Int c = chain[i];
+                if (!InsideMargin(data, c.x, c.y) || data.GetKind(c.x, c.y) != ChunkData.CellKind.Empty) return;
+                for (int d = 0; d < 4; d++)
+                {
+                    Vector2Int n = c + EdgeMaskUtility.Offset(d);
+                    if (!chainCells.Contains(n) && data.InBounds(n.x, n.y) && data.IsRoad(n.x, n.y)) return;
+                }
+            }
+
+            // Ribbon clearance: cells the chord-stamped ribbon sweeps. Foreign
+            // road cells that close reject the curve; empty ones get Reserved.
+            const float ClipRadius = 0.8f;
+            var clipped = new List<Vector2Int>();
+            Vector2Int min = Vector2Int.Min(entry, exit) - Vector2Int.one;
+            Vector2Int max = Vector2Int.Max(entry, exit) + Vector2Int.one;
+            for (int y = Mathf.Max(min.y, 0); y <= Mathf.Min(max.y, data.SizeInCells - 1); y++)
+            for (int x = Mathf.Max(min.x, 0); x <= Mathf.Min(max.x, data.SizeInCells - 1); x++)
+            {
+                var c = new Vector2Int(x, y);
+                if (chainCells.Contains(c)) continue;
+                float distance = DistanceToCurve(Center(c), samples);
+                if (distance >= ClipRadius) continue;
+                if (data.IsRoad(x, y) || data.IsFeatureCell(x, y)) return;
+                if (!InsideMargin(data, x, y)) return;
+                clipped.Add(c);
+            }
+
+            // ---- everything fits: apply.
+            int featureIndex = data.Features.Count;
+            int firstDir = DirectionOf(chain[1] - chain[0]);
+            data.Features.Add(new RoadFeature(RoadFeatureKind.Curve, -1, entry, firstDir, exit, 0));
+
+            // Junctions become ordinary Ts (stamped as normal pieces — no
+            // featureIndex), flagged Curve so later features keep off them.
+            data.SetConnections(entry.x, entry.y, data.GetConnections(entry.x, entry.y) | EdgeMaskUtility.DirectionBit(firstDir));
+            data.SetConnections(exit.x, exit.y, data.GetConnections(exit.x, exit.y) | EdgeMaskUtility.DirectionBit(DirectionOf(chain[^2] - exit)));
+            data.AddFlags(entry.x, entry.y, ChunkData.CellFlags.Curve);
+            data.AddFlags(exit.x, exit.y, ChunkData.CellFlags.Curve);
+
+            for (int i = 1; i < chain.Count - 1; i++)
+            {
+                Vector2Int c = chain[i];
+                data.SetKind(c.x, c.y, ChunkData.CellKind.Connector);
+                data.SetConnections(c.x, c.y,
+                    EdgeMaskUtility.DirectionBit(DirectionOf(chain[i - 1] - c)) |
+                    EdgeMaskUtility.DirectionBit(DirectionOf(chain[i + 1] - c)));
+                Vector2 offset = NearestCurvePoint(Center(c), samples) - Center(c);
+                data.SetCenterOffset(c.x, c.y, new Vector2(
+                    Mathf.Clamp(offset.x, -0.45f, 0.45f),
+                    Mathf.Clamp(offset.y, -0.45f, 0.45f)));
+                data.AddFlags(c.x, c.y, ChunkData.CellFlags.Curve);
+                data.SetFeatureIndex(c.x, c.y, featureIndex);
+            }
+            foreach (Vector2Int c in clipped)
+            {
+                data.SetKind(c.x, c.y, ChunkData.CellKind.Reserved);
+                data.SetFeatureIndex(c.x, c.y, featureIndex);
+            }
+        }
+
+        static Vector2 Center(Vector2Int cell) => new(cell.x + 0.5f, cell.y + 0.5f);
+
+        static bool IsVerticalStreet(ChunkData data, Vector2Int c) =>
+            (data.GetConnections(c.x, c.y) & EdgeMaskUtility.DirectionBit(0)) != 0;
+
+        static int DirectionOf(Vector2Int step)
+        {
+            for (int dir = 0; dir < 4; dir++)
+                if (EdgeMaskUtility.Offset(dir) == step) return dir;
+            return 0;
+        }
+
+        static float DistanceToCurve(Vector2 point, Vector2[] samples)
+        {
+            float best = float.MaxValue;
+            foreach (Vector2 s in samples) best = Mathf.Min(best, (s - point).sqrMagnitude);
+            return Mathf.Sqrt(best);
+        }
+
+        static Vector2 NearestCurvePoint(Vector2 point, Vector2[] samples)
+        {
+            float best = float.MaxValue;
+            Vector2 nearest = point;
+            foreach (Vector2 s in samples)
+            {
+                float d = (s - point).sqrMagnitude;
+                if (d < best)
+                {
+                    best = d;
+                    nearest = s;
+                }
+            }
+            return nearest;
         }
 
         // --------------------------------------------------------------- bridge

@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef72bb892cb1c411192920ee09f15090, type: 3}
+  m_Name: KenneyDecorationSet_Palms
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration.DecorationSet
+  nativeCellSize: 1
+  density: 0.45
+  cornerInset: 0.1
+  edgeInset: 0.08
+  wakeDistance: 2.5
+  impactMomentum: 150
+  maxLaunchFactor: 2
+  impactUpBias: 0.25
+  blastDamage: 1
+  blastRadius: 7
+  blastForce: 900
+  blastUpModifier: 1.2
+  detonationSpeed: 3
+  explosionScale: 6
+  explosionLifetime: 0.9
+  explosionParticles: 14
+  explosionTextures: []
+  decorations:
+  - prefab: {fileID: 919132149155446097, guid: 4b21fc1917fbd0b4fb0900a0a75bbaa8, type: 3}
+    placement: 0
+    weight: 3
+    scaleMultiplier: 1
+    rotationOffset: 0
+    yawJitter: 0
+    mass: 350
+    angularDamping: 4
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: 1f9413d2a78ec2844acb711e6c0272c9, type: 3}
+    placement: 1
+    weight: 3
+    scaleMultiplier: 0.21471354
+    rotationOffset: 0
+    yawJitter: 25
+    mass: 1200
+    angularDamping: 3
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: 1167471ff56af81468428d2af5da2b21, type: 3}
+    placement: 1
+    weight: 2
+    scaleMultiplier: 0.2798667
+    rotationOffset: 0
+    yawJitter: 25
+    mass: 1400
+    angularDamping: 3
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: aa741b2cd97fe064cab1e14f6e45826d, type: 3}
+    placement: 1
+    weight: 2
+    scaleMultiplier: 0.20526001
+    rotationOffset: 0
+    yawJitter: 25
+    mass: 900
+    angularDamping: 3
+    explosive: 0

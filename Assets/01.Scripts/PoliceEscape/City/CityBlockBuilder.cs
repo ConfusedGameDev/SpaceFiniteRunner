@@ -79,6 +79,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             {
                 BlockKnobs knobs = layout.KnobsFor(coord);
                 System.Func<int, int, bool> roadAt = layout.IsRoadCell;
+                if (knobs.NatureSet != null)
+                {
+                    // Before Buildings: the model already claimed the park lots
+                    // (ParkLot flags), the populator skips them, this fills them.
+                    var natureGo = new GameObject("Nature");
+                    natureGo.transform.SetParent(blockGo.transform, false);
+                    Decoration.LotNaturePlacer.Populate(settings, knobs.NatureSet, spec.Seed, data, natureGo.transform);
+                }
                 if (knobs.BuildingSet != null)
                 {
                     var buildingsGo = new GameObject("Buildings");
@@ -150,12 +158,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 Stamp(settings, stampRoot, piece.prefab, cellCenter, quarterTurns * 90f + piece.rotationOffset, Vector3.one * pieceScale);
             }
 
-            // Features: templates (roundabouts) once at the footprint centre; forks from their parts.
-            foreach (RoadFeature feature in data.Features)
+            // Features: templates (roundabouts) once at the footprint centre; forks and curves from their parts.
+            for (int featureIndex = 0; featureIndex < data.Features.Count; featureIndex++)
             {
+                RoadFeature feature = data.Features[featureIndex];
                 if (feature.Kind == RoadFeatureKind.Fork)
                 {
                     StampFork(settings, stampRoot, feature, rng, pieceScale);
+                    continue;
+                }
+                if (feature.Kind == RoadFeatureKind.Curve)
+                {
+                    StampCurve(settings, stampRoot, data, feature, featureIndex, rng, pieceScale);
                     continue;
                 }
                 RoadPieceDefinition piece = feature.PieceIndex >= 0 && feature.PieceIndex < settings.roadPieces.Count ? settings.roadPieces[feature.PieceIndex] : null;
@@ -257,6 +271,94 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
             // The split: one entrance from the junction side, two exits along the street.
             Stamp(settings, parent, split.prefab, SeamAt(fork.Origin + f * (stem + 1)), (dir - 1) * 90f + split.rotationOffset, scale);
+        }
+
+        /// <summary>
+        /// A curved avenue's visual: rebuild the smooth line the carver
+        /// recorded — a Unity spline through every chain cell's shifted centre
+        /// (the centre offsets ARE the serialized curve, so a rebake
+        /// reproduces it exactly) — then stamp road-straight chords along it
+        /// at even arc-length steps, each yawed to its local tangent and
+        /// stretched a hair past its step to hide the seams. Flat pieces
+        /// carry no colliders and ride the block's ground slab, so the ribbon
+        /// is drivable by construction.
+        /// </summary>
+        static void StampCurve(CityGenerationSettings settings, Transform parent, ChunkData data, RoadFeature curve, int featureIndex, System.Random rng, float pieceScale)
+        {
+            EdgeMask straightMask = EdgeMaskUtility.DirectionBit(0) | EdgeMaskUtility.DirectionBit(2); // N|S
+            if (!TryPickPiece(settings, straightMask, rng, out RoadPieceDefinition piece, out int quarterTurns)) return;
+
+            List<Vector3> points = CurveChainPoints(settings, data, curve, featureIndex);
+            if (points.Count < 2) return;
+
+            var spline = new UnityEngine.Splines.Spline();
+            foreach (Vector3 p in points)
+                spline.Add(new UnityEngine.Splines.BezierKnot((Unity.Mathematics.float3)p), UnityEngine.Splines.TangentMode.AutoSmooth);
+
+            // Dense polyline of the spline, then chords at even arc length.
+            int sampleCount = Mathf.Max(16, points.Count * 16);
+            var samples = new Vector3[sampleCount + 1];
+            for (int i = 0; i <= sampleCount; i++)
+                samples[i] = (Vector3)UnityEngine.Splines.SplineUtility.EvaluatePosition(spline, i / (float)sampleCount);
+
+            float step = settings.cellSize * Mathf.Clamp(settings.curveChordFraction, 0.25f, 1f);
+            float stretch = step / settings.cellSize * 1.04f;
+            float pieceYawBase = quarterTurns * 90f + piece.rotationOffset; // the yaw at which the piece runs N–S
+            Vector3 chordScale = RampScale(pieceYawBase, pieceScale, stretch);
+
+            float travelled = 0f, nextChord = step * 0.5f;
+            for (int i = 1; i <= sampleCount; i++)
+            {
+                float segment = Vector3.Distance(samples[i - 1], samples[i]);
+                if (segment <= 0.0001f) continue;
+                while (travelled + segment >= nextChord)
+                {
+                    float t = (nextChord - travelled) / segment;
+                    Vector3 position = Vector3.Lerp(samples[i - 1], samples[i], t);
+                    Vector3 tangent = samples[i] - samples[i - 1];
+                    float bearing = Mathf.Atan2(tangent.x, tangent.z) * Mathf.Rad2Deg;
+                    Stamp(settings, parent, piece.prefab, position, bearing + pieceYawBase, chordScale);
+                    nextChord += step;
+                }
+                travelled += segment;
+            }
+        }
+
+        /// <summary>The curve's chain centres in block-local metres, junction to junction, offsets applied — reconstructed by walking the feature's covered cells from the entry.</summary>
+        static List<Vector3> CurveChainPoints(CityGenerationSettings settings, ChunkData data, RoadFeature curve, int featureIndex)
+        {
+            float cell = settings.cellSize;
+            Vector3 CenterOf(Vector2Int c)
+            {
+                Vector2 shift = data.GetCenterOffset(c.x, c.y) * cell;
+                return new Vector3((c.x + 0.5f) * cell + shift.x, 0f, (c.y + 0.5f) * cell + shift.y);
+            }
+
+            var points = new List<Vector3> { CenterOf(curve.Origin) };
+            Vector2Int previous = curve.Origin;
+            Vector2Int current = FindChainNeighbour(data, curve.Origin, curve.Origin, featureIndex);
+            while (current != previous)
+            {
+                points.Add(CenterOf(current));
+                Vector2Int next = FindChainNeighbour(data, current, previous, featureIndex);
+                previous = current;
+                if (next == current) break;
+                current = next;
+            }
+            points.Add(CenterOf(curve.Footprint)); // the exit junction carries no featureIndex — appended explicitly
+            return points;
+        }
+
+        /// <summary>The 4-neighbour of <paramref name="cell"/> that belongs to this curve's chain and isn't <paramref name="exclude"/>; returns <paramref name="cell"/> when the chain ends.</summary>
+        static Vector2Int FindChainNeighbour(ChunkData data, Vector2Int cell, Vector2Int exclude, int featureIndex)
+        {
+            for (int dir = 0; dir < 4; dir++)
+            {
+                Vector2Int n = cell + EdgeMaskUtility.Offset(dir);
+                if (n == exclude || !data.InBounds(n.x, n.y)) continue;
+                if (data.GetFeatureIndex(n.x, n.y) == featureIndex && data.IsRoad(n.x, n.y)) return n;
+            }
+            return cell;
         }
 
         /// <summary>Piece scale that stretches a ramp link by <paramref name="stretch"/> along its own uphill axis (local +Z before rotationOffset).</summary>

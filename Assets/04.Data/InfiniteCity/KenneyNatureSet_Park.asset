@@ -1,0 +1,181 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbc3409f1bef5cb4994f3cf5341db16c, type: 3}
+  m_Name: KenneyNatureSet_Park
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration.NatureSet
+  nativeCellSize: 0.99999994
+  density: 0.35
+  cornerInset: 0.1
+  edgeInset: 0.08
+  wakeDistance: 2.5
+  impactMomentum: 150
+  maxLaunchFactor: 2
+  impactUpBias: 0.25
+  blastDamage: 1
+  blastRadius: 7
+  blastForce: 900
+  blastUpModifier: 1.2
+  detonationSpeed: 3
+  explosionScale: 6
+  explosionLifetime: 0.9
+  explosionParticles: 14
+  explosionTextures: []
+  decorations:
+  - prefab: {fileID: 919132149155446097, guid: d4d6a594577be15419c0755e3e7de851, type: 3}
+    placement: 2
+    weight: 3
+    scaleMultiplier: 0.15867718
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 1800
+    angularDamping: 4
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: c6c4dc4cd38d3d04985544316d056dac, type: 3}
+    placement: 2
+    weight: 2
+    scaleMultiplier: 0.24310327
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 2000
+    angularDamping: 4
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: dafc3cdbc3a77ba40aec2320cf662fac, type: 3}
+    placement: 2
+    weight: 2
+    scaleMultiplier: 0.20339182
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 1800
+    angularDamping: 4
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: 1058e8646916e4a47a368c4841facbfa, type: 3}
+    placement: 2
+    weight: 1.5
+    scaleMultiplier: 0.21201773
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 1800
+    angularDamping: 4
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: da0fd9202b661744fb6d32ff8bd8500b, type: 3}
+    placement: 2
+    weight: 1
+    scaleMultiplier: 0.23032305
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 2200
+    angularDamping: 4
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: ebb0d15a272ae4647b8c70dfeee34dfe, type: 3}
+    placement: 2
+    weight: 2
+    scaleMultiplier: 0.14648306
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 900
+    angularDamping: 4
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: 9366aa290568fe44da30ce7003e79e0a, type: 3}
+    placement: 2
+    weight: 3
+    scaleMultiplier: 0.17738418
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 8
+    angularDamping: 0.5
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: 3e873268e19c52d409ce21def6db5b87, type: 3}
+    placement: 2
+    weight: 2
+    scaleMultiplier: 0.24541989
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 15
+    angularDamping: 0.5
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: b2cef728bb3231b449a49c5760997ed6, type: 3}
+    placement: 2
+    weight: 2
+    scaleMultiplier: 0.064855345
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 1
+    angularDamping: 0.1
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: e4cd852ccbce3784db11ef88ce72ced5, type: 3}
+    placement: 2
+    weight: 2
+    scaleMultiplier: 0.09854643
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 1
+    angularDamping: 0.1
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: 743e5324acdd1e34faac9acf75717633, type: 3}
+    placement: 2
+    weight: 2
+    scaleMultiplier: 0.07822758
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 1
+    angularDamping: 0.1
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: 4da544bcc49b46245b988a42eb32bd0d, type: 3}
+    placement: 2
+    weight: 1
+    scaleMultiplier: 0.22950771
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 1600
+    angularDamping: 2
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: fca6b98dacaf7934d9be67ab344f7659, type: 3}
+    placement: 2
+    weight: 1
+    scaleMultiplier: 0.33382943
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 200
+    angularDamping: 1
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: f087045322f854d43b668535b9cb4b25, type: 3}
+    placement: 2
+    weight: 0.3
+    scaleMultiplier: 0.15478842
+    rotationOffset: 0
+    yawJitter: 45
+    mass: 3000
+    angularDamping: 5
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: b77f662f648928741b3fefe51b833c22, type: 3}
+    placement: 3
+    weight: 4
+    scaleMultiplier: 0.08639981
+    rotationOffset: 0
+    yawJitter: 5
+    mass: 90
+    angularDamping: 1
+    explosive: 0
+  - prefab: {fileID: 919132149155446097, guid: d4d6a594577be15419c0755e3e7de851, type: 3}
+    placement: 3
+    weight: 1
+    scaleMultiplier: 0.15867718
+    rotationOffset: 0
+    yawJitter: 180
+    mass: 1800
+    angularDamping: 4
+    explosive: 0
+  groundTilePrefab: {fileID: 919132149155446097, guid: 63bd68eebc2d1ee48b7b53743db29fd6, type: 3}
+  pathTilePrefab: {fileID: 919132149155446097, guid: e1b76817836362145b170e1c536ad87f, type: 3}
+  interiorDensity: 0.4
+  perimeterDensity: 0.55
+  clearingRadius: 0.8

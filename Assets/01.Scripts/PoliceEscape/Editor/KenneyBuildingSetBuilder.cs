@@ -8,13 +8,15 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 {
     /// <summary>
-    /// Builds a BuildingSet from the Kenney building FBXs: every building-*
+    /// Builds the district BuildingSets from the Kenney building FBXs: every
     /// model is measured (renderer bounds) and its footprint in cells derived
-    /// from the road piece's footprint, so the set survives asset swaps without
-    /// hand-typed numbers. Skyscrapers get a low weight so they stay landmarks.
-    /// Companion menu items flip the test scene between this set and the
-    /// primitive box set — Repopulate on the CityManager shows the difference
-    /// without touching the road layout.
+    /// from the road piece's footprint, so the sets survive asset swaps without
+    /// hand-typed numbers. Three flavours from one kit: Midrise (the classic
+    /// mixed set, skyscrapers as rare landmarks), Downtown (skyscraper-heavy,
+    /// packed tight) and Suburb (low-detail silhouettes, spaced out and
+    /// jittered). Companion menu items flip the test scene between the midrise
+    /// set and the primitive box set — Repopulate on the CityManager shows the
+    /// difference without touching the road layout.
     /// </summary>
     public static class KenneyBuildingSetBuilder
     {
@@ -22,6 +24,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string RoadReferencePath = "Assets/02.Art/01.Models/InfiniteCity/Roads/road-straight.fbx";
         const string SettingsFolder = "Assets/04.Data/InfiniteCity";
         const string SetPath = SettingsFolder + "/KenneyBuildingSet.asset";
+        const string DowntownSetPath = SettingsFolder + "/KenneyBuildingSet_Downtown.asset";
+        const string SuburbSetPath = SettingsFolder + "/KenneyBuildingSet_Suburb.asset";
         const string TestSettingsPath = "Assets/04.Data/InfiniteCity/CityTestSettings.asset";
         const string TestBoxSetPath = "Assets/04.Data/InfiniteCity/CityTestBuildingSet.asset";
 
@@ -36,52 +40,98 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 return;
             }
 
-            var definitions = new List<BuildingDefinition>();
-            foreach (string path in Directory.GetFiles(BuildingsFolder, "building-*.fbx"))
-            {
-                string assetPath = path.Replace('\\', '/');
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-                if (prefab == null) continue;
-
-                Vector2 size = MeasureFootprint(prefab);
-                bool skyscraper = prefab.name.Contains("skyscraper");
-                // Slight tolerance so a 0.98-unit model still counts as one cell.
-                var footprint = new Vector2Int(
-                    Mathf.Max(1, Mathf.CeilToInt(size.x / nativeCell - 0.1f)),
-                    Mathf.Max(1, Mathf.CeilToInt(size.y / nativeCell - 0.1f)));
-
-                definitions.Add(new BuildingDefinition
-                {
-                    prefab = prefab,
-                    weight = skyscraper ? 0.4f : 2f,
-                    footprintInCells = footprint,
-                    allowRotation = true,
-                    positionJitter = 0.02f,
-                    scaleJitter = 0.05f,
-                    heightJitter = skyscraper ? 0.25f : 0.1f,
-                });
-                Debug.Log($"KenneyBuildingSetBuilder: {prefab.name} = {size.x:0.##} × {size.y:0.##} m → footprint {footprint.x}×{footprint.y}");
-            }
-
-            if (definitions.Count == 0)
+            List<GameObject> detailed = LoadModels("building-*.fbx");
+            List<GameObject> lowDetail = LoadModels("low-detail-building-*.fbx");
+            if (detailed.Count == 0)
             {
                 Debug.LogError($"KenneyBuildingSetBuilder: no building-*.fbx found in {BuildingsFolder}.");
                 return;
             }
 
             EnsureFolder(SettingsFolder);
-            var set = AssetDatabase.LoadAssetAtPath<BuildingSet>(SetPath);
+
+            // Midrise — the classic mixed set, rebuilt in place at the original path.
+            var midrise = new List<BuildingDefinition>();
+            foreach (GameObject prefab in detailed)
+            {
+                bool skyscraper = prefab.name.Contains("skyscraper");
+                midrise.Add(MakeDefinition(prefab, nativeCell,
+                    weight: skyscraper ? 0.4f : 2f, positionJitter: 0.02f,
+                    heightJitter: skyscraper ? 0.25f : 0.1f, minSpacing: 0));
+            }
+            SaveSet(SetPath, midrise, nativeCell, density: 0.95f);
+
+            // Downtown — skyscraper-heavy, packed tight, tallest skyline swing.
+            var downtown = new List<BuildingDefinition>();
+            foreach (GameObject prefab in detailed)
+            {
+                bool skyscraper = prefab.name.Contains("skyscraper");
+                downtown.Add(MakeDefinition(prefab, nativeCell,
+                    weight: skyscraper ? 3f : 0.6f, positionJitter: 0.02f,
+                    heightJitter: 0.3f, minSpacing: 0));
+            }
+            SaveSet(DowntownSetPath, downtown, nativeCell, density: 1f);
+
+            // Suburb — low-detail silhouettes lead, no skyscrapers, spaced and jittered.
+            var suburb = new List<BuildingDefinition>();
+            foreach (GameObject prefab in lowDetail)
+                suburb.Add(MakeDefinition(prefab, nativeCell,
+                    weight: 2f, positionJitter: 0.15f, heightJitter: 0.1f, minSpacing: 1));
+            foreach (GameObject prefab in detailed)
+            {
+                if (prefab.name.Contains("skyscraper")) continue;
+                suburb.Add(MakeDefinition(prefab, nativeCell,
+                    weight: 1f, positionJitter: 0.15f, heightJitter: 0.1f, minSpacing: 1));
+            }
+            SaveSet(SuburbSetPath, suburb, nativeCell, density: 0.7f);
+
+            AssetDatabase.SaveAssets();
+            Debug.Log($"KenneyBuildingSetBuilder: built Midrise ({midrise.Count}), Downtown ({downtown.Count}) and Suburb ({suburb.Count}) sets (native cell {nativeCell:0.##} m). " +
+                      (lowDetail.Count == 0 ? "No low-detail-building-*.fbx found — the suburb set has only detailed models. " : "") +
+                      "Wire them into the district assets, or use 'Test Scene Uses Kenney Buildings' for the midrise set.");
+        }
+
+        static List<GameObject> LoadModels(string pattern)
+        {
+            var models = new List<GameObject>();
+            foreach (string path in Directory.GetFiles(BuildingsFolder, pattern))
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path.Replace('\\', '/'));
+                if (prefab != null) models.Add(prefab);
+            }
+            return models;
+        }
+
+        static BuildingDefinition MakeDefinition(GameObject prefab, float nativeCell, float weight, float positionJitter, float heightJitter, int minSpacing)
+        {
+            Vector2 size = MeasureFootprint(prefab);
+            // Slight tolerance so a 0.98-unit model still counts as one cell.
+            var footprint = new Vector2Int(
+                Mathf.Max(1, Mathf.CeilToInt(size.x / nativeCell - 0.1f)),
+                Mathf.Max(1, Mathf.CeilToInt(size.y / nativeCell - 0.1f)));
+            return new BuildingDefinition
+            {
+                prefab = prefab,
+                weight = weight,
+                footprintInCells = footprint,
+                allowRotation = true,
+                positionJitter = positionJitter,
+                scaleJitter = 0.05f,
+                heightJitter = heightJitter,
+                minSpacing = minSpacing,
+            };
+        }
+
+        static void SaveSet(string path, List<BuildingDefinition> definitions, float nativeCell, float density)
+        {
+            var set = AssetDatabase.LoadAssetAtPath<BuildingSet>(path);
             bool isNew = set == null;
             if (isNew) set = ScriptableObject.CreateInstance<BuildingSet>();
             set.buildings = definitions;
             set.nativeCellSize = nativeCell;
-            set.density = 0.95f;
-            if (isNew) AssetDatabase.CreateAsset(set, SetPath);
+            set.density = density;
+            if (isNew) AssetDatabase.CreateAsset(set, path);
             else EditorUtility.SetDirty(set);
-            AssetDatabase.SaveAssets();
-
-            Debug.Log($"KenneyBuildingSetBuilder: {definitions.Count} buildings → {SetPath} (native cell {nativeCell:0.##} m). " +
-                      "Use 'Test Scene Uses Kenney Buildings' to try it, then Repopulate on the CityManager.");
         }
 
         [MenuItem("Tools/Police Escape/Test Scene Uses Kenney Buildings")]

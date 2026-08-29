@@ -23,6 +23,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// <summary>What occupies a cell. Arterials are world-continuous and may cross chunk borders; connectors never do. Reserved = covered by a road feature, not drivable, not buildable.</summary>
         public enum CellKind : byte { Empty, Arterial, Connector, Reserved }
 
+        /// <summary>
+        /// Orthogonal per-cell markers layered over <see cref="CellKind"/>:
+        /// <see cref="CellFlags.Curve"/> tags a road cell as part of a
+        /// spline-curved avenue chain (its centre offset follows the curve, and
+        /// its visual is chord-stamped instead of tile-stamped);
+        /// <see cref="CellFlags.ParkLot"/> claims an Empty cell for the nature
+        /// pass so the building populator skips it.
+        /// </summary>
+        [System.Flags]
+        public enum CellFlags : byte { None = 0, Curve = 1, ParkLot = 2 }
+
         public const byte NoRamp = 255;
 
         public readonly Vector2Int Coord;
@@ -39,6 +50,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         readonly byte[] rampLength;
         readonly int[] featureIndex;
         readonly Vector2[] centerOffset;
+        readonly CellFlags[] cellFlags;
 
         public ChunkData(Vector2Int coord, int sizeInCells)
         {
@@ -53,6 +65,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             rampLength = new byte[count];
             featureIndex = new int[count];
             centerOffset = new Vector2[count];
+            cellFlags = new CellFlags[count];
             for (int i = 0; i < count; i++)
             {
                 rampDirection[i] = NoRamp;
@@ -127,8 +140,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public void SetFeatureIndex(int x, int y, int index) => featureIndex[Index(x, y)] = index;
         public bool IsCovered(int x, int y) => featureIndex[Index(x, y)] >= 0;
 
-        /// <summary>Any road feature owns this cell (template footprint, ramp, deck or a shifted road) — off limits for further features.</summary>
-        public bool IsFeatureCell(int x, int y) => IsCovered(x, y) || IsRamp(x, y) || HasDeck(x, y) || HasCenterOffset(x, y);
+        /// <summary>Any road feature owns this cell (template footprint, ramp, deck, a shifted road or a curve chain) — off limits for further features.</summary>
+        public bool IsFeatureCell(int x, int y) => IsCovered(x, y) || IsRamp(x, y) || HasDeck(x, y) || HasCenterOffset(x, y) || HasFlag(x, y, CellFlags.Curve);
+
+        // -------------------------------------------------------------- flags
+
+        public CellFlags GetFlags(int x, int y) => cellFlags[Index(x, y)];
+        public void AddFlags(int x, int y, CellFlags flags) => cellFlags[Index(x, y)] |= flags;
+        public bool HasFlag(int x, int y, CellFlags flag) => (cellFlags[Index(x, y)] & flag) != 0;
 
         // ------------------------------------------------------ centre offsets
 
@@ -159,6 +178,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         internal byte[] RawRampLength => rampLength;
         internal int[] RawFeatureIndex => featureIndex;
         internal Vector2[] RawCenterOffset => centerOffset;
+        internal CellFlags[] RawCellFlags => cellFlags;
     }
 
     /// <summary>What a <see cref="RoadFeature"/> record describes.</summary>
@@ -168,6 +188,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         Template,
         /// <summary>A Y-split: seam T-junction on a through road, optional stem, split piece, two branches. Stamped from several pieces.</summary>
         Fork,
+        /// <summary>A curved avenue: a staircase chain of cells between two arterial junctions, node centres pulled onto the fitted curve, visuals chord-stamped from road-straight pieces. Origin = entry junction, Footprint = exit junction cell.</summary>
+        Curve,
     }
 
     /// <summary>

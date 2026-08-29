@@ -28,7 +28,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public override string ToString() => $"({Cell.x}, {Cell.y}) L{Level}";
     }
 
-    /// <summary>Per-node data baked at registration: socket mask, world centre (with height), whether the node is a ramp cell, and whether lane discipline must collapse to the centre line there.</summary>
+    /// <summary>Per-node data baked at registration: socket mask, world centre (with height), whether the node is a ramp cell, whether it belongs to a curved avenue, and whether lane discipline must collapse to the centre line there.</summary>
     public readonly struct RoadNodeData
     {
         public readonly EdgeMask Mask;
@@ -43,12 +43,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// </summary>
         public readonly bool CenterLineOnly;
 
-        public RoadNodeData(EdgeMask mask, Vector3 center, bool isRamp, bool centerLineOnly = false)
+        /// <summary>
+        /// Part of a curved avenue: the centre sits on the fitted curve, the
+        /// visual is a chord ribbon rather than grid tiles. Lane discipline
+        /// still applies (the ribbon is a full tile wide), but spawners must
+        /// keep off — a grid-aligned spawn pose on a diagonal chord can sit
+        /// half off the asphalt.
+        /// </summary>
+        public readonly bool IsCurve;
+
+        public RoadNodeData(EdgeMask mask, Vector3 center, bool isRamp, bool centerLineOnly = false, bool isCurve = false)
         {
             Mask = mask;
             Center = center;
             IsRamp = isRamp;
             CenterLineOnly = centerLineOnly;
+            IsCurve = isCurve;
         }
     }
 
@@ -120,8 +130,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                     // Seam cells and feature footprints (roundabout) refuse
                     // lane offsets — the geometry there isn't a plain two-way
                     // street, and an offset pushes cars off the asphalt.
-                    bool centerLineOnly = data.HasCenterOffset(x, y) || data.IsCovered(x, y);
-                    nodes[new RoadNode(cell, 0)] = new RoadNodeData(ground, center, ramp, centerLineOnly);
+                    // Curve chain cells are the exception: their offset centres
+                    // trace the avenue's smooth line, the ribbon is a full tile
+                    // wide, and LaneTarget's miter join handles the polyline —
+                    // so they keep ordinary lane discipline.
+                    bool curve = data.HasFlag(x, y, ChunkData.CellFlags.Curve);
+                    bool centerLineOnly = (data.HasCenterOffset(x, y) || data.IsCovered(x, y)) && !curve;
+                    nodes[new RoadNode(cell, 0)] = new RoadNodeData(ground, center, ramp, centerLineOnly, curve);
                 }
                 EdgeMask upper = data.GetUpperConnections(x, y);
                 if (upper != EdgeMask.None)
@@ -146,8 +161,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// <summary>Centre-line rule for a world position: the node under it, false off-graph. Seam centres sit on a cell boundary, but both seam cells carry the flag, so either resolution answers right.</summary>
         public bool IsCenterLineOnlyAt(Vector3 position) => TryGetNodeAt(position, out RoadNode node) && IsCenterLineOnly(node);
 
-        /// <summary>Flat ground node — neither a ramp nor a deck. The only kind cars are spawned on.</summary>
-        public bool IsFlatGround(RoadNode node) => node.Level == 0 && nodes.TryGetValue(node, out RoadNodeData data) && !data.IsRamp;
+        /// <summary>Part of a curved avenue — drivable, but not a place to spawn (see <see cref="RoadNodeData.IsCurve"/>).</summary>
+        public bool IsCurve(RoadNode node) => nodes.TryGetValue(node, out RoadNodeData data) && data.IsCurve;
+
+        /// <summary>Flat ground node — neither a ramp, a deck nor a curve chord. The only kind cars are spawned on: a grid-aligned spawn pose on a curve can sit half off the ribbon.</summary>
+        public bool IsFlatGround(RoadNode node) => node.Level == 0 && nodes.TryGetValue(node, out RoadNodeData data) && !data.IsRamp && !data.IsCurve;
 
         public Vector2Int WorldToCell(Vector3 position) =>
             new(Mathf.FloorToInt((position.x - origin.x) / cellSize),
@@ -191,7 +209,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             float best = float.MaxValue;
             foreach (var pair in nodes)
             {
-                if (flatGroundOnly && (pair.Key.Level != 0 || pair.Value.IsRamp)) continue;
+                if (flatGroundOnly && (pair.Key.Level != 0 || pair.Value.IsRamp || pair.Value.IsCurve)) continue;
                 Vector3 delta = pair.Value.Center - position;
                 float score = delta.x * delta.x + delta.z * delta.z + VerticalPenalty * VerticalPenalty * delta.y * delta.y;
                 if (score >= best) continue;

@@ -226,7 +226,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public IEnumerable<(Vector3 center, EdgeMask connections, bool flatGround)> RoadCells()
         {
             foreach (var pair in Graph.Nodes)
-                yield return (pair.Value.Center, pair.Value.Mask, pair.Key.Level == 0 && !pair.Value.IsRamp);
+                yield return (pair.Value.Center, pair.Value.Mask, pair.Key.Level == 0 && !pair.Value.IsRamp && !pair.Value.IsCurve);
         }
 
         /// <summary>
@@ -349,6 +349,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             northSouth = false;
             if (!data.InBounds(x, y) || !data.IsRoad(x, y)) return false;
             if (data.IsRamp(x, y) || data.HasDeck(x, y) || data.HasCenterOffset(x, y)) return false; // slopes, underpasses and seam roads are no launch runway
+            if (data.HasFlag(x, y, ChunkData.CellFlags.Curve)) return false; // a curve junction's yaw won't match the chord ribbon behind it
             EdgeMask mask = data.GetConnections(x, y);
             if (mask == (EdgeMask.North | EdgeMask.South))
             {

@@ -55,6 +55,47 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Default interior settings for blocks without an override. Empty = the generation asset's own layout/feature values.")]
         public BlockSettings defaultBlockSettings;
 
+        /// <summary>One weighted entry of the outer-ring district pool.</summary>
+        [Serializable]
+        public struct WeightedDistrict
+        {
+            [Tooltip("District this entry stands for.")]
+            public DistrictDefinition district;
+
+            [Tooltip("Relative weight of this district in the outer-ring hash pick.")]
+            [PropertyRange(0f, 10f)]
+            public float weight;
+        }
+
+        [TitleGroup("Districts")]
+        [Tooltip("District of the seeded map's anchor block — the downtown. Empty disables the seeded district map entirely (every block falls back to the default district).")]
+        public DistrictDefinition downtownDistrict;
+
+        [TitleGroup("Districts")]
+        [Tooltip("District of the blocks within the inner ring around downtown. Empty = the default district.")]
+        public DistrictDefinition innerRingDistrict;
+
+        [TitleGroup("Districts")]
+        [Tooltip("Torus Chebyshev distance (in blocks) still counted as the inner ring around the anchor.")]
+        [PropertyRange(1, 4)]
+        public int innerRingRadius = 1;
+
+        [TitleGroup("Districts")]
+        [Tooltip("Weighted pool the outer blocks draw from by city-seed hash — suburbs, parks, beachfront. Empty = the default district.")]
+        public List<WeightedDistrict> outerDistricts = new();
+
+        [TitleGroup("Districts")]
+        [Tooltip("District used when the seeded map has nothing to say and a block carries no district override. Empty keeps the pre-district behaviour (plain city/default settings).")]
+        public DistrictDefinition defaultDistrict;
+
+        [TitleGroup("Districts")]
+        [Tooltip("Pin the downtown anchor to a hand-picked block instead of deriving it from the city seed.")]
+        public bool useAuthoredAnchor;
+
+        [TitleGroup("Districts"), ShowIf(nameof(useAuthoredAnchor))]
+        [Tooltip("The hand-picked downtown anchor block.")]
+        public Vector2Int downtownAnchor;
+
         /// <summary>One authored block of the grid.</summary>
         [Serializable]
         public class BlockEntry
@@ -65,7 +106,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             [Tooltip("Seed of this block's interior (connectors, features, buildings, decorations). Reroll it to get a different block without moving any border road.")]
             public int seed;
 
-            [Tooltip("Interior settings for this block. Empty = the definition's default block settings.")]
+            [Tooltip("Hand-paints this block's district; empty = the seeded district map. Changing it moves border roads when the districts differ in their secondary-arterial use — rebake the block AND its neighbours.")]
+            public DistrictDefinition districtOverride;
+
+            [Tooltip("Interior settings for this block. Empty = the block's district settings, then the definition's default block settings.")]
             [InlineEditor]
             public BlockSettings settingsOverride;
 
@@ -95,6 +139,63 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         /// <summary>Deterministic default seed for a block — stable per (citySeed, coord) until explicitly rerolled.</summary>
         public int DerivedSeed(Vector2Int coord) => DeterministicHash.Combine(citySeed, coord.x, coord.y);
+
+        // -------------------------------------------------------------- districts
+
+        /// <summary>Hash stream of the seeded district map — distinct from every generation salt.</summary>
+        public const int SaltDistrict = 909;
+
+        /// <summary>The downtown anchor block: authored, or derived from the city seed.</summary>
+        public Vector2Int DowntownAnchor => useAuthoredAnchor
+            ? new Vector2Int(Mathf.Clamp(downtownAnchor.x, 0, gridWidth - 1), Mathf.Clamp(downtownAnchor.y, 0, gridHeight - 1))
+            : new Vector2Int(
+                Mathf.Min((int)(DeterministicHash.Value01(citySeed, SaltDistrict, 0) * gridWidth), gridWidth - 1),
+                Mathf.Min((int)(DeterministicHash.Value01(citySeed, SaltDistrict, 1) * gridHeight), gridHeight - 1));
+
+        /// <summary>
+        /// A block's district: authored override → seeded radial map (rings of
+        /// torus Chebyshev distance around the downtown anchor; the outer ring
+        /// hash-picks from the weighted pool) → the default district. A pure
+        /// function of the authored asset and the city seed — never a block
+        /// seed — which is what lets <see cref="CityLayout"/> feed it into the
+        /// border road field: both sides of any border resolve the owning
+        /// block's district identically.
+        /// </summary>
+        public DistrictDefinition DistrictFor(Vector2Int coord)
+        {
+            BlockEntry entry = GetEntry(coord);
+            if (entry != null && entry.districtOverride != null) return entry.districtOverride;
+            if (downtownDistrict == null) return defaultDistrict;
+
+            Vector2Int anchor = DowntownAnchor;
+            int dx = Mathf.Abs(coord.x - anchor.x);
+            int dy = Mathf.Abs(coord.y - anchor.y);
+            dx = Mathf.Min(dx, gridWidth - dx);
+            dy = Mathf.Min(dy, gridHeight - dy);
+            int ring = Mathf.Max(dx, dy);
+
+            if (ring == 0) return downtownDistrict;
+            if (ring <= innerRingRadius) return innerRingDistrict != null ? innerRingDistrict : defaultDistrict;
+            return PickOuterDistrict(coord);
+        }
+
+        DistrictDefinition PickOuterDistrict(Vector2Int coord)
+        {
+            float total = 0f;
+            foreach (WeightedDistrict entry in outerDistricts)
+                if (entry.district != null && entry.weight > 0f)
+                    total += entry.weight;
+            if (total <= 0f) return defaultDistrict;
+
+            float roll = DeterministicHash.Value01(citySeed, SaltDistrict, DeterministicHash.Combine(coord.x, coord.y)) * total;
+            foreach (WeightedDistrict entry in outerDistricts)
+            {
+                if (entry.district == null || entry.weight <= 0f) continue;
+                roll -= entry.weight;
+                if (roll <= 0f) return entry.district;
+            }
+            return defaultDistrict;
+        }
 
         public BlockEntry GetEntry(Vector2Int coord)
         {

@@ -15,87 +15,116 @@ MonoBehaviour:
   generation: {fileID: 11400000, guid: c9332aaf5c158de489354c3081458a2c, type: 2}
   gridWidth: 4
   gridHeight: 4
-  blockSizeInCells: 21
-  citySeed: 237816080
+  blockSizeInCells: 24
+  citySeed: 621869433
   defaultBlockSettings: {fileID: 11400000, guid: b889cc0f40226654fac15bbcaf61de3f, type: 2}
+  downtownDistrict: {fileID: 11400000, guid: d88f8bd8b305c544eb89358f84553ac8, type: 2}
+  innerRingDistrict: {fileID: 11400000, guid: fca6e74698d658d4382af670249598d0, type: 2}
+  innerRingRadius: 1
+  outerDistricts:
+  - district: {fileID: 11400000, guid: a11562c2377ff1b47a58b288d71c6d4f, type: 2}
+    weight: 3
+  - district: {fileID: 11400000, guid: 3cf15da341717ea4e8e3db04689e3ab4, type: 2}
+    weight: 1.5
+  - district: {fileID: 11400000, guid: 36baf14c601f0df45bad698cae74ff71, type: 2}
+    weight: 1
+  defaultDistrict: {fileID: 11400000, guid: fca6e74698d658d4382af670249598d0, type: 2}
+  useAuthoredAnchor: 0
+  downtownAnchor: {x: 0, y: 0}
   blocks:
   - coord: {x: 0, y: 0}
-    seed: -122164964
+    seed: -257780736
+    districtOverride: {fileID: 0}
     settingsOverride: {fileID: 11400000, guid: b889cc0f40226654fac15bbcaf61de3f, type: 2}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 1, y: 0}
-    seed: 1444497469
-    settingsOverride: {fileID: 11400000, guid: 8abb651c456dccb4c84ab9f7b6cc6d39, type: 2}
+    seed: 1308881697
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 2, y: 0}
-    seed: -1283807394
+    seed: -1419423166
+    districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 1
     connectorAxis: 0
   - coord: {x: 3, y: 0}
-    seed: 282855039
-    settingsOverride: {fileID: 11400000, guid: a12b9912cdcefd94b947b66c7cd3d545, type: 2}
+    seed: 147239267
+    districtOverride: {fileID: 11400000, guid: 3cf15da341717ea4e8e3db04689e3ab4, type: 2}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 0, y: 1}
-    seed: 1222912045
-    settingsOverride: {fileID: 11400000, guid: 440e119e9bb408746b77b179f2d9e540, type: 2}
+    seed: 1087296273
+    districtOverride: {fileID: 11400000, guid: 36baf14c601f0df45bad698cae74ff71, type: 2}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 1, y: 1}
-    seed: 99420460
+    seed: -36195312
+    districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 1
     connectorAxis: 1
   - coord: {x: 2, y: 1}
-    seed: 61269615
-    settingsOverride: {fileID: 11400000, guid: 80d35261dd4d3574d9064436f805da57, type: 2}
+    seed: -74346157
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 3, y: 1}
-    seed: -1062221970
-    settingsOverride: {fileID: 11400000, guid: f44a3f2c30cc55b42adb07c1540c156b, type: 2}
+    seed: -1197837742
+    districtOverride: {fileID: 11400000, guid: 3cf15da341717ea4e8e3db04689e3ab4, type: 2}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 0, y: 2}
-    seed: -1726978242
-    settingsOverride: {fileID: 11400000, guid: 3d5e1f2d9dbbbe045adebb10af3cd865, type: 2}
+    seed: -1862594014
+    districtOverride: {fileID: 11400000, guid: 36baf14c601f0df45bad698cae74ff71, type: 2}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 1, y: 2}
-    seed: -160315809
+    seed: -295931581
+    districtOverride: {fileID: 0}
     settingsOverride: {fileID: 0}
     connectorOnly: 1
     connectorAxis: 1
   - coord: {x: 2, y: 2}
-    seed: 321005884
-    settingsOverride: {fileID: 11400000, guid: 91459db0e9a1eb14d979a597188e7d7e, type: 2}
+    seed: 185390112
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 3, y: 2}
-    seed: 1887668317
-    settingsOverride: {fileID: 11400000, guid: edc2036f1725c284d8232ee4e362c1ea, type: 2}
+    seed: 1752052545
+    districtOverride: {fileID: 11400000, guid: d88f8bd8b305c544eb89358f84553ac8, type: 2}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 0, y: 3}
-    seed: -381901233
-    settingsOverride: {fileID: 11400000, guid: 506862574b4a5b645b7bd1e1fb1179d6, type: 2}
+    seed: -517517005
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 1, y: 3}
-    seed: -1505392818
-    settingsOverride: {fileID: 11400000, guid: 6c7dc04503b29444ca90c648b3f73a73, type: 2}
+    seed: -1641008590
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 2, y: 3}
-    seed: 1666082893
-    settingsOverride: {fileID: 11400000, guid: 2a893704679ccf64f8c6adb2709b6a4b, type: 2}
+    seed: 1530467121
+    districtOverride: {fileID: 0}
+    settingsOverride: {fileID: 0}
     connectorOnly: 0
     connectorAxis: 0
   - coord: {x: 3, y: 3}
-    seed: 542591308
+    seed: 406975536
+    districtOverride: {fileID: 11400000, guid: fca6e74698d658d4382af670249598d0, type: 2}
     settingsOverride: {fileID: 11400000, guid: c6b3e6f9fde00024487a710ba9e81bba, type: 2}
     connectorOnly: 0
     connectorAxis: 0

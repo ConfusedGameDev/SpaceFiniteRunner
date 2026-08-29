@@ -30,48 +30,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
             var occupied = new bool[data.SizeInCells * data.SizeInCells];
             float density = Mathf.Clamp01(set.density * densityMultiplier);
 
-            foreach (List<Vector2Int> lot in FindLots(data))
+            // Roads and Reserved feature cells are off limits, and so are the
+            // lots the model's park pass claimed — the nature placer fills those.
+            foreach (List<Vector2Int> lot in ChunkLots.FindLots(data, (x, y) => IsBuildableLotCell(data, x, y)))
                 FillLot(settings, set, density, isRoadOutside, data, lot, occupied, rng, buildingsRoot);
         }
 
-        // ----------------------------------------------------------------- lots
-
-        /// <summary>Group contiguous empty cells (4-connected) into lots, in deterministic scan order.</summary>
-        static List<List<Vector2Int>> FindLots(ChunkData data)
-        {
-            var lots = new List<List<Vector2Int>>();
-            var visited = new bool[data.SizeInCells * data.SizeInCells];
-            var stack = new Stack<Vector2Int>();
-
-            for (int y = 0; y < data.SizeInCells; y++)
-            for (int x = 0; x < data.SizeInCells; x++)
-            {
-                int index = y * data.SizeInCells + x;
-                if (visited[index] || !data.IsBuildable(x, y)) continue; // roads AND Reserved feature cells are off limits
-
-                var lot = new List<Vector2Int>();
-                stack.Push(new Vector2Int(x, y));
-                visited[index] = true;
-                while (stack.Count > 0)
-                {
-                    Vector2Int cell = stack.Pop();
-                    lot.Add(cell);
-                    for (int dir = 0; dir < 4; dir++)
-                    {
-                        Vector2Int n = cell + EdgeMaskUtility.Offset(dir);
-                        if (!data.InBounds(n.x, n.y)) continue;
-                        int ni = n.y * data.SizeInCells + n.x;
-                        if (visited[ni] || !data.IsBuildable(n.x, n.y)) continue;
-                        visited[ni] = true;
-                        stack.Push(n);
-                    }
-                }
-                // Flood-fill order depends on stack pops — sort for a stable fill order.
-                lot.Sort((a, b) => a.y != b.y ? a.y - b.y : a.x - b.x);
-                lots.Add(lot);
-            }
-            return lots;
-        }
+        static bool IsBuildableLotCell(ChunkData data, int x, int y) =>
+            data.IsBuildable(x, y) && !data.HasFlag(x, y, ChunkData.CellFlags.ParkLot);
 
         // ------------------------------------------------------------ placement
 
@@ -130,7 +96,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Population
             for (int y = cell.y; y < cell.y + h; y++)
             for (int x = cell.x; x < cell.x + w; x++)
             {
-                if (!data.InBounds(x, y) || !data.IsBuildable(x, y) || occupied[y * data.SizeInCells + x])
+                if (!data.InBounds(x, y) || !IsBuildableLotCell(data, x, y) || occupied[y * data.SizeInCells + x])
                     return false;
             }
             return true;

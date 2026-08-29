@@ -1,0 +1,188 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 844eba773543ad14c882e3a6a0698e41, type: 3}
+  m_Name: KenneyBuildingSet_Downtown
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Population.BuildingSet
+  nativeCellSize: 1
+  density: 1
+  buildings:
+  - prefab: {fileID: 919132149155446097, guid: 8b36097dc5de57a44808b238bee41fd5, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: ca07e55e98fa27a44949c1d41d70c263, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: 776a718d34d318a478cb04ed7c7c7cc7, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: 6230b20789874164e81b4e8e50236038, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: 3a99201e295e7e746b97608dc190a59f, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: 3f522bf7efb3ee84cad2a60c0b1f2e55, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: 55ad6a131e99fe6469896b358cd55a61, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: 0a638d9e62337ce42a8586fd83415251, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: 333c3eb1099369b4eaebfe13a17c7ef7, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: eefa91ac45ca905429a49fec9f5152e2, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: 97d84d3a2fd020341a1c937ed0f7ccfe, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: cd21437f91be4ee4690b887a6e1f9ab3, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: e8ea58f56d8df2a41b32aa76e472e2cb, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: ef960e36339bdc345900adba9af0023d, type: 3}
+    weight: 0.6
+    footprintInCells: {x: 3, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: b01ad45bd8a250847bb85cc1585e61d6, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: dfa00fddafe32d54395357a5ca8c5ae6, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: 42491f9bf4d9d034baedc38e4e786fc5, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: fc72db06fd411354589f6071a93106d5, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0
+  - prefab: {fileID: 919132149155446097, guid: 763cc5796d0863945a4456aa9bf9c05e, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    positionJitter: 0.02
+    scaleJitter: 0.05
+    heightJitter: 0.3
+    minSpacing: 0

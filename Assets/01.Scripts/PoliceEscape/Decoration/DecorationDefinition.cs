@@ -15,6 +15,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
         IntersectionCorner,
         /// <summary>Midpoint of a road tile's socket-less edges — the clear sidewalk strip along straights, bends and dead ends.</summary>
         RoadEdge,
+        /// <summary>Inside a park lot — trees, bushes, rocks scattered by the nature placer. Ignored by the street decorator.</summary>
+        LotInterior,
+        /// <summary>Along a park lot's outer edge cells, facing outward — fences, palm rows. Ignored by the street decorator.</summary>
+        LotPerimeter,
     }
 
     /// <summary>
@@ -38,8 +42,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
         [PropertyRange(0.01f, 10f)]
         public float weight = 1f;
 
-        [Tooltip("Extra scale on top of the cell fit (cellSize ÷ the set's nativeCellSize).")]
-        [PropertyRange(0.1f, 3f)]
+        [Tooltip("Extra scale on top of the cell fit (cellSize ÷ the set's nativeCellSize). Nature props need tiny values — their kit is human-scale while a cell is a whole street tile.")]
+        [PropertyRange(0.02f, 3f)]
         public float scaleMultiplier = 1f;
 
         [Tooltip("Extra yaw if the model doesn't face +Z at zero rotation — props are yawed to face the road they stand beside.")]

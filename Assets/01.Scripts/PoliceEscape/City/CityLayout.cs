@@ -22,8 +22,21 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public readonly float BuildingDensityMultiplier;
         public readonly float DecorationDensityMultiplier;
 
-        public BlockKnobs(CityGenerationSettings city, BlockSettings block)
+        // District pass-throughs — content flavour only, never border roads
+        // (the district's one border-relevant flag is consumed by CityLayout).
+        public readonly Decoration.NatureSet NatureSet;
+        public readonly bool IsPark;
+        public readonly float ParkLotChance;
+        public readonly float CurveChance;
+        public readonly int MaxCurves;
+
+        public BlockKnobs(CityGenerationSettings city, BlockSettings block, DistrictDefinition district)
         {
+            NatureSet = district != null ? district.natureSet : null;
+            IsPark = district != null && district.isPark;
+            ParkLotChance = district != null ? district.parkLotChance : 0f;
+            CurveChance = district != null ? district.curveChance : 0f;
+            MaxCurves = district != null ? district.maxCurvedAvenues : 0;
             if (block != null)
             {
                 ConnectorDensity = block.connectorDensity;
@@ -79,22 +92,28 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         // seed produces familiar layouts and the streams stay uncorrelated.
         public const int SaltRow = 101;
         public const int SaltCol = 202;
+        // The secondary (district-gated) arterial field's own streams.
+        public const int SaltRow2 = 121;
+        public const int SaltCol2 = 242;
 
         /// <summary>Resolved per-block facts, computed once at construction.</summary>
         public readonly struct BlockSpec
         {
             public readonly int Seed;
             public readonly BlockSettings Settings;
+            /// <summary>The block's resolved district (override → seeded map → default); null when the definition has no districts.</summary>
+            public readonly DistrictDefinition District;
             public readonly bool ConnectorOnly;
             /// <summary>0 = bridge runs East–West (along a row), 1 = North–South (along a column).</summary>
             public readonly int ConnectorAxis;
             /// <summary>Local index (within the block) of the arterial line the bridge follows; -1 when none qualifies.</summary>
             public readonly int BridgeLineLocal;
 
-            public BlockSpec(int seed, BlockSettings settings, bool connectorOnly, int connectorAxis, int bridgeLineLocal)
+            public BlockSpec(int seed, BlockSettings settings, DistrictDefinition district, bool connectorOnly, int connectorAxis, int bridgeLineLocal)
             {
                 Seed = seed;
                 Settings = settings;
+                District = district;
                 ConnectorOnly = connectorOnly && bridgeLineLocal >= 0;
                 ConnectorAxis = connectorAxis;
                 BridgeLineLocal = bridgeLineLocal;
@@ -126,43 +145,57 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 var coord = new Vector2Int(x, y);
                 CityDefinition.BlockEntry entry = definition.GetEntry(coord);
                 int seed = entry != null ? entry.seed : definition.DerivedSeed(coord);
+                DistrictDefinition district = definition.DistrictFor(coord);
                 BlockSettings settings = entry != null && entry.settingsOverride != null
                     ? entry.settingsOverride
-                    : definition.defaultBlockSettings;
+                    : district != null && district.interiorSettings != null
+                        ? district.interiorSettings
+                        : definition.defaultBlockSettings;
                 bool connector = entry != null && entry.connectorOnly;
                 int axis = entry != null ? (int)entry.connectorAxis : 0;
                 int line = connector ? FindBridgeLine(coord, axis) : -1;
-                specs[coord] = new BlockSpec(seed, settings, connector, axis, line);
+                specs[coord] = new BlockSpec(seed, settings, district, connector, axis, line);
             }
         }
 
         public BlockSpec SpecFor(Vector2Int coord) =>
-            specs.TryGetValue(coord, out BlockSpec spec) ? spec : new BlockSpec(CitySeed, null, false, 0, -1);
+            specs.TryGetValue(coord, out BlockSpec spec) ? spec : new BlockSpec(CitySeed, null, null, false, 0, -1);
 
-        public BlockKnobs KnobsFor(Vector2Int coord) => new(Settings, SpecFor(coord).Settings);
+        public BlockKnobs KnobsFor(Vector2Int coord)
+        {
+            BlockSpec spec = SpecFor(coord);
+            return new BlockKnobs(Settings, spec.Settings, spec.District);
+        }
 
         // -------------------------------------------------------- arterials
 
-        /// <summary>Is this wrapped world row an arterial line? Pure function of (citySeed, row).</summary>
-        public bool IsArterialRow(int worldY) => IsArterialLine(SaltRow, DeterministicHash.Mod(worldY, PeriodY));
+        /// <summary>Is this wrapped world row a primary arterial line? Pure function of (citySeed, row).</summary>
+        public bool IsArterialRow(int worldY) => IsArterialLine(SaltRow, DeterministicHash.Mod(worldY, PeriodY), Settings.arterialSpacing, Settings.arterialJitter);
 
-        /// <summary>Is this wrapped world column an arterial line? Pure function of (citySeed, column).</summary>
-        public bool IsArterialColumn(int worldX) => IsArterialLine(SaltCol, DeterministicHash.Mod(worldX, PeriodX));
+        /// <summary>Is this wrapped world column a primary arterial line? Pure function of (citySeed, column).</summary>
+        public bool IsArterialColumn(int worldX) => IsArterialLine(SaltCol, DeterministicHash.Mod(worldX, PeriodX), Settings.arterialSpacing, Settings.arterialJitter);
+
+        /// <summary>Is this wrapped world row a SECONDARY arterial line? The line only becomes a road inside districts that enable the tier — see <see cref="IsRoadCell"/>.</summary>
+        public bool IsSecondaryRow(int worldY) => IsArterialLine(SaltRow2, DeterministicHash.Mod(worldY, PeriodY), Settings.secondaryArterialSpacing, Settings.secondaryArterialJitter);
+
+        /// <summary>Is this wrapped world column a SECONDARY arterial line?</summary>
+        public bool IsSecondaryColumn(int worldX) => IsArterialLine(SaltCol2, DeterministicHash.Mod(worldX, PeriodX), Settings.secondaryArterialSpacing, Settings.secondaryArterialJitter);
 
         /// <summary>
-        /// World rows/columns are split into bands of arterialSpacing cells and
-        /// each band hosts exactly one arterial line; jitter blends its offset
-        /// between band-center (regular grid) and a hashed random position.
-        /// Identical math to the original streaming generator, applied to the
-        /// wrapped index — which is what makes the field periodic.
+        /// World rows/columns are split into bands of <paramref name="spacing"/>
+        /// cells and each band hosts exactly one arterial line; jitter blends
+        /// its offset between band-center (regular grid) and a hashed random
+        /// position. Identical math to the original streaming generator,
+        /// applied to the wrapped index — which is what makes the field
+        /// periodic. Both tiers run through here with their own salt, spacing
+        /// and jitter.
         /// </summary>
-        bool IsArterialLine(int salt, int wrappedIndex)
+        bool IsArterialLine(int salt, int wrappedIndex, int spacing, float jitter)
         {
-            int spacing = Settings.arterialSpacing;
             int band = DeterministicHash.FloorDiv(wrappedIndex, spacing);
             float random01 = DeterministicHash.Value01(CitySeed, salt, band);
             int randomOffset = Mathf.Min((int)(random01 * spacing), spacing - 1);
-            int offset = Mathf.RoundToInt(Mathf.Lerp(spacing * 0.5f, randomOffset, Settings.arterialJitter));
+            int offset = Mathf.RoundToInt(Mathf.Lerp(spacing * 0.5f, randomOffset, jitter));
             return DeterministicHash.Mod(wrappedIndex, spacing) == Mathf.Clamp(offset, 0, spacing - 1);
         }
 
@@ -179,7 +212,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// suppression)? This is what block generation uses to resolve
         /// neighbours beyond its own bounds — including across the wrap seam.
         /// Connectors and features never touch borders, so they don't matter
-        /// here.
+        /// here. Two tiers: primary arterials exist everywhere (the
+        /// connectivity guarantee); the denser secondary field materializes
+        /// only inside blocks whose district enables it. Both are pure
+        /// functions of (citySeed + authored definition, wrapped index), so a
+        /// secondary street crossing a district border dead-ends with both
+        /// neighbours computing the identical mask.
         /// </summary>
         public bool IsRoadCell(int worldX, int worldY)
         {
@@ -189,12 +227,32 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (spec.ConnectorOnly)
             {
                 // Only the bridge line exists; everything else — including the
-                // arterials the field says should cross here — is suppressed.
+                // arterials of either tier the field says should cross here —
+                // is suppressed. The bridge follows a PRIMARY line only, so a
+                // neighbour's district choices can never move it.
                 return spec.ConnectorAxis == 0
                     ? wy - (wy / BlockSize) * BlockSize == spec.BridgeLineLocal && IsArterialRow(wy)
                     : wx - (wx / BlockSize) * BlockSize == spec.BridgeLineLocal && IsArterialColumn(wx);
             }
-            return IsArterialColumn(wx) || IsArterialRow(wy);
+            if (IsArterialColumn(wx) || IsArterialRow(wy)) return true;
+            return spec.District != null && spec.District.useSecondaryArterials
+                && (IsSecondaryColumn(wx) || IsSecondaryRow(wy));
+        }
+
+        /// <summary>Does this world row carry a road inside the given block — primary, or district-gated secondary? Used by the connector carver to bound lots by the block's EFFECTIVE grid.</summary>
+        public bool RowCrossesBlock(int worldY, Vector2Int block)
+        {
+            if (IsArterialRow(worldY)) return true;
+            DistrictDefinition district = SpecFor(block).District;
+            return district != null && district.useSecondaryArterials && IsSecondaryRow(worldY);
+        }
+
+        /// <summary>Does this world column carry a road inside the given block?</summary>
+        public bool ColCrossesBlock(int worldX, Vector2Int block)
+        {
+            if (IsArterialColumn(worldX)) return true;
+            DistrictDefinition district = SpecFor(block).District;
+            return district != null && district.useSecondaryArterials && IsSecondaryColumn(worldX);
         }
 
         /// <summary>

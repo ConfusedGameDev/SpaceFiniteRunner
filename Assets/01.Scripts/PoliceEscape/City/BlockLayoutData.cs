@@ -26,6 +26,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         public byte[] rampLength;
         public int[] featureIndex;
         public Vector2[] centerOffset;
+        public byte[] cellFlags;
         public SerializedFeature[] features;
 
         [Serializable]
@@ -60,6 +61,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 rampLength = (byte[])data.RawRampLength.Clone(),
                 featureIndex = (int[])data.RawFeatureIndex.Clone(),
                 centerOffset = (Vector2[])data.RawCenterOffset.Clone(),
+                cellFlags = new byte[count],
                 features = new SerializedFeature[data.Features.Count],
             };
             for (int i = 0; i < count; i++)
@@ -67,6 +69,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 layout.kinds[i] = (byte)data.RawKinds[i];
                 layout.connections[i] = (byte)data.RawConnections[i];
                 layout.upperConnections[i] = (byte)data.RawUpperConnections[i];
+                layout.cellFlags[i] = (byte)data.RawCellFlags[i];
             }
             for (int i = 0; i < data.Features.Count; i++)
             {
@@ -89,6 +92,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (!IsValid) return null;
             var data = new ChunkData(coord, sizeInCells);
             int count = sizeInCells * sizeInCells;
+            // Blocks baked before cellFlags existed have no array — treat as all-clear.
+            bool hasFlags = cellFlags != null && cellFlags.Length == count;
             for (int i = 0; i < count; i++)
             {
                 data.RawKinds[i] = (ChunkData.CellKind)kinds[i];
@@ -99,6 +104,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 data.RawRampLength[i] = rampLength[i];
                 data.RawFeatureIndex[i] = featureIndex[i];
                 data.RawCenterOffset[i] = centerOffset[i];
+                if (hasFlags) data.RawCellFlags[i] = (ChunkData.CellFlags)cellFlags[i];
             }
             if (features != null)
             {

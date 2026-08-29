@@ -24,6 +24,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         // feature/piece/building/decoration streams derived from the same
         // block seed.
         const int SaltChunk = 303;
+        // Own stream for the park-lot rolls, so tuning park chances never
+        // reshuffles the road layout (and vice versa).
+        const int SaltParkLots = 1110;
 
         public static ChunkData Generate(CityLayout layout, Vector2Int blockCoord)
         {
@@ -48,11 +51,41 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             CarveConnectors(layout, knobs, data, rng);
             if (!knobs.AllowDeadEnds) RepairDeadEnds(layout, data);
             ResolveConnections(layout, data);
-            // Features (overpasses, forks, roundabouts…) rewrite interior cells
+            // Curved avenues first — their chain cells become feature cells,
+            // so the ordinary feature pass keeps off them. Then features
+            // (overpasses, forks, roundabouts…), rewriting interior cells
             // only, after the masks are final — border cells stay untouched so
             // the cross-block arterial contract above still holds.
+            RoadFeaturePlacer.PlaceCurves(knobs, data, spec.Seed);
             RoadFeaturePlacer.Place(layout.Settings, knobs, data, spec.Seed);
+            // Park lots are part of the MODEL, decided here rather than at
+            // stamp time, so the flags ride the serialized layout into the
+            // baked prefab (SetData snapshots before any content pass runs).
+            MarkParkLots(knobs, data, spec.Seed);
             return data;
+        }
+
+        // ------------------------------------------------------------ park lots
+
+        /// <summary>
+        /// Claim whole lots for the district's nature pass: every lot in a park
+        /// block, or a parkLotChance roll per lot elsewhere. Claimed cells stay
+        /// <see cref="ChunkData.CellKind.Empty"/> (the ground slab stays
+        /// drivable) but carry <see cref="ChunkData.CellFlags.ParkLot"/>, which
+        /// the building populator excludes and the nature placer fills.
+        /// </summary>
+        static void MarkParkLots(in BlockKnobs knobs, ChunkData data, int blockSeed)
+        {
+            if (knobs.NatureSet == null || (!knobs.IsPark && knobs.ParkLotChance <= 0f)) return;
+
+            var rng = new System.Random(DeterministicHash.Combine(blockSeed, SaltParkLots, data.Coord.x, data.Coord.y));
+            foreach (List<Vector2Int> lot in ChunkLots.FindLots(data, data.IsBuildable))
+            {
+                if (lot.Count < 2) continue; // a single grass cell reads as a glitch, not a park
+                if (!knobs.IsPark && rng.NextDouble() >= knobs.ParkLotChance) continue;
+                foreach (Vector2Int cell in lot)
+                    data.AddFlags(cell.x, cell.y, ChunkData.CellFlags.ParkLot);
+            }
         }
 
         // ------------------------------------------------------------ arterials
@@ -79,11 +112,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         static void CarveConnectors(CityLayout layout, in BlockKnobs knobs, ChunkData data, System.Random rng)
         {
             Vector2Int origin = data.WorldCellOrigin;
+            // Lots are bounded by the block's EFFECTIVE grid — primary
+            // arterials plus the district-gated secondary lines — so a dense
+            // district's connectors subdivide its smaller lots, not the
+            // primary superblocks.
             List<int> rows = new(), cols = new();
             for (int y = 0; y < data.SizeInCells; y++)
-                if (layout.IsArterialRow(origin.y + y)) rows.Add(y);
+                if (layout.RowCrossesBlock(origin.y + y, data.Coord)) rows.Add(y);
             for (int x = 0; x < data.SizeInCells; x++)
-                if (layout.IsArterialColumn(origin.x + x)) cols.Add(x);
+                if (layout.ColCrossesBlock(origin.x + x, data.Coord)) cols.Add(x);
 
             for (int ri = 0; ri < rows.Count - 1; ri++)
             for (int ci = 0; ci < cols.Count - 1; ci++)
