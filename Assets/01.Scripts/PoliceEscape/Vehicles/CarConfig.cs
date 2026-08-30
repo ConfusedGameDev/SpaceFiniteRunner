@@ -89,6 +89,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [PropertyRange(0f, 15f), SuffixLabel("°", true)]
         public float hillRollbackSlope = 3f;
 
+        // -------------------------------------------------------- brake lights
+        // The kit cars' emission map paints the tail lights; BrakeLights
+        // drives that material's HDR emission intensity (EV, the colour
+        // picker's Intensity slider) between these two levels. Visual only,
+        // and shared by every car on the road — player, police and traffic.
+        [TitleGroup("Brake lights")]
+        [Tooltip("Emission intensity (EV) of the car's emissive material while it is NOT braking. -10 is dark — the tail lights (and everything else on the emission map) stay off until the brakes go on.")]
+        [PropertyRange(-10f, 10f), SuffixLabel("EV", true)]
+        public float brakeLightIdleIntensity = -10f;
+
+        [TitleGroup("Brake lights")]
+        [Tooltip("Emission intensity (EV) while braking or holding the handbrake — the lit tail lights.")]
+        [PropertyRange(-10f, 10f), SuffixLabel("EV", true)]
+        public float brakeLightBrakingIntensity = 5f;
+
+        [TitleGroup("Brake lights")]
+        [Tooltip("Seconds the lights take to fade between the two levels. 0 snaps.")]
+        [PropertyRange(0f, 0.5f), SuffixLabel("s", true)]
+        public float brakeLightFadeSeconds = 0.05f;
+
         // ------------------------------------------------------------ steering
         [TitleGroup("Steering")]
         [Tooltip("Front wheel steer angle at standstill.")]

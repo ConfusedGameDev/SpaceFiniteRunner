@@ -213,6 +213,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             vehicle.throttleInput = throttleInput;
             vehicle.brakeInput = brakeInput;
             vehicle.handbrakeInput = handbrake ? 1f : 0f;
+
+            // The rear-lights flag — CarController's drive step is idle in
+            // EVP mode, so this backend keeps it honest: brake, handbrake,
+            // reverse gear (negative EVP throttle) or rolling backwards.
+            car.RearLightsOn = brakeInput > 0f || handbrake || throttleInput < 0f
+                               || vehicle.speed < -CarController.ReverseLightSpeed;
         }
 
         /// <summary>

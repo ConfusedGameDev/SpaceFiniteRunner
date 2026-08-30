@@ -49,6 +49,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// <summary>Signed speed along the car's facing — negative while reversing.</summary>
         public float ForwardSpeed => Vector3.Dot(Velocity, transform.forward);
 
+        /// <summary>
+        /// True while the rear lights should be lit — what <see cref="BrakeLights"/>
+        /// shows: braking (throttle against the travel direction), the
+        /// handbrake, or reverse (reverse throttle, or actually rolling
+        /// backwards past <see cref="ReverseLightSpeed"/>). Engine braking on
+        /// a released throttle does not count. Written by whichever backend
+        /// simulates this car: the built-in drive step here, or
+        /// <see cref="EvpCarBackend"/> in EVP mode.
+        /// </summary>
+        public bool RearLightsOn { get; internal set; }
+
+        /// <summary>Backward speed (m/s) past which a car counts as reversing for the rear lights, whatever the pedal says.</summary>
+        public const float ReverseLightSpeed = 0.5f;
+
         public bool IsGrounded =>
             frontLeft.isGrounded || frontRight.isGrounded || rearLeft.isGrounded || rearRight.isGrounded;
 
@@ -71,6 +85,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             SetBackend(VehiclePhysicsSettings.UseEvp);
 
             ApplyConfig();
+
+            // Same coverage rule as the backend: every car built through any
+            // path gets its brake lights here, no spawn-site wiring.
+            BrakeLights.Ensure(this);
         }
 
         /// <summary>
@@ -221,6 +239,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
                 && throttle != 0f
                 && Mathf.Sign(throttle) != Mathf.Sign(forwardSpeed)
                 && !rollingWithGravity;
+
+            // Rear lights: brake, handbrake, or reverse — reverse throttle that
+            // isn't a brake request is reverse gear, and rolling backwards
+            // counts even with the pedal released.
+            RearLightsOn = opposing || handbrake || throttle < 0f || forwardSpeed < -ReverseLightSpeed;
 
             float motor = 0f;
             float brake = 0f;
