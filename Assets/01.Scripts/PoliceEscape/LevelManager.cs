@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 using ConfusedGameDev.FiniteRunner.FX;
+using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.Screens;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
@@ -71,6 +72,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Tooltip("Impacts slower than this are scrapes: no pulse, no damage.")]
         [PropertyRange(0f, 10f), SuffixLabel("m/s", true)]
         public float minImpactSpeed = 3f;
+
+        [TitleGroup("Damage")]
+        [Tooltip("Impact speed at which the crash rumble hits full strength; between the scrape threshold and this it scales up with how hard you hit.")]
+        [PropertyRange(5f, 40f), SuffixLabel("m/s", true)]
+        public float crashRumbleFullSpeed = 20f;
+
+        [TitleGroup("Damage")]
+        [Tooltip("How long a full-strength crash rumble lasts (lighter hits are shorter).")]
+        [PropertyRange(0.05f, 1f), SuffixLabel("s", true)]
+        public float crashRumbleDuration = 0.4f;
 
         [TitleGroup("Damage")]
         [Tooltip("How long the screen holds at full corruption before the level reboots.")]
@@ -467,13 +478,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         void ExitToMainMenu() => SceneManager.LoadScene(0); // MainMenu is build index 0, same as the pause menu's exit
 
         /// <summary>
-        /// Player impact, relayed by the sensor: hard hits pulse the glitch,
-        /// police hits also add permanent corruption — the damage meter.
+        /// Player impact, relayed by the sensor: hard hits rumble the pad and
+        /// pulse the glitch, police hits also add permanent corruption — the
+        /// damage meter. The rumble scales with impact speed (a kerb tap is a
+        /// tick, a wall at speed is a slam) and fires before the glitch check,
+        /// so a scene without a glitch controller still shakes the pad.
         /// </summary>
         void OnPlayerImpact(Collision collision)
         {
             if (resetting || Completed) return;
-            if (collision.relativeVelocity.magnitude < minImpactSpeed) return;
+            float impactSpeed = collision.relativeVelocity.magnitude;
+            if (impactSpeed < minImpactSpeed) return;
+
+            RumbleCrash(impactSpeed);
 
             var glitch = GlitchController.Instance;
             if (glitch == null) return;
@@ -482,6 +499,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             bool policeHit = collision.rigidbody != null
                 && collision.rigidbody.GetComponent<PoliceCarInput>() != null;
             if (policeHit) ApplyDamage(policeHitIntensity, "police hit");
+        }
+
+        /// <summary>
+        /// Crash rumble: 0..1 off how far the impact sits between the scrape
+        /// threshold and <see cref="crashRumbleFullSpeed"/>. The heavy motor
+        /// carries the thud, the light one a shorter rattle on top; overlapping
+        /// pulses keep the strongest, so a pile-up never stacks into a buzz.
+        /// </summary>
+        void RumbleCrash(float impactSpeed)
+        {
+            var haptics = HapticsSystem.Instance;
+            if (haptics == null) return;
+
+            float t = Mathf.InverseLerp(minImpactSpeed, Mathf.Max(minImpactSpeed + 0.01f, crashRumbleFullSpeed), impactSpeed);
+            float strength = Mathf.Lerp(0.25f, 1f, t);
+            haptics.Pulse(strength, strength * 0.6f, Mathf.Lerp(0.12f, crashRumbleDuration, t));
         }
 
         /// <summary>
