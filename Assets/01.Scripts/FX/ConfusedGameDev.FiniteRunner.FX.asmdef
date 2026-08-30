@@ -3,6 +3,7 @@
     "rootNamespace": "ConfusedGameDev.FiniteRunner.FX",
     "references": [
         "ConfusedGameDev.FiniteRunner.UI",
+        "ConfusedGameDev.FiniteRunner.Rendering",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],

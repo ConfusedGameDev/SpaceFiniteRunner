@@ -1,3 +1,4 @@
+using ConfusedGameDev.FiniteRunner.Rendering;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -14,7 +15,10 @@ namespace ConfusedGameDev.FiniteRunner.FX
     /// hack in progress). The material is a shared asset used by every scene's
     /// renderer, so OnDisable always resets it to a clean feed — a scene
     /// without this controller must never inherit someone else's glitch.
-    /// Runs on unscaled time so pulses decay through pause screens.
+    /// Runs on unscaled time so pulses decay through pause screens. Awake
+    /// audits the ACTIVE pipeline asset for the GlitchPost feature
+    /// (<see cref="RendererFeatureAudit"/>): a quality level pointing at a
+    /// pipeline asset without it fails silently otherwise.
     /// </summary>
     public class GlitchController : MonoBehaviour
     {
@@ -54,6 +58,7 @@ namespace ConfusedGameDev.FiniteRunner.FX
         void Awake()
         {
             Instance = this;
+            RendererFeatureAudit.WarnIfMissing(glitchMaterial, nameof(GlitchController), this);
         }
 
         void Start()

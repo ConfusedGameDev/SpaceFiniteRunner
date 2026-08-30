@@ -1,3 +1,4 @@
+using ConfusedGameDev.FiniteRunner.Rendering;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -77,6 +78,7 @@ namespace ConfusedGameDev.FiniteRunner.FX
         {
             Instance = this;
             if (settings == null) settings = DistanceFogSettings.Load();
+            if (Application.isPlaying) RendererFeatureAudit.WarnIfMissing(fogMaterial, nameof(DistanceFog), this);
             Apply();
         }
 

@@ -44,6 +44,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             float dropHeight = config != null ? config.respawnHeight : 0.6f;
             var go = Object.Instantiate(carPrefab, roadCenter + Vector3.up * dropHeight, rotation);
             go.name = "PlayerCar";
+            SceneHierarchy.Adopt(go, SceneHierarchy.Player(go.scene)); // world pose kept: the header sits at the origin
             var car = go.GetComponent<CarController>();
 
             // Blasts reach the player through the same IDamageable interface

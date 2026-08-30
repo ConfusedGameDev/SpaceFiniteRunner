@@ -10,8 +10,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     /// One-click setup for the distance fog + far glitch, since a renderer
     /// feature must live on the URP renderer assets: creates the fog material
     /// and the settings asset (never overwriting either), then installs a
-    /// <see cref="DistanceFogFeature"/> on every UniversalRendererData in the
-    /// project — INSERTED before the GlitchPost full-screen feature, because
+    /// <see cref="DistanceFogFeature"/> on every UniversalRendererData under
+    /// <c>Assets/04.Data</c> (the project's own; third-party packs ship their own
+    /// pipeline/renderer assets and must never take the feature — see
+    /// <see cref="IsProjectRendererAsset"/>) — INSERTED before the GlitchPost full-screen feature, because
     /// list order is the tie-break between passes at the same event and the
     /// world must fog before the signal corrupts. Re-running updates the
     /// existing features' material instead of duplicating them. The scene
@@ -35,7 +37,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             foreach (string guid in AssetDatabase.FindAssets("t:UniversalRendererData"))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (!path.StartsWith("Assets/")) continue; // never touch package (immutable) renderer assets
+                if (!IsProjectRendererAsset(path)) continue;
                 var rendererData = AssetDatabase.LoadAssetAtPath<UniversalRendererData>(path);
                 if (rendererData == null) continue;
 
@@ -61,6 +63,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             Debug.Log($"DistanceFogInstaller: material at {MaterialPath}, settings at {SettingsPath} — feature installed on {installed} renderer asset(s), updated on {updated}. " +
                       "Add a DistanceFog object to the scene (Create Car Test Scene does) and assign both.", settings);
         }
+
+        /// <summary>
+        /// Only the project's own renderer assets (under Assets/04.Data) take a
+        /// feature. Package renderers are immutable, and a third-party pack's
+        /// (Cyberpunk Megapolis: CP_High and friends) must stay untouched: the
+        /// fog stamped onto those is how the fog kept rendering on a renderer
+        /// that never had the GlitchPost feature, after a quality level
+        /// silently switched to the pack's pipeline asset (see
+        /// <see cref="Rendering.RendererFeatureAudit"/>). Shared with the
+        /// GlitchSilhouetteInstaller so both tools agree on the target set.
+        /// </summary>
+        internal static bool IsProjectRendererAsset(string path) => path.StartsWith("Assets/04.Data/");
 
         /// <summary>
         /// Renderer features have no public add API — insert via the renderer

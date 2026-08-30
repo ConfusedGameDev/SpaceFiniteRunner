@@ -61,6 +61,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         public static MissionBriefScreen Show(LevelDefinition level, System.Action<List<OptionalChallenge>, int> onAccept)
         {
             var brief = new GameObject("MissionBriefScreen").AddComponent<MissionBriefScreen>();
+            SceneHierarchy.Adopt(brief.gameObject, SceneHierarchy.Systems(brief.gameObject.scene), worldPositionStays: false);
             brief.level = level;
             brief.onAccept = onAccept;
             brief.theme = MenuTheme.Load();

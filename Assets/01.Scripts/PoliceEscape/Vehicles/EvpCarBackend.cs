@@ -424,6 +424,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             if (FindAnyObjectByType<GroundMaterialManager>() != null) return;
 
             var root = new GameObject("EVP Ground Effects");
+            SceneHierarchy.Adopt(root, SceneHierarchy.Systems(root.scene));
             var manager = root.AddComponent<GroundMaterialManager>();
 
             TireMarksRenderer marks = null;

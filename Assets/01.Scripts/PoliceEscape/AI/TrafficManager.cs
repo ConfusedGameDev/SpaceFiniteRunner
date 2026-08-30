@@ -122,6 +122,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 graph.Center(pickedNode) + LaneRules.RightOf(direction) * lane + Vector3.up * 0.5f,
                 Quaternion.Euler(0f, direction * 90f, 0f), definition.modelYaw);
             if (controller == null) return false; // model not riggable — warned by the builder
+            SceneHierarchy.Adopt(controller.gameObject, SceneHierarchy.Traffic(controller.gameObject.scene));
 
             // Health before Initialize, so the driver's fetch finds it.
             controller.gameObject.AddComponent<CarHealth>();

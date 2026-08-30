@@ -105,9 +105,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (Root == null)
                 Debug.LogWarning("CityManager: no CityRoot in the scene — drop the baked city prefab in (Tools → Police Escape → City Designer bakes one).", this);
 
-            // Police fleet: prefer a scene-placed (prefab) manager so it is
-            // visible before play; spawn one only when the scene has none.
-            if (FindAnyObjectByType<AI.PatrolManager>() == null && policeCarPrefab != null && pursuitSettings != null)
+            // Scene-lifetime systems are HAND-PLACED: the scene builders run
+            // SceneSystemsPlacer (so does Tools -> Police Escape -> Place Scene
+            // Systems), and what follows is only the fallback for a scene
+            // that lacks one. Inactive counts as present: disabling a placed
+            // system is how it is switched off, not a request for a spare.
+            if (FindAnyObjectByType<AI.PatrolManager>(FindObjectsInactive.Include) == null && policeCarPrefab != null && pursuitSettings != null)
             {
                 var managerGo = new GameObject("PatrolManager");
                 var patrolManager = managerGo.AddComponent<AI.PatrolManager>();
@@ -116,28 +119,28 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             }
 
             // Civilian traffic: same scene-first pattern as the police.
-            if (FindAnyObjectByType<AI.TrafficManager>() == null && trafficSettings != null)
+            if (FindAnyObjectByType<AI.TrafficManager>(FindObjectsInactive.Include) == null && trafficSettings != null)
             {
                 var trafficGo = new GameObject("TrafficManager");
                 trafficGo.AddComponent<AI.TrafficManager>().settings = trafficSettings;
             }
 
             // HUD pieces: same deal — spawned when wired, each builds its own canvas.
-            if (FindAnyObjectByType<UI.Minimap>() == null && minimapSettings != null)
+            if (FindAnyObjectByType<UI.Minimap>(FindObjectsInactive.Include) == null && minimapSettings != null)
             {
                 var minimapGo = new GameObject("Minimap");
                 minimapGo.AddComponent<UI.Minimap>().settings = minimapSettings;
             }
-            if (FindAnyObjectByType<UI.Speedometer>() == null && speedometerSettings != null)
+            if (FindAnyObjectByType<UI.Speedometer>(FindObjectsInactive.Include) == null && speedometerSettings != null)
             {
                 var speedometerGo = new GameObject("Speedometer");
                 speedometerGo.AddComponent<UI.Speedometer>().settings = speedometerSettings;
             }
-            if (FindAnyObjectByType<UI.CityMapScreen>() == null && mapSettings != null) UI.CityMapScreen.Spawn(this, mapSettings);
+            if (FindAnyObjectByType<UI.CityMapScreen>(FindObjectsInactive.Include) == null && mapSettings != null) UI.CityMapScreen.Spawn(this, mapSettings);
 
             // Camera FX: scene-first like everything above — a hand-placed
             // SpeedMotionBlur keeps its tuning, this only fills the gap.
-            if (speedMotionBlur && FindAnyObjectByType<Vehicles.SpeedMotionBlur>() == null)
+            if (speedMotionBlur && FindAnyObjectByType<Vehicles.SpeedMotionBlur>(FindObjectsInactive.Include) == null)
                 new GameObject("SpeedMotionBlur").AddComponent<Vehicles.SpeedMotionBlur>();
 
             // Weather: a camera-sized volume, so it needs neither the city nor

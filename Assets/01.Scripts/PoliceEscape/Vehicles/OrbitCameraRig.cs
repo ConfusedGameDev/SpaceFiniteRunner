@@ -75,6 +75,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         const string PlayerTag = "Player";
         const string EyeName = "CameraEye";
         const int OrbitPriority = 10;
+
+        /// <summary>Name of the first-person vcam object; SceneSystemsPlacer pre-places one under this name for Build to adopt.</summary>
+        public const string FirstPersonName = "FirstPersonCamera";
+
+        bool ownsFirstPersonObject; // created here (destroy with the rig) vs adopted from the scene (leave it)
         const int FirstPersonPriority = 20;
 
         public CarController Target => target;
@@ -165,12 +170,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // eye point and rotating with it, so the view is the car's own
             // heading; the small damping is what keeps road bumps from being
             // the whole picture.
-            var fp = new GameObject("FirstPersonCamera");
-            fp.transform.SetParent(transform.parent, false);
-            firstPersonCamera = fp.AddComponent<CinemachineCamera>();
+            // A scene-placed sibling of that name is adopted (the placer
+            // leaves it empty: the components are added here either way).
+            GameObject fp = FindPrePlacedFirstPerson();
+            ownsFirstPersonObject = fp == null;
+            if (fp == null)
+            {
+                fp = new GameObject(FirstPersonName);
+                fp.transform.SetParent(transform.parent, false);
+            }
+            firstPersonCamera = Ensure<CinemachineCamera>(fp);
             firstPersonCamera.Priority = OrbitPriority - 1;
-            firstPersonLock = fp.AddComponent<CinemachineHardLockToTarget>();
-            firstPersonRotate = fp.AddComponent<CinemachineRotateWithFollowTarget>();
+            firstPersonLock = Ensure<CinemachineHardLockToTarget>(fp);
+            firstPersonRotate = Ensure<CinemachineRotateWithFollowTarget>(fp);
             firstPersonCamera.Lens.NearClipPlane = 0.05f;
 
             // The scene camera's far clip is the authored default; the lens
@@ -185,8 +197,29 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         void OnDestroy()
         {
             // The first-person vcam is a sibling, not a child, so it does not
-            // die with the rig on its own.
-            if (firstPersonCamera != null) Destroy(firstPersonCamera.gameObject);
+            // die with the rig on its own. Unless it was the scene's to begin
+            // with: that one stays, and a later rig adopts it again.
+            if (ownsFirstPersonObject && firstPersonCamera != null) Destroy(firstPersonCamera.gameObject);
+        }
+
+        /// <summary>The scene-placed first-person object next to this rig (same parent, or a scene root when the rig is one), or null.</summary>
+        public GameObject FindPrePlacedFirstPerson()
+        {
+            if (transform.parent != null)
+            {
+                Transform sibling = transform.parent.Find(FirstPersonName);
+                return sibling != null ? sibling.gameObject : null;
+            }
+            foreach (GameObject root in gameObject.scene.GetRootGameObjects())
+                if (root != gameObject && root.name == FirstPersonName)
+                    return root;
+            return null;
+        }
+
+        static T Ensure<T>(GameObject go) where T : Component
+        {
+            T component = go.GetComponent<T>();
+            return component != null ? component : go.AddComponent<T>();
         }
 
         void ApplySettings()

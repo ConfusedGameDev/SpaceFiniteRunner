@@ -10,8 +10,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     /// feature must live on the URP renderer assets and the car needs a
     /// dedicated layer: ensures the PlayerCar layer exists (CarFactory puts
     /// spawned player cars on it), creates the glitch material, and installs
-    /// a GlitchSilhouetteFeature on every UniversalRendererData in the
-    /// project (all quality levels). Re-running updates the existing
+    /// a GlitchSilhouetteFeature on every UniversalRendererData under
+    /// <c>Assets/04.Data</c> (the project's own renderers, all quality levels —
+    /// never a third-party pack's, see DistanceFogInstaller.IsProjectRendererAsset). Re-running updates the existing
     /// features' settings instead of duplicating them.
     /// </summary>
     public static class GlitchSilhouetteInstaller
@@ -37,7 +38,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             foreach (string guid in AssetDatabase.FindAssets("t:UniversalRendererData"))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (!path.StartsWith("Assets/")) continue; // never touch package (immutable) renderer assets
+                if (!DistanceFogInstaller.IsProjectRendererAsset(path)) continue;
                 var rendererData = AssetDatabase.LoadAssetAtPath<UniversalRendererData>(path);
                 if (rendererData == null) continue;
 

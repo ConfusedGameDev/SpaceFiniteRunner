@@ -36,6 +36,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string CameraSettingsPath = DataFolder + "/TestOrbitCameraSettings.asset";
         const string PursuitSettingsPath = DataFolder + "/TestPursuitSettings.asset";
         const string MinimapSettingsPath = DataFolder + "/TestMinimapSettings.asset";
+        const string MapSettingsPath = DataFolder + "/TestCityMapSettings.asset";
         const string SpeedometerSettingsPath = DataFolder + "/TestSpeedometerSettings.asset";
         internal const string TrafficSettingsPath = DataFolder + "/TestTrafficSettings.asset";
         const string LevelDefinitionPath = DataFolder + "/TestLevelDefinition.asset";
@@ -104,12 +105,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 city.cityRoot = cityRoot;
                 city.carPrefab = carPrefab;              // enables the Create Car button
                 city.orbitCameraSettings = cameraSettings;
-                city.policeCarPrefab = policeCarPrefab;  // wired police fields spawn the PatrolManager at play
+                city.policeCarPrefab = policeCarPrefab;  // wired police fields: the PatrolManager is placed below
                 city.pursuitSettings = pursuitSettings;
-                city.minimapSettings = minimapSettings;  // wired minimap settings spawn the radar at play
+                city.minimapSettings = minimapSettings;  // the radar, placed below
+                city.mapSettings = CreateOrLoad<UI.CityMapSettings>(MapSettingsPath); // the M / d-pad Up city map, placed below
                 city.speedometerSettings = speedometerSettings;
-                city.trafficSettings = trafficSettings;  // wired traffic settings spawn the TrafficManager at play
+                city.trafficSettings = trafficSettings;  // the TrafficManager, placed below
                 city.rainSettings = AssetDatabase.LoadAssetAtPath<RainSettings>(RainSettingsPath);
+
+                // Managers, HUD, chase camera rig and EventSystem go into the
+                // scene now, under ===SYSTEMS===, wired off the manager; play
+                // mode then spawns only what is per run (cars).
+                SceneSystemsPlacer.PlaceMissing(city);
             }
             else
             {

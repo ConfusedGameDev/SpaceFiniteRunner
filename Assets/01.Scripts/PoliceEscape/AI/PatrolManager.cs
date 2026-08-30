@@ -142,6 +142,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 graph.Center(pickedNode) + LaneRules.RightOf(direction) * lane + Vector3.up * 0.6f,
                 Quaternion.Euler(0f, direction * 90f, 0f));
             go.name = $"PoliceCar_{++spawnedTotal}";
+            SceneHierarchy.Adopt(go, SceneHierarchy.Police(go.scene));
 
             var driver = go.GetComponent<PoliceCarInput>();
             if (driver == null)
