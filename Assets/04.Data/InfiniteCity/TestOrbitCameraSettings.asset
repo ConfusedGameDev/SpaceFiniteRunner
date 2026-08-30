@@ -1,30 +1,3 @@
-%YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1c1b119ea93664cd68aa7d784276386a, type: 3}
-  m_Name: TestOrbitCameraSettings
-  m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.OrbitCameraSettings
-  distance: 9
-  lookHeight: 0.9
-  defaultPitch: 28
-  pitchRange: {x: 2, y: 55}
-  positionDamping: 1.0999999
-  mouseSensitivity: 0.12
-  stickSpeed: 180
-  keySpeed: 140
-  verticalScale: 0.6
-  invertY: 0
-  autoRecenter: 1
-  recenterDelay: 2.2999997
-  recenterSpeed: 120
-  baseFov: 71
-  fovPerKmh: 0.08
-  maxFovBoost: 15
+version https://git-lfs.github.com/spec/v1
+oid sha256:3015dbdd8e76a65cb1c6e13867469cdbbb396955556dfafce5fda50f3437ec09
+size 927

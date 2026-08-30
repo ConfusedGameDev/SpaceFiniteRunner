@@ -3,16 +3,21 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 {
     /// <summary>
-    /// Rigs a Kenney vehicle model into a drivable WheelCollider car at
-    /// runtime — the traffic system builds civilians straight from the FBX
-    /// assets, no prefab per vehicle type. Mirrors the editor prefab builder:
-    /// model scaled by the kit factor, wheel meshes re-pivoted onto centered
-    /// pivots (the kit's pivots sit at the axle attach), wheel colliders at
-    /// the true wheel centers with radii off the mesh bounds, chassis box
-    /// fitted to the body. Build order matters: the root is posed before any
-    /// Rigidbody exists (no interpolation snap-back), and the driver
-    /// component is added before the CarController so its Awake finds the
-    /// ICarInput.
+    /// Rigs a vehicle model into a drivable WheelCollider car at runtime —
+    /// the traffic system builds civilians straight from the FBX assets, no
+    /// prefab per vehicle type. Mirrors the editor prefab builder: model
+    /// scaled by the kit factor and yawed to face +Z, wheel meshes
+    /// re-pivoted onto centered pivots (the Kenney pivots sit at the axle
+    /// attach), wheel colliders at the true wheel centers with radii off the
+    /// mesh bounds, chassis box fitted to the body. Two kits are understood:
+    /// Kenney models by their four named wheels (wheel-front-left …), and
+    /// Cyberpunk Megapolis cars by shape through <see cref="CyberpunkCarKit"/>
+    /// — wheels told apart by position, LOD children and the body collider
+    /// dropped, the shell lifted and the box underside clamped to the axle
+    /// line exactly as the player and police prefabs get. Build order
+    /// matters: the root is posed before any Rigidbody exists (no
+    /// interpolation snap-back), and the driver component is added before
+    /// the CarController so its Awake finds the ICarInput.
     /// </summary>
     public static class VehicleRigBuilder
     {
@@ -21,9 +26,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             "wheel-front-left", "wheel-front-right", "wheel-back-left", "wheel-back-right",
         };
 
-        /// <summary>Build a rig at the given pose. Returns (null, null) with a warning if the model lacks the kit's four named wheels.</summary>
+        /// <summary>
+        /// Build a rig at the given pose. <paramref name="modelYaw"/> turns the
+        /// model to face the rig's +Z (0 for Kenney, <see cref="CyberpunkCarKit.ModelYaw"/>
+        /// for the cyberpunk cars). Returns (null, null) with a warning if the
+        /// model lacks the kit's four named wheels and isn't a cyberpunk car either.
+        /// </summary>
         public static (CarController controller, TDriver driver) Build<TDriver>(
-            GameObject modelPrefab, CarConfig config, float scale, Vector3 position, Quaternion rotation)
+            GameObject modelPrefab, CarConfig config, float scale, Vector3 position, Quaternion rotation, float modelYaw = 0f)
             where TDriver : Component, ICarInput
         {
             var root = new GameObject(modelPrefab.name + "-rig");
@@ -32,24 +42,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             var model = Object.Instantiate(modelPrefab, root.transform);
             model.name = "Model";
             model.transform.localPosition = Vector3.zero;
-            model.transform.localRotation = Quaternion.identity;
+            model.transform.localRotation = Quaternion.Euler(0f, modelYaw, 0f);
             model.transform.localScale = Vector3.one * scale;
+
+            Transform[] wheelMeshes = ResolveWheels(model.transform, root.transform, modelPrefab.name, out bool kitCar);
+            if (wheelMeshes == null)
+            {
+                Object.Destroy(root);
+                return (null, null);
+            }
 
             // Wheel poses measured before any physics component exists.
             var wheelCenters = new Vector3[WheelNames.Length];   // root-local
             var wheelRadii = new float[WheelNames.Length];
-            var wheelMeshes = new Transform[WheelNames.Length];
             for (int i = 0; i < WheelNames.Length; i++)
             {
-                Transform mesh = model.transform.Find(WheelNames[i]);
-                Renderer renderer = mesh != null ? mesh.GetComponent<Renderer>() : null;
-                if (renderer == null)
-                {
-                    Debug.LogWarning($"VehicleRigBuilder: '{modelPrefab.name}' has no '{WheelNames[i]}' — not riggable, skipped.");
-                    Object.Destroy(root);
-                    return (null, null);
-                }
-                wheelMeshes[i] = mesh;
+                Renderer renderer = wheelMeshes[i].GetComponent<Renderer>();
                 wheelCenters[i] = root.transform.InverseTransformPoint(renderer.bounds.center);
                 wheelRadii[i] = renderer.bounds.extents.y;
             }
@@ -69,13 +77,33 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
                 pivotTransforms[i] = pivot;
             }
 
+            if (kitCar)
+            {
+                // The body's LODGroup still lists the wheels that just left it;
+                // then lift the shell over the wheels, which stay on their axles.
+                CyberpunkCarKit.PruneLodGroup(model);
+                model.transform.localPosition = Vector3.up * CyberpunkCarKit.BodyLift;
+            }
+
             // Chassis box from what's left of the model (wheels re-parented out).
             // Spawn yaws are 90° multiples, so the world AABB converts exactly.
             Bounds bodyBounds = CombinedBounds(model.transform);
-            var box = root.AddComponent<BoxCollider>();
-            box.center = root.transform.InverseTransformPoint(bodyBounds.center);
+            Vector3 center = root.transform.InverseTransformPoint(bodyBounds.center);
             Vector3 localSize = root.transform.InverseTransformVector(bodyBounds.size);
-            box.size = new Vector3(Mathf.Abs(localSize.x), Mathf.Abs(localSize.y), Mathf.Abs(localSize.z));
+            localSize = new Vector3(Mathf.Abs(localSize.x), Mathf.Abs(localSize.y), Mathf.Abs(localSize.z));
+            if (kitCar)
+            {
+                // Underside no lower than the wheel centres, so a ramp is met
+                // by the wheels and never by the box's front edge.
+                float axleY = Mathf.Max(wheelCenters[0].y, wheelCenters[2].y);
+                float bottom = Mathf.Max(center.y - localSize.y * 0.5f, axleY);
+                float top = center.y + localSize.y * 0.5f;
+                center.y = (top + bottom) * 0.5f;
+                localSize.y = top - bottom;
+            }
+            var box = root.AddComponent<BoxCollider>();
+            box.center = center;
+            box.size = localSize;
 
             // Physics components last, at the final pose.
             var body = root.AddComponent<Rigidbody>();
@@ -112,6 +140,43 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             controller.rearLeftVisual = pivotTransforms[2];
             controller.rearRightVisual = pivotTransforms[3];
             return (controller, driver);
+        }
+
+        /// <summary>
+        /// The four wheel meshes in WheelNames order (FL, FR, RL, RR): the
+        /// Kenney names when the model carries them, else the cyberpunk kit's
+        /// wheels classified by position — that path also strips the pack's
+        /// body collider and the wheels' LOD children, which have to go before
+        /// anything is measured. Null (warned) when neither fits.
+        /// </summary>
+        static Transform[] ResolveWheels(Transform model, Transform car, string modelName, out bool kitCar)
+        {
+            kitCar = false;
+            var meshes = new Transform[WheelNames.Length];
+            bool named = true;
+            for (int i = 0; i < WheelNames.Length && named; i++)
+            {
+                meshes[i] = model.Find(WheelNames[i]);
+                named = meshes[i] != null && meshes[i].GetComponent<Renderer>() != null;
+            }
+            if (named) return meshes;
+
+            if (!CyberpunkCarKit.IsKitModel(model))
+            {
+                Debug.LogWarning($"VehicleRigBuilder: '{modelName}' has neither the Kenney wheel names nor a cyberpunk kit's four *Wheel* children — not riggable, skipped.");
+                return null;
+            }
+
+            CyberpunkCarKit.StripColliders(model.gameObject);
+            var wheels = CyberpunkCarKit.FindWheels(model);
+            CyberpunkCarKit.FlattenWheels(wheels);
+            if (!CyberpunkCarKit.TryClassifyWheels(wheels, car, out meshes[0], out meshes[1], out meshes[2], out meshes[3]))
+            {
+                Debug.LogWarning($"VehicleRigBuilder: could not tell '{modelName}'s four wheels apart by position — is its model yaw right ({CyberpunkCarKit.ModelYaw} for the cyberpunk kit)?");
+                return null;
+            }
+            kitCar = true;
+            return meshes;
         }
 
         static Bounds CombinedBounds(Transform root)

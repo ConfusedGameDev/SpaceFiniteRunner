@@ -37,7 +37,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string PursuitSettingsPath = DataFolder + "/TestPursuitSettings.asset";
         const string MinimapSettingsPath = DataFolder + "/TestMinimapSettings.asset";
         const string SpeedometerSettingsPath = DataFolder + "/TestSpeedometerSettings.asset";
-        const string TrafficSettingsPath = DataFolder + "/TestTrafficSettings.asset";
+        internal const string TrafficSettingsPath = DataFolder + "/TestTrafficSettings.asset";
         const string LevelDefinitionPath = DataFolder + "/TestLevelDefinition.asset";
         const string VehiclesFolder = "Assets/02.Art/01.Models/InfiniteCity/Vehicles";
         const string CitySettingsPath = DataFolder + "/CityTestSettings.asset";
@@ -233,23 +233,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         /// </summary>
         static GameObject BuildPoliceCarPrefab(CarConfig config, AI.PursuitSettings pursuitSettings)
         {
-            Material redMat = CreateOrUpdateMaterial("TestPolice_Red", new Color(1f, 0.1f, 0.1f));
-            Material blueMat = CreateOrUpdateMaterial("TestPolice_Blue", new Color(0.15f, 0.35f, 1f));
-
             var root = new GameObject("TestPoliceCar");
             try
             {
                 BuildVehicleBase(root, config, PoliceModelPath);
-
-                // Flashing toppers sitting on the model's roof, over the cabin.
-                var chassis = root.GetComponent<BoxCollider>();
-                float roofY = chassis.center.y + chassis.size.y * 0.5f;
-                float barZ = chassis.center.z - chassis.size.z * 0.12f;
-                GameObject red = AddBox(root.transform, "LightRed", redMat, new Vector3(-0.2f, roofY + 0.05f, barZ), new Vector3(0.38f, 0.12f, 0.3f), withCollider: false);
-                GameObject blue = AddBox(root.transform, "LightBlue", blueMat, new Vector3(0.2f, roofY + 0.05f, barZ), new Vector3(0.38f, 0.12f, 0.3f), withCollider: false);
-                var lights = root.AddComponent<AI.PoliceLights>();
-                lights.redLight = red.GetComponent<Renderer>();
-                lights.blueLight = blue.GetComponent<Renderer>();
+                AddPoliceLightBar(root, root.GetComponent<BoxCollider>(), root.AddComponent<AI.PoliceLights>());
 
                 var driver = root.AddComponent<AI.PoliceCarInput>();
                 driver.settings = pursuitSettings; // PatrolManager re-assigns at spawn; wired here so a hand-placed car works too
@@ -260,6 +248,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        /// <summary>
+        /// Flashing red/blue toppers sitting on the roof of <paramref name="chassis"/>,
+        /// over the cabin, wired into <paramref name="lights"/>. Shared with
+        /// CyberpunkCarBuilder, which rebuilds the bar on the new roof after a
+        /// model swap — the boxes are sized off the chassis, so a Kenney
+        /// cruiser and the cyberpunk minivan get the same bar.
+        /// </summary>
+        internal static void AddPoliceLightBar(GameObject root, BoxCollider chassis, AI.PoliceLights lights)
+        {
+            EnsureFolder(MaterialFolder);
+            Material redMat = CreateOrUpdateMaterial("TestPolice_Red", new Color(1f, 0.1f, 0.1f));
+            Material blueMat = CreateOrUpdateMaterial("TestPolice_Blue", new Color(0.15f, 0.35f, 1f));
+            float roofY = chassis.center.y + chassis.size.y * 0.5f;
+            float barZ = chassis.center.z - chassis.size.z * 0.12f;
+            GameObject red = AddBox(root.transform, "LightRed", redMat, new Vector3(-0.2f, roofY + 0.05f, barZ), new Vector3(0.38f, 0.12f, 0.3f), withCollider: false);
+            GameObject blue = AddBox(root.transform, "LightBlue", blueMat, new Vector3(0.2f, roofY + 0.05f, barZ), new Vector3(0.38f, 0.12f, 0.3f), withCollider: false);
+            lights.redLight = red.GetComponent<Renderer>();
+            lights.blueLight = blue.GetComponent<Renderer>();
         }
 
         /// <summary>
@@ -332,7 +340,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 
         /// <summary>
         /// Same rig around an already-resolved wheel mesh — for kits whose
-        /// wheels don't follow the Kenney names (QuadronPlayerCarBuilder
+        /// wheels don't follow the Kenney names (CyberpunkCarBuilder
         /// classifies them by position instead). The mesh keeps its world
         /// pose when it moves under the pivot, so a kit whose axle isn't on X
         /// simply ends up with the compensating local rotation on the mesh.
@@ -395,33 +403,44 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             var settings = CreateOrLoad<AI.TrafficSettings>(TrafficSettingsPath);
             if (settings.carConfig == null) settings.carConfig = carConfig;
             if (settings.vehicles == null || settings.vehicles.Count == 0)
-            {
-                (string file, float weight, bool stops)[] pool =
-                {
-                    ("sedan", 1.5f, false),
-                    ("taxi", 1.2f, false),
-                    ("van", 1f, false),
-                    ("suv", 1f, false),
-                    ("suv-luxury", 0.7f, false),
-                    ("hatchback-sports", 1f, false),
-                    ("truck", 0.6f, false),
-                    ("truck-flat", 0.4f, false),
-                    ("delivery", 0.8f, true),
-                    ("garbage-truck", 0.5f, true),
-                };
-                foreach ((string file, float weight, bool stops) in pool)
-                {
-                    var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{VehiclesFolder}/{file}.fbx");
-                    if (model == null)
-                    {
-                        Debug.LogWarning($"CarTestSceneBuilder: traffic vehicle '{file}.fbx' not found — skipped.");
-                        continue;
-                    }
-                    settings.vehicles.Add(new AI.TrafficVehicleDefinition { model = model, weight = weight, stopsRandomly = stops });
-                }
-            }
+                FillKenneyTrafficPool(settings);
             EditorUtility.SetDirty(settings);
             return settings;
+        }
+
+        /// <summary>
+        /// The Kenney civilian pool, replacing whatever the list holds — the
+        /// counterpart of CyberpunkCarBuilder's "Traffic Uses Taxi" swap.
+        /// Kenney models take the settings' pool-wide scale and no yaw.
+        /// </summary>
+        internal static void FillKenneyTrafficPool(AI.TrafficSettings settings)
+        {
+            settings.vehicles ??= new System.Collections.Generic.List<AI.TrafficVehicleDefinition>();
+            settings.vehicles.Clear();
+            (string file, float weight, bool stops)[] pool =
+            {
+                ("sedan", 1.5f, false),
+                ("taxi", 1.2f, false),
+                ("van", 1f, false),
+                ("suv", 1f, false),
+                ("suv-luxury", 0.7f, false),
+                ("hatchback-sports", 1f, false),
+                ("truck", 0.6f, false),
+                ("truck-flat", 0.4f, false),
+                ("delivery", 0.8f, true),
+                ("garbage-truck", 0.5f, true),
+            };
+            foreach ((string file, float weight, bool stops) in pool)
+            {
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{VehiclesFolder}/{file}.fbx");
+                if (model == null)
+                {
+                    Debug.LogWarning($"CarTestSceneBuilder: traffic vehicle '{file}.fbx' not found — skipped.");
+                    continue;
+                }
+                settings.vehicles.Add(new AI.TrafficVehicleDefinition { model = model, weight = weight, stopsRandomly = stops });
+            }
+            EditorUtility.SetDirty(settings);
         }
 
         /// <summary>The level asset, seeded with the default two steps only when freshly created — an authored list is never touched.</summary>

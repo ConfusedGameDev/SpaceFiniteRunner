@@ -118,9 +118,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 : Mathf.Min(cellSize * settings.laneOffsetFraction, settings.laneOffsetMaxMeters);
 
             (CarController controller, TrafficCarInput driver) = VehicleRigBuilder.Build<TrafficCarInput>(
-                definition.model, settings.carConfig, settings.modelScale,
+                definition.model, settings.carConfig, definition.Scale(settings.modelScale),
                 graph.Center(pickedNode) + LaneRules.RightOf(direction) * lane + Vector3.up * 0.5f,
-                Quaternion.Euler(0f, direction * 90f, 0f));
+                Quaternion.Euler(0f, direction * 90f, 0f), definition.modelYaw);
             if (controller == null) return false; // model not riggable — warned by the builder
 
             // Health before Initialize, so the driver's fetch finds it.
