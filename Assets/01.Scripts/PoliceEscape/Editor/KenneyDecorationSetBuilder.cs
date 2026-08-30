@@ -13,7 +13,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     /// the explosive barrel, which is not Kenney art at all but a primitive
     /// cylinder built here, and the fireball sprites its blast draws from. The
     /// native cell unit is measured off the road tile (same rule as the
-    /// building set builder), and the set is wired straight into the test
+    /// building set builder) — but that cell fit (cellSize ÷ the unit, ×36.9
+    /// in the test city) is the ROAD's scale, not a prop's: the kit's tile
+    /// stands for ~7 m of street, so a cone fitted like a tile came out 3.5 m
+    /// tall beside real-metre cars. Every prop therefore carries a target
+    /// world height (last column of the table) and gets a scaleMultiplier
+    /// that undoes the cell fit down to it — the rule KenneyNatureSetBuilder
+    /// applies to its human-scale kit. Retune the heights here, re-run, then
+    /// rebake the city (props are baked into the prefab). The set is wired
+    /// straight into the test
     /// settings — Repopulate on the CityManager shows it without touching the
     /// road layout. Running it again refreshes an existing set in place.
     /// </summary>
@@ -30,6 +38,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string ExplosionFolder = "Assets/02.Art/05.Particles/SmokeAndExplosions/Explosion";
         const string ConeReference = DecoratorsFolder + "/construction-cone.fbx";
 
+        /// <summary>World height of the street light posts, metres (a real one is 7-10 m). Shared with the palm-street set.</summary>
+        public const float LightPostHeight = 7.5f;
+        /// <summary>World height of the explosive barrel, metres: an oil drum is 0.9 m, a touch taller so it reads as the hazard it is.</summary>
+        const float BarrelHeight = 1.1f;
+
         [MenuItem("Tools/Police Escape/Create Kenney Decoration Set")]
         public static void CreateSet()
         {
@@ -40,20 +53,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 return;
             }
 
-            // (file, placement, weight, mass, angularDamping, yawJitter): the physics
-            // triplet is the whole design — same impact momentum for everyone,
-            // mass decides who flies and who stands firm.
-            (string file, DecorationPlacement placement, float weight, float mass, float angularDamping, float yawJitter)[] wanted =
+            // (file, placement, weight, mass, angularDamping, yawJitter, targetHeight):
+            // the physics triplet is the whole feel design — same impact momentum
+            // for everyone, mass decides who flies and who stands firm — and the
+            // height (metres in the world) is the whole size design.
+            (string file, DecorationPlacement placement, float weight, float mass, float angularDamping, float yawJitter, float targetHeight)[] wanted =
             {
-                ("light-square.fbx", DecorationPlacement.IntersectionCorner, 3f, 350f, 4f, 0f),
-                ("light-curved.fbx", DecorationPlacement.IntersectionCorner, 3f, 350f, 4f, 0f),
-                ("construction-cone.fbx", DecorationPlacement.RoadEdge, 6f, 2f, 0.05f, 180f),
-                ("construction-barrier.fbx", DecorationPlacement.RoadEdge, 2f, 3000f, 1f, 10f),
-                ("construction-light.fbx", DecorationPlacement.RoadEdge, 1f, 250f, 3f, 15f),
+                ("light-square.fbx", DecorationPlacement.IntersectionCorner, 3f, 350f, 4f, 0f, LightPostHeight),
+                ("light-curved.fbx", DecorationPlacement.IntersectionCorner, 3f, 350f, 4f, 0f, LightPostHeight),
+                ("construction-cone.fbx", DecorationPlacement.RoadEdge, 6f, 2f, 0.05f, 180f, 0.75f),
+                ("construction-barrier.fbx", DecorationPlacement.RoadEdge, 2f, 3000f, 1f, 10f, 1.05f),
+                ("construction-light.fbx", DecorationPlacement.RoadEdge, 1f, 250f, 3f, 15f, 1.3f),
             };
 
+            // What the decorator multiplies every prop by; the height fit divides it back out.
+            var settings = AssetDatabase.LoadAssetAtPath<CityGenerationSettings>(TestSettingsPath);
+            float cellScale = (settings != null ? settings.cellSize : 36.9f) / nativeCell;
+            if (settings == null)
+                Debug.LogWarning($"KenneyDecorationSetBuilder: no settings at {TestSettingsPath} — assuming cellSize 36.9 for the prop height math.");
+
             var definitions = new List<DecorationDefinition>();
-            foreach (var (file, placement, weight, mass, angularDamping, yawJitter) in wanted)
+            foreach (var (file, placement, weight, mass, angularDamping, yawJitter, targetHeight) in wanted)
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{DecoratorsFolder}/{file}");
                 if (prefab == null)
@@ -69,6 +89,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     mass = mass,
                     angularDamping = angularDamping,
                     yawJitter = yawJitter,
+                    scaleMultiplier = HeightFit(prefab, targetHeight, cellScale),
                 });
             }
 
@@ -91,6 +112,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     angularDamping = 0.5f,
                     yawJitter = 180f,
                     explosive = true,
+                    scaleMultiplier = HeightFit(barrel, BarrelHeight, cellScale),
                 });
             }
 
@@ -110,7 +132,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             if (isNew) AssetDatabase.CreateAsset(set, SetPath);
             else EditorUtility.SetDirty(set);
 
-            var settings = AssetDatabase.LoadAssetAtPath<CityGenerationSettings>(TestSettingsPath);
             if (settings != null)
             {
                 settings.decorationSet = set;
@@ -124,6 +145,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 
             Debug.Log($"KenneyDecorationSetBuilder: {definitions.Count} props → {SetPath} (native cell {nativeCell:0.##} m), " +
                       "wired into the test settings. Press Repopulate (or Recalculate) on the CityManager to see them.");
+        }
+
+        /// <summary>The scaleMultiplier that leaves the prop standing targetHeight metres after the decorator's cell fit (0 keeps the kit's own scale).</summary>
+        internal static float HeightFit(GameObject prefab, float targetHeight, float cellScale)
+        {
+            if (targetHeight <= 0f || prefab == null) return 1f;
+            float nativeHeight = MeasureHeight(prefab);
+            return nativeHeight > 0.0001f && cellScale > 0.0001f ? targetHeight / (nativeHeight * cellScale) : 1f;
         }
 
         // ------------------------------------------------------- barrel + fire

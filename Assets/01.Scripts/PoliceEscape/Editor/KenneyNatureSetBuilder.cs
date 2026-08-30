@@ -119,10 +119,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // ---- Palm streets: an ordinary DecorationSet — palms on the
             // sidewalk edges, the familiar light posts on the corners — so the
             // existing CityDecorator lines beachfront avenues with palms with
-            // zero new runtime code. The road-kit light posts are already at
-            // street scale (multiplier 1); the palms get the height math.
+            // zero new runtime code. This set's native cell is the ROAD tile (the
+            // decorator fits every prop by cellSize / that), so the light post
+            // takes the decoration builder's height and the palms theirs.
+            float roadCell = MeasureFootprint(AssetDatabase.LoadAssetAtPath<GameObject>(RoadReferencePath));
             var palmDefs = new List<DecorationDefinition>();
-            AddProp(palmDefs, DecoratorsFolder, new Prop("light-curved.fbx", DecorationPlacement.IntersectionCorner, 3f, 350f, 4f, 0f, 0f), 1f);
+            AddProp(palmDefs, DecoratorsFolder, new Prop("light-curved.fbx", DecorationPlacement.IntersectionCorner, 3f, 350f, 4f, 0f, KenneyDecorationSetBuilder.LightPostHeight), cellSize / Mathf.Max(roadCell, 0.0001f));
             foreach (Prop prop in new[]
             {
                 new Prop("tree_palm.fbx", DecorationPlacement.RoadEdge, 3f, 1200f, 3f, 25f, 12f),
@@ -135,7 +137,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             bool palmNew = palmSet == null;
             if (palmNew) palmSet = ScriptableObject.CreateInstance<DecorationSet>();
             palmSet.decorations = palmDefs;
-            palmSet.nativeCellSize = MeasureFootprint(AssetDatabase.LoadAssetAtPath<GameObject>(RoadReferencePath));
+            palmSet.nativeCellSize = roadCell;
             palmSet.density = 0.45f;
             if (palmNew) AssetDatabase.CreateAsset(palmSet, PalmStreetSetPath);
             else EditorUtility.SetDirty(palmSet);
