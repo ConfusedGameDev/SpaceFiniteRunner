@@ -3,10 +3,14 @@ using UnityEngine;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 {
+    /// <summary>The three views the chase camera cycles through: Far and Close are the same orbit at two framings, FirstPerson rides the car.</summary>
+    public enum CameraMode { Far, Close, FirstPerson }
+
     /// <summary>
     /// Every knob of the Cinemachine orbit camera in one designer-facing
     /// asset: framing, per-device orbit speeds (mouse, right stick, arrow
-    /// keys), auto-recenter behavior and the speed-driven FOV kick. The
+    /// keys), auto-recenter behavior, the speed-driven FOV kick and the
+    /// three camera modes (far / close orbit framings, first person). The
     /// OrbitCameraRig draws it inline and re-applies values live, same as
     /// every other settings asset in the project.
     /// </summary>
@@ -41,6 +45,46 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
         public float PitchMin => pitchRange.x;
         public float PitchMax => pitchRange.y;
+
+        // --------------------------------------------------------------- modes
+        [TitleGroup("Camera modes")]
+        [Tooltip("The view a fresh car starts in. Tab / the gamepad's Back button cycle Far → Close → First person → Far.")]
+        public CameraMode defaultMode = CameraMode.Far;
+
+        [TitleGroup("Camera modes")]
+        [Tooltip("Seconds a mode switch takes: the orbit slides between its two framings, and the first-person cut is a Cinemachine blend of the same length.")]
+        [PropertyRange(0f, 1.5f), SuffixLabel("s", true)]
+        public float modeBlendSeconds = 0.35f;
+
+        [TitleGroup("Camera modes")]
+        [Tooltip("Orbit radius of the CLOSE view. The Framing distance above is the FAR view.")]
+        [PropertyRange(1.5f, 12f), SuffixLabel("m", true)]
+        public float closeDistance = 3.2f;
+
+        [TitleGroup("Camera modes")]
+        [Tooltip("Look height of the CLOSE view — lower than the far one keeps the roofline in frame.")]
+        [PropertyRange(0f, 3f), SuffixLabel("m", true)]
+        public float closeLookHeight = 0.7f;
+
+        [TitleGroup("Camera modes")]
+        [Tooltip("Resting pitch of the CLOSE view. Flatter than the far view reads as riding the bumper rather than a drone.")]
+        [PropertyRange(0f, 60f), SuffixLabel("°", true)]
+        public float closePitch = 12f;
+
+        [TitleGroup("Camera modes")]
+        [Tooltip("First-person eye point, forward of the chassis centre. Negative sits the eye back over the cabin, positive pushes it toward the bonnet.")]
+        [PropertyRange(-2.5f, 2.5f), SuffixLabel("m", true)]
+        public float firstPersonForward = 0.2f;
+
+        [TitleGroup("Camera modes")]
+        [Tooltip("First-person eye height above the top of the chassis box. Keep it above zero or the roof clips the view.")]
+        [PropertyRange(-0.5f, 1.5f), SuffixLabel("m", true)]
+        public float firstPersonHeight = 0.12f;
+
+        [TitleGroup("Camera modes")]
+        [Tooltip("Rotation damping of the first-person view: 0 is bolted to the car (every bump is in the picture), higher soaks up the jitter but lags the steering.")]
+        [PropertyRange(0f, 0.5f), SuffixLabel("s", true)]
+        public float firstPersonDamping = 0.06f;
 
         // --------------------------------------------------------------- input
         [TitleGroup("Input")]

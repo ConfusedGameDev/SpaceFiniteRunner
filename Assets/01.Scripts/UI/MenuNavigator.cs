@@ -60,14 +60,29 @@ namespace ConfusedGameDev.FiniteRunner.UI
         }
 
         /// <summary>
-        /// Tab or the gamepad's Back/View button — opens and closes the city
-        /// map. Deliberately a different chord from
-        /// <see cref="PauseTogglePressed"/> (Start) and
-        /// <see cref="BackPressed"/> (B/East): the map is its own screen, not a
-        /// page of the pause menu, and both of those buttons already mean
-        /// something everywhere else in the UI.
+        /// M or the gamepad's d-pad Up — opens and closes the city map.
+        /// Deliberately a different chord from
+        /// <see cref="PauseTogglePressed"/> (Start), <see cref="BackPressed"/>
+        /// (B/East) and <see cref="CameraCyclePressed"/> (Tab/Back): the map
+        /// is its own screen, not a page of the pause menu, and all of those
+        /// buttons already mean something everywhere else in the UI. The
+        /// d-pad is free in the car — driving is on the stick and the face
+        /// buttons — while it is the menus' own navigator inside them, which
+        /// is exactly where the map can never open.
         /// </summary>
         public static bool MapTogglePressed()
+        {
+            return Keyboard.current is { mKey: { wasPressedThisFrame: true } } ||
+                   Gamepad.current is { dpad: { up: { wasPressedThisFrame: true } } };
+        }
+
+        /// <summary>
+        /// Tab or the gamepad's Back/View button — cycles the chase camera's
+        /// view (far / close / first person). Read over live gameplay only —
+        /// the rig gates it on the time scale, so a frozen menu, the map or
+        /// the game-over prompt never flips the view underneath.
+        /// </summary>
+        public static bool CameraCyclePressed()
         {
             return Keyboard.current is { tabKey: { wasPressedThisFrame: true } } ||
                    Gamepad.current is { selectButton: { wasPressedThisFrame: true } };

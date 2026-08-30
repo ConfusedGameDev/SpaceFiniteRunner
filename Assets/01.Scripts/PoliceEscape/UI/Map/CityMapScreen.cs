@@ -12,7 +12,7 @@ using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 {
     /// <summary>
-    /// The full-screen city map: Tab (or the gamepad's Back/View button)
+    /// The full-screen city map: M (or the gamepad's d-pad Up)
     /// freezes the game and shows a schematic of the whole city, with the
     /// mission list down the side.
     ///
@@ -177,7 +177,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         }
 
         // Only over live gameplay — never on top of the pause menu or the main
-        // menu, where Tab/Back mean other things.
+        // menu, where the d-pad is the row navigator.
         bool CanOpen()
         {
             if (MainMenuController.IsOpen) return false;
@@ -952,7 +952,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             statusRect.anchoredPosition = new Vector2(-40f, -40f);
 
             Text hints = CreateText("Hints", parent, 22, TextAnchor.MiddleLeft, theme.TextDim);
-            hints.text = "WASD / STICK  PAN      +/- / LT-RT  ZOOM      ENTER / A  SET MARKER      X  DELETE      TAB / BACK  CLOSE";
+            hints.text = "WASD / STICK  PAN      +/- / LT-RT  ZOOM      ENTER / A  SET MARKER      X  DELETE      M / D-PAD UP  CLOSE";
             var hintRect = hints.rectTransform;
             hintRect.anchorMin = new Vector2(0f, 0f);
             hintRect.anchorMax = new Vector2(1f, 0f);

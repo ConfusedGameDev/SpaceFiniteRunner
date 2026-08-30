@@ -39,6 +39,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CamDistance, CamHeight, CamPitch, CamDamping,
         CamRecenterDelay, CamRecenterSpeed, CamBaseFov, CamSpeedFov,
         CamLookBackAngle, CamLookBackIn, CamLookBackOut,
+        DebugTabCameraModes, CamModeBlend, CamCloseDistance, CamCloseHeight, CamClosePitch,
+        CamFirstPersonForward, CamFirstPersonHeight, CamFirstPersonDamping,
         DebugTabWeather,
         RainIntensity, RainAmount, RainFallSpeed, RainDropSize, RainStreak,
         RainWind, RainWindDirection, RainArea,
@@ -309,6 +311,14 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString camLookBackIn = new("LOOK BACK TIME", "TIEMPO DE GIRO ATRÁS", "後方視の時間", "TEMPS REGARD ARRIÈRE");
         [TitleGroup("Chase camera stats")]
         [SerializeField] LocalizedString camLookBackOut = new("LOOK BACK RETURN", "REGRESO DE MIRAR ATRÁS", "後方視の復帰", "RETOUR REGARD ARRIÈRE");
+        [SerializeField] LocalizedString debugTabCameraModes = new("DEBUG — CAMERA MODES", "DEPURACIÓN — MODOS DE CÁMARA", "デバッグ — カメラモード", "DÉBOGAGE — MODES CAMÉRA");
+        [SerializeField] LocalizedString camModeBlend = new("MODE BLEND", "TRANSICIÓN DE MODO", "モード切替時間", "FONDU DE MODE");
+        [SerializeField] LocalizedString camCloseDistance = new("CLOSE DISTANCE", "DISTANCIA CERCANA", "近距離", "DISTANCE PROCHE");
+        [SerializeField] LocalizedString camCloseHeight = new("CLOSE HEIGHT", "ALTURA CERCANA", "近距離の高さ", "HAUTEUR PROCHE");
+        [SerializeField] LocalizedString camClosePitch = new("CLOSE PITCH", "INCLINACIÓN CERCANA", "近距離の角度", "INCLINAISON PROCHE");
+        [SerializeField] LocalizedString camFirstPersonForward = new("FIRST PERSON FORWARD", "AVANCE EN PRIMERA PERSONA", "一人称の前方位置", "AVANCE PREMIÈRE PERSONNE");
+        [SerializeField] LocalizedString camFirstPersonHeight = new("FIRST PERSON HEIGHT", "ALTURA EN PRIMERA PERSONA", "一人称の高さ", "HAUTEUR PREMIÈRE PERSONNE");
+        [SerializeField] LocalizedString camFirstPersonDamping = new("FIRST PERSON DAMPING", "AMORTIGUACIÓN EN PRIMERA PERSONA", "一人称の減衰", "AMORTISSEMENT PREMIÈRE PERSONNE");
 
         [TitleGroup("Weather stats")]
         [SerializeField] LocalizedString debugTabWeather = new("DEBUG — WEATHER", "DEPURACIÓN — CLIMA", "デバッグ — 天候", "DÉBOGAGE — MÉTÉO");
@@ -577,6 +587,14 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.CamLookBackAngle => camLookBackAngle,
             MenuTextId.CamLookBackIn => camLookBackIn,
             MenuTextId.CamLookBackOut => camLookBackOut,
+            MenuTextId.DebugTabCameraModes => debugTabCameraModes,
+            MenuTextId.CamModeBlend => camModeBlend,
+            MenuTextId.CamCloseDistance => camCloseDistance,
+            MenuTextId.CamCloseHeight => camCloseHeight,
+            MenuTextId.CamClosePitch => camClosePitch,
+            MenuTextId.CamFirstPersonForward => camFirstPersonForward,
+            MenuTextId.CamFirstPersonHeight => camFirstPersonHeight,
+            MenuTextId.CamFirstPersonDamping => camFirstPersonDamping,
             MenuTextId.DebugTabWeather => debugTabWeather,
             MenuTextId.RainIntensity => rainIntensity,
             MenuTextId.RainAmount => rainAmount,

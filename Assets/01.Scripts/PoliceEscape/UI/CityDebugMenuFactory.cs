@@ -211,6 +211,37 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         }
 
         /// <summary>
+        /// Camera modes: the close orbit framing, the first-person eye point
+        /// and the switch blend. Same live contract as the chase page — the
+        /// rig re-seats the eye and re-applies the framing every frame, so
+        /// cycle to the view under test (Tab / Back before pausing) and the
+        /// sliders move it while the menu is up.
+        /// </summary>
+        public static MenuScreen BuildCameraModesTab(RectTransform parent, MenuTheme theme, OrbitCameraSettings settings,
+                                                     List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_CameraModes", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabCameraModes, tabIndex, tabCount);
+
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamModeBlend,
+                          0f, 1.5f, 0.05f, "0.00", s => s.modeBlendSeconds, (s, v) => s.modeBlendSeconds = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamCloseDistance,
+                          1.5f, 12f, 0.1f, "0.0", s => s.closeDistance, (s, v) => s.closeDistance = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamCloseHeight,
+                          0f, 3f, 0.1f, "0.0", s => s.closeLookHeight, (s, v) => s.closeLookHeight = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamClosePitch,
+                          0f, 60f, 1f, "0", s => s.closePitch, (s, v) => s.closePitch = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamFirstPersonForward,
+                          -2.5f, 2.5f, 0.05f, "0.00", s => s.firstPersonForward, (s, v) => s.firstPersonForward = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamFirstPersonHeight,
+                          -0.5f, 1.5f, 0.02f, "0.00", s => s.firstPersonHeight, (s, v) => s.firstPersonHeight = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamFirstPersonDamping,
+                          0f, 0.5f, 0.01f, "0.00", s => s.firstPersonDamping, (s, v) => s.firstPersonDamping = v);
+            return screen;
+        }
+
+        /// <summary>
         /// Police fleet: how many cruisers are kept alive and where they cut
         /// in. The PatrolManager re-reads all of it on its 1 s maintenance
         /// tick, so raising the count spawns and lowering it retires — but
@@ -514,7 +545,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             this.level = level;
         }
 
-        public int TabCount => (car != null ? 2 : 0) + (orbitCamera != null ? 1 : 0) + (police != null ? 2 : 0)
+        public int TabCount => (car != null ? 2 : 0) + (orbitCamera != null ? 2 : 0) + (police != null ? 2 : 0)
                              + (level != null ? 1 : 0);
 
         public void AddTabs(DebugMenu menu, RectTransform parent, MenuTheme theme,
@@ -526,7 +557,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 menu.AddTab(CityDebugMenuFactory.BuildCarGripTab(parent, theme, car, refreshers, tab++, tabCount));
             }
             if (orbitCamera != null)
+            {
                 menu.AddTab(CityDebugMenuFactory.BuildCameraTab(parent, theme, orbitCamera, refreshers, tab++, tabCount));
+                menu.AddTab(CityDebugMenuFactory.BuildCameraModesTab(parent, theme, orbitCamera, refreshers, tab++, tabCount));
+            }
             if (police != null)
             {
                 menu.AddTab(CityDebugMenuFactory.BuildPoliceFleetTab(parent, theme, police, refreshers, tab++, tabCount));
