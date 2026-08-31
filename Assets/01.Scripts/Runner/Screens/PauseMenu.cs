@@ -269,11 +269,11 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         // Abandons the run and returns to the attract screen. The scene load
         // destroys this menu (and the run) — hand the next scene a running
         // clock first, and let the menu scene's own controller take over.
-        /// <summary>Back to the attract screen, cut straight (the game-over screen's NO answer makes the same trip under <see cref="LoadingScreen"/>).</summary>
+        /// <summary>Back to the attract screen under the loading curtain (the game-over screen's NO answer makes the same trip).</summary>
         public static void ExitToMainMenu()
         {
             Time.timeScale = 1f;
-            SceneManager.LoadScene(0); // MainMenu is build index 0
+            LoadingScreen.LoadMainMenu(); // MainMenu is build index 0
         }
 
         /// <summary>Quits for real in a build, stops play mode in the editor. Shared with the main menu's EXIT.</summary>
@@ -501,9 +501,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             DistanceFogDebugPage.Flush();
 
             Time.timeScale = 1f;
-            var scene = SceneManager.GetActiveScene();
-            if (scene.buildIndex >= 0) SceneManager.LoadScene(scene.buildIndex);
-            else SceneManager.LoadScene(scene.name);
+            LoadingScreen.Reload(SceneManager.GetActiveScene());
         }
 
         void SetFooterFor(MenuScreen screen)

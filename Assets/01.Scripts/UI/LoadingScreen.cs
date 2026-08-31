@@ -16,12 +16,18 @@ namespace ConfusedGameDev.FiniteRunner.UI
     /// Rules it enforces: the object is <c>DontDestroyOnLoad</c> on its own
     /// overlay canvas above every menu (the main menu it lands on must not show
     /// through while it is still building), it animates on unscaled time (the
-    /// clock it inherits is whatever the death screen left), scene activation is
-    /// held back until the bar has visibly filled and a minimum hold has passed
-    /// (a curtain that flashes for two frames reads as a glitch, not a load),
-    /// and one trip runs at a time — a second request while one is in flight is
+    /// clock it inherits is whatever the death screen left), and the bar is a
+    /// TIME-driven fill, not a progress readout: Unity loads a scene in one long
+    /// hitch, so a bar chasing <c>AsyncOperation.progress</c> sits at 0, freezes,
+    /// and slams to 1 — instead the fill crosses the bar in
+    /// <see cref="MenuTheme.LoadingFillSeconds"/> with each frame's step capped
+    /// (the hitch counts as one ordinary step), parking near the end until the
+    /// scene is ready, and activation waits for the fill to reach the end. One
+    /// trip runs at a time — a second request while one is in flight is
     /// dropped. The spinner is empty until <see cref="MenuTheme"/> carries a
     /// disc sprite; when it does, it spins at the theme's rate for free.
+    /// Every scene trip goes through it except the city → runner completion
+    /// handoff, which already dissolves through the maxed glitch.
     /// </summary>
     public class LoadingScreen : MonoBehaviour
     {
@@ -34,6 +40,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         const float SpinnerSize = 128f;
         const float SpinnerMargin = 48f;
         const float MinFillWidth = 6f; // a 9-sliced fill collapses into its caps below this
+        const float MaxFrameStep = 0.05f; // the load hitch is one long frame — the bar takes it as a single step, never a jump
+        const float ParkedFill = 0.9f; // where the bar waits while the scene is still streaming in
 
         static LoadingScreen active;
 
@@ -138,7 +146,6 @@ namespace ConfusedGameDev.FiniteRunner.UI
             // or the player sees the old scene hitch and then the curtain pop.
             yield return null;
 
-            float startedAt = Time.unscaledTime;
             AsyncOperation load = startLoad();
             if (load == null)
             {
@@ -147,18 +154,22 @@ namespace ConfusedGameDev.FiniteRunner.UI
                 yield break;
             }
 
-            // Hold activation: progress parks at 0.9 while the scene waits, which
-            // is the beat the bar uses to visibly reach the end before the cut.
+            // Hold activation: progress parks at 0.9 while the scene waits, and
+            // the cut happens only once the fill has smoothly reached the end.
             load.allowSceneActivation = false;
+            float fillSeconds = Mathf.Max(0.05f, theme.LoadingFillSeconds);
             while (true)
             {
-                float target = Mathf.Clamp01(load.progress / 0.9f);
-                shown = Mathf.MoveTowards(shown, target, Time.unscaledDeltaTime * theme.LoadingBarSpeed);
+                bool loaded = load.progress >= 0.9f;
+                // Before the scene is ready the bar may creep up to the parked
+                // mark (a real long load still shows movement); once ready it
+                // finishes the run to the end at the same steady pace.
+                float ceiling = loaded ? 1f : Mathf.Min(ParkedFill, load.progress);
+                float dt = Mathf.Min(Time.unscaledDeltaTime, MaxFrameStep);
+                shown = Mathf.MoveTowards(shown, ceiling, dt / fillSeconds);
                 SetFill(shown);
 
-                bool loaded = load.progress >= 0.9f;
-                bool held = Time.unscaledTime - startedAt >= theme.LoadingMinSeconds;
-                if (loaded && held && shown >= 0.999f) break;
+                if (loaded && shown >= 0.999f) break;
                 yield return null;
             }
 
@@ -175,7 +186,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         void Update()
         {
             if (spinner != null && spinner.enabled && theme.LoadingSpinnerSpin != 0f)
-                spinner.rectTransform.Rotate(0f, 0f, -theme.LoadingSpinnerSpin * Time.unscaledDeltaTime);
+                spinner.rectTransform.Rotate(0f, 0f, -theme.LoadingSpinnerSpin * Mathf.Min(Time.unscaledDeltaTime, MaxFrameStep));
         }
 
         void SetFill(float t)

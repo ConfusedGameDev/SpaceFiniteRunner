@@ -310,7 +310,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 int next = gameObject.scene.buildIndex + 1;
                 if (next > 0 && next < SceneManager.sceneCountInBuildSettings)
                 {
-                    SceneManager.LoadScene(next);
+                    LoadingScreen.Load(next);
                 }
                 else
                 {

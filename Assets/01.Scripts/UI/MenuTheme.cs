@@ -172,14 +172,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         // ------------------------------------------------------ loading screen
         [TitleGroup("Loading screen")]
-        [Tooltip("The curtain stays up at least this long even when the scene loads instantly — a two-frame flash reads as a glitch, not a load.")]
-        [PropertyRange(0f, 3f), SuffixLabel("s", true)]
-        [SerializeField] float loadingMinSeconds = 0.75f;
-
-        [TitleGroup("Loading screen")]
-        [Tooltip("How fast the bar chases the real progress, in full bars per second.")]
-        [PropertyRange(0.25f, 5f), SuffixLabel("bars/s", true)]
-        [SerializeField] float loadingBarSpeed = 1.5f;
+        [Tooltip("Time the bar takes to fill from empty to full at its steady pace — also the least time the curtain stays up. The bar is time-driven: a scene loads in one hitch, so a progress readout would sit at 0 and slam to 1.")]
+        [PropertyRange(0.25f, 4f), SuffixLabel("s", true)]
+        [SerializeField] float loadingFillSeconds = 1.5f;
 
         [TitleGroup("Loading screen")]
         [Tooltip("Bottom-right corner sprite — the PS1 spinning disc. Empty for now: the slot is hidden until a sprite is assigned.")]
@@ -332,8 +327,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         public float ScreenTransition => screenTransition;
         public float ScreenSlide => screenSlide;
 
-        public float LoadingMinSeconds => loadingMinSeconds;
-        public float LoadingBarSpeed => loadingBarSpeed;
+        public float LoadingFillSeconds => loadingFillSeconds;
         public Sprite LoadingSpinner => loadingSpinner;
         public float LoadingSpinnerSpin => loadingSpinnerSpin;
 
