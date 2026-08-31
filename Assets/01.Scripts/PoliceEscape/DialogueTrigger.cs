@@ -88,10 +88,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             if (oneShot) Destroy(gameObject);
         }
 
-        // The two player markers: CarInput sits on the city car's rigidbody
-        // root, ShipMotor on the ship root above its trigger collider. AI
-        // cars, props and the patrol match neither.
-        static bool IsPlayer(Collider other)
+        /// <summary>
+        /// Is this collider the player? The two player markers: CarInput sits
+        /// on the city car's rigidbody root, ShipMotor on the ship root above
+        /// its trigger collider. AI cars, props and the patrol match neither.
+        /// Shared with the other story-trigger volumes (the cinema trigger)
+        /// so "the player" means the same thing everywhere.
+        /// </summary>
+        public static bool IsPlayer(Collider other)
         {
             Rigidbody rb = other.attachedRigidbody;
             if (rb != null && rb.GetComponent<Vehicles.CarInput>() != null) return true;

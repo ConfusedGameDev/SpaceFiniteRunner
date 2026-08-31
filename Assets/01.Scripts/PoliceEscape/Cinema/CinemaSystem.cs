@@ -325,18 +325,36 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
         /// </summary>
         public void Play(LevelObjective step, System.Action onFinished)
         {
-            if (step == null || !step.HasCinema || holders.Count == 0)
+            if (step == null || !step.HasCinema)
+            {
+                onFinished?.Invoke();
+                return;
+            }
+            Play(step.cinemaClip, step.cinemaFormat, step.cinemaSeconds, onFinished);
+        }
+
+        /// <summary>
+        /// The raw form every caller (a level step, a <see cref="CinemaTrigger"/>)
+        /// lands on: freeze the world and play <paramref name="clip"/> in the
+        /// format under <paramref name="formatId"/> for <paramref name="seconds"/>.
+        /// No clip or no formats finishes at once — the callback still runs.
+        /// A cinema already up is pre-empted: its callback is dropped, the
+        /// way Cancel drops it, so the newcomer's caller is the only one
+        /// told when the screen clears.
+        /// </summary>
+        public void Play(VideoClip clip, string formatId, float seconds, System.Action onFinished)
+        {
+            if (clip == null || holders.Count == 0)
             {
                 if (holders.Count == 0) Debug.LogWarning("CinemaSystem: the format library has no formats — skipping the cinema.", this);
                 onFinished?.Invoke();
                 return;
             }
-            if (phase != Phase.Idle) Cancel(); // a new cinema pre-empts one still up — the level asked for it
+            if (phase != Phase.Idle) Cancel();
 
             callback = onFinished;
-            active = ResolveHolder(step.cinemaFormat);
-            remaining = Mathf.Max(0.1f, step.cinemaSeconds);
-            VideoClip clip = step.cinemaClip;
+            active = ResolveHolder(formatId);
+            remaining = Mathf.Max(0.1f, seconds);
 
             // The world stops the moment the step activates, not when the
             // first frame is ready — nothing may happen under a loading clip.
