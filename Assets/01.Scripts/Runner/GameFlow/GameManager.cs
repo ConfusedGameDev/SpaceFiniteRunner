@@ -7,6 +7,7 @@ using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Track;
+using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>
@@ -179,7 +180,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void ShowGameOver()
         {
             if (!RunOver) return;
-            GameOverScreen.Show(onRetry: Restart, onGiveUp: PauseMenu.ExitToMainMenu);
+            // NO leaves under the loading curtain; YES retries in place, no load.
+            GameOverScreen.Show(onRetry: Restart, onGiveUp: LoadingScreen.LoadMainMenu);
         }
 
         // Story beat: hype line every time the rare orb tier is grabbed.

@@ -269,7 +269,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         // Abandons the run and returns to the attract screen. The scene load
         // destroys this menu (and the run) — hand the next scene a running
         // clock first, and let the menu scene's own controller take over.
-        /// <summary>Back to the attract screen. Static and public: the game-over screen's NO answer is the same trip.</summary>
+        /// <summary>Back to the attract screen, cut straight (the game-over screen's NO answer makes the same trip under <see cref="LoadingScreen"/>).</summary>
         public static void ExitToMainMenu()
         {
             Time.timeScale = 1f;

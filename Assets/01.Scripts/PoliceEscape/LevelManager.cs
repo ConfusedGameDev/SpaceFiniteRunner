@@ -11,6 +11,7 @@ using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.Screens;
+using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
     /// <summary>
@@ -518,11 +519,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         void ReloadLevel()
         {
-            Debug.Log("[Level] retry — reloading scene now", this);
-            SceneManager.LoadScene(gameObject.scene.name);
+            Debug.Log("[Level] retry — reloading scene under the loading screen", this);
+            LoadingScreen.Reload(gameObject.scene);
         }
 
-        void ExitToMainMenu() => SceneManager.LoadScene(0); // MainMenu is build index 0, same as the pause menu's exit
+        // MainMenu is build index 0, same as the pause menu's exit — but from a
+        // game over the trip goes under the loading curtain.
+        void ExitToMainMenu() => LoadingScreen.LoadMainMenu();
 
         /// <summary>
         /// Player impact, relayed by the sensor: hard hits rumble the pad and

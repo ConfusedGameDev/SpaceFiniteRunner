@@ -170,6 +170,26 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [PropertyRange(100f, 1200f), SuffixLabel("px", true)]
         [SerializeField] float screenSlide = 520f;
 
+        // ------------------------------------------------------ loading screen
+        [TitleGroup("Loading screen")]
+        [Tooltip("The curtain stays up at least this long even when the scene loads instantly — a two-frame flash reads as a glitch, not a load.")]
+        [PropertyRange(0f, 3f), SuffixLabel("s", true)]
+        [SerializeField] float loadingMinSeconds = 0.75f;
+
+        [TitleGroup("Loading screen")]
+        [Tooltip("How fast the bar chases the real progress, in full bars per second.")]
+        [PropertyRange(0.25f, 5f), SuffixLabel("bars/s", true)]
+        [SerializeField] float loadingBarSpeed = 1.5f;
+
+        [TitleGroup("Loading screen")]
+        [Tooltip("Bottom-right corner sprite — the PS1 spinning disc. Empty for now: the slot is hidden until a sprite is assigned.")]
+        [SerializeField] Sprite loadingSpinner;
+
+        [TitleGroup("Loading screen")]
+        [Tooltip("Spin rate of the corner sprite, clockwise. 0 keeps it still.")]
+        [PropertyRange(0f, 720f), SuffixLabel("°/s", true)]
+        [SerializeField] float loadingSpinnerSpin = 180f;
+
         // ----------------------------------------------------- motion: attract
         [TitleGroup("Motion — attract prompt")]
         [PropertyRange(0.4f, 4f), SuffixLabel("s per loop", true)]
@@ -311,6 +331,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         public float ScreenTransition => screenTransition;
         public float ScreenSlide => screenSlide;
+
+        public float LoadingMinSeconds => loadingMinSeconds;
+        public float LoadingBarSpeed => loadingBarSpeed;
+        public Sprite LoadingSpinner => loadingSpinner;
+        public float LoadingSpinnerSpin => loadingSpinnerSpin;
 
         public float AttractPulseSeconds => attractPulseSeconds;
         public float AttractPulseMin => attractPulseAlpha.x;

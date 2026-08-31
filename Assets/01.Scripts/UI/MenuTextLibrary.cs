@@ -59,6 +59,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         ObjectiveChaseCar,
         MissionBrief, OptionalChallenges, Reward, Accept,
         HoldToSkip,
+        Loading,
         DebugTabAirTime, AirSlowMo, AirSlowMoDelay, AirSlowMoScale, AirSlowMoMinScale, AirSlowMoMaxScale,
         AirSlowMoBlendIn, AirSlowMoBlendOut, AirControlRate, AirControlResponse
     }
@@ -432,6 +433,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString retryPrompt = new("RETRY?", "¿REINTENTAR?", "リトライしますか？", "RÉESSAYER ?");
 
+        [TitleGroup("Loading screen")]
+        [SerializeField] LocalizedString loading = new("LOADING...", "CARGANDO...", "ロード中...", "CHARGEMENT...");
+
         [TitleGroup("Mission brief")]
         [SerializeField] LocalizedString missionBrief = new("MISSION BRIEF", "INFORME DE MISIÓN", "ミッションブリーフ", "BRIEFING DE MISSION");
         [TitleGroup("Mission brief")]
@@ -678,6 +682,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.Reward => reward,
             MenuTextId.Accept => accept,
             MenuTextId.HoldToSkip => holdToSkip,
+            MenuTextId.Loading => loading,
             _ => start
         };
     }
