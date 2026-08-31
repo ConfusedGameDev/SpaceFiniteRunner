@@ -207,7 +207,7 @@ Transform:
   m_GameObject: {fileID: 209732335}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2222, y: 0, z: 1657}
+  m_LocalPosition: {x: 3409, y: 0, z: 3173}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -226,7 +226,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema.CinemaTrigger
   clip: {fileID: 32900000, guid: 41423b9585cfdc84eab03cefd3520853, type: 3}
-  format: FullScreen
+  format: RearMirror
   duration: 52.283333
   oneShot: 0
   cooldownSeconds: 5
@@ -501,6 +501,7 @@ Transform:
   - {fileID: 1245416349}
   - {fileID: 648619948}
   - {fileID: 1712918957}
+  - {fileID: 1851711471}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &637949246
@@ -1711,6 +1712,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 898188992}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1851711470
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1851711471}
+  - component: {fileID: 1851711472}
+  m_Layer: 0
+  m_Name: Radio
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1851711471
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1851711470}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 366956391}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1851711472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1851711470}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55e26a67a816c7744abe6b9233da0bef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Audio.RadioSystem
+  settings: {fileID: 11400000, guid: 3063a3a0905b96d4299a6c39045d136d, type: 2}
 --- !u!1 &1855161006
 GameObject:
   m_ObjectHideFlags: 0

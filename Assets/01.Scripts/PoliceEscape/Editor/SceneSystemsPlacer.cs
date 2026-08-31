@@ -1,5 +1,6 @@
 using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Audio;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.City;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
@@ -115,6 +116,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // The cinema player needs nothing from the CityManager — only its
             // format library, created here if the project has none yet.
             placed += Place<CinemaSystem>("CinemaSystem", parent, c => c.library = CinemaAssetBuilder.CreateOrLoad());
+
+            // The car radio likewise stands alone: its playlist asset is created
+            // (and the InGame songs fetched into it) if the project has none.
+            placed += Place<RadioSystem>("Radio", parent, r => r.settings = RadioAssetBuilder.CreateOrLoad());
 
             // Menus poll the EventSystem for mouse input; MenuScreenFactory
             // creates one on demand, so pre-placing it is what keeps that
