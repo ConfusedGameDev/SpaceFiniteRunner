@@ -412,7 +412,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
                 TagRecursively(root.GetChild(i), tag);
         }
 
-        /// <summary>Pan input in degrees this frame: mouse delta, right stick, arrow keys — first non-zero source wins.</summary>
+        /// <summary>
+        /// Pan input in degrees this frame: mouse delta, right stick, arrow
+        /// keys — first non-zero source wins. Mid-jump the stick and the
+        /// arrows belong to the car (AirTimeSlowMo's air control), so only the
+        /// mouse keeps panning until it lands; auto-recenter runs as usual.
+        /// </summary>
         Vector2 ReadPan(float dt)
         {
             var mouse = Mouse.current;
@@ -422,6 +427,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
                 if (delta.sqrMagnitude > 0.01f)
                     return delta * settings.mouseSensitivity; // delta is already per-frame — no dt
             }
+
+            if (AirTimeSlowMo.IsActive) return Vector2.zero;
 
             var gamepad = Gamepad.current;
             if (gamepad != null)

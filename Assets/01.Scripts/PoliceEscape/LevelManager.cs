@@ -1,5 +1,6 @@
 using System.Collections;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using Sirenix.OdinInspector;
@@ -28,6 +29,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// later step's progress resets — timers to zero, arrivals forgotten — so
     /// the level only completes when everything holds at once. Regressed
     /// steps re-activate silently; the HUD carries them.
+    ///
+    /// A step flagged with a cinema plays its clip through the scene's
+    /// <see cref="CinemaSystem"/> the moment it activates — the world frozen
+    /// under it, the objective loop gated on <c>cinemaOpen</c> exactly as the
+    /// mission brief gates it — and briefs its line only once the cinema has
+    /// handed back with time running again.
     ///
     /// The asset is read LIVE every frame — no runtime clone — so the debug
     /// menu's objective sliders apply instantly (and persist straight into
@@ -104,6 +111,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         ObjectiveState[] states = System.Array.Empty<ObjectiveState>();
         readonly System.Collections.Generic.List<OptionalChallenge> acceptedChallenges = new();
         bool briefOpen;
+        bool cinemaOpen;
         int current;
         CarController player;
         PoliceCarInput[] patrols = System.Array.Empty<PoliceCarInput>();
@@ -202,11 +210,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             acceptedChallenges.AddRange(challenges);
             MissionReward = reward;
             briefOpen = false; // objectives (and the first briefing line) start now
+
+            // Brief the first step right here rather than on the next Update:
+            // the brief has just unfrozen time, and a first step with a cinema
+            // must re-freeze it in the same frame, not a physics step later.
+            RefreshTargets(0f);
+            SyncStates();
+            if (player != null && level.Count > 0 && current < states.Length && !states[current].briefed)
+                Brief(current);
+        }
+
+        // A scene going away mid-cinema (reload, exit to menu) must not leave
+        // the world frozen or let the cinema call back into a dead manager.
+        void OnDisable()
+        {
+            if (cinemaOpen) CinemaSystem.Instance?.Cancel();
+            cinemaOpen = false;
         }
 
         void Update()
         {
-            if (briefOpen || Completed || resetting) return;
+            if (briefOpen || cinemaOpen || Completed || resetting) return;
             float dt = Time.deltaTime;
             RefreshTargets(dt);
             if (player == null) return; // the car spawns a beat after play starts
@@ -378,10 +402,33 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             current = index;
         }
 
+        /// <summary>
+        /// The step's activation beat: its cinema first, when it has one and
+        /// the scene's cinema system is on (a disabled one means cinemas are
+        /// switched off), then the dialogue line. <c>briefed</c> goes up
+        /// before either so an All-Must-Hold regression never replays it.
+        /// </summary>
         void Brief(int index)
         {
             LevelObjective step = level.objectives[index];
             states[index].briefed = true;
+
+            CinemaSystem cinema = step.HasCinema ? CinemaSystem.Ensure(gameObject.scene) : null;
+            if (cinema == null)
+            {
+                ShowBriefLine(step);
+                return;
+            }
+            cinemaOpen = true;
+            cinema.Play(step, () =>
+            {
+                cinemaOpen = false;
+                ShowBriefLine(step);
+            });
+        }
+
+        void ShowBriefLine(LevelObjective step)
+        {
             RpgMessageSystem.Instance.ShowMessage(level.speakerName, step.BriefingText, level.messageHoldSeconds, step.Accent);
         }
 
@@ -486,7 +533,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// </summary>
         void OnPlayerImpact(Collision collision)
         {
-            if (resetting || Completed) return;
+            if (resetting || Completed || cinemaOpen) return;
             float impactSpeed = collision.relativeVelocity.magnitude;
             if (impactSpeed < minImpactSpeed) return;
 
@@ -527,7 +574,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// </summary>
         public bool ApplyDamage(float amount, string reason)
         {
-            if (resetting || Completed) return false;
+            if (resetting || Completed || cinemaOpen) return false;
 
             var glitch = GlitchController.Instance;
             if (glitch == null) return false;

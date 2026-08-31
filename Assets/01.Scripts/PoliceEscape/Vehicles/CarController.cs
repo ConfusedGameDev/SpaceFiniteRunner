@@ -89,6 +89,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // Same coverage rule as the backend: every car built through any
             // path gets its brake lights here, no spawn-site wiring.
             BrakeLights.Ensure(this);
+
+            // Player only: the air-time slow-mo owns the global clock, and the
+            // project's player marker is the CarInput driver — an AI car off a
+            // ramp must never slow the game.
+            if (input is CarInput) AirTimeSlowMo.Ensure(this);
         }
 
         /// <summary>

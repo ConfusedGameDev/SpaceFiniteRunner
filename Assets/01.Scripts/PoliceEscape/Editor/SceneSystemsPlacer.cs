@@ -1,4 +1,5 @@
 using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.City;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
@@ -16,7 +17,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     /// play, so the hierarchy the designer sees is the hierarchy that runs:
     /// the police and traffic managers, the minimap, speedometer and city
     /// map, the speed motion blur, the chase camera rig with its
-    /// first-person sibling, and the EventSystem. Every one of them already
+    /// first-person sibling, the mission cinema system (which builds its
+    /// video holders under itself at play) and the EventSystem. Every one of them already
     /// supported being hand-placed (they find the CityManager lazily and
     /// build their canvases / Cinemachine components in Awake or on first
     /// Update); <c>CityManager.Awake</c> kept spawning them only because
@@ -109,6 +111,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     placed++;
                 }
             }
+
+            // The cinema player needs nothing from the CityManager — only its
+            // format library, created here if the project has none yet.
+            placed += Place<CinemaSystem>("CinemaSystem", parent, c => c.library = CinemaAssetBuilder.CreateOrLoad());
 
             // Menus poll the EventSystem for mouse input; MenuScreenFactory
             // creates one on demand, so pre-placing it is what keeps that

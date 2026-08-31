@@ -173,6 +173,39 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         }
 
         /// <summary>
+        /// Air-time slow-mo: the toggle, the clock band and the air control.
+        /// Everything applies live — AirTimeSlowMo reads the config every
+        /// frame, mid-jump included.
+        /// </summary>
+        public static MenuScreen BuildAirTimeTab(RectTransform parent, MenuTheme theme, CarConfig config,
+                                                 List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_AirTime", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabAirTime, tabIndex, tabCount);
+
+            AddCarToggle(screen, config, refreshers, MenuTextId.AirSlowMo,
+                         c => c.airSlowMo, (c, v) => c.airSlowMo = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.AirSlowMoDelay,
+                       0.1f, 2f, 0.05f, "0.00", c => c.airSlowMoDelay, (c, v) => c.airSlowMoDelay = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.AirSlowMoScale,
+                       0.05f, 1f, 0.05f, "0.00", c => c.airSlowMoScale, (c, v) => c.airSlowMoScale = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.AirSlowMoMinScale,
+                       0.02f, 1f, 0.02f, "0.00", c => c.airSlowMoMinScale, (c, v) => c.airSlowMoMinScale = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.AirSlowMoMaxScale,
+                       0.1f, 1f, 0.05f, "0.00", c => c.airSlowMoMaxScale, (c, v) => c.airSlowMoMaxScale = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.AirSlowMoBlendIn,
+                       0f, 1f, 0.05f, "0.00", c => c.airSlowMoBlendIn, (c, v) => c.airSlowMoBlendIn = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.AirSlowMoBlendOut,
+                       0f, 1f, 0.05f, "0.00", c => c.airSlowMoBlendOut, (c, v) => c.airSlowMoBlendOut = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.AirControlRate,
+                       0f, 360f, 10f, "0", c => c.airControlRate, (c, v) => c.airControlRate = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.AirControlResponse,
+                       30f, 1440f, 30f, "0", c => c.airControlResponse, (c, v) => c.airControlResponse = v);
+            return screen;
+        }
+
+        /// <summary>
         /// Chase camera: framing, recentering, the speed FOV kick and the
         /// look-back swing. The rig re-applies the settings in Update, which
         /// keeps running on a frozen clock — so these move the camera while the
@@ -449,6 +482,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             refreshers?.Add(() => row.SetWithoutNotify(get(config)));
         }
 
+        /// <summary>An ON/OFF row on a CarConfig bool. Configure sets without notifying, so the reopen readout never re-fires the write.</summary>
+        static void AddCarToggle(MenuScreen screen, CarConfig config, List<System.Action> refreshers, MenuTextId label,
+                                 System.Func<CarConfig, bool> get, System.Action<CarConfig, bool> set)
+        {
+            var row = screen.AddRow<MenuToggle>(label);
+            void OnChanged(bool v)
+            {
+                set(config, v);
+                MarkDirty(config);
+            }
+            row.Configure(get(config), OnChanged);
+            refreshers?.Add(() => row.Configure(get(config), OnChanged));
+        }
+
         static void AddCameraStat(MenuScreen screen, OrbitCameraSettings settings, List<System.Action> refreshers,
                                   MenuTextId label, float min, float max, float step, string format,
                                   System.Func<OrbitCameraSettings, float> get,
@@ -545,7 +592,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             this.level = level;
         }
 
-        public int TabCount => (car != null ? 2 : 0) + (orbitCamera != null ? 2 : 0) + (police != null ? 2 : 0)
+        public int TabCount => (car != null ? 3 : 0) + (orbitCamera != null ? 2 : 0) + (police != null ? 2 : 0)
                              + (level != null ? 1 : 0);
 
         public void AddTabs(DebugMenu menu, RectTransform parent, MenuTheme theme,
@@ -555,6 +602,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             {
                 menu.AddTab(CityDebugMenuFactory.BuildCarDriveTab(parent, theme, car, refreshers, tab++, tabCount));
                 menu.AddTab(CityDebugMenuFactory.BuildCarGripTab(parent, theme, car, refreshers, tab++, tabCount));
+                menu.AddTab(CityDebugMenuFactory.BuildAirTimeTab(parent, theme, car, refreshers, tab++, tabCount));
             }
             if (orbitCamera != null)
             {

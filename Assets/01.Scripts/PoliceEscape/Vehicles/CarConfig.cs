@@ -5,8 +5,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 {
     /// <summary>
     /// Every handling knob of a WheelCollider car in one designer-facing
-    /// asset: chassis, drivetrain, brakes, steering, suspension, grip and
-    /// recovery. Shared by the player and (later) the patrol AI so every car
+    /// asset: chassis, drivetrain, brakes, steering, suspension, grip,
+    /// recovery and the player-only air-time slow-mo. Shared by the player and (later) the patrol AI so every car
     /// obeys identical physics — only the driver differs. CarController draws
     /// this inline in its inspector and re-applies the wheel values every
     /// physics step, so most sliders tune the handling live while driving
@@ -108,6 +108,55 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [Tooltip("Seconds the lights take to fade between the two levels. 0 snaps.")]
         [PropertyRange(0f, 0.5f), SuffixLabel("s", true)]
         public float brakeLightFadeSeconds = 0.05f;
+
+        // ------------------------------------------------------------ air time
+        // Player-only despite living on the shared config: CarController only
+        // adds AirTimeSlowMo to a car driven by CarInput. Read live every
+        // frame, mid-jump included, so every knob here tunes on the spot.
+        [TitleGroup("Air time (player)")]
+        [Tooltip("Slow the world once the player's car has been airborne for the delay — the jump's air-control window. Off = jumps play at full speed.")]
+        [ToggleLeft]
+        public bool airSlowMo = true;
+
+        [TitleGroup("Air time (player)")]
+        [Tooltip("Seconds all four wheels must be off the ground before slow motion kicks in — short hops never trigger it.")]
+        [PropertyRange(0.1f, 2f), SuffixLabel("s", true)]
+        public float airSlowMoDelay = 0.5f;
+
+        [TitleGroup("Air time (player)")]
+        [Tooltip("Time scale the clock rests at during the jump with the left stick released.")]
+        [PropertyRange(0.05f, 1f), SuffixLabel("×", true)]
+        public float airSlowMoScale = 0.35f;
+
+        [TitleGroup("Air time (player)")]
+        [Tooltip("Slowest the left stick / S can push the clock during the jump.")]
+        [PropertyRange(0.02f, 1f), SuffixLabel("×", true)]
+        public float airSlowMoMinScale = 0.1f;
+
+        [TitleGroup("Air time (player)")]
+        [Tooltip("Fastest the left stick / W can push the clock during the jump. 1 = back to real time.")]
+        [PropertyRange(0.1f, 1f), SuffixLabel("×", true)]
+        public float airSlowMoMaxScale = 1f;
+
+        [TitleGroup("Air time (player)")]
+        [Tooltip("Real seconds the clock takes to slide into slow motion. 0 snaps.")]
+        [PropertyRange(0f, 1f), SuffixLabel("s", true)]
+        public float airSlowMoBlendIn = 0.15f;
+
+        [TitleGroup("Air time (player)")]
+        [Tooltip("Real seconds the clock takes to return to normal after landing. 0 snaps.")]
+        [PropertyRange(0f, 1f), SuffixLabel("s", true)]
+        public float airSlowMoBlendOut = 0.25f;
+
+        [TitleGroup("Air time (player)")]
+        [Tooltip("Pitch / roll speed the right stick (or arrows) steers the airborne car toward, in SIM degrees per second — what you see is this × the time scale. 0 disables air control.")]
+        [PropertyRange(0f, 360f), SuffixLabel("°/s", true)]
+        public float airControlRate = 90f;
+
+        [TitleGroup("Air time (player)")]
+        [Tooltip("How fast the spin accelerates toward the stick's rate. Higher = snappier air control.")]
+        [PropertyRange(30f, 1440f), SuffixLabel("°/s²", true)]
+        public float airControlResponse = 360f;
 
         // ------------------------------------------------------------ steering
         [TitleGroup("Steering")]

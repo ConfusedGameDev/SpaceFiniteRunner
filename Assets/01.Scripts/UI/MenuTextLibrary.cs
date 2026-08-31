@@ -57,7 +57,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CheatEnterCode, CheatUnlocked,
         GameOver, RetryPrompt,
         ObjectiveChaseCar,
-        MissionBrief, OptionalChallenges, Reward, Accept
+        MissionBrief, OptionalChallenges, Reward, Accept,
+        HoldToSkip,
+        DebugTabAirTime, AirSlowMo, AirSlowMoDelay, AirSlowMoScale, AirSlowMoMinScale, AirSlowMoMaxScale,
+        AirSlowMoBlendIn, AirSlowMoBlendOut, AirControlRate, AirControlResponse
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -162,6 +165,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString hintCancel = new("CANCEL", "CANCELAR", "キャンセル", "ANNULER");
         [TitleGroup("Footer hints")]
         [SerializeField] LocalizedString hintTitle = new("TITLE", "TÍTULO", "タイトルへ", "TITRE");
+        [TitleGroup("Footer hints")]
+        [SerializeField] LocalizedString holdToSkip = new("HOLD TO SKIP", "MANTÉN PARA SALTAR", "長押しでスキップ", "MAINTENIR POUR PASSER");
 
         [TitleGroup("Credits")]
         [SerializeField] LocalizedString roleMaster = new("MASTER OF DISASTER", "MAESTRO DEL DESASTRE", "ディザスターマスター", "MAÎTRE DU DÉSASTRE");
@@ -286,6 +291,26 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString carPhysicsBuiltIn = new("BUILT-IN", "INTEGRADA", "標準", "INTÉGRÉE");
         [TitleGroup("Car stats")]
         [SerializeField] LocalizedString carPhysicsEvp = new("EVP", "EVP", "EVP", "EVP");
+        [TitleGroup("Air time")]
+        [SerializeField] LocalizedString debugTabAirTime = new("AIR TIME", "TIEMPO EN EL AIRE", "エアタイム", "TEMPS EN L'AIR");
+        [TitleGroup("Air time")]
+        [SerializeField] LocalizedString airSlowMo = new("AIR SLOW-MO", "CÁMARA LENTA EN EL AIRE", "空中スローモーション", "RALENTI EN L'AIR");
+        [TitleGroup("Air time")]
+        [SerializeField] LocalizedString airSlowMoDelay = new("AIR DELAY", "RETARDO EN EL AIRE", "発動までの滞空時間", "DÉLAI EN L'AIR");
+        [TitleGroup("Air time")]
+        [SerializeField] LocalizedString airSlowMoScale = new("SLOW-MO SPEED", "VELOCIDAD CÁMARA LENTA", "スロー速度", "VITESSE DU RALENTI");
+        [TitleGroup("Air time")]
+        [SerializeField] LocalizedString airSlowMoMinScale = new("SLOWEST SPEED", "VELOCIDAD MÍNIMA", "最遅速度", "VITESSE MINIMALE");
+        [TitleGroup("Air time")]
+        [SerializeField] LocalizedString airSlowMoMaxScale = new("FASTEST SPEED", "VELOCIDAD MÁXIMA", "最速速度", "VITESSE MAXIMALE");
+        [TitleGroup("Air time")]
+        [SerializeField] LocalizedString airSlowMoBlendIn = new("SLOW-MO FADE IN", "ENTRADA CÁMARA LENTA", "スロー開始フェード", "FONDU D'ENTRÉE");
+        [TitleGroup("Air time")]
+        [SerializeField] LocalizedString airSlowMoBlendOut = new("SLOW-MO FADE OUT", "SALIDA CÁMARA LENTA", "スロー終了フェード", "FONDU DE SORTIE");
+        [TitleGroup("Air time")]
+        [SerializeField] LocalizedString airControlRate = new("AIR CONTROL RATE", "GIRO EN EL AIRE", "空中操作速度", "ROTATION EN L'AIR");
+        [TitleGroup("Air time")]
+        [SerializeField] LocalizedString airControlResponse = new("AIR CONTROL RESPONSE", "RESPUESTA EN EL AIRE", "空中操作の反応", "RÉPONSE EN L'AIR");
 
         [TitleGroup("Chase camera stats")]
         [SerializeField] LocalizedString debugTabCamera = new("DEBUG — CHASE CAMERA", "DEPURACIÓN — CÁMARA", "デバッグ — カメラ", "DÉBOGAGE — CAMÉRA");
@@ -575,6 +600,16 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.CarHandbrakeGrip => carHandbrakeGrip,
             MenuTextId.CarForwardGrip => carForwardGrip,
             MenuTextId.CarSideGrip => carSideGrip,
+            MenuTextId.DebugTabAirTime => debugTabAirTime,
+            MenuTextId.AirSlowMo => airSlowMo,
+            MenuTextId.AirSlowMoDelay => airSlowMoDelay,
+            MenuTextId.AirSlowMoScale => airSlowMoScale,
+            MenuTextId.AirSlowMoMinScale => airSlowMoMinScale,
+            MenuTextId.AirSlowMoMaxScale => airSlowMoMaxScale,
+            MenuTextId.AirSlowMoBlendIn => airSlowMoBlendIn,
+            MenuTextId.AirSlowMoBlendOut => airSlowMoBlendOut,
+            MenuTextId.AirControlRate => airControlRate,
+            MenuTextId.AirControlResponse => airControlResponse,
             MenuTextId.DebugTabCamera => debugTabCamera,
             MenuTextId.CamDistance => camDistance,
             MenuTextId.CamHeight => camHeight,
@@ -642,6 +677,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.OptionalChallenges => optionalChallenges,
             MenuTextId.Reward => reward,
             MenuTextId.Accept => accept,
+            MenuTextId.HoldToSkip => holdToSkip,
             _ => start
         };
     }

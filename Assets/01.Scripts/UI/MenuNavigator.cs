@@ -40,6 +40,22 @@ namespace ConfusedGameDev.FiniteRunner.UI
             return Gamepad.current is { buttonSouth: { wasPressedThisFrame: true } };
         }
 
+        /// <summary>
+        /// Is the confirm chord being HELD right now — Enter / numpad Enter or
+        /// gamepad A, read as a level rather than an edge, for hold-to-confirm
+        /// gestures (the cinema skip). Space is deliberately left out: it is
+        /// the city car's handbrake and a menu tap key, and a hold must never
+        /// be something the player is already leaning on.
+        /// </summary>
+        public static bool ConfirmHeld()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard != null && (keyboard.enterKey.isPressed || keyboard.numpadEnterKey.isPressed))
+                return true;
+
+            return Gamepad.current is { buttonSouth: { isPressed: true } };
+        }
+
         public static bool BackPressed()
         {
             var keyboard = Keyboard.current;

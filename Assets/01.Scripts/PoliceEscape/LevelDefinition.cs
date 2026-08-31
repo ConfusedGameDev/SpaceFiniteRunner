@@ -3,6 +3,8 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Video;
 
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
+
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
     /// <summary>The things a level can ask of the player. Order is the save format — append only.</summary>
@@ -63,8 +65,50 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Tooltip("Dialogue accent and HUD tint for this step. Fully transparent = the type's default color.")]
         public Color accent = new(0.45f, 0.9f, 1f);
 
+        // Cinema: an optional video played the moment the step activates,
+        // before its briefing line, with the world frozen under it. The
+        // duration is authoritative — a shorter one cuts the clip, a longer
+        // one holds its last frame — so it is auto-filled from the clip but
+        // stays a plain editable number.
+        [ToggleGroup(nameof(hasCinema), "Cinema")]
+        [Tooltip("Play a video when this step becomes active. The world freezes under it; a long press of Enter / A skips it.")]
+        public bool hasCinema;
+
+        [ToggleGroup(nameof(hasCinema))]
+        [Tooltip("The clip. Assigning one sets the duration to its length; edit the duration afterwards if the cinema should run shorter or hold longer.")]
+        [OnValueChanged(nameof(FetchDuration))]
+        public VideoClip cinemaClip;
+
+        [ToggleGroup(nameof(hasCinema))]
+        [Tooltip("Display format, one of the rows of the Cinema Format Library asset (Resources/PoliceEscape_CinemaFormats).")]
+        [ValueDropdown(nameof(CinemaFormatIds))]
+        public string cinemaFormat = CinemaFormatLibrary.FullScreenId;
+
+        [ToggleGroup(nameof(hasCinema))]
+        [Tooltip("How long the cinema stays up. Auto-filled from the clip; shorter cuts the clip, longer holds its last frame.")]
+        [PropertyRange(0.5f, 300f), SuffixLabel("s", true)]
+        public float cinemaSeconds = 5f;
+
+        /// <summary>Copies the clip's length into the duration — also run automatically whenever the clip field changes.</summary>
+        [ToggleGroup(nameof(hasCinema))]
+        [Button("Fetch Duration"), ShowIf("@cinemaClip != null")]
+        public void FetchDuration()
+        {
+            if (cinemaClip == null || cinemaClip.length <= 0d) return;
+            cinemaSeconds = Mathf.Clamp((float)cinemaClip.length, 0.5f, 300f);
+        }
+
+        /// <summary>A cinema plays only when the toggle is on AND a clip is assigned — a bare toggle briefs normally.</summary>
+        public bool HasCinema => hasCinema && cinemaClip != null;
+
         /// <summary>Speed and time are the parameters the debug menu can slide.</summary>
         public bool HasAdjustableValue => type == ObjectiveType.ReachSpeed || type == ObjectiveType.SurviveTime;
+
+        /// <summary>Inspector list label: the player-facing summary plus a cinema marker — never shown to the player.</summary>
+        public string EditorLabel => HasCinema ? Summary + " [CINEMA]" : Summary;
+
+        /// <summary>Dropdown source for <see cref="cinemaFormat"/> — a member here, since an Odin expression cannot see the child namespace.</summary>
+        static IEnumerable<string> CinemaFormatIds() => CinemaFormatLibrary.Ids();
 
         /// <summary>The accent to draw with — the authored one, or the type default when it was left transparent.</summary>
         public Color Accent => accent.a > 0.001f ? accent : DefaultAccent(type);
@@ -203,7 +247,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         [TitleGroup("Objectives")]
         [Tooltip("Played top to bottom. Drag to reorder.")]
-        [ListDrawerSettings(DraggableItems = true, ShowIndexLabels = true, ListElementLabelName = nameof(LevelObjective.Summary))]
+        [ListDrawerSettings(DraggableItems = true, ShowIndexLabels = true, ListElementLabelName = nameof(LevelObjective.EditorLabel))]
         public List<LevelObjective> objectives = new();
 
         public int Count => objectives != null ? objectives.Count : 0;
