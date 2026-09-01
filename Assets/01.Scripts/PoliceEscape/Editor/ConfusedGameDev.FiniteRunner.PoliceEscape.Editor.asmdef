@@ -7,6 +7,7 @@
         "ConfusedGameDev.FiniteRunner.UI",
         "ConfusedGameDev.FiniteRunner.FX",
         "ConfusedGameDev.FiniteRunner.Rendering",
+        "EVP5",
         "Unity.InputSystem",
         "UnityEngine.UI",
         "Unity.RenderPipelines.Universal.Runtime",

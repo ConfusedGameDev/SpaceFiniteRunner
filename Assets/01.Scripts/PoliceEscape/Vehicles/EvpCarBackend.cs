@@ -19,6 +19,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     /// with the -1..+1 two-pedal throttle contract — into EVP's separate
     /// throttle/brake inputs, using the same speed-aware forward/reverse rule
     /// as EVP's own VehicleStandardInput.
+    ///
+    /// <b>Two install modes.</b> A car built by the game gets a VehicleController
+    /// ADDED here and tuned from the L200 baseline plus the CarConfig mapping.
+    /// A prefab that already ships its own VehicleController — the EVP demo
+    /// cars converted into traffic NPCs — is <i>authored</i>: the existing
+    /// controller is reused as-is (its wheel list, mass, forces, curves are
+    /// the whole point of putting that car on the road) and the CarConfig
+    /// mapping is reduced to the one number the AI drivers depend on, the
+    /// steer angle they normalise against. Toggling to built-in parks an
+    /// authored controller instead of destroying it, so a toggle back finds
+    /// its tuning intact.
     /// </summary>
     [DefaultExecutionOrder(-10)] // write the frame's inputs before VehicleController's FixedUpdate consumes them
     public class EvpCarBackend : MonoBehaviour
@@ -40,7 +51,33 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         VehicleTireEffects tireEffects;
         GameObject audioRoot;
 
+        // Cosmetic body damage (every car, both install modes), torn down with the backend.
+        CarDeformation deformation;
+
+        // True when the VehicleController came with the prefab (see the
+        // class summary): its tuning is kept, not mapped from the CarConfig.
+        bool authored;
+
         public VehicleController Vehicle => vehicle;
+
+        /// <summary>The body-damage owner while the config's evpDamage is on; null otherwise (and always in built-in mode).</summary>
+        public CarDeformation Deformation => deformation;
+
+        /// <summary>True when this car drives on the VehicleController its prefab authored, not one mapped from the CarConfig.</summary>
+        public bool Authored => authored;
+
+        /// <summary>
+        /// Switch off a prefab-authored VehicleController on <paramref name="car"/>
+        /// (nothing happens on cars without one). CarController calls this on
+        /// the built-in side of the backend toggle so an EVP demo prefab in
+        /// built-in mode does not run two sims over one rigidbody.
+        /// </summary>
+        public static void ParkAuthoredController(CarController car)
+        {
+            if (car == null || car.GetComponent<EvpCarBackend>() != null) return; // the backend owns it while installed
+            var vehicle = car.GetComponent<VehicleController>();
+            if (vehicle != null && vehicle.enabled) vehicle.enabled = false;
+        }
 
         /// <summary>
         /// Add and wire the EVP controller on a rig whose CarController already
@@ -65,17 +102,36 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             bool wasActive = go.activeSelf;
             go.SetActive(false);
 
-            var vehicle = go.AddComponent<VehicleController>();
-            vehicle.wheels = BuildWheels(car);
-            ApplyL200Baseline(vehicle);
-            ApplySuspension(car);
+            // Authored mode: the prefab brought its own controller, wheel
+            // list and tuning — wake it and leave every number alone.
+            var vehicle = go.GetComponent<VehicleController>();
+            bool authored = vehicle != null;
+            if (authored)
+            {
+                vehicle.enabled = true;
+            }
+            else
+            {
+                vehicle = go.AddComponent<VehicleController>();
+                vehicle.wheels = BuildWheels(car);
+                ApplyL200Baseline(vehicle);
+                ApplySuspension(car);
+            }
 
             var backend = go.AddComponent<EvpCarBackend>();
             backend.car = car;
             backend.vehicle = vehicle;
+            backend.authored = authored;
             backend.SnapshotFriction();
             backend.ApplyChassis();
             backend.ApplyLiveConfig();
+
+            // Body damage for EVERY car, authored included — a dented traffic
+            // bus is the same visual language as a dented player. Installed
+            // while the object is still inactive, so VehicleDamage snapshots
+            // the meshes exactly once, on activation.
+            if (car.config == null || car.config.evpDamage)
+                backend.deformation = CarDeformation.Install(car, vehicle);
 
             // Demo-grade juice for the car the player is actually in: engine /
             // skid / impact audio and skid marks. AI cars stay silent — a
@@ -149,7 +205,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             if (audioModule != null) Destroy(audioModule);
             if (tireEffects != null) Destroy(tireEffects);
             if (audioRoot != null) Destroy(audioRoot);
-            if (vehicle != null) Destroy(vehicle);
+            // Before the controller: VehicleDamage [RequireComponent]s it, and
+            // the body goes back to its authored shape with the backend.
+            if (deformation != null)
+            {
+                deformation.Detach(keepDents: false);
+                deformation = null;
+            }
+            if (vehicle != null)
+            {
+                // An authored controller is the prefab's tuning — park it for
+                // the next toggle back rather than throwing it away.
+                if (authored) vehicle.enabled = false;
+                else Destroy(vehicle);
+            }
             Destroy(this);
         }
 
@@ -231,6 +300,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         {
             CarConfig config = car != null ? car.config : null;
             if (config == null || vehicle == null) return;
+            // Authored: the prefab's mass and centre of mass ARE the car.
+            if (authored) return;
 
             var body = GetComponent<Rigidbody>();
             body.mass = config.mass;
@@ -261,7 +332,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         {
             CarConfig config = car != null ? car.config : null;
             if (config == null || vehicle == null) return;
+            // The AI drivers turn a wanted wheel angle into a -1..+1 steer by
+            // dividing by config.maxSteerAngle — so this one number must
+            // match on an authored car too, or its steering over/undershoots.
             vehicle.maxSteerAngle = config.maxSteerAngle;
+            ApplyDamageConfig(config);
+            if (authored) return;
             vehicle.maxSpeedForward = config.topSpeedKmh / 3.6f;
             // maxSpeedReverse stays at the L200 baseline's 14 m/s.
             vehicle.maxDriveForce = config.evpDriveForce;
@@ -270,6 +346,31 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             vehicle.antiRoll = config.evpAntiRoll;
             vehicle.aeroDownforce = config.evpAeroDownforce;
             vehicle.rollingResistance = config.evpRollingResistance;
+        }
+
+        /// <summary>
+        /// The body-damage half of the live mapping, authored cars included
+        /// (dents are not physics tuning). The master toggle installs or
+        /// detaches the component; the wheel toggle re-installs it, because
+        /// VehicleDamage sizes its node list when it enables — both reset the
+        /// current dents, which a debug toggle may. A re-install waits for the
+        /// NEXT step: Destroy is deferred, so an Install in the same step would
+        /// find the dying component through GetComponent and adopt it.
+        /// Everything else is pushed straight through.
+        /// </summary>
+        void ApplyDamageConfig(CarConfig config)
+        {
+            bool wanted = config.evpDamage;
+            if (deformation != null && (!wanted || deformation.WheelsEnabled != config.evpDamageWheels))
+            {
+                deformation.Detach(keepDents: false);
+                deformation = null;
+                return;
+            }
+            if (wanted && deformation == null)
+                deformation = CarDeformation.Install(car, vehicle);
+            else if (deformation != null)
+                deformation.Apply(config);
         }
 
         /// <summary>

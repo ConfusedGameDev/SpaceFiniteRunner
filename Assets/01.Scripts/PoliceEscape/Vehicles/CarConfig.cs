@@ -275,6 +275,57 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [PropertyRange(0f, 1f)]
         public float evpRollingResistance = 0.05f;
 
+        // --------------------------------------------------------- damage (EVP)
+        // Cosmetic body damage through EVP's VehicleDamage (see CarDeformation):
+        // EVP backend only, and shared by every car on this config — player,
+        // police prefab and traffic pool alike. Pushed live every physics step
+        // except the wheel toggle, which re-installs the component (the node
+        // list is sized when it enables). Defaults are the EVP demo L200's.
+        [TitleGroup("Damage (EVP)")]
+        [Tooltip("Crumple the body meshes on impact (EVP backend only). Off = cars stay pristine until they explode.")]
+        [ToggleLeft]
+        public bool evpDamage = true;
+
+        [TitleGroup("Damage (EVP)")]
+        [Tooltip("Knock the wheel meshes off true as well — a hard side hit leaves a bent, wobbling wheel. Changing it re-installs the damage component (dents reset).")]
+        [ToggleLeft]
+        public bool evpDamageWheels = true;
+
+        [TitleGroup("Damage (EVP)")]
+        [Tooltip("Impact speed below which nothing dents — kerb taps and parking bumps.")]
+        [PropertyRange(0.5f, 10f), SuffixLabel("m/s", true)]
+        public float evpDamageMinSpeed = 2.25f;
+
+        [TitleGroup("Damage (EVP)")]
+        [Tooltip("How much of the impact speed becomes dent depth. 1 = the demo truck; 2 = a soft-shelled car.")]
+        [PropertyRange(0f, 5f), SuffixLabel("×", true)]
+        public float evpDamageMultiplier = 1f;
+
+        [TitleGroup("Damage (EVP)")]
+        [Tooltip("Radius around the contact point that crumples, in the mesh's local units (the Kenney toys are scaled ×1.73, so theirs reads proportionally larger).")]
+        [PropertyRange(0.1f, 2f), SuffixLabel("m", true)]
+        public float evpDamageRadius = 0.5f;
+
+        [TitleGroup("Damage (EVP)")]
+        [Tooltip("Deepest a vertex or wheel may be pushed from its authored position, however many hits land on it.")]
+        [PropertyRange(0.05f, 1f), SuffixLabel("m", true)]
+        public float evpDamageMaxDisplacement = 0.5f;
+
+        [TitleGroup("Damage (EVP)")]
+        [Tooltip("Random per-vertex scatter added to each dent — 0 is a clean crease, 0.05 a torn panel.")]
+        [PropertyRange(0f, 0.1f), SuffixLabel("m", true)]
+        public float evpDamageVertexFracture = 0f;
+
+        [TitleGroup("Damage (EVP)")]
+        [Tooltip("Furthest a damaged wheel mesh may tilt from its axle, on any axis.")]
+        [PropertyRange(0f, 45f), SuffixLabel("°", true)]
+        public float evpDamageWheelBend = 14f;
+
+        [TitleGroup("Damage (EVP)")]
+        [Tooltip("Speed the body eases back to shape once a repair starts (the player's respawn press) — 0.1 m/s takes a full dent about five seconds.")]
+        [PropertyRange(0.02f, 1f), SuffixLabel("m/s", true)]
+        public float evpDamageRepairRate = 0.1f;
+
         // ------------------------------------------------------------- recovery
         [TitleGroup("Recovery")]
         [Tooltip("Seconds the car may sit flipped (and nearly stopped) before it auto-respawns onto the nearest road.")]

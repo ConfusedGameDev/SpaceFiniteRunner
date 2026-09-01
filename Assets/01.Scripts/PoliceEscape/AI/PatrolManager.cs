@@ -108,7 +108,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             int seen = 0;
             foreach (var pair in graph.Nodes)
             {
-                if (pair.Key.Level != 0 || pair.Value.IsRamp) continue;
+                if (!graph.IsFlatGround(pair.Key)) continue; // no ramps, decks, curve chords or roundabout cells
                 Vector3 center = pair.Value.Center;
                 float sqr = (center - anchor).sqrMagnitude;
                 if (sqr < minSqr || sqr > maxSqr) continue;

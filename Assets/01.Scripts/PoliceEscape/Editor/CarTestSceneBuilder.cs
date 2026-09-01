@@ -32,7 +32,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         const string ScenePath = SceneFolder + "/CarTest.unity";
         const string CarPrefabPath = PrefabFolder + "/TestCar.prefab";
         const string PoliceCarPrefabPath = PrefabFolder + "/TestPoliceCar.prefab";
-        const string CarConfigPath = DataFolder + "/TestCarConfig.asset";
+        internal const string CarConfigPath = DataFolder + "/TestCarConfig.asset";
         const string CameraSettingsPath = DataFolder + "/TestOrbitCameraSettings.asset";
         const string PursuitSettingsPath = DataFolder + "/TestPursuitSettings.asset";
         const string MinimapSettingsPath = DataFolder + "/TestMinimapSettings.asset";
@@ -445,9 +445,46 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     Debug.LogWarning($"CarTestSceneBuilder: traffic vehicle '{file}.fbx' not found — skipped.");
                     continue;
                 }
-                settings.vehicles.Add(new AI.TrafficVehicleDefinition { model = model, weight = weight, stopsRandomly = stops });
+                var definition = new AI.TrafficVehicleDefinition { model = model, weight = weight, stopsRandomly = stops };
+                if (TryIdentifyModel(model, out VehicleIdentity identity))
+                {
+                    definition.kind = identity.kind;
+                    definition.paint = identity.paint;
+                    definition.color = identity.color;
+                }
+                settings.vehicles.Add(definition);
             }
             EditorUtility.SetDirty(settings);
+        }
+
+        /// <summary>
+        /// The identity a pool MODEL stands for, by file name — the Kenney
+        /// toys and the Cyberpunk kit cars. Paint is only named where the
+        /// model is unmistakably one colour (the taxis); the rest keep an
+        /// Unknown paint rather than a guess.
+        /// </summary>
+        internal static bool TryIdentifyModel(GameObject model, out VehicleIdentity identity)
+        {
+            identity = default;
+            if (model == null) return false;
+            Color yellow = new(0.95f, 0.76f, 0.11f);
+            switch (model.name.ToLowerInvariant())
+            {
+                case "sedan": identity = new VehicleIdentity(VehicleKind.Sedan, VehiclePaint.Unknown, Color.white); return true;
+                case "taxi": identity = new VehicleIdentity(VehicleKind.Taxi, VehiclePaint.Yellow, yellow); return true;
+                case "van": identity = new VehicleIdentity(VehicleKind.Van, VehiclePaint.Unknown, Color.white); return true;
+                case "suv": identity = new VehicleIdentity(VehicleKind.Suv, VehiclePaint.Unknown, Color.white); return true;
+                case "suv-luxury": identity = new VehicleIdentity(VehicleKind.SuvLuxury, VehiclePaint.Unknown, Color.white); return true;
+                case "hatchback-sports": identity = new VehicleIdentity(VehicleKind.Hatchback, VehiclePaint.Unknown, Color.white); return true;
+                case "truck": identity = new VehicleIdentity(VehicleKind.Truck, VehiclePaint.Unknown, Color.white); return true;
+                case "truck-flat": identity = new VehicleIdentity(VehicleKind.TruckFlat, VehiclePaint.Unknown, Color.white); return true;
+                case "delivery": identity = new VehicleIdentity(VehicleKind.Delivery, VehiclePaint.Unknown, Color.white); return true;
+                case "garbage-truck": identity = new VehicleIdentity(VehicleKind.GarbageTruck, VehiclePaint.Unknown, Color.white); return true;
+                case "cp_taxi": identity = new VehicleIdentity(VehicleKind.Taxi, VehiclePaint.Yellow, yellow); return true;
+                case "cp_quadron": identity = new VehicleIdentity(VehicleKind.Quadron, VehiclePaint.Unknown, Color.white); return true;
+                case "cp_minivan": identity = new VehicleIdentity(VehicleKind.Minivan, VehiclePaint.Unknown, Color.white); return true;
+                default: return false;
+            }
         }
 
         /// <summary>The level asset, seeded with the default two steps only when freshly created — an authored list is never touched.</summary>

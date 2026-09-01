@@ -52,6 +52,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public bool Handbrake => health != null && health.IsDead;
         public bool RespawnPressed => false;
 
+        /// <summary>What kind of car this cruiser is and what colour it is — the CarController's identity, surfaced on the NPC.</summary>
+        public VehicleIdentity Identity => car != null ? car.identity : default;
+
         CarController car;
         CarHealth health;
         CityManager city;
@@ -505,7 +508,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             RoadGraph graph = city.Graph;
             if (!TryGetNodeOn(graph, transform.position, out RoadNode start)) return;
             if (!TryGetNodeOn(graph, position, out RoadNode goal)) return;
-            if (!graph.TryFindPath(start, goal, pathBuffer)) return;
+            // A chasing cruiser may cut across a roundabout's island and run
+            // its ring either way; patrol and search keep to the traffic rule.
+            if (!graph.TryFindPath(start, goal, pathBuffer, cutThrough: State == AiState.Chase)) return;
 
             ClearPlan();
             previousWaypoint = transform.position;
@@ -566,7 +571,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 }
                 if (Random.Range(0, seen) == 0) pick = neighbour;
             }
-            if (straightSeen && Random.value < settings.straightBias) pick = straightPick;
+            // No straight bias on a roundabout: "straight" there is "keep
+            // circling", and a fleet that prefers it laps the ring forever.
+            if (straightSeen && graph.Roundabout(from) == RoundaboutRole.None && Random.value < settings.straightBias) pick = straightPick;
             if (seen == 0)
             {
                 // Dead end (or everything else filtered): the U-turn is the

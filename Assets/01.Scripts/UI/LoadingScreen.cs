@@ -27,7 +27,14 @@ namespace ConfusedGameDev.FiniteRunner.UI
     /// dropped. The spinner is empty until <see cref="MenuTheme"/> carries a
     /// disc sprite; when it does, it spins at the theme's rate for free.
     /// Every scene trip goes through it except the city → runner completion
-    /// handoff, which already dissolves through the maxed glitch.
+    /// handoff, which already dissolves through the maxed glitch. It also owns
+    /// the trip's sound: raising the curtain crossfades the mixer into its
+    /// Loading snapshot (<see cref="GameAudio.SetLoading"/> — every gameplay
+    /// bus and any pause music out, the LoadingMusic bus in) and starts the
+    /// theme's <see cref="MenuTheme.LoadingMusicClip"/> on that bus; lifting
+    /// it fades the mix back over the same <see cref="MenuTheme.LoadingAudioFade"/>,
+    /// and the object lingers invisibly for that fade before destroying
+    /// itself, so the music never cuts on the frame the new scene appears.
     /// </summary>
     public class LoadingScreen : MonoBehaviour
     {
@@ -49,8 +56,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         public static bool IsLoading => active != null;
 
         MenuTheme theme;
+        Canvas canvas;
         Image fill;
         Image spinner;
+        AudioSource music;   // loops on the mixer's LoadingMusic bus — audible only in the Loading snapshot
+        bool audioReleased;  // the loading duck has been handed back (Finish, or an early destroy)
         float shown; // the bar's displayed fill, 0..1 — eased toward the real progress
 
         /// <summary>Back to the attract screen (build index 0) under the curtain.</summary>
@@ -87,7 +97,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         void Build()
         {
-            var canvas = gameObject.AddComponent<Canvas>();
+            canvas = gameObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = SortingOrder;
 
@@ -138,6 +148,28 @@ namespace ConfusedGameDev.FiniteRunner.UI
             spinner.enabled = theme.LoadingSpinner != null;
 
             SetFill(0f);
+            BuildAudio();
+        }
+
+        // Its bus is muted outside the Loading snapshot, so this source is
+        // only ever heard through the loading crossfade — the same shape as
+        // the pause menu's PauseMusic source. Own child object, like there.
+        void BuildAudio()
+        {
+            var go = new GameObject("LoadingMusic");
+            go.transform.SetParent(transform, false);
+            music = go.AddComponent<AudioSource>();
+            music.playOnAwake = false;
+            music.loop = true;
+            music.spatialBlend = 0f;
+            music.clip = theme.LoadingMusicClip;
+            music.outputAudioMixerGroup = GameAudio.LoadingMusic;
+
+            // Duck the world under the curtain: the Loading snapshot fades the
+            // Gameplay bus and any pause music out and LoadingMusic in. UI
+            // blips stay up, so the confirm that started the trip finishes.
+            GameAudio.SetLoading(true, theme.LoadingAudioFade);
+            if (music.clip != null) music.Play();
         }
 
         IEnumerator Run(System.Func<AsyncOperation> startLoad)
@@ -198,12 +230,33 @@ namespace ConfusedGameDev.FiniteRunner.UI
         void Finish()
         {
             if (active == this) active = null;
+            // The curtain lifts now, the sound over the theme's fade: hide
+            // the canvas, hand the mix back, and let the music play out under
+            // the fading bus before the object goes.
+            if (canvas != null) canvas.enabled = false;
+            ReleaseAudio(theme.LoadingAudioFade);
+            StartCoroutine(DestroyAfter(theme.LoadingAudioFade));
+        }
+
+        IEnumerator DestroyAfter(float seconds)
+        {
+            yield return new WaitForSecondsRealtime(seconds + 0.05f); // a hair past the fade so the bus is silent first
             Destroy(gameObject);
+        }
+
+        void ReleaseAudio(float fadeSeconds)
+        {
+            if (audioReleased) return;
+            audioReleased = true;
+            GameAudio.SetLoading(false, fadeSeconds);
         }
 
         void OnDestroy()
         {
             if (active == this) active = null;
+            // The mixer outlives every scene: a curtain destroyed early (play
+            // mode stopped mid-load) must not leave the game on the loading mix.
+            ReleaseAudio(0f);
         }
     }
 }
