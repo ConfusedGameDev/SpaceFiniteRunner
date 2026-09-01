@@ -64,6 +64,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         Text titleLabel;
         Text statusLabel;
         readonly List<Text> missionRows = new();
+        readonly List<Text> challengeRows = new(); // the level's optional challenges, under the objectives
+        readonly List<OptionalChallenge> challengeList = new(); // the asset's challenges plus any accepted on the road, rebuilt per frame
+        Text challengeHeader;
         RectTransform missionPanel;
 
         CarController player;
@@ -751,7 +754,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
             for (int i = 0; i < count; i++)
             {
-                Text row = GetMissionRow(i);
+                Text row = GetRow(missionRows, i, MissionRowsTop);
                 LevelObjective objective = definition.objectives[i];
 
                 bool done = level.Completed || level.IsDone(i);
@@ -765,6 +768,67 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 row.color = done ? settings.missionDoneColor
                     : active ? settings.missionActiveColor
                     : settings.missionLockedColor;
+            }
+
+            UpdateChallenges(definition, count);
+        }
+
+        /// <summary>
+        /// The optional challenges, under the objectives — this is the ONLY
+        /// place they are listed once the brief is gone (the HUD carries the
+        /// objective alone). Every challenge of the level shows: the ones the
+        /// player declined greyed, accepted ones open, done or failed. Rows
+        /// re-place every frame since the objective count above can change.
+        /// </summary>
+        void UpdateChallenges(LevelDefinition definition, int objectiveCount)
+        {
+            // The asset's list first, then challenges a ChallengeTrigger handed
+            // over mid-level (accepted, but authored nowhere on the asset).
+            challengeList.Clear();
+            if (definition != null && definition.optionalChallenges != null) challengeList.AddRange(definition.optionalChallenges);
+            if (level != null)
+                foreach (OptionalChallenge accepted in level.AcceptedChallenges)
+                    if (!challengeList.Contains(accepted)) challengeList.Add(accepted);
+            List<OptionalChallenge> challenges = challengeList;
+            int count = challenges.Count;
+            float top = MissionRowsTop - objectiveCount * MissionRowStep - 16f;
+
+            if (challengeHeader != null)
+            {
+                challengeHeader.gameObject.SetActive(count > 0);
+                challengeHeader.rectTransform.anchoredPosition = new Vector2(18f, top);
+            }
+            for (int i = 0; i < challengeRows.Count; i++)
+                challengeRows[i].gameObject.SetActive(i < count);
+            if (count == 0) return;
+
+            MenuTextLibrary texts = MenuTextLibrary.Load();
+            float rowsTop = top - 50f;
+            for (int i = 0; i < count; i++)
+            {
+                Text row = GetRow(challengeRows, i, rowsTop);
+                OptionalChallenge challenge = challenges[i];
+                int accepted = level.AcceptedIndex(challenge);
+                if (accepted < 0)
+                {
+                    row.text = "-  " + challenge.ChallengeSummary;
+                    row.color = settings.missionLockedColor;
+                }
+                else if (level.IsChallengeDone(accepted))
+                {
+                    row.text = "[x] " + challenge.ChallengeSummary;
+                    row.color = settings.missionDoneColor;
+                }
+                else if (level.IsChallengeFailed(accepted))
+                {
+                    row.text = $"[!] {challenge.ChallengeSummary}  {texts.Get(MenuTextId.ChallengeFailed)}";
+                    row.color = settings.missionFailedColor;
+                }
+                else
+                {
+                    row.text = "[ ] " + challenge.ChallengeSummary;
+                    row.color = settings.missionActiveColor;
+                }
             }
         }
 
@@ -784,11 +848,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             return chaseIcons[index];
         }
 
-        Text GetMissionRow(int index)
+        const float MissionRowsTop = -70f; // first objective row, under the OBJECTIVES header
+        const float MissionRowStep = 44f;
+
+        // Lazily-built list row (objectives and challenges share the shape);
+        // its position is set on every call because the list above it can grow.
+        Text GetRow(List<Text> rows, int index, float top)
         {
-            while (missionRows.Count <= index)
+            while (rows.Count <= index)
             {
-                var row = CreateText($"Mission_{missionRows.Count}", missionPanel, 26,
+                var row = CreateText($"{(rows == missionRows ? "Mission" : "Challenge")}_{rows.Count}", missionPanel, 26,
                     TextAnchor.MiddleLeft, settings.missionLockedColor);
                 var rect = row.rectTransform;
                 rect.anchorMin = new Vector2(0f, 1f);
@@ -797,10 +866,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 rect.offsetMin = new Vector2(18f, 0f);
                 rect.offsetMax = new Vector2(-18f, 0f);
                 rect.sizeDelta = new Vector2(rect.sizeDelta.x, 40f);
-                rect.anchoredPosition = new Vector2(18f, -70f - missionRows.Count * 44f);
-                missionRows.Add(row);
+                rows.Add(row);
             }
-            return missionRows[index];
+            rows[index].rectTransform.anchoredPosition = new Vector2(18f, top - index * MissionRowStep);
+            return rows[index];
         }
 
         // ------------------------------------------------------------ rebuild
@@ -823,6 +892,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             renderer = null;
             model = null;
             missionRows.Clear();
+            challengeRows.Clear();
+            challengeHeader = null;
             chaseIcons.Clear();
             if (panel != null) Destroy(panel);
             panel = null;
@@ -930,6 +1001,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             headerRect.pivot = new Vector2(0f, 1f);
             headerRect.sizeDelta = new Vector2(0f, 40f);
             headerRect.anchoredPosition = new Vector2(18f, -20f);
+
+            // Second header for the optional challenges; UpdateChallenges places
+            // it under the objective rows and hides it when the level has none.
+            challengeHeader = CreateText("ChallengesHeader", missionPanel, 30, TextAnchor.MiddleLeft, theme.TextDim);
+            LocalizedLabel.Bind(challengeHeader, MenuTextId.OptionalChallenges);
+            var challengeHeaderRect = challengeHeader.rectTransform;
+            challengeHeaderRect.anchorMin = new Vector2(0f, 1f);
+            challengeHeaderRect.anchorMax = new Vector2(1f, 1f);
+            challengeHeaderRect.pivot = new Vector2(0f, 1f);
+            challengeHeaderRect.sizeDelta = new Vector2(0f, 40f);
+            challengeHeader.gameObject.SetActive(false);
         }
 
         void BuildChrome(RectTransform parent)

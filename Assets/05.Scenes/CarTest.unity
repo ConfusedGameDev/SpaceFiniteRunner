@@ -119,6 +119,101 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &149127150
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 149127151}
+  - component: {fileID: 149127153}
+  - component: {fileID: 149127152}
+  m_Layer: 0
+  m_Name: testObjective
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &149127151
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 149127150}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3409, y: 7.382828, z: 3176.7588}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 430601985}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &149127152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 149127150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9511be8c89cf8fe4e863f929c8310c99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.ChallengeTrigger
+  challenge:
+    type: 5
+    targetSpeedKmh: 130
+    surviveSeconds: 30
+    targetId: 
+    arriveRadius: 12
+    mustBeHuntedFirst: 0
+    destroyCount: 2
+    destroyKind: 0
+    destroyPaint: 0
+    collectCount: 3
+    collectId: 
+    timeRule: 1
+    timeSeconds: 15
+    briefing: 
+    accent: {r: 0.45, g: 0.9, b: 1, a: 1}
+    hasCinema: 0
+    cinemaClip: {fileID: 0}
+    cinemaFormat: FullScreen
+    cinemaSeconds: 5
+    hasCompletionMessage: 1
+    completionMessage: Jesus, they had a family!
+    nextDelaySeconds: 2
+    multiplier: 4
+  characterSprite: {fileID: 21300000, guid: d63de7b3b21b242b796d9defd7a9b5c0, type: 3}
+  characterName: El Mister
+  text: 'Ok Hotshot destroy 2 cars , you have 15 seconds '
+  duration: 3
+  accent: {r: 0.9333334, g: 0.15294118, b: 0.2784314, a: 0}
+--- !u!65 &149127153
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 149127150}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 20, y: 20, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &151215768
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -504,6 +599,38 @@ Transform:
   - {fileID: 1851711471}
   - {fileID: 526696353}
   m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &430601984
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 430601985}
+  m_Layer: 0
+  m_Name: Optional Objectives Trigger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &430601985
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 430601984}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 149127151}
+  m_Father: {fileID: 311173165}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &526696352
 GameObject:
@@ -993,6 +1120,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8328557321850778408, guid: 9869eb975dc53b442b775cfa33dde7ae, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2004397726}
+    - targetCorrespondingSourceObject: {fileID: 8328557321850778408, guid: 9869eb975dc53b442b775cfa33dde7ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 430601985}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9869eb975dc53b442b775cfa33dde7ae, type: 3}
 --- !u!114 &1064124112 stripped
@@ -1718,6 +1848,10 @@ PrefabInstance:
     - target: {fileID: 5458379537304809606, guid: 8b8bc3edf073fc742aea5fa01d2a1938, type: 3}
       propertyPath: m_Name
       value: Collectible_KeyCard (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8879334990374514154, guid: 8b8bc3edf073fc742aea5fa01d2a1938, type: 3}
+      propertyPath: hoverAmplitude
+      value: 0.068
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

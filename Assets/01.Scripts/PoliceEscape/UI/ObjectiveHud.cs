@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,9 +13,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     /// "NO TARGET" when its id is not in the scene), or simply "escape" —
     /// followed by the step's clock when it carries one: the seconds left on
     /// a deadline (red once it gets tight), or the held seconds against the
-    /// span to hold. A dim caption counts the steps. Under the objective, one
-    /// smaller line per accepted optional challenge reads the same way
-    /// (BONUS ×N · condition · progress) and settles to DONE or FAILED.
+    /// span to hold. A dim caption counts the steps. While the finished step's
+    /// completion message / delay plays out the line reads green. Optional
+    /// challenges are NOT shown here — the city map screen lists them.
     /// Built from code on its own overlay canvas like the Speedometer,
     /// spawned by the LevelManager, hidden while no player car exists and
     /// once the level completes. Prefixes come from the menu text library so
@@ -29,15 +28,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         static readonly Color DoneColor = new(0.45f, 1f, 0.55f);
         /// <summary>A deadline this close reads in red.</summary>
         const float DeadlineWarnSeconds = 10f;
-        const float ChallengeLineY = -104f;
-        const float ChallengeLineStep = 30f;
 
         LevelManager manager;
         Canvas canvas;
         RectTransform root;
         Text line;
         Text caption;
-        readonly List<Text> challengeLines = new();
         bool built;
 
         public static ObjectiveHud Spawn(LevelManager manager)
@@ -61,9 +57,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             canvas.enabled = true;
             caption.text = "OBJECTIVE 1/3";
             line.text = "REACH SPEED  130 KM/H";
-            var sample = CreateChallengeLine(0);
-            sample.text = "BONUS ×2  ·  DESTROY  CARS  3/10";
-            challengeLines.Add(sample);
         }
 
         void TearDown()
@@ -72,7 +65,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             canvas = null;
             root = null;
             line = caption = null;
-            challengeLines.Clear();
         }
 
         static void Kill(Object o)
@@ -103,17 +95,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             Color color = step.Accent;
             bool hasDistance = manager.TryGetTargetDistance(index, out float meters);
             line.text = Describe(texts, step, manager.Timer(index), manager.Tally(index), hasDistance, meters, ref color);
-            line.color = color;
-
-            UpdateChallenges(texts);
+            // Done, waiting on its completion line / delay: read as finished.
+            line.color = manager.Advancing ? DoneColor : color;
         }
 
-        /// <summary>
-        /// The condition with its live progress, then the clock when the step
-        /// carries one. Shared by the objective line and the challenge lines,
-        /// which is why the progress comes in as arguments rather than being
-        /// read off a list index.
-        /// </summary>
+        /// <summary>The condition with its live progress, then the clock when the step carries one.</summary>
         static string Describe(MenuTextLibrary texts, LevelObjective step, float timer, int tally,
                                bool hasDistance, float meters, ref Color color)
         {
@@ -173,45 +159,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             return text;
         }
 
-        // One line per accepted challenge, in the order they were accepted.
-        // Lines are created as needed and only ever hidden, so the challenge
-        // count can change (a restart) without rebuilding the canvas.
-        void UpdateChallenges(MenuTextLibrary texts)
-        {
-            IReadOnlyList<OptionalChallenge> challenges = manager.AcceptedChallenges;
-            while (challengeLines.Count < challenges.Count) challengeLines.Add(CreateChallengeLine(challengeLines.Count));
-
-            for (int i = 0; i < challengeLines.Count; i++)
-            {
-                Text lineText = challengeLines[i];
-                bool shown = i < challenges.Count;
-                if (lineText.gameObject.activeSelf != shown) lineText.gameObject.SetActive(shown);
-                if (!shown) continue;
-
-                OptionalChallenge challenge = challenges[i];
-                string prefix = $"{texts.Get(MenuTextId.ChallengeBonus)} ×{challenge.multiplier}";
-                Color color = challenge.Accent;
-                string body;
-                if (manager.IsChallengeDone(i))
-                {
-                    body = $"{texts.Get(MenuTextId.ChallengeDone)}  ·  {challenge.Summary}";
-                    color = DoneColor;
-                }
-                else if (manager.IsChallengeFailed(i))
-                {
-                    body = $"{texts.Get(MenuTextId.ChallengeFailed)}  ·  {challenge.Summary}";
-                    color = MissingColor;
-                }
-                else
-                {
-                    bool hasDistance = manager.TryGetChallengeTargetDistance(i, out float meters);
-                    body = Describe(texts, challenge, manager.ChallengeTimer(i), manager.ChallengeTally(i), hasDistance, meters, ref color);
-                }
-                lineText.text = $"{prefix}  ·  {body}";
-                lineText.color = color;
-            }
-        }
-
         // --------------------------------------------------------------- build
 
         void Build()
@@ -243,14 +190,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             line = CreateText("Line", root, 38, Color.white, FontStyle.Bold);
             line.rectTransform.anchoredPosition = new Vector2(0f, -54f);
             AddShadow(line);
-        }
-
-        Text CreateChallengeLine(int index)
-        {
-            var text = CreateText($"Challenge{index}", root, 24, Color.white, FontStyle.Normal);
-            text.rectTransform.anchoredPosition = new Vector2(0f, ChallengeLineY - index * ChallengeLineStep);
-            AddShadow(text);
-            return text;
         }
 
         static void AddShadow(Text text)

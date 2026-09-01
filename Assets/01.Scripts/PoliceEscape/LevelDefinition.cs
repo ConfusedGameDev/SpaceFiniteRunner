@@ -151,6 +151,28 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// <summary>A cinema plays only when the toggle is on AND a clip is assigned — a bare toggle briefs normally.</summary>
         public bool HasCinema => hasCinema && cinemaClip != null;
 
+        // Completion message: an optional dialogue line the moment the step is
+        // done. The world keeps running under it, but the level waits for it
+        // to clear (then for the delay below) before the next step activates.
+        [ToggleGroup(nameof(hasCompletionMessage), "Completion message")]
+        [Tooltip("Speak a line when this step completes. The next step waits until it has cleared the screen.")]
+        public bool hasCompletionMessage;
+
+        [ToggleGroup(nameof(hasCompletionMessage))]
+        [Tooltip("The line. {0} = the speed / seconds / count, {1} = the time rule's seconds, {2} = the Destroy Cars filter, {3} = the Collect Objects id.")]
+        [MultiLineProperty(2)]
+        public string completionMessage = "";
+
+        [Tooltip("Pause after this step completes — and its completion message, if any, has cleared — before the next step activates and briefs. 0 = at once.")]
+        [PropertyRange(0f, 30f), SuffixLabel("s", true)]
+        public float nextDelaySeconds = 0f;
+
+        /// <summary>A completion line plays only when the toggle is on AND there is text.</summary>
+        public bool HasCompletionMessage => hasCompletionMessage && !string.IsNullOrWhiteSpace(completionMessage);
+
+        /// <summary>The completion line with its placeholders filled (same {0}..{3} as the briefing).</summary>
+        public string CompletionText => Format(completionMessage);
+
         /// <summary>Speed and time are the parameters the debug menu can slide.</summary>
         public bool HasAdjustableValue => type == ObjectiveType.ReachSpeed || type == ObjectiveType.SurviveTime || type == ObjectiveType.DestroyCars || type == ObjectiveType.CollectObjects || HasTimeRule;
 
@@ -179,7 +201,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public bool MustHold => HasTimeRule && timeRule == TimeRule.HoldFor;
 
         /// <summary>Inspector list label: the player-facing summary plus a cinema marker — never shown to the player.</summary>
-        public string EditorLabel => HasCinema ? Summary + " [CINEMA]" : Summary;
+        public string EditorLabel => Summary + (HasCinema ? " [CINEMA]" : "") + (HasCompletionMessage ? " [MSG]" : "");
 
         /// <summary>Dropdown source for <see cref="cinemaFormat"/> — a member here, since an Odin expression cannot see the child namespace.</summary>
         static IEnumerable<string> CinemaFormatIds() => CinemaFormatLibrary.Ids();
@@ -228,9 +250,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             get
             {
                 string template = string.IsNullOrWhiteSpace(briefing) ? DefaultBriefing(type) + DefaultTimeClause : briefing;
-                try { return string.Format(template, ValueText, timeSeconds.ToString("0"), DestroyTargetText.ToLowerInvariant(), CollectTargetText.ToLowerInvariant()); }
-                catch (System.FormatException) { return template; } // a stray brace in authored text must not throw mid-run
+                return Format(template);
             }
+        }
+
+        /// <summary>Fills a template's {0} value, {1} time-rule seconds, {2} Destroy Cars filter and {3} Collect Objects id.</summary>
+        public string Format(string template)
+        {
+            try { return string.Format(template, ValueText, timeSeconds.ToString("0"), DestroyTargetText.ToLowerInvariant(), CollectTargetText.ToLowerInvariant()); }
+            catch (System.FormatException) { return template; } // a stray brace in authored text must not throw mid-run
         }
 
         string DefaultTimeClause => HasDeadline ? " You've got {1} seconds!" : MustHold ? " Keep it up for {1} seconds!" : "";
@@ -330,12 +358,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public string timeUpMessage = "Too slow. We lost them.";
 
         [TitleGroup("Messages")]
-        [Tooltip("Line shown when an accepted optional challenge completes. {0} = the challenge, {1} = its multiplier. Empty = no line.")]
-        [MultiLineProperty(2)]
-        public string challengeCompleteMessage = "Bonus secured — {0}. That's ×{1} on the payout!";
-
-        [TitleGroup("Messages")]
-        [Tooltip("Line shown when an accepted optional challenge's deadline runs out. {0} = the challenge, {1} = its multiplier. Empty = no line.")]
+        [Tooltip("Line shown when an accepted optional challenge's deadline runs out (a completed challenge speaks its own completion message instead). {0} = the challenge, {1} = its multiplier. Empty = no line.")]
         [MultiLineProperty(2)]
         public string challengeFailedMessage = "Forget {0} — that bonus is gone.";
 

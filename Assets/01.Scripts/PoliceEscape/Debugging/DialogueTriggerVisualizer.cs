@@ -6,7 +6,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Debugging
 {
     /// <summary>
     /// Fills every live story-trigger volume — <see cref="DialogueTrigger"/>
-    /// in translucent orange, <see cref="CinemaTrigger"/> in blue — with a
+    /// in translucent orange, <see cref="CinemaTrigger"/> in blue, <see cref="ChallengeTrigger"/> in green — with a
     /// box (plus outline) so triggers can be seen and driven through in the
     /// Game view while playing — a Gizmo can't do that. A trigger on
     /// cooldown draws dimmed, so "why didn't it fire" answers itself at a
@@ -27,6 +27,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Debugging
         static readonly Color CinemaReadyEdge = new(0.3f, 0.65f, 1f, 0.9f);
         static readonly Color CinemaCoolingFill = new(0.2f, 0.6f, 1f, 0.05f);
         static readonly Color CinemaCoolingEdge = new(0.3f, 0.65f, 1f, 0.3f);
+        static readonly Color ChallengeFill = new(0.3f, 1f, 0.5f, 0.18f);
+        static readonly Color ChallengeEdge = new(0.35f, 1f, 0.55f, 0.9f);
 
         protected override bool ChannelEnabled => DebugManager.ShowDialogueTriggers;
 
@@ -54,6 +56,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Debugging
             foreach (CinemaTrigger trigger in CinemaTrigger.Active)
                 if (trigger != null)
                     DrawVolume(trigger, trigger.IsReady ? CinemaReadyFill : CinemaCoolingFill, trigger.IsReady ? CinemaReadyEdge : CinemaCoolingEdge);
+
+            // Challenge triggers are always one-shot, so a live one is always ready.
+            foreach (ChallengeTrigger trigger in ChallengeTrigger.Active)
+                if (trigger != null)
+                    DrawVolume(trigger, ChallengeFill, ChallengeEdge);
         }
 
         void DrawVolume(Component trigger, Color fill, Color edge)

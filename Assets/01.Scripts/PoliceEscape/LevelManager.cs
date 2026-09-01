@@ -44,6 +44,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// small hysteresis the all-must-hold check uses, so a flicker on the
     /// threshold never wipes the held seconds).
     ///
+    /// A finished step may carry a COMPLETION MESSAGE and a DELAY before the
+    /// next step: the advance (<see cref="BeginAdvance"/>) raises the
+    /// <c>advancing</c> gate — the car keeps driving, challenges keep
+    /// counting, but the main list waits — until the line has cleared and
+    /// <c>nextDelaySeconds</c> have passed, then the next step activates and
+    /// briefs. An All-Must-Hold regression during that wait cancels it.
+    ///
     /// Optional challenges accepted at the brief are full steps too
     /// (<see cref="OptionalChallenge"/>), but they run BESIDE the list, not in
     /// it: every accepted one is checked each frame for the whole level until
@@ -139,6 +146,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         readonly System.Collections.Generic.List<OptionalChallenge> acceptedChallenges = new();
         bool briefOpen;
         bool cinemaOpen;
+        bool advancing;    // the current step is done; its completion line / delay is playing out before the next one starts
+        int advanceToken;  // bumped by a regression so a pending advance knows it was cancelled
         int current;
         CarController player;
         PoliceCarInput[] patrols = System.Array.Empty<PoliceCarInput>();
@@ -158,6 +167,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         /// <summary>Every objective done — the completion line / handoff is playing.</summary>
         public bool Completed { get; private set; }
+
+        /// <summary>True while the finished current step's completion message / delay plays out before the next step activates.</summary>
+        public bool Advancing => advancing;
 
         /// <summary>The optional challenges the player toggled on at the brief (empty when it was skipped).</summary>
         public System.Collections.Generic.IReadOnlyList<OptionalChallenge> AcceptedChallenges => acceptedChallenges;
@@ -190,6 +202,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         /// <summary>Position of a challenge in the accepted list, or -1 when the player did not take it on.</summary>
         public int AcceptedIndex(OptionalChallenge challenge) => acceptedChallenges.IndexOf(challenge);
+
+        /// <summary>
+        /// Takes on a challenge mid-level — a <see cref="ChallengeTrigger"/>
+        /// found on the road: it joins the accepted list with a fresh state,
+        /// starts counting on the next frame, shows on the map and raises the
+        /// offered payout by its multiplier. False when the level is ending
+        /// or the same challenge is already accepted.
+        /// </summary>
+        public bool AcceptChallenge(OptionalChallenge challenge)
+        {
+            if (challenge == null || Completed || resetting || acceptedChallenges.Contains(challenge)) return false;
+            acceptedChallenges.Add(challenge);
+            var next = new ObjectiveState[acceptedChallenges.Count];
+            challengeStates.CopyTo(next, 0);
+            next[next.Length - 1] = new ObjectiveState { briefed = true };
+            challengeStates = next;
+            MissionReward = (int)System.Math.Min((long)MissionReward * Mathf.Max(1, challenge.multiplier), int.MaxValue);
+            Debug.Log($"[Level] challenge accepted on the road — {challenge.ChallengeSummary}", this);
+            return true;
+        }
 
         public bool IsChallengeDone(int index) => index >= 0 && index < challengeStates.Length && challengeStates[index].done;
 
@@ -348,7 +380,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
             if (level == null || current < 0 || current >= level.Count || current >= states.Length) return;
             LevelObjective step = level.objectives[current];
-            if (!step.CountsKill(identity)) return; // includes the type check
+            if (advancing || !step.CountsKill(identity)) return; // includes the type check; a done step absorbs nothing
             states[current].tally++;
             Debug.Log($"[Level] destroyed {identity} — {states[current].tally}/{step.destroyCount}", this);
         }
@@ -372,7 +404,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
             if (level == null || current < 0 || current >= level.Count || current >= states.Length) return;
             LevelObjective step = level.objectives[current];
-            if (!step.CountsCollectible(id)) return; // includes the type check
+            if (advancing || !step.CountsCollectible(id)) return; // includes the type check; a done step absorbs nothing
             states[current].tally++;
             Debug.Log($"[Level] collected '{id}' — {states[current].tally}/{step.collectCount}", this);
         }
@@ -402,12 +434,42 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             }
 
             EvaluateChallenges(dt);
+            if (advancing) return; // the finished step's line / delay is playing out; challenges above keep counting
 
             ObjectiveState state = states[current];
             if (!state.briefed) Brief(current);
 
             if (!Evaluate(current, dt)) return;
             state.done = true;
+            BeginAdvance(current);
+        }
+
+        /// <summary>
+        /// The step just finished: speak its completion message if it has one
+        /// (the world keeps running under it — the RPG box types on scaled
+        /// time, so a frozen clock would never let it end), then wait the
+        /// step's delay, then move on. The token lets a regression during the
+        /// wait cancel the pending advance.
+        /// </summary>
+        void BeginAdvance(int index)
+        {
+            LevelObjective step = level.objectives[index];
+            advancing = true;
+            int token = ++advanceToken;
+            if (step.HasCompletionMessage)
+                RpgMessageSystem.Instance.ShowMessage(level.speakerName, step.CompletionText, level.messageHoldSeconds, DoneAccent,
+                                                      onFinished: () => StartCoroutine(FinishAdvance(index, token)));
+            else
+                StartCoroutine(FinishAdvance(index, token));
+        }
+
+        IEnumerator FinishAdvance(int index, int token)
+        {
+            LevelObjective step = index < level.Count ? level.objectives[index] : null;
+            if (step != null && step.nextDelaySeconds > 0f)
+                yield return new WaitForSeconds(step.nextDelaySeconds); // scaled: freezes with the pause menu and the map
+            if (token != advanceToken || resetting || Completed || timedOut) yield break;
+            advancing = false;
             current++;
             if (current >= level.Count) Complete();
         }
@@ -499,7 +561,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             challengeStates[index].done = true;
             PlayerStats.CompleteBonusObjective();
             Debug.Log($"[Level] challenge {index + 1} complete — {challenge.ChallengeSummary}", this);
-            ShowChallengeLine(level.challengeCompleteMessage, challenge, DoneAccent);
+            // A challenge speaks its own completion message, like any step; nothing level-wide.
+            if (challenge.HasCompletionMessage)
+                RpgMessageSystem.Instance.ShowMessage(level.speakerName, challenge.CompletionText, level.messageHoldSeconds, DoneAccent);
         }
 
         void FailChallenge(int index)
@@ -672,6 +736,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         void Regress(int index)
         {
+            // A pending advance (completion line / delay of the step that just
+            // finished) is void: the level is going back to an earlier step.
+            advanceToken++;
+            advancing = false;
             for (int i = index; i < states.Length; i++)
             {
                 states[i].done = false;

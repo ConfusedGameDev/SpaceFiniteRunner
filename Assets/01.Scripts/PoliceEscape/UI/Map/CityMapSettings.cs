@@ -179,6 +179,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         [Tooltip("Tint of objectives that cannot be attempted yet — greyed out.")]
         public Color missionLockedColor = new(0.45f, 0.47f, 0.52f, 1f);
 
+        [TitleGroup("Layout")]
+        [Tooltip("Tint of an optional challenge whose deadline ran out.")]
+        public Color missionFailedColor = new(1f, 0.4f, 0.35f, 1f);
+
         /// <summary>Clamp a zoom value into the authored range — min/max are two independent sliders and can be dragged past each other.</summary>
         public float ClampZoom(float pixelsPerCell) =>
             Mathf.Clamp(pixelsPerCell, Mathf.Min(minPixelsPerCell, maxPixelsPerCell), Mathf.Max(minPixelsPerCell, maxPixelsPerCell));

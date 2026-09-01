@@ -8,7 +8,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Collectibles
     /// <summary>
     /// A pickup the player drives through: an <see cref="Id"/> (what it is —
     /// "floppy", "chip"; several collectibles share one id), a trigger volume
-    /// and a mesh slot whose object spins on Y and hovers up and down over its
+    /// and a mesh slot whose object spins around a chosen local axis (Y by
+    /// default) and hovers up and down over its
     /// authored position. Driving into it counts it into the saved profile
     /// (<see cref="PlayerStats.RecordCollectible"/> — the LOG lists each id),
     /// raises the static <see cref="Collected"/> event the LevelManager's
@@ -22,6 +23,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Collectibles
     /// </summary>
     public class Collectible : MonoBehaviour
     {
+        /// <summary>The mesh's local axis the spin turns around. Order is the save format — append only.</summary>
+        public enum SpinAxis { X = 0, Y = 1, Z = 2 }
+
         /// <summary>Raised the moment the player collects one, before it is destroyed.</summary>
         public static event System.Action<Collectible> Collected;
 
@@ -33,7 +37,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Collectibles
         [SerializeField] Transform mesh;
 
         [TitleGroup("Motion")]
-        [Tooltip("Spin around the vertical axis, degrees per second.")]
+        [Tooltip("The mesh's local axis it spins around. Y for an upright object; X or Z for something lying flat (a disc, a floppy).")]
+        [EnumToggleButtons]
+        [SerializeField] SpinAxis spinAxis = SpinAxis.Y;
+
+        [TitleGroup("Motion")]
+        [Tooltip("Spin speed around the chosen axis, degrees per second.")]
         [PropertyRange(0f, 360f), SuffixLabel("°/s", true)]
         [SerializeField] float spinDegreesPerSecond = 90f;
 
@@ -89,8 +98,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Collectibles
             if (mesh == null) return;
             float bob = Mathf.Sin((Time.time + phase) * hoverFrequency * 2f * Mathf.PI) * hoverAmplitude;
             mesh.localPosition = meshBase + Vector3.up * bob;
-            mesh.Rotate(Vector3.up, spinDegreesPerSecond * Time.deltaTime, Space.Self);
+            mesh.Rotate(Axis(spinAxis), spinDegreesPerSecond * Time.deltaTime, Space.Self);
         }
+
+        static Vector3 Axis(SpinAxis axis) => axis switch
+        {
+            SpinAxis.X => Vector3.right,
+            SpinAxis.Z => Vector3.forward,
+            _ => Vector3.up
+        };
 
         void OnTriggerEnter(Collider other)
         {
