@@ -218,7 +218,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         // -------------------------------------------------------------- audio
         [TitleGroup("Audio")]
-        [Tooltip("The game mixer (Master → Gameplay → Music/FX/Voice, plus UI and PauseMusic). Must expose MasterVolume, MusicVolume, SFXVolume, UIVolume and VoiceVolume, and carry the Gameplay/Paused snapshots — see GameAudio.")]
+        [Tooltip("The game mixer (Master → Gameplay → Music/FX/Voice, plus UI, PauseMusic and LoadingMusic). Must expose MasterVolume, MusicVolume, SFXVolume, UIVolume and VoiceVolume, and carry the Gameplay/Paused/Loading snapshots — see GameAudio.")]
         [SerializeField] AudioMixer mixer;
 
         [TitleGroup("Audio")]
@@ -253,6 +253,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [Tooltip("Seconds the pause crossfade takes — gameplay buses fade out, pause music fades in. The mixer updates on unscaled time, so it plays out at timeScale 0.")]
         [PropertyRange(0f, 2f), SuffixLabel("s", true)]
         [SerializeField] float pauseAudioFade = 0.4f;
+
+        [TitleGroup("Audio")]
+        [Tooltip("Loops on the mixer's LoadingMusic bus while the loading curtain is up. 07.Audio/03.Music/LoadingScreen.")]
+        [SerializeField] AudioClip loadingMusicClip;
+
+        [TitleGroup("Audio")]
+        [Tooltip("Seconds the loading crossfade takes — every gameplay bus (and any pause music) fades out and the loading music in as the curtain rises, and back as it lifts. Unscaled time.")]
+        [PropertyRange(0f, 2f), SuffixLabel("s", true)]
+        [SerializeField] float loadingAudioFade = 0.4f;
 
         // ------------------------------------------------------------ haptics
         [TitleGroup("Haptics")]
@@ -350,6 +359,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         public float UiVolume => uiVolume;
         public AudioClip PauseMusicClip => pauseMusicClip;
         public float PauseAudioFade => pauseAudioFade;
+        public AudioClip LoadingMusicClip => loadingMusicClip;
+        public float LoadingAudioFade => loadingAudioFade;
 
         public float MoveRumble => moveRumble;
         public float ConfirmRumble => confirmRumble;

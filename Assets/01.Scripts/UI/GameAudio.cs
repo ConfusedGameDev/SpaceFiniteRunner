@@ -6,56 +6,91 @@ namespace ConfusedGameDev.FiniteRunner.UI
     /// <summary>
     /// Static facade over the game's AudioMixer buses, so no caller has to
     /// know the mixer's layout: Master → Gameplay → (Music / FX / Voice),
-    /// plus UI and PauseMusic directly under Master. Route sources through
-    /// the properties here (<see cref="Fx"/> for world sound effects,
-    /// <see cref="Voice"/> for dialogue, <see cref="Ui"/> for menu blips…)
-    /// and pause ducking comes for free.
+    /// plus UI, PauseMusic and LoadingMusic directly under Master. Route
+    /// sources through the properties here (<see cref="Fx"/> for world sound
+    /// effects, <see cref="Voice"/> for dialogue, <see cref="Ui"/> for menu
+    /// blips…) and the ducks come for free.
     ///
-    /// <see cref="SetPaused"/> is that ducking: it crossfades between the
-    /// mixer's two snapshots — "Gameplay" (PauseMusic muted) and "Paused"
-    /// (the whole Gameplay bus muted, PauseMusic up). Snapshots are the one
-    /// mixer control that still works on the buses the user-volume sliders
-    /// don't touch: exposed parameters (MasterVolume, MusicVolume, SFXVolume,
-    /// UIVolume, VoiceVolume) leave
-    /// snapshot control the moment <see cref="UserSettings"/> sets them,
-    /// which is exactly why the duck handle is the un-exposed Gameplay
-    /// parent group and not the Music/FX volumes themselves. The mixer runs
-    /// in UnscaledTime update mode (transitions follow Time.timeScale in the
-    /// default mode), so the fade completes even though it is started on the
-    /// same frame timeScale hits 0.
+    /// <see cref="SetPaused"/> and <see cref="SetLoading"/> are those ducks:
+    /// they crossfade between the mixer's three snapshots — "Gameplay"
+    /// (PauseMusic and LoadingMusic muted), "Paused" (the whole Gameplay bus
+    /// muted, PauseMusic up) and "Loading" (Gameplay AND PauseMusic muted,
+    /// LoadingMusic up; UI stays audible in every mix, so the blip that
+    /// started a trip is never cut). The two requests are remembered as flags
+    /// and resolved together, loading winning: a scene load destroys the
+    /// PauseMenu of the scene it leaves, and that menu's OnDestroy un-pauses
+    /// the mix — under the loading curtain that must not lift the loading
+    /// duck, only clear the pause so the next scene lands on Gameplay once
+    /// the curtain hands back. Snapshots are the one mixer control that
+    /// still works on the buses the user-volume sliders don't touch: exposed
+    /// parameters (MasterVolume, MusicVolume, SFXVolume, UIVolume,
+    /// VoiceVolume) leave snapshot control the moment
+    /// <see cref="UserSettings"/> sets them, which is exactly why the duck
+    /// handle is the un-exposed Gameplay parent group and not the Music/FX
+    /// volumes themselves. The mixer runs in UnscaledTime update mode
+    /// (transitions follow Time.timeScale in the default mode), so a fade
+    /// completes even though it is started on the same frame timeScale hits 0.
     /// </summary>
     public static class GameAudio
     {
-        /// <summary>Snapshot names on the mixer asset — it must contain exactly these two.</summary>
+        /// <summary>Snapshot names on the mixer asset — it must contain exactly these three.</summary>
         public const string GameplaySnapshot = "Gameplay";
         public const string PausedSnapshot = "Paused";
+        public const string LoadingSnapshot = "Loading";
 
-        static AudioMixerGroup music, fx, voice, ui, pauseMusic;
+        static AudioMixerGroup music, fx, voice, ui, pauseMusic, loadingMusic;
+        static bool paused, loading;
 
         /// <summary>The game mixer, off the MenuTheme via UserSettings; null until one is wired there.</summary>
         public static AudioMixer Mixer => UserSettings.Mixer;
 
-        /// <summary>Soundtrack bus — ducked while paused.</summary>
+        /// <summary>Soundtrack bus — ducked while paused or loading.</summary>
         public static AudioMixerGroup Music => Find(ref music, "Music");
 
-        /// <summary>World sound effects (car audio, pads, explosions) — ducked while paused.</summary>
+        /// <summary>World sound effects (car audio, pads, explosions) — ducked while paused or loading.</summary>
         public static AudioMixerGroup Fx => Find(ref fx, "FX");
 
-        /// <summary>Dialogue / typewriter blips — ducked while paused (messages freeze with the menu).</summary>
+        /// <summary>Dialogue / typewriter blips — ducked while paused or loading (messages freeze with the menu).</summary>
         public static AudioMixerGroup Voice => Find(ref voice, "Voice");
 
         /// <summary>Menu blips — NOT ducked, the pause menu itself has to stay audible.</summary>
         public static AudioMixerGroup Ui => Find(ref ui, "UI");
 
-        /// <summary>Pause-menu music — muted during gameplay, faded in by the Paused snapshot.</summary>
+        /// <summary>Pause-menu music — muted during gameplay and loading, faded in by the Paused snapshot.</summary>
         public static AudioMixerGroup PauseMusic => Find(ref pauseMusic, "PauseMusic");
+
+        /// <summary>Loading-curtain music — muted everywhere but the Loading snapshot.</summary>
+        public static AudioMixerGroup LoadingMusic => Find(ref loadingMusic, "LoadingMusic");
+
+        /// <summary>True while the loading duck holds the mix (a curtain is up or still fading out).</summary>
+        public static bool IsLoadingMix => loading;
 
         /// <summary>
         /// Crossfade the mixer into (or out of) the paused mix over
         /// <paramref name="fadeSeconds"/>. Safe to call with no mixer wired —
-        /// it just does nothing, same contract as UserSettings.
+        /// it just does nothing, same contract as UserSettings. While the
+        /// loading duck holds, only the flag is recorded — the mix stays on
+        /// Loading and lands on the right snapshot when the curtain lifts.
         /// </summary>
-        public static void SetPaused(bool paused, float fadeSeconds = 0.4f)
+        public static void SetPaused(bool value, float fadeSeconds = 0.4f)
+        {
+            paused = value;
+            Apply(fadeSeconds);
+        }
+
+        /// <summary>
+        /// Crossfade the mixer into (or out of) the loading mix over
+        /// <paramref name="fadeSeconds"/> — everything but UI and the
+        /// LoadingMusic bus goes silent. Owned by <see cref="LoadingScreen"/>;
+        /// releasing it lands on Paused or Gameplay, whichever is current.
+        /// </summary>
+        public static void SetLoading(bool value, float fadeSeconds = 0.4f)
+        {
+            loading = value;
+            Apply(fadeSeconds);
+        }
+
+        static void Apply(float fadeSeconds)
         {
             AudioMixer mixer = Mixer;
             if (mixer == null) return;
@@ -65,13 +100,28 @@ namespace ConfusedGameDev.FiniteRunner.UI
             // UnscaledTime; re-assert it here so the duck can never regress
             // if the mixer is rebuilt or swapped.
             mixer.updateMode = AudioMixerUpdateMode.UnscaledTime;
-            AudioMixerSnapshot snapshot = mixer.FindSnapshot(paused ? PausedSnapshot : GameplaySnapshot);
+            string name = loading ? LoadingSnapshot : paused ? PausedSnapshot : GameplaySnapshot;
+            AudioMixerSnapshot snapshot = mixer.FindSnapshot(name);
+            if (snapshot == null)
+            {
+                Debug.LogWarning($"[GameAudio] the mixer has no '{name}' snapshot — see GameAudio for the required layout.", mixer);
+                return;
+            }
             // 0 would snap with a click; a frame-ish minimum keeps "instant" smooth.
-            snapshot?.TransitionTo(Mathf.Max(0.02f, fadeSeconds));
+            snapshot.TransitionTo(Mathf.Max(0.02f, fadeSeconds));
+        }
+
+        // The flags describe the running game; with domain reload disabled a
+        // new play session would otherwise inherit the last one's state.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetState()
+        {
+            paused = loading = false;
+            music = fx = voice = ui = pauseMusic = loadingMusic = null;
         }
 
         // FindMatchingGroups matches by substring, so "Music" also returns
-        // "PauseMusic" — filter down to the exact name.
+        // "PauseMusic" and "LoadingMusic" — filter down to the exact name.
         static AudioMixerGroup Find(ref AudioMixerGroup cache, string name)
         {
             if (cache != null) return cache;
