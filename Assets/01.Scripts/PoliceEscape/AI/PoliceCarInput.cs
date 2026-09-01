@@ -52,6 +52,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public bool Handbrake => health != null && health.IsDead;
         public bool RespawnPressed => false;
 
+        /// <summary>What kind of car this cruiser is and what colour it is — the CarController's identity, surfaced on the NPC.</summary>
+        public VehicleIdentity Identity => car != null ? car.identity : default;
+
         CarController car;
         CarHealth health;
         CityManager city;

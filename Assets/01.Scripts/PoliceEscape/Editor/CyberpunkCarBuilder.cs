@@ -86,6 +86,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             }
             settings.vehicles ??= new List<TrafficVehicleDefinition>();
             settings.vehicles.Clear();
+            CarTestSceneBuilder.TryIdentifyModel(taxi, out VehicleIdentity identity);
             settings.vehicles.Add(new TrafficVehicleDefinition
             {
                 model = taxi,
@@ -93,6 +94,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 stopsRandomly = false,
                 modelYaw = CyberpunkCarKit.ModelYaw,
                 scaleOverride = CyberpunkCarKit.ModelScale,
+                kind = identity.kind,
+                paint = identity.paint,
+                color = identity.color,
             });
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
@@ -216,6 +220,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 box.size = new Vector3(bodyBounds.size.x, top - bottom, bodyBounds.size.z);
 
                 if (lights != null) CarTestSceneBuilder.AddPoliceLightBar(root, box, lights);
+
+                // The kit car names the prefab's identity; an authored paint
+                // on the prefab is kept, the kind follows the model.
+                if (CarTestSceneBuilder.TryIdentifyModel(source, out VehicleIdentity identity))
+                    controller.identity = controller.identity.paint != VehiclePaint.Unknown
+                        ? new VehicleIdentity(identity.kind, controller.identity.paint, controller.identity.color)
+                        : identity;
 
                 float roofShift = box.center.y + box.size.y * 0.5f - oldRoof;
                 foreach (Transform extra in extras)

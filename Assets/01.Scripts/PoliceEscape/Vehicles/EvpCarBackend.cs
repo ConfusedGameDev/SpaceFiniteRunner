@@ -19,6 +19,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     /// with the -1..+1 two-pedal throttle contract — into EVP's separate
     /// throttle/brake inputs, using the same speed-aware forward/reverse rule
     /// as EVP's own VehicleStandardInput.
+    ///
+    /// <b>Two install modes.</b> A car built by the game gets a VehicleController
+    /// ADDED here and tuned from the L200 baseline plus the CarConfig mapping.
+    /// A prefab that already ships its own VehicleController — the EVP demo
+    /// cars converted into traffic NPCs — is <i>authored</i>: the existing
+    /// controller is reused as-is (its wheel list, mass, forces, curves are
+    /// the whole point of putting that car on the road) and the CarConfig
+    /// mapping is reduced to the one number the AI drivers depend on, the
+    /// steer angle they normalise against. Toggling to built-in parks an
+    /// authored controller instead of destroying it, so a toggle back finds
+    /// its tuning intact.
     /// </summary>
     [DefaultExecutionOrder(-10)] // write the frame's inputs before VehicleController's FixedUpdate consumes them
     public class EvpCarBackend : MonoBehaviour
@@ -40,7 +51,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         VehicleTireEffects tireEffects;
         GameObject audioRoot;
 
+        // True when the VehicleController came with the prefab (see the
+        // class summary): its tuning is kept, not mapped from the CarConfig.
+        bool authored;
+
         public VehicleController Vehicle => vehicle;
+
+        /// <summary>True when this car drives on the VehicleController its prefab authored, not one mapped from the CarConfig.</summary>
+        public bool Authored => authored;
+
+        /// <summary>
+        /// Switch off a prefab-authored VehicleController on <paramref name="car"/>
+        /// (nothing happens on cars without one). CarController calls this on
+        /// the built-in side of the backend toggle so an EVP demo prefab in
+        /// built-in mode does not run two sims over one rigidbody.
+        /// </summary>
+        public static void ParkAuthoredController(CarController car)
+        {
+            if (car == null || car.GetComponent<EvpCarBackend>() != null) return; // the backend owns it while installed
+            var vehicle = car.GetComponent<VehicleController>();
+            if (vehicle != null && vehicle.enabled) vehicle.enabled = false;
+        }
 
         /// <summary>
         /// Add and wire the EVP controller on a rig whose CarController already
@@ -65,14 +96,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             bool wasActive = go.activeSelf;
             go.SetActive(false);
 
-            var vehicle = go.AddComponent<VehicleController>();
-            vehicle.wheels = BuildWheels(car);
-            ApplyL200Baseline(vehicle);
-            ApplySuspension(car);
+            // Authored mode: the prefab brought its own controller, wheel
+            // list and tuning — wake it and leave every number alone.
+            var vehicle = go.GetComponent<VehicleController>();
+            bool authored = vehicle != null;
+            if (authored)
+            {
+                vehicle.enabled = true;
+            }
+            else
+            {
+                vehicle = go.AddComponent<VehicleController>();
+                vehicle.wheels = BuildWheels(car);
+                ApplyL200Baseline(vehicle);
+                ApplySuspension(car);
+            }
 
             var backend = go.AddComponent<EvpCarBackend>();
             backend.car = car;
             backend.vehicle = vehicle;
+            backend.authored = authored;
             backend.SnapshotFriction();
             backend.ApplyChassis();
             backend.ApplyLiveConfig();
@@ -149,7 +192,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             if (audioModule != null) Destroy(audioModule);
             if (tireEffects != null) Destroy(tireEffects);
             if (audioRoot != null) Destroy(audioRoot);
-            if (vehicle != null) Destroy(vehicle);
+            if (vehicle != null)
+            {
+                // An authored controller is the prefab's tuning — park it for
+                // the next toggle back rather than throwing it away.
+                if (authored) vehicle.enabled = false;
+                else Destroy(vehicle);
+            }
             Destroy(this);
         }
 
@@ -231,6 +280,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         {
             CarConfig config = car != null ? car.config : null;
             if (config == null || vehicle == null) return;
+            // Authored: the prefab's mass and centre of mass ARE the car.
+            if (authored) return;
 
             var body = GetComponent<Rigidbody>();
             body.mass = config.mass;
@@ -261,7 +312,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         {
             CarConfig config = car != null ? car.config : null;
             if (config == null || vehicle == null) return;
+            // The AI drivers turn a wanted wheel angle into a -1..+1 steer by
+            // dividing by config.maxSteerAngle — so this one number must
+            // match on an authored car too, or its steering over/undershoots.
             vehicle.maxSteerAngle = config.maxSteerAngle;
+            if (authored) return;
             vehicle.maxSpeedForward = config.topSpeedKmh / 3.6f;
             // maxSpeedReverse stays at the L200 baseline's 14 m/s.
             vehicle.maxDriveForce = config.evpDriveForce;

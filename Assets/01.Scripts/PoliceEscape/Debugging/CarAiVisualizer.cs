@@ -172,7 +172,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Debugging
                 // The lane rule's direction of travel — a car whose letter
                 // flips without a junction is breaking the no-U-turn rule.
                 string heading = driver.TravelDirection >= 0 ? $" >{"NESW"[driver.TravelDirection]}" : string.Empty;
-                labels.Add((car.position + Vector3.up * 3f, $"{driver.StateLabel}{heading}  [{obstacle}]{stuck}", color));
+                // Which car this is, off the controller's identity — an
+                // "unknown vehicle" here is a spawn path that forgot to stamp it.
+                var controller = car.GetComponent<CarController>();
+                string identity = controller != null ? $"\n{controller.identity}" : string.Empty;
+                labels.Add((car.position + Vector3.up * 3f, $"{driver.StateLabel}{heading}  [{obstacle}]{stuck}{identity}", color));
             }
 #endif
         }

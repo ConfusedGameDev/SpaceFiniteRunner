@@ -34,6 +34,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [TitleGroup("Wheel visuals")] public Transform rearLeftVisual;
         [TitleGroup("Wheel visuals")] public Transform rearRightVisual;
 
+        [TitleGroup("Identity")]
+        [Tooltip("What this car is and what colour it is. Authored on prefab cars; stamped at spawn from the traffic definition on model-rigged ones.")]
+        [HideLabel, InlineProperty]
+        public VehicleIdentity identity;
+
         Rigidbody body;
         ICarInput input;
         float steerAngle;
@@ -41,6 +46,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
         /// <summary>True when the EVP5 comparison backend drives this car instead of the built-in sim.</summary>
         public bool UsingEvp => evpBackend != null;
+
+        public VehicleKind Kind => identity.kind;
+        public VehiclePaint Paint => identity.paint;
+        public Color PaintColor => identity.color;
 
         public Rigidbody Body => body;
         public Vector3 Velocity => body != null ? body.linearVelocity : Vector3.zero;
@@ -104,6 +113,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// </summary>
         public void SetBackend(bool evp)
         {
+            // A prefab that ships its own EVP VehicleController (the EVP demo
+            // cars) would otherwise keep simulating beside the built-in sim:
+            // park it before the idempotence check, which is what returns
+            // early on a fresh instance in built-in mode.
+            if (!evp) EvpCarBackend.ParkAuthoredController(this);
             if (evp == UsingEvp || !HasWheels) return;
             if (evp)
             {

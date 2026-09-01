@@ -48,6 +48,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         /// <summary>The Chase Car objective id this car escapes under (null for ordinary traffic).</summary>
         public string EscapeId { get; private set; }
 
+        /// <summary>What kind of car this civilian drives and what colour it is — the CarController's identity, surfaced on the NPC.</summary>
+        public VehicleIdentity Identity => car != null ? car.identity : default;
+
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
         public bool Handbrake => Stopped || (health != null && health.IsDead);

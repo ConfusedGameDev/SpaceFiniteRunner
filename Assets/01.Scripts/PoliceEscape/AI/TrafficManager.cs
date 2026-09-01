@@ -117,12 +117,40 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 ? 0f
                 : Mathf.Min(cellSize * settings.laneOffsetFraction, settings.laneOffsetMaxMeters);
 
-            (CarController controller, TrafficCarInput driver) = VehicleRigBuilder.Build<TrafficCarInput>(
-                definition.model, settings.carConfig, definition.Scale(settings.modelScale),
-                graph.Center(pickedNode) + LaneRules.RightOf(direction) * lane + Vector3.up * 0.5f,
-                Quaternion.Euler(0f, direction * 90f, 0f), definition.modelYaw);
-            if (controller == null) return false; // model not riggable — warned by the builder
+            Vector3 spawnPosition = graph.Center(pickedNode) + LaneRules.RightOf(direction) * lane;
+            Quaternion spawnRotation = Quaternion.Euler(0f, direction * 90f, 0f);
+
+            CarController controller;
+            TrafficCarInput driver;
+            if (definition.prefab != null)
+            {
+                // A finished NPC prefab (the converted EVP cars): instantiate
+                // at the spawn pose and never move it afterwards (see
+                // CarFactory) — same contract as the police prefab spawn.
+                var go = Instantiate(definition.prefab, spawnPosition + Vector3.up * 0.6f, spawnRotation);
+                go.name = $"{definition.prefab.name}-npc";
+                controller = go.GetComponent<CarController>();
+                driver = go.GetComponent<TrafficCarInput>();
+                if (controller == null || driver == null)
+                {
+                    Debug.LogError($"TrafficManager: traffic prefab '{definition.prefab.name}' needs a CarController and a TrafficCarInput on its root — destroying it.", definition.prefab);
+                    Destroy(go);
+                    return false;
+                }
+            }
+            else
+            {
+                (controller, driver) = VehicleRigBuilder.Build<TrafficCarInput>(
+                    definition.model, settings.carConfig, definition.Scale(settings.modelScale),
+                    spawnPosition + Vector3.up * 0.5f, spawnRotation, definition.modelYaw);
+                if (controller == null) return false; // model not riggable — warned by the builder
+            }
             SceneHierarchy.Adopt(controller.gameObject, SceneHierarchy.Traffic(controller.gameObject.scene));
+
+            // The definition names the car; a prefab keeps its authored
+            // identity unless the entry sets a kind of its own.
+            if (definition.kind != VehicleKind.Unknown || !controller.identity.IsSet)
+                controller.identity = definition.Identity;
 
             // Health before Initialize, so the driver's fetch finds it.
             controller.gameObject.AddComponent<CarHealth>();
@@ -141,7 +169,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             float totalWeight = 0f;
             foreach (TrafficVehicleDefinition definition in settings.vehicles)
             {
-                if (definition?.model == null) continue;
+                if (definition == null || !definition.IsSpawnable) continue;
                 totalWeight += definition.weight;
                 if (Random.value * totalWeight <= definition.weight) picked = definition;
             }
