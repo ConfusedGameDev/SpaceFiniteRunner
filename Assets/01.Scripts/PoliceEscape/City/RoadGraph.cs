@@ -52,14 +52,36 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// </summary>
         public readonly bool IsCurve;
 
-        public RoadNodeData(EdgeMask mask, Vector3 center, bool isRamp, bool centerLineOnly = false, bool isCurve = false)
+        /// <summary>
+        /// Part of a roundabout (see <see cref="RoadGraph.RegisterRoundabouts"/>):
+        /// <see cref="RoundaboutRole.Ring"/> nodes ride the one-way circle,
+        /// the <see cref="RoundaboutRole.Centre"/> is the island — a node only
+        /// a chase may enter. Neither is a spawn cell.
+        /// </summary>
+        public readonly RoundaboutRole Roundabout;
+
+        /// <summary>World centre of the roundabout this node belongs to (undefined when <see cref="Roundabout"/> is None).</summary>
+        public readonly Vector3 RingCenter;
+
+        public RoadNodeData(EdgeMask mask, Vector3 center, bool isRamp, bool centerLineOnly = false, bool isCurve = false,
+            RoundaboutRole roundabout = RoundaboutRole.None, Vector3 ringCenter = default)
         {
             Mask = mask;
             Center = center;
             IsRamp = isRamp;
             CenterLineOnly = centerLineOnly;
             IsCurve = isCurve;
+            Roundabout = roundabout;
+            RingCenter = ringCenter;
         }
+    }
+
+    /// <summary>A node's place in a roundabout: none, on the one-way ring, or the central island.</summary>
+    public enum RoundaboutRole : byte
+    {
+        None = 0,
+        Ring,
+        Centre,
     }
 
     /// <summary>
@@ -85,6 +107,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// the whole graph at the world origin while the city it describes sits
     /// somewhere else entirely. The root is assumed not to move after the
     /// graph is built; rebuild it if it ever does.
+    ///
+    /// <b>Roundabouts are synthesised here, not baked.</b> The road data under
+    /// a road-roundabout template is a plus — a 4-way centre cell, four arms,
+    /// four Reserved corners — so the only road through it is the straight
+    /// line across the island. <see cref="RegisterRoundabouts"/> reads the
+    /// baked feature list and rebuilds the ring on top of that data (no
+    /// rebake): the corners become nodes pulled onto the circle, the arms
+    /// gain their sideways sockets, and <see cref="TryGetNeighbour"/> enforces
+    /// the traffic rule — the ring is one-way (counter-clockwise, right-hand
+    /// traffic), the centre may be left but never entered — unless the caller
+    /// asks to <c>cutThrough</c>, which is what a chase is allowed to do.
     /// </summary>
     public class RoadGraph
     {
@@ -142,6 +175,65 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 if (upper != EdgeMask.None)
                     nodes[new RoadNode(cell, 1)] = new RoadNodeData(upper, CellCenterAt(cell, deckHeight), false);
             }
+            RegisterRoundabouts(data);
+        }
+
+        /// <summary>
+        /// Corner nodes are pulled this many cells toward the roundabout's
+        /// centre on both axes, which puts them on the same circle as the
+        /// arm centres (radius one cell): 1 − 1/√2.
+        /// </summary>
+        const float CornerPull = 0.29289f;
+
+        /// <summary>
+        /// Rebuild every roundabout of the chunk as a ring (see the class
+        /// summary). A roundabout is recognised by its shape rather than by
+        /// piece index — a 3×3 template whose centre is a 4-way road and whose
+        /// four corners are Reserved — so the graph needs no settings asset
+        /// and any future 3×3 ring template gets the same treatment. Arms keep
+        /// their outer socket and their socket to the centre (the chase
+        /// short-cut) and gain the two sideways ones; corners are new nodes
+        /// bending between their two arms; all nine are centre-line-only and
+        /// excluded from spawns.
+        /// </summary>
+        void RegisterRoundabouts(ChunkData data)
+        {
+            Vector2Int worldOrigin = data.WorldCellOrigin;
+            foreach (RoadFeature feature in data.Features)
+            {
+                if (feature.Kind != RoadFeatureKind.Template || feature.Footprint != new Vector2Int(3, 3)) continue;
+                int cx = feature.Origin.x + 1, cy = feature.Origin.y + 1;
+                if (!data.IsRoad(cx, cy) || data.GetConnections(cx, cy) != EdgeMask.All) continue;
+                bool cornersReserved = true;
+                for (int dir = 0; dir < 4 && cornersReserved; dir++)
+                {
+                    Vector2Int corner = new Vector2Int(cx, cy) + EdgeMaskUtility.Offset(dir) + EdgeMaskUtility.Offset(dir + 1);
+                    cornersReserved = data.GetKind(corner.x, corner.y) == ChunkData.CellKind.Reserved;
+                }
+                if (!cornersReserved) continue;
+
+                var centreCell = new Vector2Int(worldOrigin.x + cx, worldOrigin.y + cy);
+                var centre = new RoadNode(centreCell, 0);
+                if (!nodes.TryGetValue(centre, out RoadNodeData centreData)) continue;
+                Vector3 ringCenter = centreData.Center;
+                nodes[centre] = new RoadNodeData(EdgeMask.All, ringCenter, false, true, false, RoundaboutRole.Centre, ringCenter);
+
+                for (int dir = 0; dir < 4; dir++)
+                {
+                    var arm = new RoadNode(centreCell + EdgeMaskUtility.Offset(dir), 0);
+                    if (nodes.TryGetValue(arm, out RoadNodeData armData))
+                        nodes[arm] = new RoadNodeData(EdgeMask.All, armData.Center, false, true, false, RoundaboutRole.Ring, ringCenter);
+
+                    // The corner between arm 'dir' and arm 'dir + 1': its
+                    // socket back toward each arm is that arm's direction
+                    // reversed from the corner's point of view.
+                    Vector2Int diagonal = EdgeMaskUtility.Offset(dir) + EdgeMaskUtility.Offset(dir + 1);
+                    var corner = new RoadNode(centreCell + diagonal, 0);
+                    EdgeMask cornerMask = EdgeMaskUtility.DirectionBit(dir + 2) | EdgeMaskUtility.DirectionBit(dir + 3);
+                    Vector3 pull = new Vector3(-diagonal.x, 0f, -diagonal.y) * (CornerPull * cellSize);
+                    nodes[corner] = new RoadNodeData(cornerMask, CellCenterAt(corner.Cell, 0f) + pull, false, true, false, RoundaboutRole.Ring, ringCenter);
+                }
+            }
         }
 
         public bool Contains(RoadNode node) => nodes.ContainsKey(node);
@@ -164,8 +256,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// <summary>Part of a curved avenue — drivable, but not a place to spawn (see <see cref="RoadNodeData.IsCurve"/>).</summary>
         public bool IsCurve(RoadNode node) => nodes.TryGetValue(node, out RoadNodeData data) && data.IsCurve;
 
-        /// <summary>Flat ground node — neither a ramp, a deck nor a curve chord. The only kind cars are spawned on: a grid-aligned spawn pose on a curve can sit half off the ribbon.</summary>
-        public bool IsFlatGround(RoadNode node) => node.Level == 0 && nodes.TryGetValue(node, out RoadNodeData data) && !data.IsRamp && !data.IsCurve;
+        /// <summary>The node's place in a roundabout — None for ordinary road (see <see cref="RoadNodeData.Roundabout"/>).</summary>
+        public RoundaboutRole Roundabout(RoadNode node) => nodes.TryGetValue(node, out RoadNodeData data) ? data.Roundabout : RoundaboutRole.None;
+
+        /// <summary>Flat ground node — neither a ramp, a deck, a curve chord nor part of a roundabout. The only kind cars are spawned on: a grid-aligned spawn pose on a curve or a ring corner can sit half off the asphalt.</summary>
+        public bool IsFlatGround(RoadNode node) => node.Level == 0 && nodes.TryGetValue(node, out RoadNodeData data) && IsFlatGround(data);
+
+        static bool IsFlatGround(in RoadNodeData data) => !data.IsRamp && !data.IsCurve && data.Roundabout == RoundaboutRole.None;
 
         public Vector2Int WorldToCell(Vector3 position) =>
             new(Mathf.FloorToInt((position.x - origin.x) / cellSize),
@@ -209,7 +306,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             float best = float.MaxValue;
             foreach (var pair in nodes)
             {
-                if (flatGroundOnly && (pair.Key.Level != 0 || pair.Value.IsRamp || pair.Value.IsCurve)) continue;
+                if (flatGroundOnly && (pair.Key.Level != 0 || !IsFlatGround(pair.Value))) continue;
                 Vector3 delta = pair.Value.Center - position;
                 float score = delta.x * delta.x + delta.z * delta.z + VerticalPenalty * VerticalPenalty * delta.y * delta.y;
                 if (score >= best) continue;
@@ -227,11 +324,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// (level 0) continues onto the deck (level 1) while the crossing
         /// street under that deck, which has no socket facing the ramp, is
         /// never entered.
+        ///
+        /// Roundabouts add the one directed rule of the graph (see
+        /// <see cref="RoundaboutAllows"/>); <paramref name="cutThrough"/> lifts
+        /// it — a chase may cross the island and run the ring either way.
         /// </summary>
-        public bool TryGetNeighbour(RoadNode from, int direction, out RoadNode to)
+        public bool TryGetNeighbour(RoadNode from, int direction, out RoadNode to, bool cutThrough = false)
         {
             to = default;
-            if ((Connections(from) & EdgeMaskUtility.DirectionBit(direction)) == 0) return false;
+            if (!nodes.TryGetValue(from, out RoadNodeData fromData)) return false;
+            if ((fromData.Mask & EdgeMaskUtility.DirectionBit(direction)) == 0) return false;
             Vector2Int cell = from.Cell + EdgeMaskUtility.Offset(direction);
             EdgeMask back = EdgeMaskUtility.DirectionBit(direction + 2);
             for (int i = 0; i < 2; i++)
@@ -239,11 +341,32 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 var candidate = new RoadNode(cell, i == 0 ? from.Level : 1 - from.Level);
                 if (nodes.TryGetValue(candidate, out RoadNodeData data) && (data.Mask & back) != 0)
                 {
+                    if (!cutThrough && !RoundaboutAllows(fromData, data)) return false;
                     to = candidate;
                     return true;
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// The roundabout traffic rule for one edge: the island is never
+        /// entered (leaving it is fine — a car that ends up there must be able
+        /// to get out), and an edge between two nodes of the same ring is
+        /// drivable only counter-clockwise around its centre, the way of
+        /// right-hand traffic. Everything else (entering the ring from an
+        /// arm's outer street, leaving it) is unrestricted.
+        /// </summary>
+        static bool RoundaboutAllows(in RoadNodeData from, in RoadNodeData to)
+        {
+            if (to.Roundabout == RoundaboutRole.Centre) return false;
+            if (from.Roundabout != RoundaboutRole.Ring || to.Roundabout != RoundaboutRole.Ring) return true;
+            if (from.RingCenter != to.RingCenter) return true; // two rings touching — not one circle
+            // Counter-clockwise seen from above: with Y up, that is a negative
+            // Y in the cross product of the radius and the step.
+            Vector3 radius = from.Center - from.RingCenter;
+            Vector3 step = to.Center - from.Center;
+            return Vector3.Cross(radius, step).y < 0f;
         }
 
         /// <summary>
@@ -260,7 +383,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         /// difference between instant and a visible stall. The AI gets the
         /// speedup for free; the results are identical either way.
         /// </summary>
-        public bool TryFindPath(RoadNode start, RoadNode goal, List<RoadNode> path, int maxExpansions = 8192)
+        public bool TryFindPath(RoadNode start, RoadNode goal, List<RoadNode> path, int maxExpansions = 8192, bool cutThrough = false)
         {
             path.Clear();
             if (!Contains(start) || !Contains(goal)) return false;
@@ -294,7 +417,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
                 for (int dir = 0; dir < 4; dir++)
                 {
-                    if (!TryGetNeighbour(current, dir, out RoadNode neighbour)) continue;
+                    if (!TryGetNeighbour(current, dir, out RoadNode neighbour, cutThrough)) continue;
                     if (closed.Contains(neighbour)) continue;
 
                     int tentative = gScore[current] + 1;

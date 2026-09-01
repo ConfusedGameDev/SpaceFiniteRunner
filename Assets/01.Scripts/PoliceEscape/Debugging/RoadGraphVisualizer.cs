@@ -101,7 +101,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Debugging
                 for (int direction = 0; direction < 4; direction++)
                 {
                     if ((data.Mask & EdgeMaskUtility.DirectionBit(direction)) == 0) continue;
-                    bool mutual = graph.TryGetNeighbour(node, direction, out RoadNode neighbour);
+                    // Physical links, traffic rules lifted: a roundabout's
+                    // one-way ring and island short-cut are real sockets that
+                    // TryGetNeighbour refuses by rule, not missing neighbours.
+                    bool mutual = graph.TryGetNeighbour(node, direction, out RoadNode neighbour, cutThrough: true);
                     Vector3 to = mutual
                         ? Vector3.Lerp(from, graph.Center(neighbour), 0.5f)
                         : from + Offset(direction) * (CellSize * 0.4f);

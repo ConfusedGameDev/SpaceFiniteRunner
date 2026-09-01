@@ -651,7 +651,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             for (int dir = 0; dir < 4; dir++)
             {
                 if (dir == banned) continue; // wrong-way turn — never, outside a dead end
-                if (!graph.TryGetNeighbour(from, dir, out RoadNode neighbour) || neighbour == wanderFrom) continue;
+                // The escaping car is being chased: like its pursuers it may
+                // cut across a roundabout; ordinary traffic keeps to the ring.
+                if (!graph.TryGetNeighbour(from, dir, out RoadNode neighbour, flee) || neighbour == wanderFrom) continue;
                 // Civilians keep to the allowed blocks; the escaping car is
                 // exempt — gating its greedy flight could force a U-turn into
                 // the player, and its flee-hold leash bounds it anyway.
@@ -671,12 +673,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 }
                 else if (Random.Range(0, seen) == 0) pick = neighbour;
             }
-            if (!flee && straightSeen && Random.value < settings.straightBias) pick = straightPick;
+            // No straight bias on a roundabout: "straight" there is "keep
+            // circling", and a fleet that prefers it laps the ring forever.
+            if (!flee && straightSeen && graph.Roundabout(from) == RoundaboutRole.None && Random.value < settings.straightBias) pick = straightPick;
             if (seen == 0)
             {
                 // Dead end (or everything else filtered): the U-turn is the
                 // one legal direction flip left.
-                if (!graph.TryGetNeighbour(from, banned, out pick))
+                if (!graph.TryGetNeighbour(from, banned, out pick, flee))
                 {
                     if (!graph.Contains(wanderFrom)) return;
                     pick = wanderFrom;

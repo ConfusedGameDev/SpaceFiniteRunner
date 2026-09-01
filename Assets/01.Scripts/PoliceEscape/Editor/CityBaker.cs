@@ -184,7 +184,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     size++;
                     for (int dir = 0; dir < 4; dir++)
                     {
-                        if (!graph.TryGetNeighbour(node, dir, out RoadNode next) || componentOf.ContainsKey(next)) continue;
+                        // Physical connectivity, traffic rules lifted: a
+                        // roundabout's island is unenterable by rule but is
+                        // not a severed land mass.
+                        if (!graph.TryGetNeighbour(node, dir, out RoadNode next, cutThrough: true) || componentOf.ContainsKey(next)) continue;
                         componentOf[next] = component;
                         queue.Enqueue(next);
                     }
