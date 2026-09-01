@@ -61,7 +61,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         HoldToSkip,
         Loading,
         DebugTabAirTime, AirSlowMo, AirSlowMoDelay, AirSlowMoScale, AirSlowMoMinScale, AirSlowMoMaxScale,
-        AirSlowMoBlendIn, AirSlowMoBlendOut, AirControlRate, AirControlResponse
+        AirSlowMoBlendIn, AirSlowMoBlendOut, AirControlRate, AirControlResponse,
+        DebugTabDamage, EvpDamage, EvpDamageWheels, EvpDamageMinSpeed, EvpDamageMultiplier, EvpDamageRadius,
+        EvpDamageMaxDisplacement, EvpDamageVertexFracture, EvpDamageWheelBend, EvpDamageRepairRate
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -312,6 +314,27 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString airControlRate = new("AIR CONTROL RATE", "GIRO EN EL AIRE", "空中操作速度", "ROTATION EN L'AIR");
         [TitleGroup("Air time")]
         [SerializeField] LocalizedString airControlResponse = new("AIR CONTROL RESPONSE", "RESPUESTA EN EL AIRE", "空中操作の反応", "RÉPONSE EN L'AIR");
+
+        [TitleGroup("Body damage")]
+        [SerializeField] LocalizedString debugTabDamage = new("BODY DAMAGE", "DAÑOS EN LA CARROCERÍA", "車体ダメージ", "DÉGÂTS CARROSSERIE");
+        [TitleGroup("Body damage")]
+        [SerializeField] LocalizedString evpDamage = new("BODY DAMAGE", "DAÑOS EN LA CARROCERÍA", "車体ダメージ", "DÉGÂTS CARROSSERIE");
+        [TitleGroup("Body damage")]
+        [SerializeField] LocalizedString evpDamageWheels = new("BENT WHEELS", "RUEDAS TORCIDAS", "ホイールの歪み", "ROUES VOILÉES");
+        [TitleGroup("Body damage")]
+        [SerializeField] LocalizedString evpDamageMinSpeed = new("DENT MIN SPEED", "VELOCIDAD MÍN. DE ABOLLADO", "凹み最低速度", "VITESSE MIN. DE BOSSE");
+        [TitleGroup("Body damage")]
+        [SerializeField] LocalizedString evpDamageMultiplier = new("DENT STRENGTH", "FUERZA DE ABOLLADO", "凹みの強さ", "FORCE DES BOSSES");
+        [TitleGroup("Body damage")]
+        [SerializeField] LocalizedString evpDamageRadius = new("DENT RADIUS", "RADIO DE ABOLLADO", "凹みの半径", "RAYON DES BOSSES");
+        [TitleGroup("Body damage")]
+        [SerializeField] LocalizedString evpDamageMaxDisplacement = new("MAX DENT DEPTH", "PROFUNDIDAD MÁXIMA", "凹みの最大深さ", "PROFONDEUR MAX");
+        [TitleGroup("Body damage")]
+        [SerializeField] LocalizedString evpDamageVertexFracture = new("PANEL TEARING", "DESGARRO DE CHAPA", "パネルの裂け", "DÉCHIRURE DES TÔLES");
+        [TitleGroup("Body damage")]
+        [SerializeField] LocalizedString evpDamageWheelBend = new("MAX WHEEL BEND", "TORSIÓN MÁX. DE RUEDA", "ホイール最大傾き", "VOILAGE MAX DES ROUES");
+        [TitleGroup("Body damage")]
+        [SerializeField] LocalizedString evpDamageRepairRate = new("REPAIR SPEED", "VELOCIDAD DE REPARACIÓN", "修理速度", "VITESSE DE RÉPARATION");
 
         [TitleGroup("Chase camera stats")]
         [SerializeField] LocalizedString debugTabCamera = new("DEBUG — CHASE CAMERA", "DEPURACIÓN — CÁMARA", "デバッグ — カメラ", "DÉBOGAGE — CAMÉRA");
@@ -614,6 +637,16 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.AirSlowMoBlendOut => airSlowMoBlendOut,
             MenuTextId.AirControlRate => airControlRate,
             MenuTextId.AirControlResponse => airControlResponse,
+            MenuTextId.DebugTabDamage => debugTabDamage,
+            MenuTextId.EvpDamage => evpDamage,
+            MenuTextId.EvpDamageWheels => evpDamageWheels,
+            MenuTextId.EvpDamageMinSpeed => evpDamageMinSpeed,
+            MenuTextId.EvpDamageMultiplier => evpDamageMultiplier,
+            MenuTextId.EvpDamageRadius => evpDamageRadius,
+            MenuTextId.EvpDamageMaxDisplacement => evpDamageMaxDisplacement,
+            MenuTextId.EvpDamageVertexFracture => evpDamageVertexFracture,
+            MenuTextId.EvpDamageWheelBend => evpDamageWheelBend,
+            MenuTextId.EvpDamageRepairRate => evpDamageRepairRate,
             MenuTextId.DebugTabCamera => debugTabCamera,
             MenuTextId.CamDistance => camDistance,
             MenuTextId.CamHeight => camHeight,

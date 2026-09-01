@@ -85,6 +85,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // Interpolation-safe teleport — a plain transform move would be
             // undone by the rigidbody's interpolation history next frame.
             CarFactory.Teleport(body, position, Quaternion.Euler(0f, transform.eulerAngles.y, 0f));
+
+            // The respawn is also the body shop: EVP dents ease back to shape
+            // (progressively, at the config's repair rate). A level reboot
+            // reloads the scene and needs nothing here.
+            var deformation = GetComponent<CarDeformation>();
+            if (deformation != null) deformation.Repair();
         }
     }
 }

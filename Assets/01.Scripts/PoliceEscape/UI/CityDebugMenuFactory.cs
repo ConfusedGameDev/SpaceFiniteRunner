@@ -206,6 +206,42 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         }
 
         /// <summary>
+        /// EVP body damage: the two toggles and the dent knobs. Everything is
+        /// live through EvpCarBackend.ApplyLiveConfig — the master toggle
+        /// installs/removes the component on the spot and the wheel toggle
+        /// re-installs it (both reset current dents); the sliders push
+        /// straight through. Shows nothing in built-in physics mode, where
+        /// no VehicleDamage exists to read them.
+        /// </summary>
+        public static MenuScreen BuildDamageTab(RectTransform parent, MenuTheme theme, CarConfig config,
+                                                List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_Damage", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabDamage, tabIndex, tabCount);
+
+            AddCarToggle(screen, config, refreshers, MenuTextId.EvpDamage,
+                         c => c.evpDamage, (c, v) => c.evpDamage = v);
+            AddCarToggle(screen, config, refreshers, MenuTextId.EvpDamageWheels,
+                         c => c.evpDamageWheels, (c, v) => c.evpDamageWheels = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.EvpDamageMinSpeed,
+                       0.5f, 10f, 0.25f, "0.00", c => c.evpDamageMinSpeed, (c, v) => c.evpDamageMinSpeed = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.EvpDamageMultiplier,
+                       0f, 5f, 0.1f, "0.0", c => c.evpDamageMultiplier, (c, v) => c.evpDamageMultiplier = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.EvpDamageRadius,
+                       0.1f, 2f, 0.05f, "0.00", c => c.evpDamageRadius, (c, v) => c.evpDamageRadius = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.EvpDamageMaxDisplacement,
+                       0.05f, 1f, 0.05f, "0.00", c => c.evpDamageMaxDisplacement, (c, v) => c.evpDamageMaxDisplacement = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.EvpDamageVertexFracture,
+                       0f, 0.1f, 0.005f, "0.000", c => c.evpDamageVertexFracture, (c, v) => c.evpDamageVertexFracture = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.EvpDamageWheelBend,
+                       0f, 45f, 1f, "0", c => c.evpDamageWheelBend, (c, v) => c.evpDamageWheelBend = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.EvpDamageRepairRate,
+                       0.02f, 1f, 0.02f, "0.00", c => c.evpDamageRepairRate, (c, v) => c.evpDamageRepairRate = v);
+            return screen;
+        }
+
+        /// <summary>
         /// Chase camera: framing, recentering, the speed FOV kick and the
         /// look-back swing. The rig re-applies the settings in Update, which
         /// keeps running on a frozen clock — so these move the camera while the
@@ -592,7 +628,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             this.level = level;
         }
 
-        public int TabCount => (car != null ? 3 : 0) + (orbitCamera != null ? 2 : 0) + (police != null ? 2 : 0)
+        public int TabCount => (car != null ? 4 : 0) + (orbitCamera != null ? 2 : 0) + (police != null ? 2 : 0)
                              + (level != null ? 1 : 0);
 
         public void AddTabs(DebugMenu menu, RectTransform parent, MenuTheme theme,
@@ -603,6 +639,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 menu.AddTab(CityDebugMenuFactory.BuildCarDriveTab(parent, theme, car, refreshers, tab++, tabCount));
                 menu.AddTab(CityDebugMenuFactory.BuildCarGripTab(parent, theme, car, refreshers, tab++, tabCount));
                 menu.AddTab(CityDebugMenuFactory.BuildAirTimeTab(parent, theme, car, refreshers, tab++, tabCount));
+                menu.AddTab(CityDebugMenuFactory.BuildDamageTab(parent, theme, car, refreshers, tab++, tabCount));
             }
             if (orbitCamera != null)
             {

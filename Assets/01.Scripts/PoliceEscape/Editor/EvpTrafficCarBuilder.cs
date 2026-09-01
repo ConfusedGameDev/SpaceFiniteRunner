@@ -64,7 +64,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             new("Bus-Green", VehicleKind.Bus, VehiclePaint.Green, "#6CD57E", 0.4f),
         };
 
-        /// <summary>EVP add-ons an NPC must not carry (the VehicleController itself stays).</summary>
+        /// <summary>
+        /// EVP add-ons an NPC must not carry (the VehicleController itself
+        /// stays). The authored VehicleDamage goes too: its collider list
+        /// points at the body MeshColliders removed below, and the runtime
+        /// <see cref="CarDeformation"/> re-adds one wired to the surviving
+        /// body meshes when the EVP backend installs.
+        /// </summary>
         static readonly System.Type[] StrippedComponents =
         {
             typeof(VehicleStandardInput), typeof(VehicleRandomInput), typeof(VehicleAudio),

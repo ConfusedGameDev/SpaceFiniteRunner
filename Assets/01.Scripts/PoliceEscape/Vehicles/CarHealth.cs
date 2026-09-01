@@ -50,6 +50,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         float fuse;
         bool exploded;
 
+        // The wreck's crumpled body meshes — per-car copies handed over by
+        // CarDeformation on the kill, freed with the hull (see OnDestroy).
+        Mesh[] dentedMeshes;
+
         void Awake()
         {
             settings = VehicleHealthSettings.Load();
@@ -137,6 +141,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// </summary>
         void BecomeWreck()
         {
+            // The dents are what the wreck should keep: detach the EVP body
+            // damage with its meshes left crumpled (its OnDisable would
+            // otherwise snap the hull back to showroom shape), and do it
+            // FIRST — VehicleDamage [RequireComponent]s the EVP controller
+            // the blanket pass below destroys, same ordering rule as the
+            // drivers and the CarController.
+            var deformation = GetComponent<CarDeformation>();
+            if (deformation != null) dentedMeshes = deformation.Detach(keepDents: true);
+
             // Grab the tire meshes off the controller before it is destroyed.
             var controller = GetComponent<CarController>();
             Transform[] tires = controller != null
@@ -177,6 +190,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
             if (lightSmoke != null) lightSmoke.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             Destroy(gameObject, settings.wreckLingerSeconds);
+        }
+
+        /// <summary>
+        /// The linger is over (or the scene is): free the crumpled mesh copies
+        /// the wreck was wearing — Unity does not destroy a MeshFilter's
+        /// instanced mesh with its GameObject.
+        /// </summary>
+        void OnDestroy()
+        {
+            if (dentedMeshes == null) return;
+            foreach (Mesh mesh in dentedMeshes)
+                if (mesh != null) Destroy(mesh);
+            dentedMeshes = null;
         }
 
         // ------------------------------------------------------------ emitters
