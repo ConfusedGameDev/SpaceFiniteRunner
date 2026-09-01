@@ -27,6 +27,7 @@ Material:
   m_ValidKeywords:
   - N_F_DDMD_ON
   - N_F_EAL_ON
+  - N_F_O_MOTTSO_ON
   - N_F_O_ON
   - N_F_RDC_ON
   - N_F_RELGI_ON
@@ -245,7 +246,7 @@ Material:
     - _N_F_HPSS: 0
     - _N_F_LLI: 0
     - _N_F_MC: 0
-    - _N_F_MSSOLTFO: 0
+    - _N_F_MSSOLTFO: 1
     - _N_F_NFD: 0
     - _N_F_NLASOBF: 0
     - _N_F_NM: 0
@@ -283,7 +284,7 @@ Material:
     - _OutZTest: 4
     - _OutZWrite: 1
     - _OutlineExtrudeMethod: 0
-    - _OutlineWidth: 0.5
+    - _OutlineWidth: 2.9
     - _OutlineWidthAffectedByViewDistance: 0
     - _OutlineZPostionInCamera: 0
     - _OverallShadowColorPower: 1
