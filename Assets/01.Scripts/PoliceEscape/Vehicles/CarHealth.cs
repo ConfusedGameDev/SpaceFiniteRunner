@@ -40,6 +40,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [TitleGroup("Debug"), ShowInInspector, ReadOnly]
         public bool IsDead { get; private set; }
 
+        /// <summary>
+        /// A car just died — raised the moment health hits zero (the fuse
+        /// starts), while the CarController and its identity are still on
+        /// the object, so a listener can ask WHAT was killed. Static, like
+        /// <c>SpeedPad.Collected</c>: the level's kill counters exist before
+        /// any car does.
+        /// </summary>
+        public static event System.Action<CarHealth> Died;
+
         /// <summary>Multiplier the drivers apply to their target speed — eased toward the car's health, never snapped.</summary>
         [TitleGroup("Debug"), ShowInInspector, ReadOnly]
         public float SpeedFactor { get; private set; } = 1f;
@@ -105,6 +114,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             IsDead = true;
             fuse = settings.fuseSeconds;
             SetEmitter(ref heavySmoke, true, heavy: true); // a dead car belches black even if the threshold was never crossed
+            Died?.Invoke(this);
         }
 
         /// <summary>

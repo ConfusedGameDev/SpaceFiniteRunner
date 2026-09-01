@@ -78,5 +78,42 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         public bool IsSet => kind != VehicleKind.Unknown;
 
         public override string ToString() => IsSet ? $"{paint} {kind}" : "unknown vehicle";
+
+        /// <summary>
+        /// Does this car fit a filter? <see cref="VehicleKind.Unknown"/> /
+        /// <see cref="VehiclePaint.Unknown"/> in the filter mean "any", so an
+        /// all-Unknown filter matches every car, identity or not; a set
+        /// filter part must be equalled exactly.
+        /// </summary>
+        public bool Matches(VehicleKind kindFilter, VehiclePaint paintFilter) =>
+            (kindFilter == VehicleKind.Unknown || kind == kindFilter)
+            && (paintFilter == VehiclePaint.Unknown || paint == paintFilter);
+
+        /// <summary>"SportCoupe" → "SPORT COUPE": the enum name spaced out, upper-case, for HUD readouts.</summary>
+        public static string DisplayName(System.Enum value)
+        {
+            string name = value.ToString();
+            var sb = new System.Text.StringBuilder(name.Length + 4);
+            for (int i = 0; i < name.Length; i++)
+            {
+                if (i > 0 && char.IsUpper(name[i])) sb.Append(' ');
+                sb.Append(char.ToUpperInvariant(name[i]));
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// A filter as words for a HUD line or a dialogue clause — "RED TRUCK",
+        /// "BUS", "RED", or the given fallback when both parts are "any".
+        /// </summary>
+        public static string Describe(VehicleKind kindFilter, VehiclePaint paintFilter, string any)
+        {
+            string paint = paintFilter != VehiclePaint.Unknown ? DisplayName(paintFilter) : null;
+            string kind = kindFilter != VehicleKind.Unknown ? DisplayName(kindFilter) : null;
+            if (paint == null && kind == null) return any;
+            if (paint == null) return kind;
+            if (kind == null) return paint;
+            return paint + " " + kind;
+        }
     }
 }

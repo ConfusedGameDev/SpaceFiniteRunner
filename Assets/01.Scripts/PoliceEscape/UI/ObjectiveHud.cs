@@ -10,7 +10,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     /// active step wants right now and how close the player is — the speed
     /// to reach against the current one, the seconds left to survive, the
     /// distance to a go-to target (or a red "NO TARGET" when its id is not in
-    /// the scene), or simply "escape". A dim caption counts the steps. Built
+    /// the scene), or simply "escape" — followed by the step's clock when it
+    /// carries one: the seconds left on a deadline (red once it gets tight),
+    /// or the held seconds against the span to hold. A dim caption counts
+    /// the steps. Built
     /// from code on its own overlay canvas like the Speedometer, spawned by
     /// the LevelManager, hidden while no player car exists and once the level
     /// completes. Prefixes come from the menu text library so they follow the
@@ -20,6 +23,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     {
         const int UiLayer = 5;
         static readonly Color MissingColor = new(1f, 0.35f, 0.3f);
+        /// <summary>A deadline this close reads in red.</summary>
+        const float DeadlineWarnSeconds = 10f;
 
         LevelManager manager;
         Canvas canvas;
@@ -110,9 +115,28 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                         ? $"{texts.Get(MenuTextId.ObjectiveChaseCar)} {(step.targetId ?? "").ToUpperInvariant()}  —  {chaseMeters:0} M"
                         : $"{texts.Get(MenuTextId.ObjectiveChaseCar)} {(step.targetId ?? "").ToUpperInvariant()}";
                     break;
+                case ObjectiveType.DestroyCars:
+                    text = $"{texts.Get(MenuTextId.ObjectiveDestroy)}  {step.DestroyTargetText}  {manager.Kills(index)}/{step.destroyCount}";
+                    break;
                 default:
                     text = texts.Get(MenuTextId.ObjectiveEscapePolice);
                     break;
+            }
+            // The clock rides after the condition: a deadline counts down (and
+            // turns red near the end), a hold counts the held seconds up.
+            if (step.HasTimeRule)
+            {
+                float timer = manager.Timer(index);
+                if (step.HasDeadline)
+                {
+                    float left = Mathf.Max(0f, step.timeSeconds - timer);
+                    text += $"   ·  {texts.Get(MenuTextId.ObjectiveTimeLimit)} {Mathf.CeilToInt(left)} S";
+                    if (left <= DeadlineWarnSeconds) color = MissingColor;
+                }
+                else
+                {
+                    text += $"   ·  {texts.Get(MenuTextId.ObjectiveHoldFor)} {Mathf.FloorToInt(Mathf.Min(timer, step.timeSeconds))}/{step.timeSeconds:0} S";
+                }
             }
             line.text = text;
             line.color = color;

@@ -63,7 +63,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DebugTabAirTime, AirSlowMo, AirSlowMoDelay, AirSlowMoScale, AirSlowMoMinScale, AirSlowMoMaxScale,
         AirSlowMoBlendIn, AirSlowMoBlendOut, AirControlRate, AirControlResponse,
         DebugTabDamage, EvpDamage, EvpDamageWheels, EvpDamageMinSpeed, EvpDamageMultiplier, EvpDamageRadius,
-        EvpDamageMaxDisplacement, EvpDamageVertexFracture, EvpDamageWheelBend, EvpDamageRepairRate
+        EvpDamageMaxDisplacement, EvpDamageVertexFracture, EvpDamageWheelBend, EvpDamageRepairRate,
+        ObjectiveTimeLimit, ObjectiveHoldFor, ObjectiveDestroy
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -450,6 +451,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString objectiveSurvive = new("SURVIVE", "SOBREVIVIR", "生き延びる", "SURVIVRE");
         [TitleGroup("City level objectives")]
         [SerializeField] LocalizedString objectiveChaseCar = new("CHASE", "PERSEGUIR", "追跡", "POURSUIVRE");
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString objectiveTimeLimit = new("TIME LIMIT", "TIEMPO LÍMITE", "制限時間", "TEMPS LIMITE");
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString objectiveHoldFor = new("HOLD FOR", "MANTENER", "維持", "MAINTENIR");
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString objectiveDestroy = new("DESTROY", "DESTRUIR", "破壊", "DÉTRUIRE");
 
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString gameOver = new("GAME OVER", "FIN DE LA PARTIDA", "ゲームオーバー", "PARTIE TERMINÉE");
@@ -706,6 +713,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.ObjectiveGoTo => objectiveGoTo,
             MenuTextId.ObjectiveSurvive => objectiveSurvive,
             MenuTextId.ObjectiveChaseCar => objectiveChaseCar,
+            MenuTextId.ObjectiveTimeLimit => objectiveTimeLimit,
+            MenuTextId.ObjectiveHoldFor => objectiveHoldFor,
+            MenuTextId.ObjectiveDestroy => objectiveDestroy,
             MenuTextId.CheatEnterCode => cheatEnterCode,
             MenuTextId.CheatUnlocked => cheatUnlocked,
             MenuTextId.GameOver => gameOver,

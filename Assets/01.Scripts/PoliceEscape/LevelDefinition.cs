@@ -4,11 +4,12 @@ using UnityEngine;
 using UnityEngine.Video;
 
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
     /// <summary>The things a level can ask of the player. Order is the save format — append only.</summary>
-    public enum ObjectiveType { ReachSpeed = 0, EscapePolice = 1, GoToTarget = 2, SurviveTime = 3, ChaseCar = 4 }
+    public enum ObjectiveType { ReachSpeed = 0, EscapePolice = 1, GoToTarget = 2, SurviveTime = 3, ChaseCar = 4, DestroyCars = 5 }
 
     /// <summary>
     /// How the objective list completes. <see cref="Independent"/>: steps
@@ -19,6 +20,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// everything holds at once. Order is the save format — append only.
     /// </summary>
     public enum CompletionMode { Independent = 0, AllMustHold = 1 }
+
+    /// <summary>
+    /// The optional clock on a step. <see cref="CompleteWithin"/> is a
+    /// deadline: the step's condition must be met within the seconds, or
+    /// the run is lost ("chase the car down in under 60 s").
+    /// <see cref="HoldFor"/> is a sustain: the condition must stay true for
+    /// the whole span, and a lapse restarts the count ("stay above 130 km/h
+    /// for 60 s"). Order is the save format — append only.
+    /// </summary>
+    public enum TimeRule { None = 0, CompleteWithin = 1, HoldFor = 2 }
 
     /// <summary>
     /// One step of a level. A plain enum-typed entry rather than a polymorphic
@@ -57,6 +68,34 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [ShowIf("type", ObjectiveType.EscapePolice)]
         [Tooltip("Off: the step completes the moment no patrol is hunting (even if none ever was). On: a pursuit has to be seen first, then shaken.")]
         public bool mustBeHuntedFirst;
+
+        // Destroy Cars: how many, and which. Kind and paint are FILTERS —
+        // Unknown means "any" — so "5 cars", "5 buses", "5 red cars" and
+        // "5 red trucks" are all the same step with different filters.
+        [ShowIf("type", ObjectiveType.DestroyCars)]
+        [Tooltip("How many matching cars must die while this step is active. Chain explosions count — leading a cruiser into a wreck is the point.")]
+        [PropertyRange(1, 50)]
+        public int destroyCount = 5;
+
+        [ShowIf("type", ObjectiveType.DestroyCars)]
+        [Tooltip("Only this kind of vehicle counts. Unknown = any kind.")]
+        public VehicleKind destroyKind = VehicleKind.Unknown;
+
+        [ShowIf("type", ObjectiveType.DestroyCars)]
+        [Tooltip("Only this paint counts. Unknown = any colour.")]
+        public VehiclePaint destroyPaint = VehiclePaint.Unknown;
+
+        // Time rule: the clock a step can carry on top of its condition.
+        // Survive is itself a timer, so it takes none.
+        [HideIf("type", ObjectiveType.SurviveTime)]
+        [Tooltip("None: no clock. Complete Within: the step must be done before the seconds run out — miss it and the run is lost. Hold For: the condition must stay true for the whole span; a lapse restarts the count.")]
+        [EnumToggleButtons]
+        public TimeRule timeRule = TimeRule.None;
+
+        [ShowIf(nameof(HasTimeRule))]
+        [Tooltip("Complete Within: the deadline, counted from the moment the step activates. Hold For: how long the condition must hold without a break.")]
+        [PropertyRange(5f, 600f), SuffixLabel("s", true)]
+        public float timeSeconds = 60f;
 
         [Tooltip("Dialogue line shown when the step becomes active. {0} = the speed / seconds / target id. Leave empty for the built-in line.")]
         [MultiLineProperty(2)]
@@ -102,7 +141,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public bool HasCinema => hasCinema && cinemaClip != null;
 
         /// <summary>Speed and time are the parameters the debug menu can slide.</summary>
-        public bool HasAdjustableValue => type == ObjectiveType.ReachSpeed || type == ObjectiveType.SurviveTime;
+        public bool HasAdjustableValue => type == ObjectiveType.ReachSpeed || type == ObjectiveType.SurviveTime || type == ObjectiveType.DestroyCars || HasTimeRule;
+
+        /// <summary>The Destroy Cars filter as words — "RED TRUCK", "BUS", or "CARS" when anything counts.</summary>
+        public string DestroyTargetText => VehicleIdentity.Describe(destroyKind, destroyPaint, "CARS");
+
+        /// <summary>Does a dead car count toward this Destroy Cars step?</summary>
+        public bool CountsKill(VehicleIdentity identity) =>
+            type == ObjectiveType.DestroyCars && identity.Matches(destroyKind, destroyPaint);
+
+        /// <summary>The step carries a clock — a deadline or a sustain. Survive steps never do: they ARE the clock.</summary>
+        public bool HasTimeRule => type != ObjectiveType.SurviveTime && timeRule != TimeRule.None;
+
+        /// <summary>The step must be finished before <see cref="timeSeconds"/> run out.</summary>
+        public bool HasDeadline => HasTimeRule && timeRule == TimeRule.CompleteWithin;
+
+        /// <summary>The step's condition must stay true for <see cref="timeSeconds"/> in a row.</summary>
+        public bool MustHold => HasTimeRule && timeRule == TimeRule.HoldFor;
 
         /// <summary>Inspector list label: the player-facing summary plus a cinema marker — never shown to the player.</summary>
         public string EditorLabel => HasCinema ? Summary + " [CINEMA]" : Summary;
@@ -120,30 +175,43 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.SurviveTime => surviveSeconds.ToString("0"),
             ObjectiveType.GoToTarget => string.IsNullOrEmpty(targetId) ? "?" : targetId,
             ObjectiveType.ChaseCar => string.IsNullOrEmpty(targetId) ? "?" : targetId,
+            ObjectiveType.DestroyCars => destroyCount.ToString(),
             _ => ""
         };
 
-        /// <summary>List element label in the inspector.</summary>
-        public string Summary => type switch
+        /// <summary>List element label in the inspector: the condition plus its clock, when it has one.</summary>
+        public string Summary => BaseSummary + TimeSummary;
+
+        string BaseSummary => type switch
         {
             ObjectiveType.ReachSpeed => $"REACH {targetSpeedKmh:0} KM/H",
             ObjectiveType.EscapePolice => mustBeHuntedFirst ? "ESCAPE POLICE (after a chase)" : "ESCAPE POLICE",
             ObjectiveType.GoToTarget => $"GO TO {(string.IsNullOrEmpty(targetId) ? "?" : targetId)}",
             ObjectiveType.SurviveTime => $"SURVIVE {surviveSeconds:0} S",
             ObjectiveType.ChaseCar => $"CHASE {(string.IsNullOrEmpty(targetId) ? "?" : targetId)}",
+            ObjectiveType.DestroyCars => $"DESTROY {destroyCount} × {DestroyTargetText}",
             _ => type.ToString()
         };
 
-        /// <summary>The dialogue line for this step — the authored one with {0} filled, or the built-in default.</summary>
+        string TimeSummary => HasDeadline ? $" IN {timeSeconds:0} S" : MustHold ? $" FOR {timeSeconds:0} S" : "";
+
+        /// <summary>
+        /// The dialogue line for this step — the authored one with {0} (the
+        /// value), {1} (the time rule's seconds) and {2} (the Destroy Cars
+        /// filter as words) filled, or the built-in default, which grows a
+        /// clause for the clock when the step has one.
+        /// </summary>
         public string BriefingText
         {
             get
             {
-                string template = string.IsNullOrWhiteSpace(briefing) ? DefaultBriefing(type) : briefing;
-                try { return string.Format(template, ValueText); }
+                string template = string.IsNullOrWhiteSpace(briefing) ? DefaultBriefing(type) + DefaultTimeClause : briefing;
+                try { return string.Format(template, ValueText, timeSeconds.ToString("0"), DestroyTargetText.ToLowerInvariant()); }
                 catch (System.FormatException) { return template; } // a stray brace in authored text must not throw mid-run
             }
         }
+
+        string DefaultTimeClause => HasDeadline ? " You've got {1} seconds!" : MustHold ? " Keep it up for {1} seconds!" : "";
 
         public static Color DefaultAccent(ObjectiveType type) => type switch
         {
@@ -151,6 +219,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.GoToTarget => new Color(1f, 0.85f, 0.4f),
             ObjectiveType.SurviveTime => new Color(0.75f, 0.6f, 1f),
             ObjectiveType.ChaseCar => new Color(1f, 0.9f, 0.2f),
+            ObjectiveType.DestroyCars => new Color(1f, 0.55f, 0.25f),
             _ => new Color(0.45f, 0.9f, 1f)
         };
 
@@ -161,6 +230,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.GoToTarget => "Get to {0} — I'll mark the distance.",
             ObjectiveType.SurviveTime => "Stay alive for {0} seconds!",
             ObjectiveType.ChaseCar => "Chase down {0} and take it out — don't let it get away!",
+            ObjectiveType.DestroyCars => "Wreck {0} {2} — I don't care how.",
             _ => ""
         };
     }
@@ -225,6 +295,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Tooltip("Line shown when the last objective completes. The glitch handoff starts only after it disappears.")]
         [MultiLineProperty(2)]
         public string completionMessage = "Hack complete. LFG!";
+
+        [TitleGroup("Messages")]
+        [Tooltip("Line shown when a Complete Within step runs out of time. The game-over glitch starts only after it disappears.")]
+        [MultiLineProperty(2)]
+        public string timeUpMessage = "Too slow. We lost them.";
 
         [TitleGroup("Messages")]
         [Tooltip("How long the screen holds at full corruption after the completion line before the next scene loads.")]

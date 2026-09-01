@@ -427,11 +427,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                         screen.AddRow<DebugLabelRow>($"{texts.Get(MenuTextId.ObjectiveChaseCar)}  [{objective.targetId}]")
                               .SetLabelTintProvider(StatusTint(manager, i, theme));
                         break;
+                    case ObjectiveType.DestroyCars:
+                        // The count slides; the kind/paint filter is data (raw label, like the ids).
+                        AddObjectiveStat(screen, theme, manager, i, refreshers, MenuTextId.ObjectiveDestroy,
+                                         1f, 50f, 1f, "0", o => o.destroyCount, (o, v) => o.destroyCount = Mathf.RoundToInt(v));
+                        screen.AddRow<DebugLabelRow>($"   [{objective.DestroyTargetText}]")
+                              .SetLabelTintProvider(StatusTint(manager, i, theme));
+                        break;
                     default:
                         screen.AddRow<DebugLabelRow>(MenuTextId.ObjectiveEscapePolice)
                               .SetLabelTintProvider(StatusTint(manager, i, theme));
                         break;
                 }
+                // The step's clock, when it has one, right under its condition.
+                if (objective.HasTimeRule)
+                    AddObjectiveStat(screen, theme, manager, i, refreshers,
+                                     objective.HasDeadline ? MenuTextId.ObjectiveTimeLimit : MenuTextId.ObjectiveHoldFor,
+                                     5f, 600f, 5f, "0", o => o.timeSeconds, (o, v) => o.timeSeconds = v);
             }
             return screen;
         }

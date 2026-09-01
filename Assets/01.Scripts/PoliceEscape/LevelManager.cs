@@ -22,14 +22,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// top to bottom; each step briefs once when it first becomes active.
     ///
     /// Step kinds: ReachSpeed and EscapePolice are STATE steps (true right
-    /// now); SurviveTime and GoToTarget are PROGRESS steps (a timer, an
-    /// arrival). In <see cref="CompletionMode.Independent"/> a finished step
+    /// now); SurviveTime, GoToTarget, ChaseCar and DestroyCars are PROGRESS
+    /// steps (a timer, an arrival, a kill, a kill count). In <see cref="CompletionMode.Independent"/> a finished step
     /// stays finished. In <see cref="CompletionMode.AllMustHold"/> a finished
     /// state step is re-checked every frame (speed with a small hysteresis):
     /// the lowest one that no longer holds becomes current again and every
     /// later step's progress resets — timers to zero, arrivals forgotten — so
     /// the level only completes when everything holds at once. Regressed
     /// steps re-activate silently; the HUD carries them.
+    ///
+    /// Any step can carry a <see cref="TimeRule"/> on top of its condition:
+    /// a DEADLINE (Complete Within) counts from activation and, if the
+    /// condition has not been met when it runs out, shows the level's
+    /// time-up line and asks for the same reboot full corruption does; a
+    /// SUSTAIN (Hold For) completes only once the condition has stayed true
+    /// for the whole span, a lapse restarting the count (speed with the same
+    /// small hysteresis the all-must-hold check uses, so a flicker on the
+    /// threshold never wipes the held seconds).
     ///
     /// A step flagged with a cinema plays its clip through the scene's
     /// <see cref="CinemaSystem"/> the moment it activates — the world frozen
@@ -102,9 +111,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         class ObjectiveState
         {
             public bool done;
-            public float timer;      // SurviveTime: seconds this step has been current
+            public float timer;      // SurviveTime: seconds current; deadline: seconds elapsed; hold: seconds held in a row
             public bool huntSeen;    // EscapePolice: a pursuit was observed since activation
             public bool carKilled;   // ChaseCar: the escaping car was seen dead
+            public int kills;        // DestroyCars: matching cars that died while the step was current
             public bool briefed;     // the step's dialogue line has played
             public bool warnedMissingTarget;
         }
@@ -120,6 +130,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         float promoteTimer;
         bool loading;
         bool resetting;
+        bool timedOut;
         bool warnedEmpty;
 
         public LevelDefinition Level => level;
@@ -143,7 +154,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         public bool IsDone(int index) => index >= 0 && index < states.Length && states[index].done;
 
-        /// <summary>Seconds a SurviveTime step has been held (0 for other kinds).</summary>
+        /// <summary>
+        /// The step's clock: seconds a SurviveTime step has been current, seconds
+        /// elapsed on a Complete-Within deadline, or seconds a Hold-For step's
+        /// condition has held in a row (0 for a step with no clock).
+        /// </summary>
         public float Timer(int index) => index >= 0 && index < states.Length ? states[index].timer : 0f;
 
         /// <summary>
@@ -170,6 +185,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             }
             return false;
         }
+
+        /// <summary>Matching cars a DestroyCars step has seen die (0 for other kinds).</summary>
+        public int Kills(int index) => index >= 0 && index < states.Length ? states[index].kills : 0;
 
         /// <summary>True for a go-to step whose id has no enabled TargetObject in the scene.</summary>
         public bool IsTargetMissing(int index)
@@ -221,17 +239,42 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                 Brief(current);
         }
 
+        void OnEnable() => CarHealth.Died += OnCarDied;
+
         // A scene going away mid-cinema (reload, exit to menu) must not leave
         // the world frozen or let the cinema call back into a dead manager.
         void OnDisable()
         {
+            CarHealth.Died -= OnCarDied;
             if (cinemaOpen) CinemaSystem.Instance?.Cancel();
             cinemaOpen = false;
         }
 
+        /// <summary>
+        /// A car died: if the CURRENT step is a Destroy Cars step and the car
+        /// fits its filter, it counts — the death arrives while the
+        /// controller (and so the identity) is still on the object. Only the
+        /// active step tallies, so kills before it briefs are not banked;
+        /// deaths while the level is frozen (brief, cinema) or ending fall
+        /// through the same gate the loop uses.
+        /// </summary>
+        void OnCarDied(CarHealth health)
+        {
+            if (briefOpen || cinemaOpen || Completed || resetting || timedOut) return;
+            if (level == null || current < 0 || current >= level.Count || current >= states.Length) return;
+            LevelObjective step = level.objectives[current];
+            if (step.type != ObjectiveType.DestroyCars) return;
+
+            var controller = health.GetComponent<CarController>();
+            VehicleIdentity identity = controller != null ? controller.identity : default;
+            if (!step.CountsKill(identity)) return;
+            states[current].kills++;
+            Debug.Log($"[Level] destroyed {identity} — {states[current].kills}/{step.destroyCount}", this);
+        }
+
         void Update()
         {
-            if (briefOpen || cinemaOpen || Completed || resetting) return;
+            if (briefOpen || cinemaOpen || Completed || resetting || timedOut) return;
             float dt = Time.deltaTime;
             RefreshTargets(dt);
             if (player == null) return; // the car spawns a beat after play starts
@@ -273,15 +316,64 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             current = Mathf.Clamp(current, 0, Mathf.Max(0, count - 1));
         }
 
-        /// <summary>Is this step satisfied right now (advancing its progress by dt if it is a timer)?</summary>
+        /// <summary>
+        /// Is this step complete right now, its clock advanced by dt? Without a
+        /// time rule that is the bare condition. A deadline counts the seconds
+        /// since activation and fails the run when they run out unmet; a hold
+        /// counts the seconds the condition has stayed true and completes only
+        /// once they cover the span.
+        /// </summary>
         bool Evaluate(int index, float dt)
+        {
+            LevelObjective step = level.objectives[index];
+            ObjectiveState state = states[index];
+            if (step.HasDeadline)
+            {
+                if (Satisfied(index, dt, false)) return true;
+                state.timer += dt;
+                if (state.timer >= step.timeSeconds) TimeOut(index);
+                return false;
+            }
+            if (step.MustHold)
+            {
+                // Once seconds are banked the check gets the hysteresis, so a
+                // flicker on the threshold never throws them away.
+                state.timer = Satisfied(index, dt, state.timer > 0f) ? state.timer + dt : 0f;
+                return state.timer >= step.timeSeconds;
+            }
+            return Satisfied(index, dt, false);
+        }
+
+        /// <summary>
+        /// A deadline ran out with its step unmet: the level's time-up line,
+        /// then the shared death once it has cleared the screen. The flag
+        /// stops evaluation at once so the step cannot complete during the
+        /// line; the reboot itself gates on <c>resetting</c> as ever.
+        /// </summary>
+        void TimeOut(int index)
+        {
+            if (timedOut) return;
+            timedOut = true;
+            Debug.Log($"[Level] objective {index + 1} ran out of time", this);
+            RpgMessageSystem.Instance.ShowMessage(
+                level.speakerName, level.timeUpMessage, level.messageHoldSeconds, LevelObjective.DefaultAccent(ObjectiveType.EscapePolice),
+                onFinished: () => RequestReboot("time limit"));
+        }
+
+        /// <summary>
+        /// The step's bare condition (advancing its progress by dt if it is a
+        /// timer). <paramref name="holding"/> asks the lenient reading — the
+        /// speed check with the hold tolerance — for a sustain already in
+        /// progress.
+        /// </summary>
+        bool Satisfied(int index, float dt, bool holding)
         {
             LevelObjective step = level.objectives[index];
             ObjectiveState state = states[index];
             switch (step.type)
             {
                 case ObjectiveType.ReachSpeed:
-                    return player.SpeedKmh >= step.targetSpeedKmh;
+                    return player.SpeedKmh >= step.targetSpeedKmh - (holding ? HoldToleranceKmh : 0f);
 
                 case ObjectiveType.EscapePolice:
                 {
@@ -325,6 +417,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                     TryPromoteEscapeCar(index, step, state);
                     return false;
                 }
+
+                case ObjectiveType.DestroyCars:
+                    // The tally is fed by OnCarDied; here it only has to be read.
+                    return state.kills >= step.destroyCount;
             }
             return false;
         }
@@ -398,7 +494,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             for (int i = index; i < states.Length; i++)
             {
                 states[i].done = false;
-                if (i > index) { states[i].timer = 0f; states[i].carKilled = false; } // later progress is forfeited; the regressed step's own state stays
+                // Later progress is forfeited; the regressed step keeps its own
+                // state (a seen hunt, a kill) but its clock restarts — a
+                // deadline gets its full span again, a hold starts from zero.
+                states[i].timer = 0f;
+                if (i > index) { states[i].carKilled = false; states[i].kills = 0; }
             }
             current = index;
         }
