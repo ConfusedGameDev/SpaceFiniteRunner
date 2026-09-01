@@ -64,7 +64,14 @@ namespace ConfusedGameDev.FiniteRunner.UI
         AirSlowMoBlendIn, AirSlowMoBlendOut, AirControlRate, AirControlResponse,
         DebugTabDamage, EvpDamage, EvpDamageWheels, EvpDamageMinSpeed, EvpDamageMultiplier, EvpDamageRadius,
         EvpDamageMaxDisplacement, EvpDamageVertexFracture, EvpDamageWheelBend, EvpDamageRepairRate,
-        ObjectiveTimeLimit, ObjectiveHoldFor, ObjectiveDestroy
+        ObjectiveTimeLimit, ObjectiveHoldFor, ObjectiveDestroy,
+        Log, LogSectionGlobal, LogSectionVehicles, LogSectionLastLevel, LogSectionRunner,
+        StatPlayTime, StatLevelsCompleted, StatDeaths, StatArrests, StatMaxSpeed, StatMaxJump,
+        StatTotaledCars, StatTotaledPolice, StatMoneyEarned, StatBonusObjectives,
+        StatLevelName, StatLastObjective, StatOptionalObjectives,
+        StatEscapesAttempted, StatEscapesCompleted, StatFastestEscape, StatPowerUps, StatSlowDowns,
+        ChallengeBonus, ChallengeDone, ChallengeFailed,
+        ObjectiveCollect, LogSectionCollectibles, StatCollectibles
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -457,6 +464,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString objectiveHoldFor = new("HOLD FOR", "MANTENER", "維持", "MAINTENIR");
         [TitleGroup("City level objectives")]
         [SerializeField] LocalizedString objectiveDestroy = new("DESTROY", "DESTRUIR", "破壊", "DÉTRUIRE");
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString objectiveCollect = new("COLLECT", "RECOGER", "回収", "RAMASSER");
 
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString gameOver = new("GAME OVER", "FIN DE LA PARTIDA", "ゲームオーバー", "PARTIE TERMINÉE");
@@ -474,6 +483,63 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString reward = new("REWARD", "RECOMPENSA", "報酬", "RÉCOMPENSE");
         [TitleGroup("Mission brief")]
         [SerializeField] LocalizedString accept = new("ACCEPT", "ACEPTAR", "承諾", "ACCEPTER");
+        [TitleGroup("Mission brief")]
+        [SerializeField] LocalizedString challengeBonus = new("BONUS", "EXTRA", "ボーナス", "BONUS");
+        [TitleGroup("Mission brief")]
+        [SerializeField] LocalizedString challengeDone = new("DONE", "HECHO", "完了", "FAIT");
+        [TitleGroup("Mission brief")]
+        [SerializeField] LocalizedString challengeFailed = new("FAILED", "FALLIDO", "失敗", "ÉCHOUÉ");
+
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString log = new("LOG", "REGISTRO", "ログ", "JOURNAL");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString logSectionGlobal = new("GLOBAL", "GLOBAL", "全体", "GLOBAL");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString logSectionVehicles = new("TOTALED VEHICLES", "VEHÍCULOS DESTROZADOS", "破壊した車両", "VÉHICULES DÉTRUITS");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString logSectionCollectibles = new("COLLECTIBLES", "COLECCIONABLES", "収集アイテム", "OBJETS À COLLECTIONNER");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statCollectibles = new("TOTAL COLLECTED", "TOTAL RECOGIDO", "総収集数", "TOTAL RAMASSÉ");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString logSectionLastLevel = new("LAST LEVEL", "ÚLTIMO NIVEL", "前回のレベル", "DERNIER NIVEAU");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString logSectionRunner = new("ESCAPE RUNS", "HUIDAS", "逃走ラン", "ÉVASIONS");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statPlayTime = new("TOTAL PLAY TIME", "TIEMPO TOTAL DE JUEGO", "総プレイ時間", "TEMPS DE JEU TOTAL");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statLevelsCompleted = new("LEVELS COMPLETED", "NIVELES COMPLETADOS", "クリアしたレベル", "NIVEAUX TERMINÉS");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statDeaths = new("TOTAL DEATHS", "MUERTES TOTALES", "総死亡回数", "MORTS TOTALES");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statArrests = new("TIMES ARRESTED", "VECES ARRESTADO", "逮捕回数", "ARRESTATIONS");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statMaxSpeed = new("MAX SPEED", "VELOCIDAD MÁXIMA", "最高速度", "VITESSE MAX");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statMaxJump = new("LONGEST JUMP", "SALTO MÁS LARGO", "最長ジャンプ", "PLUS LONG SAUT");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statTotaledCars = new("TOTALED CARS", "COCHES DESTROZADOS", "破壊した車", "VOITURES DÉTRUITES");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statTotaledPolice = new("TOTALED POLICE CARS", "PATRULLAS DESTROZADAS", "破壊したパトカー", "VOITURES DE POLICE DÉTRUITES");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statMoneyEarned = new("MONEY EARNED", "DINERO GANADO", "獲得金額", "ARGENT GAGNÉ");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statBonusObjectives = new("BONUS OBJECTIVES", "OBJETIVOS EXTRA", "ボーナス目標", "OBJECTIFS BONUS");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statLevelName = new("LEVEL", "NIVEL", "レベル", "NIVEAU");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statLastObjective = new("LAST OBJECTIVE", "ÚLTIMO OBJETIVO", "最後の目標", "DERNIER OBJECTIF");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statOptionalObjectives = new("OPTIONAL OBJECTIVES", "OBJETIVOS OPCIONALES", "任意目標", "OBJECTIFS OPTIONNELS");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statEscapesAttempted = new("ESCAPES ATTEMPTED", "HUIDAS INTENTADAS", "逃走試行", "ÉVASIONS TENTÉES");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statEscapesCompleted = new("ESCAPES COMPLETED", "HUIDAS LOGRADAS", "逃走成功", "ÉVASIONS RÉUSSIES");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statFastestEscape = new("FASTEST ESCAPE", "HUIDA MÁS RÁPIDA", "最速逃走", "ÉVASION LA PLUS RAPIDE");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statPowerUps = new("POWER-UPS COLLECTED", "POTENCIADORES RECOGIDOS", "取得したパワーアップ", "BONUS RAMASSÉS");
+        [TitleGroup("Log")]
+        [SerializeField] LocalizedString statSlowDowns = new("SLOW-DOWNS COLLECTED", "RALENTIZADORES RECOGIDOS", "取得したスローダウン", "MALUS RAMASSÉS");
 
         static MenuTextLibrary cached;
 
@@ -716,6 +782,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.ObjectiveTimeLimit => objectiveTimeLimit,
             MenuTextId.ObjectiveHoldFor => objectiveHoldFor,
             MenuTextId.ObjectiveDestroy => objectiveDestroy,
+            MenuTextId.ObjectiveCollect => objectiveCollect,
+            MenuTextId.LogSectionCollectibles => logSectionCollectibles,
+            MenuTextId.StatCollectibles => statCollectibles,
             MenuTextId.CheatEnterCode => cheatEnterCode,
             MenuTextId.CheatUnlocked => cheatUnlocked,
             MenuTextId.GameOver => gameOver,
@@ -724,8 +793,34 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.OptionalChallenges => optionalChallenges,
             MenuTextId.Reward => reward,
             MenuTextId.Accept => accept,
+            MenuTextId.ChallengeBonus => challengeBonus,
+            MenuTextId.ChallengeDone => challengeDone,
+            MenuTextId.ChallengeFailed => challengeFailed,
             MenuTextId.HoldToSkip => holdToSkip,
             MenuTextId.Loading => loading,
+            MenuTextId.Log => log,
+            MenuTextId.LogSectionGlobal => logSectionGlobal,
+            MenuTextId.LogSectionVehicles => logSectionVehicles,
+            MenuTextId.LogSectionLastLevel => logSectionLastLevel,
+            MenuTextId.LogSectionRunner => logSectionRunner,
+            MenuTextId.StatPlayTime => statPlayTime,
+            MenuTextId.StatLevelsCompleted => statLevelsCompleted,
+            MenuTextId.StatDeaths => statDeaths,
+            MenuTextId.StatArrests => statArrests,
+            MenuTextId.StatMaxSpeed => statMaxSpeed,
+            MenuTextId.StatMaxJump => statMaxJump,
+            MenuTextId.StatTotaledCars => statTotaledCars,
+            MenuTextId.StatTotaledPolice => statTotaledPolice,
+            MenuTextId.StatMoneyEarned => statMoneyEarned,
+            MenuTextId.StatBonusObjectives => statBonusObjectives,
+            MenuTextId.StatLevelName => statLevelName,
+            MenuTextId.StatLastObjective => statLastObjective,
+            MenuTextId.StatOptionalObjectives => statOptionalObjectives,
+            MenuTextId.StatEscapesAttempted => statEscapesAttempted,
+            MenuTextId.StatEscapesCompleted => statEscapesCompleted,
+            MenuTextId.StatFastestEscape => statFastestEscape,
+            MenuTextId.StatPowerUps => statPowerUps,
+            MenuTextId.StatSlowDowns => statSlowDowns,
             _ => start
         };
     }

@@ -2,6 +2,7 @@ using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Audio;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.City;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Stats;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using UnityEditor;
@@ -120,6 +121,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // The car radio likewise stands alone: its playlist asset is created
             // (and the InGame songs fetched into it) if the project has none.
             placed += Place<RadioSystem>("Radio", parent, r => r.settings = RadioAssetBuilder.CreateOrLoad());
+
+            // The stats recorder feeds the player's saved profile (totaled
+            // cars, top speed, jumps) off the live cars; nothing to wire.
+            placed += Place<CityStatsRecorder>("StatsRecorder", parent, null);
 
             // Menus poll the EventSystem for mouse input; MenuScreenFactory
             // creates one on demand, so pre-placing it is what keeps that

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,30 +7,37 @@ using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 {
     /// <summary>
-    /// The one-line objective readout at the top of the screen: what the
-    /// active step wants right now and how close the player is — the speed
-    /// to reach against the current one, the seconds left to survive, the
-    /// distance to a go-to target (or a red "NO TARGET" when its id is not in
-    /// the scene), or simply "escape" — followed by the step's clock when it
-    /// carries one: the seconds left on a deadline (red once it gets tight),
-    /// or the held seconds against the span to hold. A dim caption counts
-    /// the steps. Built
-    /// from code on its own overlay canvas like the Speedometer, spawned by
-    /// the LevelManager, hidden while no player car exists and once the level
-    /// completes. Prefixes come from the menu text library so they follow the
-    /// language setting; numbers and ids stay raw.
+    /// The objective readout at the top of the screen: what the active step
+    /// wants right now and how close the player is — the speed to reach (only
+    /// the target: the speedometer already shows the current speed), the
+    /// seconds left to survive, the distance to a go-to target (or a red
+    /// "NO TARGET" when its id is not in the scene), or simply "escape" —
+    /// followed by the step's clock when it carries one: the seconds left on
+    /// a deadline (red once it gets tight), or the held seconds against the
+    /// span to hold. A dim caption counts the steps. Under the objective, one
+    /// smaller line per accepted optional challenge reads the same way
+    /// (BONUS ×N · condition · progress) and settles to DONE or FAILED.
+    /// Built from code on its own overlay canvas like the Speedometer,
+    /// spawned by the LevelManager, hidden while no player car exists and
+    /// once the level completes. Prefixes come from the menu text library so
+    /// they follow the language setting; numbers and ids stay raw.
     /// </summary>
     public class ObjectiveHud : MonoBehaviour
     {
         const int UiLayer = 5;
         static readonly Color MissingColor = new(1f, 0.35f, 0.3f);
+        static readonly Color DoneColor = new(0.45f, 1f, 0.55f);
         /// <summary>A deadline this close reads in red.</summary>
         const float DeadlineWarnSeconds = 10f;
+        const float ChallengeLineY = -104f;
+        const float ChallengeLineStep = 30f;
 
         LevelManager manager;
         Canvas canvas;
+        RectTransform root;
         Text line;
         Text caption;
+        readonly List<Text> challengeLines = new();
         bool built;
 
         public static ObjectiveHud Spawn(LevelManager manager)
@@ -52,14 +60,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             Build();
             canvas.enabled = true;
             caption.text = "OBJECTIVE 1/3";
-            line.text = "REACH SPEED  130 KM/H   (0)";
+            line.text = "REACH SPEED  130 KM/H";
+            var sample = CreateChallengeLine(0);
+            sample.text = "BONUS ×2  ·  DESTROY  CARS  3/10";
+            challengeLines.Add(sample);
         }
 
         void TearDown()
         {
             for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
             canvas = null;
+            root = null;
             line = caption = null;
+            challengeLines.Clear();
         }
 
         static void Kill(Object o)
@@ -88,18 +101,35 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
             MenuTextLibrary texts = MenuTextLibrary.Load();
             Color color = step.Accent;
+            bool hasDistance = manager.TryGetTargetDistance(index, out float meters);
+            line.text = Describe(texts, step, manager.Timer(index), manager.Tally(index), hasDistance, meters, ref color);
+            line.color = color;
+
+            UpdateChallenges(texts);
+        }
+
+        /// <summary>
+        /// The condition with its live progress, then the clock when the step
+        /// carries one. Shared by the objective line and the challenge lines,
+        /// which is why the progress comes in as arguments rather than being
+        /// read off a list index.
+        /// </summary>
+        static string Describe(MenuTextLibrary texts, LevelObjective step, float timer, int tally,
+                               bool hasDistance, float meters, ref Color color)
+        {
             string text;
             switch (step.type)
             {
                 case ObjectiveType.ReachSpeed:
-                    text = $"{texts.Get(MenuTextId.ObjectiveReachSpeed)}  {step.targetSpeedKmh:0} KM/H   ({manager.Player.SpeedKmh:0})";
+                    // Target only — the speedometer is the current-speed readout.
+                    text = $"{texts.Get(MenuTextId.ObjectiveReachSpeed)}  {step.targetSpeedKmh:0} KM/H";
                     break;
                 case ObjectiveType.SurviveTime:
-                    float left = Mathf.Max(0f, step.surviveSeconds - manager.Timer(index));
+                    float left = Mathf.Max(0f, step.surviveSeconds - timer);
                     text = $"{texts.Get(MenuTextId.ObjectiveSurvive)}  {Mathf.CeilToInt(left)} S";
                     break;
                 case ObjectiveType.GoToTarget:
-                    if (manager.TryGetTargetDistance(index, out float meters))
+                    if (hasDistance)
                         text = $"{texts.Get(MenuTextId.ObjectiveGoTo)} {(step.targetId ?? "").ToUpperInvariant()}  —  {meters:0} M";
                     else
                     {
@@ -111,12 +141,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                     // No red "missing" state: the escapee is promoted from live
                     // traffic a beat after the step activates, so absence just
                     // means the mark hasn't been picked yet.
-                    text = manager.TryGetTargetDistance(index, out float chaseMeters)
-                        ? $"{texts.Get(MenuTextId.ObjectiveChaseCar)} {(step.targetId ?? "").ToUpperInvariant()}  —  {chaseMeters:0} M"
+                    text = hasDistance
+                        ? $"{texts.Get(MenuTextId.ObjectiveChaseCar)} {(step.targetId ?? "").ToUpperInvariant()}  —  {meters:0} M"
                         : $"{texts.Get(MenuTextId.ObjectiveChaseCar)} {(step.targetId ?? "").ToUpperInvariant()}";
                     break;
                 case ObjectiveType.DestroyCars:
-                    text = $"{texts.Get(MenuTextId.ObjectiveDestroy)}  {step.DestroyTargetText}  {manager.Kills(index)}/{step.destroyCount}";
+                    text = $"{texts.Get(MenuTextId.ObjectiveDestroy)}  {step.DestroyTargetText}  {tally}/{step.destroyCount}";
+                    break;
+                case ObjectiveType.CollectObjects:
+                    text = $"{texts.Get(MenuTextId.ObjectiveCollect)}  {step.CollectTargetText}  {tally}/{step.collectCount}";
                     break;
                 default:
                     text = texts.Get(MenuTextId.ObjectiveEscapePolice);
@@ -126,7 +159,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             // turns red near the end), a hold counts the held seconds up.
             if (step.HasTimeRule)
             {
-                float timer = manager.Timer(index);
                 if (step.HasDeadline)
                 {
                     float left = Mathf.Max(0f, step.timeSeconds - timer);
@@ -138,8 +170,46 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                     text += $"   ·  {texts.Get(MenuTextId.ObjectiveHoldFor)} {Mathf.FloorToInt(Mathf.Min(timer, step.timeSeconds))}/{step.timeSeconds:0} S";
                 }
             }
-            line.text = text;
-            line.color = color;
+            return text;
+        }
+
+        // One line per accepted challenge, in the order they were accepted.
+        // Lines are created as needed and only ever hidden, so the challenge
+        // count can change (a restart) without rebuilding the canvas.
+        void UpdateChallenges(MenuTextLibrary texts)
+        {
+            IReadOnlyList<OptionalChallenge> challenges = manager.AcceptedChallenges;
+            while (challengeLines.Count < challenges.Count) challengeLines.Add(CreateChallengeLine(challengeLines.Count));
+
+            for (int i = 0; i < challengeLines.Count; i++)
+            {
+                Text lineText = challengeLines[i];
+                bool shown = i < challenges.Count;
+                if (lineText.gameObject.activeSelf != shown) lineText.gameObject.SetActive(shown);
+                if (!shown) continue;
+
+                OptionalChallenge challenge = challenges[i];
+                string prefix = $"{texts.Get(MenuTextId.ChallengeBonus)} ×{challenge.multiplier}";
+                Color color = challenge.Accent;
+                string body;
+                if (manager.IsChallengeDone(i))
+                {
+                    body = $"{texts.Get(MenuTextId.ChallengeDone)}  ·  {challenge.Summary}";
+                    color = DoneColor;
+                }
+                else if (manager.IsChallengeFailed(i))
+                {
+                    body = $"{texts.Get(MenuTextId.ChallengeFailed)}  ·  {challenge.Summary}";
+                    color = MissingColor;
+                }
+                else
+                {
+                    bool hasDistance = manager.TryGetChallengeTargetDistance(i, out float meters);
+                    body = Describe(texts, challenge, manager.ChallengeTimer(i), manager.ChallengeTally(i), hasDistance, meters, ref color);
+                }
+                lineText.text = $"{prefix}  ·  {body}";
+                lineText.color = color;
+            }
         }
 
         // --------------------------------------------------------------- build
@@ -160,7 +230,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             scaler.matchWidthOrHeight = 0.5f;
 
             // Anchored to the top edge, centered.
-            var root = new GameObject("Root", typeof(RectTransform)).GetComponent<RectTransform>();
+            root = new GameObject("Root", typeof(RectTransform)).GetComponent<RectTransform>();
             root.gameObject.layer = UiLayer;
             root.SetParent(canvas.transform, false);
             root.anchorMin = root.anchorMax = new Vector2(0.5f, 1f);
@@ -172,8 +242,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             caption.rectTransform.anchoredPosition = new Vector2(0f, -14f);
             line = CreateText("Line", root, 38, Color.white, FontStyle.Bold);
             line.rectTransform.anchoredPosition = new Vector2(0f, -54f);
+            AddShadow(line);
+        }
 
-            var shadow = line.gameObject.AddComponent<Shadow>();
+        Text CreateChallengeLine(int index)
+        {
+            var text = CreateText($"Challenge{index}", root, 24, Color.white, FontStyle.Normal);
+            text.rectTransform.anchoredPosition = new Vector2(0f, ChallengeLineY - index * ChallengeLineStep);
+            AddShadow(text);
+            return text;
+        }
+
+        static void AddShadow(Text text)
+        {
+            var shadow = text.gameObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.7f);
             shadow.effectDistance = new Vector2(2f, -2f);
         }

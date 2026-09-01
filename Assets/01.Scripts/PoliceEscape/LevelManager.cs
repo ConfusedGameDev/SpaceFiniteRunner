@@ -1,6 +1,7 @@
 using System.Collections;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Collectibles;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using Sirenix.OdinInspector;
@@ -10,6 +11,7 @@ using UnityEngine.SceneManagement;
 using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.HUD;
+using ConfusedGameDev.FiniteRunner.SaveData;
 using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
@@ -22,8 +24,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// top to bottom; each step briefs once when it first becomes active.
     ///
     /// Step kinds: ReachSpeed and EscapePolice are STATE steps (true right
-    /// now); SurviveTime, GoToTarget, ChaseCar and DestroyCars are PROGRESS
-    /// steps (a timer, an arrival, a kill, a kill count). In <see cref="CompletionMode.Independent"/> a finished step
+    /// now); SurviveTime, GoToTarget, ChaseCar, DestroyCars and CollectObjects
+    /// are PROGRESS steps (a timer, an arrival, a kill, a kill count, a
+    /// pickup count — the last two tallied from the static CarHealth.Died and
+    /// Collectible.Collected events while the step is current). In <see cref="CompletionMode.Independent"/> a finished step
     /// stays finished. In <see cref="CompletionMode.AllMustHold"/> a finished
     /// state step is re-checked every frame (speed with a small hysteresis):
     /// the lowest one that no longer holds becomes current again and every
@@ -39,6 +43,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// for the whole span, a lapse restarting the count (speed with the same
     /// small hysteresis the all-must-hold check uses, so a flicker on the
     /// threshold never wipes the held seconds).
+    ///
+    /// Optional challenges accepted at the brief are full steps too
+    /// (<see cref="OptionalChallenge"/>), but they run BESIDE the list, not in
+    /// it: every accepted one is checked each frame for the whole level until
+    /// it completes and latches (a challenge never regresses), a Complete
+    /// Within deadline that runs out fails the CHALLENGE rather than the run,
+    /// and Destroy Cars challenges tally every matching kill while live. Each
+    /// outcome gets its own dialogue line, and <see cref="EarnedReward"/> —
+    /// base × the multipliers of the challenges actually completed — is what
+    /// the completion banks; <see cref="MissionReward"/> is only the offer.
     ///
     /// A step flagged with a cinema plays its clip through the scene's
     /// <see cref="CinemaSystem"/> the moment it activates — the world frozen
@@ -114,12 +128,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             public float timer;      // SurviveTime: seconds current; deadline: seconds elapsed; hold: seconds held in a row
             public bool huntSeen;    // EscapePolice: a pursuit was observed since activation
             public bool carKilled;   // ChaseCar: the escaping car was seen dead
-            public int kills;        // DestroyCars: matching cars that died while the step was current
+            public int tally;        // DestroyCars: matching cars that died / CollectObjects: matching pickups, while the step was current
             public bool briefed;     // the step's dialogue line has played
+            public bool failed;      // challenges only: the deadline ran out — the multiplier is lost
             public bool warnedMissingTarget;
         }
 
         ObjectiveState[] states = System.Array.Empty<ObjectiveState>();
+        ObjectiveState[] challengeStates = System.Array.Empty<ObjectiveState>(); // one per ACCEPTED challenge, parallel to acceptedChallenges
         readonly System.Collections.Generic.List<OptionalChallenge> acceptedChallenges = new();
         bool briefOpen;
         bool cinemaOpen;
@@ -131,6 +147,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         bool loading;
         bool resetting;
         bool timedOut;
+        string lastDamageReason; // what last filled the corruption meter — a police hit makes the reboot an arrest
         bool warnedEmpty;
 
         public LevelDefinition Level => level;
@@ -145,8 +162,51 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// <summary>The optional challenges the player toggled on at the brief (empty when it was skipped).</summary>
         public System.Collections.Generic.IReadOnlyList<OptionalChallenge> AcceptedChallenges => acceptedChallenges;
 
-        /// <summary>The payout on offer: base reward × every accepted challenge's multiplier.</summary>
+        /// <summary>The payout on OFFER at the brief: base reward × every accepted challenge's multiplier. <see cref="EarnedReward"/> is what completion pays.</summary>
         public int MissionReward { get; private set; }
+
+        /// <summary>The payout earned so far: base reward × the multiplier of every accepted challenge that has COMPLETED.</summary>
+        public int EarnedReward
+        {
+            get
+            {
+                long reward = level != null ? level.baseReward : 0;
+                for (int i = 0; i < acceptedChallenges.Count && i < challengeStates.Length; i++)
+                    if (challengeStates[i].done) reward *= Mathf.Max(1, acceptedChallenges[i].multiplier);
+                return (int)System.Math.Min(reward, int.MaxValue);
+            }
+        }
+
+        /// <summary>How many accepted challenges have completed.</summary>
+        public int ChallengesCompleted
+        {
+            get
+            {
+                int count = 0;
+                foreach (ObjectiveState state in challengeStates) if (state.done) count++;
+                return count;
+            }
+        }
+
+        /// <summary>Position of a challenge in the accepted list, or -1 when the player did not take it on.</summary>
+        public int AcceptedIndex(OptionalChallenge challenge) => acceptedChallenges.IndexOf(challenge);
+
+        public bool IsChallengeDone(int index) => index >= 0 && index < challengeStates.Length && challengeStates[index].done;
+
+        public bool IsChallengeFailed(int index) => index >= 0 && index < challengeStates.Length && challengeStates[index].failed;
+
+        /// <summary>An accepted challenge's clock — the same meaning as <see cref="Timer"/>.</summary>
+        public float ChallengeTimer(int index) => index >= 0 && index < challengeStates.Length ? challengeStates[index].timer : 0f;
+
+        /// <summary>An accepted challenge's tally — matching cars died (Destroy Cars) or pickups made (Collect Objects).</summary>
+        public int ChallengeTally(int index) => index >= 0 && index < challengeStates.Length ? challengeStates[index].tally : 0;
+
+        /// <summary><see cref="TryGetTargetDistance(int, out float)"/> for an accepted challenge.</summary>
+        public bool TryGetChallengeTargetDistance(int index, out float meters)
+        {
+            meters = 0f;
+            return index >= 0 && index < acceptedChallenges.Count && TryGetTargetDistance(acceptedChallenges[index], out meters);
+        }
 
         /// <summary>The active step, or null when there is none.</summary>
         public LevelObjective CurrentObjective =>
@@ -171,7 +231,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         {
             meters = 0f;
             var step = Objective(index);
-            if (step == null || player == null) return false;
+            return step != null && TryGetTargetDistance(step, out meters);
+        }
+
+        bool TryGetTargetDistance(LevelObjective step, out float meters)
+        {
+            meters = 0f;
+            if (player == null) return false;
             switch (step.type)
             {
                 case ObjectiveType.GoToTarget:
@@ -186,8 +252,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             return false;
         }
 
-        /// <summary>Matching cars a DestroyCars step has seen die (0 for other kinds).</summary>
-        public int Kills(int index) => index >= 0 && index < states.Length ? states[index].kills : 0;
+        /// <summary>The step's tally — matching cars died (Destroy Cars) or pickups made (Collect Objects); 0 for other kinds.</summary>
+        public int Tally(int index) => index >= 0 && index < states.Length ? states[index].tally : 0;
 
         /// <summary>True for a go-to step whose id has no enabled TargetObject in the scene.</summary>
         public bool IsTargetMissing(int index)
@@ -227,6 +293,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         {
             acceptedChallenges.Clear();
             acceptedChallenges.AddRange(challenges);
+            // Challenges neither brief nor play a cinema — the brief presented them.
+            challengeStates = new ObjectiveState[acceptedChallenges.Count];
+            for (int i = 0; i < challengeStates.Length; i++) challengeStates[i] = new ObjectiveState { briefed = true };
             MissionReward = reward;
             briefOpen = false; // objectives (and the first briefing line) start now
 
@@ -239,13 +308,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                 Brief(current);
         }
 
-        void OnEnable() => CarHealth.Died += OnCarDied;
+        void OnEnable()
+        {
+            CarHealth.Died += OnCarDied;
+            Collectible.Collected += OnCollected;
+        }
 
         // A scene going away mid-cinema (reload, exit to menu) must not leave
         // the world frozen or let the cinema call back into a dead manager.
         void OnDisable()
         {
             CarHealth.Died -= OnCarDied;
+            Collectible.Collected -= OnCollected;
             if (cinemaOpen) CinemaSystem.Instance?.Cancel();
             cinemaOpen = false;
         }
@@ -256,20 +330,51 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// controller (and so the identity) is still on the object. Only the
         /// active step tallies, so kills before it briefs are not banked;
         /// deaths while the level is frozen (brief, cinema) or ending fall
-        /// through the same gate the loop uses.
+        /// through the same gate the loop uses. Every LIVE accepted Destroy
+        /// Cars challenge tallies the same death in parallel.
         /// </summary>
         void OnCarDied(CarHealth health)
         {
             if (briefOpen || cinemaOpen || Completed || resetting || timedOut) return;
-            if (level == null || current < 0 || current >= level.Count || current >= states.Length) return;
-            LevelObjective step = level.objectives[current];
-            if (step.type != ObjectiveType.DestroyCars) return;
-
             var controller = health.GetComponent<CarController>();
             VehicleIdentity identity = controller != null ? controller.identity : default;
-            if (!step.CountsKill(identity)) return;
-            states[current].kills++;
-            Debug.Log($"[Level] destroyed {identity} — {states[current].kills}/{step.destroyCount}", this);
+
+            for (int i = 0; i < acceptedChallenges.Count && i < challengeStates.Length; i++)
+            {
+                ObjectiveState challengeState = challengeStates[i];
+                if (challengeState.done || challengeState.failed || !acceptedChallenges[i].CountsKill(identity)) continue;
+                challengeState.tally++;
+            }
+
+            if (level == null || current < 0 || current >= level.Count || current >= states.Length) return;
+            LevelObjective step = level.objectives[current];
+            if (!step.CountsKill(identity)) return; // includes the type check
+            states[current].tally++;
+            Debug.Log($"[Level] destroyed {identity} — {states[current].tally}/{step.destroyCount}", this);
+        }
+
+        /// <summary>
+        /// A collectible was picked up: the same shape as <see cref="OnCarDied"/>
+        /// — every live accepted Collect Objects challenge whose id matches
+        /// tallies it, and so does the current step when it is one.
+        /// </summary>
+        void OnCollected(Collectible collectible)
+        {
+            if (briefOpen || cinemaOpen || Completed || resetting || timedOut) return;
+            string id = collectible.Id;
+
+            for (int i = 0; i < acceptedChallenges.Count && i < challengeStates.Length; i++)
+            {
+                ObjectiveState challengeState = challengeStates[i];
+                if (challengeState.done || challengeState.failed || !acceptedChallenges[i].CountsCollectible(id)) continue;
+                challengeState.tally++;
+            }
+
+            if (level == null || current < 0 || current >= level.Count || current >= states.Length) return;
+            LevelObjective step = level.objectives[current];
+            if (!step.CountsCollectible(id)) return; // includes the type check
+            states[current].tally++;
+            Debug.Log($"[Level] collected '{id}' — {states[current].tally}/{step.collectCount}", this);
         }
 
         void Update()
@@ -295,6 +400,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                 int regressed = FindRegressed();
                 if (regressed >= 0) Regress(regressed);
             }
+
+            EvaluateChallenges(dt);
 
             ObjectiveState state = states[current];
             if (!state.briefed) Brief(current);
@@ -327,9 +434,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         {
             LevelObjective step = level.objectives[index];
             ObjectiveState state = states[index];
+            string label = $"objective {index + 1}";
             if (step.HasDeadline)
             {
-                if (Satisfied(index, dt, false)) return true;
+                if (Satisfied(step, state, dt, false, label)) return true;
                 state.timer += dt;
                 if (state.timer >= step.timeSeconds) TimeOut(index);
                 return false;
@@ -338,10 +446,79 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             {
                 // Once seconds are banked the check gets the hysteresis, so a
                 // flicker on the threshold never throws them away.
-                state.timer = Satisfied(index, dt, state.timer > 0f) ? state.timer + dt : 0f;
+                state.timer = Satisfied(step, state, dt, state.timer > 0f, label) ? state.timer + dt : 0f;
                 return state.timer >= step.timeSeconds;
             }
-            return Satisfied(index, dt, false);
+            return Satisfied(step, state, dt, false, label);
+        }
+
+        /// <summary>
+        /// The accepted challenges' own loop, run beside the main list every
+        /// frame: each live one is checked until it completes and latches; a
+        /// deadline that runs out fails the challenge, not the run; a hold
+        /// counts its seconds exactly like a main step. Each outcome gets the
+        /// level's challenge line.
+        /// </summary>
+        void EvaluateChallenges(float dt)
+        {
+            for (int i = 0; i < acceptedChallenges.Count && i < challengeStates.Length; i++)
+            {
+                OptionalChallenge challenge = acceptedChallenges[i];
+                ObjectiveState state = challengeStates[i];
+                if (state.done || state.failed) continue;
+                string label = $"challenge {i + 1}";
+
+                bool met;
+                if (challenge.HasDeadline)
+                {
+                    met = Satisfied(challenge, state, dt, false, label);
+                    if (!met)
+                    {
+                        state.timer += dt;
+                        if (state.timer >= challenge.timeSeconds) FailChallenge(i);
+                        continue;
+                    }
+                }
+                else if (challenge.MustHold)
+                {
+                    state.timer = Satisfied(challenge, state, dt, state.timer > 0f, label) ? state.timer + dt : 0f;
+                    met = state.timer >= challenge.timeSeconds;
+                }
+                else
+                {
+                    met = Satisfied(challenge, state, dt, false, label);
+                }
+
+                if (met) CompleteChallenge(i);
+            }
+        }
+
+        void CompleteChallenge(int index)
+        {
+            OptionalChallenge challenge = acceptedChallenges[index];
+            challengeStates[index].done = true;
+            PlayerStats.CompleteBonusObjective();
+            Debug.Log($"[Level] challenge {index + 1} complete — {challenge.ChallengeSummary}", this);
+            ShowChallengeLine(level.challengeCompleteMessage, challenge, DoneAccent);
+        }
+
+        void FailChallenge(int index)
+        {
+            OptionalChallenge challenge = acceptedChallenges[index];
+            challengeStates[index].failed = true;
+            Debug.Log($"[Level] challenge {index + 1} failed — {challenge.ChallengeSummary}", this);
+            ShowChallengeLine(level.challengeFailedMessage, challenge, LevelObjective.DefaultAccent(ObjectiveType.EscapePolice));
+        }
+
+        // {0} = the challenge's condition, {1} = its multiplier. An empty
+        // template means the designer wants no line for that outcome.
+        void ShowChallengeLine(string template, OptionalChallenge challenge, Color accent)
+        {
+            if (string.IsNullOrWhiteSpace(template)) return;
+            string text;
+            try { text = string.Format(template, challenge.Summary, challenge.multiplier); }
+            catch (System.FormatException) { text = template; }
+            RpgMessageSystem.Instance.ShowMessage(level.speakerName, text, level.messageHoldSeconds, accent);
         }
 
         /// <summary>
@@ -364,12 +541,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// The step's bare condition (advancing its progress by dt if it is a
         /// timer). <paramref name="holding"/> asks the lenient reading — the
         /// speed check with the hold tolerance — for a sustain already in
-        /// progress.
+        /// progress. Shared by the main list and the challenges, which is why
+        /// it takes the step and its state rather than a list index;
+        /// <paramref name="label"/> names the step in log lines.
         /// </summary>
-        bool Satisfied(int index, float dt, bool holding)
+        bool Satisfied(LevelObjective step, ObjectiveState state, float dt, bool holding, string label)
         {
-            LevelObjective step = level.objectives[index];
-            ObjectiveState state = states[index];
             switch (step.type)
             {
                 case ObjectiveType.ReachSpeed:
@@ -391,7 +568,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                     if (!TargetObject.TryFind(step.targetId, out TargetObject target))
                     {
                         if (!state.warnedMissingTarget)
-                            Debug.LogWarning($"[Level] objective {index + 1} wants TargetObject '{step.targetId}' but none is in the scene — it can never complete.", this);
+                            Debug.LogWarning($"[Level] {label} wants TargetObject '{step.targetId}' but none is in the scene — it can never complete.", this);
                         state.warnedMissingTarget = true;
                         return false;
                     }
@@ -414,13 +591,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                     // No escapee under this id: never promoted, or it vanished
                     // without being killed (fell out of the world) — promote a
                     // fresh civilian rather than softlocking the step.
-                    TryPromoteEscapeCar(index, step, state);
+                    TryPromoteEscapeCar(step, state, label);
                     return false;
                 }
 
                 case ObjectiveType.DestroyCars:
                     // The tally is fed by OnCarDied; here it only has to be read.
-                    return state.kills >= step.destroyCount;
+                    return state.tally >= step.destroyCount;
+
+                case ObjectiveType.CollectObjects:
+                    // Fed by OnCollected, the same way.
+                    return state.tally >= step.collectCount;
             }
             return false;
         }
@@ -434,12 +615,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// top speed is the PLAYER'S top speed, read off the player's own
         /// config, so the chase is winnable on cornering, not raw pace.
         /// </summary>
-        void TryPromoteEscapeCar(int index, LevelObjective step, ObjectiveState state)
+        void TryPromoteEscapeCar(LevelObjective step, ObjectiveState state, string label)
         {
             if (string.IsNullOrEmpty(step.targetId))
             {
                 if (!state.warnedMissingTarget)
-                    Debug.LogWarning($"[Level] objective {index + 1} is a Chase Car step with no id — it can never complete.", this);
+                    Debug.LogWarning($"[Level] {label} is a Chase Car step with no id — it can never complete.", this);
                 state.warnedMissingTarget = true;
                 return;
             }
@@ -498,7 +679,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                 // state (a seen hunt, a kill) but its clock restarts — a
                 // deadline gets its full span again, a hold starts from zero.
                 states[i].timer = 0f;
-                if (i > index) { states[i].carKilled = false; states[i].kills = 0; }
+                if (i > index) { states[i].carKilled = false; states[i].tally = 0; }
             }
             current = index;
         }
@@ -539,6 +720,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         void Complete()
         {
             Completed = true;
+            // The save: level count, the reward banked (base × the challenges
+            // actually completed), the last-level summary and the progression
+            // list. Written to disk now — this scene is about to be unloaded
+            // under the glitch.
+            PlayerStats.RecordLevelCompleted(level.name, level.levelName,
+                level.Count > 0 ? level.objectives[level.Count - 1].Summary : string.Empty,
+                EarnedReward, acceptedChallenges.Count, ChallengesCompleted);
             RpgMessageSystem.Instance.ShowMessage(
                 level.speakerName, level.completionMessage, level.messageHoldSeconds, DoneAccent,
                 onFinished: BeginGlitchHandoff);
@@ -593,6 +781,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         {
             if (resetting || Completed) return false;
             Debug.Log($"[Level] {reason} — rebooting level", this);
+            // Every accepted reboot is a death; one the police caused — the
+            // meter filled by a shunt — is also an arrest. The city AI has no
+            // capture state, so the last damage source is the best signal.
+            PlayerStats.RecordDeath(arrested: reason == "full corruption" && lastDamageReason == "police hit");
+            PlayerProfileStore.SaveIfDirty();
             StartCoroutine(ResetLevel());
             return true;
         }
@@ -681,6 +874,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
             var glitch = GlitchController.Instance;
             if (glitch == null) return false;
+            lastDamageReason = reason;
 
             // Never quieter than the hit is heavy: a barrel to the face should
             // white out the feed even if the collision pulse is tuned gentle.

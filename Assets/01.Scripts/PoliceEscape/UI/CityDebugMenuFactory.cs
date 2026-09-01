@@ -36,6 +36,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         const float ContentTop = 340f;
 
         static readonly Color DoneTint = new(0.45f, 1f, 0.55f);
+        static readonly Color FailedTint = new(1f, 0.4f, 0.35f);
 
         /// <summary>What this scene has to offer the debug menu — nothing at all, in the runner.</summary>
         public static CityDebugTabs Discover() => new(FindCarConfig(), FindCameraSettings(), FindPursuitSettings(), FindLevelManager());
@@ -434,6 +435,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                         screen.AddRow<DebugLabelRow>($"   [{objective.DestroyTargetText}]")
                               .SetLabelTintProvider(StatusTint(manager, i, theme));
                         break;
+                    case ObjectiveType.CollectObjects:
+                        // The count slides; the id is data (raw label).
+                        AddObjectiveStat(screen, theme, manager, i, refreshers, MenuTextId.ObjectiveCollect,
+                                         1f, 50f, 1f, "0", o => o.collectCount, (o, v) => o.collectCount = Mathf.RoundToInt(v));
+                        screen.AddRow<DebugLabelRow>($"   [{objective.CollectTargetText}]")
+                              .SetLabelTintProvider(StatusTint(manager, i, theme));
+                        break;
                     default:
                         screen.AddRow<DebugLabelRow>(MenuTextId.ObjectiveEscapePolice)
                               .SetLabelTintProvider(StatusTint(manager, i, theme));
@@ -445,6 +453,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                                      objective.HasDeadline ? MenuTextId.ObjectiveTimeLimit : MenuTextId.ObjectiveHoldFor,
                                      5f, 600f, 5f, "0", o => o.timeSeconds, (o, v) => o.timeSeconds = v);
             }
+
+            // The optional challenges, read-only: they run beside the list, so
+            // the tint is their own status — accent while live, green done,
+            // red failed, plain when the player did not take them on.
+            if (level.optionalChallenges != null)
+                foreach (OptionalChallenge challenge in level.optionalChallenges)
+                    screen.AddRow<DebugLabelRow>($"{texts.Get(MenuTextId.ChallengeBonus)}  {challenge.ChallengeSummary}")
+                          .SetLabelTintProvider(ChallengeTint(manager, challenge, theme));
             return screen;
         }
 
@@ -505,6 +521,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             });
             row.SetLabelTintProvider(StatusTint(manager, index, theme));
         }
+
+        static System.Func<Color?> ChallengeTint(LevelManager manager, OptionalChallenge challenge, MenuTheme theme) => () =>
+        {
+            if (manager == null) return null;
+            int index = manager.AcceptedIndex(challenge);
+            if (index < 0) return null;
+            if (manager.IsChallengeDone(index)) return DoneTint;
+            if (manager.IsChallengeFailed(index)) return FailedTint;
+            return theme.Accent;
+        };
 
         /// <summary>Label tint for an objective row: done, active, or none (pending).</summary>
         static System.Func<Color?> StatusTint(LevelManager manager, int index, MenuTheme theme) => () =>

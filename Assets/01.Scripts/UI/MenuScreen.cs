@@ -56,6 +56,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         float rowSpacingOverride = -1f;
         float rowWidth; // per-screen: grows to fit the widest label in any language, never below theme.RowWidth
 
+        int visibleRows = int.MaxValue; // SetViewport: rows shown at once; the rest sit under the window and scroll
+        int scrollIndex;                // index of the row in the window's top slot
+        Text overflowUp;                // "▲ n" / "▼ n" cues, created on the first windowed layout
+        Text overflowDown;
+
         float RowHeight => rowHeightOverride > 0f ? rowHeightOverride : theme.RowHeight;
         float RowSpacing => rowSpacingOverride >= 0f ? rowSpacingOverride : theme.RowSpacing;
 
@@ -131,6 +136,41 @@ namespace ConfusedGameDev.FiniteRunner.UI
         }
 
         /// <summary>
+        /// Shows at most <paramref name="count"/> rows at once; the rest sit
+        /// under the window and scroll into view as the focus moves (the LOG's
+        /// stat list). Nothing is masked — rows outside the window are simply
+        /// inactive — so the marker and pointer hover need no changes.
+        /// </summary>
+        public void SetViewport(int count)
+        {
+            visibleRows = Mathf.Max(1, count);
+            scrollIndex = 0;
+            if (rows.Count > 0) LayoutRows();
+        }
+
+        /// <summary>
+        /// Removes every row (the title and free labels stay) so a page can be
+        /// rebuilt with fresh content — the LOG re-reads the profile on open.
+        /// </summary>
+        public void ClearRows()
+        {
+            // Drop the entrance entries first: after DestroyImmediate (edit
+            // mode) a row compares equal to null and the filter would miss it.
+            entrance.RemoveAll(item => item.row != null);
+            foreach (var row in rows)
+            {
+                if (row == null) continue;
+                if (Application.isPlaying) Destroy(row.gameObject);
+                else DestroyImmediate(row.gameObject);
+            }
+            rows.Clear();
+            focus = -1;
+            scrollIndex = 0;
+            rowWidth = theme.RowWidth;
+            UpdateOverflowCues();
+        }
+
+        /// <summary>
         /// Adds a focusable row of type <typeparamref name="T"/> at the bottom
         /// of the column. Screens with no rows (Cheats, Credits) simply never
         /// call this — adding rows later needs no navigation changes.
@@ -174,6 +214,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             AddEntranceItem(rect, null, row, rowDelayBase + (rows.Count - 1) * theme.EntranceStagger);
             EnsureMarker();
             if (focus < 0) SetFocus(0);
+            if (rows.Count > visibleRows) LayoutRows(); // a row added past the window starts hidden
             return row;
         }
 
@@ -259,23 +300,38 @@ namespace ConfusedGameDev.FiniteRunner.UI
             gameObject.SetActive(false);
         }
 
-        public void SetFocus(int index)
-        {
-            if (rows.Count == 0) return;
-            index = ((index % rows.Count) + rows.Count) % rows.Count; // wrap-around, both ways
-            if (index == focus) return;
+        public void SetFocus(int index) => SetFocus(index, +1);
 
-            focus = index;
-            for (int i = 0; i < rows.Count; i++) rows[i].SetFocused(i == focus);
+        /// <summary>
+        /// Focuses <paramref name="index"/> (wrapping both ways). A row that
+        /// cannot take focus (a section header) is stepped over in
+        /// <paramref name="direction"/>, so headers never trap the cursor;
+        /// then the window scrolls to keep the focused row in view.
+        /// </summary>
+        void SetFocus(int index, int direction)
+        {
+            int count = rows.Count;
+            if (count == 0) return;
+            index = ((index % count) + count) % count; // wrap-around, both ways
+            for (int tries = 0; tries < count && !rows[index].Focusable; tries++)
+                index = ((index + direction) % count + count) % count;
+            if (!rows[index].Focusable) return; // nothing on this page can take focus
+
+            if (index != focus)
+            {
+                focus = index;
+                for (int i = 0; i < count; i++) rows[i].SetFocused(i == focus);
+            }
+            ScrollToFocus();
         }
 
-        public void MoveFocus(int step) => SetFocus((focus < 0 ? 0 : focus) + step);
+        public void MoveFocus(int step) => SetFocus((focus < 0 ? 0 : focus) + step, step < 0 ? -1 : +1);
 
         /// <summary>Mouse hover and click route here, so pointer and pad share one focus model.</summary>
         public void FocusRow(MenuRow row)
         {
             int index = rows.IndexOf(row);
-            if (index >= 0) SetFocus(index);
+            if (index >= 0 && rows[index].Focusable) SetFocus(index);
         }
 
         void Update()
@@ -392,6 +448,71 @@ namespace ConfusedGameDev.FiniteRunner.UI
             var target = Focused;
             markerY = target != null ? target.Rect.anchoredPosition.y : 0f;
             markerVelocity = 0f;
+        }
+
+        // Keeps the focused row inside the window, and pulls the header right
+        // above it into view when it lands on the top slot.
+        void ScrollToFocus()
+        {
+            if (visibleRows >= rows.Count || focus < 0) return;
+            if (focus < scrollIndex) scrollIndex = focus;
+            else if (focus >= scrollIndex + visibleRows) scrollIndex = focus - visibleRows + 1;
+            if (scrollIndex == focus && focus > 0 && !rows[focus - 1].Focusable) scrollIndex = focus - 1;
+            scrollIndex = Mathf.Clamp(scrollIndex, 0, rows.Count - visibleRows);
+            LayoutRows();
+        }
+
+        // Places every row by its slot relative to the window and hides the
+        // ones outside it. The entrance item's base position is rewritten
+        // too: it is a struct in the list, and ApplyEntrance would otherwise
+        // snap a scrolled row back to where it was built on the next Show.
+        void LayoutRows()
+        {
+            float pitch = RowHeight + RowSpacing;
+            bool windowed = visibleRows < rows.Count;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                int slot = windowed ? i - scrollIndex : i;
+                bool shown = !windowed || (slot >= 0 && slot < visibleRows);
+                var pos = new Vector2(columnX, contentTop - slot * pitch);
+                row.Rect.anchoredPosition = pos;
+                if (row.gameObject.activeSelf != shown) row.gameObject.SetActive(shown);
+                for (int k = 0; k < entrance.Count; k++)
+                {
+                    if (entrance[k].row != row) continue;
+                    var item = entrance[k];
+                    item.basePosition = pos;
+                    entrance[k] = item;
+                    break;
+                }
+            }
+            UpdateOverflowCues();
+        }
+
+        // "▲ n" above the column and "▼ n" under the last slot: how many rows
+        // wait outside the window on each side. Plain labels, never rows.
+        void UpdateOverflowCues()
+        {
+            bool windowed = visibleRows < rows.Count;
+            int above = windowed ? scrollIndex : 0;
+            int below = windowed ? rows.Count - scrollIndex - visibleRows : 0;
+            if (above == 0 && below == 0 && overflowUp == null) return;
+
+            if (overflowUp == null)
+            {
+                const int CueSize = 22;
+                float pitch = RowHeight + RowSpacing;
+                overflowUp = MakeText("OverflowUp", root, new Vector2(columnX, contentTop + RowHeight * 0.5f + 20f),
+                                      new Vector2(600f, 30f), string.Empty, CueSize, theme.TextDim, theme.BodyFont,
+                                      TextAnchor.MiddleCenter);
+                overflowDown = MakeText("OverflowDown", root,
+                                        new Vector2(columnX, contentTop - (visibleRows - 1) * pitch - RowHeight * 0.5f - 20f),
+                                        new Vector2(600f, 30f), string.Empty, CueSize, theme.TextDim, theme.BodyFont,
+                                        TextAnchor.MiddleCenter);
+            }
+            overflowUp.text = above > 0 ? $"▲ {above}" : string.Empty;
+            overflowDown.text = below > 0 ? $"▼ {below}" : string.Empty;
         }
 
         // ------------------------------------------------------- build helpers

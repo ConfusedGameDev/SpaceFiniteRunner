@@ -9,7 +9,7 @@ using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
     /// <summary>The things a level can ask of the player. Order is the save format — append only.</summary>
-    public enum ObjectiveType { ReachSpeed = 0, EscapePolice = 1, GoToTarget = 2, SurviveTime = 3, ChaseCar = 4, DestroyCars = 5 }
+    public enum ObjectiveType { ReachSpeed = 0, EscapePolice = 1, GoToTarget = 2, SurviveTime = 3, ChaseCar = 4, DestroyCars = 5, CollectObjects = 6 }
 
     /// <summary>
     /// How the objective list completes. <see cref="Independent"/>: steps
@@ -85,6 +85,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Tooltip("Only this paint counts. Unknown = any colour.")]
         public VehiclePaint destroyPaint = VehiclePaint.Unknown;
 
+        // Collect Objects: how many pickups, and of which id. An empty id
+        // means any Collectible counts.
+        [ShowIf("type", ObjectiveType.CollectObjects)]
+        [Tooltip("How many collectibles must be picked up while this step is active.")]
+        [PropertyRange(1, 50)]
+        public int collectCount = 3;
+
+        [ShowIf("type", ObjectiveType.CollectObjects)]
+        [Tooltip("Id of the Collectibles that count (the Collectible component's id). Empty = any collectible.")]
+        public string collectId = "";
+
         // Time rule: the clock a step can carry on top of its condition.
         // Survive is itself a timer, so it takes none.
         [HideIf("type", ObjectiveType.SurviveTime)]
@@ -141,7 +152,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public bool HasCinema => hasCinema && cinemaClip != null;
 
         /// <summary>Speed and time are the parameters the debug menu can slide.</summary>
-        public bool HasAdjustableValue => type == ObjectiveType.ReachSpeed || type == ObjectiveType.SurviveTime || type == ObjectiveType.DestroyCars || HasTimeRule;
+        public bool HasAdjustableValue => type == ObjectiveType.ReachSpeed || type == ObjectiveType.SurviveTime || type == ObjectiveType.DestroyCars || type == ObjectiveType.CollectObjects || HasTimeRule;
 
         /// <summary>The Destroy Cars filter as words — "RED TRUCK", "BUS", or "CARS" when anything counts.</summary>
         public string DestroyTargetText => VehicleIdentity.Describe(destroyKind, destroyPaint, "CARS");
@@ -149,6 +160,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// <summary>Does a dead car count toward this Destroy Cars step?</summary>
         public bool CountsKill(VehicleIdentity identity) =>
             type == ObjectiveType.DestroyCars && identity.Matches(destroyKind, destroyPaint);
+
+        /// <summary>The Collect Objects target as words — the id upper-cased, or "ITEMS" when any collectible counts.</summary>
+        public string CollectTargetText => string.IsNullOrWhiteSpace(collectId) ? "ITEMS" : collectId.Trim().ToUpperInvariant();
+
+        /// <summary>Does a picked-up collectible count toward this Collect Objects step?</summary>
+        public bool CountsCollectible(string id) =>
+            type == ObjectiveType.CollectObjects
+            && (string.IsNullOrWhiteSpace(collectId) || string.Equals(collectId.Trim(), id, System.StringComparison.Ordinal));
 
         /// <summary>The step carries a clock — a deadline or a sustain. Survive steps never do: they ARE the clock.</summary>
         public bool HasTimeRule => type != ObjectiveType.SurviveTime && timeRule != TimeRule.None;
@@ -176,6 +195,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.GoToTarget => string.IsNullOrEmpty(targetId) ? "?" : targetId,
             ObjectiveType.ChaseCar => string.IsNullOrEmpty(targetId) ? "?" : targetId,
             ObjectiveType.DestroyCars => destroyCount.ToString(),
+            ObjectiveType.CollectObjects => collectCount.ToString(),
             _ => ""
         };
 
@@ -190,6 +210,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.SurviveTime => $"SURVIVE {surviveSeconds:0} S",
             ObjectiveType.ChaseCar => $"CHASE {(string.IsNullOrEmpty(targetId) ? "?" : targetId)}",
             ObjectiveType.DestroyCars => $"DESTROY {destroyCount} × {DestroyTargetText}",
+            ObjectiveType.CollectObjects => $"COLLECT {collectCount} × {CollectTargetText}",
             _ => type.ToString()
         };
 
@@ -197,16 +218,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         /// <summary>
         /// The dialogue line for this step — the authored one with {0} (the
-        /// value), {1} (the time rule's seconds) and {2} (the Destroy Cars
-        /// filter as words) filled, or the built-in default, which grows a
-        /// clause for the clock when the step has one.
+        /// value), {1} (the time rule's seconds), {2} (the Destroy Cars
+        /// filter as words) and {3} (the Collect Objects id) filled, or the
+        /// built-in default, which grows a clause for the clock when the step
+        /// has one.
         /// </summary>
         public string BriefingText
         {
             get
             {
                 string template = string.IsNullOrWhiteSpace(briefing) ? DefaultBriefing(type) + DefaultTimeClause : briefing;
-                try { return string.Format(template, ValueText, timeSeconds.ToString("0"), DestroyTargetText.ToLowerInvariant()); }
+                try { return string.Format(template, ValueText, timeSeconds.ToString("0"), DestroyTargetText.ToLowerInvariant(), CollectTargetText.ToLowerInvariant()); }
                 catch (System.FormatException) { return template; } // a stray brace in authored text must not throw mid-run
             }
         }
@@ -220,6 +242,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.SurviveTime => new Color(0.75f, 0.6f, 1f),
             ObjectiveType.ChaseCar => new Color(1f, 0.9f, 0.2f),
             ObjectiveType.DestroyCars => new Color(1f, 0.55f, 0.25f),
+            ObjectiveType.CollectObjects => new Color(0.6f, 1f, 0.9f),
             _ => new Color(0.45f, 0.9f, 1f)
         };
 
@@ -231,30 +254,35 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.SurviveTime => "Stay alive for {0} seconds!",
             ObjectiveType.ChaseCar => "Chase down {0} and take it out — don't let it get away!",
             ObjectiveType.DestroyCars => "Wreck {0} {2} — I don't care how.",
+            ObjectiveType.CollectObjects => "Grab {0} {3} — they're scattered around, look for the glow.",
             _ => ""
         };
     }
 
     /// <summary>
-    /// One optional goal offered on the mission brief: a free-text definition
-    /// and the reward multiplier taking it on earns. Conceptually a
-    /// dictionary entry (description → multiplier), stored as a list element
-    /// because Unity cannot serialize a Dictionary into an asset. Only the
-    /// DATA lives here for now — accepting a challenge is recorded by the
-    /// LevelManager, but nothing tracks its completion yet.
+    /// One optional goal offered on the mission brief: a full
+    /// <see cref="LevelObjective"/> — the same types, knobs and clock as a
+    /// main step — plus the reward multiplier completing it earns. Accepted
+    /// challenges run in PARALLEL with the main list for the whole level
+    /// (never sequential, never regressing): the LevelManager checks each
+    /// every frame until it completes and latches, and a Complete Within
+    /// deadline that runs out FAILS the challenge (its multiplier is lost)
+    /// rather than the run. Only completed challenges multiply the payout at
+    /// the end. A challenge's briefing line and cinema are ignored — the
+    /// brief already presented it.
     /// </summary>
     [System.Serializable]
-    public class OptionalChallenge
+    public class OptionalChallenge : LevelObjective
     {
-        [Tooltip("What the player must do, shown verbatim on the brief (e.g. \"Destroy 7 green cars\").")]
-        public string description = "";
-
-        [Tooltip("Reward multiplier for accepting this challenge — the brief shows it as ×N.")]
+        [Tooltip("Reward multiplier for COMPLETING this challenge — the brief shows it as ×N. A failed or unaccepted challenge earns nothing.")]
         [PropertyRange(1, 20)]
         public int multiplier = 2;
 
-        /// <summary>Inspector list label and the brief's row text.</summary>
-        public string Summary => $"{description} ×{multiplier}";
+        /// <summary>The brief's row text and the HUD line: the condition plus its multiplier.</summary>
+        public string ChallengeSummary => $"{Summary} ×{multiplier}";
+
+        /// <summary>Inspector list label.</summary>
+        public string ChallengeLabel => $"{EditorLabel} ×{multiplier}";
     }
 
     /// <summary>
@@ -302,6 +330,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public string timeUpMessage = "Too slow. We lost them.";
 
         [TitleGroup("Messages")]
+        [Tooltip("Line shown when an accepted optional challenge completes. {0} = the challenge, {1} = its multiplier. Empty = no line.")]
+        [MultiLineProperty(2)]
+        public string challengeCompleteMessage = "Bonus secured — {0}. That's ×{1} on the payout!";
+
+        [TitleGroup("Messages")]
+        [Tooltip("Line shown when an accepted optional challenge's deadline runs out. {0} = the challenge, {1} = its multiplier. Empty = no line.")]
+        [MultiLineProperty(2)]
+        public string challengeFailedMessage = "Forget {0} — that bonus is gone.";
+
+        [TitleGroup("Messages")]
         [Tooltip("How long the screen holds at full corruption after the completion line before the next scene loads.")]
         [PropertyRange(0.2f, 4f), SuffixLabel("s", true)]
         public float completionGlitchHoldSeconds = 1.2f;
@@ -316,8 +354,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public int baseReward = 1000;
 
         [TitleGroup("Mission brief")]
-        [Tooltip("Extra goals offered on the brief, each a toggle the player can take on for a bigger payout.")]
-        [ListDrawerSettings(DraggableItems = true, ListElementLabelName = nameof(OptionalChallenge.Summary))]
+        [Tooltip("Extra goals offered on the brief, each a toggle the player can take on for a bigger payout. Full objectives (any type, any clock) that run beside the main list; only COMPLETED ones multiply the reward.")]
+        [ListDrawerSettings(DraggableItems = true, ListElementLabelName = nameof(OptionalChallenge.ChallengeLabel))]
         public List<OptionalChallenge> optionalChallenges = new();
 
         [TitleGroup("Objectives")]

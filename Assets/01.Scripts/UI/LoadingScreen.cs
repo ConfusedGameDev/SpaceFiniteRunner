@@ -1,4 +1,5 @@
 using System.Collections;
+using ConfusedGameDev.FiniteRunner.SaveData;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -86,6 +87,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
             // The screen this covers may have frozen the clock; the next scene
             // must start on a running one, and our own animation reads unscaled.
             Time.timeScale = 1f;
+            // A running clock, but not play: the profile's play-time tick skips the trip.
+            PlayerStats.SuspendPlayTime = true;
 
             var go = new GameObject("LoadingScreen");
             DontDestroyOnLoad(go);
@@ -234,6 +237,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             // the canvas, hand the mix back, and let the music play out under
             // the fading bus before the object goes.
             if (canvas != null) canvas.enabled = false;
+            PlayerStats.SuspendPlayTime = false;
             ReleaseAudio(theme.LoadingAudioFade);
             StartCoroutine(DestroyAfter(theme.LoadingAudioFade));
         }
@@ -254,6 +258,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         void OnDestroy()
         {
             if (active == this) active = null;
+            PlayerStats.SuspendPlayTime = false;
             // The mixer outlives every scene: a curtain destroyed early (play
             // mode stopped mid-load) must not leave the game on the loading mix.
             ReleaseAudio(0f);

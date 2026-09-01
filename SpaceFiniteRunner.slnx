@@ -8,11 +8,13 @@
   <Project Path="EVP5.Editor.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.UI.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.PoliceEscape.Editor.csproj" />
+  <Project Path="ConfusedGameDev.FiniteRunner.SaveData.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.FX.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Cheats.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Debugging.csproj" />
   <Project Path="Sirenix.OdinInspector.Modules.UnityMathematics.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Runner.Editor.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Haptics.csproj" />
+  <Project Path="ConfusedGameDev.FiniteRunner.SaveData.Editor.csproj" />
   <Project Path="Assembly-CSharp-firstpass.csproj" />
 </Solution>

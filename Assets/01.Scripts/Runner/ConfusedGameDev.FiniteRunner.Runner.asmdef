@@ -3,6 +3,7 @@
     "rootNamespace": "ConfusedGameDev.FiniteRunner",
     "references": [
         "ConfusedGameDev.FiniteRunner.UI",
+        "ConfusedGameDev.FiniteRunner.SaveData",
         "ConfusedGameDev.FiniteRunner.Cheats",
         "ConfusedGameDev.FiniteRunner.Haptics",
         "ConfusedGameDev.FiniteRunner.FX",

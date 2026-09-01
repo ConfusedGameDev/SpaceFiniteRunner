@@ -143,6 +143,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (speedMotionBlur && FindAnyObjectByType<Vehicles.SpeedMotionBlur>(FindObjectsInactive.Include) == null)
                 new GameObject("SpeedMotionBlur").AddComponent<Vehicles.SpeedMotionBlur>();
 
+            // Save-data recorder: same scene-first rule, needs no wiring.
+            if (FindAnyObjectByType<Stats.CityStatsRecorder>(FindObjectsInactive.Include) == null)
+                new GameObject("StatsRecorder").AddComponent<Stats.CityStatsRecorder>();
+
             // Weather: a camera-sized volume, so it needs neither the city nor
             // the car — it just has to exist before the first frame is drawn.
             // The scene's own RainSystem wins; switching this off parks it.

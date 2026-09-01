@@ -141,7 +141,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
                 foreach (OptionalChallenge challenge in level.optionalChallenges)
                 {
-                    var row = screen.AddRow<MenuToggle>($"{challenge.description.ToUpperInvariant()} ×{challenge.multiplier}");
+                    var row = screen.AddRow<MenuToggle>(challenge.ChallengeSummary); // the objective's own summary, ×multiplier
                     row.Configure(false, _ => RefreshReward());
                     challengeRows.Add((challenge, row));
                 }

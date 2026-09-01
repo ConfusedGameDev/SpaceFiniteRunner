@@ -1,11 +1,7 @@
 {
-    "name": "ConfusedGameDev.FiniteRunner.UI",
-    "rootNamespace": "ConfusedGameDev.FiniteRunner.UI",
-    "references": [
-        "ConfusedGameDev.FiniteRunner.SaveData",
-        "Unity.InputSystem",
-        "UnityEngine.UI"
-    ],
+    "name": "ConfusedGameDev.FiniteRunner.SaveData",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.SaveData",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Haptics;
+using ConfusedGameDev.FiniteRunner.SaveData;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Track;
 using ConfusedGameDev.FiniteRunner.UI;
@@ -30,6 +31,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     /// (<see cref="UI.GameAudio.SetPaused"/>): the Gameplay bus — music, FX,
     /// voice — fades to silence while the UI bus keeps sounding and an
     /// optional pause-music loop (MenuTheme.PauseMusicClip) fades in.
+    /// The LOG entry opens the player's lifetime stats and records
+    /// (<see cref="LogScreenFactory"/>, rebuilt from the saved profile on
+    /// every open), and the menu's commit points also write that profile.
     /// The DEBUG entry follows the same rule: <see cref="BuildDebugTabs"/>
     /// builds only the pages the current scene can actually edit — track,
     /// ship and patrol in the runner, car, chase camera and police in the city.
@@ -58,6 +62,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         MenuScreen confirmMenuScreen;   // "exit to main menu — are you sure?"
         MenuScreen confirmQuitScreen;   // "quit game — are you sure?"
         MenuScreen confirmReloadScreen; // "debug values changed — reload the scene?"
+        MenuScreen logScreen;           // the player's stats and records (LogScreenFactory)
+        System.Action refreshLog;       // rebuilds the log rows from the profile on every open
         MenuScreen current;
         PromptStrip footer;
         AudioSource ui;
@@ -197,10 +203,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             confirmMenuScreen.HideImmediate();
             confirmQuitScreen.HideImmediate();
             confirmReloadScreen.HideImmediate();
+            logScreen?.HideImmediate();
             debugMenu?.HideAllImmediate();
             // The ship sliders were built before the tuning screen swapped in
             // its runtime clone — re-read the live values on every open.
             foreach (var refresh in debugRefreshers) refresh();
+            refreshLog?.Invoke(); // the vehicle list grows between pauses: rebuild the rows from the profile
             current = pauseScreen;
             pauseScreen.Show(staggered: false); // pausing should feel instant, not cinematic
             SetFooterFor(pauseScreen);
@@ -221,6 +229,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
+            PlayerProfileStore.SaveIfDirty(); // recorded stats reach the disk at the same commit points
             Blip(theme.BackClip);
         }
 
@@ -302,6 +311,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
+            PlayerProfileStore.SaveIfDirty();
         }
 
         /// <summary>Editor bake: regenerates the menu and leaves the pause page visible, so the prefab shows before play.</summary>
@@ -321,7 +331,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
             panel = null;
             panelRect = null;
-            pauseScreen = settingsScreen = confirmMenuScreen = confirmQuitScreen = confirmReloadScreen = current = null;
+            pauseScreen = settingsScreen = confirmMenuScreen = confirmQuitScreen = confirmReloadScreen = logScreen = current = null;
+            refreshLog = null;
             footer = null;
             ui = null;
             pauseMusic = null;
@@ -387,16 +398,19 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             if (debug) BuildDebugTabs();
 
-            pauseScreen = MenuScreen.Create("PauseScreen", panelRect, theme, 0f, 90f);
+            // Six rows at the theme's 86/18 metrics run 140 -> -380, clear of the footer strip.
+            pauseScreen = MenuScreen.Create("PauseScreen", panelRect, theme, 0f, 140f);
             pauseScreen.SetTitle(MenuTextId.Paused);
             pauseScreen.AddRow<MenuRow>(MenuTextId.Resume).Activated += Resume;
             pauseScreen.AddRow<MenuRow>(MenuTextId.Settings).Activated += () => OpenSub(settingsScreen);
+            pauseScreen.AddRow<MenuRow>(MenuTextId.Log).Activated += () => OpenSub(logScreen);
             if (debugMenu != null)
                 pauseScreen.AddRow<MenuRow>(MenuTextId.Debug).Activated += () => OpenSub(debugMenu.Active);
             pauseScreen.AddRow<MenuRow>(MenuTextId.ExitToMenu).Activated += () => OpenSub(confirmMenuScreen);
             pauseScreen.AddRow<MenuRow>(MenuTextId.QuitGame).Activated += () => OpenSub(confirmQuitScreen);
 
             settingsScreen = MenuScreenFactory.BuildSettings(panelRect, theme);
+            logScreen = LogScreenFactory.Build(panelRect, theme, out refreshLog);
             confirmMenuScreen = MenuScreenFactory.BuildConfirm(panelRect, theme, MenuTextId.ExitToMenu,
                                                                ExitToMainMenu, CloseSub);
             confirmQuitScreen = MenuScreenFactory.BuildConfirm(panelRect, theme, MenuTextId.QuitGame,
@@ -499,6 +513,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
+            PlayerProfileStore.SaveIfDirty();
 
             Time.timeScale = 1f;
             LoadingScreen.Reload(SceneManager.GetActiveScene());
@@ -509,6 +524,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             if (screen == settingsScreen || (debugMenu != null && debugMenu.Contains(screen)))
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintChange),
                                 (PromptAction.Back, MenuTextId.HintBack));
+            else if (screen == logScreen)
+                footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Back, MenuTextId.HintBack));
             else if (screen == confirmMenuScreen || screen == confirmQuitScreen || screen == confirmReloadScreen)
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Confirm, MenuTextId.HintSelect),
                                 (PromptAction.Back, MenuTextId.HintCancel));

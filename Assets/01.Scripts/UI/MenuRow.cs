@@ -77,6 +77,13 @@ namespace ConfusedGameDev.FiniteRunner.UI
         /// </summary>
         public virtual float ReservedRightWidth => 0f;
 
+        /// <summary>
+        /// False for rows the cursor must step over — section headers inside
+        /// a list. They still lay out and scroll like rows; they just never
+        /// take focus, from the pad or the mouse.
+        /// </summary>
+        public virtual bool Focusable => true;
+
         /// <summary>Plate width this row needs for a label of the given rendered width.</summary>
         public float RequiredWidth(float labelWidth) => LabelInset * 2f + labelWidth + ReservedRightWidth;
 

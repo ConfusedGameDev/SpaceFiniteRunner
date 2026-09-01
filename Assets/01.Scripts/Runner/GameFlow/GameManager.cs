@@ -4,6 +4,7 @@ using UnityEngine;
 using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.Haptics;
+using ConfusedGameDev.FiniteRunner.SaveData;
 using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Track;
@@ -40,6 +41,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         GameSettings settings;
 
         DashPromptController dashPrompt;
+
+        /// <summary>How a run ended — typed, so the save record never has to match a result label.</summary>
+        enum RunOutcome { Escaped, Caught, Stalled, TimedOut }
+
+        bool runCounted; // this run's "escape attempted" has been recorded
 
         public float BoostTextLeadMeters => settings.boostTextLeadMeters;
 
@@ -124,23 +130,36 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (motor == null || RunOver) return;
 
+            // One "escape attempted" per run, recorded on the first frame the
+            // ship actually flies — Launch() fires up to three times per run
+            // (the motor's Start, Restart, the tuning screen), so it can't count.
+            if (!motor.Paused)
+            {
+                if (!runCounted)
+                {
+                    runCounted = true;
+                    PlayerStats.RecordRunStarted();
+                }
+                PlayerStats.SampleShipSpeed(motor.CurrentSpeed * 3.6f);
+            }
+
             if (motor.CurrentSpeed * 3.6f >= settings.lightSpeedKmh)
             {
                 HasWon = true;
-                EndRun("LIGHT SPEED — YOU ESCAPED!");
+                EndRun("LIGHT SPEED — YOU ESCAPED!", RunOutcome.Escaped);
                 return;
             }
 
             if (patrol != null && patrol.HasCaught)
             {
-                EndRun("BUSTED — CAUGHT BY THE PATROL");
+                EndRun("BUSTED — CAUGHT BY THE PATROL", RunOutcome.Caught);
                 HapticsSystem.Instance.Pulse(1f, 0.7f, 1.5f); // long busted rumble
                 return;
             }
 
             if (motor.HasStopped)
             {
-                EndRun("BUSTED — OUT OF SPEED");
+                EndRun("BUSTED — OUT OF SPEED", RunOutcome.Stalled);
                 return;
             }
 
@@ -149,13 +168,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             TimeRemaining = Mathf.Max(0f, TimeRemaining - Time.deltaTime);
             if (TimeRemaining <= 0f)
-                EndRun("BUSTED — TIME RAN OUT");
+                EndRun("BUSTED — TIME RAN OUT", RunOutcome.TimedOut);
         }
 
-        void EndRun(string label)
+        void EndRun(string label, RunOutcome outcome)
         {
             ResultLabel = label;
             motor.Paused = true; // freeze the sim; the hover keeps the ship floating
+
+            // The record: an escape completed (and how long it took — the
+            // timer only ran while flying, so this is launch-to-light-speed),
+            // or a failed one; the patrol catching up is the runner's arrest.
+            PlayerStats.RecordRunEnded(outcome == RunOutcome.Escaped, settings.timeLimitSeconds - TimeRemaining);
+            if (outcome == RunOutcome.Caught) PlayerStats.RecordArrest();
+            PlayerProfileStore.SaveIfDirty();
 
             // RPG message on both outcomes. Losing waits for the patrol's
             // parting line to disappear and only then asks the question — the
@@ -188,6 +214,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void OnPadCollected(SpeedPad pad, ShipMotor collector)
         {
             if (collector != motor || RunOver) return;
+            PlayerStats.RecordPad(pad.SpeedDelta > 0f); // positive = power-up, negative = slow-down
             if (!string.IsNullOrEmpty(settings.messageOrbTierName) && pad.TierName == settings.messageOrbTierName)
                 RpgMessageSystem.Instance.ShowMessage(
                     "PILOT", settings.purpleOrbMessage, settings.messageHoldSeconds, settings.pilotMessageColor);
@@ -236,6 +263,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             ResultLabel = null;
             HasWon = false;
+            runCounted = false;
             TimeRemaining = settings.timeLimitSeconds;
             if (generator != null) generator.RegenerateForRun();
             motor.Paused = false; // EndRun froze the sim; the tuning screen re-pauses if present
