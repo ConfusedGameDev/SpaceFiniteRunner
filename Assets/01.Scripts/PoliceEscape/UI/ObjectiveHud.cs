@@ -94,13 +94,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             MenuTextLibrary texts = MenuTextLibrary.Load();
             Color color = step.Accent;
             bool hasDistance = manager.TryGetTargetDistance(index, out float meters);
-            line.text = Describe(texts, step, manager.Timer(index), manager.Tally(index), hasDistance, meters, ref color);
+            line.text = Describe(texts, step, manager.Timer(index), manager.Tally(index), manager.JumpBest(index), hasDistance, meters, ref color);
             // Done, waiting on its completion line / delay: read as finished.
             line.color = manager.Advancing ? DoneColor : color;
         }
 
         /// <summary>The condition with its live progress, then the clock when the step carries one.</summary>
-        static string Describe(MenuTextLibrary texts, LevelObjective step, float timer, int tally,
+        static string Describe(MenuTextLibrary texts, LevelObjective step, float timer, int tally, float jumpBest,
                                bool hasDistance, float meters, ref Color color)
         {
             string text;
@@ -136,6 +136,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                     break;
                 case ObjectiveType.CollectObjects:
                     text = $"{texts.Get(MenuTextId.ObjectiveCollect)}  {step.CollectTargetText}  {tally}/{step.collectCount}";
+                    break;
+                case ObjectiveType.Jump:
+                    // Best landed jump so far against the target, in the step's measure.
+                    text = $"{texts.Get(MenuTextId.ObjectiveJump)}  {jumpBest:0.0} / {step.JumpTarget:0.0} {step.JumpUnit}";
                     break;
                 default:
                     text = texts.Get(MenuTextId.ObjectiveEscapePolice);

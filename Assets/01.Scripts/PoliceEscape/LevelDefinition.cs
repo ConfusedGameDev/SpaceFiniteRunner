@@ -9,7 +9,10 @@ using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
     /// <summary>The things a level can ask of the player. Order is the save format — append only.</summary>
-    public enum ObjectiveType { ReachSpeed = 0, EscapePolice = 1, GoToTarget = 2, SurviveTime = 3, ChaseCar = 4, DestroyCars = 5, CollectObjects = 6 }
+    public enum ObjectiveType { ReachSpeed = 0, EscapePolice = 1, GoToTarget = 2, SurviveTime = 3, ChaseCar = 4, DestroyCars = 5, CollectObjects = 6, Jump = 7 }
+
+    /// <summary>What a Jump step measures a jump by. Order is the save format — append only.</summary>
+    public enum JumpMeasure { Distance = 0, AirTime = 1 }
 
     /// <summary>
     /// How the objective list completes. <see cref="Independent"/>: steps
@@ -96,6 +99,24 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Tooltip("Id of the Collectibles that count (the Collectible component's id). Empty = any collectible.")]
         public string collectId = "";
 
+        // Jump: one landed jump that covers the distance or stays airborne
+        // for the time — measured by the CityStatsRecorder off the player car
+        // (every wheel off the ground), the same numbers the LOG records.
+        [ShowIf("type", ObjectiveType.Jump)]
+        [Tooltip("Distance: horizontal metres covered while every wheel is off the ground. Air Time: seconds in the air. One landed jump reaching the target completes the step.")]
+        [EnumToggleButtons]
+        public JumpMeasure jumpMeasure = JumpMeasure.Distance;
+
+        [ShowIf("@this.type == ObjectiveType.Jump && this.jumpMeasure == JumpMeasure.Distance")]
+        [Tooltip("Horizontal metres a single jump must cover.")]
+        [PropertyRange(5f, 200f), SuffixLabel("m", true)]
+        public float jumpMeters = 30f;
+
+        [ShowIf("@this.type == ObjectiveType.Jump && this.jumpMeasure == JumpMeasure.AirTime")]
+        [Tooltip("Seconds a single jump must stay in the air.")]
+        [PropertyRange(0.5f, 10f), SuffixLabel("s", true)]
+        public float jumpSeconds = 2f;
+
         // Time rule: the clock a step can carry on top of its condition.
         // Survive is itself a timer, so it takes none.
         [HideIf("type", ObjectiveType.SurviveTime)]
@@ -174,7 +195,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public string CompletionText => Format(completionMessage);
 
         /// <summary>Speed and time are the parameters the debug menu can slide.</summary>
-        public bool HasAdjustableValue => type == ObjectiveType.ReachSpeed || type == ObjectiveType.SurviveTime || type == ObjectiveType.DestroyCars || type == ObjectiveType.CollectObjects || HasTimeRule;
+        public bool HasAdjustableValue => type == ObjectiveType.ReachSpeed || type == ObjectiveType.SurviveTime || type == ObjectiveType.DestroyCars || type == ObjectiveType.CollectObjects || type == ObjectiveType.Jump || HasTimeRule;
+
+        /// <summary>The Jump step's target in its own measure — metres or seconds.</summary>
+        public float JumpTarget => jumpMeasure == JumpMeasure.AirTime ? jumpSeconds : jumpMeters;
+
+        /// <summary>The Jump step's unit for readouts: "M" or "S".</summary>
+        public string JumpUnit => jumpMeasure == JumpMeasure.AirTime ? "S" : "M";
+
+        /// <summary>The Jump step's unit as a word for dialogue: "meters" or "seconds".</summary>
+        public string JumpUnitWord => jumpMeasure == JumpMeasure.AirTime ? "seconds" : "meters";
+
+        /// <summary>A landed jump's value in this step's measure.</summary>
+        public float JumpValue(float meters, float seconds) => jumpMeasure == JumpMeasure.AirTime ? seconds : meters;
 
         /// <summary>The Destroy Cars filter as words — "RED TRUCK", "BUS", or "CARS" when anything counts.</summary>
         public string DestroyTargetText => VehicleIdentity.Describe(destroyKind, destroyPaint, "CARS");
@@ -218,6 +251,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.ChaseCar => string.IsNullOrEmpty(targetId) ? "?" : targetId,
             ObjectiveType.DestroyCars => destroyCount.ToString(),
             ObjectiveType.CollectObjects => collectCount.ToString(),
+            ObjectiveType.Jump => jumpMeasure == JumpMeasure.AirTime ? jumpSeconds.ToString("0.0") : jumpMeters.ToString("0"),
             _ => ""
         };
 
@@ -233,6 +267,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.ChaseCar => $"CHASE {(string.IsNullOrEmpty(targetId) ? "?" : targetId)}",
             ObjectiveType.DestroyCars => $"DESTROY {destroyCount} × {DestroyTargetText}",
             ObjectiveType.CollectObjects => $"COLLECT {collectCount} × {CollectTargetText}",
+            ObjectiveType.Jump => $"JUMP {ValueText} {JumpUnit}",
             _ => type.ToString()
         };
 
@@ -254,10 +289,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             }
         }
 
-        /// <summary>Fills a template's {0} value, {1} time-rule seconds, {2} Destroy Cars filter and {3} Collect Objects id.</summary>
+        /// <summary>Fills a template's {0} value, {1} time-rule seconds, {2} Destroy Cars filter, {3} Collect Objects id and {4} Jump unit word.</summary>
         public string Format(string template)
         {
-            try { return string.Format(template, ValueText, timeSeconds.ToString("0"), DestroyTargetText.ToLowerInvariant(), CollectTargetText.ToLowerInvariant()); }
+            try { return string.Format(template, ValueText, timeSeconds.ToString("0"), DestroyTargetText.ToLowerInvariant(), CollectTargetText.ToLowerInvariant(), JumpUnitWord); }
             catch (System.FormatException) { return template; } // a stray brace in authored text must not throw mid-run
         }
 
@@ -271,6 +306,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.ChaseCar => new Color(1f, 0.9f, 0.2f),
             ObjectiveType.DestroyCars => new Color(1f, 0.55f, 0.25f),
             ObjectiveType.CollectObjects => new Color(0.6f, 1f, 0.9f),
+            ObjectiveType.Jump => new Color(0.55f, 0.75f, 1f),
             _ => new Color(0.45f, 0.9f, 1f)
         };
 
@@ -283,6 +319,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             ObjectiveType.ChaseCar => "Chase down {0} and take it out — don't let it get away!",
             ObjectiveType.DestroyCars => "Wreck {0} {2} — I don't care how.",
             ObjectiveType.CollectObjects => "Grab {0} {3} — they're scattered around, look for the glow.",
+            ObjectiveType.Jump => "Find a ramp — I need a jump of {0} {4}!",
             _ => ""
         };
     }

@@ -2,6 +2,7 @@ using System.Collections;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Collectibles;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Stats;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using Sirenix.OdinInspector;
@@ -136,6 +137,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             public bool huntSeen;    // EscapePolice: a pursuit was observed since activation
             public bool carKilled;   // ChaseCar: the escaping car was seen dead
             public int tally;        // DestroyCars: matching cars that died / CollectObjects: matching pickups, while the step was current
+            public float jumpBest;   // Jump: the best landed jump so far, in the step's measure (metres or seconds)
             public bool briefed;     // the step's dialogue line has played
             public bool failed;      // challenges only: the deadline ran out — the multiplier is lost
             public bool warnedMissingTarget;
@@ -230,6 +232,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// <summary>An accepted challenge's clock — the same meaning as <see cref="Timer"/>.</summary>
         public float ChallengeTimer(int index) => index >= 0 && index < challengeStates.Length ? challengeStates[index].timer : 0f;
 
+        /// <summary>An accepted Jump challenge's best landed jump so far, in its own measure.</summary>
+        public float ChallengeJumpBest(int index) => index >= 0 && index < challengeStates.Length ? challengeStates[index].jumpBest : 0f;
+
         /// <summary>An accepted challenge's tally — matching cars died (Destroy Cars) or pickups made (Collect Objects).</summary>
         public int ChallengeTally(int index) => index >= 0 && index < challengeStates.Length ? challengeStates[index].tally : 0;
 
@@ -283,6 +288,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             }
             return false;
         }
+
+        /// <summary>A Jump step's best landed jump so far, in its own measure (metres or seconds); 0 for other kinds.</summary>
+        public float JumpBest(int index) => index >= 0 && index < states.Length ? states[index].jumpBest : 0f;
 
         /// <summary>The step's tally — matching cars died (Destroy Cars) or pickups made (Collect Objects); 0 for other kinds.</summary>
         public int Tally(int index) => index >= 0 && index < states.Length ? states[index].tally : 0;
@@ -344,6 +352,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         {
             CarHealth.Died += OnCarDied;
             Collectible.Collected += OnCollected;
+            CityStatsRecorder.JumpLanded += OnJumpLanded;
         }
 
         // A scene going away mid-cinema (reload, exit to menu) must not leave
@@ -352,6 +361,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         {
             CarHealth.Died -= OnCarDied;
             Collectible.Collected -= OnCollected;
+            CityStatsRecorder.JumpLanded -= OnJumpLanded;
             if (cinemaOpen) CinemaSystem.Instance?.Cancel();
             cinemaOpen = false;
         }
@@ -407,6 +417,30 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             if (advancing || !step.CountsCollectible(id)) return; // includes the type check; a done step absorbs nothing
             states[current].tally++;
             Debug.Log($"[Level] collected '{id}' — {states[current].tally}/{step.collectCount}", this);
+        }
+
+        /// <summary>
+        /// The player landed a jump (measured by the CityStatsRecorder): every
+        /// live accepted Jump challenge and a current Jump step keep their best
+        /// so far in their own measure — a step completes on the first jump
+        /// that reaches its target.
+        /// </summary>
+        void OnJumpLanded(float meters, float seconds)
+        {
+            if (briefOpen || cinemaOpen || Completed || resetting || timedOut) return;
+
+            for (int i = 0; i < acceptedChallenges.Count && i < challengeStates.Length; i++)
+            {
+                ObjectiveState challengeState = challengeStates[i];
+                if (challengeState.done || challengeState.failed || acceptedChallenges[i].type != ObjectiveType.Jump) continue;
+                challengeState.jumpBest = Mathf.Max(challengeState.jumpBest, acceptedChallenges[i].JumpValue(meters, seconds));
+            }
+
+            if (level == null || current < 0 || current >= level.Count || current >= states.Length) return;
+            LevelObjective step = level.objectives[current];
+            if (advancing || step.type != ObjectiveType.Jump) return;
+            states[current].jumpBest = Mathf.Max(states[current].jumpBest, step.JumpValue(meters, seconds));
+            Debug.Log($"[Level] jump landed — {states[current].jumpBest:0.0}/{step.JumpTarget:0.0} {step.JumpUnit}", this);
         }
 
         void Update()
@@ -666,6 +700,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                 case ObjectiveType.CollectObjects:
                     // Fed by OnCollected, the same way.
                     return state.tally >= step.collectCount;
+
+                case ObjectiveType.Jump:
+                    // Fed by OnJumpLanded: one landed jump reaching the target.
+                    return state.jumpBest >= step.JumpTarget;
             }
             return false;
         }
@@ -747,7 +785,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                 // state (a seen hunt, a kill) but its clock restarts — a
                 // deadline gets its full span again, a hold starts from zero.
                 states[i].timer = 0f;
-                if (i > index) { states[i].carKilled = false; states[i].tally = 0; }
+                if (i > index) { states[i].carKilled = false; states[i].tally = 0; states[i].jumpBest = 0f; }
             }
             current = index;
         }

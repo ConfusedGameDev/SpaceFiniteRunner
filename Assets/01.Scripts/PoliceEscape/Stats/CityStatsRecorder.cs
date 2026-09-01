@@ -30,6 +30,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Stats
     /// </summary>
     public class CityStatsRecorder : MonoBehaviour
     {
+        /// <summary>A jump landed: (horizontal metres covered, seconds in the air). The LevelManager's Jump steps listen.</summary>
+        public static event System.Action<float, float> JumpLanded;
+
         /// <summary>Shorter hops (a kerb, a bump) are not jumps.</summary>
         const float MinJumpAirSeconds = 0.25f;
         const float RetargetSeconds = 1f;
@@ -90,7 +93,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Stats
             }
             else if (wasAirborne)
             {
-                if (airTime >= MinJumpAirSeconds) PlayerStats.RecordJump(jumpDistance, airTime);
+                if (airTime >= MinJumpAirSeconds)
+                {
+                    PlayerStats.RecordJump(jumpDistance, airTime);
+                    JumpLanded?.Invoke(jumpDistance, airTime);
+                }
                 ResetJump();
             }
             wasAirborne = airborne;

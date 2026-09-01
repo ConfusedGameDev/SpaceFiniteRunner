@@ -71,7 +71,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         StatLevelName, StatLastObjective, StatOptionalObjectives,
         StatEscapesAttempted, StatEscapesCompleted, StatFastestEscape, StatPowerUps, StatSlowDowns,
         ChallengeBonus, ChallengeDone, ChallengeFailed,
-        ObjectiveCollect, LogSectionCollectibles, StatCollectibles
+        ObjectiveCollect, LogSectionCollectibles, StatCollectibles,
+        ObjectiveJump
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -466,6 +467,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString objectiveDestroy = new("DESTROY", "DESTRUIR", "破壊", "DÉTRUIRE");
         [TitleGroup("City level objectives")]
         [SerializeField] LocalizedString objectiveCollect = new("COLLECT", "RECOGER", "回収", "RAMASSER");
+        [TitleGroup("City level objectives")]
+        [SerializeField] LocalizedString objectiveJump = new("JUMP", "SALTO", "ジャンプ", "SAUT");
 
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString gameOver = new("GAME OVER", "FIN DE LA PARTIDA", "ゲームオーバー", "PARTIE TERMINÉE");
@@ -783,6 +786,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.ObjectiveHoldFor => objectiveHoldFor,
             MenuTextId.ObjectiveDestroy => objectiveDestroy,
             MenuTextId.ObjectiveCollect => objectiveCollect,
+            MenuTextId.ObjectiveJump => objectiveJump,
             MenuTextId.LogSectionCollectibles => logSectionCollectibles,
             MenuTextId.StatCollectibles => statCollectibles,
             MenuTextId.CheatEnterCode => cheatEnterCode,

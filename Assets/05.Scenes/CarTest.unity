@@ -176,6 +176,9 @@ MonoBehaviour:
     destroyPaint: 0
     collectCount: 3
     collectId: 
+    jumpMeasure: 0
+    jumpMeters: 30
+    jumpSeconds: 2
     timeRule: 1
     timeSeconds: 15
     briefing: 
@@ -739,6 +742,18 @@ PrefabInstance:
     - target: {fileID: 5458379537304809606, guid: 8b8bc3edf073fc742aea5fa01d2a1938, type: 3}
       propertyPath: m_Name
       value: Collectible_KeyCard (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8879334990374514154, guid: 8b8bc3edf073fc742aea5fa01d2a1938, type: 3}
+      propertyPath: spinAxis
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8879334990374514154, guid: 8b8bc3edf073fc742aea5fa01d2a1938, type: 3}
+      propertyPath: hoverAmplitude
+      value: 0.081
+      objectReference: {fileID: 0}
+    - target: {fileID: 8879334990374514154, guid: 8b8bc3edf073fc742aea5fa01d2a1938, type: 3}
+      propertyPath: hoverFrequency
+      value: 0.13
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1850,8 +1865,16 @@ PrefabInstance:
       value: Collectible_KeyCard (2)
       objectReference: {fileID: 0}
     - target: {fileID: 8879334990374514154, guid: 8b8bc3edf073fc742aea5fa01d2a1938, type: 3}
+      propertyPath: spinAxis
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8879334990374514154, guid: 8b8bc3edf073fc742aea5fa01d2a1938, type: 3}
       propertyPath: hoverAmplitude
-      value: 0.068
+      value: 0.081
+      objectReference: {fileID: 0}
+    - target: {fileID: 8879334990374514154, guid: 8b8bc3edf073fc742aea5fa01d2a1938, type: 3}
+      propertyPath: hoverFrequency
+      value: 0.13
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

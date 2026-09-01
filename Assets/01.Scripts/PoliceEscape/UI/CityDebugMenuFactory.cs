@@ -442,6 +442,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                         screen.AddRow<DebugLabelRow>($"   [{objective.CollectTargetText}]")
                               .SetLabelTintProvider(StatusTint(manager, i, theme));
                         break;
+                    case ObjectiveType.Jump:
+                        // The target slides in the step's own measure; the measure itself is data.
+                        if (objective.jumpMeasure == JumpMeasure.AirTime)
+                            AddObjectiveStat(screen, theme, manager, i, refreshers, MenuTextId.ObjectiveJump,
+                                             0.5f, 10f, 0.5f, "0.0", o => o.jumpSeconds, (o, v) => o.jumpSeconds = v);
+                        else
+                            AddObjectiveStat(screen, theme, manager, i, refreshers, MenuTextId.ObjectiveJump,
+                                             5f, 200f, 5f, "0", o => o.jumpMeters, (o, v) => o.jumpMeters = v);
+                        break;
                     default:
                         screen.AddRow<DebugLabelRow>(MenuTextId.ObjectiveEscapePolice)
                               .SetLabelTintProvider(StatusTint(manager, i, theme));
