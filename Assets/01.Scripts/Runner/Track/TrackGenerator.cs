@@ -392,16 +392,26 @@ namespace ConfusedGameDev.FiniteRunner.Track
                         continue;
                     }
                 }
-                float footprint = pendingFeature.Runtime.FootprintLength;
                 if (!pendingClaimed)
                 {
-                    claims.Add((featureCursor, featureCursor + footprint));
-                    pendingSection = pendingFeature.Runtime.CreateSection(track, featureCursor);
+                    // The section IS the feature's geometry: a loop inserts
+                    // track, a tube reshapes the spline under it. Either way
+                    // it exists from this moment on, so every pad and road
+                    // stamp beyond this point already rides it.
+                    pendingSection = pendingFeature.Runtime.CreateSection(track, featureCursor, rng.NextFloat(0f, 1f));
                     if (pendingSection != null) track.AddSection(pendingSection);
+                    float claimed = pendingSection != null ? pendingSection.Length : pendingFeature.Runtime.FootprintLength;
+                    if (pendingFeature.Runtime.ClaimsFootprint) claims.Add((featureCursor, featureCursor + claimed));
                     pendingClaimed = true;
-                    limit += pendingSection != null ? pendingSection.Length : 0f; // the settled stretch grew with the insert
+                    if (pendingSection != null && pendingSection.InsertsDistance) limit += pendingSection.Length; // the settled stretch grew with the insert
                 }
-                if (featureCursor + pendingFeature.Runtime.SplineExtent > limit) return; // wait for the next stream
+                float footprint = pendingSection != null ? pendingSection.Length : pendingFeature.Runtime.FootprintLength;
+                // A feature with a section never waits: the section is its
+                // geometry and already routes the track, and its pose is only
+                // ever sampled where pads and road are placed — settled spline.
+                // Only a road-bound feature (a ramp) needs its footprint settled.
+                float splineExtent = pendingSection != null ? 0f : footprint;
+                if (featureCursor + splineExtent > limit) return; // wait for the next stream
 
                 CreateFeature(featureCursor, pendingFeature, pendingSection);
                 featureCursor += footprint + pendingFeature.Runtime.ExclusionAhead
@@ -433,8 +443,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 PadSpawnEntry entry = PickSpawnEntry();
                 if (entry != null && entry.definition != null)
                 {
-                    float lat = MaxLateral(entry.definition, entry.swayAmplitude);
-                    CreatePad(padCursor, rng.NextFloat(-lat, lat), entry);
+                    // Inside the lane at this distance — on a tube that is the
+                    // arc round the pipe, so orbs hang off its sides and under it.
+                    track.GetLateralBand(padCursor, out float bandMin, out float bandMax);
+                    float margin = PadMargin(entry.definition, entry.swayAmplitude);
+                    float lo = bandMin + margin;
+                    float hi = bandMax - margin;
+                    CreatePad(padCursor, hi > lo ? rng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f, entry);
                 }
                 padCursor += rng.NextFloat(padSpacing.x, padSpacing.y);
             }
@@ -455,11 +470,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         // Keep the whole pad (half its scaled width + a margin) inside the
-        // track edge — including the full sway arc of a moving orb.
-        float MaxLateral(PadDefinition def, float sway = 0f)
+        // lane edge — including the full sway arc of a moving orb.
+        float PadMargin(PadDefinition def, float sway = 0f)
         {
             float width = padSize.x * (def != null ? def.sizeMultiplier : 1f);
-            return Mathf.Max(0f, track.HalfWidth - width * 0.5f - 2f - sway);
+            return width * 0.5f + 2f + sway;
         }
 
         // Weighted draw from the spawn table; uses the layout rng so seeded
@@ -597,6 +612,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 case JumpDefinition jump: CreateJump(distance, entry, jump); break;
                 case LoopDefinition loop when section is LoopSection loopSection: CreateLoop(distance, entry, loop, loopSection); break;
+                case TubeDefinition: break; // the section registered at decision time is the whole feature: the decorator stamps the pipe
                 default:
                     Debug.LogWarning($"TrackGenerator: no builder for feature definition {entry.Runtime.GetType().Name}.", this);
                     break;
@@ -674,7 +690,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// decision time), the entry speed fixed for this distance by the
         /// GameSettings rule, and a gate at the mouth — a portal frame across
         /// the whole track (two posts and a crossbar, or the entry's unit
-        /// prefab scaled to the radius) the ship's speed recolours. The road
+        /// prefab scaled to the radius) the ship's speed recolours, with the
+        /// required km/h standing above it as a fixed label. The road
         /// round the loop needs nothing here: the decorator stamps it chord by
         /// chord off the section's poses like any stretch of track.
         /// </summary>
@@ -688,6 +705,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             var loop = go.AddComponent<LoopFeature>();
             float required = gameManager != null ? gameManager.LoopRequiredSpeed(distance) : 0f;
             loop.Configure(def, section, required);
+            float labelHeight = def.labelHeight;
 
             if (entry.prefab != null)
             {
@@ -704,6 +722,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 float half = track.HalfWidth + 4f;
                 const float postWidth = 3f;
                 float postHeight = Mathf.Clamp(track.HalfWidth * 0.6f, 20f, 60f);
+                labelHeight = Mathf.Max(labelHeight, postHeight + postWidth);
                 foreach (float side in new[] { -1f, 1f })
                 {
                     var post = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -727,6 +746,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 loop.AddGateRenderer(barRenderer);
             }
             loop.SetGateColor(false);
+            loop.BuildLabel(labelHeight, def.labelSize);
             spawned.Add((distance, go));
         }
 

@@ -104,6 +104,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     var trail = motor.GetComponent<DashGhostTrail>();
                     if (trail == null) trail = motor.gameObject.AddComponent<DashGhostTrail>();
                     trail.Init(motor, settings);
+                    // The airborne dash's wingtip ribbons — same lifetime as the ghosts.
+                    var rollTrail = motor.GetComponent<BarrelRollTrail>();
+                    if (rollTrail == null) rollTrail = motor.gameObject.AddComponent<BarrelRollTrail>();
+                    rollTrail.Init(motor, settings);
                     dashPrompt = DashPromptController.Spawn(motor, settings);
                 }
             }
@@ -121,6 +125,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol.Init(motor);
                 patrol.SetRedeployRule(settings.PatrolRedeployDistance, settings.PatrolRedeployGap,
                                        settings.patrolRedeploySpeedFactor);
+                patrol.Redeployed += OnPatrolRedeployed;
+                patrol.Warned += OnPatrolWarned;
+                patrol.ProximityRumble = settings.patrolProximityRumble;
                 ChaseMinimap.Spawn(motor, patrol, settings.minimapRangeMeters, patrol.Definition.warnDistance);
             }
             else
@@ -245,6 +252,27 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     "PILOT", settings.purpleOrbMessage, settings.messageHoldSeconds, settings.pilotMessageColor);
         }
 
+        // Story beat: the fresh patrol announces itself — a dialogue line, not
+        // a floating text, and only when GameSettings asks for it (the minimap
+        // and the rumble already show it cutting in).
+        void OnPatrolRedeployed(int patrolNumber)
+        {
+            if (RunOver || !settings.showPatrolAlert) return;
+            RpgMessageSystem.Instance.ShowMessage(
+                "PATROL", string.Format(settings.patrolInboundMessage, patrolNumber),
+                settings.messageHoldSeconds, settings.patrolMessageColor);
+        }
+
+        // Story beat: the patrol taunts as it closes in — once per approach,
+        // and never queued behind a line already up (a stale gap would lie).
+        void OnPatrolWarned(float gap)
+        {
+            if (RunOver || !settings.showPatrolWarnings || RpgMessageSystem.Instance.IsBusy) return;
+            RpgMessageSystem.Instance.ShowMessage(
+                "PATROL", string.Format(settings.patrolWarningMessage, Mathf.RoundToInt(gap)),
+                settings.messageHoldSeconds, settings.patrolMessageColor);
+        }
+
         // Haptics: a snappy buzz for boosts, a heavier thud for brakes.
         void OnPadImpulse(float rawMagnitude)
         {
@@ -269,9 +297,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         /// <summary>
-        /// Loop gates and alerts: every live loop's gate is tinted against the
-        /// ship's speed, and the nearest one ahead raises a LOOP alert once it
-        /// comes inside the lead — red while the ship is short of it.
+        /// Loop gates and labels: every live loop's gate is tinted against the
+        /// ship's speed, and its required-speed number (fixed above the mouth)
+        /// is shown once the loop comes inside its definition's label lead and
+        /// hidden again once the ship has gone through the gate.
         /// </summary>
         void UpdateLoops()
         {
@@ -280,16 +309,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             foreach (var loop in Track.Features.LoopFeature.Active)
             {
                 if (loop == null) continue;
-                bool pass = speed >= loop.RequiredSpeed;
-                loop.SetGateColor(pass);
+                loop.SetGateColor(speed >= loop.RequiredSpeed);
 
                 float gap = loop.StartDistance - d;
-                if (loop.Alerted || gap < 0f || gap > settings.loopAlertLeadMeters) continue;
-                loop.Alerted = true;
-                FloatingTextSystem.Instance.DisplayText(
-                    $"LOOP {gap:0} M — NEED {loop.RequiredSpeed * 3.6f:0} KM/H",
-                    pass ? loop.Definition.passColor : loop.Definition.failColor,
-                    1.6f, settings.boostTextLeadMeters, 3.2f);
+                float lead = loop.Definition != null ? loop.Definition.labelLeadMeters : 0f;
+                loop.SetLabelVisible(gap >= 0f && gap <= lead);
             }
         }
 
@@ -331,6 +355,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.TookOff -= OnTookOff;
                 motor.Landed -= OnLanded;
                 motor.LoopFailed -= OnLoopFailed;
+            }
+            if (patrol != null)
+            {
+                patrol.Redeployed -= OnPatrolRedeployed;
+                patrol.Warned -= OnPatrolWarned;
             }
             SpeedPad.Collected -= OnPadCollected;
         }

@@ -46,13 +46,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float catchDistance = 10f;
 
         [TitleGroup("Distances")]
-        [Tooltip("Gap below which 'PATROL x M' warnings and proximity rumble kick in.")]
+        [Tooltip("Gap below which the patrol's proximity line (once per approach) and the proximity rumble kick in.")]
         [PropertyRange(0f, 500f), SuffixLabel("m", true)]
         public float warnDistance = 130f;
-
-        [TitleGroup("Distances")]
-        [Tooltip("How far ahead of the ship the patrol's floating alerts spawn, so they stay readable at speed.")]
-        [PropertyRange(0f, 500f), SuffixLabel("m", true)]
-        public float alertLead = 180f;
     }
 }

@@ -2,7 +2,7 @@
 
 **Scope:** the hover-ship runner (`Assets/01.Scripts/Runner/`, namespace `ConfusedGameDev.FiniteRunner`), scene `Assets/05.Scenes/FiniteRunner_Test.unity`.
 **Goal:** make the endless track *interesting* — the road stops being a flat ribbon with orbs on it and becomes something the player reads and reacts to at speed.
-**Status:** design agreed 2026-09-02. M1 (camera), M2 (jumps) and M3 (loops) implemented 2026-09-02; jumps passed their editor test, loops await theirs.
+**Status:** design agreed 2026-09-02. M1 (camera), M2 (jumps), M3 (loops) and M4 (cylinder sections) implemented 2026-09-02; jumps passed their editor test, loops and tubes await theirs.
 
 ---
 
@@ -14,7 +14,7 @@ Four features, delivered **one at a time**, each played, tested and refined befo
 |---|---------|-----------|--------|
 | 1 | **Jumps** | Optional ramps that throw the ship into a speed-scaled arc | Implemented (§3), in test |
 | 2 | **Loops** | Mandatory vertical loops with a minimum entry speed | Implemented (§4), in test |
-| 3 | **Cylinder sections** | Stretches where the road curls into a tube the ship can run around and under | Root decisions only (§5) |
+| 3 | **Cylinder sections** | Stretches where the road curls into a tube the ship can run around and under | Implemented (§5), in test |
 | 4 | **Multi-path** | Branching routes with their own challenges and rewards | Deferred; single-spline discipline only (§6) |
 
 Feature 1 also carries a **camera migration**: the runner moves from a camera parented under the ship to the city chase's Cinemachine rig, shared between both games (§7).
@@ -117,7 +117,7 @@ Visual: optional prefab; fallback a primitive wedge tinted from the entry colour
 
 ## 4. Feature 2 — Loops
 
-> **Second-level decisions (agreed 2026-09-02, implemented):** a loop is a **distance-insert section** (`LoopSection`) with its own pose function — the spline stays flat, so every distance-based consumer rides it unchanged and the decorator stamps the ring's road for free. Pure vertical circle across the full track width, radius 100 m (40–250). Verdict taken **at the gate** against a speed fixed when the loop is placed (floor 1200 km/h + 18 km/h per 100 m, cap 2900), so the gate's colour is a promise. A fail rides to the top and **falls visibly** straight down onto the exit under a fake gravity (120 m/s²), losing 40% of speed; distance is parked at the exit so the patrol gains the whole fall. Telegraph: portal-frame gate at the mouth tinted green/red every frame, plus a floating alert at `loopAlertLeadMeters` (400 m). No pads inside a loop; the road is the ordinary road prefab in chords; a prefab slot on the entry scales by the radius.
+> **Second-level decisions (agreed 2026-09-02, implemented):** a loop is a **distance-insert section** (`LoopSection`) with its own pose function — the spline stays flat, so every distance-based consumer rides it unchanged and the decorator stamps the ring's road for free. Pure vertical circle across the full track width, radius 100 m (40–250). Verdict taken **at the gate** against a speed fixed when the loop is placed (floor 1200 km/h + 18 km/h per 100 m, cap 2900), so the gate's colour is a promise. A fail rides to the top and **falls visibly** straight down onto the exit under a fake gravity (120 m/s²), losing 40% of speed; distance is parked at the exit so the patrol gains the whole fall. Telegraph: portal-frame gate at the mouth tinted green/red every frame, plus the required km/h as a fixed number above the gate, shown inside the definition's `labelLeadMeters` (1800 m). No pads inside a loop; the road is the ordinary road prefab in chords; a prefab slot on the entry scales by the radius.
 
 - **Mandatory.** The track *is* the loop; there is no bypass lane. The loop is what sells the speed.
 - **Speed requirement** = a floor plus a ramp with distance travelled, capped well under light speed, all on `GameSettings` (`loopSpeedFloor`, `loopSpeedPerMeter`, `loopSpeedCap`). Never a fixed number alone.
@@ -128,7 +128,9 @@ Visual: optional prefab; fallback a primitive wedge tinted from the entry colour
 
 ---
 
-## 5. Feature 3 — Cylinder sections (root decisions)
+## 5. Feature 3 — Cylinder sections
+
+> **Second-level decisions (agreed 2026-09-02, implemented):** a tube is an **overlay section** (`TubeSection`): it reshapes the spline's pose over its length and inserts no distance. Radius is an absolute knob (60 m, 20–150). Two definition assets, drawn from the feature table like the rest: a ±90° tube and a ±180° full tube, centre on top. Length rolled per instance (600–1500 m; 500–1200 for the full tube) with a 150 m curl at each end easing position, up vector and steering band together. The road is the ordinary road prefab stamped in strips round the band, barriers only at a partial tube's edges. Orbs and brake pads spawn anywhere in the band at the usual density; ramps and loops never start inside a tube. Lateral speed stays in metres of arc; the band edge behaves like the track edge.
 
 - The road runs on the **outside** of a cylinder; full 360° is possible, so the ship can hang under the track. This is the "running through the code, not on a road" feel.
 - **Sections, not the whole track.** The generator decides where a tube stretch starts and ends; flat road curls into the tube and uncurls out of it (transition length is a section knob).
@@ -180,7 +182,7 @@ Each milestone ends in a playable build and a tuning pass before the next begins
 
 **M3 — Loops** *(done 2026-09-02, see §4 note)*.
 
-**M4 — Cylinder sections.** Second-level design round first (§5 deferred list), then implementation.
+**M4 — Cylinder sections** *(done 2026-09-02, see §5 note)*.
 
 **M5 — Multi-path.** Design from scratch on top of 1–3.
 

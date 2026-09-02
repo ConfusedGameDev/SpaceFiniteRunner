@@ -26,6 +26,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// is the one place anything reads "is the ship flying". The root itself
     /// rises above the flight line while on a ramp or airborne, so ground
     /// orbs and brake pads are physically missed rather than ignored.
+    /// <b>The airborne dash is a barrel roll</b>: the sideways burst is
+    /// spread over <see cref="ShipDefinition.barrelRollSeconds"/> while the
+    /// visual turns a full 360° in the dash direction on top of its bank
+    /// (<see cref="IsBarrelRolling"/>, <see cref="BarrelRollStarted"/>);
+    /// <see cref="BarrelRollTrail"/> draws the wingtip ribbons.
     /// <b>Loops</b> are track sections (the pose function goes round by
     /// itself — see <see cref="LoopSection"/>); the motor only decides the
     /// gate: entering a <see cref="LoopFeature"/> at or above its required
@@ -59,6 +64,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>Raised when a lateral dash fires. Argument: -1 left, +1 right.</summary>
         public event System.Action<int> DashPerformed;
 
+        /// <summary>Raised when an airborne dash starts its barrel roll. Argument: -1 rolls left, +1 right.</summary>
+        public event System.Action<int> BarrelRollStarted;
+
+        /// <summary>Raised at the end of <see cref="Launch"/>: the ship has been teleported to the start line.</summary>
+        public event System.Action Launched;
+
         /// <summary>Raised each time the dash meter reaches full (edge, not per frame).</summary>
         public event System.Action MeterFilled;
 
@@ -88,6 +99,15 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>True during the short dash burst.</summary>
         public bool IsDashing => dashTimeLeft > 0f;
+
+        /// <summary>Seconds the current (or last) dash burst was spread over: the dash duration on the ground, the barrel roll's length in the air.</summary>
+        public float DashBurstDuration => dashBurstDuration;
+
+        /// <summary>True while the visual is mid barrel roll (an airborne dash). Outlives the burst if a wall cut the dash short — the roll always completes.</summary>
+        public bool IsBarrelRolling => rollTimeLeft > 0f;
+
+        /// <summary>Barrel-roll direction of the current roll: -1 left, +1 right, 0 when not rolling.</summary>
+        public int BarrelRollDirection => IsBarrelRolling ? rollDirection : 0;
 
         /// <summary>The banking/hovering model child — for visual-only consumers (ghost trail).</summary>
         public Transform Visual => visual;
@@ -134,7 +154,17 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float dashMeter;
         float dashTimeLeft;
         int dashDirection;
+        float dashBurstDuration;     // the profile's span: dashDuration grounded, barrelRollSeconds airborne
         float dashVelocityThisFrame; // handed from UpdateLateral to ApplyPose for the bank
+
+        // Barrel roll (airborne dash). Visual-only, on the model child like the
+        // bank: a full 360° in the dash direction eased over its own timer, so
+        // a wall or a landing that ends the burst never leaves the ship on its
+        // side. Adds to the bank, and adds exactly one turn, so it lands seamlessly.
+        float rollTimeLeft;
+        float rollDuration;
+        int rollDirection;
+        float rollAngle;
         float wallHitCooldown;
         bool meterWasFull;
 
@@ -150,6 +180,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float airStart, airLength, arcH0, arcSlope, arcA;
         float visualPitch;      // nose up on the slope and the climb, down on the descent
         float shownPitch;       // visualPitch, eased
+
+        // Tube return: before a tube unrolls, the motor eases the lateral back
+        // to the band's centre from wherever the player left it.
+        bool returnLocked;
+        float returnFromLateral;
 
         // Loop state. Inside a loop the track pose does the work; the motor
         // only remembers the verdict taken at the gate and, on a fail, runs
@@ -205,6 +240,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             dashMeter = 0f; // the meter charges from empty every run
             dashTimeLeft = 0f;
             dashVelocityThisFrame = 0f;
+            rollTimeLeft = 0f;
+            rollAngle = 0f;
             wallHitCooldown = 0f;
             meterWasFull = false;
             HasStopped = false;
@@ -220,6 +257,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             SetState(ShipState.Grounded);
 
             ApplyPose(0f);
+            Launched?.Invoke();
         }
 
         /// <summary>
@@ -241,6 +279,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             {
                 UpdateSpeed(dt);
                 UpdateDash(dt);
+                UpdateRoll(dt);
                 UpdateLateral(dt);
                 if (State != ShipState.Falling) AdvanceAlongTrack(dt); // a fall is off the track: distance waits at the exit
                 UpdateJump(dt);
@@ -298,24 +337,55 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (request != 0 && !IsDashing && dashMeter >= dashSettings.dashCost)
             {
                 dashMeter -= dashSettings.dashCost;
-                dashTimeLeft = definition.dashDuration;
                 dashDirection = request;
+
+                // In the air the dash is a barrel roll: the same sideways
+                // burst (at the jump's reduced authority), spread over the
+                // roll's length so the drift and the spin are one motion.
+                bool airborne = State == ShipState.Airborne;
+                dashBurstDuration = Mathf.Max(airborne ? definition.barrelRollSeconds : definition.dashDuration, 0.01f);
+                dashTimeLeft = dashBurstDuration;
                 DashPerformed?.Invoke(request);
+
+                if (airborne && !IsBarrelRolling)
+                {
+                    rollDuration = dashBurstDuration;
+                    rollTimeLeft = rollDuration;
+                    rollDirection = request;
+                    BarrelRollStarted?.Invoke(request);
+                }
             }
+        }
+
+        // The barrel roll's own clock: 0 → 360° in the dash direction with a
+        // smooth ease at both ends, so it blends out of and back into the
+        // bank underneath it. Roll right (+1) is the bank's sign for right.
+        void UpdateRoll(float dt)
+        {
+            if (rollTimeLeft <= 0f) { rollAngle = 0f; return; }
+            rollTimeLeft -= dt;
+            float progress = 1f - Mathf.Clamp01(rollTimeLeft / Mathf.Max(rollDuration, 0.01f));
+            rollAngle = -rollDirection * 360f * Mathf.SmoothStep(0f, 1f, progress);
+            if (rollTimeLeft <= 0f) rollAngle = 0f; // a full turn is where it started
         }
 
         void UpdateLateral(float dt)
         {
             float steer = steering?.SteerAxis ?? 0f;
-            float halfWidth = track.HalfWidth;
+            // The lane at this distance: ±half width on the road, the arc round
+            // the pipe on a tube (its edge behaves exactly like the road's).
+            track.GetLateralBand(DistanceTravelled, out float bandMin, out float bandMax);
 
-            // In the air the stick and the dash both work at the jump's reduced authority.
+            // In the air the stick and the dash both work at the jump's reduced
+            // authority; on a tube the stick alone gets the pipe's extra reach.
             float control = State == ShipState.Airborne && airDefinition != null ? airDefinition.airControlFactor : 1f;
+            float steerFactor = State == ShipState.OnTube && track.SectionAt(DistanceTravelled) is TubeSection onTube
+                ? onTube.SteeringFactor : 1f;
 
-            float targetVelocity = steer * definition.lateralSpeed * control;
+            float targetVelocity = steer * definition.lateralSpeed * control * steerFactor;
             lateralVelocity = Mathf.MoveTowards(
                 lateralVelocity, targetVelocity,
-                definition.lateralSpeed * definition.handlingResponse * dt);
+                definition.lateralSpeed * steerFactor * definition.handlingResponse * dt);
 
             // The dash is an additive velocity with its own state, so the
             // steering MoveTowards above never sees (and never decays) it.
@@ -324,16 +394,48 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             float dashVelocity = 0f;
             if (dashTimeLeft > 0f && dashSettings != null)
             {
-                float duration = Mathf.Max(definition.dashDuration, 0.01f);
+                float duration = Mathf.Max(dashBurstDuration, 0.01f);
                 dashVelocity = dashDirection * (2f * definition.dashDistance / duration)
                                              * Mathf.Clamp01(dashTimeLeft / duration) * control;
                 dashTimeLeft -= dt;
             }
             dashVelocityThisFrame = dashVelocity;
 
+            // The end of a tube is the system's: over the return stretch the
+            // lateral eases home to the band's centre, steering and dash
+            // ignored, so the road never unrolls under a ship hanging off it.
+            if (State == ShipState.OnTube && track.SectionAt(DistanceTravelled) is TubeSection tube)
+            {
+                float local = DistanceTravelled - tube.StartDistance;
+                float progress = tube.ReturnProgress(local);
+                if (progress > 0f)
+                {
+                    if (!returnLocked) { returnLocked = true; returnFromLateral = lateralOffset; }
+                    // A full tube unwinds to the NEAREST top (a whole number of
+                    // turns is the same pose), then snaps that to 0 for the
+                    // flat road once the curl-out begins — same pose, no jolt.
+                    float home = tube.Unbounded
+                        ? Mathf.Round(returnFromLateral / tube.Circumference) * tube.Circumference
+                        : (bandMin + bandMax) * 0.5f;
+                    lateralOffset = progress >= 1f ? 0f : Mathf.Lerp(returnFromLateral, home, progress);
+                    lateralVelocity = 0f;
+                    dashTimeLeft = 0f;
+                    dashVelocityThisFrame = 0f;
+                    return;
+                }
+                if (tube.IsUnboundedAt(local))
+                {
+                    // Round and round: no clamp, no wall.
+                    returnLocked = false;
+                    lateralOffset += (lateralVelocity + dashVelocity) * dt;
+                    return;
+                }
+            }
+            returnLocked = false;
+
             // The clamp is what guarantees a dash can never leave the track.
-            lateralOffset = Mathf.Clamp(lateralOffset + (lateralVelocity + dashVelocity) * dt, -halfWidth, halfWidth);
-            bool hitEdge = Mathf.Abs(lateralOffset) >= halfWidth;
+            lateralOffset = Mathf.Clamp(lateralOffset + (lateralVelocity + dashVelocity) * dt, bandMin, bandMax);
+            bool hitEdge = lateralOffset <= bandMin || lateralOffset >= bandMax;
 
             // Committed to a ramp: the side rails hold the ship on the slope.
             if (ramp != null)
@@ -466,6 +568,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 return;
             }
 
+            // A tube is a state only so readers can tell; the pose function and
+            // the lane band do all the work. Ramps and loops never sit in one.
+            bool onTube = track.SectionAt(d) is TubeSection;
+            if (State == ShipState.Grounded && onTube) { SetState(ShipState.OnTube); return; }
+            if (State == ShipState.OnTube) { if (!onTube) SetState(ShipState.Grounded); return; }
+
             if (State != ShipState.Grounded) return;
             foreach (var candidate in LoopFeature.Active)
             {
@@ -586,7 +694,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             shownPitch = dt > 0f ? Mathf.Lerp(shownPitch, visualPitch, 1f - Mathf.Exp(-8f * dt)) : visualPitch;
 
             visual.localPosition = new Vector3(0f, definition.hoverHeight + bob, 0f);
-            visual.localRotation = Quaternion.Euler(pitch + shownPitch, 0f, bankAngle);
+            // The barrel roll rides on top of the bank: one full turn, so the
+            // model comes back to exactly the bank it would have had anyway.
+            visual.localRotation = Quaternion.Euler(pitch + shownPitch, 0f, bankAngle + rollAngle);
         }
     }
 }

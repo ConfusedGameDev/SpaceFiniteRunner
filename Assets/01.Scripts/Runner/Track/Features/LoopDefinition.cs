@@ -46,13 +46,27 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [Tooltip("Gate colour while the ship is too slow.")]
         public Color failColor = new(1f, 0.2f, 0.15f);
 
+        [TitleGroup("Gate")]
+        [Tooltip("Height of the required-speed number above the flight line at the mouth, metres. The code-built gate lifts it above its crossbar when that is taller.")]
+        [PropertyRange(5f, 150f), SuffixLabel("m", true)]
+        public float labelHeight = 30f;
+
+        [TitleGroup("Gate")]
+        [Tooltip("Character size of the required-speed number (a world-space text mesh, so this is roughly metres per character).")]
+        [PropertyRange(0.5f, 20f)]
+        public float labelSize = 5f;
+
+        [TitleGroup("Gate")]
+        [Tooltip("How far ahead of the loop its required-speed number is shown, metres. At 1000+ m/s the ship crosses 400 m in a third of a second, so this sits beyond the fog end (1500 m) — the number is up before the gate itself clears the haze.")]
+        [PropertyRange(50f, 4000f), SuffixLabel("m", true)]
+        public float labelLeadMeters = 1800f;
+
         public float Circumference => 2f * Mathf.PI * radius;
 
         public override float FootprintLength => Circumference;
         public override float ExclusionAhead => exitClearance;
-        public override float InsertLength => Circumference;
 
-        public override TrackSection CreateSection(TrackManager track, float startDistance)
+        public override TrackSection CreateSection(TrackManager track, float startDistance, float roll01)
         {
             track.GetPoseAtDistance(startDistance, 0f, out Vector3 origin, out Quaternion rotation);
             return new LoopSection(startDistance, radius, origin, rotation);

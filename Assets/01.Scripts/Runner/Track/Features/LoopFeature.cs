@@ -12,7 +12,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
     /// rather than through a trigger; the road round the loop is stamped by
     /// the decorator like any other stretch of track. The gate at the mouth
     /// (a portal frame the generator builds under this object) is recoloured
-    /// every frame against the ship's speed by <see cref="SetGateColor"/>.
+    /// every frame against the ship's speed by <see cref="SetGateColor"/>, and
+    /// the required speed stands above it as a fixed label (<see cref="BuildLabel"/>).
     /// </summary>
     public class LoopFeature : MonoBehaviour
     {
@@ -31,12 +32,13 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public float StartDistance => Section != null ? Section.StartDistance : 0f;
         public float EndDistance => Section != null ? Section.EndDistance : 0f;
 
-        /// <summary>True once the GameManager has raised this loop's approach alert.</summary>
-        public bool Alerted { get; set; }
+        /// <summary>Whether the required-speed label at the mouth is currently shown.</summary>
+        public bool LabelVisible => label != null && label.gameObject.activeSelf;
 
         readonly List<Renderer> gateRenderers = new();
         MaterialPropertyBlock mpb;
         bool? gateState;
+        TextMesh label;
 
         public void Configure(LoopDefinition definition, LoopSection section, float requiredSpeed)
         {
@@ -51,12 +53,56 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             if (renderer != null) gateRenderers.Add(renderer);
         }
 
-        /// <summary>Tint the gate pass or fail. Cheap to call every frame — it only writes on a change.</summary>
+        /// <summary>
+        /// The number at the mouth: a world-space text FIXED above the gate
+        /// (never a popup that rides ahead of the ship) reading the required
+        /// entry speed in km/h and nothing else — the gate's colour already
+        /// says pass or fail, the label says how much. Built once by the
+        /// generator, hidden until the GameManager reveals it inside the
+        /// alert lead, and tinted with the gate.
+        /// </summary>
+        public void BuildLabel(float height, float characterSize)
+        {
+            if (label != null) Destroy(label.gameObject);
+            var go = new GameObject("RequiredSpeedLabel");
+            go.transform.SetParent(transform, false);
+            go.transform.localPosition = new Vector3(0f, height, 0f);
+            // A TextMesh reads correctly to a viewer looking along its +Z; the
+            // mouth's forward IS the track direction the ship looks along, so
+            // the label keeps the gate's rotation (a 180° turn mirrors it).
+            go.transform.localRotation = Quaternion.identity;
+
+            label = go.AddComponent<TextMesh>();
+            label.text = $"{RequiredSpeed * 3.6f:0}";
+            label.anchor = TextAnchor.LowerCenter;
+            label.alignment = TextAlignment.Center;
+            label.fontStyle = FontStyle.Bold;
+            label.fontSize = 48;
+            label.characterSize = characterSize;
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (font != null)
+            {
+                label.font = font;
+                go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            }
+            label.color = gateState == true ? Definition.passColor : Definition.failColor;
+            go.SetActive(false);
+        }
+
+        /// <summary>Show or hide the label. Cheap every frame — it only toggles on a change.</summary>
+        public void SetLabelVisible(bool visible)
+        {
+            if (label == null || label.gameObject.activeSelf == visible) return;
+            label.gameObject.SetActive(visible);
+        }
+
+        /// <summary>Tint the gate (and its label) pass or fail. Cheap to call every frame — it only writes on a change.</summary>
         public void SetGateColor(bool pass)
         {
             if (gateState == pass || Definition == null) return;
             gateState = pass;
             Color color = pass ? Definition.passColor : Definition.failColor;
+            if (label != null) label.color = color;
             mpb ??= new MaterialPropertyBlock();
             foreach (var r in gateRenderers)
             {

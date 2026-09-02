@@ -43,6 +43,15 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         }
 
         [System.Serializable]
+        public class TubeValues
+        {
+            public string name;
+            public float radius = 60f;
+            public float bandDegrees = 90f;
+            public float curlLength = 150f;
+        }
+
+        [System.Serializable]
         public class LoopValues
         {
             public float radius = 100f;
@@ -56,6 +65,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public List<EntryValues> entries = new();
         public JumpValues jump = new();
         public LoopValues loop = new();
+        public List<TubeValues> tubes = new(); // one per tube entry, matched by entry name
 
         static FeatureDebugSettings cached;
 
@@ -80,6 +90,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             featureSpacing = generator.FeatureSpacing;
 
             entries.Clear();
+            tubes.Clear();
             var table = generator.FeatureTable;
             if (table != null)
                 foreach (var e in table)
@@ -87,6 +98,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                     entries.Add(new EntryValues { name = e.name, probability = e.probability, minSpacing = e.minSpacing, multiplier = e.multiplier });
                     if (e.Runtime is JumpDefinition j) CaptureJump(j);
                     if (e.Runtime is LoopDefinition l) { loop.radius = l.radius; loop.fallGravity = l.fallGravity; loop.fallSpeedLoss = l.fallSpeedLoss; }
+                    if (e.Runtime is TubeDefinition t) tubes.Add(new TubeValues { name = e.name, radius = t.radius, bandDegrees = t.bandDegrees, curlLength = t.curlLength });
                 }
 
 #if UNITY_EDITOR
@@ -125,6 +137,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                 }
                 if (table[i].Runtime is JumpDefinition j) ApplyJump(j);
                 if (table[i].Runtime is LoopDefinition l) { l.radius = loop.radius; l.fallGravity = loop.fallGravity; l.fallSpeedLoss = loop.fallSpeedLoss; }
+                if (table[i].Runtime is TubeDefinition t)
+                {
+                    var savedTube = tubes.Find(x => x.name == table[i].name);
+                    if (savedTube != null) { t.radius = savedTube.radius; t.bandDegrees = savedTube.bandDegrees; t.curlLength = savedTube.curlLength; }
+                }
             }
         }
 

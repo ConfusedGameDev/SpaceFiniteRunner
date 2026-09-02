@@ -191,6 +191,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                     AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopFallLoss,
                                             0f, 1f, 0.05f, "0.00", l => l.fallSpeedLoss, (l, v) => l.fallSpeedLoss = v);
                 }
+                else if (entry.Runtime is TubeDefinition)
+                {
+                    AddStat<TubeDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.TubeRadius,
+                                            20f, 150f, 5f, "0", t => t.radius, (t, v) => t.radius = v);
+                    AddStat<TubeDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.TubeBand,
+                                            15f, 180f, 5f, "0", t => t.bandDegrees, (t, v) => t.bandDegrees = v);
+                    AddStat<TubeDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.TubeCurl,
+                                            20f, 500f, 10f, "0", t => t.curlLength, (t, v) => t.curlLength = v);
+                }
             }
             return screen;
         }
@@ -292,6 +301,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.DashGhosts,
                         1f, 20f, 1f, "0", d => d.dashGhostCount,
                         (d, v) => d.dashGhostCount = Mathf.RoundToInt(v));
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.BarrelRollSeconds,
+                        0.2f, 1.5f, 0.05f, "0.00", d => d.barrelRollSeconds, (d, v) => d.barrelRollSeconds = v);
             return screen;
         }
 
@@ -343,8 +354,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                           0f, 100f, 5f, "0", d => d.catchDistance, (d, v) => d.catchDistance = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolWarnDistance,
                           0f, 500f, 10f, "0", d => d.warnDistance, (d, v) => d.warnDistance = v);
-            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolAlertLead,
-                          0f, 500f, 10f, "0", d => d.alertLead, (d, v) => d.alertLead = v);
             return screen;
         }
 

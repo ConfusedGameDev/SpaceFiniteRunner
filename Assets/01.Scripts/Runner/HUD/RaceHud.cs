@@ -55,7 +55,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Header("Boost floating text")]
         [SerializeField] bool spawnBoostText = true;
         [SerializeField] Color boostTextColor = new(0.48f, 1f, 0.4f);
-        [SerializeField, Min(0.05f)] float boostTextSize = 1.2f;
+        [SerializeField, Min(0.05f)] float boostTextSize = 0.6f;
 
         float currentPulse = 1f;
 

@@ -75,7 +75,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         ObjectiveJump,
         DebugTabFeatures, FeatureSpacing,
         JumpWidth, JumpLength, JumpAngle, JumpAirDistance, JumpMaxAir, JumpAirControl, JumpSideHitLoss,
-        LoopRadius, LoopFallGravity, LoopFallLoss
+        LoopRadius, LoopFallGravity, LoopFallLoss,
+        TubeRadius, TubeBand, TubeCurl,
+        BarrelRollSeconds
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -244,6 +246,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString dashRecharge = new("DASH RECHARGE", "RECARGA DEL DASH", "ダッシュ充電", "RECHARGE DU DASH");
         [TitleGroup("Ship stats")]
         [SerializeField] LocalizedString dashGhosts = new("DASH GHOSTS", "ESTELAS DEL DASH", "ダッシュ残像", "FANTÔMES DU DASH");
+        [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString barrelRollSeconds = new("BARREL ROLL TIME", "DURACIÓN DEL TONEL", "バレルロール時間", "DURÉE DU TONNEAU");
         [TitleGroup("Ship stats")]
         [SerializeField] LocalizedString hoverHeight = new("HOVER HEIGHT", "ALTURA DE FLOTACIÓN", "ホバー高度", "HAUTEUR DE SUSTENTATION");
         [TitleGroup("Ship stats")]
@@ -486,6 +490,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString loopRadius = new("LOOP RADIUS", "RADIO DEL LOOP", "ループ半径", "RAYON DU LOOPING");
         [SerializeField] LocalizedString loopFallGravity = new("FALL GRAVITY", "GRAVEDAD DE CAÍDA", "落下重力", "GRAVITÉ DE CHUTE");
         [SerializeField] LocalizedString loopFallLoss = new("FALL SPEED LOSS", "PÉRDIDA POR CAÍDA", "落下速度ロス", "PERTE DE CHUTE");
+        [SerializeField] LocalizedString tubeRadius = new("TUBE RADIUS", "RADIO DEL TUBO", "チューブ半径", "RAYON DU TUBE");
+        [SerializeField] LocalizedString tubeBand = new("TUBE BAND", "BANDA DEL TUBO", "チューブ可動域", "BANDE DU TUBE");
+        [SerializeField] LocalizedString tubeCurl = new("TUBE CURL", "CURVATURA DEL TUBO", "チューブ巻き込み", "COURBURE DU TUBE");
 
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString gameOver = new("GAME OVER", "FIN DE LA PARTIDA", "ゲームオーバー", "PARTIE TERMINÉE");
@@ -690,6 +697,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DashDuration => dashDuration,
             MenuTextId.DashRecharge => dashRecharge,
             MenuTextId.DashGhosts => dashGhosts,
+            MenuTextId.BarrelRollSeconds => barrelRollSeconds,
             MenuTextId.HoverHeight => hoverHeight,
             MenuTextId.BobAmplitude => bobAmplitude,
             MenuTextId.BobFrequency => bobFrequency,
@@ -816,6 +824,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.LoopRadius => loopRadius,
             MenuTextId.LoopFallGravity => loopFallGravity,
             MenuTextId.LoopFallLoss => loopFallLoss,
+            MenuTextId.TubeRadius => tubeRadius,
+            MenuTextId.TubeBand => tubeBand,
+            MenuTextId.TubeCurl => tubeCurl,
             MenuTextId.LogSectionCollectibles => logSectionCollectibles,
             MenuTextId.StatCollectibles => statCollectibles,
             MenuTextId.CheatEnterCode => cheatEnterCode,

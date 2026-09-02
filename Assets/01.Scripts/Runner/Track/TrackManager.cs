@@ -16,12 +16,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// so a future multi-spline route layer has one seam to replace.
     ///
     /// <b>Sections</b> (<see cref="TrackSection"/>) are stretches of track
-    /// distance inserted over the flat spline with their own pose function —
-    /// a loop is a vertical circle standing on the road. Track distance =
-    /// spline distance + the lengths of every section before it, so
-    /// <see cref="Length"/> is the whole track including inserts and
+    /// distance with their own pose function — a loop is a vertical circle
+    /// standing on the road (an insert: it adds track distance), a tube
+    /// curls a stretch of spline into a pipe (an overlay: it adds none).
+    /// Track distance = spline distance + the lengths of every INSERT before
+    /// it, so <see cref="Length"/> is the whole track including inserts and
     /// <see cref="GetPoseAtDistance"/> routes a distance inside a section to
-    /// it. Everything that thinks in distance rides a section unchanged.
+    /// it. Everything that thinks in distance rides a section unchanged; the
+    /// steering lane is asked per distance (<see cref="GetLateralBand"/>)
+    /// because a tube's lane is an arc.
     /// </summary>
     public class TrackManager : MonoBehaviour
     {
@@ -33,6 +36,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         readonly List<TrackSection> sections = new(); // sorted by StartDistance
 
         public SplineContainer Spline => spline;
+
+        /// <summary>The plain road's half width; ask <see cref="GetLateralBand"/> for the lane at a distance.</summary>
         public float HalfWidth => halfWidth;
 
         /// <summary>Whole track length in track distance: the spline plus every inserted section.</summary>
@@ -57,7 +62,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             SplineLength = spline != null ? spline.CalculateLength() : 0f;
             float inserted = 0f;
-            foreach (var s in sections) inserted += s.Length;
+            foreach (var s in sections)
+                if (s.InsertsDistance) inserted += s.Length;
             Length = SplineLength + inserted;
         }
 
@@ -75,9 +81,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         /// <summary>
-        /// Inserts a section at its start distance. Must happen before
-        /// anything is placed beyond that distance — every distance past the
-        /// section shifts by its length.
+        /// Registers a section at its start distance. Must happen before
+        /// anything is placed beyond that distance — an insert shifts every
+        /// distance past it by its length.
         /// </summary>
         public void AddSection(TrackSection section)
         {
@@ -99,17 +105,30 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return null;
         }
 
-        /// <summary>Spline distance for a track distance (inside a section: the section's start).</summary>
+        /// <summary>Spline distance for a track distance (inside an insert: the insert's start).</summary>
         public float SplineDistanceOf(float distance)
         {
             float offset = 0f;
             foreach (var s in sections)
             {
                 if (distance < s.StartDistance) break;
+                if (!s.InsertsDistance) continue;
                 if (distance < s.EndDistance) return s.StartDistance - offset;
                 offset += s.Length;
             }
             return distance - offset;
+        }
+
+        /// <summary>The steering lane at a track distance: ±half width on the road, a section's own band inside one.</summary>
+        public void GetLateralBand(float distance, out float min, out float max)
+        {
+            TrackSection s = SectionAt(distance);
+            if (s != null) s.GetLateralBand(distance - s.StartDistance, halfWidth, out min, out max);
+            else
+            {
+                min = -halfWidth;
+                max = halfWidth;
+            }
         }
 
         /// <summary>
@@ -140,6 +159,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
             rotation = Quaternion.LookRotation(fwd, upDir);
         }
 
+        /// <summary>The spline's own pose at a SPLINE distance — what an overlay section shapes.</summary>
+        public void GetSplinePoseAtDistance(float splineDistance, float lateral, out Vector3 position, out Quaternion rotation)
+            => GetPose(DistanceToT(splineDistance), lateral, out position, out rotation);
+
         /// <summary>Pose at a TRACK distance from the start: a section's own pose inside one, the spline's elsewhere.</summary>
         public void GetPoseAtDistance(float distance, float lateral, out Vector3 position, out Quaternion rotation)
         {
@@ -149,10 +172,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (distance < s.StartDistance) break;
                 if (distance < s.EndDistance)
                 {
-                    s.GetPose(distance - s.StartDistance, lateral, out position, out rotation);
+                    s.GetPose(this, s.StartDistance - offset, distance - s.StartDistance, lateral, out position, out rotation);
                     return;
                 }
-                offset += s.Length;
+                if (s.InsertsDistance) offset += s.Length;
             }
             GetPose(DistanceToT(distance - offset), lateral, out position, out rotation);
         }

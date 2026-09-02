@@ -21,7 +21,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [TitleGroup("Win condition")]
         [Tooltip("Light Speed — the speed that wins the run, in km/h.")]
         [PropertyRange(100f, 10000f), SuffixLabel("km/h", true)]
-        public float lightSpeedKmh = 4000f;
+        public float lightSpeedKmh = 6500f;
 
         [TitleGroup("Win condition")]
         [Tooltip("Seconds to reach Light Speed before the chase is lost.")]
@@ -55,6 +55,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Fresh patrol's speed as a multiple of the ship's current speed. Above 1 so it closes in until the next boost.")]
         [PropertyRange(1f, 3f), SuffixLabel("x ship speed", true), EnableIf("patrolRedeploys")]
         public float patrolRedeploySpeedFactor = 1.25f;
+
+        [ToggleGroup("patrolEnabled"), Title("Alerts")]
+        [Tooltip("Announce every fresh patrol with the 'Patrol inbound' story line (RPG dialogue box). Off by default — the minimap and the rumble already show it arriving.")]
+        public bool showPatrolAlert = false;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("Speak the patrol's proximity line (RPG dialogue box) once each time it closes inside its warn distance. Off by default — the minimap shows the gap every frame.")]
+        public bool showPatrolWarnings = false;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("Gamepad rumble that grows as the patrol closes inside its warn distance.")]
+        public bool patrolProximityRumble = true;
 
         // ----------------------------------------------------------- power-up
         [TitleGroup("Power-ups")]
@@ -91,11 +103,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Cap on the demand, km/h. Keep it well under Light Speed.")]
         [PropertyRange(200f, 10000f), SuffixLabel("km/h", true)]
         public float loopSpeedCapKmh = 2900f;
-
-        [TitleGroup("Loops")]
-        [Tooltip("How far ahead of a loop the floating LOOP alert is raised, metres.")]
-        [PropertyRange(50f, 2000f), SuffixLabel("m", true)]
-        public float loopAlertLeadMeters = 400f;
 
         [TitleGroup("Loops")]
         [Tooltip("Glitch pulse strength when the ship drops off the top of a loop.")]
@@ -143,6 +150,29 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Transparent URP material for the onion-skin ghosts (Materials/DashGhost_Mat). Empty = a runtime fallback material is built instead.")]
         public Material dashGhostMaterial;
 
+        [ToggleGroup("dashEnabled"), Title("Barrel roll trails")]
+        [Tooltip("Seconds the two wingtip ribbons drawn during an airborne barrel roll linger before they fade out — the spiral's length in time.")]
+        [PropertyRange(0.1f, 2f), SuffixLabel("s", true)]
+        public float barrelRollTrailSeconds = 0.6f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Width of a wingtip ribbon at the ship, in metres; it tapers to nothing along its length.")]
+        [PropertyRange(0.1f, 4f), SuffixLabel("m", true)]
+        public float barrelRollTrailWidth = 0.9f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Where along the wing each ribbon is emitted, as a fraction of the model's half-width (1 = the wingtip).")]
+        [PropertyRange(0.2f, 1.2f)]
+        public float barrelRollTrailSpan = 1f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Ribbon colour at the ship; it fades to transparent along the trail.")]
+        public Color barrelRollTrailColor = new(0.45f, 0.9f, 1f, 0.9f);
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Vertex-coloured transparent URP material for the ribbons (Materials/BarrelRollTrail_Mat). Empty = a runtime fallback material is built instead.")]
+        public Material barrelRollTrailMaterial;
+
         [ToggleGroup("dashEnabled"), Title("Power meter")]
         [Tooltip("Fill colour of the meter once at least one dash is banked; dimmed while still charging. The bar itself is the DashMeter scene object under the Ship.")]
         public Color dashMeterColor = new(0.35f, 0.9f, 1f);
@@ -171,8 +201,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0f, 500f), SuffixLabel("m", true)]
         public float boostTextLeadMeters = 60f;
 
-        // The patrol alert lead moved to PatrolDefinition.alertLead.
-
         // ------------------------------------------------------------ messages
         [TitleGroup("Story messages")]
         [Tooltip("Seconds an RPG message stays on screen after it finishes typing.")]
@@ -191,6 +219,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Lose line")]
         public string loseMessage = "Gotcha, hotshot. Party's over — powering you down.";
+
+        [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Patrol inbound line")]
+        [Tooltip("Spoken by the patrol when a fresh one cuts in (only while 'Show patrol alert' is on). {0} = the patrol's number.")]
+        public string patrolInboundMessage = "Patrol {0} inbound. You can't outrun all of us, hotshot.";
+
+        [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Patrol warning line")]
+        [Tooltip("Spoken by the patrol when it closes inside its warn distance (only while 'Show patrol warnings' is on). {0} = the gap in meters.")]
+        public string patrolWarningMessage = "Right on your tail, hotshot — {0} m and closing.";
 
         [TitleGroup("Story messages")]
         public Color pilotMessageColor = new(0.35f, 0.9f, 1f);

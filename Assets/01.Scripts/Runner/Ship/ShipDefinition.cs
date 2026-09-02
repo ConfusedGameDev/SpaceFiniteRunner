@@ -65,6 +65,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [PropertyRange(1, 20)]
         public int dashGhostCount = 6;
 
+        [TitleGroup("Dash")]
+        [Tooltip("Airborne dash: seconds one full barrel roll takes. In the air the dash IS a barrel roll — the sideways burst is spread over the roll so the two read as one move.")]
+        [PropertyRange(0.2f, 1.5f), SuffixLabel("s", true)]
+        public float barrelRollSeconds = 0.5f;
+
         [TitleGroup("Weight")]
         [Tooltip("Scales how much pads affect this ship. 1 = full effect, 2 = pads (boost AND brake) only apply half their effect.")]
         [PropertyRange(0.1f, 5f)]

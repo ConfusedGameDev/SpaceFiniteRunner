@@ -29,7 +29,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float startGap = 250f;
         public float catchDistance = 10f;
         public float warnDistance = 130f;
-        public float alertLead = 180f;
 
         static PatrolDebugSettings cached;
 
@@ -62,7 +61,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             startGap = definition.startGap;
             catchDistance = definition.catchDistance;
             warnDistance = definition.warnDistance;
-            alertLead = definition.alertLead;
 
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
@@ -84,7 +82,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             definition.startGap = startGap;
             definition.catchDistance = catchDistance;
             definition.warnDistance = warnDistance;
-            definition.alertLead = alertLead;
         }
 
         /// <summary>

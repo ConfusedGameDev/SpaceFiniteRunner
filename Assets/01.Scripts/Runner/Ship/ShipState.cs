@@ -20,5 +20,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>Dropped off the top of a loop it was too slow for: falling straight down onto the exit, off the track entirely.</summary>
         Falling,
+
+        /// <summary>On a tube section: the road is a pipe and lateral is an arc round it; steering is ordinary, the band is the section's.</summary>
+        OnTube,
     }
 }
