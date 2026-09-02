@@ -26,21 +26,31 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Stats
     /// and a jump is a jump either way: distance is the horizontal velocity
     /// integrated while no wheel touches the ground (scaled dt, matching the
     /// scaled physics step under slow-mo; immune to the pacman wrap, which
-    /// moves the car but keeps its velocity).
+    /// moves the car but keeps its velocity), and a jump only counts once the
+    /// car has settled back on the ground — a wheel tap that lifts off again
+    /// keeps the same jump going.
     /// </summary>
     public class CityStatsRecorder : MonoBehaviour
     {
-        /// <summary>A jump landed: (horizontal metres covered, seconds in the air). The LevelManager's Jump steps listen.</summary>
+        /// <summary>
+        /// A jump landed: (horizontal metres covered, seconds in the air). Raised
+        /// only once the car has SETTLED back on the ground (see
+        /// <see cref="LandingSettleSeconds"/>) — never mid-air, and not for a
+        /// wheel skimming a ledge. The LevelManager's Jump steps listen.
+        /// </summary>
         public static event System.Action<float, float> JumpLanded;
 
         /// <summary>Shorter hops (a kerb, a bump) are not jumps.</summary>
         const float MinJumpAirSeconds = 0.25f;
+        /// <summary>Ground contact must last this long after a jump to count as landed — a wheel tap that lifts off again is the same jump continuing.</summary>
+        const float LandingSettleSeconds = 0.2f;
         const float RetargetSeconds = 1f;
 
         CarController player;
         float retargetTimer;
 
-        bool wasAirborne;
+        bool jumping;       // a jump is in progress: airborne, or touched down but not yet settled
+        float groundedTime; // continuous seconds on the ground since the last touch-down
         float airTime;
         float jumpDistance;
 
@@ -85,27 +95,35 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Stats
             bool airborne = !player.IsGrounded;
             if (airborne)
             {
+                jumping = true;
+                groundedTime = 0f;
                 float dt = Time.deltaTime;
                 Vector3 flat = player.Velocity;
                 flat.y = 0f;
                 airTime += dt;
                 jumpDistance += flat.magnitude * dt;
+                return;
             }
-            else if (wasAirborne)
+            if (!jumping) return;
+
+            // Touched down. The jump clears only once the car has STAYED on the
+            // ground for a beat: a wheel skimming a ledge mid-flight is still
+            // the same jump, and nothing is recorded or completed in the air.
+            groundedTime += Time.deltaTime;
+            if (groundedTime < LandingSettleSeconds) return;
+
+            if (airTime >= MinJumpAirSeconds)
             {
-                if (airTime >= MinJumpAirSeconds)
-                {
-                    PlayerStats.RecordJump(jumpDistance, airTime);
-                    JumpLanded?.Invoke(jumpDistance, airTime);
-                }
-                ResetJump();
+                PlayerStats.RecordJump(jumpDistance, airTime);
+                JumpLanded?.Invoke(jumpDistance, airTime);
             }
-            wasAirborne = airborne;
+            ResetJump();
         }
 
         void ResetJump()
         {
-            wasAirborne = false;
+            jumping = false;
+            groundedTime = 0f;
             airTime = 0f;
             jumpDistance = 0f;
         }

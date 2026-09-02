@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.City;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
+using ConfusedGameDev.FiniteRunner.Cameras;
 using UnityEngine;
 
 using ConfusedGameDev.FiniteRunner.UI;

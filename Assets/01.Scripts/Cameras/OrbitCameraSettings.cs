@@ -1,31 +1,39 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
+namespace ConfusedGameDev.FiniteRunner.Cameras
 {
-    /// <summary>The three views the chase camera cycles through: Far and Close are the same orbit at two framings, FirstPerson rides the car.</summary>
+    /// <summary>The three views the chase camera cycles through: Far and Close are the same orbit at two framings, FirstPerson rides the vehicle.</summary>
     public enum CameraMode { Far, Close, FirstPerson }
+
+    /// <summary>
+    /// Which "up" the orbit keeps. WorldUp holds the horizon level however
+    /// the vehicle leans (a car). TargetUp rolls the orbit with the vehicle
+    /// so "behind" stays behind through a loop or under a tube (the ship).
+    /// </summary>
+    public enum UpBinding { WorldUp, TargetUp }
 
     /// <summary>
     /// Every knob of the Cinemachine orbit camera in one designer-facing
     /// asset: framing, per-device orbit speeds (mouse, right stick, arrow
     /// keys), auto-recenter behavior, the speed-driven FOV kick and the
-    /// three camera modes (far / close orbit framings, first person). The
-    /// OrbitCameraRig draws it inline and re-applies values live, same as
-    /// every other settings asset in the project.
+    /// three camera modes (far / close orbit framings, first person). One
+    /// asset per vehicle — the city car and the runner ship each have their
+    /// own. The OrbitCameraRig draws it inline and re-applies values live,
+    /// same as every other settings asset in the project.
     /// </summary>
-    [CreateAssetMenu(fileName = "OrbitCameraSettings", menuName = "PoliceEscape/Orbit Camera Settings")]
+    [CreateAssetMenu(fileName = "OrbitCameraSettings", menuName = "FiniteRunner/Orbit Camera Settings")]
     public class OrbitCameraSettings : ScriptableObject
     {
         // ------------------------------------------------------------- framing
         [TitleGroup("Framing")]
         [Tooltip("Orbit radius — distance from the car.")]
-        [PropertyRange(3f, 25f), SuffixLabel("m", true)]
+        [PropertyRange(3f, 60f), SuffixLabel("m", true)]
         public float distance = 8f;
 
         [TitleGroup("Framing")]
         [Tooltip("Point on the car the camera orbits and aims at, above its pivot.")]
-        [PropertyRange(0f, 3f), SuffixLabel("m", true)]
+        [PropertyRange(0f, 12f), SuffixLabel("m", true)]
         public float lookHeight = 1.1f;
 
         [TitleGroup("Framing")]
@@ -43,6 +51,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [PropertyRange(0f, 3f)]
         public float positionDamping = 0.75f;
 
+        [TitleGroup("Framing")]
+        [Tooltip("Which up the orbit keeps. World Up holds the horizon level however the vehicle leans (the car). Target Up rolls the orbit with the vehicle, so behind stays behind through a loop or under a tube (the ship).")]
+        public UpBinding upBinding = UpBinding.WorldUp;
+
+        [TitleGroup("Framing")]
+        [Tooltip("Target Up only: seconds the camera's roll trails the vehicle's. 0 is bolted to the hull; a short lag lets the horizon swing a beat after the ship instead of snapping with it.")]
+        [PropertyRange(0f, 1f), SuffixLabel("s", true)]
+        public float rollLagSeconds = 0.15f;
+
+        [TitleGroup("Framing")]
+        [Tooltip("Pull the camera forward past anything solid between it and the vehicle (the city's ramps and decks). Off where there is nothing to look through.")]
+        public bool deoccluder = true;
+
         public float PitchMin => pitchRange.x;
         public float PitchMax => pitchRange.y;
 
@@ -58,12 +79,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
         [TitleGroup("Camera modes")]
         [Tooltip("Orbit radius of the CLOSE view. The Framing distance above is the FAR view.")]
-        [PropertyRange(1.5f, 12f), SuffixLabel("m", true)]
+        [PropertyRange(1.5f, 30f), SuffixLabel("m", true)]
         public float closeDistance = 3.2f;
 
         [TitleGroup("Camera modes")]
         [Tooltip("Look height of the CLOSE view — lower than the far one keeps the roofline in frame.")]
-        [PropertyRange(0f, 3f), SuffixLabel("m", true)]
+        [PropertyRange(0f, 12f), SuffixLabel("m", true)]
         public float closeLookHeight = 0.7f;
 
         [TitleGroup("Camera modes")]
@@ -72,12 +93,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         public float closePitch = 12f;
 
         [TitleGroup("Camera modes")]
+        [Tooltip("Seat the first-person eye off the vehicle's chassis box (the two knobs below). Off, the eye sits at the authored offset instead — for a vehicle whose box is a trigger volume rather than a hull.")]
+        public bool eyeFromChassis = true;
+
+        [TitleGroup("Camera modes")]
+        [Tooltip("First-person eye point in the vehicle's local space, used when the eye is not seated off the chassis box.")]
+        [HideIf("eyeFromChassis")]
+        public Vector3 firstPersonEyeOffset = new(0f, 1.2f, 0.5f);
+
+        [TitleGroup("Camera modes")]
         [Tooltip("First-person eye point, forward of the chassis centre. Negative sits the eye back over the cabin, positive pushes it toward the bonnet.")]
+        [ShowIf("eyeFromChassis")]
         [PropertyRange(-2.5f, 2.5f), SuffixLabel("m", true)]
         public float firstPersonForward = 0.2f;
 
         [TitleGroup("Camera modes")]
         [Tooltip("First-person eye height above the top of the chassis box. Keep it above zero or the roof clips the view.")]
+        [ShowIf("eyeFromChassis")]
         [PropertyRange(-0.5f, 1.5f), SuffixLabel("m", true)]
         public float firstPersonHeight = 0.12f;
 
@@ -98,8 +130,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         public float stickSpeed = 180f;
 
         [TitleGroup("Input")]
+        [Tooltip("Pan with the arrow keys. Off for a vehicle that steers with them (the ship).")]
+        public bool arrowKeysPan = true;
+
+        [TitleGroup("Input")]
         [Tooltip("Orbit speed while holding the arrow keys.")]
-        [PropertyRange(30f, 360f), SuffixLabel("°/s", true)]
+        [PropertyRange(30f, 360f), SuffixLabel("°/s", true), ShowIf("arrowKeysPan")]
         public float keySpeed = 140f;
 
         [TitleGroup("Input")]

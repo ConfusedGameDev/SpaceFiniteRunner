@@ -5,6 +5,7 @@ using ConfusedGameDev.FiniteRunner.PoliceEscape.City;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Stats;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
+using ConfusedGameDev.FiniteRunner.Cameras;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -104,7 +105,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 placed += Place<OrbitCameraRig>("OrbitCameraRig", parent, r => r.settings = city.orbitCameraSettings);
                 // The first-person vcam must be the rig's SIBLING (see
                 // OrbitCameraRig.Build); the rig adds its Cinemachine
-                // components in Awake, so an empty object is all it needs.
+                // components when it is first targeted, so an empty object is
+                // all it needs.
                 var rig = Object.FindAnyObjectByType<OrbitCameraRig>(FindObjectsInactive.Include);
                 if (rig != null && rig.FindPrePlacedFirstPerson() == null)
                 {

@@ -1,6 +1,7 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.Haptics;
@@ -41,6 +42,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         GameSettings settings;
 
         DashPromptController dashPrompt;
+        OrbitCameraRig cameraRig;          // null when GameSettings has no camera asset
+        CameraMode modeBeforeJump;         // the view a jump forced to Far hands back on landing
 
         /// <summary>How a run ended — typed, so the save record never has to match a result label.</summary>
         enum RunOutcome { Escaped, Caught, Stalled, TimedOut }
@@ -51,6 +54,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         /// <summary>Base speed gain of a power-up orb in m/s; orb tiers multiply this.</summary>
         public float PowerUpSpeedBoost => settings.powerUpSpeedBoost;
+
+        /// <summary>Height of the air lane above the flight line, metres.</summary>
+        public float AirLaneHeight => settings.airLaneHeight;
 
         public PolicePatrol Patrol => patrol;
         public float LightSpeedKmh => settings.lightSpeedKmh;
@@ -79,6 +85,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.ConfigureDash(settings);
                 motor.WallHit += OnWallHit;
                 motor.DashPerformed += OnDashPerformed;
+                motor.TookOff += OnTookOff;
+                motor.Landed += OnLanded;
 
                 // The DashMeterUI is a scene child of the Ship — it configures
                 // itself off the motor in Start, after ConfigureDash above.
@@ -113,6 +121,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 if (patrol != null) patrol.gameObject.SetActive(false);
                 patrol = null;
             }
+
+            // The chase camera: the shared Cinemachine rig, attached to the ship
+            // root with the ship's own settings asset (Far framing, target-up
+            // roll binding). Without an asset the scene keeps its camera as is.
+            if (motor != null && settings.cameraSettings != null)
+                cameraRig = CameraRigInstaller.Attach(motor, settings.cameraSettings);
 
             // Weather rides with the camera and needs nothing from the run, so
             // it goes up before the menu — the debug page binds to the live
@@ -233,10 +247,31 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             HapticsSystem.Instance.Pulse(0.3f, 0.6f, 0.12f);
         }
 
-        // Dash into the wall: a thud in the hands and a burst of signal corruption.
+        // A jump: the camera pulls out to the Far framing for the arc and
+        // hands the player's view back on landing (a no-op if it was Far).
+        // The cycle is locked meanwhile — ShipMotor.BlockModeCycle.
+        void OnTookOff()
+        {
+            if (cameraRig == null) return;
+            modeBeforeJump = cameraRig.Mode;
+            cameraRig.SetMode(CameraMode.Far, instant: false);
+        }
+
+        // Touchdown: a thump in the hands and on the picture, no speed change.
+        void OnLanded()
+        {
+            HapticsSystem.Instance.Pulse(0.5f, 0.3f, 0.2f);
+            CameraShake.Shake(settings.landingShake);
+            if (cameraRig != null && modeBeforeJump != CameraMode.Far)
+                cameraRig.SetMode(modeBeforeJump, instant: false);
+        }
+
+        // Dash into the wall, or a ramp hit from the side: a thud in the
+        // hands, a burst of signal corruption and a kick on the picture.
         void OnWallHit(float impactSpeed)
         {
             HapticsSystem.Instance.Pulse(0.8f, 0.4f, 0.2f);
+            CameraShake.Shake(settings.wallHitShake);
             if (GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(settings.dashWallGlitchStrength);
         }
@@ -248,6 +283,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.PadImpulse -= OnPadImpulse;
                 motor.WallHit -= OnWallHit;
                 motor.DashPerformed -= OnDashPerformed;
+                motor.TookOff -= OnTookOff;
+                motor.Landed -= OnLanded;
             }
             SpeedPad.Collected -= OnPadCollected;
         }

@@ -1,6 +1,7 @@
 ﻿<Solution>
   <Project Path="EVP5.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.PoliceEscape.csproj" />
+  <Project Path="ConfusedGameDev.FiniteRunner.Cameras.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Rendering.csproj" />

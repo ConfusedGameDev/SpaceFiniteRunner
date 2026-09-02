@@ -14,12 +14,12 @@ OcclusionCullingSettings:
 RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
-  m_Fog: 1
+  m_Fog: 0
   m_FogColor: {r: 0.84549654, g: 0.9433962, b: 0.9433962, a: 1}
-  m_FogMode: 3
+  m_FogMode: 1
   m_FogDensity: 0.0015
-  m_LinearFogStart: 0
-  m_LinearFogEnd: 300
+  m_LinearFogStart: 1000
+  m_LinearFogEnd: 1500
   m_AmbientSkyColor: {r: 0.2578616, g: 0.2578616, b: 0.2578616, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
@@ -2347,8 +2347,6 @@ GameObject:
   - component: {fileID: 961739752}
   - component: {fileID: 961739751}
   - component: {fileID: 961739750}
-  - component: {fileID: 961739754}
-  - component: {fileID: 961739756}
   - component: {fileID: 961739755}
   m_Layer: 0
   m_Name: Main Camera
@@ -2473,25 +2471,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1092581443}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 11.708, y: 0, z: 0}
---- !u!114 &961739754
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 961739749}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 618b0e3f6c65dd247a4a016150006c57, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.FreeCamera
-  m_LookSpeedController: 120
-  m_LookSpeedMouse: 4
-  m_MoveSpeed: 10
-  m_MoveSpeedIncrement: 2.5
-  m_Turbo: 10
 --- !u!114 &961739755
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2505,21 +2486,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.ShakeOnPad
   motor: {fileID: 1092581442}
-  shaker: {fileID: 961739756}
   boostShake: {fileID: 11400000, guid: 85de930d8b13f4410bd9db61f21434fa, type: 2}
   brakeShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
---- !u!114 &961739756
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 961739749}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c0cf623220a574db388f4d0184a3826a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.CameraShaker
 --- !u!1001 &962718080
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2943,7 +2911,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 961739753}
   - {fileID: 978908467}
   - {fileID: 96345107}
   - {fileID: 2100000002}
@@ -4160,7 +4127,7 @@ MonoBehaviour:
   endless: 1
   randomize: 1
   seed: 0
-  aheadDistance: 700
+  aheadDistance: 1600
   behindDistance: 150
   segments: 3
   segmentLength: {x: 300, y: 420}
@@ -4171,6 +4138,16 @@ MonoBehaviour:
   padsParent: {fileID: 305136800}
   padSpacing: {x: 150, y: 220}
   padSize: {x: 10, y: 0.5, z: 20}
+  featureTable:
+  - name: Jump
+    prefab: {fileID: 0}
+    definition: {fileID: 11400000, guid: 036070dea45c4920a5d5fd439400a3b5, type: 2}
+    probability: 100
+    minSpacing: 300
+    multiplier: 1
+    color: {r: 1, g: 0.8, b: 0.2, a: 1}
+  featureSpacing: {x: 600, y: 1200}
+  featureMaterial: {fileID: 0}
   padSignPrefab: {fileID: 919132149155446097, guid: 12a4ac7d5a25a44009fc60417de04fb1, type: 3}
   padSignScale: 8
   markersParent: {fileID: 0}
@@ -6904,6 +6881,54 @@ MonoBehaviour:
   onThunderStrike:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &1700000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1700000002}
+  - component: {fileID: 1700000003}
+  m_Layer: 0
+  m_Name: DistanceFog
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1700000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1700000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bc4f63d7d970b440941fd9842c5f7e3, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.DistanceFog
+  fogMaterial: {fileID: 2100000, guid: 7d7f93dfc5635234fac4fff2db1dc663, type: 2}
+  settings: {fileID: 11400000, guid: ef3421b878b8436ab57697d69113e4e5, type: 2}
+  intensityScale: 1
+  preview: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -6923,3 +6948,5 @@ SceneRoots:
   - {fileID: 1498004090}
   - {fileID: 7255089004967432532}
   - {fileID: 1730000001}
+  - {fileID: 961739753}
+  - {fileID: 1700000002}

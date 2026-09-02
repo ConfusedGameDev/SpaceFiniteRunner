@@ -17,13 +17,16 @@ Material:
   - N_F_O_ON
   - N_F_RDC_ON
   - N_F_RELGI_ON
+  - N_F_RL_ON
+  - N_F_SE_ON
+  - N_F_SL_ON
   - N_F_SS_ON
   - N_F_TRANSAFFSHA_ON
   - _NORMALMAP
   - _UVSET_UV0
   m_InvalidKeywords:
   - _EMISSION
-  m_LightmapFlags: 0
+  m_LightmapFlags: 2
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
@@ -179,7 +182,7 @@ Material:
     - _DstBlendAlpha: 0
     - _DynamicNoisyOutline: 0
     - _EnvironmentReflections: 1
-    - _EnvironmentalLightingIntensity: 1
+    - _EnvironmentalLightingIntensity: 2.95
     - _FarDistanceMaxWidth: 10
     - _GIFlatShade: 0
     - _GIShadeThreshold: 0
@@ -239,12 +242,12 @@ Material:
     - _N_F_PT: 0
     - _N_F_R: 0
     - _N_F_RDC: 1
-    - _N_F_RL: 0
+    - _N_F_RL: 1
     - _N_F_RLIS: 0
     - _N_F_SCO: 0
     - _N_F_SCT: 0
-    - _N_F_SE: 0
-    - _N_F_SL: 0
+    - _N_F_SE: 1
+    - _N_F_SL: 1
     - _N_F_SLMM: 0
     - _N_F_SON: 0
     - _N_F_SS: 1
@@ -267,10 +270,10 @@ Material:
     - _OutZTest: 4
     - _OutZWrite: 1
     - _OutlineExtrudeMethod: 0
-    - _OutlineWidth: 1.5
+    - _OutlineWidth: 1
     - _OutlineWidthAffectedByViewDistance: 0
     - _OutlineZPostionInCamera: 0
-    - _OverallShadowColorPower: 1
+    - _OverallShadowColorPower: 4.92
     - _PADist: 0
     - _PASize: 0.5
     - _PASmooTrans: 1
@@ -287,8 +290,8 @@ Material:
     - _RefMetallic: 0
     - _RefVal: 0
     - _ReflectionIntensity: 0
-    - _RimLigInt: 1
-    - _RimLightColorPower: 10
+    - _RimLigInt: 0.012
+    - _RimLightColorPower: 11.75
     - _RimLightInLight: 1
     - _RimLightSoftness: 1
     - _RimLightUnfill: 1.5
@@ -306,7 +309,7 @@ Material:
     - _SelfShadowRealTimeShadowColorPower: 1
     - _SelfShadowRealtimeShadowIntensity: 1
     - _SelfShadowShadowTAtViewDirection: 0
-    - _SelfShadowThreshold: 0.93
+    - _SelfShadowThreshold: 0.882
     - _ShadowColorTexturePower: 0
     - _ShadowHardness: 0
     - _ShadowTColorPower: 1
@@ -358,7 +361,7 @@ Material:
     - _EmissionColor: {r: 2, g: 2, b: 2, a: 1}
     - _GlossColor: {r: 1, g: 1, b: 1, a: 1}
     - _Glow_Color: {r: 1, g: 1, b: 1, a: 1}
-    - _HighlightColor: {r: 1, g: 1, b: 1, a: 1}
+    - _HighlightColor: {r: 0.9924528, g: 0.9868352, b: 0.9868352, a: 1}
     - _MainColor: {r: 1, g: 1, b: 1, a: 1}
     - _ObjPosi: {r: 0, g: 0, b: 0, a: 0}
     - _ObjectForward: {r: 0, g: 0, b: 0, a: 0}
@@ -370,7 +373,7 @@ Material:
     - _PTCol: {r: 0, g: 0, b: 0, a: 1}
     - _PrevPosition: {r: 0, g: 0, b: 0, a: 0}
     - _RimLigPosi: {r: 1, g: 1, b: 1, a: 1}
-    - _RimLightColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RimLightColor: {r: 0.39372444, g: 0, b: 1, a: 1}
     - _SSAOColor: {r: 0, g: 0, b: 0, a: 0}
     - _SelfLitColor: {r: 1, g: 1, b: 1, a: 1}
     - _SelfShadowRealTimeShadowColor: {r: 1, g: 1, b: 1, a: 1}

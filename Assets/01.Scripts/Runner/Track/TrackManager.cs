@@ -9,7 +9,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// poses for the ship, pads and markers. Distance along the track is the
     /// authoritative coordinate — the spline grows during the run (endless
     /// streaming), which shifts normalized t, so consumers map distance to t
-    /// through <see cref="DistanceToT"/> every frame.
+    /// through <see cref="DistanceToT"/> every frame. It is also the only
+    /// object that touches the SplineContainer: the generator grows the track
+    /// through <see cref="AppendKnot"/> / <see cref="ClearKnots"/>, so a
+    /// future multi-spline route layer has one seam to replace.
     /// </summary>
     public class TrackManager : MonoBehaviour
     {
@@ -33,6 +36,18 @@ namespace ConfusedGameDev.FiniteRunner.Track
         void OnValidate() => Recalculate();
 
         public void Recalculate() => Length = spline != null ? spline.CalculateLength() : 0f;
+
+        /// <summary>Drops every knot. Call <see cref="Recalculate"/> after the rebuild.</summary>
+        public void ClearKnots()
+        {
+            if (spline != null) spline.Spline.Clear();
+        }
+
+        /// <summary>Appends an auto-smoothed knot at a world position (knots are never removed during a run).</summary>
+        public void AppendKnot(float3 position)
+        {
+            if (spline != null) spline.Spline.Add(new BezierKnot(position), TangentMode.AutoSmooth);
+        }
 
         /// <summary>
         /// Maps a world-space distance from the track start to normalized t,

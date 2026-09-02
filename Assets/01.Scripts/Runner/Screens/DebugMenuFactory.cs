@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Track;
+using ConfusedGameDev.FiniteRunner.Track.Features;
 using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.Screens
 {
@@ -95,6 +96,116 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             }
 
             return screen;
+        }
+
+        /// <summary>
+        /// FEATURES tab: the generator's feature spacing band (one slider that
+        /// slides the band and keeps its spread), one probability / spacing /
+        /// boost row per feature entry, and the jump definition's knobs. The
+        /// definition rows edit the entry's runtime CLONE (never the asset);
+        /// everything is captured into <see cref="FeatureDebugSettings"/> and
+        /// re-applied on the next Generate, so it needs the reload the pause
+        /// menu offers — a placed ramp keeps the numbers it was built with.
+        /// </summary>
+        public static MenuScreen BuildFeaturesTab(RectTransform parent, MenuTheme theme,
+                                                  TrackGenerator generator, FeatureDebugSettings saved,
+                                                  System.Action onChanged, List<System.Action> refreshers,
+                                                  int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_Features", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabFeatures, tabIndex, tabCount);
+
+            var spacingRow = screen.AddRow<DebugSliderRow>(MenuTextId.FeatureSpacing);
+            spacingRow.Configure(100f, 4000f, 50f, generator.FeatureSpacing.x, "0", v =>
+            {
+                float spread = generator.FeatureSpacing.y - generator.FeatureSpacing.x;
+                generator.FeatureSpacing = new Vector2(v, v + spread);
+                saved.CaptureFrom(generator);
+                onChanged?.Invoke();
+            });
+            refreshers?.Add(() => spacingRow.SetWithoutNotify(generator.FeatureSpacing.x));
+
+            var table = generator.FeatureTable;
+            if (table == null || table.Length == 0) return screen;
+
+            var probabilityRows = new List<DebugSliderRow>();
+            for (int i = 0; i < table.Length; i++)
+            {
+                int index = i;
+                var entry = table[i];
+                string tag = entry.name.ToUpperInvariant();
+
+                var row = screen.AddRow<DebugSliderRow>($"{tag} %");
+                row.Configure(0f, 100f, 1f, entry.probability, "0", v =>
+                {
+                    RebalanceProbabilities(table, probabilityRows, index, v);
+                    saved.CaptureFrom(generator);
+                    onChanged?.Invoke();
+                });
+                row.SetLabelTint(entry.color);
+                probabilityRows.Add(row);
+
+                var spacing = screen.AddRow<DebugSliderRow>($"{tag} SPACING");
+                spacing.Configure(0f, 3000f, 50f, entry.minSpacing, "0", v =>
+                {
+                    entry.minSpacing = v;
+                    saved.CaptureFrom(generator);
+                    onChanged?.Invoke();
+                });
+                spacing.SetLabelTint(entry.color);
+
+                var boost = screen.AddRow<DebugSliderRow>($"{tag} ×");
+                boost.Configure(0f, 10f, 0.1f, Mathf.Clamp(entry.multiplier, 0f, 10f), "0.0", v =>
+                {
+                    entry.multiplier = v;
+                    saved.CaptureFrom(generator);
+                    onChanged?.Invoke();
+                });
+                boost.SetLabelTint(entry.color);
+
+                if (entry.Runtime is JumpDefinition)
+                {
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpWidth,
+                                0.05f, 1f, 0.05f, "0.00", j => j.widthFraction, (j, v) => j.widthFraction = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpLength,
+                                10f, 200f, 5f, "0", j => j.length, (j, v) => j.length = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpAngle,
+                                5f, 45f, 1f, "0", j => j.rampAngle, (j, v) => j.rampAngle = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpAirDistance,
+                                0.05f, 3f, 0.05f, "0.00", j => j.airDistancePerSpeed, (j, v) => j.airDistancePerSpeed = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpMaxAir,
+                                20f, 2000f, 20f, "0", j => j.airDistanceRange.y,
+                                (j, v) => j.airDistanceRange = new Vector2(Mathf.Min(j.airDistanceRange.x, v), v));
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpAirControl,
+                                0f, 1f, 0.05f, "0.00", j => j.airControlFactor, (j, v) => j.airControlFactor = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpSideHitLoss,
+                                0f, 1f, 0.05f, "0.00", j => j.sideHitSpeedLoss, (j, v) => j.sideHitSpeedLoss = v);
+                }
+            }
+            return screen;
+        }
+
+        // One localized slider row bound to a jump definition knob. The lambdas
+        // read entry.Runtime at call time, so they always hit the clone the
+        // current run was generated with.
+        static void AddJumpStat(MenuScreen screen, TrackGenerator generator, TrackGenerator.FeatureSpawnEntry entry,
+                                FeatureDebugSettings saved, System.Action onChanged, List<System.Action> refreshers,
+                                MenuTextId label, float min, float max, float step, string format,
+                                System.Func<JumpDefinition, float> get, System.Action<JumpDefinition, float> set)
+        {
+            JumpDefinition Jump() => entry.Runtime as JumpDefinition;
+            var row = screen.AddRow<DebugSliderRow>(label);
+            row.Configure(min, max, step, Jump() != null ? get(Jump()) : min, format, v =>
+            {
+                var jump = Jump();
+                if (jump == null) return;
+                set(jump, v);
+                saved.CaptureFrom(generator);
+                onChanged?.Invoke();
+            });
+            row.SetLabelTint(entry.color);
+            refreshers?.Add(() => { var jump = Jump(); if (jump != null) row.SetWithoutNotify(get(jump)); });
         }
 
         /// <summary>
@@ -257,24 +368,24 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         // The moved slider keeps its value; every other entry scales into the
         // remainder (evenly when they were all zero) and its row's fill and
         // readout refresh without re-firing callbacks.
-        static void RebalanceProbabilities(TrackGenerator.PadSpawnEntry[] table,
+        static void RebalanceProbabilities(IWeightedEntry[] table,
                                            List<DebugSliderRow> rows, int changed, float value)
         {
             float kept = Mathf.Clamp(value, 0f, 100f);
-            table[changed].probability = kept;
+            table[changed].Probability = kept;
 
             float othersSum = 0f;
             for (int i = 0; i < table.Length; i++)
-                if (i != changed) othersSum += table[i].probability;
+                if (i != changed) othersSum += table[i].Probability;
 
             float remainder = 100f - kept;
             for (int i = 0; i < table.Length; i++)
             {
                 if (i == changed) continue;
-                table[i].probability = othersSum > 0f
-                    ? table[i].probability * remainder / othersSum
+                table[i].Probability = othersSum > 0f
+                    ? table[i].Probability * remainder / othersSum
                     : remainder / (table.Length - 1);
-                if (i < rows.Count) rows[i].SetWithoutNotify(table[i].probability);
+                if (i < rows.Count) rows[i].SetWithoutNotify(table[i].Probability);
             }
         }
     }

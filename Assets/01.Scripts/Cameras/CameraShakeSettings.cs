@@ -1,10 +1,11 @@
 using UnityEngine;
 
-namespace ConfusedGameDev.FiniteRunner.CameraFX
+namespace ConfusedGameDev.FiniteRunner.Cameras
 {
     /// <summary>
     /// Tunable camera shake profile. Make one asset per event type
-    /// (boost pad, brake pad, crash, ...) and hand it to a CameraShaker.
+    /// (boost pad, brake pad, side hit, landing, ...) and hand it to
+    /// <see cref="CameraShake.Shake"/>.
     /// </summary>
     [CreateAssetMenu(fileName = "CameraShakeSettings", menuName = "FiniteRunner/Camera Shake Settings")]
     public class CameraShakeSettings : ScriptableObject

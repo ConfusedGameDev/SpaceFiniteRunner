@@ -53,6 +53,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         TrackDebugSettings debugSettings;
         ShipDebugSettings shipDebugSettings;
         PatrolDebugSettings patrolDebugSettings;
+        Track.Features.FeatureDebugSettings featureDebugSettings;
         readonly System.Collections.Generic.List<System.Action> debugRefreshers = new();
 
         GameObject panel;
@@ -226,6 +227,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             debugSettings?.Flush();     // commit any debug tweaks to disk
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
+            featureDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
@@ -308,6 +310,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             debugSettings?.Flush();
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
+            featureDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
@@ -453,7 +456,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // Same for the distance fog: any scene with a DistanceFog object.
             DistanceFogSettings fog = DistanceFogDebugPage.Discover();
 
-            int tabCount = (generator != null ? 2 : 0) + (shipReady ? 4 : 0)
+            int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0)
                          + (patrolReady ? 1 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0) + (fog != null ? 1 : 0);
             if (tabCount == 0) return;
 
@@ -468,6 +471,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                     panelRect, theme, generator, debugSettings, ReloadScene, changed, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildMultipliersTab(
                     panelRect, theme, generator, debugSettings, changed, tab++, tabCount));
+                featureDebugSettings = Track.Features.FeatureDebugSettings.Load();
+                debugMenu.AddTab(DebugMenuFactory.BuildFeaturesTab(
+                    panelRect, theme, generator, featureDebugSettings, changed, debugRefreshers, tab++, tabCount));
             }
             if (shipReady)
             {
@@ -510,6 +516,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             debugSettings?.Flush();
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
+            featureDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();

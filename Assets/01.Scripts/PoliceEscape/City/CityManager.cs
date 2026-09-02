@@ -32,7 +32,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
         [TitleGroup("Player car")]
         [Tooltip("Camera-feel settings for the Cinemachine orbit rig set up when the car spawns.")]
-        public Vehicles.OrbitCameraSettings orbitCameraSettings;
+        public Cameras.OrbitCameraSettings orbitCameraSettings;
 
         [TitleGroup("Police")]
         [AssetsOnly]

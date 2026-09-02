@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.Cameras;
+using ConfusedGameDev.FiniteRunner.Screens;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -16,7 +18,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     /// dropped center of mass, vehicle substeps, anti-roll bars, downforce.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
-    public class CarController : MonoBehaviour
+    public class CarController : MonoBehaviour, ICameraTarget
     {
         [Required, InlineEditor]
         [Tooltip("All handling tunables live on this asset — add new knobs there, not here.")]
@@ -57,6 +59,25 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
         /// <summary>Signed speed along the car's facing — negative while reversing.</summary>
         public float ForwardSpeed => Vector3.Dot(Velocity, transform.forward);
+
+        // ------------------------------------------------------ ICameraTarget
+        Transform ICameraTarget.Transform => transform;
+        // The root box is the chassis everything reads; its top is the roofline the first-person eye clears.
+        bool ICameraTarget.TryGetChassisBox(out Vector3 localCentre, out float localTop)
+        {
+            if (TryGetComponent(out BoxCollider box))
+            {
+                localCentre = box.center;
+                localTop = box.center.y + box.size.y * 0.5f;
+                return true;
+            }
+            localCentre = Vector3.zero;
+            localTop = 0f;
+            return false;
+        }
+        // Mid-jump the stick and the arrows belong to the car (AirTimeSlowMo's air control).
+        bool ICameraTarget.BlockPanInput => AirTimeSlowMo.IsActive;
+        bool ICameraTarget.BlockModeCycle => MainMenuController.IsOpen;
 
         /// <summary>
         /// True while the rear lights should be lit — what <see cref="BrakeLights"/>

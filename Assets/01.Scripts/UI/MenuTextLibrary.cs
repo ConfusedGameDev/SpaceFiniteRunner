@@ -72,7 +72,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         StatEscapesAttempted, StatEscapesCompleted, StatFastestEscape, StatPowerUps, StatSlowDowns,
         ChallengeBonus, ChallengeDone, ChallengeFailed,
         ObjectiveCollect, LogSectionCollectibles, StatCollectibles,
-        ObjectiveJump
+        ObjectiveJump,
+        DebugTabFeatures, FeatureSpacing,
+        JumpWidth, JumpLength, JumpAngle, JumpAirDistance, JumpMaxAir, JumpAirControl, JumpSideHitLoss
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -470,6 +472,17 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("City level objectives")]
         [SerializeField] LocalizedString objectiveJump = new("JUMP", "SALTO", "ジャンプ", "SAUT");
 
+        // Debug menu — FEATURES tab (runner track features: jump ramps)
+        [SerializeField] LocalizedString debugTabFeatures = new("FEATURES", "ELEMENTOS", "ギミック", "ÉLÉMENTS");
+        [SerializeField] LocalizedString featureSpacing = new("FEATURE SPACING", "SEPARACIÓN", "ギミック間隔", "ESPACEMENT");
+        [SerializeField] LocalizedString jumpWidth = new("RAMP WIDTH", "ANCHO DE RAMPA", "ランプ幅", "LARGEUR DE RAMPE");
+        [SerializeField] LocalizedString jumpLength = new("RAMP LENGTH", "LARGO DE RAMPA", "ランプ長", "LONGUEUR DE RAMPE");
+        [SerializeField] LocalizedString jumpAngle = new("RAMP ANGLE", "ÁNGULO DE RAMPA", "ランプ角度", "ANGLE DE RAMPE");
+        [SerializeField] LocalizedString jumpAirDistance = new("AIR PER SPEED", "VUELO POR VELOCIDAD", "速度あたり飛距離", "VOL PAR VITESSE");
+        [SerializeField] LocalizedString jumpMaxAir = new("MAX AIR DISTANCE", "VUELO MÁXIMO", "最大飛距離", "VOL MAXIMUM");
+        [SerializeField] LocalizedString jumpAirControl = new("AIR CONTROL", "CONTROL AÉREO", "空中操作", "CONTRÔLE AÉRIEN");
+        [SerializeField] LocalizedString jumpSideHitLoss = new("SIDE HIT LOSS", "PÉRDIDA LATERAL", "側面衝突ロス", "PERTE LATÉRALE");
+
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString gameOver = new("GAME OVER", "FIN DE LA PARTIDA", "ゲームオーバー", "PARTIE TERMINÉE");
         [TitleGroup("Game over")]
@@ -787,6 +800,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.ObjectiveDestroy => objectiveDestroy,
             MenuTextId.ObjectiveCollect => objectiveCollect,
             MenuTextId.ObjectiveJump => objectiveJump,
+            MenuTextId.DebugTabFeatures => debugTabFeatures,
+            MenuTextId.FeatureSpacing => featureSpacing,
+            MenuTextId.JumpWidth => jumpWidth,
+            MenuTextId.JumpLength => jumpLength,
+            MenuTextId.JumpAngle => jumpAngle,
+            MenuTextId.JumpAirDistance => jumpAirDistance,
+            MenuTextId.JumpMaxAir => jumpMaxAir,
+            MenuTextId.JumpAirControl => jumpAirControl,
+            MenuTextId.JumpSideHitLoss => jumpSideHitLoss,
             MenuTextId.LogSectionCollectibles => logSectionCollectibles,
             MenuTextId.StatCollectibles => statCollectibles,
             MenuTextId.CheatEnterCode => cheatEnterCode,

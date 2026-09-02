@@ -7,8 +7,18 @@ using UnityEngine.Splines;
 
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
+using ConfusedGameDev.FiniteRunner.Track.Features;
 namespace ConfusedGameDev.FiniteRunner.Track
 {
+    /// <summary>Which lane a pad spawns on: the flight line, or the air lane above it that only a jump reaches.</summary>
+    public enum PadLane { Ground, Air }
+
+    /// <summary>A spawn-table entry with a probability share, so both tables rebalance through one rule.</summary>
+    public interface IWeightedEntry
+    {
+        float Probability { get; set; }
+    }
+
     /// <summary>
     /// Procedural track builder and endless streamer. Builds an initial
     /// stretch on load, then — while the ship flies — keeps appending spline
@@ -16,7 +26,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// settled stretch and culling spawned objects left far behind.
     /// Knots are never removed, so distances measured from the track start
     /// stay valid for the whole run (see TrackManager.DistanceToT).
-    /// Runtime-only: uses Object.Destroy for cleanup.
+    /// <b>Track features</b> (jump ramps now; loops and tubes later) come
+    /// from a second seeded table: each placed feature claims its footprint
+    /// (no pad spawns on it) and an exclusion ahead (no feature starts in it
+    /// — for a jump, the longest arc it can throw the ship). Definitions are
+    /// assets; in play the generator hands out runtime clones, which is what
+    /// the debug menu edits. Runtime-only: uses Object.Destroy for cleanup.
     /// </summary>
     public class TrackGenerator : MonoBehaviour
     {
@@ -28,7 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// the juicier orbs drift across the track so they must be earned.
         /// </summary>
         [System.Serializable]
-        public class PadSpawnEntry
+        public class PadSpawnEntry : IWeightedEntry
         {
             public string name = "Green";
 
@@ -53,6 +68,48 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             [Tooltip("Sway cycles per second.")]
             [Min(0f)] public float swayFrequency = 0.5f;
+
+            [Tooltip("Ground = on the flight line. Air = GameSettings.airLaneHeight above it, where only a jump reaches — the future air lane, keep such entries at 0% until jumps ship them.")]
+            public PadLane lane = PadLane.Ground;
+
+            public float Probability { get => probability; set => probability = value; }
+        }
+
+        /// <summary>
+        /// One placeable track feature kind. Drawn by probability at every
+        /// feature step (the sliders rebalance to 100% like the pad table);
+        /// minSpacing is the least track between this kind and the next
+        /// feature, on top of the definition's own footprint and exclusion.
+        /// </summary>
+        [System.Serializable]
+        public class FeatureSpawnEntry : IWeightedEntry
+        {
+            public string name = "Jump";
+
+            [Tooltip("Optional model spawned instead of the code-built ramp. Authored as a UNIT ramp (1 m wide, 1 m tall lip, 1 m long, foot at its origin, rising toward +Z); it is scaled to the ramp's width, lip height and length. Colliders are stripped — detection is analytic.")]
+            public GameObject prefab;
+
+            [Tooltip("What the feature is and how it behaves (a JumpDefinition for ramps). Cloned at play, so the debug menu never edits the asset.")]
+            [Required] public TrackFeatureDefinition definition;
+
+            [Tooltip("Share of every feature roll this entry wins. The table always sums to 100%.")]
+            [PropertyRange(0f, 100f), SuffixLabel("%", true)]
+            public float probability = 100f;
+
+            [Tooltip("Least metres of track between this feature and the next one, on top of its footprint and exclusion.")]
+            [PropertyRange(0f, 3000f), SuffixLabel("m", true)]
+            public float minSpacing = 300f;
+
+            [Tooltip("Takeoff boost as a multiple of GameSettings.powerUpSpeedBoost (1 = a green orb's worth).")]
+            [Min(0f)] public float multiplier = 1f;
+
+            [Tooltip("Tint of the code-built ramp (prefabs keep their own materials) and of its debug rows.")]
+            public Color color = new(1f, 0.8f, 0.2f);
+
+            /// <summary>The definition actually played: a runtime clone in play mode, the asset itself in edit-mode previews.</summary>
+            [System.NonSerialized] public TrackFeatureDefinition Runtime;
+
+            public float Probability { get => probability; set => probability = value; }
         }
 
         // ------------------------------------------------------ Core Settings
@@ -77,6 +134,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("100% = a dead straight line, 0% = the curviest track the Shape settings below allow. Regenerate to see it.")]
         [PropertyRange(0f, 100f), SuffixLabel("%", true)]
         [SerializeField] float straightness = 100f;
+
+        [TitleGroup("Core Settings")]
+        [Tooltip("One entry per track feature kind (jump ramps). Every feature step draws one entry by probability; the sliders auto-rebalance to always total 100%.")]
+        [OnValueChanged(nameof(NormalizeFeatureProbabilities), true)]
+        [SerializeField] FeatureSpawnEntry[] featureTable = System.Array.Empty<FeatureSpawnEntry>();
+
+        [TitleGroup("Core Settings")]
+        [Tooltip("Metres of track between feature steps (min, max), before each entry's own minimum spacing, footprint and exclusion are added.")]
+        [MinMaxSlider(100f, 5000f, true), SuffixLabel("m", true)]
+        [SerializeField] Vector2 featureSpacing = new(600f, 1200f);
 
         [SerializeField] TrackManager track;
 
@@ -123,6 +190,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Pad footprint (width, thickness, length). Also used to keep pads inside the track.")]
         [SerializeField] Vector3 padSize = new(10f, 0.5f, 20f);
 
+        [Header("Features")]
+        [Tooltip("Material of the code-built ramp slab and rails; each entry gets a recolored instance. Empty = the boost material.")]
+        [SerializeField] Material featureMaterial;
+
         [Header("Pad signs")]
         [Tooltip("Optional sign model placed at each flat pad, tinted with the pad color.")]
         [SerializeField] GameObject padSignPrefab;
@@ -143,15 +214,26 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public float TrackWidth { get => trackWidth; set => trackWidth = Mathf.Clamp(value, 10f, 120f); }
         public float Straightness { get => straightness; set => straightness = Mathf.Clamp(value, 0f, 100f); }
         public PadSpawnEntry[] SpawnTable => spawnTable;
+        public FeatureSpawnEntry[] FeatureTable => featureTable;
+        public Vector2 FeatureSpacing { get => featureSpacing; set => featureSpacing = new Vector2(Mathf.Max(100f, value.x), Mathf.Max(Mathf.Max(100f, value.x), value.y)); }
+
+        /// <summary>Height of the air lane above the flight line, from GameSettings (30 m without a manager).</summary>
+        float AirLaneHeight => gameManager != null ? gameManager.AirLaneHeight : 30f;
 
         // Streaming state — all reset by Generate().
         Unity.Mathematics.Random rng;
         float heading;
         float3 endPosition;
         float padCursor;
+        float featureCursor;
+        FeatureSpawnEntry pendingFeature; // drawn for featureCursor, waiting for its footprint to settle
+        bool pendingClaimed;
         readonly List<(float distance, GameObject go)> spawned = new();
+        readonly List<(float start, float end)> claims = new(); // feature footprints pads keep off
         Dictionary<PadSpawnEntry, Material> entryMaterials;
+        Dictionary<FeatureSpawnEntry, Material> featureMaterials;
         float[] lastProbabilities; // change-detection cache for the 100% rebalance
+        float[] lastFeatureProbabilities;
 
         // AutoSmooth reshapes the curves around the previous knot every time a
         // new one lands, so the last two segments are never safe to build on.
@@ -187,6 +269,20 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // and the inspector always reflect the authored scene values.
             if (Application.isPlaying) TrackDebugSettings.Load().ApplyTo(this);
 
+            // Features play a runtime clone of their definition asset (the
+            // debug menu edits the clone, never the asset); edit-mode previews
+            // read the asset as is. Debug tweaks land on the clones.
+            if (featureTable != null)
+                foreach (var entry in featureTable)
+                {
+                    if (Application.isPlaying && entry.Runtime != null && entry.Runtime != entry.definition)
+                        Destroy(entry.Runtime); // last run's clone
+                    entry.Runtime = entry.definition != null && Application.isPlaying
+                        ? Instantiate(entry.definition)
+                        : entry.definition;
+                }
+            if (Application.isPlaying) FeatureDebugSettings.Load().ApplyTo(this);
+
             // One width knob for everything: steering clamp, pad bounds, meshes.
             if (track != null) track.SetWidth(trackWidth);
             if (decorator != null) decorator.SetTrackWidth(trackWidth);
@@ -196,15 +292,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 : new Unity.Mathematics.Random((uint)seed);
 
             spawned.Clear();
+            claims.Clear();
             ClearChildren(padsParent);
             ClearChildren(markersParent);
             if (decorator != null) decorator.Clear();
 
-            var spline = track.Spline.Spline;
-            spline.Clear();
+            // The spline is only ever touched through the TrackManager.
+            track.ClearKnots();
             heading = 0f;
             endPosition = float3.zero;
-            spline.Add(new BezierKnot(endPosition), TangentMode.AutoSmooth);
+            track.AppendKnot(endPosition);
 
             // The spline was just replaced — without this, Length still reports
             // the previous track and StreamTo would think there is already
@@ -212,6 +309,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
             track.Recalculate();
 
             padCursor = rng.NextFloat(120f, 200f);
+            featureCursor = rng.NextFloat(featureSpacing.x, featureSpacing.y);
+            pendingFeature = null;
+            pendingClaimed = false;
 
             if (endless)
             {
@@ -221,6 +321,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 for (int i = 0; i < segments; i++) AddSegment();
                 track.Recalculate();
+                PlaceFeaturesUpTo(track.Length - 150f);
                 PlacePadsUpTo(track.Length - 150f);
                 PlaceMarkers();
                 if (decorator != null) decorator.DecorateUpTo(track.Length);
@@ -241,6 +342,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
 
             float settled = track.Length - SettleMargin;
+            PlaceFeaturesUpTo(settled); // first: features claim footprints the pads then avoid
             PlacePadsUpTo(settled);
             if (decorator != null) decorator.DecorateUpTo(settled);
         }
@@ -258,7 +360,54 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float rad = math.radians(heading);
             endPosition += new float3(math.sin(rad), 0f, math.cos(rad)) *
                            rng.NextFloat(segmentLength.x, segmentLength.y);
-            track.Spline.Spline.Add(new BezierKnot(endPosition), TangentMode.AutoSmooth);
+            track.AppendKnot(endPosition);
+        }
+
+        /// <summary>
+        /// One weighted draw from the feature table per step. A feature only
+        /// lands once its whole footprint is settled — but it claims that
+        /// footprint the moment its spot is decided, so the pads placed while
+        /// it waits keep off it. The cursor then jumps past the footprint, the
+        /// exclusion and the larger of the spacing roll and the entry's own
+        /// minimum.
+        /// </summary>
+        void PlaceFeaturesUpTo(float limit)
+        {
+            if (featureTable == null || featureTable.Length == 0) return;
+            while (featureCursor < limit)
+            {
+                if (pendingFeature == null)
+                {
+                    pendingFeature = PickWeighted(featureTable, rng.NextFloat(0f, 1f)) as FeatureSpawnEntry;
+                    if (pendingFeature == null || pendingFeature.Runtime == null)
+                    {
+                        pendingFeature = null;
+                        featureCursor += rng.NextFloat(featureSpacing.x, featureSpacing.y);
+                        continue;
+                    }
+                }
+                float footprint = pendingFeature.Runtime.FootprintLength;
+                if (!pendingClaimed)
+                {
+                    claims.Add((featureCursor, featureCursor + footprint));
+                    pendingClaimed = true;
+                }
+                if (featureCursor + footprint > limit) return; // wait for the next stream
+
+                CreateFeature(featureCursor, pendingFeature);
+                featureCursor += footprint + pendingFeature.Runtime.ExclusionAhead
+                               + Mathf.Max(rng.NextFloat(featureSpacing.x, featureSpacing.y), pendingFeature.minSpacing);
+                pendingFeature = null;
+                pendingClaimed = false;
+            }
+        }
+
+        /// <summary>End of the claimed footprint covering <paramref name="distance"/>, or -1 when it is free.</summary>
+        float ClaimEnd(float distance)
+        {
+            foreach (var c in claims)
+                if (distance >= c.start - padSize.z && distance < c.end + padSize.z) return c.end + padSize.z;
+            return -1f;
         }
 
         void PlacePadsUpTo(float limit)
@@ -267,6 +416,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // the cursor resumes here on the next stream.
             while (padCursor < limit)
             {
+                // A feature's footprint is claimed ground: skip to its far end.
+                float claimEnd = ClaimEnd(padCursor);
+                if (claimEnd >= 0f) { padCursor = claimEnd; continue; }
+
                 PadSpawnEntry entry = PickSpawnEntry();
                 if (entry != null && entry.definition != null)
                 {
@@ -286,6 +439,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (spawned[i].go != null) Destroy(spawned[i].go);
                 spawned.RemoveAt(i);
             }
+            for (int i = claims.Count - 1; i >= 0; i--)
+                if (claims[i].end < minDistance) claims.RemoveAt(i);
             if (decorator != null) decorator.CullBefore(minDistance);
         }
 
@@ -300,55 +455,63 @@ namespace ConfusedGameDev.FiniteRunner.Track
         // Weighted draw from the spawn table; uses the layout rng so seeded
         // runs reproduce the same sequence. Probabilities are normalized by
         // their sum, so the draw stays correct even mid-edit.
-        PadSpawnEntry PickSpawnEntry()
-        {
-            if (spawnTable == null || spawnTable.Length == 0) return null;
-            float total = 0f;
-            foreach (var e in spawnTable) total += e.probability;
-            if (total <= 0f) return spawnTable[0];
+        PadSpawnEntry PickSpawnEntry() =>
+            spawnTable == null || spawnTable.Length == 0 ? null : PickWeighted(spawnTable, rng.NextFloat(0f, 1f)) as PadSpawnEntry;
 
-            float roll = rng.NextFloat(0f, total);
-            foreach (var e in spawnTable)
+        // Weighted draw off a 0..1 roll; probabilities are normalized by
+        // their sum, so the draw stays correct even mid-edit.
+        static IWeightedEntry PickWeighted(IWeightedEntry[] table, float roll01)
+        {
+            if (table == null || table.Length == 0) return null;
+            float total = 0f;
+            foreach (var e in table) total += e.Probability;
+            if (total <= 0f) return table[0];
+
+            float roll = roll01 * total;
+            foreach (var e in table)
             {
-                roll -= e.probability;
+                roll -= e.Probability;
                 if (roll <= 0f) return e;
             }
-            return spawnTable[^1];
+            return table[^1];
         }
 
         // Keeps the Core Settings probability sliders honest: whichever slider
         // the designer just moved keeps its value, the others rebalance
         // proportionally so the table always totals 100%.
-        void NormalizeProbabilities()
-        {
-            if (spawnTable == null || spawnTable.Length == 0) { lastProbabilities = null; return; }
+        void NormalizeProbabilities() => Normalize(spawnTable, ref lastProbabilities);
+        void NormalizeFeatureProbabilities() => Normalize(featureTable, ref lastFeatureProbabilities);
 
-            if (spawnTable.Length == 1)
+        static void Normalize(IWeightedEntry[] table, ref float[] last)
+        {
+            if (table == null || table.Length == 0) { last = null; return; }
+
+            if (table.Length == 1)
             {
-                spawnTable[0].probability = 100f;
+                table[0].Probability = 100f;
             }
-            else if (lastProbabilities != null && lastProbabilities.Length == spawnTable.Length)
+            else if (last != null && last.Length == table.Length)
             {
                 int changed = -1;
-                for (int i = 0; i < spawnTable.Length; i++)
-                    if (!Mathf.Approximately(spawnTable[i].probability, lastProbabilities[i])) { changed = i; break; }
+                for (int i = 0; i < table.Length; i++)
+                    if (!Mathf.Approximately(table[i].Probability, last[i])) { changed = i; break; }
 
                 if (changed >= 0)
                 {
-                    float kept = Mathf.Clamp(spawnTable[changed].probability, 0f, 100f);
-                    spawnTable[changed].probability = kept;
+                    float kept = Mathf.Clamp(table[changed].Probability, 0f, 100f);
+                    table[changed].Probability = kept;
 
                     float othersSum = 0f;
-                    for (int i = 0; i < spawnTable.Length; i++)
-                        if (i != changed) othersSum += spawnTable[i].probability;
+                    for (int i = 0; i < table.Length; i++)
+                        if (i != changed) othersSum += table[i].Probability;
 
                     float remainder = 100f - kept;
-                    for (int i = 0; i < spawnTable.Length; i++)
+                    for (int i = 0; i < table.Length; i++)
                     {
                         if (i == changed) continue;
-                        spawnTable[i].probability = othersSum > 0f
-                            ? spawnTable[i].probability * remainder / othersSum
-                            : remainder / (spawnTable.Length - 1);
+                        table[i].Probability = othersSum > 0f
+                            ? table[i].Probability * remainder / othersSum
+                            : remainder / (table.Length - 1);
                     }
                 }
             }
@@ -356,18 +519,22 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 // Entry added/removed (or first touch): scale everything to 100.
                 float total = 0f;
-                foreach (var e in spawnTable) total += e.probability;
-                for (int i = 0; i < spawnTable.Length; i++)
-                    spawnTable[i].probability = total > 0f
-                        ? spawnTable[i].probability * 100f / total
-                        : 100f / spawnTable.Length;
+                foreach (var e in table) total += e.Probability;
+                for (int i = 0; i < table.Length; i++)
+                    table[i].Probability = total > 0f
+                        ? table[i].Probability * 100f / total
+                        : 100f / table.Length;
             }
 
-            lastProbabilities = new float[spawnTable.Length];
-            for (int i = 0; i < spawnTable.Length; i++) lastProbabilities[i] = spawnTable[i].probability;
+            last = new float[table.Length];
+            for (int i = 0; i < table.Length; i++) last[i] = table[i].Probability;
         }
 
-        void OnValidate() => NormalizeProbabilities();
+        void OnValidate()
+        {
+            NormalizeProbabilities();
+            NormalizeFeatureProbabilities();
+        }
 
         float EffectiveBoost(PadSpawnEntry entry)
         {
@@ -397,12 +564,108 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return mat;
         }
 
+        Material FeatureEntryMaterial(FeatureSpawnEntry entry)
+        {
+            Material source = featureMaterial != null ? featureMaterial : boostMaterial;
+            if (!Application.isPlaying || source == null) return source;
+
+            featureMaterials ??= new Dictionary<FeatureSpawnEntry, Material>();
+            if (!featureMaterials.TryGetValue(entry, out var mat))
+            {
+                mat = new Material(source);
+                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", entry.color);
+                else mat.color = entry.color;
+                if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", entry.color);
+                featureMaterials.Add(entry, mat);
+            }
+            return mat;
+        }
+
+        void CreateFeature(float distance, FeatureSpawnEntry entry)
+        {
+            switch (entry.Runtime)
+            {
+                case JumpDefinition jump: CreateJump(distance, entry, jump); break;
+                default:
+                    Debug.LogWarning($"TrackGenerator: no builder for feature definition {entry.Runtime.GetType().Name}.", this);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// A jump ramp: a JumpRamp component carrying the numbers the ship's
+        /// analytic detection reads, plus a picture — the entry's unit prefab
+        /// scaled to the ramp, or a code-built slab pitched to the ramp angle
+        /// with a rail down each edge. No colliders: nothing here is physics.
+        /// </summary>
+        void CreateJump(float distance, FeatureSpawnEntry entry, JumpDefinition def)
+        {
+            float rampHalf = track.HalfWidth * Mathf.Clamp01(def.widthFraction);
+            float maxLat = Mathf.Max(0f, track.HalfWidth - rampHalf - 2f);
+            float lateral = rng.NextFloat(-maxLat, maxLat);
+            track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
+
+            var go = new GameObject($"{entry.name}{def.displayName}Ramp_{distance:00000}");
+            go.transform.SetParent(padsParent, false);
+            go.transform.SetPositionAndRotation(pos, rot);
+
+            float width = rampHalf * 2f;
+            float lip = def.LipHeight;
+            if (entry.prefab != null)
+            {
+                var visual = Instantiate(entry.prefab, go.transform);
+                visual.transform.localPosition = Vector3.zero;
+                visual.transform.localRotation = Quaternion.identity;
+                visual.transform.localScale = new Vector3(width, lip, def.length);
+                foreach (var c in visual.GetComponentsInChildren<Collider>()) DestroyComponent(c);
+            }
+            else
+            {
+                Material mat = FeatureEntryMaterial(entry);
+                float slopeLength = Mathf.Sqrt(def.length * def.length + lip * lip);
+                var pitch = Quaternion.Euler(-def.rampAngle, 0f, 0f);
+                const float thickness = 1.5f;
+                Vector3 slopeCentre = new Vector3(0f, lip * 0.5f, def.length * 0.5f);
+                Vector3 normal = pitch * Vector3.up;
+
+                var slab = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                slab.name = "Slab";
+                slab.transform.SetParent(go.transform, false);
+                slab.transform.localRotation = pitch;
+                slab.transform.localPosition = slopeCentre - normal * (thickness * 0.5f);
+                slab.transform.localScale = new Vector3(width, thickness, slopeLength);
+                DestroyComponent(slab.GetComponent<Collider>());
+                if (mat != null) slab.GetComponent<Renderer>().sharedMaterial = mat;
+
+                const float railHeight = 3f;
+                const float railWidth = 0.8f;
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    var rail = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    rail.name = side < 0f ? "RailL" : "RailR";
+                    rail.transform.SetParent(go.transform, false);
+                    rail.transform.localRotation = pitch;
+                    rail.transform.localPosition = slopeCentre + pitch * new Vector3(side * (rampHalf - railWidth * 0.5f), railHeight * 0.5f, 0f);
+                    rail.transform.localScale = new Vector3(railWidth, railHeight, slopeLength);
+                    DestroyComponent(rail.GetComponent<Collider>());
+                    if (mat != null) rail.GetComponent<Renderer>().sharedMaterial = mat;
+                }
+            }
+
+            var ramp = go.AddComponent<JumpRamp>();
+            float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost : 15f;
+            ramp.Configure(def, distance, lateral, rampHalf, baseBoost * entry.multiplier);
+            spawned.Add((distance, go));
+        }
+
         void CreatePad(float distance, float lateral, PadSpawnEntry entry)
         {
             PadDefinition def = entry.definition;
             track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
-            // Orbs sit on the flight line; flat pads sink to road level.
+            // Orbs sit on the flight line; flat pads sink to road level. The
+            // air lane rides the track's up so it stays overhead on a roll.
             Vector3 padPos = def.floatingOrb ? pos : pos + rot * new Vector3(0f, -0.9f, 0f);
+            if (entry.lane == PadLane.Air) padPos += rot * (Vector3.up * AirLaneHeight);
             Material mat = EntryMaterial(entry);
             GameObject pad;
 
@@ -496,6 +759,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     if (Application.isPlaying) Destroy(col); else DestroyImmediate(col);
                 }
             }
+        }
+
+        // Feature visuals are pictures only — detection is analytic — so their
+        // primitive colliders go (edit-mode previews included).
+        static void DestroyComponent(Component component)
+        {
+            if (component == null) return;
+            if (Application.isPlaying) Destroy(component); else DestroyImmediate(component);
         }
 
         static void ClearChildren(Transform parent)

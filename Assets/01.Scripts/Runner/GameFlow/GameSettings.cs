@@ -62,6 +62,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0f, 100f), SuffixLabel("m/s", true)]
         public float powerUpSpeedBoost = 15f;
 
+        // ----------------------------------------------------- track features
+        [TitleGroup("Track features")]
+        [Tooltip("Height of the air lane above the flight line — where Air-lane pads spawn, reachable only off a jump. Prepared for future power-ups; the tables hold no air entries yet.")]
+        [PropertyRange(5f, 150f), SuffixLabel("m", true)]
+        public float airLaneHeight = 30f;
+
+        [TitleGroup("Track features")]
+        [Tooltip("Camera shake when the ship lands after a jump. Empty = no shake.")]
+        public Cameras.CameraShakeSettings landingShake;
+
+        [TitleGroup("Track features")]
+        [Tooltip("Camera shake when the ship slams a track edge or a ramp's side. Empty = no shake.")]
+        public Cameras.CameraShakeSettings wallHitShake;
+
         // --------------------------------------------------------------- dash
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on
         // ShipDefinition — this section only holds the run-level rules.
@@ -157,6 +171,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         [TitleGroup("Story messages")]
         public Color patrolMessageColor = new(1f, 0.4f, 0.35f);
+
+        // ------------------------------------------------------------- camera
+        [TitleGroup("Camera")]
+        [Tooltip("The ship's chase-camera feel (framing, modes, roll binding, FOV kick). The shared Cinemachine rig is attached to the ship with this asset on boot; empty = the scene keeps whatever camera it has.")]
+        [InlineEditor]
+        public Cameras.OrbitCameraSettings cameraSettings;
 
         // ------------------------------------------------------------ weather
         [ToggleGroup("rainEnabled", "Weather")]

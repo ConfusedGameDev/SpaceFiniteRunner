@@ -1,0 +1,19 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.Cameras",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.Cameras",
+    "references": [
+        "ConfusedGameDev.FiniteRunner.UI",
+        "ConfusedGameDev.FiniteRunner.FX",
+        "Unity.Cinemachine",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
