@@ -182,6 +182,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                     AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpSideHitLoss,
                                 0f, 1f, 0.05f, "0.00", j => j.sideHitSpeedLoss, (j, v) => j.sideHitSpeedLoss = v);
                 }
+                else if (entry.Runtime is LoopDefinition)
+                {
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopRadius,
+                                            40f, 250f, 5f, "0", l => l.radius, (l, v) => l.radius = v);
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopFallGravity,
+                                            20f, 400f, 10f, "0", l => l.fallGravity, (l, v) => l.fallGravity = v);
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopFallLoss,
+                                            0f, 1f, 0.05f, "0.00", l => l.fallSpeedLoss, (l, v) => l.fallSpeedLoss = v);
+                }
             }
             return screen;
         }
@@ -193,19 +202,28 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                                 FeatureDebugSettings saved, System.Action onChanged, List<System.Action> refreshers,
                                 MenuTextId label, float min, float max, float step, string format,
                                 System.Func<JumpDefinition, float> get, System.Action<JumpDefinition, float> set)
+            => AddStat(screen, generator, entry, saved, onChanged, refreshers, label, min, max, step, format, get, set);
+
+        // One localized slider row bound to a knob of the entry's runtime
+        // definition clone. The lambdas read entry.Runtime at call time, so
+        // they always hit the clone the current run was generated with.
+        static void AddStat<T>(MenuScreen screen, TrackGenerator generator, TrackGenerator.FeatureSpawnEntry entry,
+                               FeatureDebugSettings saved, System.Action onChanged, List<System.Action> refreshers,
+                               MenuTextId label, float min, float max, float step, string format,
+                               System.Func<T, float> get, System.Action<T, float> set) where T : TrackFeatureDefinition
         {
-            JumpDefinition Jump() => entry.Runtime as JumpDefinition;
+            T Def() => entry.Runtime as T;
             var row = screen.AddRow<DebugSliderRow>(label);
-            row.Configure(min, max, step, Jump() != null ? get(Jump()) : min, format, v =>
+            row.Configure(min, max, step, Def() != null ? get(Def()) : min, format, v =>
             {
-                var jump = Jump();
-                if (jump == null) return;
-                set(jump, v);
+                var def = Def();
+                if (def == null) return;
+                set(def, v);
                 saved.CaptureFrom(generator);
                 onChanged?.Invoke();
             });
             row.SetLabelTint(entry.color);
-            refreshers?.Add(() => { var jump = Jump(); if (jump != null) row.SetWithoutNotify(get(jump)); });
+            refreshers?.Add(() => { var def = Def(); if (def != null) row.SetWithoutNotify(get(def)); });
         }
 
         /// <summary>

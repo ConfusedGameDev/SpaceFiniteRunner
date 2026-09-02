@@ -4142,10 +4142,17 @@ MonoBehaviour:
   - name: Jump
     prefab: {fileID: 0}
     definition: {fileID: 11400000, guid: 036070dea45c4920a5d5fd439400a3b5, type: 2}
-    probability: 100
+    probability: 70
     minSpacing: 300
     multiplier: 1
     color: {r: 1, g: 0.8, b: 0.2, a: 1}
+  - name: Loop
+    prefab: {fileID: 0}
+    definition: {fileID: 11400000, guid: 3f0b83579a6c4c04a2533aa02a053cb9, type: 2}
+    probability: 30
+    minSpacing: 600
+    multiplier: 0
+    color: {r: 0.35, g: 0.85, b: 1, a: 1}
   featureSpacing: {x: 600, y: 1200}
   featureMaterial: {fileID: 0}
   padSignPrefab: {fileID: 919132149155446097, guid: 12a4ac7d5a25a44009fc60417de04fb1, type: 3}

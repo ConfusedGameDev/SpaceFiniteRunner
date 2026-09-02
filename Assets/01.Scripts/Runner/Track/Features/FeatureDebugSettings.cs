@@ -42,11 +42,20 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             public float sideHitSpeedLoss = 0.15f;
         }
 
+        [System.Serializable]
+        public class LoopValues
+        {
+            public float radius = 100f;
+            public float fallGravity = 120f;
+            public float fallSpeedLoss = 0.4f;
+        }
+
         [Tooltip("When on, these saved values override the scene's feature table and the jump definition on every play-mode Generate. Turned on the first time the debug menu saves; untick to return to the authored values.")]
         public bool applyOnLoad;
         public Vector2 featureSpacing = new(600f, 1200f);
         public List<EntryValues> entries = new();
         public JumpValues jump = new();
+        public LoopValues loop = new();
 
         static FeatureDebugSettings cached;
 
@@ -77,6 +86,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                 {
                     entries.Add(new EntryValues { name = e.name, probability = e.probability, minSpacing = e.minSpacing, multiplier = e.multiplier });
                     if (e.Runtime is JumpDefinition j) CaptureJump(j);
+                    if (e.Runtime is LoopDefinition l) { loop.radius = l.radius; loop.fallGravity = l.fallGravity; loop.fallSpeedLoss = l.fallSpeedLoss; }
                 }
 
 #if UNITY_EDITOR
@@ -114,6 +124,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                     table[i].multiplier = saved.multiplier;
                 }
                 if (table[i].Runtime is JumpDefinition j) ApplyJump(j);
+                if (table[i].Runtime is LoopDefinition l) { l.radius = loop.radius; l.fallGravity = loop.fallGravity; l.fallSpeedLoss = loop.fallSpeedLoss; }
             }
         }
 

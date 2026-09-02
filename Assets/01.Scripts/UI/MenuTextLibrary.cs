@@ -74,7 +74,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         ObjectiveCollect, LogSectionCollectibles, StatCollectibles,
         ObjectiveJump,
         DebugTabFeatures, FeatureSpacing,
-        JumpWidth, JumpLength, JumpAngle, JumpAirDistance, JumpMaxAir, JumpAirControl, JumpSideHitLoss
+        JumpWidth, JumpLength, JumpAngle, JumpAirDistance, JumpMaxAir, JumpAirControl, JumpSideHitLoss,
+        LoopRadius, LoopFallGravity, LoopFallLoss
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -482,6 +483,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString jumpMaxAir = new("MAX AIR DISTANCE", "VUELO MÁXIMO", "最大飛距離", "VOL MAXIMUM");
         [SerializeField] LocalizedString jumpAirControl = new("AIR CONTROL", "CONTROL AÉREO", "空中操作", "CONTRÔLE AÉRIEN");
         [SerializeField] LocalizedString jumpSideHitLoss = new("SIDE HIT LOSS", "PÉRDIDA LATERAL", "側面衝突ロス", "PERTE LATÉRALE");
+        [SerializeField] LocalizedString loopRadius = new("LOOP RADIUS", "RADIO DEL LOOP", "ループ半径", "RAYON DU LOOPING");
+        [SerializeField] LocalizedString loopFallGravity = new("FALL GRAVITY", "GRAVEDAD DE CAÍDA", "落下重力", "GRAVITÉ DE CHUTE");
+        [SerializeField] LocalizedString loopFallLoss = new("FALL SPEED LOSS", "PÉRDIDA POR CAÍDA", "落下速度ロス", "PERTE DE CHUTE");
 
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString gameOver = new("GAME OVER", "FIN DE LA PARTIDA", "ゲームオーバー", "PARTIE TERMINÉE");
@@ -809,6 +813,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.JumpMaxAir => jumpMaxAir,
             MenuTextId.JumpAirControl => jumpAirControl,
             MenuTextId.JumpSideHitLoss => jumpSideHitLoss,
+            MenuTextId.LoopRadius => loopRadius,
+            MenuTextId.LoopFallGravity => loopFallGravity,
+            MenuTextId.LoopFallLoss => loopFallLoss,
             MenuTextId.LogSectionCollectibles => logSectionCollectibles,
             MenuTextId.StatCollectibles => statCollectibles,
             MenuTextId.CheatEnterCode => cheatEnterCode,

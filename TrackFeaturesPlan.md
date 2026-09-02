@@ -2,7 +2,7 @@
 
 **Scope:** the hover-ship runner (`Assets/01.Scripts/Runner/`, namespace `ConfusedGameDev.FiniteRunner`), scene `Assets/05.Scenes/FiniteRunner_Test.unity`.
 **Goal:** make the endless track *interesting* — the road stops being a flat ribbon with orbs on it and becomes something the player reads and reacts to at speed.
-**Status:** design agreed 2026-09-02. M1 (camera) and M2 (jumps) implemented 2026-09-02, awaiting the editor test pass (M2.5).
+**Status:** design agreed 2026-09-02. M1 (camera), M2 (jumps) and M3 (loops) implemented 2026-09-02; jumps passed their editor test, loops await theirs.
 
 ---
 
@@ -13,7 +13,7 @@ Four features, delivered **one at a time**, each played, tested and refined befo
 | # | Feature | One-liner | Status |
 |---|---------|-----------|--------|
 | 1 | **Jumps** | Optional ramps that throw the ship into a speed-scaled arc | Implemented (§3), in test |
-| 2 | **Loops** | Mandatory vertical loops with a minimum entry speed | Root decisions only (§4) |
+| 2 | **Loops** | Mandatory vertical loops with a minimum entry speed | Implemented (§4), in test |
 | 3 | **Cylinder sections** | Stretches where the road curls into a tube the ship can run around and under | Root decisions only (§5) |
 | 4 | **Multi-path** | Branching routes with their own challenges and rewards | Deferred; single-spline discipline only (§6) |
 
@@ -115,7 +115,9 @@ Visual: optional prefab; fallback a primitive wedge tinted from the entry colour
 
 ---
 
-## 4. Feature 2 — Loops (root decisions)
+## 4. Feature 2 — Loops
+
+> **Second-level decisions (agreed 2026-09-02, implemented):** a loop is a **distance-insert section** (`LoopSection`) with its own pose function — the spline stays flat, so every distance-based consumer rides it unchanged and the decorator stamps the ring's road for free. Pure vertical circle across the full track width, radius 100 m (40–250). Verdict taken **at the gate** against a speed fixed when the loop is placed (floor 1200 km/h + 18 km/h per 100 m, cap 2900), so the gate's colour is a promise. A fail rides to the top and **falls visibly** straight down onto the exit under a fake gravity (120 m/s²), losing 40% of speed; distance is parked at the exit so the patrol gains the whole fall. Telegraph: portal-frame gate at the mouth tinted green/red every frame, plus a floating alert at `loopAlertLeadMeters` (400 m). No pads inside a loop; the road is the ordinary road prefab in chords; a prefab slot on the entry scales by the radius.
 
 - **Mandatory.** The track *is* the loop; there is no bypass lane. The loop is what sells the speed.
 - **Speed requirement** = a floor plus a ramp with distance travelled, capped well under light speed, all on `GameSettings` (`loopSpeedFloor`, `loopSpeedPerMeter`, `loopSpeedCap`). Never a fixed number alone.
@@ -176,7 +178,7 @@ Each milestone ends in a playable build and a tuning pass before the next begins
 
 **M2.5 — Test & refine jumps.** Play sessions; retune ramp size, arc, cap, penalties; revisit §4/§5 deferred decisions with what was learned.
 
-**M3 — Loops.** Second-level design round first (§4 deferred list), then implementation.
+**M3 — Loops** *(done 2026-09-02, see §4 note)*.
 
 **M4 — Cylinder sections.** Second-level design round first (§5 deferred list), then implementation.
 

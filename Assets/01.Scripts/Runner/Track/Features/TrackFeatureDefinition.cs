@@ -11,7 +11,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
     /// feature may start in — for a jump, the longest arc it can throw the
     /// ship, so nothing waits under a landing. Definitions are assets, and
     /// the generator plays a runtime clone (never the asset on disk), which
-    /// is what the debug menu edits.
+    /// is what the debug menu edits. A feature that owns its own stretch of
+    /// track (a loop) also declares an <see cref="InsertLength"/> and builds
+    /// the <see cref="TrackSection"/> the TrackManager inserts — registered
+    /// the moment the generator decides the spot, before anything is placed
+    /// beyond it.
     /// </summary>
     public abstract class TrackFeatureDefinition : ScriptableObject
     {
@@ -23,5 +27,14 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
         /// <summary>Metres past the footprint where no other feature may start.</summary>
         public abstract float ExclusionAhead { get; }
+
+        /// <summary>Track distance this feature INSERTS over the spline (0 for a feature that sits on the road, like a ramp).</summary>
+        public virtual float InsertLength => 0f;
+
+        /// <summary>Metres of SPLINE the footprint covers — what must be settled before the feature can be built.</summary>
+        public float SplineExtent => Mathf.Max(0f, FootprintLength - InsertLength);
+
+        /// <summary>The section a feature with an insert length routes the track through, or null.</summary>
+        public virtual TrackSection CreateSection(TrackManager track, float startDistance) => null;
     }
 }

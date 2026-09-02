@@ -76,6 +76,32 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Camera shake when the ship slams a track edge or a ramp's side. Empty = no shake.")]
         public Cameras.CameraShakeSettings wallHitShake;
 
+        // -------------------------------------------------------------- loops
+        [TitleGroup("Loops")]
+        [Tooltip("Entry speed a loop demands at the start of the run, km/h. A fresh launch (about 900) must fail it; one green orb (+870) must pass it.")]
+        [PropertyRange(200f, 5000f), SuffixLabel("km/h", true)]
+        public float loopSpeedFloorKmh = 1200f;
+
+        [TitleGroup("Loops")]
+        [Tooltip("How much the demand grows per 100 m of track travelled — the run's speed climbs, so a fixed number would be trivial late.")]
+        [PropertyRange(0f, 100f), SuffixLabel("km/h per 100 m", true)]
+        public float loopSpeedRampKmhPer100m = 18f;
+
+        [TitleGroup("Loops")]
+        [Tooltip("Cap on the demand, km/h. Keep it well under Light Speed.")]
+        [PropertyRange(200f, 10000f), SuffixLabel("km/h", true)]
+        public float loopSpeedCapKmh = 2900f;
+
+        [TitleGroup("Loops")]
+        [Tooltip("How far ahead of a loop the floating LOOP alert is raised, metres.")]
+        [PropertyRange(50f, 2000f), SuffixLabel("m", true)]
+        public float loopAlertLeadMeters = 400f;
+
+        [TitleGroup("Loops")]
+        [Tooltip("Glitch pulse strength when the ship drops off the top of a loop.")]
+        [PropertyRange(0f, 1f)]
+        public float loopFallGlitchStrength = 0.8f;
+
         // --------------------------------------------------------------- dash
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on
         // ShipDefinition — this section only holds the run-level rules.

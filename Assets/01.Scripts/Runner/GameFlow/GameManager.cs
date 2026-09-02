@@ -58,6 +58,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>Height of the air lane above the flight line, metres.</summary>
         public float AirLaneHeight => settings.airLaneHeight;
 
+        /// <summary>Entry speed (m/s) a loop at <paramref name="distance"/> demands: floor + ramp × distance, capped. Fixed per loop, so its gate never lies.</summary>
+        public float LoopRequiredSpeed(float distance)
+        {
+            float kmh = Mathf.Min(settings.loopSpeedCapKmh,
+                                  settings.loopSpeedFloorKmh + settings.loopSpeedRampKmhPer100m * distance / 100f);
+            return kmh / 3.6f;
+        }
+
         public PolicePatrol Patrol => patrol;
         public float LightSpeedKmh => settings.lightSpeedKmh;
         public float TimeLimit => settings.timeLimitSeconds;
@@ -87,6 +95,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.DashPerformed += OnDashPerformed;
                 motor.TookOff += OnTookOff;
                 motor.Landed += OnLanded;
+                motor.LoopFailed += OnLoopFailed;
 
                 // The DashMeterUI is a scene child of the Ship — it configures
                 // itself off the motor in Start, after ConfigureDash above.
@@ -177,6 +186,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 return;
             }
 
+            UpdateLoops();
+
             // Time only pressures the player while the ship is flying.
             if (motor.Paused) return;
 
@@ -257,6 +268,40 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             cameraRig.SetMode(CameraMode.Far, instant: false);
         }
 
+        /// <summary>
+        /// Loop gates and alerts: every live loop's gate is tinted against the
+        /// ship's speed, and the nearest one ahead raises a LOOP alert once it
+        /// comes inside the lead — red while the ship is short of it.
+        /// </summary>
+        void UpdateLoops()
+        {
+            float speed = motor.CurrentSpeed;
+            float d = motor.DistanceTravelled;
+            foreach (var loop in Track.Features.LoopFeature.Active)
+            {
+                if (loop == null) continue;
+                bool pass = speed >= loop.RequiredSpeed;
+                loop.SetGateColor(pass);
+
+                float gap = loop.StartDistance - d;
+                if (loop.Alerted || gap < 0f || gap > settings.loopAlertLeadMeters) continue;
+                loop.Alerted = true;
+                FloatingTextSystem.Instance.DisplayText(
+                    $"LOOP {gap:0} M — NEED {loop.RequiredSpeed * 3.6f:0} KM/H",
+                    pass ? loop.Definition.passColor : loop.Definition.failColor,
+                    1.6f, settings.boostTextLeadMeters, 3.2f);
+            }
+        }
+
+        // Too slow for the loop: the drop off the top is a hit of corruption
+        // and a long rumble; the landing below rides the ordinary Landed path.
+        void OnLoopFailed()
+        {
+            HapticsSystem.Instance.Pulse(0.9f, 0.5f, 0.5f);
+            if (GlitchController.Instance != null)
+                GlitchController.Instance.Pulse(settings.loopFallGlitchStrength);
+        }
+
         // Touchdown: a thump in the hands and on the picture, no speed change.
         void OnLanded()
         {
@@ -285,6 +330,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.DashPerformed -= OnDashPerformed;
                 motor.TookOff -= OnTookOff;
                 motor.Landed -= OnLanded;
+                motor.LoopFailed -= OnLoopFailed;
             }
             SpeedPad.Collected -= OnPadCollected;
         }

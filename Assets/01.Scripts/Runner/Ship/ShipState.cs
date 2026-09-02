@@ -14,5 +14,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>Off a jump ramp: following its arc above the track, steering at reduced authority.</summary>
         Airborne,
+
+        /// <summary>Inside a loop section: the track pose itself goes round (and upside down); steering is ordinary lateral steering.</summary>
+        Looping,
+
+        /// <summary>Dropped off the top of a loop it was too slow for: falling straight down onto the exit, off the track entirely.</summary>
+        Falling,
     }
 }

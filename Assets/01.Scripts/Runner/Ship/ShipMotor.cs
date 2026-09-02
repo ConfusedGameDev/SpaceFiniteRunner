@@ -26,6 +26,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// is the one place anything reads "is the ship flying". The root itself
     /// rises above the flight line while on a ramp or airborne, so ground
     /// orbs and brake pads are physically missed rather than ignored.
+    /// <b>Loops</b> are track sections (the pose function goes round by
+    /// itself — see <see cref="LoopSection"/>); the motor only decides the
+    /// gate: entering a <see cref="LoopFeature"/> at or above its required
+    /// speed is a pass, below it the ship rides up to the top, drops off it
+    /// (<see cref="ShipState.Falling"/>: off the track, straight down under
+    /// the loop's fake gravity onto the exit, distance frozen at the exit so
+    /// the patrol keeps gaining) and lands with the loop's speed penalty.
     /// It is also the chase camera's <see cref="ICameraTarget"/>: the rig
     /// follows this root (the pose above the flight line, never the bobbing
     /// visual) and the view cycle is locked while airborne.
@@ -64,8 +71,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>Raised the frame the ship leaves a ramp's lip.</summary>
         public event System.Action TookOff;
 
-        /// <summary>Raised the frame the ship's arc returns to the flight line.</summary>
+        /// <summary>Raised the frame the ship's arc returns to the flight line — or a loop fall lands on the exit.</summary>
         public event System.Action Landed;
+
+        /// <summary>Raised on entering a loop: true = fast enough, the loop is a pass; false = it will drop the ship at the top.</summary>
+        public event System.Action<bool> LoopEntered;
+
+        /// <summary>Raised the frame the ship drops off the top of a loop it was too slow for.</summary>
+        public event System.Action LoopFailed;
 
         /// <summary>While true the simulation is frozen (setup screen); the hover keeps running.</summary>
         public bool Paused { get; set; }
@@ -94,6 +107,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>The ramp the ship is committed to (riding its run-up), or null.</summary>
         public JumpRamp CurrentRamp => ramp;
 
+        /// <summary>The loop the ship is inside (or falling out of), or null.</summary>
+        public LoopFeature CurrentLoop => loop;
+
         // ------------------------------------------------------ ICameraTarget
         Transform ICameraTarget.Transform => transform;
         float ICameraTarget.SpeedKmh => CurrentSpeed * 3.6f;
@@ -106,12 +122,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         }
         bool ICameraTarget.BlockPanInput => false; // the ship steers with the left stick and the arrows; the right stick is the camera's
         // A jump forces the Far framing; the cycle is locked so it cannot be undone mid-arc.
-        bool ICameraTarget.BlockModeCycle => MainMenuController.IsOpen || State == ShipState.Airborne;
+        bool ICameraTarget.BlockModeCycle => MainMenuController.IsOpen || State == ShipState.Airborne || State == ShipState.Falling;
 
         ISteeringInput steering;
         IDashInput dashInput;
         GameSettings dashSettings; // null = dash feature off
-        float splineT;
         float lateralOffset;
         float lateralVelocity;
         float bankAngle;
@@ -135,6 +150,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float airStart, airLength, arcH0, arcSlope, arcA;
         float visualPitch;      // nose up on the slope and the climb, down on the descent
         float shownPitch;       // visualPitch, eased
+
+        // Loop state. Inside a loop the track pose does the work; the motor
+        // only remembers the verdict taken at the gate and, on a fail, runs
+        // the drop: a straight fall from the top onto the exit.
+        LoopFeature loop;
+        bool loopPassed;
+        float fallDistance;     // metres fallen so far
+        float fallVelocity;
+        float fallHeight;       // the drop: twice the radius
+        Vector3 fallTopPosition;
+        Quaternion fallTopRotation, fallExitRotation;
+        Vector3 fallExitPosition;
 
         void Awake()
         {
@@ -172,7 +199,6 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             CurrentSpeed = definition.initialImpulse;
             DistanceTravelled = 0f;
-            splineT = 0f;
             lateralOffset = 0f;
             lateralVelocity = 0f;
             pendingSpeedChange = 0f;
@@ -188,6 +214,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             ramp = null;
             blockingRamp = null;
             airDefinition = null;
+            loop = null;
             AirTime = 0f;
             visualPitch = 0f;
             SetState(ShipState.Grounded);
@@ -215,8 +242,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 UpdateSpeed(dt);
                 UpdateDash(dt);
                 UpdateLateral(dt);
-                AdvanceAlongTrack(dt);
+                if (State != ShipState.Falling) AdvanceAlongTrack(dt); // a fall is off the track: distance waits at the exit
                 UpdateJump(dt);
+                UpdateLoop(dt);
                 ApplyPose(dt);
 
                 if (CurrentSpeed <= 0f)
@@ -352,12 +380,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void AdvanceAlongTrack(float dt)
         {
-            DistanceTravelled += CurrentSpeed * dt;
-
             // Distance is authoritative: the endless streamer grows the spline
-            // during the run, which shifts what any given normalized t means,
-            // so remap from distance every frame instead of advancing t.
-            splineT = track.DistanceToT(DistanceTravelled);
+            // during the run (and loops insert track), so the pose is always
+            // looked up from distance, never from a stored t.
+            DistanceTravelled += CurrentSpeed * dt;
         }
 
         /// <summary>
@@ -369,6 +395,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         void UpdateJump(float dt)
         {
             float d = DistanceTravelled;
+            if (State == ShipState.Looping || State == ShipState.Falling) return;
 
             if (State == ShipState.Airborne)
             {
@@ -407,6 +434,75 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 blockingRamp = candidate;
                 blockSide = rel >= 0f ? 1 : -1;
             }
+        }
+
+        /// <summary>
+        /// The loop gate and the fall. Entering a loop section takes the
+        /// verdict once, against the speed the loop was built to demand; a
+        /// fail still rides the circle up to the top, so the drop is seen
+        /// coming, then falls straight down onto the exit.
+        /// </summary>
+        void UpdateLoop(float dt)
+        {
+            float d = DistanceTravelled;
+
+            if (State == ShipState.Falling)
+            {
+                fallVelocity += loop.Definition.fallGravity * dt;
+                fallDistance += fallVelocity * dt;
+                if (fallDistance >= fallHeight) LandFromLoop();
+                return;
+            }
+
+            if (State == ShipState.Looping)
+            {
+                if (loop == null || loop.Section == null) { SetState(ShipState.Grounded); return; }
+                if (!loopPassed && d - loop.StartDistance >= loop.Section.Length * 0.5f) { DropFromLoop(); return; }
+                if (d >= loop.EndDistance)
+                {
+                    loop = null;
+                    SetState(ShipState.Grounded);
+                }
+                return;
+            }
+
+            if (State != ShipState.Grounded) return;
+            foreach (var candidate in LoopFeature.Active)
+            {
+                if (candidate == null || candidate.Section == null || !candidate.Section.Contains(d)) continue;
+                loop = candidate;
+                loopPassed = CurrentSpeed >= candidate.RequiredSpeed;
+                SetState(ShipState.Looping);
+                LoopEntered?.Invoke(loopPassed);
+                break;
+            }
+        }
+
+        void DropFromLoop()
+        {
+            LoopSection section = loop.Section;
+            fallTopPosition = transform.position;
+            fallTopRotation = transform.rotation;
+            section.GetExitPose(lateralOffset, out fallExitPosition, out fallExitRotation);
+            fallHeight = Mathf.Max(0.01f, Vector3.Distance(fallTopPosition, fallExitPosition));
+            fallDistance = 0f;
+            fallVelocity = 0f;
+            // The track waits for the ship at the exit: the patrol, which never
+            // slows, gains the whole fall.
+            DistanceTravelled = loop.EndDistance;
+            CurrentSpeed *= 1f - Mathf.Clamp01(loop.Definition.fallSpeedLoss);
+            lateralVelocity = 0f;
+            dashTimeLeft = 0f;
+            SetState(ShipState.Falling);
+            LoopFailed?.Invoke();
+        }
+
+        void LandFromLoop()
+        {
+            loop = null;
+            fallDistance = 0f;
+            SetState(ShipState.Grounded);
+            Landed?.Invoke();
         }
 
         void TakeOff()
@@ -448,9 +544,22 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void ApplyPose(float dt)
         {
-            track.GetPose(splineT, lateralOffset, out Vector3 position, out Quaternion rotation);
-            // The lift is along the track's up, so it survives roll (loops, tubes).
-            if (height > 0f) position += rotation * (Vector3.up * height);
+            Vector3 position;
+            Quaternion rotation;
+            if (State == ShipState.Falling)
+            {
+                // Off the track: a straight drop from the top of the loop onto
+                // its exit, rolling upright on the way down.
+                float f = Mathf.Clamp01(fallDistance / fallHeight);
+                position = Vector3.Lerp(fallTopPosition, fallExitPosition, f);
+                rotation = Quaternion.Slerp(fallTopRotation, fallExitRotation, f);
+            }
+            else
+            {
+                track.GetPoseAtDistance(DistanceTravelled, lateralOffset, out position, out rotation);
+                // The lift is along the track's up, so it survives roll (loops, tubes).
+                if (height > 0f) position += rotation * (Vector3.up * height);
+            }
             transform.SetPositionAndRotation(position, rotation);
 
             // Bank into the movement: roll opposite to lateral velocity. A dash

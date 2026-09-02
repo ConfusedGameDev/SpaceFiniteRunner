@@ -228,6 +228,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         float featureCursor;
         FeatureSpawnEntry pendingFeature; // drawn for featureCursor, waiting for its footprint to settle
         bool pendingClaimed;
+        TrackSection pendingSection;      // the insert a pending loop already routed the track through
         readonly List<(float distance, GameObject go)> spawned = new();
         readonly List<(float start, float end)> claims = new(); // feature footprints pads keep off
         Dictionary<PadSpawnEntry, Material> entryMaterials;
@@ -297,7 +298,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             ClearChildren(markersParent);
             if (decorator != null) decorator.Clear();
 
-            // The spline is only ever touched through the TrackManager.
+            // The spline is only ever touched through the TrackManager (this
+            // also drops last run's inserted sections).
             track.ClearKnots();
             heading = 0f;
             endPosition = float3.zero;
@@ -312,6 +314,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             featureCursor = rng.NextFloat(featureSpacing.x, featureSpacing.y);
             pendingFeature = null;
             pendingClaimed = false;
+            pendingSection = null;
 
             if (endless)
             {
@@ -341,8 +344,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 track.Recalculate();
             }
 
-            float settled = track.Length - SettleMargin;
-            PlaceFeaturesUpTo(settled); // first: features claim footprints the pads then avoid
+            PlaceFeaturesUpTo(track.Length - SettleMargin); // first: features claim footprints the pads then avoid
+            float settled = track.Length - SettleMargin;    // re-read: a loop just inserted track
             PlacePadsUpTo(settled);
             if (decorator != null) decorator.DecorateUpTo(settled);
         }
@@ -365,11 +368,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         /// <summary>
         /// One weighted draw from the feature table per step. A feature only
-        /// lands once its whole footprint is settled — but it claims that
-        /// footprint the moment its spot is decided, so the pads placed while
-        /// it waits keep off it. The cursor then jumps past the footprint, the
-        /// exclusion and the larger of the spacing roll and the entry's own
-        /// minimum.
+        /// lands once the SPLINE its footprint covers is settled — but it
+        /// claims that footprint the moment its spot is decided, so the pads
+        /// placed while it waits keep off it, and a feature that inserts track
+        /// (a loop) registers its section right then too, before any pad or
+        /// road is placed beyond it: an insert under already-placed objects
+        /// would shift their distances. The cursor then jumps past the
+        /// footprint, the exclusion and the larger of the spacing roll and the
+        /// entry's own minimum.
         /// </summary>
         void PlaceFeaturesUpTo(float limit)
         {
@@ -390,15 +396,19 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (!pendingClaimed)
                 {
                     claims.Add((featureCursor, featureCursor + footprint));
+                    pendingSection = pendingFeature.Runtime.CreateSection(track, featureCursor);
+                    if (pendingSection != null) track.AddSection(pendingSection);
                     pendingClaimed = true;
+                    limit += pendingSection != null ? pendingSection.Length : 0f; // the settled stretch grew with the insert
                 }
-                if (featureCursor + footprint > limit) return; // wait for the next stream
+                if (featureCursor + pendingFeature.Runtime.SplineExtent > limit) return; // wait for the next stream
 
-                CreateFeature(featureCursor, pendingFeature);
+                CreateFeature(featureCursor, pendingFeature, pendingSection);
                 featureCursor += footprint + pendingFeature.Runtime.ExclusionAhead
                                + Mathf.Max(rng.NextFloat(featureSpacing.x, featureSpacing.y), pendingFeature.minSpacing);
                 pendingFeature = null;
                 pendingClaimed = false;
+                pendingSection = null;
             }
         }
 
@@ -581,11 +591,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return mat;
         }
 
-        void CreateFeature(float distance, FeatureSpawnEntry entry)
+        void CreateFeature(float distance, FeatureSpawnEntry entry, TrackSection section)
         {
             switch (entry.Runtime)
             {
                 case JumpDefinition jump: CreateJump(distance, entry, jump); break;
+                case LoopDefinition loop when section is LoopSection loopSection: CreateLoop(distance, entry, loop, loopSection); break;
                 default:
                     Debug.LogWarning($"TrackGenerator: no builder for feature definition {entry.Runtime.GetType().Name}.", this);
                     break;
@@ -655,6 +666,67 @@ namespace ConfusedGameDev.FiniteRunner.Track
             var ramp = go.AddComponent<JumpRamp>();
             float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost : 15f;
             ramp.Configure(def, distance, lateral, rampHalf, baseBoost * entry.multiplier);
+            spawned.Add((distance, go));
+        }
+
+        /// <summary>
+        /// A loop: the LoopFeature carrying the section (already inserted at
+        /// decision time), the entry speed fixed for this distance by the
+        /// GameSettings rule, and a gate at the mouth — a portal frame across
+        /// the whole track (two posts and a crossbar, or the entry's unit
+        /// prefab scaled to the radius) the ship's speed recolours. The road
+        /// round the loop needs nothing here: the decorator stamps it chord by
+        /// chord off the section's poses like any stretch of track.
+        /// </summary>
+        void CreateLoop(float distance, FeatureSpawnEntry entry, LoopDefinition def, LoopSection section)
+        {
+            track.GetPoseAtDistance(distance, 0f, out Vector3 pos, out Quaternion rot);
+            var go = new GameObject($"{entry.name}{def.displayName}Loop_{distance:00000}");
+            go.transform.SetParent(padsParent, false);
+            go.transform.SetPositionAndRotation(pos, rot);
+
+            var loop = go.AddComponent<LoopFeature>();
+            float required = gameManager != null ? gameManager.LoopRequiredSpeed(distance) : 0f;
+            loop.Configure(def, section, required);
+
+            if (entry.prefab != null)
+            {
+                var visual = Instantiate(entry.prefab, go.transform);
+                visual.transform.localPosition = Vector3.zero;
+                visual.transform.localRotation = Quaternion.identity;
+                visual.transform.localScale = Vector3.one * def.radius;
+                foreach (var c in visual.GetComponentsInChildren<Collider>()) DestroyComponent(c);
+                foreach (var r in visual.GetComponentsInChildren<Renderer>()) loop.AddGateRenderer(r);
+            }
+            else
+            {
+                Material mat = FeatureEntryMaterial(entry);
+                float half = track.HalfWidth + 4f;
+                const float postWidth = 3f;
+                float postHeight = Mathf.Clamp(track.HalfWidth * 0.6f, 20f, 60f);
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    var post = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    post.name = side < 0f ? "PostL" : "PostR";
+                    post.transform.SetParent(go.transform, false);
+                    post.transform.localPosition = new Vector3(side * half, postHeight * 0.5f - 1f, 0f);
+                    post.transform.localScale = new Vector3(postWidth, postHeight, postWidth);
+                    DestroyComponent(post.GetComponent<Collider>());
+                    var r = post.GetComponent<Renderer>();
+                    if (mat != null) r.sharedMaterial = mat;
+                    loop.AddGateRenderer(r);
+                }
+                var bar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                bar.name = "Crossbar";
+                bar.transform.SetParent(go.transform, false);
+                bar.transform.localPosition = new Vector3(0f, postHeight - 1f, 0f);
+                bar.transform.localScale = new Vector3(half * 2f + postWidth, postWidth, postWidth);
+                DestroyComponent(bar.GetComponent<Collider>());
+                var barRenderer = bar.GetComponent<Renderer>();
+                if (mat != null) barRenderer.sharedMaterial = mat;
+                loop.AddGateRenderer(barRenderer);
+            }
+            loop.SetGateColor(false);
             spawned.Add((distance, go));
         }
 
