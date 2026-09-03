@@ -47,6 +47,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             SceneHierarchy.Adopt(go, SceneHierarchy.Player(go.scene)); // world pose kept: the header sits at the origin
             var car = go.GetComponent<CarController>();
 
+            // The player's config is a per-spawn CLONE with the Store's bought
+            // levels multiplied in — the asset stays the shared truth for the
+            // police, the traffic and the debug pages (which edit the asset
+            // and so never see this clone). Assigned before CarController.Start
+            // bakes the mass, and before the rolling start below reads
+            // spawnSpeedKmh off it.
+            if (car != null && config != null)
+            {
+                config = CarUpgradeApplier.Clone(config);
+                car.config = config;
+            }
+
             // Blasts reach the player through the same IDamageable interface
             // as every NPC car and barrel — this is the player's half of it.
             if (go.GetComponent<PlayerDamageReceiver>() == null)

@@ -86,7 +86,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         public void Init(ShipMotor target)
         {
+            if (this.target != null) this.target.PadImpulse -= OnShipImpulse;
             this.target = target;
+            if (target != null) target.PadImpulse += OnShipImpulse;
             track = FindFirstObjectByType<TrackManager>();
 
             if (definition == null)
@@ -128,6 +130,30 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             warned = false;
             PatrolNumber = 1;
             ApplyPose();
+        }
+
+        void OnDestroy()
+        {
+            if (target != null) target.PadImpulse -= OnShipImpulse;
+        }
+
+        /// <summary>
+        /// Boost share: every speed-up the ship collects (orbs, ramp takeoffs —
+        /// anything through <see cref="ShipMotor.AddSpeedImpulse"/>) hands the
+        /// patrol <see cref="PatrolDefinition.boostShare"/> of the ship's ACTUAL
+        /// gain at once. Without it a boost opened a gap the rubber band only
+        /// closed at catch-up accel, so a few orbs left the patrol for dead;
+        /// with it the patrol reacts in the same frame and only the remaining
+        /// share is breathing room. Brakes are the player's problem alone —
+        /// sharing them would make brake pads harmless. The floor is left
+        /// untouched: the share is speed, not a new minimum, so a coasting ship
+        /// still gets the ordinary rubber band rather than a boosted floor.
+        /// </summary>
+        void OnShipImpulse(float rawMagnitude)
+        {
+            if (rawMagnitude <= 0f || runtimeDef == null || HasCaught) return;
+            float gain = target.Definition != null ? target.Definition.ScalePadEffect(rawMagnitude) : rawMagnitude;
+            currentSpeed += gain * runtimeDef.boostShare;
         }
 
         void Update()

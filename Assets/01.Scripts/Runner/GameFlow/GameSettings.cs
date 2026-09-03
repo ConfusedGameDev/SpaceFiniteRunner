@@ -17,6 +17,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     [CreateAssetMenu(fileName = "GameSettings", menuName = "FiniteRunner/Game Settings")]
     public class GameSettings : ScriptableObject
     {
+        // --------------------------------------------------------------- flow
+        [TitleGroup("Flow")]
+        [Tooltip("Open the pre-run point-allocation screen (TuningScreen) instead of flying straight on the Store's bought upgrades. Off in the shipping flow: the Store between missions owns the ship's stats, and the runner is entered mid-mission from the city with no pause for a setup panel. On, the screen applies the store levels on top of its points.")]
+        public bool useTuningScreen = false;
+
         // ---------------------------------------------------------------- win
         [TitleGroup("Win condition")]
         [Tooltip("Light Speed — the speed that wins the run, in km/h.")]
@@ -178,22 +183,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public Color dashMeterColor = new(0.35f, 0.9f, 1f);
 
         [ToggleGroup("dashEnabled"), Title("Encouragement")]
-        [Tooltip("Seconds the meter may sit full and unused before the narrator nags again.")]
+        [Tooltip("Seconds the meter may sit full and unused before the on-screen hint comes back.")]
         [PropertyRange(2f, 60f), SuffixLabel("s", true)]
         public float dashEncourageAfterSeconds = 10f;
-
-        [ToggleGroup("dashEnabled"), MultiLineProperty(2), LabelText("First-full line")]
-        public string dashFirstFullMessage = "Side boosters charged! Double-tap the bumpers to dash — thread the orbs, dodge the pads!";
-
-        [ToggleGroup("dashEnabled"), MultiLineProperty(2), LabelText("Reminder line")]
-        public string dashReminderMessage = "Those side boosters won't fire themselves — double-tap and DASH!";
 
         [ToggleGroup("dashEnabled")]
         [Tooltip("Caption of the pulsing on-screen hint between the bumper glyphs / key labels.")]
         public string dashHintText = "DOUBLE-TAP TO DASH";
-
-        [ToggleGroup("dashEnabled")]
-        public Color dashMessageColor = new(1f, 0.85f, 0.4f);
 
         // ------------------------------------------------------- floating text
         [TitleGroup("Floating text offsets")]
@@ -213,12 +209,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Orb line")]
         public string purpleOrbMessage = "A purple charge! The engines are SCREAMING — hold on to something!";
-
-        [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Win line")]
-        public string winMessage = "LIGHT SPEED! Not even the whole patrol fleet can touch us now!";
-
-        [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Lose line")]
-        public string loseMessage = "Gotcha, hotshot. Party's over — powering you down.";
 
         [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Patrol inbound line")]
         [Tooltip("Spoken by the patrol when a fresh one cuts in (only while 'Show patrol alert' is on). {0} = the patrol's number.")]

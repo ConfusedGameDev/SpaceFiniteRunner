@@ -23,8 +23,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         public int Index => index;
 
+        /// <summary>Right-edge space the value zone claims — screens that place the column pre-measure rows with it.</summary>
+        public const float RightReserve = ValueRightMargin + ValueWidth;
+
         // "< OPTION >" value zone, measured from the right edge — the label stops here.
-        public override float ReservedRightWidth => ValueRightMargin + ValueWidth;
+        public override float ReservedRightWidth => RightReserve;
 
         public override void SetWidth(float width)
         {

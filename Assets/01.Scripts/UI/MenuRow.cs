@@ -18,6 +18,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
     {
         protected const float LabelInset = 34f;
 
+        /// <summary>Both label insets — what a plate spends on padding before its label and widgets (for pre-measuring a column).</summary>
+        public const float LabelInsetWidth = LabelInset * 2f;
+
         /// <summary>Point size of every row label — screens measure label widths with it.</summary>
         public const int LabelFontSize = 34;
 
@@ -37,6 +40,17 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         /// <summary>Fade written by the screen's entrance animation; multiplied with the focus alpha.</summary>
         public float EntranceAlpha { get; set; } = 1f;
+
+        /// <summary>
+        /// False greys the row out — label dimmed, plate never lit — while it
+        /// stays focusable, so the player can still read WHY it is off (a
+        /// price the wallet can't cover). The base row keeps activating; a
+        /// screen that must refuse the press checks this itself.
+        /// </summary>
+        public bool Enabled { get; set; } = true;
+
+        /// <summary>Label colour of a disabled row.</summary>
+        protected Color DisabledTint => new(theme.TextDim.r, theme.TextDim.g, theme.TextDim.b, theme.TextDim.a * 0.55f);
 
         public RectTransform Rect => rect;
 
@@ -127,8 +141,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
             rect.localScale = Vector3.one * Mathf.Lerp(1f, theme.FocusScale, focus);
             group.alpha = EntranceAlpha * Mathf.Lerp(theme.UnfocusedAlpha, 1f, focus);
-            if (plate != null) plate.color = Color.Lerp(theme.PlateIdle, theme.PlateFocused, focus);
-            if (label != null) label.color = Color.Lerp(theme.TextDim, theme.TextPrimary, focus);
+            if (plate != null) plate.color = Enabled ? Color.Lerp(theme.PlateIdle, theme.PlateFocused, focus) : theme.PlateIdle;
+            if (label != null) label.color = Enabled ? Color.Lerp(theme.TextDim, theme.TextPrimary, focus) : DisabledTint;
         }
 
         public void OnPointerEnter(PointerEventData eventData) => screen?.FocusRow(this);
