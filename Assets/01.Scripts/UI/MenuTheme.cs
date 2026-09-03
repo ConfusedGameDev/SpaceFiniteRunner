@@ -263,6 +263,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [PropertyRange(0f, 2f), SuffixLabel("s", true)]
         [SerializeField] float loadingAudioFade = 0.4f;
 
+        [TitleGroup("Audio")]
+        [Tooltip("Seconds a world-freezing cinema takes to fade the in-game buses out as it opens, and back in once it is done or skipped. The clip's own sound rides the Cinema bus, untouched. Unscaled time.")]
+        [PropertyRange(0f, 2f), SuffixLabel("s", true)]
+        [SerializeField] float cinemaAudioFade = 0.6f;
+
         // ------------------------------------------------------------ haptics
         [TitleGroup("Haptics")]
         [PropertyRange(0f, 1f)]
@@ -361,6 +366,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         public float PauseAudioFade => pauseAudioFade;
         public AudioClip LoadingMusicClip => loadingMusicClip;
         public float LoadingAudioFade => loadingAudioFade;
+        public float CinemaAudioFade => cinemaAudioFade;
 
         public float MoveRumble => moveRumble;
         public float ConfirmRumble => confirmRumble;

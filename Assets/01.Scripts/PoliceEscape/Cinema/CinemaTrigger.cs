@@ -11,21 +11,24 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
     /// clip, its display format and the duration are authored on the trigger
     /// itself (the duration auto-fills from the clip's length and stays
     /// editable, with a Fetch Duration button to re-read it), and playback
-    /// goes through the scene's <see cref="CinemaSystem"/>, so the world
-    /// freezes and the long-press skip works exactly as for a level step.
-    /// The same player rule as the dialogue trigger (the city car's
-    /// CarInput, the runner ship's ShipMotor) keeps AI cars from tripping it.
+    /// goes through the scene's <see cref="CinemaSystem"/>, so the freeze
+    /// (<see cref="pauseGame"/>, on by default — off lets the player keep
+    /// driving under the picture) and the long-press skip work exactly as
+    /// for a level step. The same player rule as the dialogue trigger (the
+    /// city car's CarInput, the runner ship's ShipMotor) keeps AI cars from
+    /// tripping it.
     ///
     /// With <see cref="oneShot"/> on the object destroys itself as it fires.
     /// Otherwise it re-arms after <see cref="cooldownSeconds"/>, and the
-    /// cooldown starts counting WHEN THE CINEMA CLEARS — after a skip or the
-    /// duration running out — not when it fired: the freeze takes an
-    /// arbitrary real time, and a cooldown that ran under it would be half
-    /// spent before the player could move. It counts in scaled time, like
-    /// the dialogue trigger's, so a pause does not eat it. A trigger cannot
-    /// fire while any cinema is up (nothing moves under the freeze anyway),
-    /// and if its cinema is pre-empted by another (a level step's) the
-    /// dropped callback simply leaves it armed. The collider is forced to a
+    /// cooldown starts counting WHEN THE CINEMA CLEARS — after a skip, the
+    /// duration running out, or another cinema taking the screen — not when
+    /// it fired: the freeze takes an arbitrary real time, and a cooldown
+    /// that ran under it would be half spent before the player could move.
+    /// It counts in scaled time, like the dialogue trigger's, so a pause
+    /// does not eat it. A ready trigger fires even while another cinema is
+    /// up (the system ends that one at once and plays this — one cinema at
+    /// a time, the newest wins), and a pre-empted cinema calls back the
+    /// moment it is displaced, so the cooldown starts then. The collider is forced to a
     /// trigger so a misconfigured one can never block the car; in play the
     /// <see cref="Debugging.DialogueTriggerVisualizer"/> fills the volume
     /// (blue, against the dialogue triggers' orange) on the same debug
@@ -47,6 +50,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
         [PropertyRange(0.5f, 300f), SuffixLabel("s", true)]
         [SerializeField] float duration = 5f;
 
+        [Tooltip("Freeze the world under the video (the default). Off: the game keeps running while it plays — a pause menu opened over it pauses the clip too.")]
+        [SerializeField] bool pauseGame = true;
+
         [TitleGroup("Re-trigger")]
         [Tooltip("Destroy this trigger after it fires once.")]
         [SerializeField] bool oneShot;
@@ -64,8 +70,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
         /// <summary>Every enabled trigger in the scene — what the debug overlay draws.</summary>
         public static IReadOnlyList<CinemaTrigger> Active => active;
 
-        /// <summary>True when nothing is playing and the cooldown has passed — the next entry will fire.</summary>
-        public bool IsReady => !playing && !CinemaSystem.IsPlaying && Time.time >= readyTime;
+        /// <summary>True when this trigger's own cinema is not up and the cooldown has passed — the next entry will fire (displacing any other cinema).</summary>
+        public bool IsReady => !playing && Time.time >= readyTime;
 
         /// <summary>Copies the clip's length into the duration — also run automatically whenever the clip field changes.</summary>
         [TitleGroup("Cinema")]
@@ -105,11 +111,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
             if (cinema == null) return; // a disabled system means cinemas are switched off
 
             playing = true;
-            cinema.Play(clip, format, duration, OnCinemaCleared);
+            cinema.Play(clip, format, duration, pauseGame, OnCinemaCleared);
             if (oneShot) Destroy(gameObject);
         }
 
-        // The cooldown starts here — when the screen is back — never at fire time.
+        // The cooldown starts here — when the screen is back (or handed to
+        // another cinema) — never at fire time.
         void OnCinemaCleared()
         {
             playing = false;

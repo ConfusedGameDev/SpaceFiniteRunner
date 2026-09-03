@@ -149,12 +149,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public virtual bool IsChallenge => false;
 
         // Cinema: an optional video played the moment the step activates,
-        // before its briefing line, with the world frozen under it. The
-        // duration is authoritative — a shorter one cuts the clip, a longer
-        // one holds its last frame — so it is auto-filled from the clip but
-        // stays a plain editable number.
+        // before its briefing line, with the world frozen under it by
+        // default (cinemaPausesGame off lets the player keep driving under
+        // the picture). The duration is authoritative — a shorter one cuts
+        // the clip, a longer one holds its last frame — so it is auto-filled
+        // from the clip but stays a plain editable number.
         [ToggleGroup(nameof(hasCinema), "Cinema")]
-        [Tooltip("Play a video when this step becomes active. The world freezes under it; a long press of Enter / A skips it.")]
+        [Tooltip("Play a video when this step becomes active. A long press of Enter / A skips it.")]
         public bool hasCinema;
 
         [ToggleGroup(nameof(hasCinema))]
@@ -171,6 +172,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Tooltip("How long the cinema stays up. Auto-filled from the clip; shorter cuts the clip, longer holds its last frame.")]
         [PropertyRange(0.5f, 300f), SuffixLabel("s", true)]
         public float cinemaSeconds = 5f;
+
+        [ToggleGroup(nameof(hasCinema))]
+        [Tooltip("Freeze the world under the video (the default). Off: the game keeps running while it plays, and the step is live from the moment it activates.")]
+        [LabelText("Pause Game")]
+        public bool cinemaPausesGame = true;
 
         /// <summary>Copies the clip's length into the duration — also run automatically whenever the clip field changes.</summary>
         [ToggleGroup(nameof(hasCinema))]

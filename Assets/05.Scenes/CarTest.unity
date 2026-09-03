@@ -326,6 +326,7 @@ MonoBehaviour:
   clip: {fileID: 32900000, guid: 41423b9585cfdc84eab03cefd3520853, type: 3}
   format: RearMirror
   duration: 52.283333
+  pauseGame: 1
   oneShot: 0
   cooldownSeconds: 5
 --- !u!65 &209732338
