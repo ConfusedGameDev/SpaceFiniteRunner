@@ -44,6 +44,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         DashPromptController dashPrompt;
         OrbitCameraRig cameraRig;          // null when GameSettings has no camera asset
         CameraMode modeBeforeJump;         // the view a jump forced to Far hands back on landing
+        SpeedLines speedLines;             // null when the speed lines are off on GameSettings
 
         /// <summary>How a run ended — typed, so the save record never has to match a result label.</summary>
         enum RunOutcome { Escaped, Caught, Stalled, TimedOut }
@@ -151,6 +152,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // tuned before play, and switching the weather off has to park it.
             RainSystem.Apply(settings.rainEnabled, settings.rainSettings);
 
+            // Speed lines: the same Apply contract as the rain (a hand-placed
+            // driver wins). The driver cannot see the camera rig or the ship
+            // (FX does not reference Cameras), so it takes the ship root as its
+            // focus, a km/h reader and Light Speed as the reference its speed
+            // band is a fraction of; Update pushes the camera mode each frame.
+            speedLines = SpeedLines.Apply(settings.speedLinesEnabled, settings.speedLinesSettings);
+            if (speedLines != null && motor != null)
+                speedLines.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, settings.lightSpeedKmh);
+
             // After the patrol init, so the debug menu's patrol tab can bind
             // to the live definition clone.
             PauseMenu.Spawn(this, motor);
@@ -158,6 +168,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         void Update()
         {
+            // Before the RunOver return: the lines stay up through the death
+            // glitch, and the view can still be cycled on the result screen.
+            if (speedLines != null && cameraRig != null) speedLines.SetCameraMode((int)cameraRig.Mode);
+
             if (motor == null || RunOver) return;
 
             // One "escape attempted" per run, recorded on the first frame the
@@ -278,6 +292,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (rawMagnitude > 0f) HapticsSystem.Instance.Pulse(0.15f, 0.55f, 0.15f);
             else HapticsSystem.Instance.Pulse(0.65f, 0.2f, 0.25f);
+
+            // A burst of speed lines per boost, scaled by the orb's tier
+            // (rawMagnitude is tier × powerUpSpeedBoost; a ramp takeoff's
+            // boost comes through the same event and gets one too).
+            if (rawMagnitude > 0f && speedLines != null)
+                speedLines.Pulse(settings.boostPulseStrength * rawMagnitude / Mathf.Max(0.01f, settings.powerUpSpeedBoost),
+                                 settings.boostPulseSeconds);
         }
 
         // Dash feel: a short kick in the hands.
@@ -372,6 +393,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // onFinished) keeps the new run from being reset a second time.
             RpgMessageSystem.Instance.ClearMessages();
             if (dashPrompt != null) dashPrompt.ResetForRun();
+            if (speedLines != null) speedLines.ClearPulse(); // the speed term follows the relaunch on its own
 
             ResultLabel = null;
             HasWon = false;

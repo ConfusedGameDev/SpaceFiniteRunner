@@ -48,6 +48,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DebugTabDistanceFog,
         FogIntensity, FogStart, FogEnd, FogDensity, FogSkyAmount, FogHeightFalloff,
         FarGlitchStart, FarGlitchStrength, FarGlitchRate,
+        DebugTabSpeedLines,
+        SpeedLinesIntensity, SpeedLinesStart, SpeedLinesFull, SpeedLinesDensity, SpeedLinesWidth,
+        SpeedLinesInnerMax, SpeedLinesInnerMin, SpeedLinesFlicker, SpeedLinesResponse,
         DebugTabPoliceFleet, DebugTabPoliceChase,
         PolicePatrolCount, PoliceSpawnMin, PoliceSpawnMax, PoliceDespawn,
         PoliceDetection, PoliceLoseSight, PoliceSearchTime,
@@ -429,6 +432,27 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Fog stats")]
         [SerializeField] LocalizedString farGlitchRate = new("GLITCH RATE", "FRECUENCIA DEL GLITCH", "グリッチの頻度", "FRÉQUENCE DU GLITCH");
 
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString debugTabSpeedLines = new("DEBUG — SPEED LINES", "DEPURACIÓN — LÍNEAS DE VELOCIDAD", "デバッグ — 集中線", "DÉBOGAGE — LIGNES DE VITESSE");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesIntensity = new("LINES INTENSITY", "INTENSIDAD DE LÍNEAS", "集中線の強さ", "INTENSITÉ DES LIGNES");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesStart = new("START SPEED", "VELOCIDAD DE INICIO", "開始速度", "VITESSE DE DÉBUT");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesFull = new("FULL SPEED", "VELOCIDAD PLENA", "最大速度", "VITESSE PLEINE");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesDensity = new("LINE DENSITY", "DENSIDAD DE LÍNEAS", "線の密度", "DENSITÉ DES LIGNES");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesWidth = new("LINE WIDTH", "GROSOR DE LÍNEA", "線の太さ", "LARGEUR DES LIGNES");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesInnerMax = new("CLEAR RADIUS (SLOW)", "RADIO LIBRE (LENTO)", "中央の空き（低速）", "RAYON LIBRE (LENT)");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesInnerMin = new("CLEAR RADIUS (FAST)", "RADIO LIBRE (RÁPIDO)", "中央の空き（高速）", "RAYON LIBRE (RAPIDE)");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesFlicker = new("FLICKER RATE", "FRECUENCIA DE PARPADEO", "ちらつきの頻度", "FRÉQUENCE DE SCINTILLEMENT");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesResponse = new("RESPONSE", "RESPUESTA", "反応速度", "RÉACTIVITÉ");
+
         [TitleGroup("City police stats")]
         [SerializeField] LocalizedString debugTabPoliceFleet = new("DEBUG — POLICE FLEET", "DEPURACIÓN — FLOTA POLICIAL", "デバッグ — 警察の台数", "DÉBOGAGE — FLOTTE DE POLICE");
         [TitleGroup("City police stats")]
@@ -789,6 +813,16 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.FarGlitchStart => farGlitchStart,
             MenuTextId.FarGlitchStrength => farGlitchStrength,
             MenuTextId.FarGlitchRate => farGlitchRate,
+            MenuTextId.DebugTabSpeedLines => debugTabSpeedLines,
+            MenuTextId.SpeedLinesIntensity => speedLinesIntensity,
+            MenuTextId.SpeedLinesStart => speedLinesStart,
+            MenuTextId.SpeedLinesFull => speedLinesFull,
+            MenuTextId.SpeedLinesDensity => speedLinesDensity,
+            MenuTextId.SpeedLinesWidth => speedLinesWidth,
+            MenuTextId.SpeedLinesInnerMax => speedLinesInnerMax,
+            MenuTextId.SpeedLinesInnerMin => speedLinesInnerMin,
+            MenuTextId.SpeedLinesFlicker => speedLinesFlicker,
+            MenuTextId.SpeedLinesResponse => speedLinesResponse,
             MenuTextId.DebugTabPoliceFleet => debugTabPoliceFleet,
             MenuTextId.DebugTabPoliceChase => debugTabPoliceChase,
             MenuTextId.PolicePatrolCount => policePatrolCount,

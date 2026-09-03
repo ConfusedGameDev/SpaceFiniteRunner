@@ -231,6 +231,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
+            SpeedLinesDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty(); // recorded stats reach the disk at the same commit points
             Blip(theme.BackClip);
         }
@@ -314,6 +315,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
+            SpeedLinesDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty();
         }
 
@@ -455,9 +457,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             RainSettings rain = RainDebugPage.Discover();
             // Same for the distance fog: any scene with a DistanceFog object.
             DistanceFogSettings fog = DistanceFogDebugPage.Discover();
+            // And the speed lines: any scene with a SpeedLines driver.
+            SpeedLinesSettings lines = SpeedLinesDebugPage.Discover();
 
             int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0)
-                         + (patrolReady ? 1 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0) + (fog != null ? 1 : 0);
+                         + (patrolReady ? 1 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0) + (fog != null ? 1 : 0)
+                         + (lines != null ? 1 : 0);
             if (tabCount == 0) return;
 
             debugMenu = new DebugMenu();
@@ -506,6 +511,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 debugMenu.AddTab(RainDebugPage.Build(panelRect, theme, rain, debugRefreshers, tab++, tabCount));
             if (fog != null)
                 debugMenu.AddTab(DistanceFogDebugPage.Build(panelRect, theme, fog, debugRefreshers, tab++, tabCount));
+            if (lines != null)
+                debugMenu.AddTab(SpeedLinesDebugPage.Build(panelRect, theme, lines, debugRefreshers, tab++, tabCount));
         }
 
         // The debug sliders saved their values into the TrackDebugSettings
@@ -520,6 +527,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
+            SpeedLinesDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty();
 
             Time.timeScale = 1f;

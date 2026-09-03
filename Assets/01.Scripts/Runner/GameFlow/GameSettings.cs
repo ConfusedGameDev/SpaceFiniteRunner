@@ -249,6 +249,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Override asset pushed onto the scene's RainSystem on boot. Empty = leave that system with the asset it was authored with (the shipped FiniteRunner_Rain from Resources).")]
         public RainSettings rainSettings;
 
+        // -------------------------------------------------------- speed lines
+        [ToggleGroup("speedLinesEnabled", "Speed lines")]
+        [Tooltip("Manga speed lines over the picture as the ship nears Light Speed. The look and the speed band (a fraction of Light Speed) live on the asset below — this is only the on/off for this scene.")]
+        public bool speedLinesEnabled = true;
+
+        [ToggleGroup("speedLinesEnabled"), InlineEditor]
+        [Tooltip("Speed lines asset pushed onto the driver on boot. Empty = the shipped FiniteRunner_SpeedLines from Resources.")]
+        public SpeedLinesSettings speedLinesSettings;
+
+        [ToggleGroup("speedLinesEnabled")]
+        [Tooltip("Burst of lines on a green (1×) orb pickup; blue and purple scale it by their tier (2.5× / 10×, clamped to full). 0 = no burst.")]
+        [PropertyRange(0f, 1f)]
+        public float boostPulseStrength = 0.4f;
+
+        [ToggleGroup("speedLinesEnabled")]
+        [Tooltip("How long a boost burst takes to fade back to the speed-driven level.")]
+        [PropertyRange(0.05f, 2f), SuffixLabel("s", true)]
+        public float boostPulseSeconds = 0.6f;
+
         // --------------------------------------------------------- accessors
         /// <summary>How far behind the ship a fresh patrol drops in, in meters (band X).</summary>
         public float PatrolRedeployGap => patrolRedeployBand.x;
