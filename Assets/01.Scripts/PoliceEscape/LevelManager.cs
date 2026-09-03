@@ -1,7 +1,6 @@
 using System.Collections;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
-using ConfusedGameDev.FiniteRunner.PoliceEscape.Collectibles;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Stats;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
@@ -9,6 +8,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.HUD;
@@ -406,10 +406,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// <summary>
         /// A collectible was picked up: the same shape as <see cref="OnCarDied"/>
         /// — every live accepted Collect Objects challenge whose id matches
-        /// tallies it, and so does the current step when it is one.
+        /// tallies it, and so does the current step when it is one. Money is
+        /// the CollectibleManager's business — objectives count items, so a
+        /// coin never fills a "collect anything" step.
         /// </summary>
         void OnCollected(Collectible collectible)
         {
+            if (collectible.Kind == CollectibleKind.Money) return;
             if (briefOpen || cinemaOpen || Completed || resetting || timedOut) return;
             string id = collectible.Id;
 

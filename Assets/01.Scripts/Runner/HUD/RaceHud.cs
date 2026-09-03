@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
+using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
@@ -12,7 +13,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// The race HUD (uGUI): big speed readout that heats up as you approach
     /// Light Speed and pulses on pad hits, the Light Speed goal, a countdown
     /// bar (time is the limit, not distance), the win/lose result, and
-    /// floating "+boost" text spawned at the ship on every booster hit, plus
+    /// floating "+boost" text spawned at the ship on every booster hit (and a
+    /// gold "+$N" on every money pickup, off the CollectibleManager), plus
     /// one code-built line per runner objective / challenge under the goal
     /// ("JUMP 1/3  ×2"). It offers no retry of its own any more: a loss ends
     /// on the <see cref="GameOverScreen"/> and a win on the
@@ -59,6 +61,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [SerializeField] bool spawnBoostText = true;
         [SerializeField] Color boostTextColor = new(0.48f, 1f, 0.4f);
         [SerializeField, Min(0.05f)] float boostTextSize = 0.6f;
+        [Tooltip("Colour of the floating \"+$N\" popup on a money pickup (same lead and size as the boost text).")]
+        [SerializeField] Color moneyTextColor = new(1f, 0.85f, 0.3f);
 
         float currentPulse = 1f;
 
@@ -111,11 +115,23 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         void OnEnable()
         {
             if (motor != null) motor.PadImpulse += OnPadImpulse;
+            CollectibleManager.MoneyChanged += OnMoneyChanged;
         }
 
         void OnDisable()
         {
             if (motor != null) motor.PadImpulse -= OnPadImpulse;
+            CollectibleManager.MoneyChanged -= OnMoneyChanged;
+        }
+
+        // The money twin of the boost popup: "+$3" in gold ahead of the ship.
+        // A reset (delta 0) and a finished run show nothing.
+        void OnMoneyChanged(int total, int delta)
+        {
+            if (!spawnBoostText || delta <= 0 || gameManager == null || gameManager.RunOver) return;
+            FloatingTextSystem.Instance.DisplayText(
+                $"+${delta}", moneyTextColor, 1f,
+                gameManager.BoostTextLeadMeters, boostTextSize);
         }
 
         void OnPadImpulse(float magnitude)

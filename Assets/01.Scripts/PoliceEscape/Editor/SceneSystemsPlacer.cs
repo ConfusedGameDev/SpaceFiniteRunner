@@ -6,6 +6,8 @@ using ConfusedGameDev.FiniteRunner.PoliceEscape.Stats;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using ConfusedGameDev.FiniteRunner.Cameras;
+using ConfusedGameDev.FiniteRunner.Collectibles;
+using ConfusedGameDev.FiniteRunner.HUD;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -127,6 +129,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // The stats recorder feeds the player's saved profile (totaled
             // cars, top speed, jumps) off the live cars; nothing to wire.
             placed += Place<CityStatsRecorder>("StatsRecorder", parent, null);
+
+            // Pickups: the one recorder of collectibles (per-kind logic — money
+            // banks) and the top-right money counter, both shared with the
+            // runner scene and needing no wiring.
+            placed += Place<CollectibleManager>("CollectibleManager", parent, null);
+            placed += Place<MoneyHud>("MoneyHud", parent, null);
 
             // Menus poll the EventSystem for mouse input; MenuScreenFactory
             // creates one on demand, so pre-placing it is what keeps that

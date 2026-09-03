@@ -2,6 +2,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 
 using ConfusedGameDev.FiniteRunner.Cameras;
+using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Track;
@@ -42,7 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// follows this root (the pose above the flight line, never the bobbing
     /// visual) and the view cycle is locked while airborne.
     /// </summary>
-    public class ShipMotor : MonoBehaviour, ICameraTarget
+    public class ShipMotor : MonoBehaviour, ICameraTarget, ICollector
     {
         // Inline so the ship's sliders are reachable without leaving the scene —
         // in play mode this field holds the tuning screen's runtime clone, so

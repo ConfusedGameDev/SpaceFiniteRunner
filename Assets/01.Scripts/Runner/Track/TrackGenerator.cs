@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.Splines;
 
+using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Track.Features;
@@ -31,7 +32,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// (no pad spawns on it) and an exclusion ahead (no feature starts in it
     /// — for a jump, the longest arc it can throw the ship). Definitions are
     /// assets; in play the generator hands out runtime clones, which is what
-    /// the debug menu edits. Runtime-only: uses Object.Destroy for cleanup.
+    /// the debug menu edits. <b>Money collectibles</b> (the "Collectibles"
+    /// toggle group) stream between the orbs as short rows of coins on the
+    /// flight line — the shared <see cref="Collectible"/> component, so the
+    /// city's pickup prefabs drop straight in — placed after the pads so a
+    /// coin never sits on an orb, and off claimed ground like everything
+    /// else. Runtime-only: uses Object.Destroy for cleanup.
     /// </summary>
     public class TrackGenerator : MonoBehaviour
     {
@@ -190,6 +196,48 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Pad footprint (width, thickness, length). Also used to keep pads inside the track.")]
         [SerializeField] Vector3 padSize = new(10f, 0.5f, 20f);
 
+        // ------------------------------------------------------- Collectibles
+        [ToggleGroup("spawnCollectibles", "Collectibles")]
+        [Tooltip("Stream money pickups along the track: short rows of coins on the flight line, each worth a few dollars, banked at pickup.")]
+        [SerializeField] bool spawnCollectibles = true;
+
+        [ToggleGroup("spawnCollectibles")]
+        [Tooltip("Optional pickup prefab carrying a Collectible set to Money (the city's collectible prefabs work as they are). Empty = a code-built gold coin.")]
+        [SerializeField] GameObject collectiblePrefab;
+
+        [ToggleGroup("spawnCollectibles")]
+        [Tooltip("Metres of track between one row of coins and the next (min, max).")]
+        [MinMaxSlider(50f, 2000f, true), SuffixLabel("m", true)]
+        [SerializeField] Vector2 collectibleSpacing = new(250f, 500f);
+
+        [ToggleGroup("spawnCollectibles")]
+        [Tooltip("Coins per row (min, max), all at one lateral.")]
+        [MinMaxSlider(1, 10, true)]
+        [SerializeField] Vector2Int collectibleGroupSize = new(1, 5);
+
+        [ToggleGroup("spawnCollectibles")]
+        [Tooltip("Metres between the coins of a row.")]
+        [PropertyRange(5f, 40f), SuffixLabel("m", true)]
+        [SerializeField] float collectibleStep = 15f;
+
+        [ToggleGroup("spawnCollectibles")]
+        [Tooltip("Dollars a coin is worth (min, max), rolled per coin.")]
+        [MinMaxSlider(1, 100, true), SuffixLabel("$", true)]
+        [SerializeField] Vector2Int collectibleValue = new(1, 5);
+
+        [ToggleGroup("spawnCollectibles")]
+        [Tooltip("Trigger box of a coin (width, height, length). Long along the track: at Light Speed the ship covers ~36 m per physics step against a 12 m trigger box, so a short volume would be tunnelled.")]
+        [SerializeField] Vector3 collectibleTriggerSize = new(5f, 5f, 20f);
+
+        [ToggleGroup("spawnCollectibles")]
+        [Tooltip("Diameter of the code-built coin, metres.")]
+        [PropertyRange(0.5f, 5f), SuffixLabel("m", true)]
+        [SerializeField] float collectibleSize = 1.6f;
+
+        [ToggleGroup("spawnCollectibles")]
+        [Tooltip("Tint of the code-built coin (a recolored instance of the boost material).")]
+        [SerializeField] Color collectibleColor = new(1f, 0.8f, 0.2f);
+
         [Header("Features")]
         [Tooltip("Material of the code-built ramp slab and rails; each entry gets a recolored instance. Empty = the boost material.")]
         [SerializeField] Material featureMaterial;
@@ -225,14 +273,17 @@ namespace ConfusedGameDev.FiniteRunner.Track
         float heading;
         float3 endPosition;
         float padCursor;
+        float collectibleCursor;
         float featureCursor;
         FeatureSpawnEntry pendingFeature; // drawn for featureCursor, waiting for its footprint to settle
         bool pendingClaimed;
         TrackSection pendingSection;      // the insert a pending loop already routed the track through
         readonly List<(float distance, GameObject go)> spawned = new();
         readonly List<(float start, float end)> claims = new(); // feature footprints pads keep off
+        readonly List<float> padDistances = new();               // where pads landed — coins keep off them
         Dictionary<PadSpawnEntry, Material> entryMaterials;
         Dictionary<FeatureSpawnEntry, Material> featureMaterials;
+        Material collectibleMaterial;
         float[] lastProbabilities; // change-detection cache for the 100% rebalance
         float[] lastFeatureProbabilities;
 
@@ -294,6 +345,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             spawned.Clear();
             claims.Clear();
+            padDistances.Clear();
             ClearChildren(padsParent);
             ClearChildren(markersParent);
             if (decorator != null) decorator.Clear();
@@ -311,6 +363,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             track.Recalculate();
 
             padCursor = rng.NextFloat(120f, 200f);
+            collectibleCursor = rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
             featureCursor = rng.NextFloat(featureSpacing.x, featureSpacing.y);
             pendingFeature = null;
             pendingClaimed = false;
@@ -326,6 +379,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 track.Recalculate();
                 PlaceFeaturesUpTo(track.Length - 150f);
                 PlacePadsUpTo(track.Length - 150f);
+                PlaceCollectiblesUpTo(track.Length - 150f);
                 PlaceMarkers();
                 if (decorator != null) decorator.DecorateUpTo(track.Length);
             }
@@ -347,6 +401,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             PlaceFeaturesUpTo(track.Length - SettleMargin); // first: features claim footprints the pads then avoid
             float settled = track.Length - SettleMargin;    // re-read: a loop just inserted track
             PlacePadsUpTo(settled);
+            PlaceCollectiblesUpTo(settled); // after the pads: coins keep off where they landed
             if (decorator != null) decorator.DecorateUpTo(settled);
         }
 
@@ -455,6 +510,44 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
         }
 
+        /// <summary>
+        /// Rows of coins between the orbs: one lateral per row, coins a step
+        /// apart along the track, every coin skipped where a pad already sits
+        /// (within a pad length) or a feature claimed the ground.
+        /// </summary>
+        void PlaceCollectiblesUpTo(float limit)
+        {
+            if (!spawnCollectibles) return;
+            while (collectibleCursor < limit)
+            {
+                float claimEnd = ClaimEnd(collectibleCursor);
+                if (claimEnd >= 0f) { collectibleCursor = claimEnd; continue; }
+
+                int count = rng.NextInt(collectibleGroupSize.x, Mathf.Max(collectibleGroupSize.x, collectibleGroupSize.y) + 1);
+                track.GetLateralBand(collectibleCursor, out float bandMin, out float bandMax);
+                float margin = collectibleTriggerSize.x * 0.5f + 2f;
+                float lo = bandMin + margin;
+                float hi = bandMax - margin;
+                float lateral = hi > lo ? rng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f;
+
+                for (int i = 0; i < count; i++)
+                {
+                    float d = collectibleCursor + i * collectibleStep;
+                    if (d >= limit || ClaimEnd(d) >= 0f || NearPad(d)) continue;
+                    CreateCollectible(d, lateral);
+                }
+
+                collectibleCursor += count * collectibleStep + rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
+            }
+        }
+
+        bool NearPad(float distance)
+        {
+            foreach (float pad in padDistances)
+                if (Mathf.Abs(pad - distance) < padSize.z) return true;
+            return false;
+        }
+
         void CullBehind(float minDistance)
         {
             if (minDistance <= 0f) return;
@@ -466,6 +559,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
             for (int i = claims.Count - 1; i >= 0; i--)
                 if (claims[i].end < minDistance) claims.RemoveAt(i);
+            for (int i = padDistances.Count - 1; i >= 0; i--)
+                if (padDistances[i] < minDistance) padDistances.RemoveAt(i);
             if (decorator != null) decorator.CullBefore(minDistance);
         }
 
@@ -587,6 +682,21 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 entryMaterials.Add(entry, mat);
             }
             return mat;
+        }
+
+        // The code-built coin's gold: one recolored boost-material instance,
+        // play mode only for the same leak reason as the pad entries.
+        Material CollectibleMaterial()
+        {
+            if (!Application.isPlaying || boostMaterial == null) return boostMaterial;
+            if (collectibleMaterial == null)
+            {
+                collectibleMaterial = new Material(boostMaterial);
+                if (collectibleMaterial.HasProperty("_BaseColor")) collectibleMaterial.SetColor("_BaseColor", collectibleColor);
+                else collectibleMaterial.color = collectibleColor;
+                if (collectibleMaterial.HasProperty("_EmissionColor")) collectibleMaterial.SetColor("_EmissionColor", collectibleColor);
+            }
+            return collectibleMaterial;
         }
 
         Material FeatureEntryMaterial(FeatureSpawnEntry entry)
@@ -820,6 +930,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (def.speedDelta >= 0f) speedPad.SetDefinition(def, EffectiveBoost(entry), entry.color, entry.name);
             else speedPad.SetDefinition(def);
             spawned.Add((distance, pad));
+            padDistances.Add(distance);
 
             // Orbs are their own landmark; the gate-style sign only suits flat pads.
             if (!def.floatingOrb && padSignPrefab != null)
@@ -831,6 +942,66 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (mat != null) TrackDecorator.OverrideMaterials(sign, mat);
                 spawned.Add((distance, sign));
             }
+        }
+
+        /// <summary>
+        /// One money pickup on the flight line: the assigned prefab (its
+        /// Collectible must be set to Money) or a code-built coin — a flat
+        /// gold cylinder standing on the track, spun round the track's up by
+        /// the Collectible itself — under a root carrying the long trigger box.
+        /// </summary>
+        void CreateCollectible(float distance, float lateral)
+        {
+            track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
+            GameObject go;
+            Collectible collectible;
+
+            if (collectiblePrefab != null)
+            {
+                go = Instantiate(collectiblePrefab, pos, rot, padsParent);
+                collectible = go.GetComponent<Collectible>();
+                if (collectible == null)
+                {
+                    Debug.LogError($"TrackGenerator: collectible prefab '{collectiblePrefab.name}' carries no Collectible component.", collectiblePrefab);
+                    TrackDecorator.SafeDestroy(go);
+                    return;
+                }
+                if (go.GetComponent<Collider>() == null)
+                {
+                    var box = go.AddComponent<BoxCollider>();
+                    box.isTrigger = true;
+                    box.size = collectibleTriggerSize;
+                }
+            }
+            else
+            {
+                go = new GameObject();
+                go.transform.SetParent(padsParent, false);
+                go.transform.SetPositionAndRotation(pos, rot);
+
+                var coin = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                coin.name = "Mesh";
+                DestroyComponent(coin.GetComponent<Collider>()); // the trigger is on the root
+                coin.transform.SetParent(go.transform, false);
+                // A cylinder's axis is its local Y; laid on its side it faces
+                // the ship like a coin, and its local Z is then the track's up.
+                coin.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                coin.transform.localScale = new Vector3(collectibleSize, 0.04f, collectibleSize);
+                Material mat = CollectibleMaterial();
+                if (mat != null) coin.GetComponent<Renderer>().sharedMaterial = mat;
+
+                var box = go.AddComponent<BoxCollider>();
+                box.isTrigger = true;
+                box.size = collectibleTriggerSize;
+
+                collectible = go.AddComponent<Collectible>();
+                collectible.Configure("Money", CollectibleKind.Money, Collectible.SpinAxis.Z, coin.transform);
+            }
+
+            // NextInt's max is exclusive.
+            collectible.SetValue(rng.NextInt(collectibleValue.x, Mathf.Max(collectibleValue.x, collectibleValue.y) + 1));
+            go.name = $"Money_{distance:00000}";
+            spawned.Add((distance, go));
         }
 
         void PlaceMarkers()

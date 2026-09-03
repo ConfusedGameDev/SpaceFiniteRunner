@@ -1,4 +1,4 @@
-using ConfusedGameDev.FiniteRunner.PoliceEscape.Collectibles;
+using ConfusedGameDev.FiniteRunner.Collectibles;
 using UnityEditor;
 using UnityEngine;
 

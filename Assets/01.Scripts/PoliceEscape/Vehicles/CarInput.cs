@@ -1,3 +1,4 @@
+using ConfusedGameDev.FiniteRunner.Collectibles;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -30,7 +31,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     /// accelerate/brake, South handbrake, North respawn), polled straight
     /// off the new Input System like the runner's SteeringInput.
     /// </summary>
-    public class CarInput : MonoBehaviour, ICarInput
+    public class CarInput : MonoBehaviour, ICarInput, ICollector
     {
         public float Steer { get; private set; }
         public float Throttle { get; private set; }

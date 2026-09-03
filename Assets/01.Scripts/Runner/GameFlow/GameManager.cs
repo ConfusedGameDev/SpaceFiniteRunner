@@ -3,6 +3,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 
 using ConfusedGameDev.FiniteRunner.Cameras;
+using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.Haptics;
@@ -511,6 +512,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             runCounted = false;
             TimeRemaining = settings.timeLimitSeconds;
             ResetObjectives();
+            // This run's money counter goes back to $0; what was picked up is
+            // already banked in the profile.
+            CollectibleManager collectibles = CollectibleManager.Instance;
+            if (collectibles != null) collectibles.ResetRun();
             if (generator != null) generator.RegenerateForRun();
             motor.Paused = false; // EndRun froze the sim; the tuning screen re-pauses if present
             motor.Launch();
