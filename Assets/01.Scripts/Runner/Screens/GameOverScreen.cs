@@ -7,13 +7,16 @@ using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.Screens
 {
     /// <summary>
-    /// The shared death screen: GAME OVER — RETRY? YES / NO on the themed
-    /// menu framework, driven by two callbacks so each game decides what an
-    /// answer means. The city chase raises it once the glitch has filled and
-    /// held; the runner raises it when the patrol's parting line finishes.
-    /// It lives next to the PauseMenu rather than in either game's UI folder
-    /// for that reason — both scenes show the same screen.
-    /// YES replays, NO returns to the main menu; there is no Back out — the
+    /// The shared death screen on the themed menu framework, driven by two
+    /// callbacks so each game decides what an answer means. Two layouts: the
+    /// bare question (GAME OVER — RETRY? YES / NO), which the city chase
+    /// raises once the glitch has filled and held; and the retry panel with
+    /// a REASON line (GAME OVER — CAUGHT BY THE PATROL — RETRY / EXIT TO
+    /// MAIN MENU), which the runner raises the frame the run ends — no
+    /// parting line, no HUD text, the panel itself says why. It lives next
+    /// to the PauseMenu rather than in either game's UI folder because both
+    /// scenes show the same screen.
+    /// Retry replays, the other answer returns to the main menu; there is no Back out — the
     /// screen demands an answer, so Esc/B do nothing here. It freezes scaled
     /// time while it is up (which also keeps the pause menu and the city map
     /// from opening — both refuse to stack over a stopped clock) and animates
@@ -39,16 +42,26 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         AudioSource ui;
         System.Action onRetry;
         System.Action onGiveUp;
+        MenuTextId? reasonId; // the lose reason under the title; null = the bare RETRY? question
         float openedTime;
         bool decided;
 
-        /// <summary>Puts the screen up and freezes the game under it. The chosen callback runs with time already unfrozen.</summary>
+        /// <summary>Puts the bare RETRY? question up and freezes the game under it. The chosen callback runs with time already unfrozen.</summary>
         public static GameOverScreen Show(System.Action onRetry, System.Action onGiveUp)
+            => Show(null, onRetry, onGiveUp);
+
+        /// <summary>
+        /// The retry panel: GAME OVER, the localized <paramref name="reasonId"/>
+        /// line saying why the run ended, then RETRY / EXIT TO MAIN MENU. Null
+        /// reason = the bare question layout.
+        /// </summary>
+        public static GameOverScreen Show(MenuTextId? reasonId, System.Action onRetry, System.Action onGiveUp)
         {
             var over = FindFirstObjectByType<GameOverScreen>(FindObjectsInactive.Include);
             if (over == null) over = new GameObject("GameOverScreen").AddComponent<GameOverScreen>();
             over.enabled = true;
             over.decided = false;
+            over.reasonId = reasonId;
             over.onRetry = onRetry;
             over.onGiveUp = onGiveUp;
             over.theme = MenuTheme.Load();
@@ -106,10 +119,23 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             dimColor.a = 0.85f;
             dim.color = dimColor;
 
-            screen = MenuScreenFactory.BuildConfirm(panelRect, theme,
-                                                    MenuTextId.GameOver, MenuTextId.RetryPrompt,
-                                                    () => Decide(onRetry), () => Decide(onGiveUp));
-            screen.SetFocus(0); // retrying is the expected answer, not the dangerous one — focus starts on YES
+            if (reasonId.HasValue)
+            {
+                // The reason takes the question's slot; the rows name the
+                // answers outright, so no RETRY? line is needed above them.
+                screen = MenuScreen.Create("RetryPanel", panelRect, theme, 0f, 0f);
+                screen.SetTitle(MenuTextId.GameOver);
+                screen.AddLabel("Reason", new Vector2(0f, 66f), new Vector2(900f, 60f),
+                                reasonId.Value, 36, theme.Accent, theme.BodyFont,
+                                TextAnchor.MiddleCenter, theme.TitleLead);
+                screen.AddRow<MenuRow>(MenuTextId.Retry).Activated += () => Decide(onRetry);
+                screen.AddRow<MenuRow>(MenuTextId.ExitToMenu).Activated += () => Decide(onGiveUp);
+            }
+            else
+                screen = MenuScreenFactory.BuildConfirm(panelRect, theme,
+                                                        MenuTextId.GameOver, MenuTextId.RetryPrompt,
+                                                        () => Decide(onRetry), () => Decide(onGiveUp));
+            screen.SetFocus(0); // retrying is the expected answer, not the dangerous one — focus starts on it
 
             PromptStrip.Create(panelRect, theme, 56f)
                        .SetHints((PromptAction.Navigate, MenuTextId.HintMove),

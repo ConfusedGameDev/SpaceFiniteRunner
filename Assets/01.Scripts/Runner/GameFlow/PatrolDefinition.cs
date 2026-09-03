@@ -35,6 +35,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0.5f, 150f), SuffixLabel("m/s per s", true)]
         public float catchUpAccel = 16.7f;
 
+        [TitleGroup("Chase")]
+        [Tooltip("Share of every speed-up the ship collects that the patrol gets at once (0.7 = a +100 km/h orb also gives the patrol +70 km/h). " +
+                 "Measured on the ship's actual gain (after its weight), so boosts can't buy the breathing room the rubber band's catch-up accel would otherwise leave. Brakes are never shared. 0 = off.")]
+        [PropertyRange(0f, 1.5f), SuffixLabel("x ship boost", true)]
+        public float boostShare = 0.7f;
+
         [TitleGroup("Distances")]
         [Tooltip("Meters behind the start line the patrol launches from.")]
         [PropertyRange(0f, 1000f), SuffixLabel("m", true)]

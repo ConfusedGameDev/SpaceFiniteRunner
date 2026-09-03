@@ -14,6 +14,7 @@ using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.SaveData;
 using ConfusedGameDev.FiniteRunner.Screens;
+using ConfusedGameDev.FiniteRunner.Store;
 using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
@@ -1012,6 +1013,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             var glitch = GlitchController.Instance;
             if (glitch == null) return false;
             lastDamageReason = reason;
+
+            // Resistance: the Store's car upgrade divides every hit the player
+            // takes. This is the one entry point, so police shunts, blasts and
+            // splashes all pay the same discount.
+            amount /= Mathf.Max(0.01f, StoreUpgrades.Multiplier(StoreSectionKind.Car, UpgradeIds.CarResistance));
 
             // Never quieter than the hit is heavy: a barrel to the face should
             // white out the feed even if the collision pulse is tuned gentle.

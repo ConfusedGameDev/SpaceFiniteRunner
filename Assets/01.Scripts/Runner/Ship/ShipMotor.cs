@@ -619,13 +619,16 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             JumpDefinition def = ramp.Definition;
             airDefinition = def;
             airStart = ramp.EndDistance;
-            airLength = def.AirDistanceFor(CurrentSpeed);
+            // The ship's jump strength (the Store's upgrade rides the run's
+            // definition clone) scales the arc — arcA below derives from it,
+            // so length and height grow together — and the boost at the lip.
+            airLength = def.AirDistanceFor(CurrentSpeed) * definition.jumpStrength;
             arcH0 = def.LipHeight;
             arcSlope = def.Slope;
             arcA = (arcH0 + arcSlope * airLength) / Mathf.Max(airLength * airLength, 0.01f);
             height = arcH0;
             AirTime = 0f;
-            float boost = ramp.Boost;
+            float boost = ramp.Boost * definition.jumpStrength;
             ramp = null;
             blockingRamp = null;
 

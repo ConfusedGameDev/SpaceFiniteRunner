@@ -75,6 +75,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [PropertyRange(0.1f, 5f)]
         public float weight = 1f;
 
+        [TitleGroup("Jumps")]
+        [Tooltip("Scales a ramp takeoff: the boost at the lip AND the arc's length and height. 1 = the JumpDefinition as authored; the Store's Jump Strength upgrade multiplies this on the run's clone.")]
+        [PropertyRange(0.5f, 3f)]
+        public float jumpStrength = 1f;
+
         [TitleGroup("Hover (visual only)")]
         [Tooltip("How high the ship model floats above the flight line (visual only — pad detection is unaffected).")]
         [PropertyRange(0f, 10f), SuffixLabel("m", true)]

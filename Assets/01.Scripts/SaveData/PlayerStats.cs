@@ -227,6 +227,59 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
             PlayerProfileStore.MarkDirty();
         }
 
+        // -------------------------------------------------------------- store
+
+        /// <summary>Highest level a store upgrade can reach.</summary>
+        public const int MaxUpgradeLevel = 10;
+
+        /// <summary>Spendable money: lifetime earnings minus what the store took. Never below zero.</summary>
+        public static long Balance => System.Math.Max(0L, P.global.moneyEarned - P.global.moneySpent);
+
+        /// <summary>
+        /// Takes <paramref name="amount"/> out of the wallet if it is there;
+        /// false (and nothing spent) otherwise. The caller saves — a purchase
+        /// is a commit point, like a mission result.
+        /// </summary>
+        public static bool TrySpend(long amount)
+        {
+            if (amount <= 0 || amount > Balance) return false;
+            P.global.moneySpent += amount;
+            PlayerProfileStore.MarkDirty();
+            return true;
+        }
+
+        /// <summary>Bought level (0 = stock) of a store category on a model.</summary>
+        public static int UpgradeLevel(string modelId, string categoryId)
+        {
+            PlayerProfile.UpgradeEntry entry = FindUpgrade(modelId, categoryId);
+            return entry != null ? Mathf.Clamp(entry.level, 0, MaxUpgradeLevel) : 0;
+        }
+
+        /// <summary>Writes a store level (clamped to 0..<see cref="MaxUpgradeLevel"/>), creating the entry the first time.</summary>
+        public static void SetUpgradeLevel(string modelId, string categoryId, int level)
+        {
+            if (string.IsNullOrEmpty(modelId) || string.IsNullOrEmpty(categoryId)) return;
+            PlayerProfile.UpgradeEntry entry = FindUpgrade(modelId, categoryId);
+            if (entry == null)
+            {
+                entry = new PlayerProfile.UpgradeEntry { modelId = modelId, categoryId = categoryId };
+                P.upgrades.Add(entry);
+            }
+            entry.level = Mathf.Clamp(level, 0, MaxUpgradeLevel);
+            PlayerProfileStore.MarkDirty();
+        }
+
+        static PlayerProfile.UpgradeEntry FindUpgrade(string modelId, string categoryId)
+        {
+            List<PlayerProfile.UpgradeEntry> list = P.upgrades;
+            for (int i = 0; i < list.Count; i++)
+            {
+                PlayerProfile.UpgradeEntry e = list[i];
+                if (e != null && e.modelId == modelId && e.categoryId == categoryId) return e;
+            }
+            return null;
+        }
+
         // -------------------------------------------------------- progression
 
         public static bool IsLevelCompleted(string levelId) =>

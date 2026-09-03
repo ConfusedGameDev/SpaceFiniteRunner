@@ -44,6 +44,23 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
         /// <summary>Ids handed to <see cref="PlayerStats.Unlock"/> — the future unlock system's ledger.</summary>
         public List<string> unlockedIds = new();
 
+        /// <summary>
+        /// Store upgrade levels, one entry per (model, category) ever bought:
+        /// only the LEVEL is saved — the multiplier it stands for is read off
+        /// the store's definition assets at play time, so balance stays
+        /// retunable after a purchase. An absent pair is level 0 (stock).
+        /// </summary>
+        public List<UpgradeEntry> upgrades = new();
+
+        /// <summary>One bought upgrade: which model ("car.quadron"), which category ("car.speed"), how many levels (0–10).</summary>
+        [Serializable]
+        public class UpgradeEntry
+        {
+            public string modelId;
+            public string categoryId;
+            public int level;
+        }
+
         /// <summary>Lifetime totals across both games.</summary>
         [Serializable]
         public class GlobalStats
@@ -58,6 +75,8 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
             public int totaledCars;
             public int totaledPoliceCars;
             public long moneyEarned;
+            /// <summary>Spent in the Store — the wallet is <c>moneyEarned - moneySpent</c>, so the LOG's lifetime earnings never shrink.</summary>
+            public long moneySpent;
             public int bonusObjectivesCompleted;
             public int collectiblesFound;
         }
@@ -147,6 +166,7 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
             collectibles ??= new List<CountEntry>();
             completedLevelIds ??= new List<string>();
             unlockedIds ??= new List<string>();
+            upgrades ??= new List<UpgradeEntry>();
             lastLevel.levelId ??= "";
             lastLevel.levelName ??= "";
             lastLevel.lastObjective ??= "";
@@ -158,6 +178,7 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
             lastLevel.challenges.RemoveAll(c => c == null);
             totaledByVehicle.RemoveAll(e => e == null || string.IsNullOrEmpty(e.key));
             collectibles.RemoveAll(e => e == null || string.IsNullOrEmpty(e.key));
+            upgrades.RemoveAll(u => u == null || string.IsNullOrEmpty(u.modelId) || string.IsNullOrEmpty(u.categoryId));
         }
     }
 }

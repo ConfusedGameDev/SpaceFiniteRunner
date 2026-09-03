@@ -10,9 +10,13 @@ using ConfusedGameDev.FiniteRunner.Ship;
 namespace ConfusedGameDev.FiniteRunner.HUD
 {
     /// <summary>
-    /// The race HUD (uGUI): big speed readout that heats up as you approach
-    /// Light Speed and pulses on pad hits, the Light Speed goal, a countdown
-    /// bar (time is the limit, not distance), the win/lose result, and
+    /// The race HUD (uGUI): the speed as a <see cref="SpeedGauge"/> wedge
+    /// (segments growing taller to the right, lit up to the ship's fraction
+    /// of Light Speed, built here in code at the top-left) with the scene's
+    /// km/h number re-seated at its right end at Start — smaller font, its
+    /// baseline on the wedge's — heating up as you approach Light Speed and
+    /// pulsing on pad hits, the Light Speed goal, a countdown
+    /// bar (time is the limit, not distance), and
     /// floating "+boost" text spawned at the ship on every booster hit (and a
     /// gold "+$N" on every money pickup, off the CollectibleManager), plus
     /// one code-built line per runner objective / challenge under the goal
@@ -32,8 +36,6 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [SerializeField] Text timeText;
         [FormerlySerializedAs("distanceFill")]
         [SerializeField] Image timeFill;
-        [SerializeField] Text resultText;
-        [SerializeField] Text promptText;
 
         [Header("Speed colors")]
         [Tooltip("Far below Light Speed.")]
@@ -43,7 +45,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Tooltip("Closing in on Light Speed.")]
         [SerializeField] Color fastColor = new(1f, 0.35f, 0.25f);      // hot
 
-        [Header("Result colors")]
+        [Header("Status colors")]
         [FormerlySerializedAs("perfectColor")]
         [SerializeField] Color winColor = new(0.48f, 0.83f, 0.32f);
         [SerializeField] Color failColor = new(1f, 0.3f, 0.25f);
@@ -56,6 +58,24 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Header("Pad pulse")]
         [SerializeField, Min(1f)] float pulseScale = 1.3f;
         [SerializeField, Min(0.1f)] float pulseDecay = 6f;
+
+        [Header("Speed gauge")]
+        [Tooltip("Segments of the speed wedge; every one lit = Light Speed.")]
+        [SerializeField, Range(4, 60)] int gaugeSegments = 20;
+        [Tooltip("Width of one segment, px at 1920×1080.")]
+        [SerializeField, Range(4f, 60f)] float gaugeSegmentWidth = 20f;
+        [Tooltip("Gap between segments.")]
+        [SerializeField, Range(0f, 30f)] float gaugeSegmentGap = 6f;
+        [Tooltip("Height of the leftmost segment.")]
+        [SerializeField, Range(4f, 200f)] float gaugeMinHeight = 18f;
+        [Tooltip("Height of the rightmost segment — the wedge's height.")]
+        [SerializeField, Range(4f, 300f)] float gaugeMaxHeight = 80f;
+        [Tooltip("Alpha of the segments not yet reached.")]
+        [SerializeField, Range(0f, 1f)] float gaugeEmptyAlpha = 0.2f;
+        [Tooltip("Font size the km/h number is re-seated with at the wedge's right end.")]
+        [SerializeField, Range(20, 200)] int gaugeNumberFontSize = 84;
+        [Tooltip("Gap between the wedge and the number.")]
+        [SerializeField, Range(0f, 100f)] float gaugeNumberGap = 24f;
 
         [Header("Boost floating text")]
         [SerializeField] bool spawnBoostText = true;
@@ -70,8 +90,11 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         // level's list, the line drawn for it), built once in Start.
         readonly List<(RunnerObjective step, bool challenge, int index, Text text)> objectiveLines = new();
 
+        SpeedGauge gauge;
+
         void Start()
         {
+            BuildGauge();
             if (gameManager == null || targetText == null || gameManager.Level == null) return;
             RunnerLevelDefinition level = gameManager.Level;
             int slot = 0;
@@ -84,6 +107,31 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             }
             for (int i = 0; i < level.ChallengeCount; i++)
                 objectiveLines.Add((level.optionalChallenges[i], true, i, MakeObjectiveLine(slot++)));
+        }
+
+        // The wedge takes the number's row: it is built where the scene's
+        // speed text sits (top-left), and the text is re-seated beside it —
+        // by code, so the scene wiring stays untouched and the knobs above
+        // stay live.
+        void BuildGauge()
+        {
+            if (speedText == null) return;
+            RectTransform number = speedText.rectTransform;
+            Vector2 topLeft = number.anchoredPosition;
+            gauge = SpeedGauge.Build((RectTransform)number.parent, topLeft, new SpeedGauge.Layout
+            {
+                segments = gaugeSegments,
+                segmentWidth = gaugeSegmentWidth,
+                gap = gaugeSegmentGap,
+                minHeight = gaugeMinHeight,
+                maxHeight = gaugeMaxHeight,
+                emptyAlpha = gaugeEmptyAlpha,
+            });
+
+            number.anchoredPosition = topLeft + new Vector2(gauge.Width + gaugeNumberGap, 0f);
+            number.sizeDelta = new Vector2(number.sizeDelta.x, gauge.Height);
+            speedText.fontSize = gaugeNumberFontSize;
+            speedText.alignment = TextAnchor.LowerLeft; // baseline on the wedge's baseline
         }
 
         // A smaller sibling of the goal text, stacked under it — cloned from
@@ -163,6 +211,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 speedText.rectTransform.localScale = Vector3.one * currentPulse;
             }
 
+            if (gauge != null)
+                gauge.SetFill(lightSpeed > 0f ? Mathf.Clamp01(kmh / lightSpeed) : 0f,
+                              fraction => SpeedColor(fraction * lightSpeed, lightSpeed));
+
             if (targetText != null && lightSpeed > 0f)
                 targetText.text = $"LIGHT SPEED  {lightSpeed:0} KM/H";
 
@@ -178,29 +230,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             }
 
             UpdateCountdown();
-            UpdateResult();
-
-            bool runOver = gameManager != null ? gameManager.RunOver : motor.HasStopped;
-            // South only on gamepad — Start is reserved for the pause menu.
-            bool restartPressed =
-                UnityEngine.InputSystem.Keyboard.current is { rKey: { wasPressedThisFrame: true } } ||
-                UnityEngine.InputSystem.Gamepad.current is { buttonSouth: { wasPressedThisFrame: true } };
-            if (runOver && restartPressed && !GameOverOwnsRetry)
-            {
-                if (gameManager != null) gameManager.Restart();
-                else motor.Launch();
-            }
         }
-
-        /// <summary>
-        /// True from the moment a run ends until its screen has been answered:
-        /// GAME OVER after a loss, MISSION COMPLETE after a win. Both are
-        /// raised only after the closing RPG line finishes, so this also
-        /// covers the seconds before they appear — the HUD must not offer a
-        /// second, quieter way out of the same moment.
-        /// </summary>
-        bool GameOverOwnsRetry => GameOverScreen.IsOpen || MissionCompleteScreen.IsOpen
-                                  || (gameManager != null && gameManager.RunOver);
 
         void UpdateCountdown()
         {
@@ -227,19 +257,5 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 : Color.Lerp(onTargetColor, fastColor, (progress - 0.6f) / 0.4f);
         }
 
-        void UpdateResult()
-        {
-            string label = gameManager != null ? gameManager.ResultLabel
-                         : motor.HasStopped ? "OUT OF SPEED" : null;
-
-            if (resultText != null)
-            {
-                resultText.text = label ?? "";
-                if (label != null)
-                    resultText.color = gameManager != null && gameManager.HasWon ? winColor : failColor;
-            }
-            if (promptText != null)
-                promptText.text = label != null && !GameOverOwnsRetry ? "PRESS R TO RUN AGAIN" : "";
-        }
     }
 }

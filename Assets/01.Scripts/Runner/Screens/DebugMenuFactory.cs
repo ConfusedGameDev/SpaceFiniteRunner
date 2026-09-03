@@ -348,6 +348,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                           0.5f, 2f, 0.05f, "0.00", d => d.rubberBand, (d, v) => d.rubberBand = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolCatchUp,
                           0.5f, 150f, 0.5f, "0.0", d => d.catchUpAccel, (d, v) => d.catchUpAccel = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolBoostShare,
+                          0f, 1.5f, 0.05f, "0.00", d => d.boostShare, (d, v) => d.boostShare = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolStartGap,
                           0f, 1000f, 25f, "0", d => d.startGap, (d, v) => d.startGap = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolCatchDistance,
