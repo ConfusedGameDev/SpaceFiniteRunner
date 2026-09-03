@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -13,9 +14,13 @@ using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>
-    /// Owns the win/lose conditions of the chase. Win: reach Light Speed
-    /// before the countdown ends. Lose: the police patrol catches up, the
-    /// timer runs out, or the ship bleeds down to a standstill.
+    /// Owns the win/lose conditions of the chase. Win: every mandatory
+    /// objective of the <see cref="RunnerLevelDefinition"/> met (Light Speed
+    /// is the first Reach Speed one) before the countdown ends. Lose: the
+    /// police patrol catches up, the timer runs out, or the ship bleeds down
+    /// to a standstill. The level's optional challenges are live from launch
+    /// and latch when met; a win hands the run's rows to the Mission Complete
+    /// panel, which pays the whole mission (city level + this run).
     /// Wires up the scene's PolicePatrol object (its chase tunables live on
     /// its own PatrolDefinition asset) and restarts it with the run.
     /// The timer only ticks while the ship is actually flying (not while
@@ -41,6 +46,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
         GameSettings settings;
 
+        [Title("Level")]
+        [Tooltip("The run's goals: mandatory objectives (all must be met to win — the first Reach Speed is the Light Speed) and optional challenges that multiply the mission payout. Read live. Missing = the default run (reach 6500 km/h).")]
+        [SerializeField, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        RunnerLevelDefinition level;
+
         DashPromptController dashPrompt;
         OrbitCameraRig cameraRig;          // null when GameSettings has no camera asset
         CameraMode modeBeforeJump;         // the view a jump forced to Far hands back on landing
@@ -50,6 +60,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         enum RunOutcome { Escaped, Caught, Stalled, TimedOut }
 
         bool runCounted; // this run's "escape attempted" has been recorded
+
+        // The run's objective state: latched per entry (speed bleeds after the
+        // peak while a jump goal may still be open), reset with the run.
+        int jumpCount;
+        bool[] objectiveDone = System.Array.Empty<bool>();
+        bool[] challengeDone = System.Array.Empty<bool>();
 
         public float BoostTextLeadMeters => settings.boostTextLeadMeters;
 
@@ -68,7 +84,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         public PolicePatrol Patrol => patrol;
-        public float LightSpeedKmh => settings.lightSpeedKmh;
+        /// <summary>The run's goal speed: the level's first mandatory Reach Speed objective, else the settings' fallback.</summary>
+        public float LightSpeedKmh => level != null && level.LightSpeedKmh > 0f ? level.LightSpeedKmh : settings.lightSpeedKmh;
+        public RunnerLevelDefinition Level => level;
+        /// <summary>Ramps taken off from this run.</summary>
+        public int JumpCount => jumpCount;
+        public bool IsObjectiveDone(int index) => index >= 0 && index < objectiveDone.Length && objectiveDone[index];
+        public bool IsChallengeDone(int index) => index >= 0 && index < challengeDone.Length && challengeDone[index];
         public float TimeLimit => settings.timeLimitSeconds;
         public float TimeRemaining { get; private set; }
         public string ResultLabel { get; private set; }
@@ -84,6 +106,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 Debug.LogError($"{nameof(GameManager)} has no {nameof(GameSettings)} asset assigned — falling back to defaults.", this);
                 settings = ScriptableObject.CreateInstance<GameSettings>();
             }
+            if (level == null)
+            {
+                Debug.LogError($"{nameof(GameManager)} has no {nameof(RunnerLevelDefinition)} asset assigned — falling back to the default run.", this);
+                level = RunnerLevelDefinition.CreateDefault();
+            }
+            ResetObjectives();
 
             TimeRemaining = settings.timeLimitSeconds;
             if (motor != null) motor.PadImpulse += OnPadImpulse;
@@ -161,7 +189,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // camera mode each frame.
             speedLines = SpeedLines.Apply(settings.speedLinesEnabled, settings.speedLinesSettings);
             if (speedLines != null && motor != null)
-                speedLines.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, settings.lightSpeedKmh);
+                speedLines.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, LightSpeedKmh);
 
             // After the patrol init, so the debug menu's patrol tab can bind
             // to the live definition clone.
@@ -189,7 +217,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 PlayerStats.SampleShipSpeed(motor.CurrentSpeed * 3.6f);
             }
 
-            if (motor.CurrentSpeed * 3.6f >= settings.lightSpeedKmh)
+            if (EvaluateObjectives(motor.CurrentSpeed * 3.6f))
             {
                 HasWon = true;
                 EndRun("LIGHT SPEED — YOU ESCAPED!", RunOutcome.Escaped);
@@ -236,7 +264,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // screen would otherwise cover the line that sets it up.
             if (HasWon)
                 RpgMessageSystem.Instance.ShowMessage(
-                    "PILOT", settings.winMessage, settings.messageHoldSeconds, settings.pilotMessageColor);
+                    "PILOT", settings.winMessage, settings.messageHoldSeconds, settings.pilotMessageColor,
+                    onFinished: ShowMissionComplete);
             else
                 RpgMessageSystem.Instance.ShowMessage(
                     "PATROL", settings.loseMessage, settings.messageHoldSeconds, settings.patrolMessageColor,
@@ -256,6 +285,85 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (!RunOver) return;
             // NO leaves under the loading curtain; YES retries in place, no load.
             GameOverScreen.Show(onRetry: Restart, onGiveUp: LoadingScreen.LoadMainMenu);
+        }
+
+        /// <summary>
+        /// The Mission Complete panel, raised once the pilot's win line has
+        /// cleared (it types on scaled time; the panel freezes the clock). The
+        /// city level's rows come off the profile — the only thing that
+        /// crosses the scene handoff — and the run's own rows off the live
+        /// state; the panel adds them up, ranks them and banks the mission.
+        /// Guarded like <see cref="ShowGameOver"/>: a restart mid-line drops
+        /// the callback, and the message system can fire duplicate-dropped
+        /// callbacks at once.
+        /// </summary>
+        void ShowMissionComplete()
+        {
+            if (!RunOver || !HasWon || MissionCompleteScreen.IsOpen) return;
+            MissionCompleteScreen.Show(BuildMissionCompleteData(),
+                                       onNext: () => LoadingScreen.Load(level.nextSceneName),
+                                       onRetry: Restart,
+                                       onExit: LoadingScreen.LoadMainMenu);
+        }
+
+        MissionCompleteData BuildMissionCompleteData()
+        {
+            var last = PlayerProfileStore.Profile.lastLevel;
+            bool hasCity = last.objectives.Count > 0 || last.baseReward > 0;
+
+            var data = new MissionCompleteData
+            {
+                title = hasCity && !string.IsNullOrEmpty(last.levelName) ? last.levelName : level.levelName,
+                video = level.completeVideo,
+                baseReward = hasCity ? last.baseReward : 0,
+                rank = hasCity && last.rank != null && last.rank.IsSet ? last.rank : level.rankTable
+            };
+            if (hasCity) data.mainObjectives.AddRange(last.objectives);
+            for (int i = 0; i < level.Count; i++)
+            {
+                RunnerObjective step = level.objectives[i];
+                data.runObjectives.Add(new ObjectiveResult(step.Summary, step.reward, IsObjectiveDone(i)));
+            }
+            if (hasCity) data.challenges.AddRange(last.challenges);
+            for (int i = 0; i < level.ChallengeCount; i++)
+            {
+                RunnerOptionalChallenge challenge = level.optionalChallenges[i];
+                data.challenges.Add(new ChallengeResult(challenge.Summary, challenge.multiplier, IsChallengeDone(i)));
+            }
+            return data;
+        }
+
+        /// <summary>
+        /// Latches every objective and challenge that is met this frame and
+        /// answers whether the run is WON: every mandatory objective done. A
+        /// level with no objectives falls back to the plain Light Speed test.
+        /// </summary>
+        bool EvaluateObjectives(float speedKmh)
+        {
+            if (level.Count == 0) return speedKmh >= LightSpeedKmh;
+
+            bool allDone = true;
+            for (int i = 0; i < level.Count && i < objectiveDone.Length; i++)
+            {
+                if (!objectiveDone[i] && level.objectives[i].Satisfied(speedKmh, jumpCount)) objectiveDone[i] = true;
+                allDone &= objectiveDone[i];
+            }
+            for (int i = 0; i < level.ChallengeCount && i < challengeDone.Length; i++)
+            {
+                if (!challengeDone[i] && level.optionalChallenges[i].Satisfied(speedKmh, jumpCount))
+                {
+                    challengeDone[i] = true;
+                    PlayerStats.CompleteBonusObjective();
+                }
+            }
+            return allDone;
+        }
+
+        void ResetObjectives()
+        {
+            jumpCount = 0;
+            objectiveDone = new bool[level != null ? level.Count : 0];
+            challengeDone = new bool[level != null ? level.ChallengeCount : 0];
         }
 
         // Story beat: hype line every time the rare orb tier is grabbed.
@@ -314,6 +422,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // The cycle is locked meanwhile — ShipMotor.BlockModeCycle.
         void OnTookOff()
         {
+            if (!RunOver) jumpCount++; // the Jump X Times goals count takeoffs
             if (cameraRig == null) return;
             modeBeforeJump = cameraRig.Mode;
             cameraRig.SetMode(CameraMode.Far, instant: false);
@@ -401,6 +510,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             HasWon = false;
             runCounted = false;
             TimeRemaining = settings.timeLimitSeconds;
+            ResetObjectives();
             if (generator != null) generator.RegenerateForRun();
             motor.Paused = false; // EndRun froze the sim; the tuning screen re-pauses if present
             motor.Launch();

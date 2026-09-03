@@ -28,19 +28,19 @@ Material:
     - _BlockAmount: 0.5
     - _ColorSplit: 0.008
     - _FogDensity: 2.5
-    - _FogEnd: 1500
-    - _FogStart: 1000
+    - _FogEnd: 480
+    - _FogStart: 120
     - _GlitchRate: 12
-    - _GlitchStart: 1150
+    - _GlitchStart: 300
     - _GlitchStrength: 0.6
     - _HeightBase: 0
     - _HeightFalloff: 0
     - _Intensity: 1
     - _ScanlineStrength: 0.3
-    - _SkyFogAmount: 0
+    - _SkyFogAmount: 0.85
     - _SliceStrength: 0.08
     m_Colors:
-    - _FogColorFar: {r: 0.845, g: 0.943, b: 0.943, a: 1}
-    - _FogColorNear: {r: 0.55, g: 0.64, b: 0.7, a: 1}
+    - _FogColorFar: {r: 0.3, g: 0.09, b: 0.42, a: 1}
+    - _FogColorNear: {r: 0.07, g: 0.05, b: 0.14, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -11,9 +12,11 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// The race HUD (uGUI): big speed readout that heats up as you approach
     /// Light Speed and pulses on pad hits, the Light Speed goal, a countdown
     /// bar (time is the limit, not distance), the win/lose result, and
-    /// floating "+boost" text spawned at the ship on every booster hit.
-    /// Its own "PRESS R TO RUN AGAIN" shortcut only covers a WIN: a loss ends
-    /// on the <see cref="GameOverScreen"/>, which owns that answer.
+    /// floating "+boost" text spawned at the ship on every booster hit, plus
+    /// one code-built line per runner objective / challenge under the goal
+    /// ("JUMP 1/3  ×2"). It offers no retry of its own any more: a loss ends
+    /// on the <see cref="GameOverScreen"/> and a win on the
+    /// <see cref="MissionCompleteScreen"/>, which own that answer.
     /// </summary>
     public class RaceHud : MonoBehaviour
     {
@@ -59,6 +62,52 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         float currentPulse = 1f;
 
+        // The objective readout: (goal, is it a challenge, its index in the
+        // level's list, the line drawn for it), built once in Start.
+        readonly List<(RunnerObjective step, bool challenge, int index, Text text)> objectiveLines = new();
+
+        void Start()
+        {
+            if (gameManager == null || targetText == null || gameManager.Level == null) return;
+            RunnerLevelDefinition level = gameManager.Level;
+            int slot = 0;
+            for (int i = 0; i < level.Count; i++)
+            {
+                RunnerObjective step = level.objectives[i];
+                // The goal line above already shows the Light Speed target.
+                if (step.type == RunnerObjectiveType.ReachSpeed && Mathf.Approximately(step.targetSpeedKmh, gameManager.LightSpeedKmh)) continue;
+                objectiveLines.Add((step, false, i, MakeObjectiveLine(slot++)));
+            }
+            for (int i = 0; i < level.ChallengeCount; i++)
+                objectiveLines.Add((level.optionalChallenges[i], true, i, MakeObjectiveLine(slot++)));
+        }
+
+        // A smaller sibling of the goal text, stacked under it — cloned from
+        // its font and anchors so the scene wiring stays untouched.
+        Text MakeObjectiveLine(int slot)
+        {
+            RectTransform source = targetText.rectTransform;
+            var go = new GameObject($"Objective{slot}", typeof(RectTransform));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(source.parent, false);
+            rect.anchorMin = source.anchorMin;
+            rect.anchorMax = source.anchorMax;
+            rect.pivot = source.pivot;
+            rect.sizeDelta = source.sizeDelta;
+            float step = Mathf.Max(24f, source.sizeDelta.y * 0.8f);
+            rect.anchoredPosition = source.anchoredPosition - new Vector2(0f, step * (slot + 1));
+
+            var text = go.AddComponent<Text>();
+            text.font = targetText.font;
+            text.fontSize = Mathf.Max(12, Mathf.RoundToInt(targetText.fontSize * 0.75f));
+            text.alignment = targetText.alignment;
+            text.horizontalOverflow = targetText.horizontalOverflow;
+            text.verticalOverflow = targetText.verticalOverflow;
+            text.color = timeColor;
+            text.raycastTarget = false;
+            return text;
+        }
+
         void OnEnable()
         {
             if (motor != null) motor.PadImpulse += OnPadImpulse;
@@ -101,6 +150,17 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             if (targetText != null && lightSpeed > 0f)
                 targetText.text = $"LIGHT SPEED  {lightSpeed:0} KM/H";
 
+            foreach (var line in objectiveLines)
+            {
+                bool done = line.challenge ? gameManager.IsChallengeDone(line.index) : gameManager.IsObjectiveDone(line.index);
+                string label = line.step.Summary;
+                string progress = line.step.Progress(kmh, gameManager.JumpCount);
+                if (progress.Length > 0) label += "  " + progress;
+                if (line.step is RunnerOptionalChallenge challenge) label += $"  \u00d7{challenge.multiplier}";
+                line.text.text = label;
+                line.text.color = done ? winColor : timeColor;
+            }
+
             UpdateCountdown();
             UpdateResult();
 
@@ -117,13 +177,14 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         }
 
         /// <summary>
-        /// True from the moment a run is lost until the GAME OVER screen has
-        /// been answered. The screen is raised only after the patrol's parting
-        /// line finishes, so this also covers the seconds before it appears —
-        /// the HUD must not offer a second, quieter way out of the same moment.
+        /// True from the moment a run ends until its screen has been answered:
+        /// GAME OVER after a loss, MISSION COMPLETE after a win. Both are
+        /// raised only after the closing RPG line finishes, so this also
+        /// covers the seconds before they appear — the HUD must not offer a
+        /// second, quieter way out of the same moment.
         /// </summary>
-        bool GameOverOwnsRetry => GameOverScreen.IsOpen
-                                  || (gameManager != null && gameManager.RunOver && !gameManager.HasWon);
+        bool GameOverOwnsRetry => GameOverScreen.IsOpen || MissionCompleteScreen.IsOpen
+                                  || (gameManager != null && gameManager.RunOver);
 
         void UpdateCountdown()
         {

@@ -172,7 +172,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         // ------------------------------------------------------ loading screen
         [TitleGroup("Loading screen")]
-        [Tooltip("Time the bar takes to fill from empty to full at its steady pace — also the least time the curtain stays up. The bar is time-driven: a scene loads in one hitch, so a progress readout would sit at 0 and slam to 1.")]
+        [Tooltip("Time the bar takes to fill from empty to full at its steady pace — also the least time the curtain stays up. The bar is time-driven: a scene loads in one hitch, so a progress readout would sit at 0 and slam to 1; the bar climbs to half, the hitch happens there, and the second half fills once the scene is in.")]
         [PropertyRange(0.25f, 4f), SuffixLabel("s", true)]
         [SerializeField] float loadingFillSeconds = 1.5f;
 

@@ -59,8 +59,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// Within deadline that runs out fails the CHALLENGE rather than the run,
     /// and Destroy Cars challenges tally every matching kill while live. Each
     /// outcome gets its own dialogue line, and <see cref="EarnedReward"/> —
-    /// base × the multipliers of the challenges actually completed — is what
-    /// the completion banks; <see cref="MissionReward"/> is only the offer.
+    /// the reward base × the multipliers of the challenges actually completed
+    /// — is the running payout; <see cref="MissionReward"/> is only the offer.
+    /// Nothing is banked HERE: completion records every objective row and
+    /// challenge outcome into the profile, and the runner's Mission Complete
+    /// panel (after the escape run this level hands over to) pays the whole
+    /// mission once.
     ///
     /// A step flagged with a cinema plays its clip through the scene's
     /// <see cref="CinemaSystem"/> the moment it activates — the world frozen
@@ -176,15 +180,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// <summary>The optional challenges the player toggled on at the brief (empty when it was skipped).</summary>
         public System.Collections.Generic.IReadOnlyList<OptionalChallenge> AcceptedChallenges => acceptedChallenges;
 
-        /// <summary>The payout on OFFER at the brief: base reward × every accepted challenge's multiplier. <see cref="EarnedReward"/> is what completion pays.</summary>
+        /// <summary>The payout on OFFER at the brief: the reward base (flat bonus + objective rewards) × every accepted challenge's multiplier. <see cref="EarnedReward"/> is the running payout.</summary>
         public int MissionReward { get; private set; }
 
-        /// <summary>The payout earned so far: base reward × the multiplier of every accepted challenge that has COMPLETED.</summary>
+        /// <summary>The payout earned so far: the reward base × the multiplier of every accepted challenge that has COMPLETED. The runner's panel adds the run's rows before banking.</summary>
         public int EarnedReward
         {
             get
             {
-                long reward = level != null ? level.baseReward : 0;
+                long reward = level != null ? level.RewardBase : 0;
                 for (int i = 0; i < acceptedChallenges.Count && i < challengeStates.Length; i++)
                     if (challengeStates[i].done) reward *= Mathf.Max(1, acceptedChallenges[i].multiplier);
                 return (int)System.Math.Min(reward, int.MaxValue);
@@ -323,7 +327,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         // scene holds under it until the player accepts.
         void Start()
         {
-            MissionReward = level.baseReward;
+            MissionReward = (int)System.Math.Min(level.RewardBase, int.MaxValue);
             if (skipMissionBrief) return;
             briefOpen = true;
             MissionBriefScreen.Show(level, OnBriefAccepted);
@@ -826,13 +830,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         void Complete()
         {
             Completed = true;
-            // The save: level count, the reward banked (base × the challenges
-            // actually completed), the last-level summary and the progression
-            // list. Written to disk now — this scene is about to be unloaded
-            // under the glitch.
+            // The save: level count, the last-level summary, the progression
+            // list — and the rows the runner's Mission Complete panel will
+            // print and pay: every objective with its reward, every ACCEPTED
+            // challenge with its multiplier and outcome, the flat bonus and
+            // the rank table. No money moves here. Written to disk now —
+            // this scene is about to be unloaded under the glitch.
+            var objectiveRows = new System.Collections.Generic.List<ObjectiveResult>(level.Count);
+            for (int i = 0; i < level.Count; i++)
+            {
+                LevelObjective step = level.objectives[i];
+                objectiveRows.Add(new ObjectiveResult(step.Summary, step.reward, done: true));
+            }
+            var challengeRows = new System.Collections.Generic.List<ChallengeResult>(acceptedChallenges.Count);
+            for (int i = 0; i < acceptedChallenges.Count; i++)
+            {
+                OptionalChallenge challenge = acceptedChallenges[i];
+                challengeRows.Add(new ChallengeResult(challenge.Summary, challenge.multiplier, IsChallengeDone(i)));
+            }
             PlayerStats.RecordLevelCompleted(level.name, level.levelName,
                 level.Count > 0 ? level.objectives[level.Count - 1].Summary : string.Empty,
-                EarnedReward, acceptedChallenges.Count, ChallengesCompleted);
+                level.baseReward, objectiveRows, challengeRows, level.rankTable);
             RpgMessageSystem.Instance.ShowMessage(
                 level.speakerName, level.completionMessage, level.messageHoldSeconds, DoneAccent,
                 onFinished: BeginGlitchHandoff);

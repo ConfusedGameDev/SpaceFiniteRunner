@@ -118,6 +118,14 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         /// <summary>The view currently selected — what the next cycle press advances from.</summary>
         public CameraMode Mode => mode;
 
+        // The camera this rig drives (set by the installer, which found it in
+        // the target's own scene) — never Camera.main, which answers the OTHER
+        // scene's camera during the city → runner additive handoff.
+        Camera outputCamera;
+
+        /// <summary>The camera whose brain renders this rig; read for the authored far clip.</summary>
+        public void SetOutputCamera(Camera camera) => outputCamera = camera;
+
         public void SetTarget(ICameraTarget newTarget)
         {
             target = newTarget;
@@ -195,7 +203,8 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
 
             // The scene camera's far clip is the authored default; the lens
             // (which the brain pushes onto the camera every frame) starts there.
-            defaultFarClip = Camera.main != null ? Camera.main.farClipPlane : cinemachineCamera.Lens.FarClipPlane;
+            Camera authored = outputCamera != null ? outputCamera : Camera.main;
+            defaultFarClip = authored != null ? authored.farClipPlane : cinemachineCamera.Lens.FarClipPlane;
             cinemachineCamera.Lens.FarClipPlane = defaultFarClip;
             firstPersonCamera.Lens.FarClipPlane = defaultFarClip;
             appliedPitch = settings != null ? settings.defaultPitch : 18f;
@@ -417,7 +426,10 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             // (the first-person cut) and the framing slide in ApplyFraming.
             // Play only: the editor Setup must not dirty a scene brain
             // outside its Undo step, and the value is pushed every frame anyway.
-            var brain = Application.isPlaying ? CinemachineCore.FindPotentialTargetBrain(cinemachineCamera) : null;
+            CinemachineBrain brain = null;
+            if (Application.isPlaying)
+                brain = outputCamera != null ? outputCamera.GetComponent<CinemachineBrain>()
+                                             : CinemachineCore.FindPotentialTargetBrain(cinemachineCamera);
             if (brain != null)
                 brain.DefaultBlend = new CinemachineBlendDefinition(CinemachineBlendDefinition.Styles.EaseInOut, settings.modeBlendSeconds);
         }

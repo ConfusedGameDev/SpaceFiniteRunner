@@ -182,7 +182,14 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
             if (p.version >= PlayerProfile.CurrentVersion) { p.version = PlayerProfile.CurrentVersion; return; }
             switch (p.version)
             {
-                // case 1: ... break;   // when version 2 arrives
+                case 1:
+                    // Version 1 banked a level's money at city completion; the
+                    // runner's Mission Complete panel banks it now. A v1 last
+                    // level was therefore already paid — mark it so a run
+                    // finished on top of it never pays the city's share again.
+                    p.lastLevel.banked = true;
+                    p.lastLevel.missionTotal = p.lastLevel.moneyEarned;
+                    break;
             }
             p.version = PlayerProfile.CurrentVersion;
             dirty = true;

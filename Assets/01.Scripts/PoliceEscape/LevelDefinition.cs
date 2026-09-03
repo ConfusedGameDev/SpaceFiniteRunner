@@ -5,6 +5,7 @@ using UnityEngine.Video;
 
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
+using ConfusedGameDev.FiniteRunner.SaveData;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
@@ -136,6 +137,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Tooltip("Dialogue accent and HUD tint for this step. Fully transparent = the type's default color.")]
         public Color accent = new(0.45f, 0.9f, 1f);
 
+        // Money: every main objective pays its own reward on the Mission
+        // Complete panel (on top of the level's flat bonus); a challenge
+        // multiplies instead, so the field is hidden on one.
+        [HideIf(nameof(IsChallenge))]
+        [Tooltip("Money this objective pays on the Mission Complete panel. Added to the level's flat bonus before the challenge multipliers apply.")]
+        [PropertyRange(0, 50000), SuffixLabel("$", true)]
+        public int reward = 0;
+
+        /// <summary>True on an <see cref="OptionalChallenge"/> — it carries a multiplier, not a reward.</summary>
+        public virtual bool IsChallenge => false;
+
         // Cinema: an optional video played the moment the step activates,
         // before its briefing line, with the world frozen under it. The
         // duration is authoritative — a shorter one cuts the clip, a longer
@@ -234,7 +246,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public bool MustHold => HasTimeRule && timeRule == TimeRule.HoldFor;
 
         /// <summary>Inspector list label: the player-facing summary plus a cinema marker — never shown to the player.</summary>
-        public string EditorLabel => Summary + (HasCinema ? " [CINEMA]" : "") + (HasCompletionMessage ? " [MSG]" : "");
+        public string EditorLabel => Summary + (!IsChallenge && reward > 0 ? $" ${reward}" : "") + (HasCinema ? " [CINEMA]" : "") + (HasCompletionMessage ? " [MSG]" : "");
 
         /// <summary>Dropdown source for <see cref="cinemaFormat"/> — a member here, since an Odin expression cannot see the child namespace.</summary>
         static IEnumerable<string> CinemaFormatIds() => CinemaFormatLibrary.Ids();
@@ -343,6 +355,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [PropertyRange(1, 20)]
         public int multiplier = 2;
 
+        public override bool IsChallenge => true;
+
         /// <summary>The brief's row text and the HUD line: the condition plus its multiplier.</summary>
         public string ChallengeSummary => $"{Summary} ×{multiplier}";
 
@@ -409,9 +423,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public VideoClip briefVideo;
 
         [TitleGroup("Mission brief")]
-        [Tooltip("Payout for completing the mission with no optional challenges. Every challenge the player accepts multiplies it.")]
+        [Tooltip("Flat mission bonus, paid on top of every objective's own reward. The sum is what the accepted challenges multiply.")]
         [PropertyRange(0, 100000), SuffixLabel("$", true)]
         public int baseReward = 1000;
+
+        [TitleGroup("Mission brief")]
+        [Tooltip("Money thresholds the mission total (this level + the escape run after it, multiplied) is ranked against on the Mission Complete panel.")]
+        public RankTable rankTable = new();
 
         [TitleGroup("Mission brief")]
         [Tooltip("Extra goals offered on the brief, each a toggle the player can take on for a bigger payout. Full objectives (any type, any clock) that run beside the main list; only COMPLETED ones multiply the reward.")]
@@ -424,6 +442,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public List<LevelObjective> objectives = new();
 
         public int Count => objectives != null ? objectives.Count : 0;
+
+        /// <summary>Every main objective's reward added up (challenges carry none).</summary>
+        public long ObjectiveRewardTotal
+        {
+            get
+            {
+                long sum = 0;
+                if (objectives != null) foreach (var step in objectives) if (step != null) sum += step.reward;
+                return sum;
+            }
+        }
+
+        /// <summary>The money on the table before any multiplier: the flat bonus plus every objective's reward.</summary>
+        public long RewardBase => baseReward + ObjectiveRewardTotal;
 
         /// <summary>
         /// The pre-data flow (reach 130 km/h, then shake the police) as an

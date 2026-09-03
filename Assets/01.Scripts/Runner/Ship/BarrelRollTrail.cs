@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 using ConfusedGameDev.FiniteRunner.GameFlow;
+using System.Collections.Generic;
 namespace ConfusedGameDev.FiniteRunner.Ship
 {
     /// <summary>
@@ -27,6 +28,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         public void Init(ShipMotor motor, GameSettings settings)
         {
+           
             this.motor = motor;
             this.settings = settings;
 

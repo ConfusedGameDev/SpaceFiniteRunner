@@ -80,7 +80,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         JumpWidth, JumpLength, JumpAngle, JumpAirDistance, JumpMaxAir, JumpAirControl, JumpSideHitLoss,
         LoopRadius, LoopFallGravity, LoopFallLoss,
         TubeRadius, TubeBand, TubeCurl,
-        BarrelRollSeconds
+        BarrelRollSeconds,
+        MissionComplete, MainObjectives, FiniteRunObjectives, Total, Rank, NextMission, Retry, MissionBonus, StatRank
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -541,6 +542,25 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Mission brief")]
         [SerializeField] LocalizedString challengeFailed = new("FAILED", "FALLIDO", "失敗", "ÉCHOUÉ");
 
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString missionComplete = new("MISSION COMPLETE", "MISIÓN COMPLETADA", "ミッション完了", "MISSION ACCOMPLIE");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString mainObjectives = new("MAIN OBJECTIVES", "OBJETIVOS PRINCIPALES", "メイン目標", "OBJECTIFS PRINCIPAUX");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString finiteRunObjectives = new("ESCAPE RUN", "CARRERA DE HUIDA", "エスケープラン", "COURSE D'ÉVASION");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString total = new("TOTAL", "TOTAL", "合計", "TOTAL");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString rank = new("RANK", "RANGO", "ランク", "RANG");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString nextMission = new("NEXT MISSION", "SIGUIENTE MISIÓN", "次のミッション", "MISSION SUIVANTE");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString retry = new("RETRY", "REINTENTAR", "リトライ", "RÉESSAYER");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString missionBonus = new("MISSION BONUS", "BONO DE MISIÓN", "ミッションボーナス", "PRIME DE MISSION");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString statRank = new("RANK", "RANGO", "ランク", "RANG");
+
         [TitleGroup("Log")]
         [SerializeField] LocalizedString log = new("LOG", "REGISTRO", "ログ", "JOURNAL");
         [TitleGroup("Log")]
@@ -875,6 +895,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.ChallengeDone => challengeDone,
             MenuTextId.ChallengeFailed => challengeFailed,
             MenuTextId.HoldToSkip => holdToSkip,
+            MenuTextId.MissionComplete => missionComplete,
+            MenuTextId.MainObjectives => mainObjectives,
+            MenuTextId.FiniteRunObjectives => finiteRunObjectives,
+            MenuTextId.Total => total,
+            MenuTextId.Rank => rank,
+            MenuTextId.NextMission => nextMission,
+            MenuTextId.Retry => retry,
+            MenuTextId.MissionBonus => missionBonus,
+            MenuTextId.StatRank => statRank,
             MenuTextId.Loading => loading,
             MenuTextId.Log => log,
             MenuTextId.LogSectionGlobal => logSectionGlobal,

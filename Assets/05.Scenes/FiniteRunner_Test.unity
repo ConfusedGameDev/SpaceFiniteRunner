@@ -3481,6 +3481,7 @@ MonoBehaviour:
   patrol: {fileID: 727354653}
   mainMenuOnBoot: 0
   settings: {fileID: 11400000, guid: a4573a719f8b47bcb82110db7c40439e, type: 2}
+  level: {fileID: 11400000, guid: c4a9f1e2b3d54f6a8e7c0b1d2a3f4e55, type: 2}
 --- !u!4 &1221762357
 Transform:
   m_ObjectHideFlags: 0

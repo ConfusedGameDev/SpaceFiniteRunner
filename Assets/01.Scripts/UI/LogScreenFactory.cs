@@ -87,7 +87,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
             {
                 Stat(screen, MenuTextId.StatLevelName, last.levelName);
                 Stat(screen, MenuTextId.StatLastObjective, last.lastObjective);
+                // Money and rank land when the runner's Mission Complete panel
+                // pays the mission — until then the level shows $0 and no rank.
                 Stat(screen, MenuTextId.StatMoneyEarned, StatFormat.Money(last.moneyEarned));
+                Stat(screen, MenuTextId.StatRank, string.IsNullOrEmpty(last.missionRank) ? "\u2014" : last.missionRank);
                 Stat(screen, MenuTextId.StatOptionalObjectives, StatFormat.Ratio(last.optionalCompleted, last.optionalAccepted));
             }
 

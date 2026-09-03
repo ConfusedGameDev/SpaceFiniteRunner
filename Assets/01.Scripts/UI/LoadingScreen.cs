@@ -20,10 +20,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
     /// clock it inherits is whatever the death screen left), and the bar is a
     /// TIME-driven fill, not a progress readout: Unity loads a scene in one long
     /// hitch, so a bar chasing <c>AsyncOperation.progress</c> sits at 0, freezes,
-    /// and slams to 1 — instead the fill crosses the bar in
-    /// <see cref="MenuTheme.LoadingFillSeconds"/> with each frame's step capped
-    /// (the hitch counts as one ordinary step), parking near the end until the
-    /// scene is ready, and activation waits for the fill to reach the end. One
+    /// and slams to 1. The hitch is the scene's ACTIVATION (its Awakes, the
+    /// whole city prefab instantiating) — nothing can draw during it, so the
+    /// bar is staged around it: it climbs to the half mark while the scene
+    /// streams in (activation held), the activation hitch happens with the
+    /// bar parked at half, and once the new scene is in the bar finishes its
+    /// run under the curtain. A bar that reached the end BEFORE the hitch read
+    /// as a hang; one that stops halfway and then completes reads as a load.
+    /// Each frame's step is capped (the hitch counts as one ordinary step) and
+    /// the whole run takes <see cref="MenuTheme.LoadingFillSeconds"/>. One
     /// trip runs at a time — a second request while one is in flight is
     /// dropped. The spinner is empty until <see cref="MenuTheme"/> carries a
     /// disc sprite; when it does, it spins at the theme's rate for free.
@@ -49,7 +54,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         const float SpinnerMargin = 48f;
         const float MinFillWidth = 6f; // a 9-sliced fill collapses into its caps below this
         const float MaxFrameStep = 0.05f; // the load hitch is one long frame — the bar takes it as a single step, never a jump
-        const float ParkedFill = 0.9f; // where the bar waits while the scene is still streaming in
+        const float HitchFill = 0.5f; // where the bar parks for the activation hitch — the half the player watches complete afterwards
 
         static LoadingScreen active;
 
@@ -189,31 +194,43 @@ namespace ConfusedGameDev.FiniteRunner.UI
                 yield break;
             }
 
-            // Hold activation: progress parks at 0.9 while the scene waits, and
-            // the cut happens only once the fill has smoothly reached the end.
+            // Stage 1 — streaming, activation held: the bar climbs to the half
+            // mark (following the real progress when a load is genuinely long,
+            // at its steady pace otherwise) and waits there for the scene.
             load.allowSceneActivation = false;
             float fillSeconds = Mathf.Max(0.05f, theme.LoadingFillSeconds);
             while (true)
             {
-                bool loaded = load.progress >= 0.9f;
-                // Before the scene is ready the bar may creep up to the parked
-                // mark (a real long load still shows movement); once ready it
-                // finishes the run to the end at the same steady pace.
-                float ceiling = loaded ? 1f : Mathf.Min(ParkedFill, load.progress);
+                bool streamed = load.progress >= 0.9f; // Unity's "loaded, waiting for activation"
+                float ceiling = streamed ? HitchFill : Mathf.Min(HitchFill, load.progress / 0.9f * HitchFill);
                 float dt = Mathf.Min(Time.unscaledDeltaTime, MaxFrameStep);
                 shown = Mathf.MoveTowards(shown, ceiling, dt / fillSeconds);
                 SetFill(shown);
 
-                if (loaded && shown >= 0.999f) break;
+                if (streamed && shown >= HitchFill - 0.001f) break;
                 yield return null;
             }
 
-            SetFill(1f);
+            // Stage 2 — the hitch: activation stalls the main thread for as
+            // long as the scene's Awakes take, with the bar parked at half.
+            SetFill(HitchFill);
             load.allowSceneActivation = true;
             while (!load.isDone) yield return null;
 
-            // One more frame under the curtain so the new scene's Awake/Start
-            // have drawn — a menu building itself must not be seen mid-assembly.
+            // Stage 3 — the scene is in (its Awake/Start ran under the curtain):
+            // the bar finishes its run at the same pace, so the load reads as
+            // having continued through the stall rather than ended before it.
+            while (shown < 0.999f)
+            {
+                float dt = Mathf.Min(Time.unscaledDeltaTime, MaxFrameStep);
+                shown = Mathf.MoveTowards(shown, 1f, dt / fillSeconds);
+                SetFill(shown);
+                yield return null;
+            }
+            SetFill(1f);
+
+            // One more frame under the curtain so the new scene has drawn —
+            // a menu building itself must not be seen mid-assembly.
             yield return null;
             Finish();
         }
