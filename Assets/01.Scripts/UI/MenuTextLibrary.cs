@@ -38,7 +38,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CarPhysicsBackend, CarPhysicsBuiltIn, CarPhysicsEvp,
         CamDistance, CamHeight, CamPitch, CamDamping,
         CamRecenterDelay, CamRecenterSpeed, CamBaseFov, CamSpeedFov,
-        CamLookBackAngle, CamLookBackIn, CamLookBackOut,
+        CamLookBackAngle, CamLookBackIn, CamLookBackOut, CamLookBackDistance, CamLookBackDamping,
         DebugTabCameraModes, CamModeBlend, CamCloseDistance, CamCloseHeight, CamClosePitch,
         CamFirstPersonForward, CamFirstPersonHeight, CamFirstPersonDamping,
         DebugTabWeather,
@@ -380,6 +380,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString camLookBackIn = new("LOOK BACK TIME", "TIEMPO DE GIRO ATRÁS", "後方視の時間", "TEMPS REGARD ARRIÈRE");
         [TitleGroup("Chase camera stats")]
         [SerializeField] LocalizedString camLookBackOut = new("LOOK BACK RETURN", "REGRESO DE MIRAR ATRÁS", "後方視の復帰", "RETOUR REGARD ARRIÈRE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camLookBackDistance = new("LOOK BACK DISTANCE", "DISTANCIA DE MIRAR ATRÁS", "後方視の距離", "DISTANCE REGARD ARRIÈRE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camLookBackDamping = new("LOOK BACK DAMPING", "AMORTIGUACIÓN DE MIRAR ATRÁS", "後方視のダンピング", "AMORTISSEMENT REGARD ARRIÈRE");
         [SerializeField] LocalizedString debugTabCameraModes = new("DEBUG — CAMERA MODES", "DEPURACIÓN — MODOS DE CÁMARA", "デバッグ — カメラモード", "DÉBOGAGE — MODES CAMÉRA");
         [SerializeField] LocalizedString camModeBlend = new("MODE BLEND", "TRANSICIÓN DE MODO", "モード切替時間", "FONDU DE MODE");
         [SerializeField] LocalizedString camCloseDistance = new("CLOSE DISTANCE", "DISTANCIA CERCANA", "近距離", "DISTANCE PROCHE");
@@ -804,6 +808,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.CamLookBackAngle => camLookBackAngle,
             MenuTextId.CamLookBackIn => camLookBackIn,
             MenuTextId.CamLookBackOut => camLookBackOut,
+            MenuTextId.CamLookBackDistance => camLookBackDistance,
+            MenuTextId.CamLookBackDamping => camLookBackDamping,
             MenuTextId.DebugTabCameraModes => debugTabCameraModes,
             MenuTextId.CamModeBlend => camModeBlend,
             MenuTextId.CamCloseDistance => camCloseDistance,

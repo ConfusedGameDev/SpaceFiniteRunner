@@ -593,7 +593,9 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
 
         /// <summary>
         /// Drives the over-the-shoulder glance and returns true while it owns
-        /// the orbit — held, or still swinging back. Both ends of the swing are
+        /// the orbit — held, or still swinging back. The glance swings to a
+        /// fixed pose behind the vehicle's axis and back to where the player
+        /// left the orbit. Both ends of the swing are
         /// eased, and the idle timer is pinned at 0 throughout so auto-recenter
         /// cannot start fighting the return halfway home; it only begins
         /// counting once the camera is back where the player left it.
@@ -613,10 +615,25 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             lookBackBlend = Mathf.MoveTowards(lookBackBlend, held ? 1f : 0f, dt / seconds);
             if (lookBackBlend <= 0f && !held) return false;
 
+            // The rear view is an ABSOLUTE pose in the vehicle's frame (yaw,
+            // pitch and radius all authored), never an offset from the pan the
+            // player happened to hold: the glance must show the same road
+            // behind whether the camera was centred or swung out to the side.
+            // Only the way back is relative — it lands on the remembered pan.
             float eased = Mathf.SmoothStep(0f, 1f, lookBackBlend);
-            orbital.HorizontalAxis.Value = Mathf.LerpAngle(lookBackFromYaw, lookBackFromYaw + settings.lookBackAngle, eased);
+            orbital.HorizontalAxis.Value = Mathf.LerpAngle(lookBackFromYaw, settings.lookBackAngle, eased);
             orbital.VerticalAxis.Value = Mathf.Lerp(lookBackFromPitch,
                 Mathf.Clamp(settings.lookBackPitch, settings.PitchMin, settings.PitchMax), eased);
+            // The radius rides the same blend: ApplyFraming has already written
+            // this frame's Far/Close radius, so the return lands on the live
+            // framing even if the view was cycled during the glance.
+            orbital.Radius = Mathf.Lerp(orbital.Radius, settings.lookBackDistance, eased);
+            // Damping too — ApplySettings wrote the normal value at the top of
+            // the frame, and the follow's lag in front of a fast car is the
+            // rear view creeping into the bonnet. Blended, so the press never
+            // snaps the lagged camera onto the rigid pose.
+            orbital.TrackerSettings.PositionDamping =
+                Vector3.one * Mathf.Lerp(settings.positionDamping, settings.lookBackDamping, eased);
             idleTimer = 0f;
             return true;
         }

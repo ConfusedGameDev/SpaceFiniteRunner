@@ -278,6 +278,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                           0.02f, 1.5f, 0.02f, "0.00", s => s.lookBackInSeconds, (s, v) => s.lookBackInSeconds = v);
             AddCameraStat(screen, settings, refreshers, MenuTextId.CamLookBackOut,
                           0.02f, 2f, 0.02f, "0.00", s => s.lookBackOutSeconds, (s, v) => s.lookBackOutSeconds = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamLookBackDistance,
+                          3f, 60f, 0.5f, "0.0", s => s.lookBackDistance, (s, v) => s.lookBackDistance = v);
+            AddCameraStat(screen, settings, refreshers, MenuTextId.CamLookBackDamping,
+                          0f, 3f, 0.05f, "0.00", s => s.lookBackDamping, (s, v) => s.lookBackDamping = v);
             return screen;
         }
 

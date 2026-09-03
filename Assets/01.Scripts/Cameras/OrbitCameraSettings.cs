@@ -173,7 +173,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         public bool lookBack = true;
 
         [ToggleGroup("lookBack")]
-        [Tooltip("How far round the orbit swings. 180 is straight behind the car; less leaves the car's flank in frame.")]
+        [Tooltip("Orbit yaw of the rear view, measured from straight behind the car — an absolute pose, not an offset from the current pan. 180 aims the camera dead along the car's axis at the road behind; less keeps the car's flank in frame.")]
         [PropertyRange(90f, 180f), SuffixLabel("°", true)]
         public float lookBackAngle = 180f;
 
@@ -191,6 +191,16 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         [Tooltip("Pitch held while looking back, clamped to the range above. Flatter than the default reads as a glance over the shoulder rather than a drone shot.")]
         [PropertyRange(-20f, 80f), SuffixLabel("°", true)]
         public float lookBackPitch = 12f;
+
+        [ToggleGroup("lookBack")]
+        [Tooltip("Orbit radius of the rear view, whatever view the player is in — the third fixed component of the pose beside its yaw and pitch.")]
+        [PropertyRange(3f, 60f), SuffixLabel("m", true)]
+        public float lookBackDistance = 8f;
+
+        [ToggleGroup("lookBack")]
+        [Tooltip("Position damping while looking back. The follow's lag trails the car, and with the camera IN FRONT of it that trail pulls the camera into the bonnet by more the faster you go — 0 bolts the rear view to its authored distance at any speed.")]
+        [PropertyRange(0f, 3f)]
+        public float lookBackDamping = 0f;
 
         // ----------------------------------------------------------------- fov
         [TitleGroup("Speed FOV")]
