@@ -152,11 +152,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // tuned before play, and switching the weather off has to park it.
             RainSystem.Apply(settings.rainEnabled, settings.rainSettings);
 
-            // Speed lines: the same Apply contract as the rain (a hand-placed
-            // driver wins). The driver cannot see the camera rig or the ship
-            // (FX does not reference Cameras), so it takes the ship root as its
-            // focus, a km/h reader and Light Speed as the reference its speed
-            // band is a fraction of; Update pushes the camera mode each frame.
+            // Speed lines: the scene's hand-placed SpeedLines object (next to
+            // the fog and the rain — tuned before play, never spawned here).
+            // Apply finds it and parks it when off. The driver cannot see the
+            // camera rig or the ship (FX does not reference Cameras), so it
+            // takes the ship root as its focus, a km/h reader and Light Speed
+            // as the reference its band is a fraction of; Update pushes the
+            // camera mode each frame.
             speedLines = SpeedLines.Apply(settings.speedLinesEnabled, settings.speedLinesSettings);
             if (speedLines != null && motor != null)
                 speedLines.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, settings.lightSpeedKmh);

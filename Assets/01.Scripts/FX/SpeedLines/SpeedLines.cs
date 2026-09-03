@@ -25,8 +25,12 @@ namespace ConfusedGameDev.FiniteRunner.FX
     /// on scaled time so the lines freeze with the pause menu. [ExecuteAlways]
     /// with <see cref="preview"/> on shows the pattern in the Scene view (off
     /// by default — lines over the Scene view are a nuisance).
-    /// <see cref="Apply"/> is the owner's entry: a hand-placed driver wins, a
-    /// missing one is created, and "disabled" parks it.
+    /// **It is a hand-placed scene object, never spawned**: the runner scene
+    /// carries one next to its DistanceFog and RainSystem, with the material
+    /// and settings asset wired so the effect can be tuned before play;
+    /// <see cref="Apply"/> only finds it (and errors when it is missing) and
+    /// parks it when the owner's settings say off. Tools → FiniteRunner →
+    /// Install Speed Lines Feature places one in the open scene.
     /// </summary>
     [ExecuteAlways, DisallowMultipleComponent]
     public class SpeedLines : MonoBehaviour
@@ -81,9 +85,13 @@ namespace ConfusedGameDev.FiniteRunner.FX
         Vector2 focusViewport = new(0.5f, 0.5f);
 
         /// <summary>
-        /// The owner's one call (the RainSystem.Apply contract): a hand-placed
-        /// driver wins (its tuning is the designer's), a missing one is
-        /// created, and disabled parks whatever exists. Returns null when off.
+        /// The owner's one call: finds the scene's hand-placed driver (its
+        /// wiring and tuning are the designer's), pushes an override asset
+        /// onto it when one is given, and parks it when the owner says off.
+        /// NEVER creates one — systems live in the scene so they can be tuned
+        /// before play; a missing driver is a scene-setup error (run Tools →
+        /// FiniteRunner → Install Speed Lines Feature). Returns null when off
+        /// or missing.
         /// </summary>
         public static SpeedLines Apply(bool enabled, SpeedLinesSettings settings = null)
         {
@@ -96,7 +104,11 @@ namespace ConfusedGameDev.FiniteRunner.FX
                 if (system != null) system.gameObject.SetActive(false);
                 return null;
             }
-            if (system == null) system = new GameObject("SpeedLines").AddComponent<SpeedLines>();
+            if (system == null)
+            {
+                Debug.LogError($"{nameof(SpeedLines)}: the scene has no SpeedLines object — place one (Tools → FiniteRunner → Install Speed Lines Feature adds it to the open scene). Systems are never spawned at play time.");
+                return null;
+            }
             if (settings != null) system.settings = settings;
             if (system.settings == null) system.settings = SpeedLinesSettings.Load();
             if (system.linesMaterial == null) system.linesMaterial = system.settings.material;

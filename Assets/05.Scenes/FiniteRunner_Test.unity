@@ -5173,6 +5173,55 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: ef3421b878b8436ab57697d69113e4e5, type: 2}
   intensityScale: 1
   preview: 1
+--- !u!1 &1760000000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1760000001}
+  - component: {fileID: 1760000002}
+  m_Layer: 0
+  m_Name: SpeedLines
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1760000001
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1760000000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1760000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1760000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 915726c1bd639d54bb5437de5b0e863b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.SpeedLines
+  linesMaterial: {fileID: 2100000, guid: 947115ad6b8341738625b354beb26538, type: 2}
+  settings: {fileID: 11400000, guid: 121749c11ebf4e41969b1188e0e39b3c, type: 2}
+  intensityScale: 1
+  preview: 0
+  previewIntensity: 1
 --- !u!1 &1730000000
 GameObject:
   m_ObjectHideFlags: 0
@@ -7323,6 +7372,7 @@ SceneRoots:
   - {fileID: 1730000001}
   - {fileID: 961739753}
   - {fileID: 1700000002}
+  - {fileID: 1760000001}
   - {fileID: 1514343557}
   - {fileID: 392889475}
   - {fileID: 1303208069}

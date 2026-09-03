@@ -1,6 +1,7 @@
 using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.Rendering;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
@@ -18,9 +19,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     /// shared <see cref="DistanceFogInstaller.InsertBeforePostGlitch"/>: both
     /// run at the same event, so list order is what puts the lines under the
     /// death glitch. Re-running updates the existing features' material
-    /// instead of duplicating them. The scene side needs nothing placed —
-    /// the runner's GameManager creates the <see cref="SpeedLines"/> driver
-    /// off its GameSettings (a hand-placed one wins).
+    /// instead of duplicating them. Finally it places a <see cref="SpeedLines"/>
+    /// driver in the OPEN scene when it has none (and wires the material and
+    /// asset onto an existing one that lacks them): systems are hand-placed
+    /// so they can be tuned before play — nothing creates one at play time.
     /// </summary>
     public static class SpeedLinesInstaller
     {
@@ -70,8 +72,40 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             }
 
             AssetDatabase.SaveAssets();
-            Debug.Log($"SpeedLinesInstaller: material at {MaterialPath}, settings at {SettingsPath} — feature installed on {installed} renderer asset(s), updated on {updated}. " +
-                      "The runner's GameSettings 'Speed lines' group switches it on; assign the settings asset there or leave it to Resources.", settings);
+            string placed = PlaceInOpenScene(material, settings);
+            Debug.Log($"SpeedLinesInstaller: material at {MaterialPath}, settings at {SettingsPath} — feature installed on {installed} renderer asset(s), updated on {updated}; {placed}. " +
+                      "The runner's GameSettings 'Speed lines' group switches it on.", settings);
+        }
+
+        /// <summary>
+        /// The scene half: a hand-placed SpeedLines object at the root of the
+        /// active scene, wired to the material and the asset, so the effect is
+        /// tunable in the inspector before play. Idempotent — an existing one
+        /// only gets its empty references filled.
+        /// </summary>
+        static string PlaceInOpenScene(Material material, SpeedLinesSettings settings)
+        {
+            var existing = Object.FindAnyObjectByType<SpeedLines>(FindObjectsInactive.Include);
+            if (existing != null)
+            {
+                bool changed = false;
+                if (existing.linesMaterial == null) { existing.linesMaterial = material; changed = true; }
+                if (existing.settings == null) { existing.settings = settings; changed = true; }
+                if (changed)
+                {
+                    EditorUtility.SetDirty(existing);
+                    EditorSceneManager.MarkSceneDirty(existing.gameObject.scene);
+                }
+                return changed ? $"wired the scene's '{existing.name}' object" : $"scene already has '{existing.name}'";
+            }
+
+            var go = new GameObject("SpeedLines");
+            var driver = go.AddComponent<SpeedLines>();
+            driver.linesMaterial = material;
+            driver.settings = settings;
+            Undo.RegisterCreatedObjectUndo(go, "Place SpeedLines");
+            EditorSceneManager.MarkSceneDirty(go.scene);
+            return "placed a SpeedLines object in the open scene (save it)";
         }
 
         static Material CreateOrLoadMaterial()
