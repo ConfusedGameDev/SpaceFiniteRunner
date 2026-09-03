@@ -11,11 +11,11 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// <summary>
     /// Teaches the lateral dash without ever nagging early: nothing is shown
     /// until the meter fills for the first time (it starts each run empty),
-    /// then a narrator line lands in the RPG box and a pulsing bottom-screen
-    /// hint appears — bumper glyphs while a pad is connected, [N]/[M] key
-    /// labels otherwise, swapped live like the main menu's attract prompt.
-    /// The first dash hides the hint; a meter left full for too long brings
-    /// the narrator (and the hint) back. Spawned by GameManager, built from
+    /// then a pulsing bottom-screen hint appears — bumper glyphs while a pad
+    /// is connected, [N]/[M] key labels otherwise, swapped live like the main
+    /// menu's attract prompt. The first dash hides the hint; a meter left
+    /// full for too long brings the hint back. It never speaks: the RPG box
+    /// is for story beats, not tutorials. Spawned by GameManager, built from
     /// code on its own overlay canvas.
     /// </summary>
     public class DashPromptController : MonoBehaviour
@@ -161,7 +161,6 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         {
             if (firstFillSeen) return;
             firstFillSeen = true;
-            ShowNarrator(settings.dashFirstFullMessage);
             hintVisible = true;
         }
 
@@ -172,13 +171,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             fullUnusedTimer = 0f;
         }
 
-        void ShowNarrator(string text)
-        {
-            RpgMessageSystem.Instance.ShowMessage(
-                "NARRATOR", text, settings.messageHoldSeconds, settings.dashMessageColor);
-        }
-
-        /// <summary>Back to the untaught state — the first-full line replays next run.</summary>
+        /// <summary>Back to the untaught state — the hint shows again on the next run's first full meter.</summary>
         public void ResetForRun()
         {
             firstFillSeen = false;
@@ -197,7 +190,6 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 if (fullUnusedTimer >= settings.dashEncourageAfterSeconds)
                 {
                     fullUnusedTimer = 0f; // re-arms: keeps nagging while ignored
-                    ShowNarrator(settings.dashReminderMessage);
                     hintVisible = true;
                 }
             }

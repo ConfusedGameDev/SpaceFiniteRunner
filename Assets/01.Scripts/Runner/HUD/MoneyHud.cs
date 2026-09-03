@@ -19,6 +19,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// runner scene, under <c>===SYSTEMS===</c> in the city) — the canvas is
     /// built under it at play and never saved. All knobs live here since
     /// there is one label to tune.
+    /// The Store reuses it as the wallet: with a <see cref="ValueSource"/>
+    /// set it ignores the collectible manager, follows that value in BOTH
+    /// directions (a purchase counts the money down instead of snapping) and
+    /// takes its punch from <see cref="Punch"/>.
     /// </summary>
     public class MoneyHud : MonoBehaviour
     {
@@ -46,10 +50,20 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         Canvas canvas;
         Text label;
-        float displayed;
-        int target;
+        double displayed;
+        long target;
         float pulse = 1f;
         bool built;
+
+        /// <summary>
+        /// Optional value to show instead of the run's pickups (the Store's
+        /// wallet). While set, the collectible events are ignored and the
+        /// number counts toward the value both up and down.
+        /// </summary>
+        public System.Func<long> ValueSource { get; set; }
+
+        /// <summary>Kicks the label's scale — the Store's purchase feedback. 0 = the inspector's punch.</summary>
+        public void Punch(float scale = 0f) => pulse = scale > 1f ? scale : punchScale;
 
         void OnEnable()
         {
@@ -63,6 +77,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void OnMoneyChanged(int total, int delta)
         {
+            if (ValueSource != null) return; // the wallet follows its own source
             target = total;
             if (delta > 0) pulse = punchScale;
             else displayed = total; // a reset snaps, it never counts down
@@ -77,17 +92,21 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             if (canvas.enabled != visible) canvas.enabled = visible;
             if (!visible) return;
 
-            if (Application.isPlaying)
+            if (ValueSource != null)
+            {
+                target = ValueSource();
+            }
+            else if (Application.isPlaying)
             {
                 CollectibleManager manager = CollectibleManager.Instance;
                 if (manager != null) target = manager.RunMoney;
             }
 
-            displayed = Mathf.Lerp(displayed, target, 1f - Mathf.Exp(-countUpSharpness * Time.unscaledDeltaTime));
-            if (Mathf.Abs(target - displayed) < 0.5f) displayed = target;
+            displayed += (target - displayed) * (1.0 - System.Math.Exp(-countUpSharpness * Time.unscaledDeltaTime));
+            if (System.Math.Abs(target - displayed) < 0.5) displayed = target;
             pulse = Mathf.MoveTowards(pulse, 1f, punchDecay * Time.unscaledDeltaTime);
 
-            label.text = StatFormat.Money(Mathf.RoundToInt(displayed));
+            label.text = StatFormat.Money((long)System.Math.Round(displayed));
             label.color = color;
             label.rectTransform.localScale = Vector3.one * pulse;
         }

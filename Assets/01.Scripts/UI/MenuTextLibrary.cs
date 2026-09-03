@@ -30,7 +30,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         HoverHeight, BobAmplitude, BobFrequency, PitchWobble,
         DebugTabPatrol,
         PatrolBaseSpeed, PatrolRamp, PatrolRubberBand, PatrolCatchUp,
-        PatrolStartGap, PatrolCatchDistance, PatrolWarnDistance, PatrolAlertLead,
+        PatrolStartGap, PatrolCatchDistance, PatrolWarnDistance, PatrolAlertLead, PatrolBoostShare,
         DebugTabCarDrive, DebugTabCarGrip, DebugTabCamera,
         CarMass, CarCenterOfMass, CarDownforce, CarMotorTorque, CarTopSpeed, CarBrakeTorque,
         CarSteerAngle, CarHandbrakeTorque, CarHandbrakeGrip, CarForwardGrip, CarSideGrip,
@@ -81,7 +81,13 @@ namespace ConfusedGameDev.FiniteRunner.UI
         LoopRadius, LoopFallGravity, LoopFallLoss,
         TubeRadius, TubeBand, TubeCurl,
         BarrelRollSeconds,
-        MissionComplete, MainObjectives, FiniteRunObjectives, Total, Rank, NextMission, Retry, MissionBonus, StatRank
+        MissionComplete, MainObjectives, FiniteRunObjectives, Total, Rank, NextMission, Retry, MissionBonus, StatRank,
+        LoseCaught, LoseTimeOut, LoseStalled,
+        Store, StoreSectionCar, StoreSectionShip, StoreSectionCharacter, StoreModel, StartMission, Max,
+        HintBuy, HintRotate, HintSection,
+        UpgradeSpeed, UpgradeAcceleration, UpgradeWeight, UpgradeResistance, UpgradeHandling,
+        UpgradeDashPower, UpgradeSpeedMultiplier, UpgradeJumpStrength,
+        UpgradeHackingSpeed, UpgradeHackValue, UpgradeStrength, UpgradeRange, UpgradeAccuracy
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -279,6 +285,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString patrolWarnDistance = new("WARN DISTANCE", "DISTANCIA DE ALERTA", "警告距離", "DISTANCE D'ALERTE");
         [TitleGroup("Patrol stats")]
         [SerializeField] LocalizedString patrolAlertLead = new("ALERT LEAD", "ADELANTO DE ALERTA", "警告の先行距離", "AVANCE D'ALERTE");
+        [TitleGroup("Patrol stats")]
+        [SerializeField] LocalizedString patrolBoostShare = new("BOOST SHARE", "PARTE DEL TURBO", "ブースト分配", "PART DU BOOST");
 
         [TitleGroup("Car stats")]
         [SerializeField] LocalizedString debugTabCarDrive = new("DEBUG — CAR DRIVE", "DEPURACIÓN — MOTOR DEL COCHE", "デバッグ — 車の駆動", "DÉBOGAGE — MOTRICITÉ");
@@ -527,6 +535,63 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString gameOver = new("GAME OVER", "FIN DE LA PARTIDA", "ゲームオーバー", "PARTIE TERMINÉE");
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString retryPrompt = new("RETRY?", "¿REINTENTAR?", "リトライしますか？", "RÉESSAYER ?");
+        [TitleGroup("Game over")]
+        [SerializeField] LocalizedString loseCaught = new("CAUGHT BY THE PATROL", "ATRAPADO POR LA PATRULLA", "パトロールに捕まった", "RATTRAPÉ PAR LA PATROUILLE");
+        [TitleGroup("Game over")]
+        [SerializeField] LocalizedString loseTimeOut = new("TIME RAN OUT", "SE ACABÓ EL TIEMPO", "時間切れ", "TEMPS ÉCOULÉ");
+        [TitleGroup("Game over")]
+        [SerializeField] LocalizedString loseStalled = new("OUT OF SPEED", "SIN VELOCIDAD", "速度切れ", "PLUS DE VITESSE");
+
+        // The Store: section titles, the model row, the purchase rows and the
+        // upgrade categories. Category labels are kept short on purpose — the
+        // purchase row reserves a wide zone for its ten pips and the price, so
+        // a long translation would push the plate off the left edge.
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString store = new("STORE", "TIENDA", "ストア", "BOUTIQUE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString storeSectionCar = new("STORE — CAR", "TIENDA — COCHE", "ストア — 車", "BOUTIQUE — VOITURE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString storeSectionShip = new("STORE — SHIP", "TIENDA — NAVE", "ストア — 機体", "BOUTIQUE — VAISSEAU");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString storeSectionCharacter = new("STORE — CHARACTER", "TIENDA — PERSONAJE", "ストア — キャラクター", "BOUTIQUE — PERSONNAGE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString storeModel = new("MODEL", "MODELO", "モデル", "MODÈLE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString startMission = new("START MISSION", "INICIAR MISIÓN", "ミッション開始", "LANCER LA MISSION");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString max = new("MAX", "MÁX", "最大", "MAX");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString hintBuy = new("BUY", "COMPRAR", "購入", "ACHETER");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString hintRotate = new("ROTATE", "GIRAR", "回転", "PIVOTER");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString hintSection = new("SECTION", "SECCIÓN", "セクション", "SECTION");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeSpeed = new("SPEED", "VELOCIDAD", "スピード", "VITESSE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeAcceleration = new("ACCELERATION", "ACELERACIÓN", "加速", "ACCÉLÉRATION");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeWeight = new("WEIGHT", "PESO", "重量", "POIDS");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeResistance = new("RESISTANCE", "RESISTENCIA", "耐久", "RÉSISTANCE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeHandling = new("HANDLING", "MANEJO", "ハンドリング", "MANIABILITÉ");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeDashPower = new("DASH POWER", "POTENCIA DASH", "ダッシュ力", "PUISSANCE DASH");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeSpeedMultiplier = new("SPEED MULTIPLIER", "MULT. VELOCIDAD", "スピード倍率", "MULT. VITESSE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeJumpStrength = new("JUMP STRENGTH", "FUERZA DE SALTO", "ジャンプ力", "FORCE DE SAUT");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeHackingSpeed = new("HACKING SPEED", "VEL. DE HACKEO", "ハッキング速度", "VITESSE PIRATAGE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeHackValue = new("HACK VALUE", "VALOR DE HACKEO", "ハッキング価値", "VALEUR PIRATAGE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeStrength = new("STRENGTH", "FUERZA", "筋力", "FORCE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeRange = new("RANGE", "ALCANCE", "射程", "PORTÉE");
+        [TitleGroup("Store")]
+        [SerializeField] LocalizedString upgradeAccuracy = new("ACCURACY", "PRECISIÓN", "命中率", "PRÉCISION");
 
         [TitleGroup("Loading screen")]
         [SerializeField] LocalizedString loading = new("LOADING...", "CARGANDO...", "ロード中...", "CHARGEMENT...");
@@ -759,6 +824,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.PatrolCatchDistance => patrolCatchDistance,
             MenuTextId.PatrolWarnDistance => patrolWarnDistance,
             MenuTextId.PatrolAlertLead => patrolAlertLead,
+            MenuTextId.PatrolBoostShare => patrolBoostShare,
             MenuTextId.DebugTabCarDrive => debugTabCarDrive,
             MenuTextId.DebugTabCarGrip => debugTabCarGrip,
             MenuTextId.CarMass => carMass,
@@ -893,6 +959,32 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.CheatUnlocked => cheatUnlocked,
             MenuTextId.GameOver => gameOver,
             MenuTextId.RetryPrompt => retryPrompt,
+            MenuTextId.LoseCaught => loseCaught,
+            MenuTextId.LoseTimeOut => loseTimeOut,
+            MenuTextId.LoseStalled => loseStalled,
+            MenuTextId.Store => store,
+            MenuTextId.StoreSectionCar => storeSectionCar,
+            MenuTextId.StoreSectionShip => storeSectionShip,
+            MenuTextId.StoreSectionCharacter => storeSectionCharacter,
+            MenuTextId.StoreModel => storeModel,
+            MenuTextId.StartMission => startMission,
+            MenuTextId.Max => max,
+            MenuTextId.HintBuy => hintBuy,
+            MenuTextId.HintRotate => hintRotate,
+            MenuTextId.HintSection => hintSection,
+            MenuTextId.UpgradeSpeed => upgradeSpeed,
+            MenuTextId.UpgradeAcceleration => upgradeAcceleration,
+            MenuTextId.UpgradeWeight => upgradeWeight,
+            MenuTextId.UpgradeResistance => upgradeResistance,
+            MenuTextId.UpgradeHandling => upgradeHandling,
+            MenuTextId.UpgradeDashPower => upgradeDashPower,
+            MenuTextId.UpgradeSpeedMultiplier => upgradeSpeedMultiplier,
+            MenuTextId.UpgradeJumpStrength => upgradeJumpStrength,
+            MenuTextId.UpgradeHackingSpeed => upgradeHackingSpeed,
+            MenuTextId.UpgradeHackValue => upgradeHackValue,
+            MenuTextId.UpgradeStrength => upgradeStrength,
+            MenuTextId.UpgradeRange => upgradeRange,
+            MenuTextId.UpgradeAccuracy => upgradeAccuracy,
             MenuTextId.MissionBrief => missionBrief,
             MenuTextId.OptionalChallenges => optionalChallenges,
             MenuTextId.Reward => reward,

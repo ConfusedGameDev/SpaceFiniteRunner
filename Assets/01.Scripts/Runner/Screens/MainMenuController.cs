@@ -8,6 +8,7 @@ using UnityEngine.UI;
 using ConfusedGameDev.FiniteRunner.Cheats;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.Ship;
+using ConfusedGameDev.FiniteRunner.Store;
 using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.Screens
 {
@@ -303,18 +304,19 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             Time.timeScale = 1f;
             ownsTimeScale = false;
 
-            // Own scene: hand off to the next scene in the build order — the
-            // city chase, which later glitches into the finite runner.
+            // Own scene: hand off to the Store, the hub between missions (its
+            // START MISSION row goes on to the city chase, which later
+            // glitches into the finite runner). By name, never by build index:
+            // the store sits at the end of the build list.
             if (standalone)
             {
-                int next = gameObject.scene.buildIndex + 1;
-                if (next > 0 && next < SceneManager.sceneCountInBuildSettings)
+                if (Application.CanStreamedLevelBeLoaded(StoreSettings.SceneName))
                 {
-                    LoadingScreen.Load(next);
+                    LoadingScreen.Load(StoreSettings.SceneName);
                 }
                 else
                 {
-                    Debug.LogError("MainMenu has no next scene in the build settings — add the gameplay scene after it.", this);
+                    Debug.LogError($"MainMenu: the {StoreSettings.SceneName} scene is not in the build settings — run Tools → FiniteRunner → Create Store Scene.", this);
                     Destroy(gameObject);
                 }
                 return;

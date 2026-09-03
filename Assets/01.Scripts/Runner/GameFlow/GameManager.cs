@@ -10,6 +10,7 @@ using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.SaveData;
 using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
+using ConfusedGameDev.FiniteRunner.Store;
 using ConfusedGameDev.FiniteRunner.Track;
 using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
@@ -20,8 +21,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// is the first Reach Speed one) before the countdown ends. Lose: the
     /// police patrol catches up, the timer runs out, or the ship bleeds down
     /// to a standstill. The level's optional challenges are live from launch
-    /// and latch when met; a win hands the run's rows to the Mission Complete
-    /// panel, which pays the whole mission (city level + this run).
+    /// and latch when met. Both endings are a panel, raised the frame the run
+    /// ends with no closing line or HUD text in between: a win hands the run's
+    /// rows to the Mission Complete panel, which pays the whole mission (city
+    /// level + this run); a loss raises the GameOverScreen's retry panel with
+    /// the reason it ended.
     /// Wires up the scene's PolicePatrol object (its chase tunables live on
     /// its own PatrolDefinition asset) and restarts it with the run.
     /// The timer only ticks while the ship is actually flying (not while
@@ -94,9 +98,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool IsChallengeDone(int index) => index >= 0 && index < challengeDone.Length && challengeDone[index];
         public float TimeLimit => settings.timeLimitSeconds;
         public float TimeRemaining { get; private set; }
-        public string ResultLabel { get; private set; }
         public bool HasWon { get; private set; }
-        public bool RunOver => ResultLabel != null;
+        /// <summary>True from the frame the run ended until <see cref="Restart"/>.</summary>
+        public bool RunOver { get; private set; }
 
         void Awake()
         {
@@ -139,6 +143,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     if (rollTrail == null) rollTrail = motor.gameObject.AddComponent<BarrelRollTrail>();
                     rollTrail.Init(motor, settings);
                     dashPrompt = DashPromptController.Spawn(motor, settings);
+                }
+            }
+
+            // The ship's run definition: the Store's bought levels multiplied
+            // into a fresh clone of the authored asset (plus the armed debug
+            // overrides), set here — every Awake precedes ShipMotor.Start's
+            // launch. The tuning screen is parked (the COMPONENT — it shares
+            // the RaceHUD canvas object with the HUD, so its object must stay
+            // active) before its own Start can fire, and forgotten, so Restart
+            // never reopens it. Flip GameSettings.useTuningScreen to get the
+            // point allocation back (it then applies the store levels on top
+            // of its points).
+            if (!settings.useTuningScreen)
+            {
+                if (motor != null) motor.SetDefinition(ShipUpgradeApplier.BuildRunDefinition(motor.Definition));
+                if (tuningScreen != null)
+                {
+                    tuningScreen.Park();
+                    tuningScreen = null;
                 }
             }
 
@@ -221,20 +244,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (EvaluateObjectives(motor.CurrentSpeed * 3.6f))
             {
                 HasWon = true;
-                EndRun("LIGHT SPEED — YOU ESCAPED!", RunOutcome.Escaped);
+                EndRun(RunOutcome.Escaped);
                 return;
             }
 
             if (patrol != null && patrol.HasCaught)
             {
-                EndRun("BUSTED — CAUGHT BY THE PATROL", RunOutcome.Caught);
                 HapticsSystem.Instance.Pulse(1f, 0.7f, 1.5f); // long busted rumble
+                EndRun(RunOutcome.Caught);
                 return;
             }
 
             if (motor.HasStopped)
             {
-                EndRun("BUSTED — OUT OF SPEED", RunOutcome.Stalled);
+                EndRun(RunOutcome.Stalled);
                 return;
             }
 
@@ -245,12 +268,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             TimeRemaining = Mathf.Max(0f, TimeRemaining - Time.deltaTime);
             if (TimeRemaining <= 0f)
-                EndRun("BUSTED — TIME RAN OUT", RunOutcome.TimedOut);
+                EndRun(RunOutcome.TimedOut);
         }
 
-        void EndRun(string label, RunOutcome outcome)
+        void EndRun(RunOutcome outcome)
         {
-            ResultLabel = label;
+            RunOver = true;
             motor.Paused = true; // freeze the sim; the hover keeps the ship floating
 
             // The record: an escape completed (and how long it took — the
@@ -260,43 +283,39 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (outcome == RunOutcome.Caught) PlayerStats.RecordArrest();
             PlayerProfileStore.SaveIfDirty();
 
-            // RPG message on both outcomes. Losing waits for the patrol's
-            // parting line to disappear and only then asks the question — the
-            // screen would otherwise cover the line that sets it up.
-            if (HasWon)
-                RpgMessageSystem.Instance.ShowMessage(
-                    "PILOT", settings.winMessage, settings.messageHoldSeconds, settings.pilotMessageColor,
-                    onFinished: ShowMissionComplete);
-            else
-                RpgMessageSystem.Instance.ShowMessage(
-                    "PATROL", settings.loseMessage, settings.messageHoldSeconds, settings.patrolMessageColor,
-                    onFinished: ShowGameOver);
+            // Straight to the panel, this frame. Both panels freeze the clock
+            // and the RPG box types on scaled time, so a story line still up
+            // (an orb hype line, a patrol taunt) would sit frozen under the
+            // panel — drop it, and its callback with it.
+            RpgMessageSystem.Instance.ClearMessages();
+            if (HasWon) ShowMissionComplete();
+            else ShowGameOver(outcome);
         }
 
         /// <summary>
-        /// GAME OVER — RETRY? on the shared screen: YES runs the track again,
-        /// NO goes back to the attract screen. It is the same screen the city
-        /// chase raises, so both games answer death the same way. Guarded on
-        /// <see cref="RunOver"/> because a manual restart (R on the HUD) can
-        /// land while the lose line is still on screen — the question must not
-        /// arrive over a run that is already going again.
+        /// The retry panel on the shared screen: GAME OVER, the reason this
+        /// run ended, then RETRY (runs the track again, in place — no load)
+        /// and EXIT TO MAIN MENU (under the loading curtain). It is the same
+        /// screen the city chase raises, so both games answer death the same
+        /// way; the city's has no reason line.
         /// </summary>
-        void ShowGameOver()
+        void ShowGameOver(RunOutcome outcome)
         {
-            if (!RunOver) return;
-            // NO leaves under the loading curtain; YES retries in place, no load.
-            GameOverScreen.Show(onRetry: Restart, onGiveUp: LoadingScreen.LoadMainMenu);
+            MenuTextId reason = outcome switch
+            {
+                RunOutcome.Caught => MenuTextId.LoseCaught,
+                RunOutcome.TimedOut => MenuTextId.LoseTimeOut,
+                _ => MenuTextId.LoseStalled
+            };
+            GameOverScreen.Show(reason, onRetry: Restart, onGiveUp: LoadingScreen.LoadMainMenu);
         }
 
         /// <summary>
-        /// The Mission Complete panel, raised once the pilot's win line has
-        /// cleared (it types on scaled time; the panel freezes the clock). The
-        /// city level's rows come off the profile — the only thing that
-        /// crosses the scene handoff — and the run's own rows off the live
-        /// state; the panel adds them up, ranks them and banks the mission.
-        /// Guarded like <see cref="ShowGameOver"/>: a restart mid-line drops
-        /// the callback, and the message system can fire duplicate-dropped
-        /// callbacks at once.
+        /// The Mission Complete panel, raised the frame the run is won (the
+        /// panel freezes the clock). The city level's rows come off the
+        /// profile — the only thing that crosses the scene handoff — and the
+        /// run's own rows off the live state; the panel adds them up, ranks
+        /// them and banks the mission.
         /// </summary>
         void ShowMissionComplete()
         {
@@ -500,14 +519,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>Resets the run; rebuilds the track (endless runs must — the stretch behind the start was culled).</summary>
         public void Restart()
         {
-            // A manual restart from the result screen may race the game-over
-            // message's auto-restart — dropping any pending message (and its
-            // onFinished) keeps the new run from being reset a second time.
+            // Drop any story line still queued (and its onFinished) so nothing
+            // from the old run lands on the new one.
             RpgMessageSystem.Instance.ClearMessages();
             if (dashPrompt != null) dashPrompt.ResetForRun();
             if (speedLines != null) speedLines.ClearPulse(); // the speed term follows the relaunch on its own
 
-            ResultLabel = null;
+            RunOver = false;
             HasWon = false;
             runCounted = false;
             TimeRemaining = settings.timeLimitSeconds;

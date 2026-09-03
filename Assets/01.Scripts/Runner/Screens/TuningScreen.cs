@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 using ConfusedGameDev.FiniteRunner.Ship;
+using ConfusedGameDev.FiniteRunner.Store;
 namespace ConfusedGameDev.FiniteRunner.Screens
 {
     /// <summary>
@@ -82,6 +83,19 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 StartRun();
         }
 
+        /// <summary>
+        /// Takes the screen out of the run without touching its GameObject:
+        /// the component sits on the RaceHUD canvas object beside RaceHud and
+        /// every HUD text, so deactivating the object would take the whole
+        /// HUD down. A disabled component never receives Start or Update;
+        /// the panel (still active in the scene) is hidden by hand.
+        /// </summary>
+        public void Park()
+        {
+            enabled = false;
+            if (panelRoot != null) panelRoot.SetActive(false);
+        }
+
         public void Show()
         {
             if (autoLaunch)
@@ -117,12 +131,19 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         {
             if (motor == null || baseDefinition == null) return;
 
-            if (tunedDefinition == null) tunedDefinition = Instantiate(baseDefinition);
+            // A fresh clone every launch: the store multipliers below are
+            // applied in place, and applying them twice to one clone would
+            // compound the upgrade on every restart.
+            if (tunedDefinition != null) Destroy(tunedDefinition);
+            tunedDefinition = Instantiate(baseDefinition);
 
             tunedDefinition.initialImpulse = baseDefinition.initialImpulse + points[(int)Stat.LaunchSpeed] * maxSpeedPerPoint;
             tunedDefinition.acceleration = baseDefinition.acceleration + points[(int)Stat.Acceleration] * accelerationPerPoint;
             tunedDefinition.lateralSpeed = baseDefinition.lateralSpeed + points[(int)Stat.Handling] * lateralSpeedPerPoint;
             tunedDefinition.weight = Mathf.Max(minWeight, baseDefinition.weight + points[(int)Stat.Weight] * weightPerPoint);
+
+            // The Store's bought levels multiply the pointed values.
+            ShipUpgradeApplier.Apply(tunedDefinition);
 
             // Armed ship debug values win over the point allocation, same rule
             // as the track debug asset — untick applyOnLoad to get tuning back.

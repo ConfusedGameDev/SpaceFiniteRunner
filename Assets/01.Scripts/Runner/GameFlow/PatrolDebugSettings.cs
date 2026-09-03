@@ -26,6 +26,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float ramp = 0.8f;
         public float rubberBand = 1.05f;
         public float catchUpAccel = 16.7f;
+        public float boostShare = 0.7f;
         public float startGap = 250f;
         public float catchDistance = 10f;
         public float warnDistance = 130f;
@@ -58,6 +59,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             ramp = definition.ramp;
             rubberBand = definition.rubberBand;
             catchUpAccel = definition.catchUpAccel;
+            boostShare = definition.boostShare;
             startGap = definition.startGap;
             catchDistance = definition.catchDistance;
             warnDistance = definition.warnDistance;
@@ -79,6 +81,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             definition.ramp = ramp;
             definition.rubberBand = rubberBand;
             definition.catchUpAccel = catchUpAccel;
+            definition.boostShare = boostShare;
             definition.startGap = startGap;
             definition.catchDistance = catchDistance;
             definition.warnDistance = warnDistance;
