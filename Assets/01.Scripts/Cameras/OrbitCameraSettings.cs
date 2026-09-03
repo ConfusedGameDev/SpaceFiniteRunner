@@ -118,6 +118,11 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         [PropertyRange(0f, 0.5f), SuffixLabel("s", true)]
         public float firstPersonDamping = 0.06f;
 
+        [TitleGroup("Camera modes")]
+        [Tooltip("Near clip plane of the first-person lens. The eye sits inside the vehicle's silhouette, so it has to be small enough not to cut the dashboard — but too small and the depth buffer loses precision on the far city.")]
+        [PropertyRange(0.01f, 1f), SuffixLabel("m", true)]
+        public float firstPersonNearClip = 0.05f;
+
         // --------------------------------------------------------------- input
         [TitleGroup("Input")]
         [Tooltip("Degrees of orbit per pixel of mouse movement.")]

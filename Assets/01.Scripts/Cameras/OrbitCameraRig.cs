@@ -46,13 +46,29 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
     /// OrbitCameraSettings asset and are re-applied live every frame. The
     /// vehicle's say over the shared controls comes through
     /// <see cref="ICameraTarget"/> — the rig never references a vehicle type.
+    ///
+    /// <b>Editor Setup</b>: the same components can be pre-built into the
+    /// scene with the inspector's Setup button (edit mode only), so a
+    /// hand-placed rig shows its Cinemachine components and the
+    /// first-person sibling before play instead of growing them on the first
+    /// SetTarget. Build finds-or-adds, so a set-up rig is configured in place
+    /// at play, never duplicated. The button is live only while it has
+    /// something to do: never pressed, the settings asset swapped since, or a
+    /// set-up component gone missing (<see cref="SetupPending"/>).
     /// </summary>
     [DefaultExecutionOrder(-100)] // LateUpdate before the CinemachineBrain's, so the anchor is seated this frame
     public class OrbitCameraRig : MonoBehaviour
     {
         [Required, InlineEditor]
+        [InfoBox("$SetupStatus", InfoMessageType.None)]
         [Tooltip("All camera-feel tunables live on this asset — add new knobs there, not here.")]
         public OrbitCameraSettings settings;
+
+        // Editor Setup bookkeeping: whether the button has run on this rig and
+        // which settings asset it was last configured against. Serialized so
+        // the button stays disabled across editor sessions until either changes.
+        [SerializeField, HideInInspector] OrbitCameraSettings setupSettings;
+        [SerializeField, HideInInspector] bool setupDone;
 
         CinemachineCamera cinemachineCamera;
         CinemachineOrbitalFollow orbital;
@@ -168,11 +184,76 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         void Build()
         {
             built = true;
-            cinemachineCamera = gameObject.AddComponent<CinemachineCamera>();
-            cinemachineCamera.Priority = OrbitPriority;
-            orbital = gameObject.AddComponent<CinemachineOrbitalFollow>();
-            composer = gameObject.AddComponent<CinemachineRotationComposer>();
+            EnsureComponents();
+            ConfigureComponents();
+
+            // The follow anchor: a sibling, not a child — this object is moved
+            // by its own vcam every frame, and a child would ride along. A
+            // per-run object: never pre-built by Setup.
+            anchor = new GameObject(AnchorName).transform;
+            anchor.SetParent(transform.parent, false);
+
+            // The scene camera's far clip is the authored default; the lens
+            // (which the brain pushes onto the camera every frame) starts there.
+            defaultFarClip = Camera.main != null ? Camera.main.farClipPlane : cinemachineCamera.Lens.FarClipPlane;
+            cinemachineCamera.Lens.FarClipPlane = defaultFarClip;
+            firstPersonCamera.Lens.FarClipPlane = defaultFarClip;
+            appliedPitch = settings != null ? settings.defaultPitch : 18f;
+            ApplySettings();
+        }
+
+        /// <summary>
+        /// Find-or-add every Cinemachine component the rig runs on: the orbit
+        /// vcam's pipeline on this object and the first-person vcam on its
+        /// sibling (created here when the scene has none). Shared by the play
+        /// mode Build and the editor Setup, so a pre-built rig is adopted, not
+        /// doubled — in edit mode the additions go through Undo.
+        /// </summary>
+        void EnsureComponents()
+        {
+            cinemachineCamera = Ensure<CinemachineCamera>(gameObject);
+            orbital = Ensure<CinemachineOrbitalFollow>(gameObject);
+            composer = Ensure<CinemachineRotationComposer>(gameObject);
+            deoccluder = Ensure<CinemachineDeoccluder>(gameObject);
             Ensure<CinemachineCameraShake>(gameObject);
+
+            // First person: its own vcam so the two can be blended by
+            // priority. It MUST be a sibling, never a child of this object:
+            // Cinemachine treats any vcam whose parent transform carries a
+            // vcam as a "private army" member and never enters it in the
+            // priority queue, so a child first-person camera could hold
+            // priority 20 forever and still never go live. Hard-locked to the
+            // eye point and rotating with it, so the view is the vehicle's own
+            // heading; the small damping is what keeps road bumps from being
+            // the whole picture.
+            // A scene-placed sibling of that name is adopted (the placer and
+            // Setup leave it there; the components are ensured either way).
+            GameObject fp = FindPrePlacedFirstPerson();
+            ownsFirstPersonObject = fp == null;
+            if (fp == null)
+            {
+                fp = new GameObject(FirstPersonName);
+                fp.transform.SetParent(transform.parent, false);
+#if UNITY_EDITOR
+                if (!Application.isPlaying) UnityEditor.Undo.RegisterCreatedObjectUndo(fp, SetupUndoName);
+#endif
+            }
+            firstPersonCamera = Ensure<CinemachineCamera>(fp);
+            firstPersonLock = Ensure<CinemachineHardLockToTarget>(fp);
+            firstPersonRotate = Ensure<CinemachineRotateWithFollowTarget>(fp);
+            Ensure<CinemachineCameraShake>(fp);
+        }
+
+        /// <summary>
+        /// The fixed part of the rig's configuration — everything that does
+        /// not come off the settings asset (priorities, orbit style and axes,
+        /// the deoccluder's collision rules). Re-run on
+        /// every Build, so the serialized values a Setup left behind are
+        /// always brought back in line.
+        /// </summary>
+        void ConfigureComponents()
+        {
+            cinemachineCamera.Priority = OrbitPriority;
 
             // Ramps and overpass decks would otherwise put the orbit camera
             // under the road surface while the car climbs (8 m back on a
@@ -182,7 +263,6 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             // created it) and by tag, so it can never push the camera off its
             // target. Switched off per settings asset (the runner has nothing
             // to look through).
-            deoccluder = gameObject.AddComponent<CinemachineDeoccluder>();
             int playerLayer = LayerMask.NameToLayer("PlayerCar");
             deoccluder.CollideAgainst = playerLayer >= 0 ? ~(1 << playerLayer) : ~0;
             deoccluder.IgnoreTag = PlayerTag;
@@ -201,43 +281,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             orbital.HorizontalAxis = new InputAxis { Value = 0f, Range = new Vector2(-180f, 180f), Wrap = true, Center = 0f };
             orbital.VerticalAxis = new InputAxis { Value = 18f, Range = new Vector2(2f, 55f), Wrap = false, Center = 18f };
 
-            // The follow anchor: a sibling, not a child — this object is moved
-            // by its own vcam every frame, and a child would ride along.
-            anchor = new GameObject(AnchorName).transform;
-            anchor.SetParent(transform.parent, false);
-
-            // First person: its own vcam so the two can be blended by
-            // priority. It MUST be a sibling, never a child of this object:
-            // Cinemachine treats any vcam whose parent transform carries a
-            // vcam as a "private army" member and never enters it in the
-            // priority queue, so a child first-person camera could hold
-            // priority 20 forever and still never go live. Hard-locked to the
-            // eye point and rotating with it, so the view is the vehicle's own
-            // heading; the small damping is what keeps road bumps from being
-            // the whole picture.
-            // A scene-placed sibling of that name is adopted (the placer
-            // leaves it empty: the components are added here either way).
-            GameObject fp = FindPrePlacedFirstPerson();
-            ownsFirstPersonObject = fp == null;
-            if (fp == null)
-            {
-                fp = new GameObject(FirstPersonName);
-                fp.transform.SetParent(transform.parent, false);
-            }
-            firstPersonCamera = Ensure<CinemachineCamera>(fp);
             firstPersonCamera.Priority = OrbitPriority - 1;
-            firstPersonLock = Ensure<CinemachineHardLockToTarget>(fp);
-            firstPersonRotate = Ensure<CinemachineRotateWithFollowTarget>(fp);
-            Ensure<CinemachineCameraShake>(fp);
-            firstPersonCamera.Lens.NearClipPlane = 0.05f;
-
-            // The scene camera's far clip is the authored default; the lens
-            // (which the brain pushes onto the camera every frame) starts there.
-            defaultFarClip = Camera.main != null ? Camera.main.farClipPlane : cinemachineCamera.Lens.FarClipPlane;
-            cinemachineCamera.Lens.FarClipPlane = defaultFarClip;
-            firstPersonCamera.Lens.FarClipPlane = defaultFarClip;
-            appliedPitch = settings != null ? settings.defaultPitch : 18f;
-            ApplySettings();
         }
 
         void OnDestroy()
@@ -253,6 +297,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         /// <summary>The scene-placed first-person object next to this rig (same parent, or a scene root when the rig is one), or null.</summary>
         public GameObject FindPrePlacedFirstPerson()
         {
+            if (!gameObject.scene.IsValid()) return null; // a prefab asset has no scene roots to search
             if (transform.parent != null)
             {
                 Transform sibling = transform.parent.Find(FirstPersonName);
@@ -264,11 +309,95 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             return null;
         }
 
+        /// <summary>Get-or-add; in edit mode the add is an Undo step, so a Setup can be undone in one go.</summary>
         static T Ensure<T>(GameObject go) where T : Component
         {
-            T component = go.GetComponent<T>();
-            return component != null ? component : go.AddComponent<T>();
+            if (go.TryGetComponent(out T component)) return component;
+#if UNITY_EDITOR
+            if (!Application.isPlaying) return UnityEditor.Undo.AddComponent<T>(go);
+#endif
+            return go.AddComponent<T>();
         }
+
+        /// <summary>The set-up components are all present — on this object and on the first-person sibling.</summary>
+        bool HasSetupComponents()
+        {
+            if (!TryGetComponent<CinemachineCamera>(out _) || !TryGetComponent<CinemachineOrbitalFollow>(out _)
+                || !TryGetComponent<CinemachineRotationComposer>(out _) || !TryGetComponent<CinemachineDeoccluder>(out _)
+                || !TryGetComponent<CinemachineCameraShake>(out _))
+                return false;
+            GameObject fp = FindPrePlacedFirstPerson();
+            return fp != null
+                && fp.TryGetComponent<CinemachineCamera>(out _)
+                && fp.TryGetComponent<CinemachineHardLockToTarget>(out _)
+                && fp.TryGetComponent<CinemachineRotateWithFollowTarget>(out _)
+                && fp.TryGetComponent<CinemachineCameraShake>(out _);
+        }
+
+#if UNITY_EDITOR
+        const string SetupUndoName = "Setup Orbit Camera Rig";
+
+        /// <summary>
+        /// Editor only: the Setup button has something to do — never run on
+        /// this rig, the settings asset swapped since it ran, or one of the
+        /// components it added removed by hand. Otherwise it stays greyed out,
+        /// so a set-up rig is never rebuilt by accident.
+        /// </summary>
+        bool SetupPending => !Application.isPlaying && (!setupDone || setupSettings != settings || !HasSetupComponents());
+
+        /// <summary>The line above the settings asset saying why the Setup button is live or not.</summary>
+        string SetupStatus
+        {
+            get
+            {
+                if (Application.isPlaying) return "Setup runs in edit mode only — the components are built at play.";
+                if (!setupDone) return "Not set up: Setup pre-builds the Cinemachine components on this object and the first-person camera beside it.";
+                if (setupSettings != settings) return "The settings asset changed since Setup ran — press Setup to reconfigure against it.";
+                if (!HasSetupComponents()) return "A set-up component is missing — press Setup to restore it.";
+                return "Set up against " + (settings != null ? settings.name : "no settings") + ".";
+            }
+        }
+
+        /// <summary>
+        /// Pre-build the rig in the scene: find-or-add its Cinemachine
+        /// components, create the first-person sibling if the scene has
+        /// none, push the fixed configuration and the settings asset's
+        /// values (default framing, pitch, FOV — what Build will apply again
+        /// at play), and remember the asset so the button goes quiet until
+        /// it changes. One Undo step. The follow anchor and the eye are
+        /// per-run objects and are left to play mode.
+        /// </summary>
+        [Button("Setup", ButtonSizes.Medium), PropertyOrder(-1)]
+        [DisableInPlayMode, EnableIf(nameof(SetupPending))]
+        [PropertyTooltip("Edit mode only. Adds the Cinemachine components this rig builds at play (orbit vcam, orbital follow, composer, deoccluder, shake) and creates the FirstPersonCamera sibling with its own, then configures them from the settings asset. Enabled until it has run, and again whenever the settings asset changes.")]
+        void Setup()
+        {
+            if (Application.isPlaying) return;
+            EnsureComponents();
+            UnityEditor.Undo.RecordObjects(new Object[]
+            {
+                this, cinemachineCamera, orbital, composer, deoccluder,
+                firstPersonCamera, firstPersonLock, firstPersonRotate,
+            }, SetupUndoName);
+            ConfigureComponents();
+            if (settings != null)
+            {
+                mode = settings.defaultMode;
+                framingBlend = mode == CameraMode.Close ? 1f : 0f;
+                appliedPitch = settings.defaultPitch;
+                ApplySettings();
+                ApplyFraming(0f);
+                orbital.VerticalAxis.Value = appliedPitch;
+                cinemachineCamera.Lens.FieldOfView = settings.baseFov;
+                firstPersonCamera.Lens.FieldOfView = settings.baseFov;
+            }
+            setupSettings = settings;
+            setupDone = true;
+            UnityEditor.EditorUtility.SetDirty(this);
+            if (gameObject.scene.IsValid())
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+        }
+#endif
 
         void ApplySettings()
         {
@@ -281,11 +410,14 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             deoccluder.enabled = settings.deoccluder;
             firstPersonLock.Damping = 0f;
             firstPersonRotate.Damping = settings.firstPersonDamping;
+            firstPersonCamera.Lens.NearClipPlane = settings.firstPersonNearClip;
             if (eye != null) PlaceEye(eye, target);
 
             // Mode switches share one blend length: the brain's default blend
             // (the first-person cut) and the framing slide in ApplyFraming.
-            var brain = CinemachineCore.FindPotentialTargetBrain(cinemachineCamera);
+            // Play only: the editor Setup must not dirty a scene brain
+            // outside its Undo step, and the value is pushed every frame anyway.
+            var brain = Application.isPlaying ? CinemachineCore.FindPotentialTargetBrain(cinemachineCamera) : null;
             if (brain != null)
                 brain.DefaultBlend = new CinemachineBlendDefinition(CinemachineBlendDefinition.Styles.EaseInOut, settings.modeBlendSeconds);
         }
