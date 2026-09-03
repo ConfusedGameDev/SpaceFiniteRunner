@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Track;
+using ConfusedGameDev.FiniteRunner.Track.Features;
 using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.Screens
 {
@@ -98,6 +99,143 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         }
 
         /// <summary>
+        /// FEATURES tab: the generator's feature spacing band (one slider that
+        /// slides the band and keeps its spread), one probability / spacing /
+        /// boost row per feature entry, and the jump definition's knobs. The
+        /// definition rows edit the entry's runtime CLONE (never the asset);
+        /// everything is captured into <see cref="FeatureDebugSettings"/> and
+        /// re-applied on the next Generate, so it needs the reload the pause
+        /// menu offers — a placed ramp keeps the numbers it was built with.
+        /// </summary>
+        public static MenuScreen BuildFeaturesTab(RectTransform parent, MenuTheme theme,
+                                                  TrackGenerator generator, FeatureDebugSettings saved,
+                                                  System.Action onChanged, List<System.Action> refreshers,
+                                                  int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_Features", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabFeatures, tabIndex, tabCount);
+
+            var spacingRow = screen.AddRow<DebugSliderRow>(MenuTextId.FeatureSpacing);
+            spacingRow.Configure(100f, 4000f, 50f, generator.FeatureSpacing.x, "0", v =>
+            {
+                float spread = generator.FeatureSpacing.y - generator.FeatureSpacing.x;
+                generator.FeatureSpacing = new Vector2(v, v + spread);
+                saved.CaptureFrom(generator);
+                onChanged?.Invoke();
+            });
+            refreshers?.Add(() => spacingRow.SetWithoutNotify(generator.FeatureSpacing.x));
+
+            var table = generator.FeatureTable;
+            if (table == null || table.Length == 0) return screen;
+
+            var probabilityRows = new List<DebugSliderRow>();
+            for (int i = 0; i < table.Length; i++)
+            {
+                int index = i;
+                var entry = table[i];
+                string tag = entry.name.ToUpperInvariant();
+
+                var row = screen.AddRow<DebugSliderRow>($"{tag} %");
+                row.Configure(0f, 100f, 1f, entry.probability, "0", v =>
+                {
+                    RebalanceProbabilities(table, probabilityRows, index, v);
+                    saved.CaptureFrom(generator);
+                    onChanged?.Invoke();
+                });
+                row.SetLabelTint(entry.color);
+                probabilityRows.Add(row);
+
+                var spacing = screen.AddRow<DebugSliderRow>($"{tag} SPACING");
+                spacing.Configure(0f, 3000f, 50f, entry.minSpacing, "0", v =>
+                {
+                    entry.minSpacing = v;
+                    saved.CaptureFrom(generator);
+                    onChanged?.Invoke();
+                });
+                spacing.SetLabelTint(entry.color);
+
+                var boost = screen.AddRow<DebugSliderRow>($"{tag} ×");
+                boost.Configure(0f, 10f, 0.1f, Mathf.Clamp(entry.multiplier, 0f, 10f), "0.0", v =>
+                {
+                    entry.multiplier = v;
+                    saved.CaptureFrom(generator);
+                    onChanged?.Invoke();
+                });
+                boost.SetLabelTint(entry.color);
+
+                if (entry.Runtime is JumpDefinition)
+                {
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpWidth,
+                                0.05f, 1f, 0.05f, "0.00", j => j.widthFraction, (j, v) => j.widthFraction = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpLength,
+                                10f, 200f, 5f, "0", j => j.length, (j, v) => j.length = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpAngle,
+                                5f, 45f, 1f, "0", j => j.rampAngle, (j, v) => j.rampAngle = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpAirDistance,
+                                0.05f, 3f, 0.05f, "0.00", j => j.airDistancePerSpeed, (j, v) => j.airDistancePerSpeed = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpMaxAir,
+                                20f, 2000f, 20f, "0", j => j.airDistanceRange.y,
+                                (j, v) => j.airDistanceRange = new Vector2(Mathf.Min(j.airDistanceRange.x, v), v));
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpAirControl,
+                                0f, 1f, 0.05f, "0.00", j => j.airControlFactor, (j, v) => j.airControlFactor = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpSideHitLoss,
+                                0f, 1f, 0.05f, "0.00", j => j.sideHitSpeedLoss, (j, v) => j.sideHitSpeedLoss = v);
+                }
+                else if (entry.Runtime is LoopDefinition)
+                {
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopRadius,
+                                            40f, 250f, 5f, "0", l => l.radius, (l, v) => l.radius = v);
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopFallGravity,
+                                            20f, 400f, 10f, "0", l => l.fallGravity, (l, v) => l.fallGravity = v);
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopFallLoss,
+                                            0f, 1f, 0.05f, "0.00", l => l.fallSpeedLoss, (l, v) => l.fallSpeedLoss = v);
+                }
+                else if (entry.Runtime is TubeDefinition)
+                {
+                    AddStat<TubeDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.TubeRadius,
+                                            20f, 150f, 5f, "0", t => t.radius, (t, v) => t.radius = v);
+                    AddStat<TubeDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.TubeBand,
+                                            15f, 180f, 5f, "0", t => t.bandDegrees, (t, v) => t.bandDegrees = v);
+                    AddStat<TubeDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.TubeCurl,
+                                            20f, 500f, 10f, "0", t => t.curlLength, (t, v) => t.curlLength = v);
+                }
+            }
+            return screen;
+        }
+
+        // One localized slider row bound to a jump definition knob. The lambdas
+        // read entry.Runtime at call time, so they always hit the clone the
+        // current run was generated with.
+        static void AddJumpStat(MenuScreen screen, TrackGenerator generator, TrackGenerator.FeatureSpawnEntry entry,
+                                FeatureDebugSettings saved, System.Action onChanged, List<System.Action> refreshers,
+                                MenuTextId label, float min, float max, float step, string format,
+                                System.Func<JumpDefinition, float> get, System.Action<JumpDefinition, float> set)
+            => AddStat(screen, generator, entry, saved, onChanged, refreshers, label, min, max, step, format, get, set);
+
+        // One localized slider row bound to a knob of the entry's runtime
+        // definition clone. The lambdas read entry.Runtime at call time, so
+        // they always hit the clone the current run was generated with.
+        static void AddStat<T>(MenuScreen screen, TrackGenerator generator, TrackGenerator.FeatureSpawnEntry entry,
+                               FeatureDebugSettings saved, System.Action onChanged, List<System.Action> refreshers,
+                               MenuTextId label, float min, float max, float step, string format,
+                               System.Func<T, float> get, System.Action<T, float> set) where T : TrackFeatureDefinition
+        {
+            T Def() => entry.Runtime as T;
+            var row = screen.AddRow<DebugSliderRow>(label);
+            row.Configure(min, max, step, Def() != null ? get(Def()) : min, format, v =>
+            {
+                var def = Def();
+                if (def == null) return;
+                set(def, v);
+                saved.CaptureFrom(generator);
+                onChanged?.Invoke();
+            });
+            row.SetLabelTint(entry.color);
+            refreshers?.Add(() => { var def = Def(); if (def != null) row.SetWithoutNotify(get(def)); });
+        }
+
+        /// <summary>
         /// Ship tabs: four pages of <see cref="ShipDefinition"/> sliders (Speed,
         /// Handling, Dash, Hover). They edit the motor's LIVE definition — in
         /// play that is always the tuning screen's runtime clone, never the
@@ -163,6 +301,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.DashGhosts,
                         1f, 20f, 1f, "0", d => d.dashGhostCount,
                         (d, v) => d.dashGhostCount = Mathf.RoundToInt(v));
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.BarrelRollSeconds,
+                        0.2f, 1.5f, 0.05f, "0.00", d => d.barrelRollSeconds, (d, v) => d.barrelRollSeconds = v);
             return screen;
         }
 
@@ -214,8 +354,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                           0f, 100f, 5f, "0", d => d.catchDistance, (d, v) => d.catchDistance = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolWarnDistance,
                           0f, 500f, 10f, "0", d => d.warnDistance, (d, v) => d.warnDistance = v);
-            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolAlertLead,
-                          0f, 500f, 10f, "0", d => d.alertLead, (d, v) => d.alertLead = v);
             return screen;
         }
 
@@ -257,24 +395,24 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         // The moved slider keeps its value; every other entry scales into the
         // remainder (evenly when they were all zero) and its row's fill and
         // readout refresh without re-firing callbacks.
-        static void RebalanceProbabilities(TrackGenerator.PadSpawnEntry[] table,
+        static void RebalanceProbabilities(IWeightedEntry[] table,
                                            List<DebugSliderRow> rows, int changed, float value)
         {
             float kept = Mathf.Clamp(value, 0f, 100f);
-            table[changed].probability = kept;
+            table[changed].Probability = kept;
 
             float othersSum = 0f;
             for (int i = 0; i < table.Length; i++)
-                if (i != changed) othersSum += table[i].probability;
+                if (i != changed) othersSum += table[i].Probability;
 
             float remainder = 100f - kept;
             for (int i = 0; i < table.Length; i++)
             {
                 if (i == changed) continue;
-                table[i].probability = othersSum > 0f
-                    ? table[i].probability * remainder / othersSum
+                table[i].Probability = othersSum > 0f
+                    ? table[i].Probability * remainder / othersSum
                     : remainder / (table.Length - 1);
-                if (i < rows.Count) rows[i].SetWithoutNotify(table[i].probability);
+                if (i < rows.Count) rows[i].SetWithoutNotify(table[i].Probability);
             }
         }
     }

@@ -60,6 +60,7 @@ namespace ConfusedGameDev.FiniteRunner.Rendering
             FullScreenPassRendererFeature fullScreen => fullScreen.passMaterial == material,
             DistanceFogFeature fog => fog.settings.material == material,
             GlitchSilhouetteFeature silhouette => silhouette.settings.material == material,
+            SpeedLinesFeature lines => lines.settings.material == material,
             _ => false,
         };
     }

@@ -63,10 +63,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (snapshotTimer > 0f) return;
 
             // Ghost amount is a ship stat: spread dashGhostCount snapshots
-            // evenly across the dash's duration (read live off the definition,
-            // which may be the tuning screen's runtime clone).
+            // evenly across the burst (the dash duration on the ground, the
+            // barrel roll's length in the air — the ghosts then show the spin).
+            // Read live off the definition, which may be the tuning clone.
             var definition = motor.Definition;
-            snapshotTimer = Mathf.Max(definition.dashDuration, 0.01f) /
+            snapshotTimer = Mathf.Max(motor.DashBurstDuration, 0.01f) /
                             Mathf.Max(definition.dashGhostCount, 1);
             SpawnGhost();
         }

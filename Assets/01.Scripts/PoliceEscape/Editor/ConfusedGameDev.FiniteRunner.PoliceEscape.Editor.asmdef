@@ -6,6 +6,7 @@
         "ConfusedGameDev.FiniteRunner.Runner",
         "ConfusedGameDev.FiniteRunner.UI",
         "ConfusedGameDev.FiniteRunner.FX",
+        "ConfusedGameDev.FiniteRunner.Cameras",
         "ConfusedGameDev.FiniteRunner.Rendering",
         "EVP5",
         "Unity.InputSystem",

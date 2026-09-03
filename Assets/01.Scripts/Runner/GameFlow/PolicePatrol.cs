@@ -1,7 +1,6 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Track;
@@ -44,6 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float minSpeed;       // current floor: baseSpeed + accumulated ramp
         float currentSpeed;
         float warnCooldown;
+        bool warned;          // proximity warning already raised for this approach
         float blinkTimer;
         bool blinkState;
 
@@ -59,6 +59,24 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         /// <summary>The live chase tunables — the runtime clone, so the debug menu can edit them mid-run. Null until <see cref="Init"/>.</summary>
         public PatrolDefinition Definition => runtimeDef;
+
+        /// <summary>
+        /// A fresh patrol just cut in behind the ship; the argument is its
+        /// number. The patrol only rumbles here — the story line announcing it
+        /// is the GameManager's (it owns the message texts on GameSettings).
+        /// </summary>
+        public event System.Action<int> Redeployed;
+
+        /// <summary>
+        /// The patrol closed inside its warn distance; the argument is the gap
+        /// in meters. Raised once per approach (re-armed when the ship opens
+        /// the gap past the warn distance again) — the GameManager turns it
+        /// into the patrol's taunt line, gated by GameSettings.
+        /// </summary>
+        public event System.Action<float> Warned;
+
+        /// <summary>Proximity rumble that grows as the patrol closes in (GameSettings.patrolProximityRumble).</summary>
+        public bool ProximityRumble { get; set; } = true;
 
         /// <summary>
         /// Wires the scene patrol up for a run: clones its definition (with
@@ -107,6 +125,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             currentSpeed = runtimeDef.baseSpeed;
             HasCaught = false;
             warnCooldown = 0f;
+            warned = false;
             PatrolNumber = 1;
             ApplyPose();
         }
@@ -139,7 +158,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // haptics channel self-fades when this stops being refreshed
                 // (pause, catch, or the patrol falling behind again).
                 float gap = GapToShip;
-                if (gap <= runtimeDef.warnDistance && runtimeDef.warnDistance > 0f)
+                if (ProximityRumble && gap <= runtimeDef.warnDistance && runtimeDef.warnDistance > 0f)
                     HapticsSystem.Instance.SetChaseIntensity(1f - Mathf.Clamp01(gap / runtimeDef.warnDistance));
             }
 
@@ -160,25 +179,31 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             currentSpeed = speed;
             DistanceTravelled = target.DistanceTravelled - redeployGap;
             warnCooldown = 0f;
+            warned = false;
             PatrolNumber++;
             ApplyPose();
 
-            FloatingTextSystem.Instance.DisplayText(
-                $"PATROL {PatrolNumber} INBOUND", new Color(1f, 0.35f, 0.3f), 1.6f, runtimeDef.alertLead, 3.5f);
             HapticsSystem.Instance.Pulse(0.6f, 0.4f, 0.4f);
+            Redeployed?.Invoke(PatrolNumber);
         }
 
+        // One warning per approach: it fires when the gap first drops inside
+        // the warn distance and re-arms once the ship has opened it again (the
+        // cooldown keeps a gap hovering on the line from flapping). The gap
+        // itself is on the minimap every frame, so no readout is repeated.
         void WarnIfClose(float dt)
         {
             warnCooldown -= dt;
-            if (GapToShip > runtimeDef.warnDistance || warnCooldown > 0f) return;
+            float gap = GapToShip;
+            if (gap > runtimeDef.warnDistance)
+            {
+                if (warnCooldown <= 0f) warned = false;
+                return;
+            }
+            if (warned) return;
+            warned = true;
             warnCooldown = 1.5f;
-
-            // Spawned well ahead of the ship (PatrolDefinition.alertLead) so
-            // the warning stays readable instead of being left behind
-            // instantly at these speeds.
-            FloatingTextSystem.Instance.DisplayText(
-                $"PATROL {GapToShip:0} M", new Color(1f, 0.35f, 0.3f), 1.2f, runtimeDef.alertLead, 3f);
+            Warned?.Invoke(gap);
         }
 
         void ApplyPose()

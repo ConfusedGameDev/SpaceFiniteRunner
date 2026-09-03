@@ -59,14 +59,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// Within deadline that runs out fails the CHALLENGE rather than the run,
     /// and Destroy Cars challenges tally every matching kill while live. Each
     /// outcome gets its own dialogue line, and <see cref="EarnedReward"/> —
-    /// base × the multipliers of the challenges actually completed — is what
-    /// the completion banks; <see cref="MissionReward"/> is only the offer.
+    /// the reward base × the multipliers of the challenges actually completed
+    /// — is the running payout; <see cref="MissionReward"/> is only the offer.
+    /// Nothing is banked HERE: completion records every objective row and
+    /// challenge outcome into the profile, and the runner's Mission Complete
+    /// panel (after the escape run this level hands over to) pays the whole
+    /// mission once.
     ///
     /// A step flagged with a cinema plays its clip through the scene's
     /// <see cref="CinemaSystem"/> the moment it activates — the world frozen
-    /// under it, the objective loop gated on <c>cinemaOpen</c> exactly as the
-    /// mission brief gates it — and briefs its line only once the cinema has
-    /// handed back with time running again.
+    /// under it when the step pauses the game (the default), the objective
+    /// loop gated on <c>cinemaOpen</c> exactly as the mission brief gates
+    /// it; a step whose cinema lets the game run raises no gate, so it is
+    /// live under the picture — and briefs its line only once the cinema
+    /// has handed back (or been displaced by another) with time running.
     ///
     /// The asset is read LIVE every frame — no runtime clone — so the debug
     /// menu's objective sliders apply instantly (and persist straight into
@@ -147,7 +153,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         ObjectiveState[] challengeStates = System.Array.Empty<ObjectiveState>(); // one per ACCEPTED challenge, parallel to acceptedChallenges
         readonly System.Collections.Generic.List<OptionalChallenge> acceptedChallenges = new();
         bool briefOpen;
-        bool cinemaOpen;
+        bool cinemaOpen;    // a step's cinema is FREEZING the world — the gate; a cinema the game runs under never raises it
+        bool cinemaPlaying; // a step's cinema is up at all (frozen or not) — what OnDisable has to cancel
         bool advancing;    // the current step is done; its completion line / delay is playing out before the next one starts
         int advanceToken;  // bumped by a regression so a pending advance knows it was cancelled
         int current;
@@ -176,15 +183,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// <summary>The optional challenges the player toggled on at the brief (empty when it was skipped).</summary>
         public System.Collections.Generic.IReadOnlyList<OptionalChallenge> AcceptedChallenges => acceptedChallenges;
 
-        /// <summary>The payout on OFFER at the brief: base reward × every accepted challenge's multiplier. <see cref="EarnedReward"/> is what completion pays.</summary>
+        /// <summary>The payout on OFFER at the brief: the reward base (flat bonus + objective rewards) × every accepted challenge's multiplier. <see cref="EarnedReward"/> is the running payout.</summary>
         public int MissionReward { get; private set; }
 
-        /// <summary>The payout earned so far: base reward × the multiplier of every accepted challenge that has COMPLETED.</summary>
+        /// <summary>The payout earned so far: the reward base × the multiplier of every accepted challenge that has COMPLETED. The runner's panel adds the run's rows before banking.</summary>
         public int EarnedReward
         {
             get
             {
-                long reward = level != null ? level.baseReward : 0;
+                long reward = level != null ? level.RewardBase : 0;
                 for (int i = 0; i < acceptedChallenges.Count && i < challengeStates.Length; i++)
                     if (challengeStates[i].done) reward *= Mathf.Max(1, acceptedChallenges[i].multiplier);
                 return (int)System.Math.Min(reward, int.MaxValue);
@@ -323,7 +330,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         // scene holds under it until the player accepts.
         void Start()
         {
-            MissionReward = level.baseReward;
+            MissionReward = (int)System.Math.Min(level.RewardBase, int.MaxValue);
             if (skipMissionBrief) return;
             briefOpen = true;
             MissionBriefScreen.Show(level, OnBriefAccepted);
@@ -362,8 +369,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             CarHealth.Died -= OnCarDied;
             Collectible.Collected -= OnCollected;
             CityStatsRecorder.JumpLanded -= OnJumpLanded;
-            if (cinemaOpen) CinemaSystem.Instance?.Cancel();
+            if (cinemaPlaying) CinemaSystem.Instance?.Cancel();
             cinemaOpen = false;
+            cinemaPlaying = false;
         }
 
         /// <summary>
@@ -795,6 +803,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// the scene's cinema system is on (a disabled one means cinemas are
         /// switched off), then the dialogue line. <c>briefed</c> goes up
         /// before either so an All-Must-Hold regression never replays it.
+        /// Only a cinema that freezes the world raises the <c>cinemaOpen</c>
+        /// gate; one the game runs under leaves the step live at once. The
+        /// callback also fires when another cinema displaces this one, so
+        /// the gate can never outlive the picture it guarded.
         /// </summary>
         void Brief(int index)
         {
@@ -807,10 +819,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                 ShowBriefLine(step);
                 return;
             }
-            cinemaOpen = true;
+            cinemaOpen = step.cinemaPausesGame;
+            cinemaPlaying = true;
             cinema.Play(step, () =>
             {
                 cinemaOpen = false;
+                cinemaPlaying = false;
                 ShowBriefLine(step);
             });
         }
@@ -826,13 +840,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         void Complete()
         {
             Completed = true;
-            // The save: level count, the reward banked (base × the challenges
-            // actually completed), the last-level summary and the progression
-            // list. Written to disk now — this scene is about to be unloaded
-            // under the glitch.
+            // The save: level count, the last-level summary, the progression
+            // list — and the rows the runner's Mission Complete panel will
+            // print and pay: every objective with its reward, every ACCEPTED
+            // challenge with its multiplier and outcome, the flat bonus and
+            // the rank table. No money moves here. Written to disk now —
+            // this scene is about to be unloaded under the glitch.
+            var objectiveRows = new System.Collections.Generic.List<ObjectiveResult>(level.Count);
+            for (int i = 0; i < level.Count; i++)
+            {
+                LevelObjective step = level.objectives[i];
+                objectiveRows.Add(new ObjectiveResult(step.Summary, step.reward, done: true));
+            }
+            var challengeRows = new System.Collections.Generic.List<ChallengeResult>(acceptedChallenges.Count);
+            for (int i = 0; i < acceptedChallenges.Count; i++)
+            {
+                OptionalChallenge challenge = acceptedChallenges[i];
+                challengeRows.Add(new ChallengeResult(challenge.Summary, challenge.multiplier, IsChallengeDone(i)));
+            }
             PlayerStats.RecordLevelCompleted(level.name, level.levelName,
                 level.Count > 0 ? level.objectives[level.Count - 1].Summary : string.Empty,
-                EarnedReward, acceptedChallenges.Count, ChallengesCompleted);
+                level.baseReward, objectiveRows, challengeRows, level.rankTable);
             RpgMessageSystem.Instance.ShowMessage(
                 level.speakerName, level.completionMessage, level.messageHoldSeconds, DoneAccent,
                 onFinished: BeginGlitchHandoff);

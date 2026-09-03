@@ -39,6 +39,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float dashDuration = 0.25f;
         public float dashRechargeSeconds = 8f;
         public int dashGhostCount = 6;
+        public float barrelRollSeconds = 0.5f;
 
         [Header("Hover")]
         public float hoverHeight = 2f;
@@ -84,6 +85,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             dashDuration = definition.dashDuration;
             dashRechargeSeconds = definition.dashRechargeSeconds;
             dashGhostCount = definition.dashGhostCount;
+            barrelRollSeconds = definition.barrelRollSeconds;
 
             hoverHeight = definition.hoverHeight;
             bobAmplitude = definition.bobAmplitude;
@@ -117,6 +119,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             definition.dashDuration = dashDuration;
             definition.dashRechargeSeconds = dashRechargeSeconds;
             definition.dashGhostCount = dashGhostCount;
+            definition.barrelRollSeconds = barrelRollSeconds;
 
             definition.hoverHeight = hoverHeight;
             definition.bobAmplitude = bobAmplitude;

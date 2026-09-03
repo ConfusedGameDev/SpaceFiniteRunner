@@ -24,7 +24,7 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
     [Serializable]
     public class PlayerProfile
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2; // 2: lastLevel carries the objective rows; money is banked by the runner's Mission Complete panel
 
         public int version = CurrentVersion;
 
@@ -62,16 +62,39 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
             public int collectiblesFound;
         }
 
-        /// <summary>Summary of the most recently completed city level.</summary>
+        /// <summary>
+        /// The most recently completed city level — and the hand-off to the
+        /// runner's Mission Complete panel, which is the one place a mission
+        /// (city level + escape run) is paid. The city writes the rows and the
+        /// rank table at completion; the runner adds the run's own rows,
+        /// totals everything, banks it and stamps <see cref="missionTotal"/> /
+        /// <see cref="missionRank"/>. <see cref="banked"/> is what stops a
+        /// retried run from paying the city's share twice.
+        /// </summary>
         [Serializable]
         public class LastLevelStats
         {
             public string levelId = "";
             public string levelName = "";
             public string lastObjective = "";
+            /// <summary>Money this mission has paid so far (the banked total; 0 until the runner finishes it).</summary>
             public long moneyEarned;
             public int optionalAccepted;
             public int optionalCompleted;
+            /// <summary>The level's flat bonus, paid on top of the objective rewards.</summary>
+            public long baseReward;
+            /// <summary>The level's objectives, in order, with the money each paid.</summary>
+            public List<ObjectiveResult> objectives = new();
+            /// <summary>The challenges the player ACCEPTED, done or failed — never the declined ones.</summary>
+            public List<ChallengeResult> challenges = new();
+            /// <summary>The rank thresholds the level authored, applied by the runner to the mission total.</summary>
+            public RankTable rank = new();
+            /// <summary>The mission total the runner banked (0 until it did).</summary>
+            public long missionTotal;
+            /// <summary>The rank letter that total earned ("" until banked).</summary>
+            public string missionRank = "";
+            /// <summary>True once the runner has paid this mission at least once.</summary>
+            public bool banked;
         }
 
         /// <summary>The finite runner's records.</summary>
@@ -127,6 +150,12 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
             lastLevel.levelId ??= "";
             lastLevel.levelName ??= "";
             lastLevel.lastObjective ??= "";
+            lastLevel.objectives ??= new List<ObjectiveResult>();
+            lastLevel.challenges ??= new List<ChallengeResult>();
+            lastLevel.rank ??= new RankTable();
+            lastLevel.missionRank ??= "";
+            lastLevel.objectives.RemoveAll(o => o == null);
+            lastLevel.challenges.RemoveAll(c => c == null);
             totaledByVehicle.RemoveAll(e => e == null || string.IsNullOrEmpty(e.key));
             collectibles.RemoveAll(e => e == null || string.IsNullOrEmpty(e.key));
         }

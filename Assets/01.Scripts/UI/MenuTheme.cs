@@ -172,7 +172,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         // ------------------------------------------------------ loading screen
         [TitleGroup("Loading screen")]
-        [Tooltip("Time the bar takes to fill from empty to full at its steady pace — also the least time the curtain stays up. The bar is time-driven: a scene loads in one hitch, so a progress readout would sit at 0 and slam to 1.")]
+        [Tooltip("Time the bar takes to fill from empty to full at its steady pace — also the least time the curtain stays up. The bar is time-driven: a scene loads in one hitch, so a progress readout would sit at 0 and slam to 1; the bar climbs to half, the hitch happens there, and the second half fills once the scene is in.")]
         [PropertyRange(0.25f, 4f), SuffixLabel("s", true)]
         [SerializeField] float loadingFillSeconds = 1.5f;
 
@@ -262,6 +262,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [Tooltip("Seconds the loading crossfade takes — every gameplay bus (and any pause music) fades out and the loading music in as the curtain rises, and back as it lifts. Unscaled time.")]
         [PropertyRange(0f, 2f), SuffixLabel("s", true)]
         [SerializeField] float loadingAudioFade = 0.4f;
+
+        [TitleGroup("Audio")]
+        [Tooltip("Seconds a world-freezing cinema takes to fade the in-game buses out as it opens, and back in once it is done or skipped. The clip's own sound rides the Cinema bus, untouched. Unscaled time.")]
+        [PropertyRange(0f, 2f), SuffixLabel("s", true)]
+        [SerializeField] float cinemaAudioFade = 0.6f;
 
         // ------------------------------------------------------------ haptics
         [TitleGroup("Haptics")]
@@ -361,6 +366,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         public float PauseAudioFade => pauseAudioFade;
         public AudioClip LoadingMusicClip => loadingMusicClip;
         public float LoadingAudioFade => loadingAudioFade;
+        public float CinemaAudioFade => cinemaAudioFade;
 
         public float MoveRumble => moveRumble;
         public float ConfirmRumble => confirmRumble;

@@ -76,20 +76,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         /// </summary>
         internal static bool IsProjectRendererAsset(string path) => path.StartsWith("Assets/04.Data/");
 
+        static void AddFeature(UniversalRendererData rendererData, Material material)
+        {
+            var feature = ScriptableObject.CreateInstance<DistanceFogFeature>();
+            feature.name = "DistanceFog";
+            feature.settings.material = material;
+            InsertBeforePostGlitch(rendererData, feature);
+        }
+
         /// <summary>
         /// Renderer features have no public add API — insert via the renderer
         /// data's serialized m_RendererFeatures / m_RendererFeatureMap pair,
         /// with the feature stored as a sub-asset (the same layout the
         /// inspector's Add Renderer Feature button produces). Inserted just
         /// before the first AfterRenderingPostProcessing full-screen pass
-        /// (the GlitchPost) so the fog is in the picture the glitch corrupts.
+        /// (the GlitchPost) so whatever the feature draws is in the picture
+        /// the glitch corrupts — list order is the tie-break between passes at
+        /// the same event, which is why the speed lines (same event as the
+        /// glitch) share this rule through <see cref="SpeedLinesInstaller"/>.
         /// </summary>
-        static void AddFeature(UniversalRendererData rendererData, Material material)
+        internal static void InsertBeforePostGlitch(UniversalRendererData rendererData, ScriptableRendererFeature feature)
         {
-            var feature = ScriptableObject.CreateInstance<DistanceFogFeature>();
-            feature.name = "DistanceFog";
-            feature.settings.material = material;
-
             AssetDatabase.AddObjectToAsset(feature, rendererData);
             AssetDatabase.TryGetGUIDAndLocalFileIdentifier(feature, out _, out long localId);
 

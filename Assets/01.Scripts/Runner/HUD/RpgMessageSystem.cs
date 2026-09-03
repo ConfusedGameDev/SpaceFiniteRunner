@@ -370,9 +370,18 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void PlayBlip()
         {
-            if (typeSound == null) typeSound = CreatePlaceholderBlip();
+            if (typeSound == null) typeSound = PlaceholderBlip();
             audioSource.pitch = Random.Range(0.92f, 1.08f);
             audioSource.PlayOneShot(typeSound, typeSoundVolume);
+        }
+
+        static AudioClip placeholderBlip;
+
+        /// <summary>The retro square-wave beep, built once and shared with any other screen that types (the Mission Complete panel).</summary>
+        internal static AudioClip PlaceholderBlip()
+        {
+            if (placeholderBlip == null) placeholderBlip = CreatePlaceholderBlip();
+            return placeholderBlip;
         }
 
         // Retro square-wave beep so the typewriter is audible without any

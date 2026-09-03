@@ -38,7 +38,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CarPhysicsBackend, CarPhysicsBuiltIn, CarPhysicsEvp,
         CamDistance, CamHeight, CamPitch, CamDamping,
         CamRecenterDelay, CamRecenterSpeed, CamBaseFov, CamSpeedFov,
-        CamLookBackAngle, CamLookBackIn, CamLookBackOut,
+        CamLookBackAngle, CamLookBackIn, CamLookBackOut, CamLookBackDistance, CamLookBackDamping,
         DebugTabCameraModes, CamModeBlend, CamCloseDistance, CamCloseHeight, CamClosePitch,
         CamFirstPersonForward, CamFirstPersonHeight, CamFirstPersonDamping,
         DebugTabWeather,
@@ -48,6 +48,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DebugTabDistanceFog,
         FogIntensity, FogStart, FogEnd, FogDensity, FogSkyAmount, FogHeightFalloff,
         FarGlitchStart, FarGlitchStrength, FarGlitchRate,
+        DebugTabSpeedLines,
+        SpeedLinesIntensity, SpeedLinesStart, SpeedLinesFull, SpeedLinesDensity, SpeedLinesWidth,
+        SpeedLinesInnerMax, SpeedLinesInnerMin, SpeedLinesFlicker, SpeedLinesResponse,
         DebugTabPoliceFleet, DebugTabPoliceChase,
         PolicePatrolCount, PoliceSpawnMin, PoliceSpawnMax, PoliceDespawn,
         PoliceDetection, PoliceLoseSight, PoliceSearchTime,
@@ -72,7 +75,13 @@ namespace ConfusedGameDev.FiniteRunner.UI
         StatEscapesAttempted, StatEscapesCompleted, StatFastestEscape, StatPowerUps, StatSlowDowns,
         ChallengeBonus, ChallengeDone, ChallengeFailed,
         ObjectiveCollect, LogSectionCollectibles, StatCollectibles,
-        ObjectiveJump
+        ObjectiveJump,
+        DebugTabFeatures, FeatureSpacing,
+        JumpWidth, JumpLength, JumpAngle, JumpAirDistance, JumpMaxAir, JumpAirControl, JumpSideHitLoss,
+        LoopRadius, LoopFallGravity, LoopFallLoss,
+        TubeRadius, TubeBand, TubeCurl,
+        BarrelRollSeconds,
+        MissionComplete, MainObjectives, FiniteRunObjectives, Total, Rank, NextMission, Retry, MissionBonus, StatRank
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -242,6 +251,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Ship stats")]
         [SerializeField] LocalizedString dashGhosts = new("DASH GHOSTS", "ESTELAS DEL DASH", "ダッシュ残像", "FANTÔMES DU DASH");
         [TitleGroup("Ship stats")]
+        [SerializeField] LocalizedString barrelRollSeconds = new("BARREL ROLL TIME", "DURACIÓN DEL TONEL", "バレルロール時間", "DURÉE DU TONNEAU");
+        [TitleGroup("Ship stats")]
         [SerializeField] LocalizedString hoverHeight = new("HOVER HEIGHT", "ALTURA DE FLOTACIÓN", "ホバー高度", "HAUTEUR DE SUSTENTATION");
         [TitleGroup("Ship stats")]
         [SerializeField] LocalizedString bobAmplitude = new("BOB AMPLITUDE", "AMPLITUD DE BALANCEO", "浮遊の振幅", "AMPLITUDE D'OSCILLATION");
@@ -369,6 +380,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString camLookBackIn = new("LOOK BACK TIME", "TIEMPO DE GIRO ATRÁS", "後方視の時間", "TEMPS REGARD ARRIÈRE");
         [TitleGroup("Chase camera stats")]
         [SerializeField] LocalizedString camLookBackOut = new("LOOK BACK RETURN", "REGRESO DE MIRAR ATRÁS", "後方視の復帰", "RETOUR REGARD ARRIÈRE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camLookBackDistance = new("LOOK BACK DISTANCE", "DISTANCIA DE MIRAR ATRÁS", "後方視の距離", "DISTANCE REGARD ARRIÈRE");
+        [TitleGroup("Chase camera stats")]
+        [SerializeField] LocalizedString camLookBackDamping = new("LOOK BACK DAMPING", "AMORTIGUACIÓN DE MIRAR ATRÁS", "後方視のダンピング", "AMORTISSEMENT REGARD ARRIÈRE");
         [SerializeField] LocalizedString debugTabCameraModes = new("DEBUG — CAMERA MODES", "DEPURACIÓN — MODOS DE CÁMARA", "デバッグ — カメラモード", "DÉBOGAGE — MODES CAMÉRA");
         [SerializeField] LocalizedString camModeBlend = new("MODE BLEND", "TRANSICIÓN DE MODO", "モード切替時間", "FONDU DE MODE");
         [SerializeField] LocalizedString camCloseDistance = new("CLOSE DISTANCE", "DISTANCIA CERCANA", "近距離", "DISTANCE PROCHE");
@@ -422,6 +437,27 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Fog stats")]
         [SerializeField] LocalizedString farGlitchRate = new("GLITCH RATE", "FRECUENCIA DEL GLITCH", "グリッチの頻度", "FRÉQUENCE DU GLITCH");
 
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString debugTabSpeedLines = new("DEBUG — SPEED LINES", "DEPURACIÓN — LÍNEAS DE VELOCIDAD", "デバッグ — 集中線", "DÉBOGAGE — LIGNES DE VITESSE");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesIntensity = new("LINES INTENSITY", "INTENSIDAD DE LÍNEAS", "集中線の強さ", "INTENSITÉ DES LIGNES");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesStart = new("START SPEED", "VELOCIDAD DE INICIO", "開始速度", "VITESSE DE DÉBUT");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesFull = new("FULL SPEED", "VELOCIDAD PLENA", "最大速度", "VITESSE PLEINE");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesDensity = new("LINE DENSITY", "DENSIDAD DE LÍNEAS", "線の密度", "DENSITÉ DES LIGNES");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesWidth = new("LINE WIDTH", "GROSOR DE LÍNEA", "線の太さ", "LARGEUR DES LIGNES");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesInnerMax = new("CLEAR RADIUS (SLOW)", "RADIO LIBRE (LENTO)", "中央の空き（低速）", "RAYON LIBRE (LENT)");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesInnerMin = new("CLEAR RADIUS (FAST)", "RADIO LIBRE (RÁPIDO)", "中央の空き（高速）", "RAYON LIBRE (RAPIDE)");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesFlicker = new("FLICKER RATE", "FRECUENCIA DE PARPADEO", "ちらつきの頻度", "FRÉQUENCE DE SCINTILLEMENT");
+        [TitleGroup("Speed lines stats")]
+        [SerializeField] LocalizedString speedLinesResponse = new("RESPONSE", "RESPUESTA", "反応速度", "RÉACTIVITÉ");
+
         [TitleGroup("City police stats")]
         [SerializeField] LocalizedString debugTabPoliceFleet = new("DEBUG — POLICE FLEET", "DEPURACIÓN — FLOTA POLICIAL", "デバッグ — 警察の台数", "DÉBOGAGE — FLOTTE DE POLICE");
         [TitleGroup("City police stats")]
@@ -470,6 +506,23 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("City level objectives")]
         [SerializeField] LocalizedString objectiveJump = new("JUMP", "SALTO", "ジャンプ", "SAUT");
 
+        // Debug menu — FEATURES tab (runner track features: jump ramps)
+        [SerializeField] LocalizedString debugTabFeatures = new("FEATURES", "ELEMENTOS", "ギミック", "ÉLÉMENTS");
+        [SerializeField] LocalizedString featureSpacing = new("FEATURE SPACING", "SEPARACIÓN", "ギミック間隔", "ESPACEMENT");
+        [SerializeField] LocalizedString jumpWidth = new("RAMP WIDTH", "ANCHO DE RAMPA", "ランプ幅", "LARGEUR DE RAMPE");
+        [SerializeField] LocalizedString jumpLength = new("RAMP LENGTH", "LARGO DE RAMPA", "ランプ長", "LONGUEUR DE RAMPE");
+        [SerializeField] LocalizedString jumpAngle = new("RAMP ANGLE", "ÁNGULO DE RAMPA", "ランプ角度", "ANGLE DE RAMPE");
+        [SerializeField] LocalizedString jumpAirDistance = new("AIR PER SPEED", "VUELO POR VELOCIDAD", "速度あたり飛距離", "VOL PAR VITESSE");
+        [SerializeField] LocalizedString jumpMaxAir = new("MAX AIR DISTANCE", "VUELO MÁXIMO", "最大飛距離", "VOL MAXIMUM");
+        [SerializeField] LocalizedString jumpAirControl = new("AIR CONTROL", "CONTROL AÉREO", "空中操作", "CONTRÔLE AÉRIEN");
+        [SerializeField] LocalizedString jumpSideHitLoss = new("SIDE HIT LOSS", "PÉRDIDA LATERAL", "側面衝突ロス", "PERTE LATÉRALE");
+        [SerializeField] LocalizedString loopRadius = new("LOOP RADIUS", "RADIO DEL LOOP", "ループ半径", "RAYON DU LOOPING");
+        [SerializeField] LocalizedString loopFallGravity = new("FALL GRAVITY", "GRAVEDAD DE CAÍDA", "落下重力", "GRAVITÉ DE CHUTE");
+        [SerializeField] LocalizedString loopFallLoss = new("FALL SPEED LOSS", "PÉRDIDA POR CAÍDA", "落下速度ロス", "PERTE DE CHUTE");
+        [SerializeField] LocalizedString tubeRadius = new("TUBE RADIUS", "RADIO DEL TUBO", "チューブ半径", "RAYON DU TUBE");
+        [SerializeField] LocalizedString tubeBand = new("TUBE BAND", "BANDA DEL TUBO", "チューブ可動域", "BANDE DU TUBE");
+        [SerializeField] LocalizedString tubeCurl = new("TUBE CURL", "CURVATURA DEL TUBO", "チューブ巻き込み", "COURBURE DU TUBE");
+
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString gameOver = new("GAME OVER", "FIN DE LA PARTIDA", "ゲームオーバー", "PARTIE TERMINÉE");
         [TitleGroup("Game over")]
@@ -492,6 +545,25 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString challengeDone = new("DONE", "HECHO", "完了", "FAIT");
         [TitleGroup("Mission brief")]
         [SerializeField] LocalizedString challengeFailed = new("FAILED", "FALLIDO", "失敗", "ÉCHOUÉ");
+
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString missionComplete = new("MISSION COMPLETE", "MISIÓN COMPLETADA", "ミッション完了", "MISSION ACCOMPLIE");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString mainObjectives = new("MAIN OBJECTIVES", "OBJETIVOS PRINCIPALES", "メイン目標", "OBJECTIFS PRINCIPAUX");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString finiteRunObjectives = new("ESCAPE RUN", "CARRERA DE HUIDA", "エスケープラン", "COURSE D'ÉVASION");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString total = new("TOTAL", "TOTAL", "合計", "TOTAL");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString rank = new("RANK", "RANGO", "ランク", "RANG");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString nextMission = new("NEXT MISSION", "SIGUIENTE MISIÓN", "次のミッション", "MISSION SUIVANTE");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString retry = new("RETRY", "REINTENTAR", "リトライ", "RÉESSAYER");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString missionBonus = new("MISSION BONUS", "BONO DE MISIÓN", "ミッションボーナス", "PRIME DE MISSION");
+        [TitleGroup("Mission complete")]
+        [SerializeField] LocalizedString statRank = new("RANK", "RANGO", "ランク", "RANG");
 
         [TitleGroup("Log")]
         [SerializeField] LocalizedString log = new("LOG", "REGISTRO", "ログ", "JOURNAL");
@@ -673,6 +745,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DashDuration => dashDuration,
             MenuTextId.DashRecharge => dashRecharge,
             MenuTextId.DashGhosts => dashGhosts,
+            MenuTextId.BarrelRollSeconds => barrelRollSeconds,
             MenuTextId.HoverHeight => hoverHeight,
             MenuTextId.BobAmplitude => bobAmplitude,
             MenuTextId.BobFrequency => bobFrequency,
@@ -735,6 +808,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.CamLookBackAngle => camLookBackAngle,
             MenuTextId.CamLookBackIn => camLookBackIn,
             MenuTextId.CamLookBackOut => camLookBackOut,
+            MenuTextId.CamLookBackDistance => camLookBackDistance,
+            MenuTextId.CamLookBackDamping => camLookBackDamping,
             MenuTextId.DebugTabCameraModes => debugTabCameraModes,
             MenuTextId.CamModeBlend => camModeBlend,
             MenuTextId.CamCloseDistance => camCloseDistance,
@@ -764,6 +839,16 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.FarGlitchStart => farGlitchStart,
             MenuTextId.FarGlitchStrength => farGlitchStrength,
             MenuTextId.FarGlitchRate => farGlitchRate,
+            MenuTextId.DebugTabSpeedLines => debugTabSpeedLines,
+            MenuTextId.SpeedLinesIntensity => speedLinesIntensity,
+            MenuTextId.SpeedLinesStart => speedLinesStart,
+            MenuTextId.SpeedLinesFull => speedLinesFull,
+            MenuTextId.SpeedLinesDensity => speedLinesDensity,
+            MenuTextId.SpeedLinesWidth => speedLinesWidth,
+            MenuTextId.SpeedLinesInnerMax => speedLinesInnerMax,
+            MenuTextId.SpeedLinesInnerMin => speedLinesInnerMin,
+            MenuTextId.SpeedLinesFlicker => speedLinesFlicker,
+            MenuTextId.SpeedLinesResponse => speedLinesResponse,
             MenuTextId.DebugTabPoliceFleet => debugTabPoliceFleet,
             MenuTextId.DebugTabPoliceChase => debugTabPoliceChase,
             MenuTextId.PolicePatrolCount => policePatrolCount,
@@ -787,6 +872,21 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.ObjectiveDestroy => objectiveDestroy,
             MenuTextId.ObjectiveCollect => objectiveCollect,
             MenuTextId.ObjectiveJump => objectiveJump,
+            MenuTextId.DebugTabFeatures => debugTabFeatures,
+            MenuTextId.FeatureSpacing => featureSpacing,
+            MenuTextId.JumpWidth => jumpWidth,
+            MenuTextId.JumpLength => jumpLength,
+            MenuTextId.JumpAngle => jumpAngle,
+            MenuTextId.JumpAirDistance => jumpAirDistance,
+            MenuTextId.JumpMaxAir => jumpMaxAir,
+            MenuTextId.JumpAirControl => jumpAirControl,
+            MenuTextId.JumpSideHitLoss => jumpSideHitLoss,
+            MenuTextId.LoopRadius => loopRadius,
+            MenuTextId.LoopFallGravity => loopFallGravity,
+            MenuTextId.LoopFallLoss => loopFallLoss,
+            MenuTextId.TubeRadius => tubeRadius,
+            MenuTextId.TubeBand => tubeBand,
+            MenuTextId.TubeCurl => tubeCurl,
             MenuTextId.LogSectionCollectibles => logSectionCollectibles,
             MenuTextId.StatCollectibles => statCollectibles,
             MenuTextId.CheatEnterCode => cheatEnterCode,
@@ -801,6 +901,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.ChallengeDone => challengeDone,
             MenuTextId.ChallengeFailed => challengeFailed,
             MenuTextId.HoldToSkip => holdToSkip,
+            MenuTextId.MissionComplete => missionComplete,
+            MenuTextId.MainObjectives => mainObjectives,
+            MenuTextId.FiniteRunObjectives => finiteRunObjectives,
+            MenuTextId.Total => total,
+            MenuTextId.Rank => rank,
+            MenuTextId.NextMission => nextMission,
+            MenuTextId.Retry => retry,
+            MenuTextId.MissionBonus => missionBonus,
+            MenuTextId.StatRank => statRank,
             MenuTextId.Loading => loading,
             MenuTextId.Log => log,
             MenuTextId.LogSectionGlobal => logSectionGlobal,

@@ -13,6 +13,7 @@ AudioMixerController:
   - {fileID: 24500002}
   - {fileID: 24500004}
   - {fileID: 24500006}
+  - {fileID: 24500008}
   m_StartSnapshot: {fileID: 24500002}
   m_SuspendThreshold: -80
   m_EnableSuspend: 1
@@ -38,6 +39,7 @@ AudioMixerController:
     - 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5a03
     - 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5a07
     - 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5a08
+    - 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5a09
     name: View
   m_CurrentViewIndex: 0
   m_TargetSnapshot: {fileID: 24500002}
@@ -55,6 +57,7 @@ AudioMixerGroupController:
   - {fileID: 24300006}
   - {fileID: 24300014}
   - {fileID: 24300016}
+  - {fileID: 24300018}
   m_Volume: 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b01
   m_Pitch: 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5c01
   m_Send: 00000000000000000000000000000000
@@ -200,6 +203,25 @@ AudioMixerGroupController:
   m_Mute: 0
   m_Solo: 0
   m_BypassEffects: 0
+--- !u!243 &24300018
+AudioMixerGroupController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Cinema
+  m_AudioMixer: {fileID: 24100000}
+  m_GroupID: 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5a09
+  m_Children: []
+  m_Volume: 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b09
+  m_Pitch: 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5c09
+  m_Send: 00000000000000000000000000000000
+  m_Effects:
+  - {fileID: 24400018}
+  m_UserColorIndex: 0
+  m_Mute: 0
+  m_Solo: 0
+  m_BypassEffects: 0
 --- !u!244 &24400002
 AudioMixerEffectController:
   m_ObjectHideFlags: 3
@@ -312,6 +334,20 @@ AudioMixerEffectController:
   m_SendTarget: {fileID: 0}
   m_EnableWetMix: 0
   m_Bypass: 0
+--- !u!244 &24400018
+AudioMixerEffectController:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name:
+  m_EffectID: 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5d09
+  m_EffectName: Attenuation
+  m_MixLevel: 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5e09
+  m_Parameters: []
+  m_SendTarget: {fileID: 0}
+  m_EnableWetMix: 0
+  m_Bypass: 0
 --- !u!245 &24500002
 AudioMixerSnapshotController:
   m_ObjectHideFlags: 0
@@ -325,6 +361,7 @@ AudioMixerSnapshotController:
     4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b04: 0
     4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b07: -80
     4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b08: -80
+    4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b09: 0
   m_TransitionOverrides: {}
 --- !u!245 &24500004
 AudioMixerSnapshotController:
@@ -339,6 +376,7 @@ AudioMixerSnapshotController:
     4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b04: -80
     4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b07: 0
     4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b08: -80
+    4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b09: -80
   m_TransitionOverrides: {}
 --- !u!245 &24500006
 AudioMixerSnapshotController:
@@ -353,4 +391,20 @@ AudioMixerSnapshotController:
     4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b04: -80
     4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b07: -80
     4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b08: 0
+    4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b09: -80
+  m_TransitionOverrides: {}
+--- !u!245 &24500008
+AudioMixerSnapshotController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Cinema
+  m_AudioMixer: {fileID: 24100000}
+  m_SnapshotID: 4a1f9c2e7b3d4e5f8a0b1c2d3e4f5f04
+  m_FloatValues:
+    4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b04: -80
+    4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b07: -80
+    4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b08: -80
+    4a1f9c2e7b3d4e5f8a0b1c2d3e4f5b09: 0
   m_TransitionOverrides: {}

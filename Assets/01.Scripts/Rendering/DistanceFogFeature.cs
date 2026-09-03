@@ -40,6 +40,15 @@ namespace ConfusedGameDev.FiniteRunner.Rendering
 
         static readonly int IntensityId = Shader.PropertyToID("_Intensity");
 
+        /// <summary>
+        /// True while a scene DistanceFog driver is alive (it sets this on
+        /// enable and clears it on disable). The material's _Intensity is a
+        /// shared asset: an edit-mode preview in one scene saves 1 into it,
+        /// and a scene with no driver would otherwise render the previous
+        /// scene's fog, unconfigured. No driver, no pass.
+        /// </summary>
+        public static bool HasDriver { get; set; }
+
         DistanceFogPass pass;
 
         public override void Create() => pass = new DistanceFogPass(settings);
@@ -51,6 +60,7 @@ namespace ConfusedGameDev.FiniteRunner.Rendering
             CameraType type = renderingData.cameraData.cameraType;
             if (type != CameraType.Game && type != CameraType.SceneView) return;
             if (renderingData.cameraData.targetTexture != null) return; // the minimap, or any other render-texture camera
+            if (!HasDriver) return;
             if (!material.HasProperty(IntensityId) || material.GetFloat(IntensityId) <= 0f) return;
 
             pass.renderPassEvent = settings.renderPassEvent;

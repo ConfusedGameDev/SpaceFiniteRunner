@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ConfusedGameDev.FiniteRunner.SaveData
@@ -14,8 +15,11 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
     /// <see cref="PlayerProfileBootstrap"/>'s autosave.
     ///
     /// <c>AddMoney</c> and <c>CompleteBonusObjective</c> are the public
-    /// entry points for sources that do not exist yet (the mission reward
-    /// banked on level completion is the one real money source today).
+    /// entry points for sources that do not exist yet. The one real money
+    /// source today is a MISSION — a city level plus the escape run after
+    /// it — paid once by the runner's Mission Complete panel through
+    /// <see cref="RecordMissionResult"/>; the city's <see cref="RecordLevelCompleted"/>
+    /// only records the level's rows for that panel.
     /// </summary>
     public static class PlayerStats
     {
@@ -125,24 +129,63 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
         }
 
         /// <summary>
-        /// A city level completed: counts it, banks the reward, remembers it
-        /// as the last level and adds it to the progression list. Saves at
-        /// once — the caller's scene is about to be unloaded.
+        /// A city level completed: counts it, remembers it as the last level
+        /// with every objective row, the accepted challenges (done or
+        /// failed), the flat bonus and the rank table, and adds it to the
+        /// progression list. It banks NO money — the mission is paid by the
+        /// runner's Mission Complete panel (<see cref="RecordMissionResult"/>),
+        /// which needs these rows. Saves at once — the caller's scene is
+        /// about to be unloaded.
         /// </summary>
         public static void RecordLevelCompleted(string levelId, string levelName, string lastObjective,
-                                                long reward, int optionalAccepted, int optionalCompleted)
+                                                long baseReward, List<ObjectiveResult> objectives,
+                                                List<ChallengeResult> challenges, RankTable rank)
         {
             var p = P;
             p.global.levelsCompleted++;
-            p.global.moneyEarned += reward;
-            p.lastLevel.levelId = levelId ?? "";
-            p.lastLevel.levelName = levelName ?? "";
-            p.lastLevel.lastObjective = lastObjective ?? "";
-            p.lastLevel.moneyEarned = reward;
-            p.lastLevel.optionalAccepted = optionalAccepted;
-            p.lastLevel.optionalCompleted = optionalCompleted;
+            var last = p.lastLevel;
+            last.levelId = levelId ?? "";
+            last.levelName = levelName ?? "";
+            last.lastObjective = lastObjective ?? "";
+            last.baseReward = baseReward;
+            last.objectives = objectives != null ? new List<ObjectiveResult>(objectives) : new List<ObjectiveResult>();
+            last.challenges = challenges != null ? new List<ChallengeResult>(challenges) : new List<ChallengeResult>();
+            last.rank = rank != null ? rank.Clone() : new RankTable();
+            last.optionalAccepted = last.challenges.Count;
+            last.optionalCompleted = 0;
+            foreach (var c in last.challenges) if (c.done) last.optionalCompleted++;
+            last.moneyEarned = 0;
+            last.missionTotal = 0;
+            last.missionRank = "";
+            last.banked = false;
             if (!string.IsNullOrEmpty(levelId) && !p.completedLevelIds.Contains(levelId))
                 p.completedLevelIds.Add(levelId);
+            PlayerProfileStore.MarkDirty();
+            PlayerProfileStore.Save();
+        }
+
+        /// <summary>
+        /// The mission paid, by the runner's Mission Complete panel: banks
+        /// <paramref name="total"/> and stamps the rank on the last level.
+        /// Best-of rule — a retried run that finishes again pays only the
+        /// IMPROVEMENT over what this mission already banked, so the city's
+        /// share is never paid twice and a worse re-run takes nothing back.
+        /// Saves at once: the panel's answer may leave the scene.
+        /// </summary>
+        public static void RecordMissionResult(long total, string rank)
+        {
+            var p = P;
+            var last = p.lastLevel;
+            long already = last.banked ? last.missionTotal : 0;
+            long delta = total - already;
+            if (delta > 0)
+            {
+                p.global.moneyEarned += delta;
+                last.missionTotal = total;
+                last.missionRank = rank ?? "";
+            }
+            last.moneyEarned = last.missionTotal;
+            last.banked = true;
             PlayerProfileStore.MarkDirty();
             PlayerProfileStore.Save();
         }

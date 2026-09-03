@@ -7,6 +7,7 @@
         "ConfusedGameDev.FiniteRunner.Cheats",
         "ConfusedGameDev.FiniteRunner.Haptics",
         "ConfusedGameDev.FiniteRunner.FX",
+        "ConfusedGameDev.FiniteRunner.Cameras",
         "Unity.InputSystem",
         "UnityEngine.UI",
         "Unity.Splines",

@@ -223,7 +223,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Audio
             if (source == null) return;
             StepFade(); // unscaled: a fade started before a pause still settles under it
 
-            bool live = Time.timeScale > 0f && !MainMenuController.IsOpen && !CinemaSystem.IsPlaying && !LoadingScreen.IsLoading;
+            bool live = Time.timeScale > 0f && !MainMenuController.IsOpen && !CinemaSystem.IsFrozen && !LoadingScreen.IsLoading; // a cinema the game runs under keeps the radio's d-pad
             if (live) ReadInput();
             else { left.Reset(); right.Reset(); } // the press that opened a menu must not skip a song on its release
 

@@ -128,8 +128,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             for (int i = 0; i < objectiveCount; i++)
             {
                 LevelObjective step = level.objectives[i];
+                string line = step.reward > 0
+                    ? $"{i + 1}. {step.Summary}   ${step.reward.ToString("N0", CultureInfo.InvariantCulture)}"
+                    : $"{i + 1}. {step.Summary}";
                 screen.AddLabel($"Objective{i}", new Vector2(ColumnX, objectivesTop - i * ObjectiveStep),
-                                new Vector2(760f, 40f), $"{i + 1}. {step.Summary}", 30, step.Accent,
+                                new Vector2(760f, 40f), line, 30, step.Accent,
                                 theme.BodyFont, TextAnchor.MiddleLeft, theme.TitleLead + i * theme.EntranceStagger);
             }
 
@@ -215,10 +218,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             }
         }
 
-        /// <summary>Base reward × every accepted challenge's multiplier.</summary>
+        /// <summary>The reward base (flat bonus + every objective's reward) × every accepted challenge's multiplier.</summary>
         int ComputeReward()
         {
-            long reward = level.baseReward;
+            long reward = level.RewardBase;
             foreach ((OptionalChallenge challenge, MenuToggle row) in challengeRows)
                 if (row.IsOn) reward *= Mathf.Max(1, challenge.multiplier);
             return (int)System.Math.Min(reward, int.MaxValue);

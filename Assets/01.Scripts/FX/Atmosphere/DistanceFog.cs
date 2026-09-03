@@ -77,6 +77,7 @@ namespace ConfusedGameDev.FiniteRunner.FX
         void OnEnable()
         {
             Instance = this;
+            Rendering.DistanceFogFeature.HasDriver = true;
             if (settings == null) settings = DistanceFogSettings.Load();
             if (Application.isPlaying) RendererFeatureAudit.WarnIfMissing(fogMaterial, nameof(DistanceFog), this);
             Apply();
@@ -96,6 +97,7 @@ namespace ConfusedGameDev.FiniteRunner.FX
             {
                 if (fogMaterial != null) fogMaterial.SetFloat(IntensityId, 0f);
                 Instance = null;
+                Rendering.DistanceFogFeature.HasDriver = false;
             }
         }
 

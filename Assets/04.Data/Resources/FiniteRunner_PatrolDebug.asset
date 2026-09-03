@@ -1,23 +1,3 @@
-%YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8f1e5c3a9b7d4f2ca1e0d8b6c4a2f9e3, type: 3}
-  m_Name: FiniteRunner_PatrolDebug
-  m_EditorClassIdentifier:
-  applyOnLoad: 0
-  baseSpeed: 33.06
-  ramp: 0.083
-  rubberBand: 0.95
-  catchUpAccel: 3.33
-  startGap: 750
-  catchDistance: 10
-  warnDistance: 130
-  alertLead: 180
+version https://git-lfs.github.com/spec/v1
+oid sha256:1e4892a6f2eaffbbf301e63cb59a46aee6eeb878ad4593d3fecfbeb1a15afd8e
+size 558

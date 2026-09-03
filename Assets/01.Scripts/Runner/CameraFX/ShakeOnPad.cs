@@ -1,16 +1,19 @@
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.Ship;
 namespace ConfusedGameDev.FiniteRunner.CameraFX
 {
     /// <summary>
     /// Juice hookup: fires a camera shake whenever the ship takes a pad
-    /// impulse — a punchy one for boosts, a heavier one for brakes.
+    /// impulse — a punchy one for boosts, a heavier one for brakes. The
+    /// shake itself is the Cinemachine extension on the chase rig's vcams
+    /// (fed from the <see cref="CameraShake"/> bank), so this can sit anywhere in
+    /// the scene; it no longer touches the camera transform.
     /// </summary>
     public class ShakeOnPad : MonoBehaviour
     {
         [SerializeField] ShipMotor motor;
-        [SerializeField] CameraShaker shaker;
         [SerializeField] CameraShakeSettings boostShake;
         [SerializeField] CameraShakeSettings brakeShake;
 
@@ -26,8 +29,7 @@ namespace ConfusedGameDev.FiniteRunner.CameraFX
 
         void OnPadImpulse(float rawMagnitude)
         {
-            if (shaker == null) return;
-            shaker.Shake(rawMagnitude >= 0f ? boostShake : brakeShake);
+            CameraShake.Shake(rawMagnitude >= 0f ? boostShake : brakeShake);
         }
     }
 }

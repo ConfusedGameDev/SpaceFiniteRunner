@@ -21,11 +21,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
     /// RawImage — so the holders are real objects in the scene while the
     /// asset stays the single source of truth for where they sit.
     ///
-    /// Playing sets <c>Time.timeScale = 0</c>, which is what stops the cars
-    /// (rigidbodies driven from FixedUpdate) and, through the existing
+    /// A cinema FREEZES THE WORLD BY DEFAULT: playing sets
+    /// <c>Time.timeScale = 0</c>, which is what stops the cars (rigidbodies
+    /// driven from FixedUpdate) and, through the existing
     /// <c>timeScale &gt; 0</c> gates, keeps the pause menu, city map and
     /// camera cycle shut; the VideoPlayer runs on the DSP clock, so it plays
     /// through the freeze, and every animation here runs on unscaled time.
+    /// A caller can ask for the opposite (<c>pauseGame</c> false on the step
+    /// or the trigger): the game keeps running under the picture, so the
+    /// clip, the countdown and the slide ride the GAME clock instead — a
+    /// pause menu opened over such a cinema freezes it too, and the canvas
+    /// hides while someone else holds the clock at 0 so the picture never
+    /// sits over the menu. <see cref="IsPlaying"/> says a cinema is up,
+    /// <see cref="IsFrozen"/> that it is the one holding the world still.
+    /// ONE CINEMA AT A TIME: a request while one is up ends the old one at
+    /// once (its caller IS called back — its cinema is over, and a level
+    /// gate or a trigger cooldown waiting on it must not stall) and the new
+    /// one starts in the same call.
     /// The clip is PREPARED before the holder is revealed (a fresh
     /// RenderTexture shows black for a few frames otherwise), a bad clip or a
     /// stalled prepare ends the cinema instead of leaving the game frozen,
@@ -66,8 +78,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
 
         public static CinemaSystem Instance { get; private set; }
 
-        /// <summary>True from the moment a cinema freezes the world until it hands back.</summary>
+        /// <summary>True from the moment a cinema starts until it hands back — frozen world or not.</summary>
         public static bool IsPlaying { get; private set; }
+
+        /// <summary>True while the cinema that is up is the one holding <c>Time.timeScale</c> at 0.</summary>
+        public static bool IsFrozen { get; private set; }
 
         [Tooltip("The display formats this system builds holders for. Empty = the Resources asset (or the built-in defaults).")]
         [InlineEditor(InlineEditorObjectFieldModes.Foldout)]
@@ -75,6 +90,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
 
         MenuTheme theme;
         Canvas canvas;
+        CanvasGroup canvasGroup; // hides a non-freezing cinema while another owner holds the clock at 0 (the pause menu)
         RectTransform canvasRect;
         Image backdrop;
         readonly List<Holder> holders = new();
@@ -91,6 +107,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
         Text keyLabel;
 
         Phase phase;
+        bool frozen;          // this cinema set timeScale to 0 and owes a 1 on the way out
         float slide;          // 0 = off screen, 1 = home
         float prepareTimer;
         float remaining;
@@ -153,6 +170,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = SortingOrder;
             canvasRect = (RectTransform)transform;
+            canvasGroup = gameObject.AddComponent<CanvasGroup>();
+            canvasGroup.blocksRaycasts = false;
 
             var scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -183,15 +202,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
             video.isLooping = false;
             video.waitForFirstFrame = true;
             video.skipOnDrop = true;
-            video.timeUpdateMode = VideoTimeUpdateMode.DSPTime; // the audio clock — immune to timeScale, unlike GameTime
+            video.timeUpdateMode = VideoTimeUpdateMode.DSPTime; // per play: the audio clock (immune to timeScale) under a freeze, GameTime when the world runs on
             video.prepareCompleted += OnPrepared;
             video.errorReceived += OnVideoError;
             video.loopPointReached += OnClipEnded;
 
+            // The clip's sound rides the Cinema bus, outside the Gameplay bus
+            // the freeze ducks, so the video stays audible while the game
+            // goes quiet (an old mixer without the bus falls back to Voice).
             voice = gameObject.AddComponent<AudioSource>();
             voice.playOnAwake = false;
             voice.spatialBlend = 0f;
-            voice.outputAudioMixerGroup = GameAudio.Voice;
+            voice.outputAudioMixerGroup = GameAudio.Cinema != null ? GameAudio.Cinema : GameAudio.Voice;
 
             canvas.enabled = false;
         }
@@ -317,11 +339,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
         // ------------------------------------------------------------- play
 
         /// <summary>
-        /// Freeze the world and play the step's cinema; <paramref name="onFinished"/>
-        /// runs once it is gone and time is running again. A step without a
-        /// playable cinema finishes at once (the callback still runs, so the
-        /// caller never stalls); an unknown format id falls back to the
-        /// library's first row with a warning.
+        /// Play the step's cinema — freezing the world when the step asks
+        /// for it (<see cref="LevelObjective.cinemaPausesGame"/>, the
+        /// default); <paramref name="onFinished"/> runs once it is gone and
+        /// time is running again. A step without a playable cinema finishes
+        /// at once (the callback still runs, so the caller never stalls); an
+        /// unknown format id falls back to the library's first row with a
+        /// warning.
         /// </summary>
         public void Play(LevelObjective step, System.Action onFinished)
         {
@@ -330,19 +354,25 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
                 onFinished?.Invoke();
                 return;
             }
-            Play(step.cinemaClip, step.cinemaFormat, step.cinemaSeconds, onFinished);
+            Play(step.cinemaClip, step.cinemaFormat, step.cinemaSeconds, step.cinemaPausesGame, onFinished);
         }
+
+        /// <summary>The freezing form of <see cref="Play(VideoClip, string, float, bool, System.Action)"/> — the default.</summary>
+        public void Play(VideoClip clip, string formatId, float seconds, System.Action onFinished)
+            => Play(clip, formatId, seconds, pauseGame: true, onFinished);
 
         /// <summary>
         /// The raw form every caller (a level step, a <see cref="CinemaTrigger"/>)
-        /// lands on: freeze the world and play <paramref name="clip"/> in the
-        /// format under <paramref name="formatId"/> for <paramref name="seconds"/>.
-        /// No clip or no formats finishes at once — the callback still runs.
-        /// A cinema already up is pre-empted: its callback is dropped, the
-        /// way Cancel drops it, so the newcomer's caller is the only one
-        /// told when the screen clears.
+        /// lands on: play <paramref name="clip"/> in the format under
+        /// <paramref name="formatId"/> for <paramref name="seconds"/>, with
+        /// the world frozen under it when <paramref name="pauseGame"/> is on
+        /// and running on when it is off. No clip or no formats finishes at
+        /// once — the callback still runs. A cinema already up is ENDED
+        /// FIRST and its caller called back (its cinema is over; a gate
+        /// waiting on it must not stall), then the new one starts — one
+        /// cinema at a time, the newest wins.
         /// </summary>
-        public void Play(VideoClip clip, string formatId, float seconds, System.Action onFinished)
+        public void Play(VideoClip clip, string formatId, float seconds, bool pauseGame, System.Action onFinished)
         {
             if (clip == null || holders.Count == 0)
             {
@@ -350,7 +380,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
                 onFinished?.Invoke();
                 return;
             }
-            if (phase != Phase.Idle) Cancel();
+            if (phase != Phase.Idle) End(invokeCallback: true);
 
             callback = onFinished;
             active = ResolveHolder(formatId);
@@ -358,9 +388,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
 
             // The world stops the moment the step activates, not when the
             // first frame is ready — nothing may happen under a loading clip.
-            Time.timeScale = 0f;
+            // A non-freezing cinema leaves the clock alone and rides it: the
+            // clip follows game time so a pause menu halts it too.
+            frozen = pauseGame;
+            if (frozen)
+            {
+                Time.timeScale = 0f;
+                Gamepad.current?.ResetHaptics();
+                GameAudio.SetCinema(true, theme.CinemaAudioFade); // the in-game buses fade out under the picture, like the pause menu's duck
+            }
             IsPlaying = true;
-            Gamepad.current?.ResetHaptics();
+            IsFrozen = frozen;
+            video.timeUpdateMode = frozen ? VideoTimeUpdateMode.DSPTime : VideoTimeUpdateMode.GameTime;
             openedTime = Time.unscaledTime;
             armed = false;
             hold = 0f;
@@ -466,13 +505,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
         void Update()
         {
             if (phase == Phase.Idle) return;
-            float dt = Time.unscaledDeltaTime;
+            // A freezing cinema animates on unscaled time (the clock is 0 by
+            // its own hand); a non-freezing one on game time, so whoever
+            // else stops the clock — the pause menu — stops it too, and the
+            // picture steps out of that owner's way meanwhile.
+            float dt = frozen ? Time.unscaledDeltaTime : Time.deltaTime;
+            canvasGroup.alpha = !frozen && Time.timeScale <= 0f ? 0f : 1f;
             InputPromptBinder.Poll(); // only the main menu polls this — the glyph must follow the device here too
 
             switch (phase)
             {
                 case Phase.Preparing:
-                    prepareTimer += dt;
+                    prepareTimer += Time.unscaledDeltaTime; // the watchdog runs whatever the clock does
                     if (prepareTimer >= PrepareTimeoutSeconds)
                     {
                         Debug.LogWarning("CinemaSystem: the clip did not prepare in time — ending the cinema.", this);
@@ -583,8 +627,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
                 texture = null;
             }
 
-            Time.timeScale = 1f;
+            if (frozen)
+            {
+                Time.timeScale = 1f; // only the clock we stopped — a non-freezing cinema never owned it
+                GameAudio.SetCinema(false, theme.CinemaAudioFade); // and the game's sound fades back in
+            }
+            frozen = false;
             IsPlaying = false;
+            IsFrozen = false;
+            if (canvasGroup != null) canvasGroup.alpha = 1f;
 
             System.Action finished = callback;
             callback = null;

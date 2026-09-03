@@ -21,7 +21,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [TitleGroup("Win condition")]
         [Tooltip("Light Speed — the speed that wins the run, in km/h.")]
         [PropertyRange(100f, 10000f), SuffixLabel("km/h", true)]
-        public float lightSpeedKmh = 4000f;
+        public float lightSpeedKmh = 6500f;
 
         [TitleGroup("Win condition")]
         [Tooltip("Seconds to reach Light Speed before the chase is lost.")]
@@ -56,11 +56,58 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(1f, 3f), SuffixLabel("x ship speed", true), EnableIf("patrolRedeploys")]
         public float patrolRedeploySpeedFactor = 1.25f;
 
+        [ToggleGroup("patrolEnabled"), Title("Alerts")]
+        [Tooltip("Announce every fresh patrol with the 'Patrol inbound' story line (RPG dialogue box). Off by default — the minimap and the rumble already show it arriving.")]
+        public bool showPatrolAlert = false;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("Speak the patrol's proximity line (RPG dialogue box) once each time it closes inside its warn distance. Off by default — the minimap shows the gap every frame.")]
+        public bool showPatrolWarnings = false;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("Gamepad rumble that grows as the patrol closes inside its warn distance.")]
+        public bool patrolProximityRumble = true;
+
         // ----------------------------------------------------------- power-up
         [TitleGroup("Power-ups")]
         [Tooltip("Base speed gain of a power-up orb in m/s (x3.6 for km/h). Each orb tier multiplies this — green 1x, blue 2.5x, purple 10x (tiers live on the TrackGenerator).")]
         [PropertyRange(0f, 100f), SuffixLabel("m/s", true)]
         public float powerUpSpeedBoost = 15f;
+
+        // ----------------------------------------------------- track features
+        [TitleGroup("Track features")]
+        [Tooltip("Height of the air lane above the flight line — where Air-lane pads spawn, reachable only off a jump. Prepared for future power-ups; the tables hold no air entries yet.")]
+        [PropertyRange(5f, 150f), SuffixLabel("m", true)]
+        public float airLaneHeight = 30f;
+
+        [TitleGroup("Track features")]
+        [Tooltip("Camera shake when the ship lands after a jump. Empty = no shake.")]
+        public Cameras.CameraShakeSettings landingShake;
+
+        [TitleGroup("Track features")]
+        [Tooltip("Camera shake when the ship slams a track edge or a ramp's side. Empty = no shake.")]
+        public Cameras.CameraShakeSettings wallHitShake;
+
+        // -------------------------------------------------------------- loops
+        [TitleGroup("Loops")]
+        [Tooltip("Entry speed a loop demands at the start of the run, km/h. A fresh launch (about 900) must fail it; one green orb (+870) must pass it.")]
+        [PropertyRange(200f, 5000f), SuffixLabel("km/h", true)]
+        public float loopSpeedFloorKmh = 1200f;
+
+        [TitleGroup("Loops")]
+        [Tooltip("How much the demand grows per 100 m of track travelled — the run's speed climbs, so a fixed number would be trivial late.")]
+        [PropertyRange(0f, 100f), SuffixLabel("km/h per 100 m", true)]
+        public float loopSpeedRampKmhPer100m = 18f;
+
+        [TitleGroup("Loops")]
+        [Tooltip("Cap on the demand, km/h. Keep it well under Light Speed.")]
+        [PropertyRange(200f, 10000f), SuffixLabel("km/h", true)]
+        public float loopSpeedCapKmh = 2900f;
+
+        [TitleGroup("Loops")]
+        [Tooltip("Glitch pulse strength when the ship drops off the top of a loop.")]
+        [PropertyRange(0f, 1f)]
+        public float loopFallGlitchStrength = 0.8f;
 
         // --------------------------------------------------------------- dash
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on
@@ -103,6 +150,29 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Transparent URP material for the onion-skin ghosts (Materials/DashGhost_Mat). Empty = a runtime fallback material is built instead.")]
         public Material dashGhostMaterial;
 
+        [ToggleGroup("dashEnabled"), Title("Barrel roll trails")]
+        [Tooltip("Seconds the two wingtip ribbons drawn during an airborne barrel roll linger before they fade out — the spiral's length in time.")]
+        [PropertyRange(0.1f, 2f), SuffixLabel("s", true)]
+        public float barrelRollTrailSeconds = 0.6f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Width of a wingtip ribbon at the ship, in metres; it tapers to nothing along its length.")]
+        [PropertyRange(0.1f, 4f), SuffixLabel("m", true)]
+        public float barrelRollTrailWidth = 0.9f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Where along the wing each ribbon is emitted, as a fraction of the model's half-width (1 = the wingtip).")]
+        [PropertyRange(0.2f, 1.2f)]
+        public float barrelRollTrailSpan = 1f;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Ribbon colour at the ship; it fades to transparent along the trail.")]
+        public Color barrelRollTrailColor = new(0.45f, 0.9f, 1f, 0.9f);
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Vertex-coloured transparent URP material for the ribbons (Materials/BarrelRollTrail_Mat). Empty = a runtime fallback material is built instead.")]
+        public Material barrelRollTrailMaterial;
+
         [ToggleGroup("dashEnabled"), Title("Power meter")]
         [Tooltip("Fill colour of the meter once at least one dash is banked; dimmed while still charging. The bar itself is the DashMeter scene object under the Ship.")]
         public Color dashMeterColor = new(0.35f, 0.9f, 1f);
@@ -131,8 +201,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0f, 500f), SuffixLabel("m", true)]
         public float boostTextLeadMeters = 60f;
 
-        // The patrol alert lead moved to PatrolDefinition.alertLead.
-
         // ------------------------------------------------------------ messages
         [TitleGroup("Story messages")]
         [Tooltip("Seconds an RPG message stays on screen after it finishes typing.")]
@@ -152,11 +220,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Lose line")]
         public string loseMessage = "Gotcha, hotshot. Party's over — powering you down.";
 
+        [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Patrol inbound line")]
+        [Tooltip("Spoken by the patrol when a fresh one cuts in (only while 'Show patrol alert' is on). {0} = the patrol's number.")]
+        public string patrolInboundMessage = "Patrol {0} inbound. You can't outrun all of us, hotshot.";
+
+        [TitleGroup("Story messages"), MultiLineProperty(2), LabelText("Patrol warning line")]
+        [Tooltip("Spoken by the patrol when it closes inside its warn distance (only while 'Show patrol warnings' is on). {0} = the gap in meters.")]
+        public string patrolWarningMessage = "Right on your tail, hotshot — {0} m and closing.";
+
         [TitleGroup("Story messages")]
         public Color pilotMessageColor = new(0.35f, 0.9f, 1f);
 
         [TitleGroup("Story messages")]
         public Color patrolMessageColor = new(1f, 0.4f, 0.35f);
+
+        // ------------------------------------------------------------- camera
+        [TitleGroup("Camera")]
+        [Tooltip("The ship's chase-camera feel (framing, modes, roll binding, FOV kick). The shared Cinemachine rig is attached to the ship with this asset on boot; empty = the scene keeps whatever camera it has.")]
+        [InlineEditor]
+        public Cameras.OrbitCameraSettings cameraSettings;
 
         // ------------------------------------------------------------ weather
         [ToggleGroup("rainEnabled", "Weather")]
@@ -166,6 +248,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [ToggleGroup("rainEnabled"), InlineEditor]
         [Tooltip("Override asset pushed onto the scene's RainSystem on boot. Empty = leave that system with the asset it was authored with (the shipped FiniteRunner_Rain from Resources).")]
         public RainSettings rainSettings;
+
+        // -------------------------------------------------------- speed lines
+        [ToggleGroup("speedLinesEnabled", "Speed lines")]
+        [Tooltip("Manga speed lines over the picture as the ship nears Light Speed. The look and the speed band (a fraction of Light Speed) live on the asset below — this is only the on/off for this scene.")]
+        public bool speedLinesEnabled = true;
+
+        [ToggleGroup("speedLinesEnabled"), InlineEditor]
+        [Tooltip("Speed lines asset pushed onto the driver on boot. Empty = the shipped FiniteRunner_SpeedLines from Resources.")]
+        public SpeedLinesSettings speedLinesSettings;
+
+        [ToggleGroup("speedLinesEnabled")]
+        [Tooltip("Burst of lines on a green (1×) orb pickup; blue and purple scale it by their tier (2.5× / 10×, clamped to full). 0 = no burst.")]
+        [PropertyRange(0f, 1f)]
+        public float boostPulseStrength = 0.4f;
+
+        [ToggleGroup("speedLinesEnabled")]
+        [Tooltip("How long a boost burst takes to fade back to the speed-driven level.")]
+        [PropertyRange(0.05f, 2f), SuffixLabel("s", true)]
+        public float boostPulseSeconds = 0.6f;
 
         // --------------------------------------------------------- accessors
         /// <summary>How far behind the ship a fresh patrol drops in, in meters (band X).</summary>

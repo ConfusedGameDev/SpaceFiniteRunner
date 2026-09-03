@@ -1,4 +1,4 @@
-using Unity.Cinemachine;
+using ConfusedGameDev.FiniteRunner.Cameras;
 using UnityEngine;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
@@ -8,8 +8,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     /// PlayerCarSpawner and CityManager's Create Car button. Enforces the
     /// single-car rule (any CarController already in the scene is destroyed
     /// first), gives the car its rolling start (CarConfig.spawnSpeedKmh, so
-    /// the player takes the wheel mid-motion) and retargets the Cinemachine
-    /// orbit rig (created on demand, brain added to the main camera).
+    /// the player takes the wheel mid-motion) and retargets the shared
+    /// Cinemachine orbit rig through <see cref="CameraRigInstaller"/>.
     /// </summary>
     public static class CarFactory
     {
@@ -84,7 +84,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             body.rotation = rotation;
             body.transform.SetPositionAndRotation(position, rotation);
             body.interpolation = mode;
-            CinemachineCore.OnTargetObjectWarped(body.transform, delta);
+            CameraRigInstaller.Warp(body.transform, delta);
         }
 
         static void SetLayerRecursively(Transform root, int layer)
@@ -94,23 +94,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
                 SetLayerRecursively(root.GetChild(i), layer);
         }
 
-        /// <summary>Ensure a CinemachineBrain on the main camera and an OrbitCameraRig in the scene, then retarget the rig to the car.</summary>
+        /// <summary>Attach the shared chase rig to the car (brain on the main camera, rig found or created).</summary>
         public static void AttachOrbitCamera(CarController car, OrbitCameraSettings cameraSettings)
         {
-            if (car == null) return;
-            var camera = Camera.main;
-            if (camera == null)
-            {
-                Debug.LogWarning("CarFactory: no main camera found to attach the orbit camera to.");
-                return;
-            }
-            if (camera.GetComponent<CinemachineBrain>() == null)
-                camera.gameObject.AddComponent<CinemachineBrain>();
-
-            var rig = Object.FindAnyObjectByType<OrbitCameraRig>();
-            if (rig == null) rig = new GameObject("OrbitCameraRig").AddComponent<OrbitCameraRig>();
-            if (cameraSettings != null) rig.settings = cameraSettings;
-            rig.SetTarget(car);
+            if (car != null) CameraRigInstaller.Attach(car, cameraSettings);
         }
     }
 }

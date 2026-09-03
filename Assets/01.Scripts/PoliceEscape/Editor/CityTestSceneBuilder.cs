@@ -236,7 +236,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // button and the police fleet work in this scene too (assets are
             // built by CarTestSceneBuilder).
             manager.carPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabFolder + "/TestCar.prefab");
-            manager.orbitCameraSettings = AssetDatabase.LoadAssetAtPath<Vehicles.OrbitCameraSettings>(DataFolder + "/TestOrbitCameraSettings.asset");
+            manager.orbitCameraSettings = AssetDatabase.LoadAssetAtPath<Cameras.OrbitCameraSettings>(DataFolder + "/TestOrbitCameraSettings.asset");
             manager.policeCarPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabFolder + "/TestPoliceCar.prefab");
             manager.pursuitSettings = AssetDatabase.LoadAssetAtPath<AI.PursuitSettings>(DataFolder + "/TestPursuitSettings.asset");
             manager.minimapSettings = AssetDatabase.LoadAssetAtPath<UI.MinimapSettings>(DataFolder + "/TestMinimapSettings.asset");

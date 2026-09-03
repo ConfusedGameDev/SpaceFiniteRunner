@@ -12,6 +12,7 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - N_F_CA_ON
   - N_F_DDMD_ON
   - N_F_EAL_ON
   - N_F_O_ON
@@ -214,7 +215,7 @@ Material:
     - _MixMainTexToOutline: 0
     - _Mode: 0
     - _N_F_ANIS: 0
-    - _N_F_CA: 0
+    - _N_F_CA: 1
     - _N_F_CLD: 0
     - _N_F_CO: 0
     - _N_F_COEDGL: 0
@@ -270,7 +271,7 @@ Material:
     - _OutlineWidth: 1.5
     - _OutlineWidthAffectedByViewDistance: 0
     - _OutlineZPostionInCamera: 0
-    - _OverallShadowColorPower: 1
+    - _OverallShadowColorPower: 4.14
     - _PADist: 0
     - _PASize: 0.5
     - _PASmooTrans: 1
@@ -295,7 +296,7 @@ Material:
     - _SPECIN: 1
     - _SPECMODE: 0
     - _STIL: 0
-    - _Saturation: 1
+    - _Saturation: 2
     - _ScreenSpaceReflections: 1
     - _ScreenSpaceReflectionsContributeTransparent: 1
     - _SelfLitHighContrast: 1
@@ -306,7 +307,7 @@ Material:
     - _SelfShadowRealTimeShadowColorPower: 1
     - _SelfShadowRealtimeShadowIntensity: 1
     - _SelfShadowShadowTAtViewDirection: 0
-    - _SelfShadowThreshold: 0.93
+    - _SelfShadowThreshold: 0.865
     - _ShadowColorTexturePower: 0
     - _ShadowHardness: 0
     - _ShadowTColorPower: 1
