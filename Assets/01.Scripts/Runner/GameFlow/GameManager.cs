@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.FX;
@@ -111,6 +112,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 Debug.LogError($"{nameof(GameManager)} has no {nameof(GameSettings)} asset assigned — falling back to defaults.", this);
                 settings = ScriptableObject.CreateInstance<GameSettings>();
             }
+            // A live campaign session names the run to play; the serialized
+            // asset is the direct-play (editor) fallback.
+            if (MissionSession.Current != null && MissionSession.Current.runnerLevel is RunnerLevelDefinition sessionLevel)
+                level = sessionLevel;
             if (level == null)
             {
                 Debug.LogError($"{nameof(GameManager)} has no {nameof(RunnerLevelDefinition)} asset assigned — falling back to the default run.", this);
@@ -321,10 +326,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (!RunOver || !HasWon || MissionCompleteScreen.IsOpen) return;
             MissionCompleteScreen.Show(BuildMissionCompleteData(),
-                                       onNext: () => LoadingScreen.Load(level.nextSceneName),
+                                       onNext: () => LoadingScreen.Load(NextSceneAfterMission()),
                                        onRetry: Restart,
                                        onExit: LoadingScreen.LoadMainMenu);
         }
+
+        // NEXT MISSION on a campaign mission always returns to the Store, which
+        // offers the new frontier; direct play keeps the level's own next scene.
+        string NextSceneAfterMission() => MissionSession.Active ? StoreSettings.SceneName : level.nextSceneName;
 
         MissionCompleteData BuildMissionCompleteData()
         {
@@ -333,6 +342,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             var data = new MissionCompleteData
             {
+                missionId = MissionSession.Current != null ? MissionSession.Current.id : "",
                 title = hasCity && !string.IsNullOrEmpty(last.levelName) ? last.levelName : level.levelName,
                 video = level.completeVideo,
                 baseReward = hasCity ? last.baseReward : 0,
@@ -478,11 +488,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 GlitchController.Instance.Pulse(settings.loopFallGlitchStrength);
         }
 
-        // Touchdown: a thump in the hands and on the picture, no speed change.
+        // Touchdown: a thump in the hands and on the picture, a spray of
+        // sparkles at the touchdown point, no speed change.
         void OnLanded()
         {
             HapticsSystem.Instance.Pulse(0.5f, 0.3f, 0.2f);
             CameraShake.Shake(settings.landingShake);
+            SparkleVfx.SpawnBurst(motor.transform.position, motor.transform.up,
+                                  settings.landingSparkleColor, settings.landingSparkleScale,
+                                  settings.landingSparkleCount);
             if (cameraRig != null && modeBeforeJump != CameraMode.Far)
                 cameraRig.SetMode(modeBeforeJump, instant: false);
         }

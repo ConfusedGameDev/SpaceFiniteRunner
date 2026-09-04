@@ -4,6 +4,7 @@
     "references": [
         "ConfusedGameDev.FiniteRunner.UI",
         "ConfusedGameDev.FiniteRunner.SaveData",
+        "ConfusedGameDev.FiniteRunner.Campaign",
         "ConfusedGameDev.FiniteRunner.Cheats",
         "ConfusedGameDev.FiniteRunner.Haptics",
         "ConfusedGameDev.FiniteRunner.FX",

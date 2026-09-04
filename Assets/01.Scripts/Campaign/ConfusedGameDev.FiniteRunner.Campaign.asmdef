@@ -1,0 +1,16 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.Campaign",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.Campaign",
+    "references": [
+        "ConfusedGameDev.FiniteRunner.SaveData"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -5,6 +5,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
+using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.SaveData;
@@ -27,8 +28,14 @@ namespace ConfusedGameDev.FiniteRunner.Store
     /// <see cref="PlayerStats.TrySpend"/>, the level written, the profile
     /// saved at once (a purchase is a commit point), the meter and the
     /// wallet punched. No confirm dialog, no refunds. Back leaves for the
-    /// main menu, START MISSION for the settings' next mission scene — both
-    /// through the loading curtain. The column's X is pre-measured from the
+    /// main menu; START MISSION names the campaign's FRONTIER (the first
+    /// mission of the <see cref="CampaignCatalog"/> not yet completed —
+    /// <c>START MISSION — 2: NAME</c>), opens a <see cref="MissionSession"/>
+    /// on it and loads its world's scene; greyed with the requirement
+    /// printed while the frontier is gated, and leading to the Coming Soon
+    /// scene once every mission is done. Without a catalog the settings'
+    /// fixed next scene keeps the old flow alive. All through the loading
+    /// curtain. The column's X is pre-measured from the
     /// widest row on the tab so the plates stay clear of the left edge and
     /// the model stays visible whatever the language.
     ///
@@ -62,7 +69,7 @@ namespace ConfusedGameDev.FiniteRunner.Store
             public MenuScreen screen;
             public MenuChoice modelRow;
             public readonly List<(UpgradeDefinition def, UpgradeRow row)> upgrades = new();
-            public MenuRow startRow;
+            public MissionRow startRow;
         }
 
         MenuTheme theme;
@@ -181,7 +188,8 @@ namespace ConfusedGameDev.FiniteRunner.Store
             // in any language plus the row type's widget reserve.
             float width = theme.RowWidth;
             width = Mathf.Max(width, RowWidthFor(MenuTextId.StoreModel, MenuChoice.RightReserve));
-            width = Mathf.Max(width, RowWidthFor(MenuTextId.StartMission, 0f));
+            string startLabel = StartLabel();
+            width = Mathf.Max(width, RowWidthFor(startLabel, MissionRow.RightReserve));
             foreach (UpgradeDefinition def in section.categories)
                 if (def != null) width = Mathf.Max(width, RowWidthFor(def.label, UpgradeRow.RightReserve));
             float columnX = LeftEdge + width * 0.5f;
@@ -211,8 +219,9 @@ namespace ConfusedGameDev.FiniteRunner.Store
                 tab.upgrades.Add((def, row));
             }
 
-            tab.startRow = screen.AddRow<MenuRow>(MenuTextId.StartMission);
+            tab.startRow = screen.AddRow<MissionRow>(startLabel);
             tab.startRow.Activated += StartMission;
+            RefreshStartRow(tab);
 
             screen.HideImmediate();
             tab.screen = screen;
@@ -221,6 +230,21 @@ namespace ConfusedGameDev.FiniteRunner.Store
 
         float RowWidthFor(MenuTextId label, float reserve)
             => Mathf.Ceil(MenuRow.LabelInsetWidth + texts.MaxWidth(label, theme.BodyFont, MenuRow.LabelFontSize) + reserve);
+
+        float RowWidthFor(string label, float reserve)
+            => Mathf.Ceil(MenuRow.LabelInsetWidth + MenuTextLibrary.MeasureWidth(label, theme.BodyFont, MenuRow.LabelFontSize) + reserve);
+
+        // The START MISSION row's text: the frontier's number and name, COMING
+        // SOON once the campaign is done, plain START MISSION with no catalog
+        // (and in the edit-mode preview, which never reads the profile).
+        string StartLabel()
+        {
+            CampaignCatalog catalog = CampaignCatalog.Load();
+            if (catalog == null || !Application.isPlaying) return texts.Get(MenuTextId.StartMission);
+            CampaignCatalog.Entry frontier = CampaignProgress.Frontier(catalog);
+            if (!frontier.IsSet) return texts.Get(MenuTextId.ComingSoon);
+            return string.Format(texts.Get(MenuTextId.StartMissionTarget), frontier.number, frontier.mission.DisplayName);
+        }
 
         // ------------------------------------------------------------- refresh
 
@@ -237,6 +261,25 @@ namespace ConfusedGameDev.FiniteRunner.Store
                 long cost = def.CostFor(level + 1);
                 row.SetState(level, cost, cost > 0 && cost <= balance, maxLabel);
             }
+        }
+
+        /// <summary>Greys the START MISSION row with its requirement while the frontier is gated; clear otherwise.</summary>
+        void RefreshStartRow(Tab tab)
+        {
+            if (tab == null || tab.startRow == null) return;
+            CampaignCatalog catalog = CampaignCatalog.Load();
+            CampaignCatalog.Entry frontier = catalog != null && Application.isPlaying ? CampaignProgress.Frontier(catalog) : default;
+            bool met = !frontier.IsSet || CampaignProgress.RequirementsMet(frontier.mission);
+            tab.startRow.SetEnabled(met);
+            tab.startRow.SetValue(met ? string.Empty
+                                      : RequirementText.Describe(CampaignProgress.FirstUnmet(frontier.mission), texts));
+        }
+
+        // Every tab carries its own START row and a purchase can cross a
+        // money gate either way, so all of them refresh together.
+        void RefreshStartRows()
+        {
+            foreach (Tab tab in built) RefreshStartRow(tab);
         }
 
         static string ModelOf(Tab tab)
@@ -381,6 +424,7 @@ namespace ConfusedGameDev.FiniteRunner.Store
             PlayerStats.SetUpgradeLevel(modelId, def.id, level + 1);
             PlayerProfileStore.Save(); // a purchase is a commit point
             RefreshRows(tab);
+            RefreshStartRows();
             row.PunchPips();
             if (wallet != null) wallet.Punch(settings != null ? settings.walletPunchScale : 0f);
             Blip(theme.ConfirmClip);
@@ -388,15 +432,46 @@ namespace ConfusedGameDev.FiniteRunner.Store
             RefreshMedia(true);
         }
 
+        // The frontier from the catalog: a gated one refuses the press (the
+        // row is greyed but still focusable), an exhausted campaign leads to
+        // Coming Soon, no catalog at all falls back to the settings' scene.
         void StartMission()
         {
-            if (settings == null || string.IsNullOrEmpty(settings.nextMissionScene))
+            CampaignCatalog catalog = CampaignCatalog.Load();
+            if (catalog == null)
             {
-                Debug.LogError("Store: no next mission scene on the StoreSettings asset.", this);
+                if (settings == null || string.IsNullOrEmpty(settings.nextMissionScene))
+                {
+                    Debug.LogError("Store: no campaign catalog and no next mission scene on the StoreSettings asset.", this);
+                    Blip(theme.BackClip);
+                    return;
+                }
+                MissionSession.Clear();
+                Leave(settings.nextMissionScene);
+                return;
+            }
+
+            CampaignCatalog.Entry frontier = CampaignProgress.Frontier(catalog);
+            if (!frontier.IsSet)
+            {
+                MissionSession.Clear();
+                Leave(catalog.comingSoonSceneName);
+                return;
+            }
+            if (!CampaignProgress.RequirementsMet(frontier.mission))
+            {
                 Blip(theme.BackClip);
                 return;
             }
-            Leave(settings.nextMissionScene);
+            if (frontier.world == null || string.IsNullOrEmpty(frontier.world.sceneName))
+            {
+                Debug.LogError($"Store: mission {frontier.mission.name} has no world scene to load.", frontier.mission);
+                Blip(theme.BackClip);
+                return;
+            }
+
+            MissionSession.Begin(frontier.mission, replay: false);
+            Leave(frontier.world.sceneName);
         }
 
         // Null = the main menu. Everything goes through the loading curtain.

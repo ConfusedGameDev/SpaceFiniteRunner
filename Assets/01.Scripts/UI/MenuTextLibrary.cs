@@ -96,7 +96,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         ActionCityMap, ActionRadioPrevious, ActionRadioNext,
         ActionCameraCycle, ActionLookBack,
         ActionCameraLeft, ActionCameraRight, ActionCameraUp, ActionCameraDown,
-        CarBurnoutTorque, CarBurnoutGrip, CarBurnoutMaxSpeed
+        CarBurnoutTorque, CarBurnoutGrip, CarBurnoutMaxSpeed,
+        Missions, MissionLabel, MissionNext, StartMissionTarget, RequiresMoney, RequiresUpgrade, ComingSoon, HintPlay
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -607,6 +608,27 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString upgradeRange = new("RANGE", "ALCANCE", "射程", "PORTÉE");
         [TitleGroup("Store")]
         [SerializeField] LocalizedString upgradeAccuracy = new("ACCURACY", "PRECISIÓN", "命中率", "PRÉCISION");
+
+        // The campaign: the main menu's MISSIONS map, the Store's START MISSION
+        // target, the requirement a locked mission prints, and the Coming Soon
+        // scene. The {n} placeholders are string.Format slots — positional, so
+        // a translation may reorder them but never drop one.
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString missions = new("MISSIONS", "MISIONES", "ミッション", "MISSIONS");
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString missionLabel = new("MISSION {0} — {1}", "MISIÓN {0} — {1}", "ミッション{0} — {1}", "MISSION {0} — {1}");
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString missionNext = new("NEXT", "SIGUIENTE", "次", "SUIVANTE");
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString startMissionTarget = new("START MISSION — {0}: {1}", "INICIAR MISIÓN — {0}: {1}", "ミッション開始 — {0}: {1}", "LANCER LA MISSION — {0} : {1}");
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString requiresMoney = new("REQUIRES: {0}", "REQUIERE: {0}", "必要: {0}", "REQUIS : {0}");
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString requiresUpgrade = new("REQUIRES: {0} LV {1}", "REQUIERE: {0} NV {1}", "必要: {0} LV{1}", "REQUIS : {0} NIV {1}");
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString comingSoon = new("COMING SOON", "PRÓXIMAMENTE", "近日公開", "BIENTÔT DISPONIBLE");
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString hintPlay = new("PLAY", "JUGAR", "プレイ", "JOUER");
 
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString controls = new("CONTROLS", "CONTROLES", "操作設定", "COMMANDES");
@@ -1132,6 +1154,14 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.StatFastestEscape => statFastestEscape,
             MenuTextId.StatPowerUps => statPowerUps,
             MenuTextId.StatSlowDowns => statSlowDowns,
+            MenuTextId.Missions => missions,
+            MenuTextId.MissionLabel => missionLabel,
+            MenuTextId.MissionNext => missionNext,
+            MenuTextId.StartMissionTarget => startMissionTarget,
+            MenuTextId.RequiresMoney => requiresMoney,
+            MenuTextId.RequiresUpgrade => requiresUpgrade,
+            MenuTextId.ComingSoon => comingSoon,
+            MenuTextId.HintPlay => hintPlay,
             _ => start
         };
     }

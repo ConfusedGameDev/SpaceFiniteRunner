@@ -17,8 +17,9 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
     /// <c>AddMoney</c> and <c>CompleteBonusObjective</c> are the public
     /// entry points for sources that do not exist yet. The one real money
     /// source today is a MISSION — a city level plus the escape run after
-    /// it — paid once by the runner's Mission Complete panel through
-    /// <see cref="RecordMissionResult"/>; the city's <see cref="RecordLevelCompleted"/>
+    /// it — paid in full by the runner's Mission Complete panel through
+    /// <see cref="RecordMissionCompleted"/> on every completion (replaying
+    /// is the intended money farm); the city's <see cref="RecordLevelCompleted"/>
     /// only records the level's rows for that panel.
     /// </summary>
     public static class PlayerStats
@@ -132,8 +133,9 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
         /// A city level completed: counts it, remembers it as the last level
         /// with every objective row, the accepted challenges (done or
         /// failed), the flat bonus and the rank table, and adds it to the
-        /// progression list. It banks NO money — the mission is paid by the
-        /// runner's Mission Complete panel (<see cref="RecordMissionResult"/>),
+        /// stats ledger (nothing gates on it — the campaign gates on the
+        /// mission records). It banks NO money — the mission is paid by the
+        /// runner's Mission Complete panel (<see cref="RecordMissionCompleted"/>),
         /// which needs these rows. Saves at once — the caller's scene is
         /// about to be unloaded.
         /// </summary>
@@ -166,29 +168,47 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
 
         /// <summary>
         /// The mission paid, by the runner's Mission Complete panel: banks
-        /// <paramref name="total"/> and stamps the rank on the last level.
-        /// Best-of rule — a retried run that finishes again pays only the
-        /// IMPROVEMENT over what this mission already banked, so the city's
-        /// share is never paid twice and a worse re-run takes nothing back.
-        /// Saves at once: the panel's answer may leave the scene.
+        /// the COMPLETE <paramref name="total"/> into the wallet — first
+        /// clear or fiftieth, a panel RETRY included; replaying a mission is
+        /// the intended way to farm upgrades and money-gated unlocks — and
+        /// stamps the total and rank on the last level for the LOG. With a
+        /// <paramref name="missionId"/> (a campaign session) it also latches
+        /// the mission complete in its <see cref="PlayerProfile.MissionRecord"/>,
+        /// whose best total and rank never downgrade. Saves at once: the
+        /// panel's answer may leave the scene.
         /// </summary>
-        public static void RecordMissionResult(long total, string rank)
+        public static void RecordMissionCompleted(string missionId, long total, string rank)
         {
             var p = P;
             var last = p.lastLevel;
-            long already = last.banked ? last.missionTotal : 0;
-            long delta = total - already;
-            if (delta > 0)
-            {
-                p.global.moneyEarned += delta;
-                last.missionTotal = total;
-                last.missionRank = rank ?? "";
-            }
-            last.moneyEarned = last.missionTotal;
+            string letter = rank ?? "";
+            if (total > 0) p.global.moneyEarned += total;
+            last.moneyEarned = total;
+            last.missionTotal = total;
+            last.missionRank = letter;
             last.banked = true;
+
+            if (!string.IsNullOrEmpty(missionId))
+            {
+                PlayerProfile.MissionRecord record = FindMission(missionId);
+                if (record == null)
+                {
+                    record = new PlayerProfile.MissionRecord { missionId = missionId };
+                    p.missions.Add(record);
+                }
+                record.completed = true;
+                record.timesCompleted++;
+                if (total > record.bestTotal) record.bestTotal = total;
+                if (RankValue(letter) > RankValue(record.bestRank)) record.bestRank = letter;
+            }
+
             PlayerProfileStore.MarkDirty();
             PlayerProfileStore.Save();
         }
+
+        // The rank letter's order (D < C < B < A < S); an unknown or empty letter sorts below D.
+        static int RankValue(string letter) =>
+            !string.IsNullOrEmpty(letter) && System.Enum.TryParse(letter, out Rank rank) ? (int)rank : -1;
 
         // ------------------------------------------------------ finite runner
 
@@ -284,6 +304,40 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
 
         public static bool IsLevelCompleted(string levelId) =>
             !string.IsNullOrEmpty(levelId) && P.completedLevelIds.Contains(levelId);
+
+        /// <summary>The campaign record of a mission id, or null when it was never completed.</summary>
+        public static PlayerProfile.MissionRecord Mission(string missionId) => FindMission(missionId);
+
+        /// <summary>True once the mission has been completed at least once — the campaign's progression gate.</summary>
+        public static bool IsMissionCompleted(string missionId)
+        {
+            PlayerProfile.MissionRecord record = FindMission(missionId);
+            return record != null && record.completed;
+        }
+
+        /// <summary>True when any campaign mission has been completed — what shows the MISSIONS row.</summary>
+        public static bool AnyMissionCompleted
+        {
+            get
+            {
+                List<PlayerProfile.MissionRecord> list = P.missions;
+                for (int i = 0; i < list.Count; i++)
+                    if (list[i] != null && list[i].completed) return true;
+                return false;
+            }
+        }
+
+        static PlayerProfile.MissionRecord FindMission(string missionId)
+        {
+            if (string.IsNullOrEmpty(missionId)) return null;
+            List<PlayerProfile.MissionRecord> list = P.missions;
+            for (int i = 0; i < list.Count; i++)
+            {
+                PlayerProfile.MissionRecord m = list[i];
+                if (m != null && m.missionId == missionId) return m;
+            }
+            return null;
+        }
 
         public static bool IsUnlocked(string id) => !string.IsNullOrEmpty(id) && P.unlockedIds.Contains(id);
 
