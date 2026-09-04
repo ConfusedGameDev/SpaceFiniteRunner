@@ -278,6 +278,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
                 else throttleInput = forwardInput;
             }
 
+            // The handbrake overrides the throttle. EVP keeps only ONE of
+            // drive/brake per wheel (ComputeTireForces: combinedInput), so on
+            // the driven rear axle full throttle and full handbrake cancel to
+            // nothing and the fronts keep pulling — held while accelerating,
+            // the handbrake did nothing at all. Cutting the throttle for the
+            // hold makes the rears lock and slide whatever the pedal says.
+            if (handbrake) throttleInput = 0f;
+
             vehicle.steerInput = steer;
             vehicle.throttleInput = throttleInput;
             vehicle.brakeInput = brakeInput;

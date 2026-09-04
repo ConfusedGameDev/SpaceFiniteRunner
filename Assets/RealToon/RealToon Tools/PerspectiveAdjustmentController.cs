@@ -1,5 +1,5 @@
 //RealToon - Perspective Adjustment [Helper]
-//©MJQStudioWorks
+//Â©MJQStudioWorks
 
 using UnityEngine;
 

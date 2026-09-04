@@ -1,5 +1,5 @@
 //RealToon - ShadowT SDF Mode [Helper]
-//©MJQStudioWorks
+//Â©MJQStudioWorks
 
 using System.Collections;
 using System.Collections.Generic;

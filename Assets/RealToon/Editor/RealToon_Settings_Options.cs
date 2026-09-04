@@ -1,6 +1,6 @@
 //RealToonGUI
 //MJQStudioWorks
-//©2025
+//Â©2025
 
 using UnityEngine;
 using UnityEditor;

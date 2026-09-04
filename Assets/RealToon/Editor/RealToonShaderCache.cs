@@ -1,5 +1,5 @@
 //RealToon Shader Cache
-//©MJQStudioWorks
+//Â©MJQStudioWorks
 
 
 using UnityEngine;
