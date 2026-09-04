@@ -11,9 +11,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// <summary>
     /// Teaches the lateral dash without ever nagging early: nothing is shown
     /// until the meter fills for the first time (it starts each run empty),
-    /// then a pulsing bottom-screen hint appears — bumper glyphs while a pad
-    /// is connected, [N]/[M] key labels otherwise, swapped live like the main
-    /// menu's attract prompt. The first dash hides the hint; a meter left
+    /// then a pulsing bottom-screen hint appears showing the LIVE dash
+    /// binding (<see cref="ControlBindings"/>): the pad glyphs while a pad
+    /// is connected, bracketed key names otherwise, swapped live like the
+    /// main menu's attract prompt and re-read on every rebind. The first dash hides the hint; a meter left
     /// full for too long brings the hint back. It never speaks: the RPG box
     /// is for story beats, not tutorials. Spawned by GameManager, built from
     /// code on its own overlay canvas.
@@ -96,6 +97,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void OnDestroy()
         {
+            ControlBindings.Changed -= RefreshBinding;
             if (motor == null) return;
             motor.MeterFilled -= OnMeterFilled;
             motor.DashPerformed -= OnDashPerformed;
@@ -128,29 +130,50 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
             // Fixed slots left/caption/right; the device swap just toggles
             // which occupant of each slot is active (glyph vs key label).
-            leftGlyph = MenuScreen.MakeImage("BumperL", rect, new Vector2(-300f, 0f), new Vector2(48f, 48f),
-                                             theme.GlyphBumperLeft, Color.white);
-            leftKey = MenuScreen.MakeText("KeyN", rect, new Vector2(-300f, 0f), new Vector2(90f, 48f),
-                                          "[N]", 30, theme.TextPrimary, theme.BodyFont, TextAnchor.MiddleCenter);
+            // What they show comes off the live dash bindings (RefreshBinding).
+            leftGlyph = MenuScreen.MakeImage("GlyphL", rect, new Vector2(-300f, 0f), new Vector2(48f, 48f),
+                                             null, Color.white);
+            leftGlyph.preserveAspect = true;
+            leftKey = MenuScreen.MakeText("KeyL", rect, new Vector2(-300f, 0f), new Vector2(240f, 48f),
+                                          string.Empty, 30, theme.TextPrimary, theme.BodyFont, TextAnchor.MiddleCenter);
 
             MenuScreen.MakeText("Caption", rect, Vector2.zero, new Vector2(480f, 48f),
                                 settings != null ? settings.dashHintText : "DASH", 30, theme.TextPrimary, theme.BodyFont,
                                 TextAnchor.MiddleCenter);
 
-            rightGlyph = MenuScreen.MakeImage("BumperR", rect, new Vector2(300f, 0f), new Vector2(48f, 48f),
-                                              theme.GlyphBumperRight, Color.white);
-            rightKey = MenuScreen.MakeText("KeyM", rect, new Vector2(300f, 0f), new Vector2(90f, 48f),
-                                           "[M]", 30, theme.TextPrimary, theme.BodyFont, TextAnchor.MiddleCenter);
+            rightGlyph = MenuScreen.MakeImage("GlyphR", rect, new Vector2(300f, 0f), new Vector2(48f, 48f),
+                                              null, Color.white);
+            rightGlyph.preserveAspect = true;
+            rightKey = MenuScreen.MakeText("KeyR", rect, new Vector2(300f, 0f), new Vector2(240f, 48f),
+                                           string.Empty, 30, theme.TextPrimary, theme.BodyFont, TextAnchor.MiddleCenter);
 
+            ControlBindings.Changed -= RefreshBinding; // Build runs again on a rebuild — never subscribe twice
+            ControlBindings.Changed += RefreshBinding;
+            RefreshBinding();
+            RefreshDevice();
+        }
+
+        // The pad glyph and the key name of each dash direction, off the
+        // ControlGlyphSet — so a player who moved the dash to other buttons
+        // is taught the buttons they actually have.
+        void RefreshBinding()
+        {
+            if (leftGlyph == null || rightGlyph == null) return;
+            var glyphs = ControlGlyphSet.Load();
+            leftGlyph.sprite = glyphs.For(ControlBindings.PadFor(GameAction.ShipDashLeft));
+            rightGlyph.sprite = glyphs.For(ControlBindings.PadFor(GameAction.ShipDashRight));
+            leftKey.text = $"[{ControlGlyphSet.Label(ControlBindings.KeyFor(GameAction.ShipDashLeft))}]";
+            rightKey.text = $"[{ControlGlyphSet.Label(ControlBindings.KeyFor(GameAction.ShipDashRight))}]";
             RefreshDevice();
         }
 
         // Presence-based like the attract prompt: the moment a pad connects
-        // the key labels become bumper glyphs, and unplugging swaps back.
+        // the key labels become pad glyphs (when the set has art for the
+        // bound controls), and unplugging swaps back.
         void RefreshDevice()
         {
-            bool pad = Gamepad.current != null &&
-                       theme.GlyphBumperLeft != null && theme.GlyphBumperRight != null;
+            if (leftGlyph == null) return;
+            bool pad = Gamepad.current != null && leftGlyph.sprite != null && rightGlyph.sprite != null;
             leftGlyph.gameObject.SetActive(pad);
             rightGlyph.gameObject.SetActive(pad);
             leftKey.gameObject.SetActive(!pad);

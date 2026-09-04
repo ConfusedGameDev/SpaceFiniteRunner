@@ -87,7 +87,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
         HintBuy, HintRotate, HintSection,
         UpgradeSpeed, UpgradeAcceleration, UpgradeWeight, UpgradeResistance, UpgradeHandling,
         UpgradeDashPower, UpgradeSpeedMultiplier, UpgradeJumpStrength,
-        UpgradeHackingSpeed, UpgradeHackValue, UpgradeStrength, UpgradeRange, UpgradeAccuracy
+        UpgradeHackingSpeed, UpgradeHackValue, UpgradeStrength, UpgradeRange, UpgradeAccuracy,
+        Controls, ControlsSectionShip, ControlsSectionCar, ControlsSectionGeneral,
+        PressKey, PressButton, SwappedWith, RestoreDefaults, DefaultsRestored, NoGamepad,
+        HintRebind, HintDevice,
+        ActionSteerLeft, ActionSteerRight, ActionDashLeft, ActionDashRight,
+        ActionAccelerate, ActionBrake, ActionHandbrake, ActionRespawn,
+        ActionCityMap, ActionRadioPrevious, ActionRadioNext,
+        ActionCameraCycle, ActionLookBack,
+        ActionCameraLeft, ActionCameraRight, ActionCameraUp, ActionCameraDown
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -593,6 +601,65 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Store")]
         [SerializeField] LocalizedString upgradeAccuracy = new("ACCURACY", "PRECISIÓN", "命中率", "PRÉCISION");
 
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString controls = new("CONTROLS", "CONTROLES", "操作設定", "COMMANDES");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString controlsSectionShip = new("SHIP", "NAVE", "シップ", "VAISSEAU");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString controlsSectionCar = new("CAR", "COCHE", "クルマ", "VOITURE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString controlsSectionGeneral = new("GENERAL", "GENERAL", "全般", "GÉNÉRAL");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString pressKey = new("PRESS A KEY…", "PULSA UNA TECLA…", "キーを押してください…", "APPUYEZ SUR UNE TOUCHE…");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString pressButton = new("PRESS A BUTTON…", "PULSA UN BOTÓN…", "ボタンを押してください…", "APPUYEZ SUR UN BOUTON…");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString swappedWith = new("SWAPPED WITH {0}", "INTERCAMBIADO CON {0}", "{0} と入れ替えました", "ÉCHANGÉ AVEC {0}");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString restoreDefaults = new("RESTORE DEFAULTS", "RESTAURAR VALORES", "初期設定に戻す", "RÉTABLIR PAR DÉFAUT");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString defaultsRestored = new("DEFAULTS RESTORED", "VALORES RESTAURADOS", "初期設定に戻しました", "VALEURS PAR DÉFAUT RÉTABLIES");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString noGamepad = new("NO GAMEPAD CONNECTED", "NO HAY MANDO CONECTADO", "ゲームパッドが接続されていません", "AUCUNE MANETTE CONNECTÉE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString hintRebind = new("REBIND", "REASIGNAR", "再割り当て", "RÉASSIGNER");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString hintDevice = new("DEVICE", "DISPOSITIVO", "デバイス", "APPAREIL");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionSteerLeft = new("STEER LEFT", "GIRAR IZQUIERDA", "左に操舵", "BRAQUER À GAUCHE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionSteerRight = new("STEER RIGHT", "GIRAR DERECHA", "右に操舵", "BRAQUER À DROITE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionDashLeft = new("DASH LEFT", "IMPULSO IZQUIERDA", "左ダッシュ", "DASH À GAUCHE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionDashRight = new("DASH RIGHT", "IMPULSO DERECHA", "右ダッシュ", "DASH À DROITE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionAccelerate = new("ACCELERATE", "ACELERAR", "アクセル", "ACCÉLÉRER");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionBrake = new("BRAKE / REVERSE", "FRENO / MARCHA ATRÁS", "ブレーキ / バック", "FREIN / MARCHE ARRIÈRE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionHandbrake = new("HANDBRAKE", "FRENO DE MANO", "ハンドブレーキ", "FREIN À MAIN");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionRespawn = new("RESPAWN", "REAPARECER", "リスポーン", "RÉAPPARAÎTRE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionCityMap = new("MAP", "MAPA", "マップ", "CARTE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionRadioPrevious = new("RADIO PREVIOUS", "RADIO ANTERIOR", "ラジオ 前へ", "RADIO PRÉCÉDENT");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionRadioNext = new("RADIO NEXT", "RADIO SIGUIENTE", "ラジオ 次へ", "RADIO SUIVANT");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionCameraCycle = new("CAMERA VIEW", "VISTA DE CÁMARA", "カメラ視点", "VUE CAMÉRA");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionLookBack = new("LOOK BACK", "MIRAR ATRÁS", "後方を見る", "REGARDER DERRIÈRE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionCameraLeft = new("CAMERA LEFT", "CÁMARA IZQUIERDA", "カメラ 左", "CAMÉRA GAUCHE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionCameraRight = new("CAMERA RIGHT", "CÁMARA DERECHA", "カメラ 右", "CAMÉRA DROITE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionCameraUp = new("CAMERA UP", "CÁMARA ARRIBA", "カメラ 上", "CAMÉRA HAUT");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionCameraDown = new("CAMERA DOWN", "CÁMARA ABAJO", "カメラ 下", "CAMÉRA BAS");
+
         [TitleGroup("Loading screen")]
         [SerializeField] LocalizedString loading = new("LOADING...", "CARGANDO...", "ロード中...", "CHARGEMENT...");
 
@@ -985,6 +1052,35 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.UpgradeStrength => upgradeStrength,
             MenuTextId.UpgradeRange => upgradeRange,
             MenuTextId.UpgradeAccuracy => upgradeAccuracy,
+            MenuTextId.Controls => controls,
+            MenuTextId.ControlsSectionShip => controlsSectionShip,
+            MenuTextId.ControlsSectionCar => controlsSectionCar,
+            MenuTextId.ControlsSectionGeneral => controlsSectionGeneral,
+            MenuTextId.PressKey => pressKey,
+            MenuTextId.PressButton => pressButton,
+            MenuTextId.SwappedWith => swappedWith,
+            MenuTextId.RestoreDefaults => restoreDefaults,
+            MenuTextId.DefaultsRestored => defaultsRestored,
+            MenuTextId.NoGamepad => noGamepad,
+            MenuTextId.HintRebind => hintRebind,
+            MenuTextId.HintDevice => hintDevice,
+            MenuTextId.ActionSteerLeft => actionSteerLeft,
+            MenuTextId.ActionSteerRight => actionSteerRight,
+            MenuTextId.ActionDashLeft => actionDashLeft,
+            MenuTextId.ActionDashRight => actionDashRight,
+            MenuTextId.ActionAccelerate => actionAccelerate,
+            MenuTextId.ActionBrake => actionBrake,
+            MenuTextId.ActionHandbrake => actionHandbrake,
+            MenuTextId.ActionRespawn => actionRespawn,
+            MenuTextId.ActionCityMap => actionCityMap,
+            MenuTextId.ActionRadioPrevious => actionRadioPrevious,
+            MenuTextId.ActionRadioNext => actionRadioNext,
+            MenuTextId.ActionCameraCycle => actionCameraCycle,
+            MenuTextId.ActionLookBack => actionLookBack,
+            MenuTextId.ActionCameraLeft => actionCameraLeft,
+            MenuTextId.ActionCameraRight => actionCameraRight,
+            MenuTextId.ActionCameraUp => actionCameraUp,
+            MenuTextId.ActionCameraDown => actionCameraDown,
             MenuTextId.MissionBrief => missionBrief,
             MenuTextId.OptionalChallenges => optionalChallenges,
             MenuTextId.Reward => reward,

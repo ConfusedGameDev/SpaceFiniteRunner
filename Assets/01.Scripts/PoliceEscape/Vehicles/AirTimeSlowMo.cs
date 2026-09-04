@@ -1,5 +1,5 @@
+using ConfusedGameDev.FiniteRunner.UI;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 {
@@ -128,42 +128,21 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         }
 
         /// <summary>
-        /// Right stick (else arrows) → rotation; left stick Y (else W/S) →
-        /// clock. Polled straight off the Input System like CarInput — the
-        /// project has no .inputactions asset. The keyboard only fills an axis
-        /// the pad left at rest, so the two devices never add up.
+        /// The camera-pan actions (right stick / arrows by default) → rotation;
+        /// the accelerate / brake actions (triggers / W-S by default) → clock.
+        /// Read through <see cref="ControlBindings"/> like CarInput, so a
+        /// rebind carries into the air: pan IS what the car takes over from
+        /// the camera while airborne (BlockPanInput), and the throttle pair
+        /// is free once the wheels are off the ground. A held key is the
+        /// digital value and the pad only counts when no key is down, so the
+        /// two devices never add up.
         /// </summary>
         void ReadInput()
         {
-            Vector2 rotate = Vector2.zero;
-            float clock = 0f;
-
-            var gamepad = Gamepad.current;
-            if (gamepad != null)
-            {
-                Vector2 stick = gamepad.rightStick.ReadValue();
-                if (stick.magnitude > StickDeadzone) rotate = stick;
-
-                float left = gamepad.leftStick.y.ReadValue();
-                if (Mathf.Abs(left) > StickDeadzone) clock = left;
-            }
-
-            var keyboard = Keyboard.current;
-            if (keyboard != null)
-            {
-                if (rotate == Vector2.zero)
-                {
-                    if (keyboard.leftArrowKey.isPressed) rotate.x -= 1f;
-                    if (keyboard.rightArrowKey.isPressed) rotate.x += 1f;
-                    if (keyboard.upArrowKey.isPressed) rotate.y += 1f;
-                    if (keyboard.downArrowKey.isPressed) rotate.y -= 1f;
-                }
-                if (clock == 0f)
-                {
-                    if (keyboard.wKey.isPressed) clock += 1f;
-                    if (keyboard.sKey.isPressed) clock -= 1f;
-                }
-            }
+            var rotate = new Vector2(
+                ControlBindings.Axis(GameAction.CameraPanLeft, GameAction.CameraPanRight, StickDeadzone),
+                ControlBindings.Axis(GameAction.CameraPanDown, GameAction.CameraPanUp, StickDeadzone));
+            float clock = ControlBindings.Axis(GameAction.CarBrake, GameAction.CarAccelerate, StickDeadzone);
 
             rotateAxis = Vector2.ClampMagnitude(rotate, 1f);
             scaleAxis = Mathf.Clamp(clock, -1f, 1f);

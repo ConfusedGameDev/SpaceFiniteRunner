@@ -29,6 +29,19 @@ namespace ConfusedGameDev.FiniteRunner.UI
         /// <summary>-1/0/+1 horizontal step this frame, repeat-aware. +1 is right.</summary>
         public int StepHorizontal(float dt) => Step(RawHorizontal(), dt, ref horizontalTimer, ref horizontalLast);
 
+        /// <summary>
+        /// Adopts whatever is held RIGHT NOW as already-stepped, so navigation
+        /// that resumes after someone else read the devices (a rebind capture
+        /// that just bound a d-pad direction) does not fire one more step off
+        /// the same press.
+        /// </summary>
+        public void Sync()
+        {
+            verticalLast = RawVertical();
+            horizontalLast = RawHorizontal();
+            verticalTimer = horizontalTimer = theme.RepeatDelay;
+        }
+
         public static bool ConfirmPressed()
         {
             var keyboard = Keyboard.current;
@@ -76,33 +89,27 @@ namespace ConfusedGameDev.FiniteRunner.UI
         }
 
         /// <summary>
-        /// M or the gamepad's d-pad Up — opens and closes the city map.
-        /// Deliberately a different chord from
-        /// <see cref="PauseTogglePressed"/> (Start), <see cref="BackPressed"/>
-        /// (B/East) and <see cref="CameraCyclePressed"/> (Tab/Back): the map
-        /// is its own screen, not a page of the pause menu, and all of those
-        /// buttons already mean something everywhere else in the UI. The
-        /// d-pad is free in the car — driving is on the stick and the face
+        /// The city-map chord (<see cref="GameAction.CityMap"/> — M or the
+        /// d-pad Up by default; rebindable on the CONTROLS screen). Deliberately
+        /// a different chord from <see cref="PauseTogglePressed"/> (Start),
+        /// <see cref="BackPressed"/> (B/East) and <see cref="CameraCyclePressed"/>:
+        /// the map is its own screen, not a page of the pause menu, and all
+        /// of those buttons already mean something everywhere else in the UI.
+        /// The d-pad is free in the car — driving is on the stick and the face
         /// buttons — while it is the menus' own navigator inside them, which
         /// is exactly where the map can never open.
         /// </summary>
-        public static bool MapTogglePressed()
-        {
-            return Keyboard.current is { mKey: { wasPressedThisFrame: true } } ||
-                   Gamepad.current is { dpad: { up: { wasPressedThisFrame: true } } };
-        }
+        public static bool MapTogglePressed() => ControlBindings.WasPressedThisFrame(GameAction.CityMap);
 
         /// <summary>
-        /// Tab or the gamepad's Back/View button — cycles the chase camera's
-        /// view (far / close / first person). Read over live gameplay only —
-        /// the rig gates it on the time scale, so a frozen menu, the map or
-        /// the game-over prompt never flips the view underneath.
+        /// The camera-view chord (<see cref="GameAction.CameraCycle"/> — Tab
+        /// or the gamepad's Back/View button by default; rebindable) — cycles
+        /// the chase camera's view (far / close / first person). Read over
+        /// live gameplay only — the rig gates it on the time scale, so a
+        /// frozen menu, the map or the game-over prompt never flips the view
+        /// underneath.
         /// </summary>
-        public static bool CameraCyclePressed()
-        {
-            return Keyboard.current is { tabKey: { wasPressedThisFrame: true } } ||
-                   Gamepad.current is { selectButton: { wasPressedThisFrame: true } };
-        }
+        public static bool CameraCyclePressed() => ControlBindings.WasPressedThisFrame(GameAction.CameraCycle);
 
         int RawVertical()
         {
@@ -225,7 +232,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
             return screen;
         }
 
-        public static MenuScreen BuildSettings(RectTransform parent, MenuTheme theme)
+        /// <summary>
+        /// The settings page. <paramref name="openControls"/> is what its
+        /// CONTROLS row does — each host slides its own <see cref="ControlsScreen"/>
+        /// in, because the page-to-page transition is the host's.
+        /// </summary>
+        public static MenuScreen BuildSettings(RectTransform parent, MenuTheme theme, System.Action openControls)
         {
             var screen = MenuScreen.Create("SettingsScreen", parent, theme, 0f, 130f);
             screen.SetTitle(MenuTextId.Settings);
@@ -250,6 +262,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
             };
             screen.AddRow<MenuChoice>(MenuTextId.Language)
                   .Configure(names, (int)UserSettings.Language, i => UserSettings.Language = (MenuLanguage)i);
+
+            // Six rows at the theme's 86/18 metrics run 130 -> -390, the same
+            // reach as the pause list, clear of the footer strip.
+            screen.AddRow<MenuRow>(MenuTextId.Controls).Activated += openControls;
 
             return screen;
         }

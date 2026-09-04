@@ -1,6 +1,6 @@
 using ConfusedGameDev.FiniteRunner.Collectibles;
+using ConfusedGameDev.FiniteRunner.UI;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 {
@@ -26,10 +26,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     }
 
     /// <summary>
-    /// Player driver: keyboard (WASD, Space handbrake, R respawn — arrows
-    /// belong to the OrbitCameraRig) and gamepad (left stick steer, triggers
-    /// accelerate/brake, South handbrake, North respawn), polled straight
-    /// off the new Input System like the runner's SteeringInput.
+    /// Player driver: the Car actions of <see cref="ControlBindings"/> — by
+    /// default WASD, Space handbrake, R respawn on the keyboard and left
+    /// stick steer, triggers accelerate/brake, South handbrake, North respawn
+    /// on the pad, every one rebindable on the CONTROLS screen. Keyboard wins
+    /// over the pad on an axis (the runner's SteeringInput rule), and the
+    /// arrow keys are the camera's by default rather than a driving alias.
     /// </summary>
     public class CarInput : MonoBehaviour, ICarInput, ICollector
     {
@@ -40,40 +42,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
         void Update()
         {
-            float steer = 0f;
-            float throttle = 0f;
-            bool handbrake = false;
-            bool respawn = false;
-
-            var keyboard = Keyboard.current;
-            if (keyboard != null)
-            {
-                // WASD only — the arrow keys pan the orbit camera.
-                if (keyboard.aKey.isPressed) steer -= 1f;
-                if (keyboard.dKey.isPressed) steer += 1f;
-                if (keyboard.wKey.isPressed) throttle += 1f;
-                if (keyboard.sKey.isPressed) throttle -= 1f;
-                handbrake |= keyboard.spaceKey.isPressed;
-                respawn |= keyboard.rKey.wasPressedThisFrame;
-            }
-
-            var gamepad = Gamepad.current;
-            if (gamepad != null)
-            {
-                float stick = gamepad.leftStick.x.ReadValue();
-                if (steer == 0f && Mathf.Abs(stick) > 0.1f) steer = stick;
-
-                float triggers = gamepad.rightTrigger.ReadValue() - gamepad.leftTrigger.ReadValue();
-                if (throttle == 0f && Mathf.Abs(triggers) > 0.02f) throttle = triggers;
-
-                handbrake |= gamepad.buttonSouth.isPressed;
-                respawn |= gamepad.buttonNorth.wasPressedThisFrame;
-            }
-
-            Steer = Mathf.Clamp(steer, -1f, 1f);
-            Throttle = Mathf.Clamp(throttle, -1f, 1f);
-            Handbrake = handbrake;
-            RespawnPressed = respawn;
+            Steer = ControlBindings.Axis(GameAction.CarSteerLeft, GameAction.CarSteerRight, 0.1f);
+            Throttle = ControlBindings.Axis(GameAction.CarBrake, GameAction.CarAccelerate, 0.02f);
+            Handbrake = ControlBindings.IsPressed(GameAction.CarHandbrake);
+            RespawnPressed = ControlBindings.WasPressedThisFrame(GameAction.CarRespawn);
         }
     }
 }

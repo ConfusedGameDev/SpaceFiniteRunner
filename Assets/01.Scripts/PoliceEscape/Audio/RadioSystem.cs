@@ -245,20 +245,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Audio
 
         void ReadInput()
         {
-            var keyboard = Keyboard.current;
-            var pad = Gamepad.current;
             float hold = settings.longPressSeconds;
 
-            // Left / 5: long press switches OFF, short press = previous song.
-            bool leftDown = (keyboard != null && keyboard.digit5Key.isPressed) || (pad != null && pad.dpad.left.isPressed);
+            // Previous (5 / d-pad left by default, rebindable): long press
+            // switches OFF, short press = previous song.
+            bool leftDown = ControlBindings.IsPressed(GameAction.RadioPrevious);
             switch (left.Step(leftDown, hold))
             {
                 case HoldButton.Result.Long: if (on) SetPower(false); break;
                 case HoldButton.Result.Short: if (on) Previous(); break;
             }
 
-            // Right / 6: long press switches ON, short press = next song.
-            bool rightDown = (keyboard != null && keyboard.digit6Key.isPressed) || (pad != null && pad.dpad.right.isPressed);
+            // Next (6 / d-pad right by default): long press switches ON, short press = next song.
+            bool rightDown = ControlBindings.IsPressed(GameAction.RadioNext);
             switch (right.Step(rightDown, hold))
             {
                 case HoldButton.Result.Long: if (!on) SetPower(true); break;

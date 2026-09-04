@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.Ship
 {
     /// <summary>
@@ -28,11 +29,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     }
 
     /// <summary>
-    /// Test-phase steering: keyboard (A/D, arrows), gamepad left stick,
-    /// and touch (hold left/right half of the screen). Also detects the
-    /// dash double taps (LB/RB on pad, N/M on keyboard) and latches them
-    /// until the motor consumes the request, so a tap landing between the
-    /// motor's reads is never lost.
+    /// Test-phase steering: the bound steer keys / pad controls (A/D and the
+    /// left stick by default — <see cref="ControlBindings"/>, rebindable on
+    /// the CONTROLS screen) and touch (hold left/right half of the screen).
+    /// Also detects the dash double taps (the bound dash controls: N/M, LB/RB
+    /// by default) and latches them until the motor consumes the request, so
+    /// a tap landing between the motor's reads is never lost.
     /// </summary>
     public class SteeringInput : MonoBehaviour, ISteeringInput, IDashInput
     {
@@ -76,31 +78,15 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             }
         }
 
-        static bool LeftTapped() =>
-            Keyboard.current is { nKey: { wasPressedThisFrame: true } } ||
-            Gamepad.current is { leftShoulder: { wasPressedThisFrame: true } };
+        static bool LeftTapped() => ControlBindings.WasPressedThisFrame(GameAction.ShipDashLeft);
 
-        static bool RightTapped() =>
-            Keyboard.current is { mKey: { wasPressedThisFrame: true } } ||
-            Gamepad.current is { rightShoulder: { wasPressedThisFrame: true } };
+        static bool RightTapped() => ControlBindings.WasPressedThisFrame(GameAction.ShipDashRight);
 
         static float ReadSteer()
         {
-            var keyboard = Keyboard.current;
-            if (keyboard != null)
-            {
-                float axis = 0f;
-                if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) axis -= 1f;
-                if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) axis += 1f;
-                if (axis != 0f) return axis;
-            }
-
-            var gamepad = Gamepad.current;
-            if (gamepad != null)
-            {
-                float stick = gamepad.leftStick.x.ReadValue();
-                if (Mathf.Abs(stick) > 0.1f) return stick;
-            }
+            // Keyboard wins over the stick (ControlBindings.Axis), then touch.
+            float bound = ControlBindings.Axis(GameAction.ShipSteerLeft, GameAction.ShipSteerRight, 0.1f);
+            if (bound != 0f) return bound;
 
             var touchscreen = Touchscreen.current;
             if (touchscreen != null)

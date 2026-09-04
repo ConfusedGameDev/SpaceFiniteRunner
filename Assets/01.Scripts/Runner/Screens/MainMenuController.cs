@@ -58,6 +58,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         MenuScreen settingsScreen;
         MenuScreen cheatsScreen;
         CheatConsole cheatConsole;
+        ControlsScreen controls;   // the CONTROLS page under SETTINGS (its Screen is the MenuScreen)
         MenuScreen creditsScreen;
         MenuScreen exitScreen;
         MenuScreen current;
@@ -200,6 +201,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 return;
             }
 
+            // The controls page owns the frame while a rebind is listening
+            // (and for a grace after it lands): the press being bound must
+            // not also step, confirm or back out of the menu.
+            if (controls != null && current == controls.Screen && controls.CaptureTick())
+            {
+                nav.Sync();
+                return;
+            }
+
             int vertical = nav.StepVertical(dt);
             if (vertical != 0)
             {
@@ -255,7 +265,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             HapticsSystem.Instance.Pulse(theme.ConfirmRumble, theme.ConfirmRumble * 0.5f, 0.12f);
         }
 
-        /// <summary>B / Esc. Backs out of any sub-screen; on the main menu it returns to attract. It never quits.</summary>
+        /// <summary>B / Esc. Backs out of any sub-screen (CONTROLS to SETTINGS, the rest to the main list); on the main menu it returns to attract. It never quits.</summary>
         void Back()
         {
             if (phase != Phase.Browsing) return;
@@ -266,14 +276,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 return;
             }
 
+            var target = controls != null && current == controls.Screen ? settingsScreen : mainScreen;
             current.SlideOut(theme.ScreenSlide);
-            mainScreen.SlideIn(-theme.ScreenSlide);
-            current = mainScreen;
+            target.SlideIn(-theme.ScreenSlide);
+            current = target;
 
             phase = Phase.Transitioning;
             phaseTimer = theme.ScreenTransition;
             openedTime = Time.unscaledTime;
-            SetFooterFor(mainScreen);
+            SetFooterFor(target);
             Blip(theme.BackClip);
         }
 
@@ -400,6 +411,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             footer = null;
             mainScreen = settingsScreen = cheatsScreen = creditsScreen = exitScreen = current = null;
             cheatConsole = null;
+            controls = null;
             ui = null;
         }
 
@@ -507,8 +519,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             mainScreen.AddRow<MenuRow>(MenuTextId.Exit).Activated += () => OpenSub(exitScreen);
         }
 
-        // Shared with the pause menu, so the two settings pages never drift.
-        void BuildSettings() => settingsScreen = MenuScreenFactory.BuildSettings(root, theme);
+        // Shared with the pause menu, so the two settings pages never drift —
+        // and so is the CONTROLS page its last row opens.
+        void BuildSettings()
+        {
+            controls = ControlsScreen.Build(root, theme);
+            controls.Captured += () => Blip(theme.ConfirmClip);
+            controls.Cancelled += () => Blip(theme.BackClip);
+            settingsScreen = MenuScreenFactory.BuildSettings(root, theme, () => OpenSub(controls.Screen));
+        }
 
         // The page has no rows on purpose: every press on it is a cheat
         // token, so a focus list would be competing for the same buttons.
@@ -559,6 +578,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             else if (screen == settingsScreen)
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintChange),
                                 (PromptAction.Back, MenuTextId.HintBack));
+            else if (controls != null && screen == controls.Screen)
+                footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintDevice),
+                                (PromptAction.Confirm, MenuTextId.HintRebind), (PromptAction.Back, MenuTextId.HintBack));
             else if (screen == exitScreen)
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Confirm, MenuTextId.HintSelect),
                                 (PromptAction.Back, MenuTextId.HintCancel));

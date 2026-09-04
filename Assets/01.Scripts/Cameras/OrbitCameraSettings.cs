@@ -135,11 +135,11 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         public float stickSpeed = 180f;
 
         [TitleGroup("Input")]
-        [Tooltip("Pan with the arrow keys. Off for a vehicle that steers with them (the ship).")]
+        [Tooltip("Pan with the keyboard's camera keys (the arrows by default — rebindable on the CONTROLS screen). Off for a vehicle that wants those keys for itself (the ship).")]
         public bool arrowKeysPan = true;
 
         [TitleGroup("Input")]
-        [Tooltip("Orbit speed while holding the arrow keys.")]
+        [Tooltip("Orbit speed while holding the camera keys.")]
         [PropertyRange(30f, 360f), SuffixLabel("°/s", true), ShowIf("arrowKeysPan")]
         public float keySpeed = 140f;
 

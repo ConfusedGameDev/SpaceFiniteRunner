@@ -4,7 +4,8 @@
     "references": [
         "ConfusedGameDev.FiniteRunner.Runner",
         "ConfusedGameDev.FiniteRunner.Cheats",
-        "ConfusedGameDev.FiniteRunner.UI"
+        "ConfusedGameDev.FiniteRunner.UI",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"

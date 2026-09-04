@@ -60,6 +60,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         RectTransform panelRect;
         MenuScreen pauseScreen;
         MenuScreen settingsScreen;
+        ControlsScreen controls;        // the CONTROLS page under SETTINGS (its Screen is the MenuScreen)
         MenuScreen confirmMenuScreen;   // "exit to main menu — are you sure?"
         MenuScreen confirmQuitScreen;   // "quit game — are you sure?"
         MenuScreen confirmReloadScreen; // "debug values changed — reload the scene?"
@@ -122,10 +123,21 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             }
             if (Time.unscaledTime - openedTime < theme.InputGrace) return;
 
+            // The controls page owns the frame while a rebind is listening
+            // (and for a grace after it lands): Esc/Start/B cancel the listen
+            // there instead of closing the page, and the press being bound
+            // must not step or confirm.
+            if (controls != null && current == controls.Screen && controls.CaptureTick())
+            {
+                nav.Sync();
+                return;
+            }
+
             // Esc/Start/B all step outward: any sub-screen (settings or a
-            // confirm) back to the pause list, the pause list back to the
-            // game. Quitting is never one press. Leaving the debug tabs after
-            // changing anything detours through the reload confirmation first.
+            // confirm) back to the pause list — CONTROLS back to SETTINGS —
+            // and the pause list back to the game. Quitting is never one
+            // press. Leaving the debug tabs after changing anything detours
+            // through the reload confirmation first.
             if (MenuNavigator.PauseTogglePressed() || MenuNavigator.BackPressed())
             {
                 if (current == pauseScreen) Resume();
@@ -201,6 +213,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             lockTimer = 0f;
             debugDirty = false;
             settingsScreen.HideImmediate();
+            controls?.Screen.HideImmediate();
             confirmMenuScreen.HideImmediate();
             confirmQuitScreen.HideImmediate();
             confirmReloadScreen.HideImmediate();
@@ -258,7 +271,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // where the focus sat when it was last backed out of.
             if (screen == confirmMenuScreen || screen == confirmQuitScreen) screen.SetFocus(1);
 
-            pauseScreen.SlideOut(-theme.ScreenSlide);
+            current.SlideOut(-theme.ScreenSlide); // whatever is up — the pause list, or SETTINGS opening CONTROLS
             screen.SlideIn(theme.ScreenSlide);
             current = screen;
             lockTimer = theme.ScreenTransition;
@@ -267,14 +280,16 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             Blip(theme.ConfirmClip);
         }
 
+        // One level out: CONTROLS returns to SETTINGS, everything else to the pause list.
         void CloseSub()
         {
+            var target = controls != null && current == controls.Screen ? settingsScreen : pauseScreen;
             current.SlideOut(theme.ScreenSlide);
-            pauseScreen.SlideIn(-theme.ScreenSlide);
-            current = pauseScreen;
+            target.SlideIn(-theme.ScreenSlide);
+            current = target;
             lockTimer = theme.ScreenTransition;
             openedTime = Time.unscaledTime;
-            SetFooterFor(pauseScreen);
+            SetFooterFor(target);
             Blip(theme.BackClip);
         }
 
@@ -337,6 +352,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             panel = null;
             panelRect = null;
             pauseScreen = settingsScreen = confirmMenuScreen = confirmQuitScreen = confirmReloadScreen = logScreen = current = null;
+            controls = null;
             refreshLog = null;
             footer = null;
             ui = null;
@@ -414,7 +430,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             pauseScreen.AddRow<MenuRow>(MenuTextId.ExitToMenu).Activated += () => OpenSub(confirmMenuScreen);
             pauseScreen.AddRow<MenuRow>(MenuTextId.QuitGame).Activated += () => OpenSub(confirmQuitScreen);
 
-            settingsScreen = MenuScreenFactory.BuildSettings(panelRect, theme);
+            controls = ControlsScreen.Build(panelRect, theme);
+            controls.Captured += () => Blip(theme.ConfirmClip);
+            controls.Cancelled += () => Blip(theme.BackClip);
+            settingsScreen = MenuScreenFactory.BuildSettings(panelRect, theme, () => OpenSub(controls.Screen));
             logScreen = LogScreenFactory.Build(panelRect, theme, out refreshLog);
             confirmMenuScreen = MenuScreenFactory.BuildConfirm(panelRect, theme, MenuTextId.ExitToMenu,
                                                                ExitToMainMenu, CloseSub);
@@ -539,6 +558,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             if (screen == settingsScreen || (debugMenu != null && debugMenu.Contains(screen)))
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintChange),
                                 (PromptAction.Back, MenuTextId.HintBack));
+            else if (controls != null && screen == controls.Screen)
+                footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintDevice),
+                                (PromptAction.Confirm, MenuTextId.HintRebind), (PromptAction.Back, MenuTextId.HintBack));
             else if (screen == logScreen)
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Back, MenuTextId.HintBack));
             else if (screen == confirmMenuScreen || screen == confirmQuitScreen || screen == confirmReloadScreen)

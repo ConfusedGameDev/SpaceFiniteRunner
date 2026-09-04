@@ -638,15 +638,8 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             return true;
         }
 
-        /// <summary>Look-back is a HOLD, on the same devices the pan is read from: right stick click (R3), or Right Shift.</summary>
-        static bool LookBackHeld()
-        {
-            var gamepad = Gamepad.current;
-            if (gamepad != null && gamepad.rightStickButton.isPressed) return true;
-
-            var keyboard = Keyboard.current;
-            return keyboard != null && keyboard.rightShiftKey.isPressed;
-        }
+        /// <summary>Look-back is a HOLD of the bound <see cref="GameAction.CameraLookBack"/> control — right stick click (R3) or Right Shift by default.</summary>
+        static bool LookBackHeld() => ControlBindings.IsPressed(GameAction.CameraLookBack);
 
         static void TagRecursively(Transform root, string tag)
         {
@@ -656,12 +649,14 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         }
 
         /// <summary>
-        /// Pan input in degrees this frame: mouse delta, right stick, arrow
-        /// keys — first non-zero source wins. While the vehicle claims the
-        /// stick and the arrows (<see cref="ICameraTarget.BlockPanInput"/> —
-        /// a car's air control), only the mouse keeps panning; auto-recenter
-        /// runs as usual. The arrows are a settings knob because the runner
-        /// steers with them.
+        /// Pan input in degrees this frame: mouse delta, then the bound pad
+        /// pan controls (right stick by default), then the bound pan keys
+        /// (arrows by default) — first non-zero source wins; the mouse is
+        /// never bound. While the vehicle claims the stick and the keys
+        /// (<see cref="ICameraTarget.BlockPanInput"/> — a car's air control),
+        /// only the mouse keeps panning; auto-recenter runs as usual. The
+        /// keys are a settings knob (<c>arrowKeysPan</c>) because a vehicle
+        /// may want them for itself.
         /// </summary>
         Vector2 ReadPan(float dt)
         {
@@ -675,22 +670,17 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
 
             if (target.BlockPanInput) return Vector2.zero;
 
-            var gamepad = Gamepad.current;
-            if (gamepad != null)
-            {
-                Vector2 stick = gamepad.rightStick.ReadValue();
-                if (stick.sqrMagnitude > 0.01f)
-                    return stick * (settings.stickSpeed * dt);
-            }
+            var stick = new Vector2(
+                ControlBindings.PadAxis(GameAction.CameraPanLeft, GameAction.CameraPanRight, 0.1f),
+                ControlBindings.PadAxis(GameAction.CameraPanDown, GameAction.CameraPanUp, 0.1f));
+            if (stick.sqrMagnitude > 0.01f)
+                return stick * (settings.stickSpeed * dt);
 
-            var keyboard = Keyboard.current;
-            if (keyboard != null && settings.arrowKeysPan)
+            if (settings.arrowKeysPan)
             {
-                Vector2 keys = Vector2.zero;
-                if (keyboard.leftArrowKey.isPressed) keys.x -= 1f;
-                if (keyboard.rightArrowKey.isPressed) keys.x += 1f;
-                if (keyboard.upArrowKey.isPressed) keys.y += 1f;
-                if (keyboard.downArrowKey.isPressed) keys.y -= 1f;
+                var keys = new Vector2(
+                    ControlBindings.KeyboardAxis(GameAction.CameraPanLeft, GameAction.CameraPanRight),
+                    ControlBindings.KeyboardAxis(GameAction.CameraPanDown, GameAction.CameraPanUp));
                 if (keys.sqrMagnitude > 0f)
                     return keys * (settings.keySpeed * dt);
             }
