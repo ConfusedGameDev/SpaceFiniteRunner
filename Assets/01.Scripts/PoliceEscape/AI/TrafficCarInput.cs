@@ -54,6 +54,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
         public bool Handbrake => Stopped || (health != null && health.IsDead);
+        public bool Burnout => false; // player gesture only — civilians never line-lock
         public bool RespawnPressed => false;
 
         CarController car;

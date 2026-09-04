@@ -171,6 +171,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                        0.25f, 4f, 0.05f, "0.00", c => c.forwardStiffness, (c, v) => c.forwardStiffness = v);
             AddCarStat(screen, config, refreshers, MenuTextId.CarSideGrip,
                        0.25f, 4f, 0.05f, "0.00", c => c.sideStiffness, (c, v) => c.sideStiffness = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarBurnoutTorque,
+                       0.25f, 3f, 0.05f, "0.00", c => c.burnoutTorqueFactor, (c, v) => c.burnoutTorqueFactor = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarBurnoutGrip,
+                       0.1f, 1f, 0.05f, "0.00", c => c.burnoutRearGrip, (c, v) => c.burnoutRearGrip = v);
+            AddCarStat(screen, config, refreshers, MenuTextId.CarBurnoutMaxSpeed,
+                       0f, 60f, 1f, "0", c => c.burnoutMaxSpeedKmh, (c, v) => c.burnoutMaxSpeedKmh = v);
             return screen;
         }
 

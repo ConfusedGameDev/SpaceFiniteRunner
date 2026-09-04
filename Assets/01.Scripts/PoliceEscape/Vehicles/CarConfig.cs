@@ -89,6 +89,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [PropertyRange(0f, 15f), SuffixLabel("°", true)]
         public float hillRollbackSlope = 3f;
 
+        // ------------------------------------------------------------- burnout
+        // Player-only despite living on the shared config: only CarInput ever
+        // raises ICarInput.Burnout (the AI drivers hard-wire it false). Gas and
+        // brake held together clamp the fronts and spin the rears — a
+        // line-lock/launch tool, so it only engages near standstill.
+        [TitleGroup("Burnout (player)")]
+        [Tooltip("Motor torque multiplier while burning out, split across the two rear wheels — how hard the rears spin against the held front brakes.")]
+        [PropertyRange(0.25f, 3f), SuffixLabel("×", true)]
+        public float burnoutTorqueFactor = 1.5f;
+
+        [TitleGroup("Burnout (player)")]
+        [Tooltip("Rear longitudinal grip multiplier while burning out (built-in sim only; EVP spins through its own slip limits). Lower = wheels spin in place instead of dragging the car forward.")]
+        [PropertyRange(0.1f, 1f)]
+        public float burnoutRearGrip = 0.35f;
+
+        [TitleGroup("Burnout (player)")]
+        [Tooltip("Speed above which gas + brake stops being a burnout and the pedals fall back to their normal meaning. 0 = standstill only.")]
+        [PropertyRange(0f, 60f), SuffixLabel("km/h", true)]
+        public float burnoutMaxSpeedKmh = 15f;
+
         // -------------------------------------------------------- brake lights
         // The kit cars' emission map paints the tail lights; BrakeLights
         // drives that material's HDR emission intensity (EV, the colour

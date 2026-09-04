@@ -50,6 +50,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
         public bool Handbrake => health != null && health.IsDead;
+        public bool Burnout => false; // player gesture only — a cruiser never line-locks
         public bool RespawnPressed => false;
 
         /// <summary>What kind of car this cruiser is and what colour it is — the CarController's identity, surfaced on the NPC.</summary>

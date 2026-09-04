@@ -192,6 +192,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// </summary>
         public void Uninstall()
         {
+            // A burnout doesn't survive the toggle: the flags die with the
+            // non-authored controller and CarController re-evaluates next step.
+            if (car != null) car.BurnoutActive = false;
+
             if (wheels != null)
                 for (int i = 0; i < wheels.Length; i++)
                 {
@@ -286,6 +290,30 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // hold makes the rears lock and slide whatever the pedal says.
             if (handbrake) throttleInput = 0f;
 
+            // Burnout: the same combinedInput fusion means gas+brake cancel on
+            // any driven+braked wheel, so the gesture is expressed through the
+            // per-wheel flags instead — fronts brake-only, rears drive-only —
+            // and both inputs pinned to 1: fronts see pure full brake (the
+            // hold), rears pure full throttle, and with traction control off
+            // their slip runs to EVP's maxDriveSlip. The spin then feeds every
+            // stock effect for free: tire marks, the skid loop, and the engine
+            // flare (VehicleAudio averages RPM over drive wheels only — which
+            // during a burnout are exactly the spinning rears).
+            // Authored cars are AI (their Burnout is hard-wired false) and
+            // their wheel list is the prefab's tuning — never restamped.
+            bool burnout = false;
+            if (!authored)
+            {
+                burnout = car.WantsBurnout(input);
+                ApplyBurnout(burnout);
+                if (burnout)
+                {
+                    throttleInput = 1f;
+                    brakeInput = 1f;
+                }
+            }
+            car.BurnoutActive = burnout;
+
             vehicle.steerInput = steer;
             vehicle.throttleInput = throttleInput;
             vehicle.brakeInput = brakeInput;
@@ -296,6 +324,38 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // reverse gear (negative EVP throttle) or rolling backwards.
             car.RearLightsOn = brakeInput > 0f || handbrake || throttleInput < 0f
                                || vehicle.speed < -CarController.ReverseLightSpeed;
+        }
+
+        /// <summary>
+        /// The wheel-flag half of the burnout, re-stamped every step like
+        /// ApplyLiveConfig (VehicleController reads the flags per step through
+        /// live Wheel references, and the re-stamp self-heals across
+        /// ApplyChassis enable-cycles): while burning, fronts drop their drive
+        /// (pure brake) and rears their brake (pure drive), with traction
+        /// control off so the slip clamp can't kill the spin; released, every
+        /// flag returns to the config's drivetrain and the L200 baseline's TC.
+        /// Never called on an authored car — its wheel list is the prefab's.
+        /// </summary>
+        void ApplyBurnout(bool burnout)
+        {
+            vehicle.tractionControl = !burnout;
+
+            CarConfig config = car.config;
+            bool frontDriven = config == null || config.drivetrain != CarConfig.Drivetrain.RearWheelDrive;
+            bool rearDriven = config == null || config.drivetrain != CarConfig.Drivetrain.FrontWheelDrive;
+            foreach (Wheel wheel in vehicle.wheels)
+            {
+                if (wheel.steer) // fronts (BuildWheels: steer marks the front axle)
+                {
+                    wheel.drive = !burnout && frontDriven;
+                    wheel.brake = true;
+                }
+                else
+                {
+                    wheel.drive = burnout || rearDriven;
+                    wheel.brake = !burnout;
+                }
+            }
         }
 
         /// <summary>

@@ -95,7 +95,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         ActionAccelerate, ActionBrake, ActionHandbrake, ActionRespawn,
         ActionCityMap, ActionRadioPrevious, ActionRadioNext,
         ActionCameraCycle, ActionLookBack,
-        ActionCameraLeft, ActionCameraRight, ActionCameraUp, ActionCameraDown
+        ActionCameraLeft, ActionCameraRight, ActionCameraUp, ActionCameraDown,
+        CarBurnoutTorque, CarBurnoutGrip, CarBurnoutMaxSpeed
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -324,6 +325,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString carForwardGrip = new("FORWARD GRIP", "AGARRE LONGITUDINAL", "前後グリップ", "ADHÉRENCE LONGITUDINALE");
         [TitleGroup("Car stats")]
         [SerializeField] LocalizedString carSideGrip = new("SIDE GRIP", "AGARRE LATERAL", "横方向グリップ", "ADHÉRENCE LATÉRALE");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carBurnoutTorque = new("BURNOUT TORQUE", "PAR DE BURNOUT", "バーンアウトトルク", "COUPLE DE BURNOUT");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carBurnoutGrip = new("BURNOUT GRIP", "AGARRE EN BURNOUT", "バーンアウト時グリップ", "ADHÉRENCE BURNOUT");
+        [TitleGroup("Car stats")]
+        [SerializeField] LocalizedString carBurnoutMaxSpeed = new("BURNOUT MAX SPEED", "VEL. MÁX. DE BURNOUT", "バーンアウト上限速度", "VITESSE MAX BURNOUT");
         [TitleGroup("Car stats")]
         [SerializeField] LocalizedString carPhysicsBackend = new("VEHICLE PHYSICS", "FÍSICA DE VEHÍCULOS", "車両物理エンジン", "PHYSIQUE DES VÉHICULES");
         [TitleGroup("Car stats")]
@@ -909,6 +916,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.CarHandbrakeGrip => carHandbrakeGrip,
             MenuTextId.CarForwardGrip => carForwardGrip,
             MenuTextId.CarSideGrip => carSideGrip,
+            MenuTextId.CarBurnoutTorque => carBurnoutTorque,
+            MenuTextId.CarBurnoutGrip => carBurnoutGrip,
+            MenuTextId.CarBurnoutMaxSpeed => carBurnoutMaxSpeed,
             MenuTextId.DebugTabAirTime => debugTabAirTime,
             MenuTextId.AirSlowMo => airSlowMo,
             MenuTextId.AirSlowMoDelay => airSlowMoDelay,

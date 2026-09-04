@@ -73,6 +73,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [Tooltip("Skid-mark decal material (EVP's URP-ported tire marks shader). No material = no marks.")]
         public Material tireMarksMaterial;
 
+        [TitleGroup("EVP effects (player car)")]
+        [Tooltip("Burnout rev loop for the BUILT-IN backend (EVP mode revs its live engine loop instead). Empty = the engine clip pitched up.")]
+        public AudioClip burnoutClip;
+
         static VehiclePhysicsSettings cached;
 
         /// <summary>The shipped asset from Resources, or an in-memory default (built-in backend).</summary>

@@ -21,6 +21,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// <summary>Held handbrake — rear brake plus loosened rear grip for drift turns.</summary>
         bool Handbrake { get; }
 
+        /// <summary>
+        /// Gas and brake held together — the player's burnout request (fronts
+        /// clamp, rears spin). AI drivers never raise it; the backends gate it
+        /// further (near-standstill, grounded, no handbrake).
+        /// </summary>
+        bool Burnout { get; }
+
         /// <summary>True only on the frame a manual respawn was requested.</summary>
         bool RespawnPressed { get; }
     }
@@ -38,6 +45,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
         public bool Handbrake { get; private set; }
+        public bool Burnout { get; private set; }
         public bool RespawnPressed { get; private set; }
 
         void Update()
@@ -45,6 +53,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             Steer = ControlBindings.Axis(GameAction.CarSteerLeft, GameAction.CarSteerRight, 0.1f);
             Throttle = ControlBindings.Axis(GameAction.CarBrake, GameAction.CarAccelerate, 0.02f);
             Handbrake = ControlBindings.IsPressed(GameAction.CarHandbrake);
+            // Both pedals cancel to Throttle 0, so the gesture needs its own
+            // per-action read — the burnout branch keys off this flag.
+            Burnout = ControlBindings.IsPressed(GameAction.CarAccelerate)
+                      && ControlBindings.IsPressed(GameAction.CarBrake);
             RespawnPressed = ControlBindings.WasPressedThisFrame(GameAction.CarRespawn);
         }
     }

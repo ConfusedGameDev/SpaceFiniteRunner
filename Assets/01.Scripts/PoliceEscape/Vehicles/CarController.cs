@@ -93,6 +93,28 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// <summary>Backward speed (m/s) past which a car counts as reversing for the rear lights, whatever the pedal says.</summary>
         public const float ReverseLightSpeed = 0.5f;
 
+        /// <summary>
+        /// True while the car is burning out — fronts clamped, rears spinning.
+        /// Written by whichever backend simulates this car (the
+        /// <see cref="RearLightsOn"/> pattern); <see cref="BurnoutEffects"/>
+        /// reads it for smoke and the built-in rev loop.
+        /// </summary>
+        public bool BurnoutActive { get; internal set; }
+
+        /// <summary>
+        /// The shared burnout gate both backends evaluate every step: the
+        /// player's gas+brake gesture, no handbrake (it owns the drift feel),
+        /// a rear wheel on the ground (airborne, the same two pedals are
+        /// AirTimeSlowMo's clock) and near standstill — past the config's
+        /// speed cap the pedals fall back to their normal meaning.
+        /// (The WheelColliders keep simulating suspension under EVP, so
+        /// isGrounded is valid in both modes.)
+        /// </summary>
+        internal bool WantsBurnout(ICarInput driver) =>
+            driver != null && driver.Burnout && !driver.Handbrake
+            && (rearLeft.isGrounded || rearRight.isGrounded)
+            && Mathf.Abs(ForwardSpeed) * 3.6f < config.burnoutMaxSpeedKmh;
+
         public bool IsGrounded =>
             frontLeft.isGrounded || frontRight.isGrounded || rearLeft.isGrounded || rearRight.isGrounded;
 
@@ -122,8 +144,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
             // Player only: the air-time slow-mo owns the global clock, and the
             // project's player marker is the CarInput driver — an AI car off a
-            // ramp must never slow the game.
-            if (input is CarInput) AirTimeSlowMo.Ensure(this);
+            // ramp must never slow the game. Burnout juice is player-only for
+            // the same reason (only CarInput ever raises the gesture).
+            if (input is CarInput)
+            {
+                AirTimeSlowMo.Ensure(this);
+                BurnoutEffects.Ensure(this);
+            }
         }
 
         /// <summary>
@@ -194,9 +221,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
             float speed01 = config.topSpeedKmh > 1f ? Mathf.Clamp01(SpeedKmh / config.topSpeedKmh) : 1f;
 
-            ApplyWheelSetup(handbrake);
+            bool burnout = WantsBurnout(input);
+            BurnoutActive = burnout;
+
+            ApplyWheelSetup(handbrake, burnout);
             ApplySteering(steer, speed01);
-            ApplyDrive(throttle, handbrake, speed01);
+            ApplyDrive(throttle, handbrake, speed01, burnout);
             ApplyAntiRoll(frontLeft, frontRight);
             ApplyAntiRoll(rearLeft, rearRight);
 
@@ -219,9 +249,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// Suspension and friction pushed from config to every wheel each
         /// step — cheap for four wheels, and it's what makes the inline config
         /// sliders live-tunable while driving. The handbrake loosens rear
-        /// lateral grip here for drift turns.
+        /// lateral grip here for drift turns; a burnout loosens rear
+        /// longitudinal grip the same way so the rears spin in place.
         /// </summary>
-        void ApplyWheelSetup(bool handbrake)
+        void ApplyWheelSetup(bool handbrake, bool burnout)
         {
             foreach (var wheel in Wheels())
             {
@@ -233,7 +264,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
                 bool rear = wheel == rearLeft || wheel == rearRight;
                 WheelFrictionCurve forward = wheel.forwardFriction;
-                forward.stiffness = config.forwardStiffness;
+                forward.stiffness = config.forwardStiffness * (rear && burnout ? config.burnoutRearGrip : 1f);
                 wheel.forwardFriction = forward;
 
                 WheelFrictionCurve side = wheel.sidewaysFriction;
@@ -254,8 +285,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// <summary>Rollback speed under which a gravity-driven drift counts as a stalled climb rather than a brake request.</summary>
         const float RollbackDriveSpeed = 3f;
 
-        void ApplyDrive(float throttle, bool handbrake, float speed01)
+        void ApplyDrive(float throttle, bool handbrake, float speed01, bool burnout)
         {
+            // Burnout: fronts clamp with the full brake, rears get boosted
+            // torque with no brake at all — with their grip dropped in
+            // ApplyWheelSetup they spin in place (and the visuals spin with
+            // them, since SyncVisual reads the WheelCollider's own rpm).
+            if (burnout)
+            {
+                RearLightsOn = true; // the fronts ARE braking
+                frontLeft.motorTorque = frontRight.motorTorque = 0f;
+                rearLeft.motorTorque = rearRight.motorTorque =
+                    config.maxMotorTorque * config.burnoutTorqueFactor * 0.5f;
+                frontLeft.brakeTorque = frontRight.brakeTorque = config.brakeTorque;
+                rearLeft.brakeTorque = rearRight.brakeTorque = 0f;
+                return;
+            }
+
             float forwardSpeed = ForwardSpeed;
 
             // A gradient drags the car along its own forward axis. Drifting
