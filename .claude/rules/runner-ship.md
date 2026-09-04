@@ -86,8 +86,13 @@ Win/lose and the countdown.
 
 - **Win** = every mandatory objective of `level` (`RunnerLevelDefinition`,
   `Data/FiniteRunner_LevelDefinition.asset`, drawn inline) is `Satisfied`. `EvaluateObjectives`
-  latches each entry once met; takeoffs are counted in `OnTookOff`. It raises
-  `ShowMissionComplete` the frame it is met.
+  latches each entry once met; takeoffs are counted in `OnTookOff`. **The win latches the frame
+  it is met but the run does not end yet** (`FinishWin`, unscaled time): the lose checks and the
+  countdown stop, the ship flies on until `State == Grounded` with no committed `CurrentRamp` (a
+  jump, loop, loop fall or tube plays out first), the `GlitchController` ramps to max over
+  `GameSettings.winGlitchRampSeconds` (its fade zeroed, remembered and handed back once the
+  panel is up), holds `winGlitchHoldSeconds`, then `EndRun` raises `ShowMissionComplete`.
+  `PauseMenu.CanPause` refuses while `HasWon`; `Restart` stops the routine and zeroes the glitch.
   `GameSettings.lightSpeedKmh` is only the fallback for a definition with no Reach Speed target.
 - **Lose** = the patrol catches up, `TimeRemaining` hits 0, or the ship stops. It raises
   `ShowGameOver(RunOutcome)` the same frame, mapping Caught / TimedOut / Stalled to

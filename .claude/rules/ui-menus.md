@@ -77,7 +77,9 @@ binding.
 
 ### The CONTROLS screen
 
-Lives under SETTINGS in both menus — `MenuScreenFactory.BuildSettings(parent, theme, openControls)`
+Lives under SETTINGS in both menus — `MenuScreenFactory.BuildSettings(parent, theme, openControls,
+deleteProgress = null)` (the optional last argument adds the main menu's DELETE CAMPAIGN PROGRESS
+row and tightens the metrics to 74/14 so seven rows keep the six-row reach; see `campaign.md`)
 adds the row, and each host builds a `ControlsScreen` whose `OpenSub` / `Back` / `CloseSub` know
 CONTROLS returns to SETTINGS.
 

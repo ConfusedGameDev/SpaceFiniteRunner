@@ -180,15 +180,17 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
         // Active gameplay only. With a ship: motor.Paused covers the tuning
         // screen, the main-menu overlay and the frozen end-of-run state;
-        // RunOver covers the result screen. Without one (city chase), running
-        // scaled time is the only "gameplay is live" signal there is.
+        // RunOver covers the result screen and HasWon the wind-down before it
+        // (the ship still flies, but the glitch ramp runs on unscaled time and
+        // the panel is about to open — nothing to pause). Without one (city
+        // chase), running scaled time is the only "gameplay is live" signal.
         bool CanPause()
         {
             if (MainMenuController.IsOpen) return false;
             // The city map is a full-screen takeover with its own toggle; the
             // two must never stack, or Esc would unfreeze the game underneath it.
             if (DebugMenuHooks.FullScreenTakeoverOpen != null && DebugMenuHooks.FullScreenTakeoverOpen()) return false;
-            if (motor != null) return !motor.Paused && (gameManager == null || !gameManager.RunOver);
+            if (motor != null) return !motor.Paused && (gameManager == null || (!gameManager.RunOver && !gameManager.HasWon));
             return Time.timeScale > 0f;
         }
 

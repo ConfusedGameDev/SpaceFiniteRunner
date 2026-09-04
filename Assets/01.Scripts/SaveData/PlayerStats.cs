@@ -302,6 +302,27 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
 
         // -------------------------------------------------------- progression
 
+        /// <summary>
+        /// The in-game DELETE CAMPAIGN PROGRESS: every mission record, every
+        /// latched unlock, the level ledger, the wallet (earned AND spent go
+        /// to zero — the LOG's lifetime earnings reset with it, an explicit
+        /// wipe unlike a purchase) and every store upgrade on every model.
+        /// Lifetime stats, records and collectibles stay. Saves at once.
+        /// </summary>
+        public static void ResetCampaign()
+        {
+            var p = P;
+            p.missions.Clear();
+            p.unlockedIds.Clear();
+            p.completedLevelIds.Clear();
+            p.upgrades.Clear();
+            p.lastLevel = new PlayerProfile.LastLevelStats();
+            p.global.moneyEarned = 0;
+            p.global.moneySpent = 0;
+            PlayerProfileStore.MarkDirty();
+            PlayerProfileStore.Save();
+        }
+
         public static bool IsLevelCompleted(string levelId) =>
             !string.IsNullOrEmpty(levelId) && P.completedLevelIds.Contains(levelId);
 

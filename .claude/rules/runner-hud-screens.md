@@ -63,7 +63,8 @@ callback.
 
 ## `MissionCompleteScreen` (`Runner/Screens/`)
 
-The mission's results panel, raised by `GameManager.ShowMissionComplete` the frame the run is won.
+The mission's results panel, raised by `GameManager.ShowMissionComplete` once the win's wind-down
+is over (ship grounded, glitch ramped to max — see `runner-ship.md`), behind the full glitch.
 No win line, no HUD text — the panel freezes the clock.
 
 **A mission is a city level plus the escape run after it, and it is PAID here, once.**

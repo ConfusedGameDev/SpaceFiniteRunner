@@ -97,7 +97,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         ActionCameraCycle, ActionLookBack,
         ActionCameraLeft, ActionCameraRight, ActionCameraUp, ActionCameraDown,
         CarBurnoutTorque, CarBurnoutGrip, CarBurnoutMaxSpeed,
-        Missions, MissionLabel, MissionNext, StartMissionTarget, RequiresMoney, RequiresUpgrade, ComingSoon, HintPlay
+        Missions, MissionLabel, MissionNext, StartMissionTarget, RequiresMoney, RequiresUpgrade, ComingSoon, HintPlay,
+        DeleteProgress, DeleteProgressQuestion, DeleteProgressWarning
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -629,6 +630,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString comingSoon = new("COMING SOON", "PRÓXIMAMENTE", "近日公開", "BIENTÔT DISPONIBLE");
         [TitleGroup("Campaign")]
         [SerializeField] LocalizedString hintPlay = new("PLAY", "JUGAR", "プレイ", "JOUER");
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString deleteProgress = new("DELETE CAMPAIGN PROGRESS", "BORRAR PROGRESO DE CAMPAÑA", "キャンペーン進行を削除", "EFFACER LA PROGRESSION");
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString deleteProgressQuestion = new("ERASE ALL CAMPAIGN PROGRESS?", "¿BORRAR TODO EL PROGRESO?", "進行状況をすべて消去しますか？", "EFFACER TOUTE LA PROGRESSION ?");
+        [TitleGroup("Campaign")]
+        [SerializeField] LocalizedString deleteProgressWarning = new("MISSIONS, WALLET AND UPGRADES WILL BE LOST. THIS CANNOT BE UNDONE.",
+                                                                      "SE PERDERÁN MISIONES, DINERO Y MEJORAS. NO SE PUEDE DESHACER.",
+                                                                      "ミッション・所持金・アップグレードが失われます。元に戻せません。",
+                                                                      "MISSIONS, ARGENT ET AMÉLIORATIONS SERONT PERDUS. IRRÉVERSIBLE.");
 
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString controls = new("CONTROLS", "CONTROLES", "操作設定", "COMMANDES");
@@ -1162,6 +1172,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.RequiresUpgrade => requiresUpgrade,
             MenuTextId.ComingSoon => comingSoon,
             MenuTextId.HintPlay => hintPlay,
+            MenuTextId.DeleteProgress => deleteProgress,
+            MenuTextId.DeleteProgressQuestion => deleteProgressQuestion,
+            MenuTextId.DeleteProgressWarning => deleteProgressWarning,
             _ => start
         };
     }

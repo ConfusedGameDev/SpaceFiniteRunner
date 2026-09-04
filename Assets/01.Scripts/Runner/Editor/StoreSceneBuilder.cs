@@ -42,7 +42,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             "Assets/03.Prefabs/Shared/CheatManager.prefab",
         };
 
-        const float BaseCost = 500f;
+        const float BaseCost = 1500f;
         const float CostGrowth = 1.5f;
         const float MultiplierStep = 0.05f;
 

@@ -128,6 +128,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0f, 1f)]
         public float loopFallGlitchStrength = 0.8f;
 
+        // ---------------------------------------------------- mission complete
+        // Once the objectives are met the ship keeps flying until it is back on
+        // the track (a jump, loop or tube finishes first), then the glitch
+        // ramps to max, holds, and the Mission Complete panel opens.
+        [TitleGroup("Mission complete")]
+        [Tooltip("Seconds the glitch takes to ramp from its current level to max once the ship is back on the track after the win.")]
+        [PropertyRange(0.1f, 3f), SuffixLabel("s", true)]
+        public float winGlitchRampSeconds = 0.8f;
+
+        [TitleGroup("Mission complete")]
+        [Tooltip("Seconds the glitch holds at max before the Mission Complete panel opens.")]
+        [PropertyRange(0f, 2f), SuffixLabel("s", true)]
+        public float winGlitchHoldSeconds = 0.4f;
+
         // --------------------------------------------------------------- dash
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on
         // ShipDefinition — this section only holds the run-level rules.

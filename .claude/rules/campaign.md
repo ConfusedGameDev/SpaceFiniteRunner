@@ -87,10 +87,17 @@ city clear (v1). When the frontier is exhausted, START MISSION leads to the **Co
   (`Enabled` never blocks `Activate`, so `StartMission` refuses the press itself); refreshed after
   every purchase since a buy can cross a money gate.
 - **MISSIONS** — a main-menu row **hidden until one mission is complete**, opening
-  `MissionSelectScreenFactory`'s campaign map (the LOG recipe: `StatHeaderRow` per reached world,
-  a 12-row viewport, rebuilt on every open): completed rows show `S  $12,400` and replay, the
-  frontier shows NEXT, locked rows are greyed. Selecting sets the session and loads the world scene
-  **directly — the Store is skipped**.
+  `MissionSelectScreenFactory`'s replay list (the LOG recipe: `StatHeaderRow` per world, a 12-row
+  viewport, rebuilt on every open): **only missions beaten at least once**, each showing
+  `S  $12,400`; the frontier and locked missions are never listed here (the frontier is the
+  Store's). Selecting sets a replay session and loads the world scene **directly — the Store is
+  skipped**.
+- **DELETE CAMPAIGN PROGRESS** — the last row of the main menu's SETTINGS page only
+  (`MenuScreenFactory.BuildSettings`'s optional callback; the pause menu never gets it), opening a
+  `BuildConfirm` that defaults to NO, prints the cannot-be-undone warning under the answers, and
+  returns to SETTINGS on NO / Back. YES runs `PlayerStats.ResetCampaign()` — mission records,
+  latched unlocks, the level ledger, every store upgrade and the wallet (earned AND spent to zero)
+  go; lifetime stats, records and collectibles stay — clears the session and rebuilds the menu.
 - `MissionRow` (`UI/`) is the `StatRow` shape that DOES confirm; its `RightReserve` is what the
   Store pre-measures the column with.
 

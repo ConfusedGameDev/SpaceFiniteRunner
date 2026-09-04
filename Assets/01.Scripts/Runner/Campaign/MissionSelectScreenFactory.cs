@@ -5,17 +5,14 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.Campaign
 {
     /// <summary>
-    /// Builds the main menu's MISSIONS page — the campaign map: every
-    /// mission of every reached world, one <see cref="MissionRow"/> each
-    /// under a <see cref="StatHeaderRow"/> per world, the LOG screen's
-    /// recipe (compact rows, a twelve-row viewport). A completed mission
-    /// shows its best rank and total and replays; the frontier shows NEXT
-    /// and plays exactly like the Store's START MISSION; a locked one is
-    /// greyed with its requirement printed, and anything past the frontier
-    /// is greyed blank — never hidden. A world is reached once the one
-    /// before it is fully complete. The host calls the returned
-    /// <c>refresh</c> every time it opens the page, since the profile moves
-    /// between visits; rows are rebuilt, never patched.
+    /// Builds the main menu's MISSIONS page — the replay list: every mission
+    /// the player has BEATEN at least once, one <see cref="MissionRow"/>
+    /// each (best rank and total on the right) under a <see cref="StatHeaderRow"/>
+    /// per world, the LOG screen's recipe (compact rows, a twelve-row
+    /// viewport). Nothing unbeaten is listed — the frontier is the Store's
+    /// business, and a locked mission is never shown here. The host calls
+    /// the returned <c>refresh</c> every time it opens the page, since the
+    /// profile moves between visits; rows are rebuilt, never patched.
     /// </summary>
     public static class MissionSelectScreenFactory
     {
@@ -26,77 +23,52 @@ namespace ConfusedGameDev.FiniteRunner.Campaign
 
         /// <summary>
         /// Creates the page (hidden) and fills it. <paramref name="onPlay"/>
-        /// receives the chosen entry and whether it is a replay;
-        /// <paramref name="onRefused"/> answers a press on a locked row.
+        /// receives the chosen entry and <c>true</c> — every listed mission is
+        /// a replay.
         /// </summary>
         public static MenuScreen Build(RectTransform parent, MenuTheme theme,
-                                       System.Action<CampaignCatalog.Entry, bool> onPlay, System.Action onRefused,
+                                       System.Action<CampaignCatalog.Entry, bool> onPlay,
                                        out System.Action refresh)
         {
             var screen = MenuScreen.Create("MissionsScreen", parent, theme, 0f, ContentTop);
             screen.SetTitle(MenuTextId.Missions);
             screen.SetRowMetrics(RowHeight, RowSpacing);
             screen.SetViewport(VisibleRows);
-            Populate(screen, onPlay, onRefused);
-            refresh = () => Populate(screen, onPlay, onRefused);
+            Populate(screen, onPlay);
+            refresh = () => Populate(screen, onPlay);
             return screen;
         }
 
-        /// <summary>Replaces every row with the catalog's missions at the profile's current state.</summary>
-        public static void Populate(MenuScreen screen, System.Action<CampaignCatalog.Entry, bool> onPlay, System.Action onRefused)
+        /// <summary>Replaces every row with the catalog's completed missions at the profile's current state.</summary>
+        public static void Populate(MenuScreen screen, System.Action<CampaignCatalog.Entry, bool> onPlay)
         {
             screen.ClearRows();
             MenuTextLibrary texts = MenuTextLibrary.Load();
             CampaignCatalog catalog = CampaignCatalog.Load();
-            bool playing = Application.isPlaying; // the profile is only read in play — the edit-mode preview lists everything unplayed
-            if (catalog == null)
+            bool playing = Application.isPlaying; // the profile is only read in play — the edit-mode preview is empty
+
+            if (catalog != null && playing)
             {
-                screen.AddRow<DebugLabelRow>(MenuTextId.NothingHereYet);
-                return;
-            }
-
-            CampaignCatalog.Entry frontier = playing ? CampaignProgress.Frontier(catalog) : default;
-            WorldDefinition lastWorld = null;
-            foreach (CampaignCatalog.Entry entry in catalog.AllMissions())
-            {
-                if (entry.world != lastWorld)
+                WorldDefinition lastWorld = null;
+                foreach (CampaignCatalog.Entry entry in catalog.AllMissions())
                 {
-                    // The next world opens only once the previous one is done.
-                    if (lastWorld != null && !(playing && CampaignProgress.IsWorldComplete(lastWorld))) break;
-                    lastWorld = entry.world;
-                    screen.AddRow<StatHeaderRow>(string.IsNullOrEmpty(entry.world.displayName) ? entry.world.name : entry.world.displayName);
-                }
+                    PlayerProfile.MissionRecord record = PlayerStats.Mission(entry.mission.id);
+                    if (record == null || !record.completed) continue;
 
-                MissionRow row = screen.AddRow<MissionRow>(
-                    string.Format(texts.Get(MenuTextId.MissionLabel), entry.number, entry.mission.DisplayName));
+                    // A world header goes over its first cleared mission only.
+                    if (entry.world != lastWorld)
+                    {
+                        lastWorld = entry.world;
+                        screen.AddRow<StatHeaderRow>(string.IsNullOrEmpty(entry.world.displayName) ? entry.world.name : entry.world.displayName);
+                    }
 
-                PlayerProfile.MissionRecord record = playing ? PlayerStats.Mission(entry.mission.id) : null;
-                bool completed = record != null && record.completed;
-                bool playable;
-                if (completed)
-                {
+                    MissionRow row = screen.AddRow<MissionRow>(
+                        string.Format(texts.Get(MenuTextId.MissionLabel), entry.number, entry.mission.DisplayName));
                     row.SetValue($"{record.bestRank}  {StatFormat.Money(record.bestTotal)}");
-                    playable = true;
-                }
-                else if (frontier.IsSet && entry.mission == frontier.mission)
-                {
-                    playable = CampaignProgress.RequirementsMet(entry.mission);
-                    row.SetValue(playable ? texts.Get(MenuTextId.MissionNext)
-                                          : RequirementText.Describe(CampaignProgress.FirstUnmet(entry.mission), texts));
-                }
-                else
-                {
-                    playable = false;
-                }
-                row.SetEnabled(playable);
 
-                CampaignCatalog.Entry captured = entry;
-                bool replay = completed;
-                row.Activated += () =>
-                {
-                    if (row.Enabled) onPlay?.Invoke(captured, replay);
-                    else onRefused?.Invoke();
-                };
+                    CampaignCatalog.Entry captured = entry;
+                    row.Activated += () => onPlay?.Invoke(captured, true);
+                }
             }
 
             if (screen.Rows.Count == 0) screen.AddRow<DebugLabelRow>(MenuTextId.NothingHereYet);

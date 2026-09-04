@@ -69,8 +69,9 @@ once (a purchase is a commit point), meter and wallet punched. **No confirm dial
 
 - One `UpgradeDefinition` per category: `id` (an `UpgradeIds` constant), localized `label`,
   default video/still, exactly ten `UpgradeLevel` rows `{cost, multiplier, video, image}`. The
-  builder seeds cost `500 × 1.5^(level−1)` and multiplier `1 + 0.05 × level`, **never overwriting
-  an existing asset**.
+  builder seeds cost `1500 × 1.5^(level−1)` ($1,500 → $57,665) and multiplier `1 + 0.05 × level`,
+  **never overwriting an existing asset** — a retune of the curve means editing the fourteen
+  authored assets too (the 500 → 1500 change was applied to them by script).
 - A `StoreSection` per tab (kind, title, `models`, `categories`).
 - `StoreSettings` (the no-catalog fallback scene, the three sections, viewer feel), loaded through
   Resources so gameplay resolves multipliers with no scene reference.

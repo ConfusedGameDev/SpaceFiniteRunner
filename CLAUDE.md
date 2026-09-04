@@ -27,8 +27,9 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 
 - **Objective**: escape the police before time runs out or you get caught.
 - **Win**: every mandatory objective of the run's `RunnerLevelDefinition` is met (today one
-  Reach Speed objective, whose target IS the HUD's "Light Speed"). Ends on the Mission Complete
-  panel the frame it is met.
+  Reach Speed objective, whose target IS the HUD's "Light Speed"). The win latches the frame it
+  is met (nothing can be lost after, the clock stops), the ship flies on until it is back on the
+  track, the glitch ramps to max, then the Mission Complete panel opens.
 - **Lose**: the countdown hits 0, the patrol catches you, or the ship bleeds to a standstill.
   Ends on the `GameOverScreen` retry panel with a localized reason.
 - Neither ending speaks an RPG line and neither prints HUD result text.
