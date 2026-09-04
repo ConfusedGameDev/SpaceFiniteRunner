@@ -1,7 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.FX;
@@ -66,6 +68,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         bool runCounted; // this run's "escape attempted" has been recorded
 
+        // The win wind-down: objectives met, ship still flying until it is back
+        // on the track, then the glitch ramps to max and the panel opens.
+        Coroutine winRoutine;
+        float glitchFadeBeforeWin = -1f; // the GlitchController's fade rate to restore; < 0 = nothing remembered
+
         // The run's objective state: latched per entry (speed bleeds after the
         // peak while a jump goal may still be open), reset with the run.
         int jumpCount;
@@ -111,6 +118,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 Debug.LogError($"{nameof(GameManager)} has no {nameof(GameSettings)} asset assigned — falling back to defaults.", this);
                 settings = ScriptableObject.CreateInstance<GameSettings>();
             }
+            // A live campaign session names the run to play; the serialized
+            // asset is the direct-play (editor) fallback.
+            if (MissionSession.Current != null && MissionSession.Current.runnerLevel is RunnerLevelDefinition sessionLevel)
+                level = sessionLevel;
             if (level == null)
             {
                 Debug.LogError($"{nameof(GameManager)} has no {nameof(RunnerLevelDefinition)} asset assigned — falling back to the default run.", this);
@@ -241,10 +252,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 PlayerStats.SampleShipSpeed(motor.CurrentSpeed * 3.6f);
             }
 
-            if (EvaluateObjectives(motor.CurrentSpeed * 3.6f))
+            // The win latches the moment every objective is met — but the run
+            // does not end yet: the ship flies on until it is back on the
+            // track, then FinishWin glitches out and raises the panel. From
+            // here on nothing can be lost and the clock stands still.
+            if (!HasWon && EvaluateObjectives(motor.CurrentSpeed * 3.6f))
             {
                 HasWon = true;
-                EndRun(RunOutcome.Escaped);
+                winRoutine = StartCoroutine(FinishWin());
+            }
+            if (HasWon)
+            {
+                UpdateLoops();
                 return;
             }
 
@@ -293,6 +312,56 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         /// <summary>
+        /// The win's wind-down, on unscaled time: wait for the ship to be
+        /// back on the track surface (a jump, a loop, a loop fall or a tube
+        /// plays out first — and a ramp it is already committed to is taken,
+        /// not frozen on), ramp the glitch from wherever it is to max over
+        /// <c>winGlitchRampSeconds</c>, hold it <c>winGlitchHoldSeconds</c>,
+        /// then end the run — which opens the panel behind the full glitch,
+        /// the city handoff's picture. The controller's fade is remembered
+        /// and handed back once the panel is up, so the glitch clears behind
+        /// the results the way it clears behind the runner's first frames.
+        /// </summary>
+        IEnumerator FinishWin()
+        {
+            while (motor != null && (motor.State != ShipState.Grounded || motor.CurrentRamp != null))
+                yield return null;
+
+            GlitchController glitch = GlitchController.Instance;
+            if (glitch != null)
+            {
+                glitchFadeBeforeWin = glitch.baseFadePerSecond;
+                glitch.baseFadePerSecond = 0f; // healing stops: the ramp must reach and hold max
+                float from = glitch.baseIntensity;
+                float ramp = Mathf.Max(0.01f, settings.winGlitchRampSeconds);
+                for (float t = 0f; t < ramp; t += Time.unscaledDeltaTime)
+                {
+                    glitch.SetBaseIntensity(Mathf.Lerp(from, 1f, t / ramp));
+                    yield return null;
+                }
+                glitch.SetBaseIntensity(1f);
+                glitch.Pulse(1f);
+            }
+
+            if (settings.winGlitchHoldSeconds > 0f)
+                yield return new WaitForSecondsRealtime(settings.winGlitchHoldSeconds);
+
+            winRoutine = null;
+            EndRun(RunOutcome.Escaped);
+            RestoreGlitchFade();
+        }
+
+        // Hands the GlitchController its fade rate back so a held max decays
+        // again (behind the panel, or on a retry). Idempotent.
+        void RestoreGlitchFade()
+        {
+            if (glitchFadeBeforeWin < 0f) return;
+            GlitchController glitch = GlitchController.Instance;
+            if (glitch != null) glitch.baseFadePerSecond = glitchFadeBeforeWin;
+            glitchFadeBeforeWin = -1f;
+        }
+
+        /// <summary>
         /// The retry panel on the shared screen: GAME OVER, the reason this
         /// run ended, then RETRY (runs the track again, in place — no load)
         /// and EXIT TO MAIN MENU (under the loading curtain). It is the same
@@ -311,8 +380,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         /// <summary>
-        /// The Mission Complete panel, raised the frame the run is won (the
-        /// panel freezes the clock). The city level's rows come off the
+        /// The Mission Complete panel, raised by <see cref="FinishWin"/> once
+        /// the ship is grounded and the glitch has reached max (the panel
+        /// freezes the clock). The city level's rows come off the
         /// profile — the only thing that crosses the scene handoff — and the
         /// run's own rows off the live state; the panel adds them up, ranks
         /// them and banks the mission.
@@ -321,10 +391,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (!RunOver || !HasWon || MissionCompleteScreen.IsOpen) return;
             MissionCompleteScreen.Show(BuildMissionCompleteData(),
-                                       onNext: () => LoadingScreen.Load(level.nextSceneName),
+                                       onNext: () => LoadingScreen.Load(NextSceneAfterMission()),
                                        onRetry: Restart,
                                        onExit: LoadingScreen.LoadMainMenu);
         }
+
+        // NEXT MISSION on a campaign mission always returns to the Store, which
+        // offers the new frontier; direct play keeps the level's own next scene.
+        string NextSceneAfterMission() => MissionSession.Active ? StoreSettings.SceneName : level.nextSceneName;
 
         MissionCompleteData BuildMissionCompleteData()
         {
@@ -333,6 +407,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             var data = new MissionCompleteData
             {
+                missionId = MissionSession.Current != null ? MissionSession.Current.id : "",
                 title = hasCity && !string.IsNullOrEmpty(last.levelName) ? last.levelName : level.levelName,
                 video = level.completeVideo,
                 baseReward = hasCity ? last.baseReward : 0,
@@ -478,11 +553,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 GlitchController.Instance.Pulse(settings.loopFallGlitchStrength);
         }
 
-        // Touchdown: a thump in the hands and on the picture, no speed change.
+        // Touchdown: a thump in the hands and on the picture, a spray of
+        // sparkles at the touchdown point, no speed change.
         void OnLanded()
         {
             HapticsSystem.Instance.Pulse(0.5f, 0.3f, 0.2f);
             CameraShake.Shake(settings.landingShake);
+            SparkleVfx.SpawnBurst(motor.transform.position, motor.transform.up,
+                                  settings.landingSparkleColor, settings.landingSparkleScale,
+                                  settings.landingSparkleCount);
             if (cameraRig != null && modeBeforeJump != CameraMode.Far)
                 cameraRig.SetMode(modeBeforeJump, instant: false);
         }
@@ -524,6 +603,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             RpgMessageSystem.Instance.ClearMessages();
             if (dashPrompt != null) dashPrompt.ResetForRun();
             if (speedLines != null) speedLines.ClearPulse(); // the speed term follows the relaunch on its own
+
+            // A retry from the panel: the wind-down is over, but a RETRY pressed
+            // while a glitch is still decaying must start on a clean picture.
+            if (winRoutine != null) { StopCoroutine(winRoutine); winRoutine = null; }
+            RestoreGlitchFade();
+            if (GlitchController.Instance != null) GlitchController.Instance.SetBaseIntensity(0f);
 
             RunOver = false;
             HasWon = false;

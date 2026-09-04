@@ -5,6 +5,7 @@ using UnityEngine.Video;
 
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
+using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.SaveData;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
@@ -380,7 +381,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// type's knobs.
     /// </summary>
     [CreateAssetMenu(fileName = "LevelDefinition", menuName = "PoliceEscape/Level Definition")]
-    public class LevelDefinition : ScriptableObject
+    public class LevelDefinition : CityLevelAsset
     {
         [TitleGroup("Level")]
         [Tooltip("Display name, for the designers and the debug menu.")]

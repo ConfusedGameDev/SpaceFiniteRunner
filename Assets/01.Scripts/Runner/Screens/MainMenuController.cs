@@ -5,8 +5,10 @@ using UnityEngine.InputSystem.Controls;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Cheats;
 using ConfusedGameDev.FiniteRunner.Haptics;
+using ConfusedGameDev.FiniteRunner.SaveData;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Store;
 using ConfusedGameDev.FiniteRunner.UI;
@@ -61,7 +63,11 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         ControlsScreen controls;   // the CONTROLS page under SETTINGS (its Screen is the MenuScreen)
         MenuScreen creditsScreen;
         MenuScreen exitScreen;
+        MenuScreen missionsScreen;      // the campaign map — a row only once a mission is complete
+        System.Action refreshMissions;
+        MenuScreen deleteProgressScreen; // SETTINGS → DELETE CAMPAIGN PROGRESS → "really?"
         MenuScreen current;
+        string pendingScene;            // a scene chosen on the MISSIONS map; null = the Store
 
         Phase phase = Phase.Attract;
         float phaseTimer;
@@ -93,6 +99,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         {
             if (theme != null) return;
             standalone = true;
+            MissionSession.Clear(); // reaching the main menu ends any campaign mission in flight
             Open();
         }
 
@@ -250,8 +257,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         {
             if (phase != Phase.Browsing) return;
 
-            // The exit confirm always re-arms on the safe answer.
-            if (screen == exitScreen) screen.SetFocus(1);
+            // The destructive confirms always re-arm on the safe answer.
+            if (screen == exitScreen || screen == deleteProgressScreen) screen.SetFocus(1);
 
             current.SlideOut(-theme.ScreenSlide);
             screen.SlideIn(theme.ScreenSlide);
@@ -265,7 +272,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             HapticsSystem.Instance.Pulse(theme.ConfirmRumble, theme.ConfirmRumble * 0.5f, 0.12f);
         }
 
-        /// <summary>B / Esc. Backs out of any sub-screen (CONTROLS to SETTINGS, the rest to the main list); on the main menu it returns to attract. It never quits.</summary>
+        /// <summary>B / Esc. Backs out of any sub-screen (CONTROLS and the delete-progress confirm to SETTINGS, the rest to the main list); on the main menu it returns to attract. It never quits.</summary>
         void Back()
         {
             if (phase != Phase.Browsing) return;
@@ -276,7 +283,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 return;
             }
 
-            var target = controls != null && current == controls.Screen ? settingsScreen : mainScreen;
+            bool underSettings = (controls != null && current == controls.Screen) || current == deleteProgressScreen;
+            var target = underSettings ? settingsScreen : mainScreen;
             current.SlideOut(theme.ScreenSlide);
             target.SlideIn(-theme.ScreenSlide);
             current = target;
@@ -317,17 +325,20 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             // Own scene: hand off to the Store, the hub between missions (its
             // START MISSION row goes on to the city chase, which later
-            // glitches into the finite runner). By name, never by build index:
-            // the store sits at the end of the build list.
+            // glitches into the finite runner) — or straight to the world
+            // scene a MISSIONS row chose, skipping the Store. By name, never
+            // by build index: only the main menu sits at index 0.
             if (standalone)
             {
-                if (Application.CanStreamedLevelBeLoaded(StoreSettings.SceneName))
+                string scene = string.IsNullOrEmpty(pendingScene) ? StoreSettings.SceneName : pendingScene;
+                if (Application.CanStreamedLevelBeLoaded(scene))
                 {
-                    LoadingScreen.Load(StoreSettings.SceneName);
+                    LoadingScreen.Load(scene);
                 }
                 else
                 {
-                    Debug.LogError($"MainMenu: the {StoreSettings.SceneName} scene is not in the build settings — run Tools → FiniteRunner → Create Store Scene.", this);
+                    Debug.LogError($"MainMenu: the {scene} scene is not in the build settings — run Tools → FiniteRunner → Register Campaign Scenes.", this);
+                    MissionSession.Clear();
                     Destroy(gameObject);
                 }
                 return;
@@ -409,7 +420,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             attractText = null;
             attractGlyph = null;
             footer = null;
-            mainScreen = settingsScreen = cheatsScreen = creditsScreen = exitScreen = current = null;
+            mainScreen = settingsScreen = cheatsScreen = creditsScreen = exitScreen = missionsScreen = deleteProgressScreen = current = null;
+            refreshMissions = null;
             cheatConsole = null;
             controls = null;
             ui = null;
@@ -457,6 +469,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             footerGroup.alpha = 0f;
 
             BuildSettings();
+            BuildMissions();
             BuildCheats();
             BuildCredits();
             BuildExit();
@@ -513,6 +526,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             mainScreen = MenuScreen.Create("MainScreen", root, theme, theme.MainColumnX, 60f);
 
             mainScreen.AddRow<MenuRow>(MenuTextId.Start).Activated += StartGame;
+            // The campaign map appears once there is something on it — a
+            // completed mission to replay. The profile is only read in play.
+            if (Application.isPlaying && CampaignProgress.AnyCompleted(CampaignCatalog.Load()))
+                mainScreen.AddRow<MenuRow>(MenuTextId.Missions).Activated += OpenMissions;
             mainScreen.AddRow<MenuRow>(MenuTextId.Settings).Activated += () => OpenSub(settingsScreen);
             mainScreen.AddRow<MenuRow>(MenuTextId.Cheats).Activated += () => OpenSub(cheatsScreen);
             mainScreen.AddRow<MenuRow>(MenuTextId.Credits).Activated += () => OpenSub(creditsScreen);
@@ -520,13 +537,64 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         }
 
         // Shared with the pause menu, so the two settings pages never drift —
-        // and so is the CONTROLS page its last row opens.
+        // and so is the CONTROLS page its last row opens. Only the main menu's
+        // page carries DELETE CAMPAIGN PROGRESS: wiping the campaign is not a
+        // mid-run action.
         void BuildSettings()
         {
             controls = ControlsScreen.Build(root, theme);
             controls.Captured += () => Blip(theme.ConfirmClip);
             controls.Cancelled += () => Blip(theme.BackClip);
-            settingsScreen = MenuScreenFactory.BuildSettings(root, theme, () => OpenSub(controls.Screen));
+            settingsScreen = MenuScreenFactory.BuildSettings(root, theme, () => OpenSub(controls.Screen),
+                                                             () => OpenSub(deleteProgressScreen));
+
+            // The confirm: YES wipes, NO / Back return to SETTINGS. The warning
+            // line sits under the two answers (rows at 0 and -104).
+            deleteProgressScreen = MenuScreenFactory.BuildConfirm(root, theme, MenuTextId.DeleteProgress,
+                                                                  MenuTextId.DeleteProgressQuestion,
+                                                                  ConfirmDeleteProgress, Back);
+            deleteProgressScreen.AddLabel("Warning", new Vector2(0f, -210f), new Vector2(1400f, 40f),
+                                          MenuTextId.DeleteProgressWarning, 24, theme.Accent, theme.BodyFont,
+                                          TextAnchor.MiddleCenter, theme.TitleLead);
+        }
+
+        // The wipe: missions, unlocks, wallet and every upgrade go; lifetime
+        // stats stay. The menu is rebuilt so the MISSIONS row (now empty)
+        // disappears and the map re-reads the profile, then SETTINGS comes
+        // back so the player sees where they were.
+        void ConfirmDeleteProgress()
+        {
+            if (phase != Phase.Browsing) return;
+            PlayerStats.ResetCampaign();
+            MissionSession.Clear();
+            Blip(theme.ConfirmClip);
+            HapticsSystem.Instance.Pulse(theme.ConfirmRumble, theme.ConfirmRumble * 0.5f, 0.2f);
+            Build();
+            ShowScreen(settingsScreen, true);
+        }
+
+        // The campaign map: rebuilt from the profile every time it opens.
+        void BuildMissions()
+        {
+            missionsScreen = MissionSelectScreenFactory.Build(root, theme, PlayMission, out refreshMissions);
+        }
+
+        void OpenMissions()
+        {
+            if (phase != Phase.Browsing) return;
+            refreshMissions?.Invoke();
+            OpenSub(missionsScreen);
+        }
+
+        // A mission chosen on the map: open its session (a replay when it was
+        // already complete) and leave for its world's scene directly — the
+        // Store is skipped; a replay's NEXT MISSION still returns there.
+        void PlayMission(CampaignCatalog.Entry entry, bool replay)
+        {
+            if (phase != Phase.Browsing || !entry.IsSet || entry.world == null) return;
+            MissionSession.Begin(entry.mission, replay);
+            pendingScene = entry.world.sceneName;
+            StartGame();
         }
 
         // The page has no rows on purpose: every press on it is a cheat
@@ -581,9 +649,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             else if (controls != null && screen == controls.Screen)
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintDevice),
                                 (PromptAction.Confirm, MenuTextId.HintRebind), (PromptAction.Back, MenuTextId.HintBack));
-            else if (screen == exitScreen)
+            else if (screen == exitScreen || screen == deleteProgressScreen)
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Confirm, MenuTextId.HintSelect),
                                 (PromptAction.Back, MenuTextId.HintCancel));
+            else if (screen == missionsScreen)
+                footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Confirm, MenuTextId.HintPlay),
+                                (PromptAction.Back, MenuTextId.HintBack));
             else
                 footer.SetHints((PromptAction.Back, MenuTextId.HintBack));
         }

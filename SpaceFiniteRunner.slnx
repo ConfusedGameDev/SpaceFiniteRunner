@@ -69,13 +69,13 @@
   <Project Path="Unity.RenderPipelines.Universal.2D.Editor.Overrides.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Rendering.csproj" />
   <Project Path="EVP5.Editor.csproj" />
+  <Project Path="ConfusedGameDev.FiniteRunner.UI.csproj" />
   <Project Path="Unity.2D.Sprite.Editor.csproj" />
   <Project Path="Unity.AI.Navigation.Editor.csproj" />
   <Project Path="Unity.AI.Toolkit.GenerationObjectPicker.csproj" />
   <Project Path="Unity.AI.Assistant.API.Editor.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.SaveData.csproj" />
   <Project Path="Unity.GraphAuthoring.Editor.csproj" />
-  <Project Path="ConfusedGameDev.FiniteRunner.UI.csproj" />
   <Project Path="Unity.AI.Generators.UI.AIDropdownIntegrations.csproj" />
   <Project Path="Unity.RenderPipelines.Core.Runtime.Shared.csproj" />
   <Project Path="Unity.InputSystem.ForUI.csproj" />
@@ -107,6 +107,7 @@
   <Project Path="ConfusedGameDev.FiniteRunner.Debugging.csproj" />
   <Project Path="Unity.CollabProxy.Editor.csproj" />
   <Project Path="Unity.AI.Toolkit.Async.csproj" />
+  <Project Path="ConfusedGameDev.FiniteRunner.Campaign.csproj" />
   <Project Path="Unity.RenderPipeline.Universal.ShaderLibrary.csproj" />
   <Project Path="Unity.InternalAPIEngineBridge.ObjectDispatcher.Runtime.csproj" />
   <Project Path="Unity.AI.Assistant.Bridge.Editor.csproj" />

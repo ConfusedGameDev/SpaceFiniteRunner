@@ -3,6 +3,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Video;
 
+using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.SaveData;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
@@ -118,7 +119,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// <see cref="RunnerObjectiveType"/> and stack them in either list.
     /// </summary>
     [CreateAssetMenu(fileName = "FiniteRunner_LevelDefinition", menuName = "FiniteRunner/Runner Level Definition")]
-    public class RunnerLevelDefinition : ScriptableObject
+    public class RunnerLevelDefinition : RunnerLevelAsset
     {
         [TitleGroup("Level")]
         [Tooltip("Shown on the Mission Complete panel when no city level preceded this run.")]

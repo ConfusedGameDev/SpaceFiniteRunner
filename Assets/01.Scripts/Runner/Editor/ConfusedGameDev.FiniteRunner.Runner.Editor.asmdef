@@ -3,6 +3,7 @@
     "rootNamespace": "ConfusedGameDev.FiniteRunner.EditorTools",
     "references": [
         "ConfusedGameDev.FiniteRunner.Runner",
+        "ConfusedGameDev.FiniteRunner.Campaign",
         "ConfusedGameDev.FiniteRunner.Cheats",
         "ConfusedGameDev.FiniteRunner.UI",
         "Unity.InputSystem"

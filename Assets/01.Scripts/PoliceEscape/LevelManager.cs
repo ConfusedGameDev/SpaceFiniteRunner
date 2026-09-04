@@ -8,6 +8,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.Haptics;
@@ -315,6 +316,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         void Awake()
         {
+            // A live campaign session names the level to play; the serialized
+            // asset is the direct-play (editor) fallback.
+            if (MissionSession.Current != null && MissionSession.Current.cityLevel is LevelDefinition sessionLevel)
+                level = sessionLevel;
+
             // Never run without a level: an in-memory default (the pre-data
             // flow) keeps the scene playable instead of throwing every frame.
             if (level == null)
@@ -899,7 +905,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// </summary>
         IEnumerator TransitionToNextScene()
         {
-            string nextSceneName = level.nextSceneName;
+            // The catalog routes a campaign mission to the runner; the level's
+            // own next scene is the direct-play fallback.
+            CampaignCatalog catalog = MissionSession.Active ? CampaignCatalog.Load() : null;
+            string nextSceneName = catalog != null ? catalog.runnerSceneName : null;
+            if (string.IsNullOrEmpty(nextSceneName)) nextSceneName = level.nextSceneName;
             AsyncOperation load = SceneManager.LoadSceneAsync(nextSceneName, LoadSceneMode.Additive);
             yield return load;
             Scene next = SceneManager.GetSceneByName(nextSceneName);

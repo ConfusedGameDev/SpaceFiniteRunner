@@ -190,6 +190,9 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
                     p.lastLevel.banked = true;
                     p.lastLevel.missionTotal = p.lastLevel.moneyEarned;
                     break;
+                // Version 2 → 3 adds the campaign mission records only (a new
+                // list, null-filled by Sanitize): the old completedLevelIds
+                // are dev data, so campaign progression starts fresh.
             }
             p.version = PlayerProfile.CurrentVersion;
             dirty = true;

@@ -24,7 +24,7 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
     [Serializable]
     public class PlayerProfile
     {
-        public const int CurrentVersion = 2; // 2: lastLevel carries the objective rows; money is banked by the runner's Mission Complete panel
+        public const int CurrentVersion = 3; // 2: lastLevel carries the objective rows; money is banked by the runner's Mission Complete panel. 3: campaign mission records; every completion pays in full
 
         public int version = CurrentVersion;
 
@@ -41,8 +41,29 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
         /// <summary>Ids (LevelDefinition asset names) of every level completed at least once — the progression gate.</summary>
         public List<string> completedLevelIds = new();
 
-        /// <summary>Ids handed to <see cref="PlayerStats.Unlock"/> — the future unlock system's ledger.</summary>
+        /// <summary>Ids handed to <see cref="PlayerStats.Unlock"/> — the campaign latches a mission's id here the first time its requirements pass, and it never re-locks.</summary>
         public List<string> unlockedIds = new();
+
+        /// <summary>
+        /// The campaign ledger, one entry per mission ever completed, keyed
+        /// by the mission's authored id (never an asset name). This is what
+        /// the frontier and the MISSIONS map read; the record is best-of and
+        /// never downgrades, while the wallet is paid in full on every
+        /// completion.
+        /// </summary>
+        public List<MissionRecord> missions = new();
+
+        /// <summary>One completed campaign mission: how many times, and the best total and rank letter it ever earned.</summary>
+        [Serializable]
+        public class MissionRecord
+        {
+            public string missionId = "";
+            public bool completed;
+            public long bestTotal;
+            /// <summary>Best rank letter as <see cref="RankTable.Letter"/> prints it ("" until completed).</summary>
+            public string bestRank = "";
+            public int timesCompleted;
+        }
 
         /// <summary>
         /// Store upgrade levels, one entry per (model, category) ever bought:
@@ -87,8 +108,9 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
         /// (city level + escape run) is paid. The city writes the rows and the
         /// rank table at completion; the runner adds the run's own rows,
         /// totals everything, banks it and stamps <see cref="missionTotal"/> /
-        /// <see cref="missionRank"/>. <see cref="banked"/> is what stops a
-        /// retried run from paying the city's share twice.
+        /// <see cref="missionRank"/>. <see cref="banked"/> is kept for the
+        /// file's shape only: since version 3 every completion pays in full
+        /// and nothing reads it.
         /// </summary>
         [Serializable]
         public class LastLevelStats
@@ -167,6 +189,7 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
             completedLevelIds ??= new List<string>();
             unlockedIds ??= new List<string>();
             upgrades ??= new List<UpgradeEntry>();
+            missions ??= new List<MissionRecord>();
             lastLevel.levelId ??= "";
             lastLevel.levelName ??= "";
             lastLevel.lastObjective ??= "";
@@ -179,6 +202,8 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
             totaledByVehicle.RemoveAll(e => e == null || string.IsNullOrEmpty(e.key));
             collectibles.RemoveAll(e => e == null || string.IsNullOrEmpty(e.key));
             upgrades.RemoveAll(u => u == null || string.IsNullOrEmpty(u.modelId) || string.IsNullOrEmpty(u.categoryId));
+            missions.RemoveAll(m => m == null || string.IsNullOrEmpty(m.missionId));
+            foreach (var m in missions) m.bestRank ??= "";
         }
     }
 }

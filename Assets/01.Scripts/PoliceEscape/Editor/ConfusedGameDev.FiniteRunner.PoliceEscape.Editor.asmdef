@@ -4,6 +4,7 @@
     "references": [
         "ConfusedGameDev.FiniteRunner.PoliceEscape",
         "ConfusedGameDev.FiniteRunner.Runner",
+        "ConfusedGameDev.FiniteRunner.Campaign",
         "ConfusedGameDev.FiniteRunner.UI",
         "ConfusedGameDev.FiniteRunner.FX",
         "ConfusedGameDev.FiniteRunner.Cameras",

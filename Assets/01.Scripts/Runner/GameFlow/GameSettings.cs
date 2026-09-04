@@ -93,6 +93,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Camera shake when the ship slams a track edge or a ramp's side. Empty = no shake.")]
         public Cameras.CameraShakeSettings wallHitShake;
 
+        [TitleGroup("Track features")]
+        [Tooltip("Sparkles sprayed at the touchdown point when the ship lands (after a jump or a loop fall). 0 = no sparkles.")]
+        [PropertyRange(0, 120)]
+        public int landingSparkleCount = 45;
+
+        [TitleGroup("Track features")]
+        [Tooltip("Size of the landing burst — scales the sparks' size, speed and spread together.")]
+        [PropertyRange(0.5f, 10f), SuffixLabel("m", true)]
+        public float landingSparkleScale = 3f;
+
+        [TitleGroup("Track features")]
+        [Tooltip("Tint of the landing sparkles (each spark is rolled between this and white).")]
+        public Color landingSparkleColor = new(1f, 0.85f, 0.4f);
+
         // -------------------------------------------------------------- loops
         [TitleGroup("Loops")]
         [Tooltip("Entry speed a loop demands at the start of the run, km/h. A fresh launch (about 900) must fail it; one green orb (+870) must pass it.")]
@@ -113,6 +127,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Glitch pulse strength when the ship drops off the top of a loop.")]
         [PropertyRange(0f, 1f)]
         public float loopFallGlitchStrength = 0.8f;
+
+        // ---------------------------------------------------- mission complete
+        // Once the objectives are met the ship keeps flying until it is back on
+        // the track (a jump, loop or tube finishes first), then the glitch
+        // ramps to max, holds, and the Mission Complete panel opens.
+        [TitleGroup("Mission complete")]
+        [Tooltip("Seconds the glitch takes to ramp from its current level to max once the ship is back on the track after the win.")]
+        [PropertyRange(0.1f, 3f), SuffixLabel("s", true)]
+        public float winGlitchRampSeconds = 0.8f;
+
+        [TitleGroup("Mission complete")]
+        [Tooltip("Seconds the glitch holds at max before the Mission Complete panel opens.")]
+        [PropertyRange(0f, 2f), SuffixLabel("s", true)]
+        public float winGlitchHoldSeconds = 0.4f;
 
         // --------------------------------------------------------------- dash
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on

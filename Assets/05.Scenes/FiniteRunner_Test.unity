@@ -1785,8 +1785,6 @@ MonoBehaviour:
   targetText: {fileID: 434663088}
   timeText: {fileID: 562575980}
   timeFill: {fileID: 2037607742}
-  resultText: {fileID: 1675321470}
-  promptText: {fileID: 2081312112}
   slowColor: {r: 0.31, g: 0.76, b: 1, a: 1}
   onTargetColor: {r: 0.48, g: 0.83, b: 0.32, a: 1}
   fastColor: {r: 1, g: 0.35, b: 0.25, a: 1}
@@ -1796,9 +1794,18 @@ MonoBehaviour:
   timeColor: {r: 1, g: 1, b: 1, a: 1}
   pulseScale: 1.3
   pulseDecay: 6
+  gaugeSegments: 20
+  gaugeSegmentWidth: 20
+  gaugeSegmentGap: 6
+  gaugeMinHeight: 18
+  gaugeMaxHeight: 80
+  gaugeEmptyAlpha: 0.2
+  gaugeNumberFontSize: 84
+  gaugeNumberGap: 24
   spawnBoostText: 1
   boostTextColor: {r: 0.48, g: 1, b: 0.4, a: 1}
   boostTextSize: 0.6
+  moneyTextColor: {r: 1, g: 0.85, b: 0.3, a: 1}
 --- !u!114 &635331351
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4244,7 +4251,7 @@ MonoBehaviour:
     swayAmplitude: 0
     swayFrequency: 0.5
     lane: 0
-  straightness: 19.5
+  straightness: 100
   featureTable:
   - name: Jump
     prefab: {fileID: 0}
@@ -4285,6 +4292,15 @@ MonoBehaviour:
   padsParent: {fileID: 305136800}
   padSpacing: {x: 150, y: 220}
   padSize: {x: 10, y: 0.5, z: 20}
+  spawnCollectibles: 1
+  collectiblePrefab: {fileID: 0}
+  collectibleSpacing: {x: 250, y: 500}
+  collectibleGroupSize: {x: 1, y: 5}
+  collectibleStep: 15
+  collectibleValue: {x: 1, y: 5}
+  collectibleTriggerSize: {x: 5, y: 5, z: 20}
+  collectibleSize: 1.6
+  collectibleColor: {r: 1, g: 0.8, b: 0.2, a: 1}
   featureMaterial: {fileID: 0}
   padSignPrefab: {fileID: 919132149155446097, guid: 12a4ac7d5a25a44009fc60417de04fb1, type: 3}
   padSignScale: 8
@@ -5174,6 +5190,56 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: ef3421b878b8436ab57697d69113e4e5, type: 2}
   intensityScale: 1
   preview: 1
+--- !u!1 &1730000000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1730000001}
+  - component: {fileID: 1730000002}
+  m_Layer: 0
+  m_Name: RainSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1730000001
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1730000000}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1730000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1730000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f8b47c1e93d4a05b6c7d8e9f0a1b2c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  settings: {fileID: 11400000, guid: 9d4b2c7e1f8a4356b0e9d2c5a7f13b64, type: 2}
+  intensityScale: 1
+  preview: 1
+  onThunderStrike:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1760000000
 GameObject:
   m_ObjectHideFlags: 0
@@ -5267,106 +5333,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e580fe7357e8403eb222913bfced52ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Collectibles.CollectibleManager
---- !u!1 &1790000000
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1790000001}
-  - component: {fileID: 1790000002}
-  m_Layer: 0
-  m_Name: MoneyHud
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1790000001
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1790000000}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1790000002
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1790000000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eed6fa1a56b64e7c8f86f718715701c4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.HUD.MoneyHud
-  offset: {x: -60, y: -40}
-  fontSize: 44
-  color: {r: 1, g: 0.85, b: 0.3, a: 1}
-  punchScale: 1.25
-  punchDecay: 6
-  countUpSharpness: 10
---- !u!1 &1730000000
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1730000001}
-  - component: {fileID: 1730000002}
-  m_Layer: 0
-  m_Name: RainSystem
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1730000001
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1730000000}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1730000002
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1730000000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f8b47c1e93d4a05b6c7d8e9f0a1b2c3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  settings: {fileID: 11400000, guid: 9d4b2c7e1f8a4356b0e9d2c5a7f13b64, type: 2}
-  intensityScale: 1
-  preview: 1
-  onThunderStrike:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!21 &1781184973
 Material:
   serializedVersion: 8
@@ -5570,6 +5536,56 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1789537223}
   m_CullTransparentMesh: 1
+--- !u!1 &1790000000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1790000001}
+  - component: {fileID: 1790000002}
+  m_Layer: 0
+  m_Name: MoneyHud
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1790000001
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1790000000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1790000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1790000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eed6fa1a56b64e7c8f86f718715701c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.HUD.MoneyHud
+  offset: {x: -60, y: -40}
+  fontSize: 44
+  color: {r: 1, g: 0.85, b: 0.3, a: 1}
+  punchScale: 1.25
+  punchDecay: 6
+  countUpSharpness: 10
 --- !u!1 &1794852526
 GameObject:
   m_ObjectHideFlags: 0

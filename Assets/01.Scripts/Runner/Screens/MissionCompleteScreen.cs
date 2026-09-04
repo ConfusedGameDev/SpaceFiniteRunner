@@ -18,6 +18,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     /// </summary>
     public sealed class MissionCompleteData
     {
+        /// <summary>The campaign mission's authored id ("" outside a campaign session) — what the slam latches complete.</summary>
+        public string missionId = "";
         public string title = "";
         public VideoClip video;
         /// <summary>The city level's flat bonus (0 when no city level preceded the run).</summary>
@@ -56,9 +58,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     /// It lives here, beside <see cref="GameOverScreen"/>, because the city
     /// assembly references this one and not the other way round: the panel
     /// takes <see cref="MissionCompleteData"/> rows, never a level asset.
-    /// The mission is PAID here, once — <see cref="PlayerStats.RecordMissionResult"/>
+    /// The mission is PAID here, in full — <see cref="PlayerStats.RecordMissionCompleted"/>
     /// on the slam, skipped or not — so every number the player watched
-    /// climb is what the save gets. Freezes scaled time while up (the video
+    /// climb is what the save gets, and the campaign mission latches
+    /// complete at the same moment. Freezes scaled time while up (the video
     /// runs on its own clock), animates on unscaled time like every menu,
     /// and demands an answer: Back does nothing.
     /// </summary>
@@ -612,7 +615,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             if (!banked)
             {
                 banked = true;
-                PlayerStats.RecordMissionResult(total, RankTable.Letter(rank));
+                PlayerStats.RecordMissionCompleted(data.missionId, total, RankTable.Letter(rank));
             }
         }
 

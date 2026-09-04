@@ -4,8 +4,8 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.Store
 {
     /// <summary>
-    /// The Store's one settings asset: the three sections, where START
-    /// MISSION goes, and the feel knobs of the model viewer. It lives in a
+    /// The Store's one settings asset: the three sections, the no-catalog
+    /// fallback scene for START MISSION, and the feel knobs of the model viewer. It lives in a
     /// Resources folder because gameplay resolves upgrade multipliers off the
     /// same sections with no scene reference (<see cref="StoreUpgrades"/>),
     /// the way every other Resources-loaded settings asset works. Cached
@@ -21,7 +21,7 @@ namespace ConfusedGameDev.FiniteRunner.Store
         public const string ResourcePath = "Store/StoreSettings";
 
         [Title("Flow")]
-        [Tooltip("Scene START MISSION loads. One fixed mission for now — a mission list is a later feature.")]
+        [Tooltip("Fallback scene START MISSION loads when no CampaignCatalog exists (direct play). The catalog drives every real mission.")]
         public string nextMissionScene = "CarTest";
 
         [Title("Sections")]
