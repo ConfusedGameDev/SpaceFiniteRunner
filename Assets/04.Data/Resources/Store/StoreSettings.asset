@@ -1,3 +1,23 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d88d2a67a4f95bab8f0d587151670cd2a4f431a1744cb7589e3b47fa0eac84cb
-size 883
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c80f1c049c7066f4aa869a248e9b00b4, type: 3}
+  m_Name: StoreSettings
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Store.StoreSettings
+  nextMissionScene: CarTest
+  car: {fileID: 11400000, guid: facbe44932c51ac4991c382251d854a1, type: 2}
+  ship: {fileID: 11400000, guid: 92852c19f38a12b4abd3a36379ea9b82, type: 2}
+  character: {fileID: 11400000, guid: 1428dd73d1e081e4f84f1b4ca212ff42, type: 2}
+  autoSpinDegreesPerSecond: 20
+  idleResumeSeconds: 2
+  dragDegreesPerPixel: 0.25
+  stickDegreesPerSecond: 120
+  walletPunchScale: 1.25

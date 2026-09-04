@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:efac912e1c0ec5902b0671174d52be9dfdbd9b12ffead63a2f9f8f265b34dc80
-size 856
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e2d4c6a1f04c3e9d8a5b2c7e6f1a03, type: 3}
+  m_Name: FiniteRunner_LevelDefinition
+  m_EditorClassIdentifier:
+  levelName: Escape Run
+  nextSceneName: Store
+  completeVideo: {fileID: 0}
+  rankTable:
+    sThreshold: 10000
+    aThreshold: 5000
+    bThreshold: 2500
+    cThreshold: 1000
+  optionalChallenges:
+  - type: 1
+    targetSpeedKmh: 6500
+    jumpCount: 3
+    reward: 0
+    accent: {r: 0, g: 0, b: 0, a: 0}
+    multiplier: 2
+  objectives:
+  - type: 0
+    targetSpeedKmh: 6500
+    jumpCount: 3
+    reward: 500
+    accent: {r: 0, g: 0, b: 0, a: 0}

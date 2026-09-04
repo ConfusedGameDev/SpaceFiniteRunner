@@ -1,3 +1,64 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9a6567e74f9e956b7a9845a1a2edca39eac8a5559d39a5f03d02c8a11611c22c
-size 2320
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e0c463223354807b12af66da01d4b44, type: 3}
+  m_Name: FiniteRunner_GameSettings
+  m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.GameSettings
+  useTuningScreen: 0
+  lightSpeedKmh: 6500
+  timeLimitSeconds: 60
+  patrolEnabled: 1
+  minimapRangeMeters: 1012
+  patrolRedeploys: 1
+  patrolRedeployBand: {x: 691.74615, y: 1372.0339}
+  patrolRedeploySpeedFactor: 1
+  showPatrolAlert: 0
+  showPatrolWarnings: 0
+  patrolProximityRumble: 1
+  powerUpSpeedBoost: 42.6
+  airLaneHeight: 30
+  landingShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  wallHitShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  loopSpeedFloorKmh: 1200
+  loopSpeedRampKmhPer100m: 18
+  loopSpeedCapKmh: 2900
+  loopFallGlitchStrength: 0.8
+  dashEnabled: 1
+  dashCost: 0.5
+  dashDoubleTapSeconds: 0.3
+  dashWallGlitchStrength: 0.7
+  dashWallHitCooldownSeconds: 0.5
+  dashGhostLifetime: 0.35
+  dashGhostStartAlpha: 0.45
+  dashGhostMaterial: {fileID: 2100000, guid: a3d45f0c8b21463f9d6e7c5a1b2f8d43, type: 2}
+  barrelRollTrailSeconds: 0.6
+  barrelRollTrailWidth: 0.9
+  barrelRollTrailSpan: 1
+  barrelRollTrailColor: {r: 0.45, g: 0.9, b: 1, a: 0.9}
+  barrelRollTrailMaterial: {fileID: 2100000, guid: 7c2e4d0f3b8a5f9e0a1c6d5e4f3a2b18, type: 2}
+  dashMeterColor: {r: 0.35, g: 0.9, b: 1, a: 1}
+  dashEncourageAfterSeconds: 10
+  dashHintText: DOUBLE-TAP TO DASH
+  boostTextLeadMeters: 60
+  messageHoldSeconds: 2.5
+  messageOrbTierName: Purple
+  purpleOrbMessage: ayjoesu AGARRENSEN  DE LAS MANOS!
+  patrolInboundMessage: Patrol {0} inbound. You can't outrun all of us, hotshot.
+  patrolWarningMessage: "Right on your tail, hotshot \u2014 {0} m and closing."
+  pilotMessageColor: {r: 0.35, g: 0.9, b: 1, a: 1}
+  patrolMessageColor: {r: 1, g: 0.4, b: 0.35, a: 1}
+  cameraSettings: {fileID: 11400000, guid: 05b1a15e86e040b4b019f922869e7b71, type: 2}
+  rainEnabled: 1
+  rainSettings: {fileID: 0}
+  speedLinesEnabled: 1
+  speedLinesSettings: {fileID: 0}
+  boostPulseStrength: 0.4
+  boostPulseSeconds: 0.6

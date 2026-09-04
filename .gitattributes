@@ -38,6 +38,7 @@
 *.rar filter=lfs diff=lfs merge=lfs -text
 *.sbsar filter=lfs diff=lfs merge=lfs -text
 *LightingData.asset filter=lfs diff=lfs merge=lfs -text
+*OcclusionCullingData.asset filter=lfs diff=lfs merge=lfs -text
 *.dll filter=lfs diff=lfs merge=lfs -text
 Assets/00.Plugins/Bakery/Editor/x64/Bakery/*.dll filter=lfs diff=lfs merge=lfs -text
 *.anim filter=lfs diff=lfs merge=lfs -text
@@ -55,4 +56,7 @@ SM_*.asset filter=lfs diff=lfs merge=lfs -text
 *.acb filter=lfs diff=lfs merge=lfs -text
 
 *.prefab filter=lfs diff=lfs merge=lfs -text
-*.asset filter=lfs diff=lfs merge=lfs -text
+# ScriptableObject .asset files are small YAML and stay plain text (diffable).
+# Only the baked city output goes through LFS: a bake once crossed GitHub's 100 MB limit.
+Assets/04.Data/CityDefinition/**/*.asset filter=lfs diff=lfs merge=lfs -text
+Assets/04.Data/InfiniteCity/CityDefinition.asset filter=lfs diff=lfs merge=lfs -text

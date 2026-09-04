@@ -1,3 +1,32 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:3e7c2c73c3954ceab87144554df4c73bc6fb3b5c49aed3a2c2dcf5c14e053e9b
-size 942
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9a74f0a4ccdf854190d1417b3078847, type: 3}
+  m_Name: FiniteRunner_SpeedLines
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.SpeedLinesSettings
+  material: {fileID: 2100000, guid: 947115ad6b8341738625b354beb26538, type: 2}
+  intensity: 1
+  speedBand: {x: 0.5, y: 1}
+  responseSharpness: 4
+  focusResponse: 8
+  color: {r: 1, g: 1, b: 1, a: 1}
+  lineCount: 48
+  fineLineCount: 140
+  density: 0.55
+  lineWidth: 0.45
+  taperLength: 0.35
+  innerRadius: {x: 0.18, y: 0.42}
+  innerJitter: 0.3
+  flickerRate: 12
+  edgeSoftness: 1
+  farMultiplier: 1
+  closeMultiplier: 1
+  firstPersonMultiplier: 1.3

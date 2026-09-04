@@ -1,3 +1,86 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:bc41231a712a4a058b6409e5ddb6d29ca1f50f359565be252a0bff3b87832f19
-size 2338
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c3e1b2a9d4f4e8bb1a6c5d0e2f3a4b5, type: 3}
+  m_Name: Level_03_City
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.LevelDefinition
+  levelName: Level 2
+  nextSceneName: FiniteRunner_Test
+  mode: 0
+  speakerName: OPERATOR
+  messageHoldSeconds: 4
+  completionMessage: Hack complete. LFG!
+  timeUpMessage: Too slow. We lost them.
+  challengeFailedMessage: "Forget {0} \u2014 that bonus is gone."
+  completionGlitchHoldSeconds: 1.2
+  briefVideo: {fileID: 0}
+  baseReward: 1500
+  rankTable:
+    sThreshold: 10000
+    aThreshold: 5000
+    bThreshold: 2500
+    cThreshold: 1000
+  optionalChallenges: []
+  objectives:
+  - type: 7
+    targetSpeedKmh: 130
+    surviveSeconds: 30
+    targetId: 
+    arriveRadius: 12
+    mustBeHuntedFirst: 0
+    destroyCount: 3
+    destroyKind: 0
+    destroyPaint: 0
+    collectCount: 3
+    collectId: 
+    jumpMeasure: 0
+    jumpMeters: 49
+    jumpSeconds: 2
+    timeRule: 0
+    timeSeconds: 60
+    briefing: "They know your face now. Make a mess \u2014 total {0} cars and they will send everyone."
+    accent: {r: 0.45, g: 0.9, b: 1, a: 1}
+    reward: 600
+    hasCinema: 1
+    cinemaClip: {fileID: 32900000, guid: 41423b9585cfdc84eab03cefd3520853, type: 3}
+    cinemaFormat: FullScreen
+    cinemaSeconds: 52.283333
+    cinemaPausesGame: 1
+    hasCompletionMessage: 0
+    completionMessage: 
+    nextDelaySeconds: 0
+  - type: 0
+    targetSpeedKmh: 188
+    surviveSeconds: 30
+    targetId: 
+    arriveRadius: 12
+    mustBeHuntedFirst: 1
+    destroyCount: 5
+    destroyKind: 0
+    destroyPaint: 0
+    collectCount: 3
+    collectId: 
+    jumpMeasure: 0
+    jumpMeters: 30
+    jumpSeconds: 2
+    timeRule: 0
+    timeSeconds: 60
+    briefing: Now lose them. All of them.
+    accent: {r: 1, g: 0.4, b: 0.35, a: 1}
+    reward: 900
+    hasCinema: 0
+    cinemaClip: {fileID: 0}
+    cinemaFormat: FullScreen
+    cinemaSeconds: 5
+    cinemaPausesGame: 1
+    hasCompletionMessage: 1
+    completionMessage: 'we did it! lets escape '
+    nextDelaySeconds: 0

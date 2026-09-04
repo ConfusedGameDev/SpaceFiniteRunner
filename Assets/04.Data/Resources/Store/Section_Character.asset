@@ -1,3 +1,28 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d5fb07c980abd219f820645537294033ead8f30f65ef2a4ee1f45e006eeab441
-size 1089
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcc5de0f8f12d2740bc4053f288a248f, type: 3}
+  m_Name: Section_Character
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Store.StoreSection
+  kind: 2
+  title: 249
+  models:
+  - modelId: char.rob
+    displayName: ROB
+    prefab: {fileID: 4107835219504846479, guid: b9690e884d0fd6e49959ab4f8cb9e780, type: 3}
+    previewScale: 1
+    previewOffset: {x: 0, y: 0, z: 0}
+  categories:
+  - {fileID: 11400000, guid: 0e5cc768032ce074d8b18f9bf570c515, type: 2}
+  - {fileID: 11400000, guid: ca0d7ac8f4d4ab54f83b24848617de81, type: 2}
+  - {fileID: 11400000, guid: c532fcab421713340a6e23aa82e5af5c, type: 2}
+  - {fileID: 11400000, guid: 785c37c087c6f94459a422e747570f90, type: 2}
+  - {fileID: 11400000, guid: 2efd4560e56834446acc0c096c7b0588, type: 2}

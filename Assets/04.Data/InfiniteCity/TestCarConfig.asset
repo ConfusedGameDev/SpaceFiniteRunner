@@ -1,3 +1,117 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:7537f7a936bda38fb9e59459c7239a09365ef17ff695b77c25bb59e90e90ee1f
-size 2702
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a42b45643a61b44689896663f214515a, type: 3}
+  m_Name: TestCarConfig
+  m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.CarConfig
+  mass: 1250
+  centerOfMassDrop: 0.6
+  downforce: 115
+  antiRollForce: 8000
+  drivetrain: 2
+  maxMotorTorque: 5000
+  torqueBySpeed:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.85
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.15
+      inSlope: -0.85
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  topSpeedKmh: 300
+  reverseTorqueFactor: 0.5
+  brakeTorque: 4000
+  coastBrakeTorque: 250
+  handbrakeTorque: 6000
+  handbrakeGrip: 0.5
+  hillRollbackSlope: 3
+  brakeLightIdleIntensity: -10
+  brakeLightBrakingIntensity: 5
+  brakeLightFadeSeconds: 0.05
+  airSlowMo: 1
+  airSlowMoDelay: 0.5
+  airSlowMoScale: 0.35
+  airSlowMoMinScale: 0.1
+  airSlowMoMaxScale: 1
+  airSlowMoBlendIn: 0.15
+  airSlowMoBlendOut: 0.25
+  airControlRate: 90
+  airControlResponse: 360
+  maxSteerAngle: 35
+  steerBySpeed:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.7
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.3
+      inSlope: -0.7
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  steerResponse: 360
+  suspensionDistance: 0.25
+  springForce: 35000
+  damperForce: 4500
+  forwardStiffness: 1.5
+  sideStiffness: 2
+  substepSpeedThreshold: 10
+  substepsBelowThreshold: 12
+  substepsAboveThreshold: 6
+  spawnSpeedKmh: 40
+  spawnRunwayCells: 4
+  evpDriveForce: 4000
+  evpBrakeForce: 6000
+  evpTireFriction: 1
+  evpAntiRoll: 0.5
+  evpCenterOfMassHeight: -0.45
+  evpAeroDownforce: 1
+  evpRollingResistance: 0.1
+  evpDamage: 1
+  evpDamageWheels: 1
+  evpDamageMinSpeed: 2.25
+  evpDamageMultiplier: 1
+  evpDamageRadius: 0.5
+  evpDamageMaxDisplacement: 0.5
+  evpDamageVertexFracture: 0
+  evpDamageWheelBend: 14
+  evpDamageRepairRate: 0.1
+  flipTimeout: 1.5
+  respawnHeight: 0.6

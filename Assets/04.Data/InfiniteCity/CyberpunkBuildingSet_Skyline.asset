@@ -1,3 +1,340 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1d169918672c3e8f7fb06d6c44a77633b95b1e5c47bd68a897a3fb745a87be49
-size 10906
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 844eba773543ad14c882e3a6a0698e41, type: 3}
+  m_Name: CyberpunkBuildingSet_Skyline
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Population.BuildingSet
+  nativeCellSize: 36.9
+  density: 1
+  lotSubdivision: 2
+  lotFill: 0.9
+  maxStretch: 1.75
+  heightFitShare: 1
+  buildings:
+  - prefab: {fileID: 8824876730687762146, guid: 571f8083c19d34149bbd8f437ae3556c, type: 3}
+    weight: 0.25
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 27.155735, y: 23.12244}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 5365024071987040144, guid: 25d16806aea94d348b105bf2da189049, type: 3}
+    weight: 0.25
+    footprintInCells: {x: 3, y: 3}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: -15.013548, y: 13.856489}
+    nativeSize: {x: 49.079403, y: 54.931812}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 7257290097361136016, guid: 6a1ccc8a85ad0e348b4e6c34083971fb, type: 3}
+    weight: 0.25
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 6.8246155, y: 7.8927407}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 4696850263226940784, guid: 685b988cc1579254ca14284ab33691ba, type: 3}
+    weight: 3
+    footprintInCells: {x: 3, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 40.485992, y: 16.82258}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 7273917052744627638, guid: 28ebe726298f3ed43a61133a069fe968, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 5.2254868, y: 0.33269215}
+    nativeSize: {x: 39.537907, y: 29.710526}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 8745888980531023501, guid: 4719e68262f59534daea25a86df2ef86, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 1.9084415, y: 0}
+    nativeSize: {x: 23.807568, y: 23.99947}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 3066568725720711258, guid: 3ac2759b9483c23488dcc55d2aceaf27, type: 3}
+    weight: 3
+    footprintInCells: {x: 3, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: -3.6159286, y: -0.07977581}
+    nativeSize: {x: 41.80562, y: 24.738323}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 3945412891430524916, guid: 36d990fa93a7b454198d6ac81acc5daf, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 6.0190697, y: 0}
+    nativeSize: {x: 28.456177, y: 16.81611}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 3248171586601594850, guid: f4e16bef7d35d0c499ebe4faceb1776d, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 24.344952, y: 29.695084}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 4642585978615846611, guid: c386ea34fa1b6804f9bb8bb3222e7c94, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 38.496796, y: 32.91589}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 6611667142981852922, guid: cde390d2cc64f56448ed5fe7aca33e67, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0.40475082, y: 2.6569633}
+    nativeSize: {x: 29.882149, y: 26.654732}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 8883381669288783101, guid: 1146bc2d3bc1c5643905241c5eaf17fd, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 28.138885, y: 19.522018}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 3477269690416582729, guid: 80b8b36860400fb498a8a05fe66b9664, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: -0.25214386, y: -6.016796}
+    nativeSize: {x: 35.667007, y: 25.714638}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 2036071625087919449, guid: abf60760fc6c1fa45bcbfb8691fc8b12, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 31.70662, y: 19.106873}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 8757611029032360095, guid: 9eed717fc2a7d204aa322d1d9cc287f8, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 30.230953, y: 22.800459}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 4935426522890532973, guid: 193d23bd9e74dbe46a85a6d4857afeba, type: 3}
+    weight: 3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: -0.25214386, y: -6.016796}
+    nativeSize: {x: 35.667007, y: 25.714638}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.2
+    minSpacing: 0
+  - prefab: {fileID: 1243679864062547819, guid: 85b68bebc165c2b4590eea4b96a9dbd2, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 10.744376, y: 9.735195}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 500631308454800893, guid: 254b468bbd3c2b54791963b682fec23b, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 1.2031355, y: 0.32871246}
+    nativeSize: {x: 14.407984, y: 10.79006}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 2542515899064986334, guid: f8d09bc37b8703b4cb8a8c5426908149, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 19.25444, y: 18.425753}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 67153426805110649, guid: 28a61a7e79e6be141a698cc08d94dd29, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 14.123538, y: 10.640304}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 6892847987997299658, guid: 89c4bf9e1b442a44b9e89b78d295c76e, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 11.775641, y: 9.571363}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 2453229202144563071, guid: 97cd4e0552d3f6443b754d01903bf895, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 21.893814, y: 18.84884}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 8576398188106681212, guid: 7ed650c4ef1d4cb4ea0309d784c025e7, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 9.893475, y: 0}
+    nativeSize: {x: 37.602375, y: 39.20211}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 7671265224044203751, guid: c8c00fe963ceff34280809130e56aa18, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 1.2384272, y: 0.3383546}
+    nativeSize: {x: 14.830612, y: 11.1065645}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 6137244865033801510, guid: 9d372600979a5d944a918d88c3fa6b71, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 35.118076, y: 29.372448}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 3740872550166416742, guid: 20cad15272adc9f40a436889bd5cfc51, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 3, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 52.242832, y: 17.146242}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 4980189855667563235, guid: 1322e09020f2f554eb1f685a709eba6c, type: 3}
+    weight: 0.3
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 39.20211, y: 17.815426}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 618603462448377202, guid: 5dd4ab9e755b0ad4ea8f0f0b5445df16, type: 3}
+    weight: 0.25
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 35.118076, y: 15.95943}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 3683757677949664244, guid: a3c09329df1a01643b832167d42a8d0a, type: 3}
+    weight: 0.25
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 35.391964, y: 23.63841}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0

@@ -1,3 +1,131 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2a75ebee595c24a5c277f091c3a33d76618702c5406089c417b0a3d77ffba7c8
-size 4700
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-5409355936520428380
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adcac5f0fca095645ac2ecad0247a79b, type: 3}
+  m_Name: DistanceFog
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Rendering::ConfusedGameDev.FiniteRunner.Rendering.DistanceFogFeature
+  m_Active: 1
+  settings:
+    material: {fileID: 2100000, guid: 7d7f93dfc5635234fac4fff2db1dc663, type: 2}
+    renderPassEvent: 550
+--- !u!114 &7345128900311527411
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74dce891e7d673418cc9e43b0955f4f, type: 3}
+  m_Name: SpeedLines
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Rendering::ConfusedGameDev.FiniteRunner.Rendering.SpeedLinesFeature
+  m_Active: 1
+  settings:
+    material: {fileID: 2100000, guid: 947115ad6b8341738625b354beb26538, type: 2}
+    renderPassEvent: 600
+--- !u!114 &-3120460342863301374
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b00045f12942b46c698459096c89274e, type: 3}
+  m_Name: GlitchPost
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.FullScreenPassRendererFeature
+  m_Active: 1
+  injectionPoint: 600
+  fetchColorBuffer: 1
+  requirements: 0
+  passMaterial: {fileID: 2100000, guid: 30c149be5d65e4bb29be2c1f16e41ad6, type: 2}
+  passIndex: 0
+  bindDepthStencilAttachment: 0
+  m_Version: 1
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de640fe3d0db1804a85f9fc8f5cadab6, type: 3}
+  m_Name: URP Asset_Renderer
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalRendererData
+  debugShaders:
+    debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
+    hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
+    probeVolumeSamplingDebugComputeShader: {fileID: 7200000, guid: 53626a513ea68ce47b59dc1299fe3959, type: 3}
+  probeVolumeResources:
+    probeVolumeDebugShader: {fileID: 0}
+    probeVolumeFragmentationDebugShader: {fileID: 0}
+    probeVolumeOffsetDebugShader: {fileID: 0}
+    probeVolumeSamplingDebugShader: {fileID: 0}
+    probeSamplingDebugMesh: {fileID: 0}
+    probeSamplingDebugTexture: {fileID: 0}
+    probeVolumeBlendStatesCS: {fileID: 0}
+  m_RendererFeatures:
+  - {fileID: 6155125051530527318}
+  - {fileID: -5409355936520428380}
+  - {fileID: 7345128900311527411}
+  - {fileID: -3120460342863301374}
+  m_RendererFeatureMap: 56c295849f656b55a4a40c8c6f1beeb4f32f8694d123ef650275f0dfd9e5b1d4l
+  xrSystemData: {fileID: 0}
+  postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
+  m_AssetVersion: 3
+  m_PrepassLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_OpaqueLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_TransparentLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_DefaultStencilState:
+    overrideStencilState: 0
+    stencilReference: 0
+    stencilCompareFunction: 8
+    passOperation: 2
+    failOperation: 0
+    zFailOperation: 0
+  m_ShadowTransparentReceive: 1
+  m_RenderingMode: 0
+  m_DepthPrimingMode: 0
+  m_CopyDepthMode: 1
+  m_DepthAttachmentFormat: 0
+  m_DepthTextureFormat: 0
+  m_AccurateGbufferNormals: 0
+  m_IntermediateTextureMode: 0
+  m_TileOnlyMode: 0
+--- !u!114 &6155125051530527318
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9843c079623914eb0a8e96493bda22e6, type: 3}
+  m_Name: GlitchSilhouette
+  m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.Rendering.GlitchSilhouetteFeature
+  m_Active: 1
+  settings:
+    material: {fileID: 2100000, guid: 8d8c3bb33fa694f1cb6bf262bd85406a, type: 2}
+    layerMask:
+      serializedVersion: 2
+      m_Bits: 2147483648
+    renderPassEvent: 300

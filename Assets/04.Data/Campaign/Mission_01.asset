@@ -1,3 +1,19 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:260c31ed5e43f60f7f3ecb8aebf3263cbebecb7652aa5c9b6e743f75ee225623
-size 719
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4c985939928a3a40abc7346cf403b11, type: 3}
+  m_Name: Mission_01
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Campaign::ConfusedGameDev.FiniteRunner.Campaign.MissionDefinition
+  id: m1_downtown
+  displayName: FIRST RUN
+  cityLevel: {fileID: 11400000, guid: 3f9a6c1e5b2d4a7f8c0e1d2b3a4f5e6d, type: 2}
+  runnerLevel: {fileID: 11400000, guid: c4a9f1e2b3d54f6a8e7c0b1d2a3f4e55, type: 2}
+  requirements: []

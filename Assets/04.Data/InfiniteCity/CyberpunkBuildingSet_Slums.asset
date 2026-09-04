@@ -1,3 +1,197 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:126075d8d05a2b43a9863feb1651cdb3af21f2a17e41b0d527b7e28ce18cb13e
-size 6269
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 844eba773543ad14c882e3a6a0698e41, type: 3}
+  m_Name: CyberpunkBuildingSet_Slums
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Population.BuildingSet
+  nativeCellSize: 36.9
+  density: 0.9
+  lotSubdivision: 2
+  lotFill: 0.9
+  maxStretch: 1.75
+  heightFitShare: 1
+  buildings:
+  - prefab: {fileID: 8824876730687762146, guid: 571f8083c19d34149bbd8f437ae3556c, type: 3}
+    weight: 0.5
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 27.155735, y: 23.12244}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 5365024071987040144, guid: 25d16806aea94d348b105bf2da189049, type: 3}
+    weight: 0.5
+    footprintInCells: {x: 3, y: 3}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: -15.013548, y: 13.856489}
+    nativeSize: {x: 49.079403, y: 54.931812}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 7257290097361136016, guid: 6a1ccc8a85ad0e348b4e6c34083971fb, type: 3}
+    weight: 0.5
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 6.8246155, y: 7.8927407}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 1243679864062547819, guid: 85b68bebc165c2b4590eea4b96a9dbd2, type: 3}
+    weight: 2
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 10.744376, y: 9.735195}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 500631308454800893, guid: 254b468bbd3c2b54791963b682fec23b, type: 3}
+    weight: 2
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 1.2031355, y: 0.32871246}
+    nativeSize: {x: 14.407984, y: 10.79006}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 2542515899064986334, guid: f8d09bc37b8703b4cb8a8c5426908149, type: 3}
+    weight: 2
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 19.25444, y: 18.425753}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 67153426805110649, guid: 28a61a7e79e6be141a698cc08d94dd29, type: 3}
+    weight: 2
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 14.123538, y: 10.640304}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 6892847987997299658, guid: 89c4bf9e1b442a44b9e89b78d295c76e, type: 3}
+    weight: 2
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 11.775641, y: 9.571363}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 2453229202144563071, guid: 97cd4e0552d3f6443b754d01903bf895, type: 3}
+    weight: 2
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 21.893814, y: 18.84884}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 8576398188106681212, guid: 7ed650c4ef1d4cb4ea0309d784c025e7, type: 3}
+    weight: 2
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 9.893475, y: 0}
+    nativeSize: {x: 37.602375, y: 39.20211}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 7671265224044203751, guid: c8c00fe963ceff34280809130e56aa18, type: 3}
+    weight: 2
+    footprintInCells: {x: 1, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 1.2384272, y: 0.3383546}
+    nativeSize: {x: 14.830612, y: 11.1065645}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 6137244865033801510, guid: 9d372600979a5d944a918d88c3fa6b71, type: 3}
+    weight: 2
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 35.118076, y: 29.372448}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 3740872550166416742, guid: 20cad15272adc9f40a436889bd5cfc51, type: 3}
+    weight: 2
+    footprintInCells: {x: 3, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 52.242832, y: 17.146242}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 4980189855667563235, guid: 1322e09020f2f554eb1f685a709eba6c, type: 3}
+    weight: 2
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 39.20211, y: 17.815426}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 618603462448377202, guid: 5dd4ab9e755b0ad4ea8f0f0b5445df16, type: 3}
+    weight: 0.5
+    footprintInCells: {x: 2, y: 1}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 35.118076, y: 15.95943}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0
+  - prefab: {fileID: 3683757677949664244, guid: a3c09329df1a01643b832167d42a8d0a, type: 3}
+    weight: 0.5
+    footprintInCells: {x: 2, y: 2}
+    allowRotation: 1
+    rotationOffset: 0
+    pivotToCenter: {x: 0, y: 0}
+    nativeSize: {x: 35.391964, y: 23.63841}
+    positionJitter: 0.03
+    scaleJitter: 0.05
+    heightJitter: 0.05
+    minSpacing: 0

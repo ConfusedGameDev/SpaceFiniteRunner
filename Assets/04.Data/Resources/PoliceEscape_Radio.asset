@@ -1,3 +1,30 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:ade1ac898c0aa649528c6ea9154534f44ad15d9599dac952377eabf92c05b9f1
-size 1024
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae5eaae7bc5c6ca468a7556a6d9de1d2, type: 3}
+  m_Name: PoliceEscape_Radio
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Audio.RadioSettings
+  sourceFolder: Assets/07.Audio/03.Music/InGame
+  songs:
+  - {fileID: 8300000, guid: 10f9abade8caef74fbf91a32791ab041, type: 3}
+  - {fileID: 8300000, guid: fd67f9473c44019419abeadb18f49b63, type: 3}
+  useStreamingAssets: 0
+  streamingFolder: Radio
+  startOn: 0
+  volume: 0.7
+  longPressSeconds: 0.6
+  fadeSeconds: 0.6
+  speakerName: RADIO
+  nowPlayingFormat: 'Now Playing: {0}'
+  radioOffText: Radio OFF
+  noSongsText: No songs found
+  messageHoldSeconds: 2.5
+  accent: {r: 1, g: 0.058490515, b: 0.3761384, a: 1}

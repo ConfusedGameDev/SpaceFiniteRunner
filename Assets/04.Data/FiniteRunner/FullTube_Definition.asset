@@ -1,3 +1,23 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:76d714da0a593075a5ea74c6d577cf4f964fa0a15e75b92319b2a872ad47d24e
-size 702
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb915606e34643caaf9a3481ac67875f, type: 3}
+  m_Name: FullTube_Definition
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.Features.TubeDefinition
+  displayName: Full Tube
+  radius: 60
+  bandDegrees: 180
+  centreDegrees: 0
+  steeringFactor: 3
+  lengthRange: {x: 1095.5908, y: 3564.5132}
+  curlLength: 150
+  returnLength: 500
+  exitClearance: 150

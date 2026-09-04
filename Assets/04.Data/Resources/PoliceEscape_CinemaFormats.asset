@@ -1,3 +1,72 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1186c5d9720cc2756bef4817d8b83a3c6a7d9951fc8e0c0b98fff8cc0f09436f
-size 1748
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 919cba566725c49478e50c8332167984, type: 3}
+  m_Name: PoliceEscape_CinemaFormats
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema.CinemaFormatLibrary
+  formats:
+  - id: FullScreen
+    viewport:
+      serializedVersion: 2
+      x: 0
+      y: 0
+      width: 1
+      height: 1
+    slideFrom: 0
+    slideSeconds: 0.25
+    backdropAlpha: 1
+    fixedAspect: 0
+    keepClipAspect: 1
+    frameColor: {r: 0.05, g: 0.07, b: 0.09, a: 0.95}
+    framePadding: 0
+  - id: RearMirror
+    viewport:
+      serializedVersion: 2
+      x: 0.3
+      y: 0.78
+      width: 0.4
+      height: 0.2
+    slideFrom: 3
+    slideSeconds: 0.35
+    backdropAlpha: 0.35
+    fixedAspect: 0
+    keepClipAspect: 1
+    frameColor: {r: 0.05, g: 0.07, b: 0.09, a: 0.95}
+    framePadding: 6
+  - id: SquareLeft
+    viewport:
+      serializedVersion: 2
+      x: 0.04
+      y: 0.3
+      width: 0.3
+      height: 0.4
+    slideFrom: 1
+    slideSeconds: 0.35
+    backdropAlpha: 0.35
+    fixedAspect: 1
+    keepClipAspect: 1
+    frameColor: {r: 0.05, g: 0.07, b: 0.09, a: 0.95}
+    framePadding: 6
+  - id: BannerRight
+    viewport:
+      serializedVersion: 2
+      x: 0.35
+      y: 0.06
+      width: 0.6
+      height: 0.2
+    slideFrom: 2
+    slideSeconds: 0.35
+    backdropAlpha: 0.35
+    fixedAspect: 0
+    keepClipAspect: 1
+    frameColor: {r: 0.05, g: 0.07, b: 0.09, a: 0.95}
+    framePadding: 6
+  skipHoldSeconds: 1

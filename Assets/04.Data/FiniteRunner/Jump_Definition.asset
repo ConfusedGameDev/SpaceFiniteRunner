@@ -1,3 +1,23 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:80ad35af39316e1dcade4f6bcefa6ac7660d33a5c1422dd990bbdc57b87589dc
-size 724
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 539dec4961d94a3684863b58da6f3951, type: 3}
+  m_Name: Jump_Definition
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.Features.JumpDefinition
+  displayName: Jump
+  widthFraction: 0.25
+  length: 60
+  rampAngle: 20
+  entryMargin: 2.5
+  airDistancePerSpeed: 0.6
+  airDistanceRange: {x: 80, y: 600}
+  airControlFactor: 0.5
+  sideHitSpeedLoss: 0.15

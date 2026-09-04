@@ -1,3 +1,113 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:363af89be96529679f87e87dd1afaaa93b068317f8d6db4cb72bae53d8ce10a1
-size 3258
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a89b34446de14dabb69c0722a054a4f, type: 3}
+  m_Name: TestTrafficSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.AI.TrafficSettings
+  targetVehicleCount: 30
+  activeRadius: 250
+  despawnPadding: 50
+  minSpawnDistance: 60
+  spawnsPerTick: 4
+  modelScale: 1.73
+  carConfig: {fileID: 11400000, guid: 37fc7070342fe428c8400506aeca1f6e, type: 2}
+  vehicles:
+  - prefab: {fileID: 0}
+    model: {fileID: 919132149155446097, guid: f6466ef5706eed946b5c7baac2a27750, type: 3}
+    weight: 1
+    stopsRandomly: 0
+    modelYaw: -90
+    scaleOverride: 1
+    kind: 5
+    paint: 8
+    color: {r: 0.95, g: 0.76, b: 0.11, a: 1}
+  - prefab: {fileID: 132038, guid: 4281f5cc47c19e74584fbf935a7f56df, type: 3}
+    model: {fileID: 0}
+    weight: 1
+    stopsRandomly: 0
+    modelYaw: 0
+    scaleOverride: 0
+    kind: 1
+    paint: 5
+    color: {r: 0.76862746, g: 0.33333334, b: 0.33333334, a: 1}
+  - prefab: {fileID: 138338, guid: 736e74a94e7790d41945253a162eeede, type: 3}
+    model: {fileID: 0}
+    weight: 1
+    stopsRandomly: 0
+    modelYaw: 0
+    scaleOverride: 0
+    kind: 1
+    paint: 6
+    color: {r: 0.6862745, g: 0.73333335, b: 0.76862746, a: 1}
+  - prefab: {fileID: 198400, guid: 4292160a5e1fde347934ac660b2c5d30, type: 3}
+    model: {fileID: 0}
+    weight: 1
+    stopsRandomly: 0
+    modelYaw: 0
+    scaleOverride: 0
+    kind: 2
+    paint: 6
+    color: {r: 0, g: 0.53333336, b: 0.7058824, a: 1}
+  - prefab: {fileID: 161992, guid: 2ebf004673b6248418228e201e70d683, type: 3}
+    model: {fileID: 0}
+    weight: 1
+    stopsRandomly: 0
+    modelYaw: 0
+    scaleOverride: 0
+    kind: 3
+    paint: 5
+    color: {r: 0.72156864, g: 0.20392157, b: 0.16470589, a: 1}
+  - prefab: {fileID: 132432, guid: 021565519f68be84fb846a7a556a5af5, type: 3}
+    model: {fileID: 0}
+    weight: 1
+    stopsRandomly: 0
+    modelYaw: 0
+    scaleOverride: 0
+    kind: 3
+    paint: 6
+    color: {r: 0.18039216, g: 0.37254903, b: 0.70980394, a: 1}
+  - prefab: {fileID: 177384, guid: c2934a3062dc97c458125c5fd35dcd79, type: 3}
+    model: {fileID: 0}
+    weight: 1
+    stopsRandomly: 0
+    modelYaw: 0
+    scaleOverride: 0
+    kind: 3
+    paint: 7
+    color: {r: 0.24313726, g: 0.56078434, b: 0.27058825, a: 1}
+  - prefab: {fileID: 180960, guid: cf4cf4189f1768b4aa7054de83dae0f4, type: 3}
+    model: {fileID: 0}
+    weight: 0.4
+    stopsRandomly: 0
+    modelYaw: 0
+    scaleOverride: 0
+    kind: 4
+    paint: 7
+    color: {r: 0.42352942, g: 0.8352941, b: 0.49411765, a: 1}
+  cruiseSpeedBand: {x: 25, y: 40}
+  cornerSpeedKmh: 14
+  throttleGain: 0.12
+  waypointReachDistance: 6
+  laneOffsetFraction: 0.18
+  laneOffsetMaxMeters: 8
+  straightBias: 0.55
+  forwardBrakeDistance: 10
+  wallBrakeDistance: 3.5
+  yieldWhiskerAngle: 40
+  yieldWhiskerDistance: 8
+  fleeHoldDistance: 180
+  fleeCornerSpeedKmh: 40
+  stopEveryBand: {x: 10, y: 25}
+  stopDurationBand: {x: 2, y: 6}
+  stuckSeconds: 2
+  reverseSeconds: 1.2
+  hardRecoverSeconds: 12
+  logTrafficEvents: 0
