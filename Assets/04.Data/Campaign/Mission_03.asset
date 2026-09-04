@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4c985939928a3a40abc7346cf403b11, type: 3}
   m_Name: Mission_03
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Campaign::ConfusedGameDev.FiniteRunner.Campaign.MissionDefinition
-  id: m2_downtown
-  displayName: HOT PURSUIT
+  id: m3_downtown
+  displayName: JumpLand
   cityLevel: {fileID: 11400000, guid: 736bef0c4956b4c4996c3a4b68bfd1b7, type: 2}
-  runnerLevel: {fileID: 11400000, guid: 700241e67752cab42abf03258c6f6897, type: 2}
+  runnerLevel: {fileID: 11400000, guid: 36c33090754e1de4a989e9c8bdd14272, type: 2}
   requirements: []
