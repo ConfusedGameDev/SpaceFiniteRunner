@@ -857,7 +857,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
             loop.SetGateColor(false);
             loop.BuildLabel(labelHeight, def.labelSize);
-            spawned.Add((distance, go));
+            // Culled by its EXIT, not its mouth: the loop is 2πR of track
+            // (630 m at R = 100) and the cull line trails the ship by far
+            // less, so keyed on the mouth it was destroyed with the ship
+            // still climbing it.
+            spawned.Add((section.EndDistance, go));
         }
 
         void CreatePad(float distance, float lateral, PadSpawnEntry entry)

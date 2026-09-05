@@ -90,11 +90,13 @@ the lines. It draws under the HUD.
 
 The driver is **`SpeedLines`** (in FX — it cannot see `Cameras`, so it takes a focus `Transform`, a
 `Func<float>` km/h reader, the reference speed its band is a fraction of, and a camera-mode index
-0/1/2 Far/Close/First person):
+0/1/2/3 Far/Close/First person/Cinematic — `GameManager` pushes `SpeedLines.CinematicMode` while
+`OrbitCameraRig.Cinematic` holds):
 
 - intensity = the smoothed `speedBand` fraction of the reference speed (exponential
   `responseSharpness`, like `SpeedMotionBlur`) + a max-wins `Pulse(strength, seconds)`, × the
-  asset's per-mode multiplier (first person 1.3) × `SetIntensity`'s gameplay scale
+  asset's per-mode multiplier (first person 1.3, **cinematic 0 — the lines are off for the
+  side-on shot**) × `SetIntensity`'s gameplay scale
 - focus = the ship's smoothed viewport position; the screen centre in first person, or behind the
   camera
 

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FiniteRunner_Rain
   m_EditorClassIdentifier: 
   intensity: 1
-  dropsPerSecond: 11116
+  dropsPerSecond: 13316
   fallSpeed: {x: 18, y: 28}
   dropSize: {x: 0.18810526, y: 0.25}
   streakLength: 0.156

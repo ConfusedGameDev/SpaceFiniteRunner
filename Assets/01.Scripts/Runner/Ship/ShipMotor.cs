@@ -189,8 +189,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         // Loop state. Inside a loop the track pose does the work; the motor
         // only remembers the verdict taken at the gate and, on a fail, runs
-        // the drop: a straight fall from the top onto the exit.
+        // the drop: a straight fall from the top onto the exit. The section
+        // and definition are held here, not read off the feature: the feature
+        // is a spawned scene object the generator may cull while the ship is
+        // still inside the loop, and the state must not end with it.
         LoopFeature loop;
+        LoopSection loopSection;
+        LoopDefinition loopDefinition;
         bool loopPassed;
         float fallDistance;     // metres fallen so far
         float fallVelocity;
@@ -252,7 +257,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             ramp = null;
             blockingRamp = null;
             airDefinition = null;
-            loop = null;
+            ClearLoop();
             AirTime = 0f;
             visualPitch = 0f;
             SetState(ShipState.Grounded);
@@ -551,7 +556,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
             if (State == ShipState.Falling)
             {
-                fallVelocity += loop.Definition.fallGravity * dt;
+                fallVelocity += loopDefinition.fallGravity * dt;
                 fallDistance += fallVelocity * dt;
                 if (fallDistance >= fallHeight) LandFromLoop();
                 return;
@@ -559,11 +564,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
             if (State == ShipState.Looping)
             {
-                if (loop == null || loop.Section == null) { SetState(ShipState.Grounded); return; }
-                if (!loopPassed && d - loop.StartDistance >= loop.Section.Length * 0.5f) { DropFromLoop(); return; }
-                if (d >= loop.EndDistance)
+                // The section is ours from the gate to the exit whatever
+                // happens to the feature object behind us.
+                if (loopSection == null) { ClearLoop(); SetState(ShipState.Grounded); return; }
+                if (!loopPassed && d - loopSection.StartDistance >= loopSection.Length * 0.5f) { DropFromLoop(); return; }
+                if (d >= loopSection.EndDistance)
                 {
-                    loop = null;
+                    ClearLoop();
                     SetState(ShipState.Grounded);
                 }
                 return;
@@ -580,6 +587,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             {
                 if (candidate == null || candidate.Section == null || !candidate.Section.Contains(d)) continue;
                 loop = candidate;
+                loopSection = candidate.Section;
+                loopDefinition = candidate.Definition;
                 loopPassed = CurrentSpeed >= candidate.RequiredSpeed;
                 SetState(ShipState.Looping);
                 LoopEntered?.Invoke(loopPassed);
@@ -589,7 +598,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void DropFromLoop()
         {
-            LoopSection section = loop.Section;
+            LoopSection section = loopSection;
             fallTopPosition = transform.position;
             fallTopRotation = transform.rotation;
             section.GetExitPose(lateralOffset, out fallExitPosition, out fallExitRotation);
@@ -598,8 +607,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             fallVelocity = 0f;
             // The track waits for the ship at the exit: the patrol, which never
             // slows, gains the whole fall.
-            DistanceTravelled = loop.EndDistance;
-            CurrentSpeed *= 1f - Mathf.Clamp01(loop.Definition.fallSpeedLoss);
+            DistanceTravelled = section.EndDistance;
+            CurrentSpeed *= 1f - Mathf.Clamp01(loopDefinition.fallSpeedLoss);
             lateralVelocity = 0f;
             dashTimeLeft = 0f;
             SetState(ShipState.Falling);
@@ -608,10 +617,17 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void LandFromLoop()
         {
-            loop = null;
+            ClearLoop();
             fallDistance = 0f;
             SetState(ShipState.Grounded);
             Landed?.Invoke();
+        }
+
+        void ClearLoop()
+        {
+            loop = null;
+            loopSection = null;
+            loopDefinition = null;
         }
 
         void TakeOff()

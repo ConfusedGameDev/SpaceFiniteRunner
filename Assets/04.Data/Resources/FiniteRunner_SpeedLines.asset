@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: FiniteRunner_SpeedLines
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.SpeedLinesSettings
   material: {fileID: 2100000, guid: 947115ad6b8341738625b354beb26538, type: 2}
-  intensity: 1
-  speedBand: {x: 0.5, y: 1}
+  intensity: 0.228
+  speedBand: {x: 0.3665596, y: 0.4823152}
   responseSharpness: 4
   focusResponse: 8
   color: {r: 1, g: 1, b: 1, a: 1}

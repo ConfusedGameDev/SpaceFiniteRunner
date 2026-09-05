@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49dadb0251dd5415ba43413dd6fbd013, type: 3}
   m_Name: TestPursuitSettings
   m_EditorClassIdentifier: Assembly-CSharp::ConfusedGameDev.FiniteRunner.PoliceEscape.AI.PursuitSettings
-  targetPatrolCount: 14
+  targetPatrolCount: 0
   spawnDistanceBand: {x: 540, y: 600}
   despawnDistance: 750
   detectionRange: 180

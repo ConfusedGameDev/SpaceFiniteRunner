@@ -128,7 +128,10 @@ namespace ConfusedGameDev.FiniteRunner.FX
             this.referenceSpeedKmh = Mathf.Max(1f, referenceSpeedKmh);
         }
 
-        /// <summary>Camera-mode index for the asset's multipliers: 0 Far, 1 Close, 2 First person.</summary>
+        /// <summary>Camera-mode index the owner pushes while the rig's cinematic shot holds the picture — the asset's multiplier for it ships at 0, so the lines are off for the shot.</summary>
+        public const int CinematicMode = 3;
+
+        /// <summary>Camera-mode index for the asset's multipliers: 0 Far, 1 Close, 2 First person, 3 the cinematic shot (<see cref="CinematicMode"/>).</summary>
         public void SetCameraMode(int mode) => cameraMode = mode;
 
         /// <summary>

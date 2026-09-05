@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 174b5d09743c2794b8c900c7044f1a31, type: 3}
   m_Name: FiniteRunner_DistanceFog
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.DistanceFogSettings
-  intensity: 1
-  fogStart: 120
+  intensity: 0.74999994
+  fogStart: 280
   fogEnd: 480
   fogDensity: 2.5
   fogColorNear: {r: 0.07, g: 0.05, b: 0.14, a: 1}

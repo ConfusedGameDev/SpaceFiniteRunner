@@ -61,6 +61,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         DashPromptController dashPrompt;
         OrbitCameraRig cameraRig;          // null when GameSettings has no camera asset
         CameraMode modeBeforeJump;         // the view a jump forced to Far hands back on landing
+        bool loopCinematic;                // the rig is holding the cinematic shot for a loop (and its fall)
+        float loopCinematicHoldLeft;       // real seconds the shot lingers past the exit, -1 = not releasing
         SpeedLines speedLines;             // null when the speed lines are off on GameSettings
 
         /// <summary>How a run ended — typed, so the save record never has to match a result label.</summary>
@@ -141,6 +143,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.TookOff += OnTookOff;
                 motor.Landed += OnLanded;
                 motor.LoopFailed += OnLoopFailed;
+                motor.LoopEntered += OnLoopEntered;
+                motor.StateChanged += OnShipStateChanged;
+
+                // The loop's slow motion rides on the ship (the clock-owner
+                // contract lives there); the knobs are on the settings asset.
+                LoopSlowMo.Ensure(motor).Configure(settings);
 
                 // The DashMeterUI is a scene child of the Ship — it configures
                 // itself off the motor in Start, after ConfigureDash above.
@@ -235,7 +243,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             // Before the RunOver return: the lines stay up through the death
             // glitch, and the view can still be cycled on the result screen.
-            if (speedLines != null && cameraRig != null) speedLines.SetCameraMode((int)cameraRig.Mode);
+            // The cinematic shot is its own mode for the lines: their asset
+            // multiplier for it is 0, so they are off for the side-on shot.
+            if (speedLines != null && cameraRig != null)
+                speedLines.SetCameraMode(cameraRig.Cinematic ? SpeedLines.CinematicMode : (int)cameraRig.Mode);
+            UpdateLoopCinematicHold();
 
             if (motor == null || RunOver) return;
 
@@ -544,6 +556,41 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             }
         }
 
+        // A loop: the picture cuts to the rig's cinematic side shot for the
+        // ride round — and, when the ship was too slow, through the fall too,
+        // so the shot never cuts mid-drop. Released once the ship is Grounded
+        // again (a clean exit, or the fall's landing) plus a short hold, real
+        // seconds, so the exit registers before the chase view cuts back. The
+        // slow-mo rides the same window on its own (LoopSlowMo).
+        void OnLoopEntered(bool passed)
+        {
+            if (!settings.loopCinematic || cameraRig == null) return;
+            loopCinematic = true;
+            loopCinematicHoldLeft = -1f;
+            cameraRig.SetCinematic(true);
+        }
+
+        void OnShipStateChanged(ShipState state)
+        {
+            if (loopCinematic && state == ShipState.Grounded && loopCinematicHoldLeft < 0f)
+                loopCinematicHoldLeft = settings.loopCinematicHoldSeconds;
+        }
+
+        void UpdateLoopCinematicHold()
+        {
+            if (!loopCinematic || loopCinematicHoldLeft < 0f) return;
+            loopCinematicHoldLeft -= Time.unscaledDeltaTime;
+            if (loopCinematicHoldLeft <= 0f) EndLoopCinematic();
+        }
+
+        void EndLoopCinematic()
+        {
+            if (!loopCinematic) return;
+            loopCinematic = false;
+            loopCinematicHoldLeft = -1f;
+            if (cameraRig != null) cameraRig.SetCinematic(false);
+        }
+
         // Too slow for the loop: the drop off the top is a hit of corruption
         // and a long rumble; the landing below rides the ordinary Landed path.
         void OnLoopFailed()
@@ -586,6 +633,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.TookOff -= OnTookOff;
                 motor.Landed -= OnLanded;
                 motor.LoopFailed -= OnLoopFailed;
+                motor.LoopEntered -= OnLoopEntered;
+                motor.StateChanged -= OnShipStateChanged;
             }
             if (patrol != null)
             {
@@ -609,6 +658,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (winRoutine != null) { StopCoroutine(winRoutine); winRoutine = null; }
             RestoreGlitchFade();
             if (GlitchController.Instance != null) GlitchController.Instance.SetBaseIntensity(0f);
+            // A retry from inside a loop must not leave the shot armed.
+            EndLoopCinematic();
 
             RunOver = false;
             HasWon = false;

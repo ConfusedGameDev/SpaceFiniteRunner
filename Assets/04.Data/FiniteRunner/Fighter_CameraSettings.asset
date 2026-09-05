@@ -48,3 +48,14 @@ MonoBehaviour:
   baseFov: 71
   fovPerKmh: 0.005
   maxFovBoost: 15
+  cinematic: 1
+  cinematicPlanted: 1
+  cinematicYaw: 90
+  cinematicDistance: 350
+  cinematicHeight: 100
+  cinematicLead: 100
+  cinematicLookHeight: 0
+  cinematicDamping: 0.6
+  cinematicAimDamping: 1.2
+  cinematicFov: 55
+  cinematicBlendSeconds: 0.1

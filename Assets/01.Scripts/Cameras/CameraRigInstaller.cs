@@ -62,8 +62,14 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             return any != null ? any : Camera.main;
         }
 
-        /// <summary>The hand-placed rig of <paramref name="scene"/> (any rig when the scene is unknown).</summary>
-        static OrbitCameraRig FindRig(Scene scene)
+        /// <summary>
+        /// The rig of <paramref name="scene"/> (any rig when the scene is
+        /// unknown), or null. Public for game code that holds no rig of its
+        /// own but has a say over the picture (the city's air-time slow-mo
+        /// cuts to the cinematic shot) — scoped to the caller's scene for the
+        /// same reason Attach is.
+        /// </summary>
+        public static OrbitCameraRig FindRig(Scene scene)
         {
             OrbitCameraRig fallback = null;
             foreach (OrbitCameraRig rig in Object.FindObjectsByType<OrbitCameraRig>(FindObjectsSortMode.None))

@@ -112,6 +112,44 @@ Position damping blends to `lookBackDamping` (0) over the same swing: the follow
 car, and with the camera in front of it that trail pulled the rear view into the bonnet by more the
 faster the car went.
 
+## Cinematic view
+
+A **fourth vcam the player never selects**: a side-on showcase shot the game cuts to on its set
+pieces. `OrbitCameraRig.SetCinematic(bool)` is the whole API — it sits above every player view by
+priority (30 over first person's 20), the view cycle is locked while it holds, and the orbit keeps
+being driven underneath so the cut back lands on a live chase view. `Cinematic` reads the state.
+
+`CinematicCamera` is another **sibling** (`CinematicName`, same "never a child" rule, pre-placed
+by the placer and adopted by Build, created otherwise, destroyed only if created): a plain
+`CinemachineFollow` (WorldSpace binding, zero offset, `cinematicDamping`) of a per-run
+**`CameraMount`** the rig seats on the vehicle's flank every `LateUpdate` right after the anchor,
+plus a `RotationComposer` aimed at the anchor (`cinematicLookHeight`, `cinematicAimDamping`), a
+deoccluder configured like the orbit's (same `deoccluder` toggle — the shot sits well off the road
+in the city), shake, and a **fixed lens** (`cinematicFov` — no speed kick). Its `StandbyUpdate` is
+**Always**: a round-robin standby vcam is frames behind the mount, hundreds of metres at Light
+Speed, and the cut would start from there.
+
+**Tracking vs planted** (`cinematicPlanted`). Tracking (car): the mount rides beside the vehicle
+and its frame follows the asset's `upBinding` — **TargetUp** uses the anchor's lagged frame so the
+shot would roll with a ship, **WorldUp** flattens the heading onto the horizon so a pitching car
+never tips it. Planted (ship): the first `SeatMount` after the cut is a level tripod and the mount
+then **freezes** (`mountPlanted`) until the shot ends, so the whole set piece plays out in front of
+a still, panning camera — the only way to see a 200 m loop. Planted follow damping is forced to 0
+so the vcam IS on the tripod the frame the mount stops. `cinematicYaw` is measured from straight
+behind like the orbit's axis (90 = right flank), then `cinematicDistance` / `cinematicHeight` /
+`cinematicLead` — for a loop of radius R: lead R and height R centre the tripod on it, ~3R fits it.
+
+**Both cuts blend over `cinematicBlendSeconds`** (0.1 — a set piece is cut to, not eased into):
+the brain reads its default blend at the moment the live vcam changes, when the shot has already
+dropped its priority, so `ApplySettings` keeps the default at the cinematic length while the shot
+is on *and* for one blend after (`cinematicBlendLeft`). Turning the asset's `cinematic` toggle off
+drops a live shot.
+
+Who cuts: the city's `AirTimeSlowMo` (slow-mo in and still airborne — back the frame the wheels
+touch; it finds the rig with `CameraRigInstaller.FindRig(scene)`, public for that) and the runner's
+`GameManager` on `ShipMotor.LoopEntered`, held until the state is Grounded again (the fall of a
+failed loop included) and force-dropped on `Restart`.
+
 ## Camera shake
 
 `CameraShake.Shake(CameraShakeSettings)` is the static bank every shake is fired at — a plain

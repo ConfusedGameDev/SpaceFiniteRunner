@@ -57,6 +57,11 @@ stretch in `Awake`, then each `Update` keeps `aheadDistance` of finished track a
 **Invariants:**
 
 - **Knots are never removed**, so distances stay valid all run — only spawned objects are culled.
+- **A spawned object that spans track is keyed on its END for the cull**, not its spawn point:
+  a loop is 2πR of track (630 m at R = 100) against a `behindDistance` of 150 in the test scene,
+  so keyed on its mouth the `LoopFeature` was destroyed with the ship still climbing it, and the
+  motor dropped to Grounded mid-loop. `ShipMotor` also keeps its own `loopSection` /
+  `loopDefinition` from the gate, so the state never depends on the feature object surviving.
 - Nothing is placed on the trailing `SettleMargin` (two segments): AutoSmooth reshapes those
   curves when the next knot lands.
 - `RegenerateForRun()` fully rebuilds — endless restarts must, since the stretch behind the

@@ -202,6 +202,60 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         [PropertyRange(0f, 3f)]
         public float lookBackDamping = 0f;
 
+        // ----------------------------------------------------------- cinematic
+        [ToggleGroup("cinematic", "Cinematic")]
+        [Tooltip("A side-on showcase shot the game cuts to on its set pieces (the city's slow-mo jump, the runner's loop) — never a view the player can select. Off = those moments stay in whatever view the player had.")]
+        public bool cinematic = true;
+
+        [ToggleGroup("cinematic")]
+        [Tooltip("Plant the camera on a tripod where the cut happens and let it pan after the vehicle, instead of tracking alongside it. The way to see a whole loop or the arc of a jump: the set piece plays out in front of a still camera. Always level with the horizon. Off = the camera rides beside the vehicle at the same offsets.")]
+        public bool cinematicPlanted = false;
+
+        [ToggleGroup("cinematic")]
+        [Tooltip("Where the shot sits around the vehicle, measured from straight behind it: 90 is its right flank, -90 the left, 180 dead ahead looking back at it.")]
+        [PropertyRange(-180f, 180f), SuffixLabel("°", true)]
+        public float cinematicYaw = 90f;
+
+        [ToggleGroup("cinematic")]
+        [Tooltip("Distance from the vehicle — or, planted, from where the cut happened. A loop of radius R needs roughly 3R to fit.")]
+        [PropertyRange(2f, 500f), SuffixLabel("m", true)]
+        public float cinematicDistance = 10f;
+
+        [ToggleGroup("cinematic")]
+        [Tooltip("Camera height above the vehicle's pivot. Low reads as a trackside shot, high as a crane; planted beside a loop, its radius puts the tripod level with the loop's centre.")]
+        [PropertyRange(-10f, 200f), SuffixLabel("m", true)]
+        public float cinematicHeight = 1.5f;
+
+        [ToggleGroup("cinematic")]
+        [Tooltip("Slide the camera along the heading: positive is ahead of the vehicle (it drives into frame), negative trails it. Planted beside a loop, its radius centres the tripod on the loop.")]
+        [PropertyRange(-200f, 200f), SuffixLabel("m", true)]
+        public float cinematicLead = 0f;
+
+        [ToggleGroup("cinematic")]
+        [Tooltip("Point on the vehicle the shot aims at, above its pivot.")]
+        [PropertyRange(0f, 12f), SuffixLabel("m", true)]
+        public float cinematicLookHeight = 0.8f;
+
+        [ToggleGroup("cinematic")]
+        [Tooltip("Position damping of the shot's follow — the drift that makes it read as an operator tracking the vehicle rather than a bolt-on. 0 is rigid. A planted camera does not move, so it ignores this.")]
+        [PropertyRange(0f, 3f)]
+        public float cinematicDamping = 0.6f;
+
+        [ToggleGroup("cinematic")]
+        [Tooltip("Aim damping: how lazily the shot re-frames the vehicle as it moves about the picture. High on a planted camera is the lazy pan of an operator following the action.")]
+        [PropertyRange(0f, 3f)]
+        public float cinematicAimDamping = 0.3f;
+
+        [ToggleGroup("cinematic")]
+        [Tooltip("Fixed lens of the shot — a longer lens (smaller FOV) than the chase flattens the picture, the classic showcase look. The speed FOV kick does not apply here.")]
+        [PropertyRange(15f, 90f), SuffixLabel("°", true)]
+        public float cinematicFov = 45f;
+
+        [ToggleGroup("cinematic")]
+        [Tooltip("Seconds the brain blends the cut into the shot and back out of it. Keep it near 0: a set piece is cut to, not eased into — a long blend smears the picture while the moment is already happening.")]
+        [PropertyRange(0f, 1f), SuffixLabel("s", true)]
+        public float cinematicBlendSeconds = 0.1f;
+
         // ----------------------------------------------------------------- fov
         [TitleGroup("Speed FOV")]
         [Tooltip("Field of view at standstill.")]

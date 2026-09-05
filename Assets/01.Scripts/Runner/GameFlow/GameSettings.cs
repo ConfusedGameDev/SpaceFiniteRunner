@@ -128,6 +128,45 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0f, 1f)]
         public float loopFallGlitchStrength = 0.8f;
 
+        [TitleGroup("Loops")]
+        [Tooltip("Cut to the chase camera's cinematic side shot for the loop — and through the fall when the ship was too slow, so the shot never cuts mid-drop. The shot itself is authored on the camera settings asset (its Cinematic group).")]
+        public bool loopCinematic = true;
+
+        [TitleGroup("Loops")]
+        [Tooltip("Real seconds the cinematic shot lingers after the ship is back on the track — the beat that lets the exit register before the chase view cuts back. The clock is easing up meanwhile.")]
+        [PropertyRange(0f, 1f), SuffixLabel("s", true)]
+        public float loopCinematicHoldSeconds = 0.25f;
+
+        // --------------------------------------------------------- loop slow-mo
+        [ToggleGroup("loopSlowMo", "Loop slow-mo")]
+        [Tooltip("Slow the world while the ship is inside a loop (and through the fall of a failed one). Ship, patrol and the countdown all ride the same clock, so the loop costs no run time — it only plays longer in real time.")]
+        public bool loopSlowMo = true;
+
+        [ToggleGroup("loopSlowMo")]
+        [Tooltip("The speed the loop is SHOWN at, km/h: the clock slows by exactly enough that the ship never appears faster than this through the loop, so a loop lasts the same few real seconds whether it was entered at 1300 or at 6000. A 100 m loop is 630 m round — at 650 the loop plays for about 3.5 s.")]
+        [PropertyRange(100f, 2000f), SuffixLabel("km/h", true)]
+        public float loopApparentSpeedKmh = 650f;
+
+        [ToggleGroup("loopSlowMo")]
+        [Tooltip("Slowest the clock gets, whatever the entry speed. 1 is real time.")]
+        [PropertyRange(0.02f, 0.5f)]
+        public float loopMinTimeScale = 0.08f;
+
+        [ToggleGroup("loopSlowMo")]
+        [Tooltip("Fastest the clock stays inside the loop, so even a loop taken right at its floor speed is unmistakably slowed. 1 is real time.")]
+        [PropertyRange(0.1f, 1f)]
+        public float loopTimeScale = 0.5f;
+
+        [ToggleGroup("loopSlowMo")]
+        [Tooltip("Real seconds the clock eases down over on entering the loop.")]
+        [PropertyRange(0f, 1f), SuffixLabel("s", true)]
+        public float loopSlowMoBlendIn = 0.2f;
+
+        [ToggleGroup("loopSlowMo")]
+        [Tooltip("Real seconds the clock eases back to 1 over on leaving it.")]
+        [PropertyRange(0f, 1f), SuffixLabel("s", true)]
+        public float loopSlowMoBlendOut = 0.35f;
+
         // ---------------------------------------------------- mission complete
         // Once the objectives are met the ship keeps flying until it is back on
         // the track (a jump, loop or tube finishes first), then the glitch

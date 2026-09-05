@@ -115,11 +115,17 @@ namespace ConfusedGameDev.FiniteRunner.FX
         [PropertyRange(0f, 2f)]
         public float firstPersonMultiplier = 1.3f;
 
-        /// <summary>Multiplier for a camera-mode index: 0 Far, 1 Close, 2 First person (the chase rig's CameraMode order).</summary>
+        [TitleGroup("Camera modes")]
+        [Tooltip("Intensity multiplier during the cinematic shot (mode 3: the loop, the slow-mo jump). 0 = off — the lines are a first-person-ish speed cue over the chase view and only clutter a showcase shot taken from the side.")]
+        [PropertyRange(0f, 2f)]
+        public float cinematicMultiplier = 0f;
+
+        /// <summary>Multiplier for a camera-mode index: 0 Far, 1 Close, 2 First person (the chase rig's CameraMode order), 3 the cinematic shot.</summary>
         public float ModeMultiplier(int mode) => mode switch
         {
             1 => closeMultiplier,
             2 => firstPersonMultiplier,
+            3 => cinematicMultiplier,
             _ => farMultiplier,
         };
 

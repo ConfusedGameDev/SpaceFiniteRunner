@@ -116,6 +116,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     fp.transform.SetParent(rig.transform.parent, false);
                     placed++;
                 }
+                // The cinematic vcam (the side shot the set pieces cut to) is
+                // a sibling for the same reason.
+                if (rig != null && rig.FindPrePlacedSibling(OrbitCameraRig.CinematicName) == null)
+                {
+                    var cin = new GameObject(OrbitCameraRig.CinematicName);
+                    cin.transform.SetParent(rig.transform.parent, false);
+                    placed++;
+                }
             }
 
             // The cinema player needs nothing from the CityManager — only its

@@ -1,3 +1,4 @@
+using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.UI;
 using UnityEngine;
 
@@ -36,6 +37,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     /// A neutral stick applies nothing, so the natural tumble is untouched.
     /// Both physics backends share the rigidbody, and with the wheels in the
     /// air neither applies tire forces, so the same code serves both.
+    ///
+    /// The jump owns the picture too: while the slow-mo is in and the car is
+    /// still flying, the scene's chase rig cuts to its cinematic side shot
+    /// (<see cref="OrbitCameraRig.SetCinematic"/>), and the frame the wheels
+    /// touch it cuts back — while the clock is still easing up to 1.
     /// </summary>
     [RequireComponent(typeof(CarController))]
     [DisallowMultipleComponent]
@@ -51,6 +57,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         float appliedScale = 1f;
         float scaleAxis;        // -1 slower .. +1 faster, the left stick / W-S
         Vector2 rotateAxis;     // x roll, y pitch — the right stick / arrows
+        bool airborne;          // no wheel on the ground this frame
+        bool cinematic;         // the rig is holding the shot for us
+        OrbitCameraRig rig;     // this car's scene's rig, looked up on the first shot
 
         /// <summary>True while the jump owns the clock and the stick — the camera hands its pan over for that window.</summary>
         public static bool IsActive { get; private set; }
@@ -75,11 +84,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             {
                 Drop();
                 airTimer = 0f;
+                airborne = false;
                 Publish();
                 return;
             }
 
-            bool airborne = !car.IsGrounded;
+            airborne = !car.IsGrounded;
             airTimer = airborne ? airTimer + Time.deltaTime : 0f;
 
             // Someone else took the clock (a menu opened, or closed back to
@@ -174,6 +184,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         {
             Drop();
             airTimer = 0f;
+            airborne = false;
             Publish();
         }
 
@@ -214,6 +225,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         {
             IsActive = owning && blend > 0f;
             Blend = owning ? blend : 0f;
+            // The shot rides the slow-mo in and drops the frame the wheels
+            // touch, so the landing is seen from the chase view while the
+            // clock is still blending out. Every branch of Update and the
+            // disable path end here, so the edge is caught wherever it falls.
+            SetCinematic(IsActive && airborne);
+        }
+
+        /// <summary>
+        /// Hand the picture to the chase rig's cinematic shot, or take it
+        /// back. The rig is the one in THIS car's scene — never a global
+        /// find, the city → runner handoff has two — looked up on the first
+        /// rising edge (the factory attached it before the car's Start added
+        /// this component) and again whenever it has gone.
+        /// </summary>
+        void SetCinematic(bool on)
+        {
+            if (on == cinematic) return;
+            cinematic = on;
+            if (on && rig == null) rig = CameraRigInstaller.FindRig(gameObject.scene);
+            if (rig != null) rig.SetCinematic(on);
         }
     }
 }

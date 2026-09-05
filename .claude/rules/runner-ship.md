@@ -80,6 +80,30 @@ always does the perfect loop, gains the whole fall — and `ApplyPose` lerps top
 and long rumble play on the drop, and it lands through the same `Landed` event as a jump.
 `BlockModeCycle` also holds while falling.
 
+**A loop is a set piece** — the window is Looping *or* Falling (the fall is the failed loop's
+second half, so nothing cuts mid-drop), ended by `StateChanged(Grounded)`:
+
+- `GameManager.OnLoopEntered` cuts to the rig's cinematic side shot
+  (`OrbitCameraRig.SetCinematic`, `GameSettings.loopCinematic`; the shot is authored on
+  `Fighter_CameraSettings`' Cinematic group) and hands it back `loopCinematicHoldSeconds` (0.25,
+  real time) after Grounded, or at once on `Restart`.
+- The motor keeps `loopSection` / `loopDefinition` from the gate: the `LoopFeature` object is
+  culled by the generator by its exit, but the state must never hang on a scene object either
+  way (keyed on its mouth it was destroyed mid-loop, which read as "loop detection fails").
+  The ship's shot is **planted**: a level tripod 350 m off the loop's flank, centred on it
+  (`cinematicLead` = `cinematicHeight` = the loop radius, 100), panning after the ship — a
+  tracking shot beside a 200 m loop shows nothing of the loop.
+- `LoopSlowMo` (`Ship/`, added to the ship by `GameManager.Awake`, reads `GameSettings` live)
+  eases the world clock down over `loopSlowMoBlendIn` and back over `loopSlowMoBlendOut`. The
+  depth is **speed-aware**: the resting scale is `loopApparentSpeedKmh / speed` (650 km/h — the
+  speed the loop is *shown* at), clamped to `loopMinTimeScale`..`loopTimeScale` (0.08..0.5), so a
+  loop lasts the same ~3.5 real seconds entered at 1300 or at 6000. A flat 0.75 was invisible at
+  Light Speed, where the whole loop is a third of a second. Ship, patrol and countdown all ride
+  `Time.deltaTime`, so the loop costs no run time — it only plays longer. It follows the city
+  `AirTimeSlowMo` clock contract exactly: enter only when the clock reads exactly 1, cancel
+  silently (restoring `fixedDeltaTime` only) when a menu takes it, re-arm after the resume. Never
+  owns while `motor.Paused`.
+
 ## `GameManager`
 
 Win/lose and the countdown.

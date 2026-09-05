@@ -272,6 +272,13 @@ in/out, control rate/response) and on the debug menu's **AIR TIME** tab (a `Menu
 Teleports need no hook: a respawn lands within a fraction of a second, and a pacman wrap keeps the
 car airborne so the slow-mo correctly continues.
 
+**The jump owns the picture too**: while the slow-mo is in and the car is still airborne it holds
+the rig's cinematic side shot (`OrbitCameraRig.SetCinematic`, see `cameras.md`), dropping it the
+frame the wheels touch — the landing is seen from the chase view while the clock is still easing
+up. The rig is `CameraRigInstaller.FindRig(gameObject.scene)`, looked up on the first jump; the
+shot itself is the camera asset's Cinematic group (`TestOrbitCameraSettings`), not a `CarConfig`
+knob — a tracking shot 16 m off the flank with the deoccluder on (buildings), cut to in 0.1 s.
+
 ## Scene-lifetime systems are hand-placed (`PoliceEscape/Editor/SceneSystemsPlacer.cs`)
 
 The city chase's managers and overlays that live as long as the scene sit in the scene **before

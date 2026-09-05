@@ -47,6 +47,17 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
     /// vehicle's say over the shared controls comes through
     /// <see cref="ICameraTarget"/> — the rig never references a vehicle type.
     ///
+    /// <b>The cinematic view</b> is a fourth vcam the player never selects:
+    /// a side-on showcase shot (another sibling, following a
+    /// <c>CameraMount</c> the rig seats on the vehicle's flank every frame
+    /// and aiming at the anchor) that game code cuts to on its set pieces —
+    /// the city's slow-mo jump, the runner's loop — through
+    /// <see cref="SetCinematic"/>. It wins by priority over every player
+    /// view, both cuts blend over
+    /// <see cref="OrbitCameraSettings.cinematicBlendSeconds"/>, the view
+    /// cycle is locked while it holds, and the orbit keeps being driven
+    /// underneath so the cut back lands on a live chase view.
+    ///
     /// <b>Editor Setup</b>: the same components can be pre-built into the
     /// scene with the inspector's Setup button (edit mode only), so a
     /// hand-placed rig shows its Cinemachine components and the
@@ -77,7 +88,12 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         CinemachineCamera firstPersonCamera;
         CinemachineHardLockToTarget firstPersonLock;
         CinemachineRotateWithFollowTarget firstPersonRotate;
+        CinemachineCamera cinematicCamera;
+        CinemachineFollow cinematicFollow;
+        CinemachineRotationComposer cinematicComposer;
+        CinemachineDeoccluder cinematicDeoccluder;
         Transform anchor;
+        Transform mount;
         Transform eye;
         ICameraTarget target;
         float idleTimer;
@@ -101,22 +117,39 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         float lookBackFromYaw;
         float lookBackFromPitch;
 
+        // Cinematic state. On/off is the game's call (SetCinematic); the blend
+        // countdown keeps the brain's blend at the cinematic length for the
+        // whole cut OUT as well, since the vcam has already lost priority by
+        // then and the brain reads the default blend at the moment of the cut.
+        bool cinematicOn;
+        float cinematicBlendLeft;
+        bool mountPlanted;      // a planted shot has seated its tripod
+
         /// <summary>Built-in tag the rig stamps on its target's colliders so the deoccluder ignores them.</summary>
         const string PlayerTag = "Player";
         const string EyeName = "CameraEye";
         const string AnchorName = "CameraAnchor";
+        const string MountName = "CameraMount";
         const int OrbitPriority = 10;
 
         /// <summary>Name of the first-person vcam object; SceneSystemsPlacer pre-places one under this name for Build to adopt.</summary>
         public const string FirstPersonName = "FirstPersonCamera";
 
+        /// <summary>Name of the cinematic vcam object; pre-placed beside the rig the same way, adopted by Build.</summary>
+        public const string CinematicName = "CinematicCamera";
+
         bool ownsFirstPersonObject; // created here (destroy with the rig) vs adopted from the scene (leave it)
+        bool ownsCinematicObject;
         const int FirstPersonPriority = 20;
+        const int CinematicPriority = 30;
 
         public ICameraTarget Target => target;
 
         /// <summary>The view currently selected — what the next cycle press advances from.</summary>
         public CameraMode Mode => mode;
+
+        /// <summary>True while the cinematic shot holds the picture (the view cycle is locked meanwhile).</summary>
+        public bool Cinematic => cinematicOn;
 
         // The camera this rig drives (set by the installer, which found it in
         // the target's own scene) — never Camera.main, which answers the OTHER
@@ -136,17 +169,39 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
                 TagRecursively(vehicle, PlayerTag);
                 laggedUp = vehicle.up;
                 SeatAnchor(0f);
+                SeatMount();
             }
             cinemachineCamera.Follow = vehicle != null ? anchor : null;
             cinemachineCamera.LookAt = vehicle != null ? anchor : null;
             eye = vehicle != null ? EnsureEye(vehicle) : null;
             firstPersonCamera.Follow = eye;
             firstPersonCamera.LookAt = eye;
-            // Fresh vehicle: start resting behind it, in the default view, and
-            // never mid-glance.
+            cinematicCamera.Follow = vehicle != null ? mount : null;
+            cinematicCamera.LookAt = vehicle != null ? anchor : null;
+            // Fresh vehicle: start resting behind it, in the default view,
+            // never mid-glance and never mid-shot.
             lookBackBlend = 0f;
+            cinematicOn = false;
+            cinematicBlendLeft = 0f;
             SetMode(settings != null ? settings.defaultMode : CameraMode.Far, instant: true);
             orbital.HorizontalAxis.Value = 0f;
+        }
+
+        /// <summary>
+        /// Hand the picture to the cinematic shot (a moment worth one: the
+        /// city's slow-mo jump, the runner's loop) or give it back. It sits
+        /// above every player view by priority and the brain blends both
+        /// cuts over <see cref="OrbitCameraSettings.cinematicBlendSeconds"/>.
+        /// A no-op while the settings asset has the feature off, so it can be
+        /// killed per vehicle without touching the callers.
+        /// </summary>
+        public void SetCinematic(bool on)
+        {
+            if (on && (settings == null || !settings.cinematic)) on = false;
+            if (on == cinematicOn) return;
+            cinematicOn = on;
+            cinematicBlendLeft = settings != null ? settings.cinematicBlendSeconds : 0f;
+            if (built) ApplyPriorities();
         }
 
         /// <summary>Advance to the next view: Far → Close → First person → Far.</summary>
@@ -186,6 +241,11 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
                 anchor.position += delta;
                 CinemachineCore.OnTargetObjectWarped(anchor, delta);
             }
+            if (mount != null)
+            {
+                mount.position += delta;
+                CinemachineCore.OnTargetObjectWarped(mount, delta);
+            }
             if (eye != null) CinemachineCore.OnTargetObjectWarped(eye, delta);
         }
 
@@ -200,6 +260,10 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             // per-run object: never pre-built by Setup.
             anchor = new GameObject(AnchorName).transform;
             anchor.SetParent(transform.parent, false);
+            // The cinematic shot's follow point, seated on the vehicle's flank
+            // beside the anchor — the same per-run rule.
+            mount = new GameObject(MountName).transform;
+            mount.SetParent(transform.parent, false);
 
             // The scene camera's far clip is the authored default; the lens
             // (which the brain pushes onto the camera every frame) starts there.
@@ -207,6 +271,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             defaultFarClip = authored != null ? authored.farClipPlane : cinemachineCamera.Lens.FarClipPlane;
             cinemachineCamera.Lens.FarClipPlane = defaultFarClip;
             firstPersonCamera.Lens.FarClipPlane = defaultFarClip;
+            cinematicCamera.Lens.FarClipPlane = defaultFarClip;
             appliedPitch = settings != null ? settings.defaultPitch : 18f;
             ApplySettings();
         }
@@ -251,6 +316,27 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             firstPersonLock = Ensure<CinemachineHardLockToTarget>(fp);
             firstPersonRotate = Ensure<CinemachineRotateWithFollowTarget>(fp);
             Ensure<CinemachineCameraShake>(fp);
+
+            // The cinematic shot: a third vcam, a sibling for the same reason.
+            // A plain Follow of the mount (world-space binding, zero offset,
+            // so the mount's pose IS the camera's, damped) and a composer
+            // aimed at the anchor, so the vehicle is framed however it moves
+            // about the picture.
+            GameObject cin = FindPrePlacedSibling(CinematicName);
+            ownsCinematicObject = cin == null;
+            if (cin == null)
+            {
+                cin = new GameObject(CinematicName);
+                cin.transform.SetParent(transform.parent, false);
+#if UNITY_EDITOR
+                if (!Application.isPlaying) UnityEditor.Undo.RegisterCreatedObjectUndo(cin, SetupUndoName);
+#endif
+            }
+            cinematicCamera = Ensure<CinemachineCamera>(cin);
+            cinematicFollow = Ensure<CinemachineFollow>(cin);
+            cinematicComposer = Ensure<CinemachineRotationComposer>(cin);
+            cinematicDeoccluder = Ensure<CinemachineDeoccluder>(cin);
+            Ensure<CinemachineCameraShake>(cin);
         }
 
         /// <summary>
@@ -273,14 +359,10 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             // target. Switched off per settings asset (the runner has nothing
             // to look through).
             int playerLayer = LayerMask.NameToLayer("PlayerCar");
-            deoccluder.CollideAgainst = playerLayer >= 0 ? ~(1 << playerLayer) : ~0;
-            deoccluder.IgnoreTag = PlayerTag;
-            deoccluder.MinimumDistanceFromTarget = 1.5f;
-            deoccluder.AvoidObstacles.Enabled = true;
-            deoccluder.AvoidObstacles.Strategy = CinemachineDeoccluder.ObstacleAvoidance.ResolutionStrategy.PullCameraForward;
-            deoccluder.AvoidObstacles.DistanceLimit = 0f;
-            deoccluder.AvoidObstacles.MinimumOcclusionTime = 0f;
-            deoccluder.AvoidObstacles.CameraRadius = 0.4f;
+            ConfigureDeoccluder(deoccluder, playerLayer);
+            // The cinematic shot sits well off the road, so in the city it
+            // needs the same pull-forward past a building as the orbit.
+            ConfigureDeoccluder(cinematicDeoccluder, playerLayer);
 
             orbital.OrbitStyle = CinemachineOrbitalFollow.OrbitStyles.Sphere;
             // Locked to the anchor's heading: horizontal axis 0 is always
@@ -291,29 +373,55 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             orbital.VerticalAxis = new InputAxis { Value = 18f, Range = new Vector2(2f, 55f), Wrap = false, Center = 18f };
 
             firstPersonCamera.Priority = OrbitPriority - 1;
+
+            cinematicCamera.Priority = OrbitPriority - 1;
+            // Always ticking, live or not: it has to be sitting on the mount
+            // the frame the game cuts to it, and a round-robin standby vcam
+            // can be several frames — at Light Speed, hundreds of metres —
+            // behind.
+            cinematicCamera.StandbyUpdate = CinemachineVirtualCameraBase.StandbyUpdateMode.Always;
+            cinematicFollow.TrackerSettings.BindingMode = BindingMode.WorldSpace;
+            cinematicFollow.FollowOffset = Vector3.zero;
+        }
+
+        static void ConfigureDeoccluder(CinemachineDeoccluder d, int playerLayer)
+        {
+            d.CollideAgainst = playerLayer >= 0 ? ~(1 << playerLayer) : ~0;
+            d.IgnoreTag = PlayerTag;
+            d.MinimumDistanceFromTarget = 1.5f;
+            d.AvoidObstacles.Enabled = true;
+            d.AvoidObstacles.Strategy = CinemachineDeoccluder.ObstacleAvoidance.ResolutionStrategy.PullCameraForward;
+            d.AvoidObstacles.DistanceLimit = 0f;
+            d.AvoidObstacles.MinimumOcclusionTime = 0f;
+            d.AvoidObstacles.CameraRadius = 0.4f;
         }
 
         void OnDestroy()
         {
-            // The first-person vcam is a sibling, not a child, so it does not
-            // die with the rig on its own. Unless it was the scene's to begin
-            // with: that one stays, and a later rig adopts it again. The
-            // anchor is always ours.
+            // The first-person and cinematic vcams are siblings, not
+            // children, so they do not die with the rig on their own. Unless
+            // they were the scene's to begin with: those stay, and a later
+            // rig adopts them again. The anchor and the mount are always ours.
             if (ownsFirstPersonObject && firstPersonCamera != null) Destroy(firstPersonCamera.gameObject);
+            if (ownsCinematicObject && cinematicCamera != null) Destroy(cinematicCamera.gameObject);
             if (anchor != null) Destroy(anchor.gameObject);
+            if (mount != null) Destroy(mount.gameObject);
         }
 
         /// <summary>The scene-placed first-person object next to this rig (same parent, or a scene root when the rig is one), or null.</summary>
-        public GameObject FindPrePlacedFirstPerson()
+        public GameObject FindPrePlacedFirstPerson() => FindPrePlacedSibling(FirstPersonName);
+
+        /// <summary>The scene-placed object named <paramref name="name"/> next to this rig (same parent, or a scene root when the rig is one), or null.</summary>
+        public GameObject FindPrePlacedSibling(string name)
         {
             if (!gameObject.scene.IsValid()) return null; // a prefab asset has no scene roots to search
             if (transform.parent != null)
             {
-                Transform sibling = transform.parent.Find(FirstPersonName);
+                Transform sibling = transform.parent.Find(name);
                 return sibling != null ? sibling.gameObject : null;
             }
             foreach (GameObject root in gameObject.scene.GetRootGameObjects())
-                if (root != gameObject && root.name == FirstPersonName)
+                if (root != gameObject && root.name == name)
                     return root;
             return null;
         }
@@ -336,11 +444,19 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
                 || !TryGetComponent<CinemachineCameraShake>(out _))
                 return false;
             GameObject fp = FindPrePlacedFirstPerson();
-            return fp != null
-                && fp.TryGetComponent<CinemachineCamera>(out _)
-                && fp.TryGetComponent<CinemachineHardLockToTarget>(out _)
-                && fp.TryGetComponent<CinemachineRotateWithFollowTarget>(out _)
-                && fp.TryGetComponent<CinemachineCameraShake>(out _);
+            if (fp == null
+                || !fp.TryGetComponent<CinemachineCamera>(out _)
+                || !fp.TryGetComponent<CinemachineHardLockToTarget>(out _)
+                || !fp.TryGetComponent<CinemachineRotateWithFollowTarget>(out _)
+                || !fp.TryGetComponent<CinemachineCameraShake>(out _))
+                return false;
+            GameObject cin = FindPrePlacedSibling(CinematicName);
+            return cin != null
+                && cin.TryGetComponent<CinemachineCamera>(out _)
+                && cin.TryGetComponent<CinemachineFollow>(out _)
+                && cin.TryGetComponent<CinemachineRotationComposer>(out _)
+                && cin.TryGetComponent<CinemachineDeoccluder>(out _)
+                && cin.TryGetComponent<CinemachineCameraShake>(out _);
         }
 
 #if UNITY_EDITOR
@@ -360,7 +476,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             get
             {
                 if (Application.isPlaying) return "Setup runs in edit mode only — the components are built at play.";
-                if (!setupDone) return "Not set up: Setup pre-builds the Cinemachine components on this object and the first-person camera beside it.";
+                if (!setupDone) return "Not set up: Setup pre-builds the Cinemachine components on this object and the first-person and cinematic cameras beside it.";
                 if (setupSettings != settings) return "The settings asset changed since Setup ran — press Setup to reconfigure against it.";
                 if (!HasSetupComponents()) return "A set-up component is missing — press Setup to restore it.";
                 return "Set up against " + (settings != null ? settings.name : "no settings") + ".";
@@ -378,7 +494,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         /// </summary>
         [Button("Setup", ButtonSizes.Medium), PropertyOrder(-1)]
         [DisableInPlayMode, EnableIf(nameof(SetupPending))]
-        [PropertyTooltip("Edit mode only. Adds the Cinemachine components this rig builds at play (orbit vcam, orbital follow, composer, deoccluder, shake) and creates the FirstPersonCamera sibling with its own, then configures them from the settings asset. Enabled until it has run, and again whenever the settings asset changes.")]
+        [PropertyTooltip("Edit mode only. Adds the Cinemachine components this rig builds at play (orbit vcam, orbital follow, composer, deoccluder, shake) and creates the FirstPersonCamera and CinematicCamera siblings with their own, then configures them from the settings asset. Enabled until it has run, and again whenever the settings asset changes.")]
         void Setup()
         {
             if (Application.isPlaying) return;
@@ -387,6 +503,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             {
                 this, cinemachineCamera, orbital, composer, deoccluder,
                 firstPersonCamera, firstPersonLock, firstPersonRotate,
+                cinematicCamera, cinematicFollow, cinematicComposer, cinematicDeoccluder,
             }, SetupUndoName);
             ConfigureComponents();
             if (settings != null)
@@ -399,6 +516,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
                 orbital.VerticalAxis.Value = appliedPitch;
                 cinemachineCamera.Lens.FieldOfView = settings.baseFov;
                 firstPersonCamera.Lens.FieldOfView = settings.baseFov;
+                cinematicCamera.Lens.FieldOfView = settings.cinematicFov;
             }
             setupSettings = settings;
             setupDone = true;
@@ -422,16 +540,34 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             firstPersonCamera.Lens.NearClipPlane = settings.firstPersonNearClip;
             if (eye != null) PlaceEye(eye, target);
 
+            // The cinematic shot: its own damping, aim point and a fixed lens
+            // (no speed kick — a showcase shot holds its focal length). A
+            // planted shot follows the mount rigidly: it must BE on the
+            // tripod the frame the mount freezes, not still catching up
+            // from wherever damping had left it at 1800 m/s.
+            cinematicFollow.TrackerSettings.PositionDamping = Vector3.one * (settings.cinematicPlanted ? 0f : settings.cinematicDamping);
+            cinematicDeoccluder.enabled = settings.deoccluder;
+            cinematicComposer.Damping = Vector2.one * settings.cinematicAimDamping;
+            cinematicComposer.TargetOffset = new Vector3(0f, settings.cinematicLookHeight, 0f);
+            cinematicCamera.Lens.FieldOfView = settings.cinematicFov;
+
             // Mode switches share one blend length: the brain's default blend
             // (the first-person cut) and the framing slide in ApplyFraming.
-            // Play only: the editor Setup must not dirty a scene brain
-            // outside its Undo step, and the value is pushed every frame anyway.
+            // The cinematic cuts use their own length, held for the cut out
+            // too (the countdown in Update) — the brain reads the default at
+            // the moment the live vcam changes, when the shot has already
+            // dropped its priority. Play only: the editor Setup must not dirty
+            // a scene brain outside its Undo step, and the value is pushed
+            // every frame anyway.
             CinemachineBrain brain = null;
             if (Application.isPlaying)
                 brain = outputCamera != null ? outputCamera.GetComponent<CinemachineBrain>()
                                              : CinemachineCore.FindPotentialTargetBrain(cinemachineCamera);
             if (brain != null)
-                brain.DefaultBlend = new CinemachineBlendDefinition(CinemachineBlendDefinition.Styles.EaseInOut, settings.modeBlendSeconds);
+            {
+                float blendSeconds = cinematicOn || cinematicBlendLeft > 0f ? settings.cinematicBlendSeconds : settings.modeBlendSeconds;
+                brain.DefaultBlend = new CinemachineBlendDefinition(CinemachineBlendDefinition.Styles.EaseInOut, blendSeconds);
+            }
         }
 
         /// <summary>
@@ -464,12 +600,14 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         /// First person wins by priority whenever it is the selected view —
         /// except while the look-back owns the orbit, which is how a glance
         /// over the shoulder works from inside the vehicle: the brain cuts to
-        /// the orbit for the hold and back to the eye on release.
+        /// the orbit for the hold and back to the eye on release. The
+        /// cinematic shot sits above both while the game holds it.
         /// </summary>
         void ApplyPriorities()
         {
             bool firstPerson = mode == CameraMode.FirstPerson && lookBackBlend <= 0f && eye != null;
             firstPersonCamera.Priority = firstPerson ? FirstPersonPriority : OrbitPriority - 1;
+            cinematicCamera.Priority = cinematicOn && mount != null ? CinematicPriority : OrbitPriority - 1;
         }
 
         /// <summary>
@@ -527,9 +665,54 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             anchor.SetPositionAndRotation(vehicle.position, Quaternion.LookRotation(forward, laggedUp));
         }
 
+        /// <summary>
+        /// Put the mount on the vehicle's flank — the cinematic shot's follow
+        /// point. The frame is the anchor's own under TargetUp (the shot
+        /// rolls with a ship through a loop, horizon and all) and the heading
+        /// flattened onto the horizon under WorldUp (a car pitching over a
+        /// ramp never tips it); a planted shot is always level. Yaw 0 is
+        /// straight behind, the orbit's own convention, and 90 the right
+        /// flank. Seated every frame whether the shot is live or not, so a
+        /// cut in never starts from a stale pose — except a planted shot,
+        /// which freezes it where the cut happened.
+        /// </summary>
+        void SeatMount()
+        {
+            if (mount == null || anchor == null || settings == null) return;
+            // Planted: the first seat after the cut is the tripod, and it
+            // stays put until the shot is over — so the loop or the jump
+            // plays out in front of a still camera. The vcam already sits on
+            // the mount (it followed it undamped while off), so nothing pops.
+            bool plant = cinematicOn && settings.cinematicPlanted;
+            if (plant && mountPlanted) return;
+            mountPlanted = plant;
+            Quaternion frame;
+            if (settings.upBinding == UpBinding.TargetUp && !settings.cinematicPlanted)
+                frame = anchor.rotation;
+            else
+            {
+                Vector3 flat = Vector3.ProjectOnPlane(anchor.forward, Vector3.up);
+                if (flat.sqrMagnitude < 0.0001f) flat = Vector3.ProjectOnPlane(anchor.up, Vector3.up); // nose straight up or down
+                if (flat.sqrMagnitude < 0.0001f) flat = Vector3.forward;
+                frame = Quaternion.LookRotation(flat.normalized, Vector3.up);
+            }
+            // Negative yaw about up: a positive setting swings the camera from
+            // behind round the RIGHT flank, the way the tooltip reads.
+            Vector3 local = Quaternion.AngleAxis(-settings.cinematicYaw, Vector3.up) * (Vector3.back * settings.cinematicDistance)
+                          + Vector3.up * settings.cinematicHeight
+                          + Vector3.forward * settings.cinematicLead;
+            mount.SetPositionAndRotation(anchor.position + frame * local, frame);
+        }
+
         void Update()
         {
             if (!built || settings == null) return;
+            // The shot's blend length outlives the shot by one blend, so the
+            // cut out is as long as the cut in (see ApplySettings). Scaled
+            // time, like the brain's own blend clock.
+            if (cinematicBlendLeft > 0f) cinematicBlendLeft -= Time.deltaTime;
+            // The feature switched off under a live shot: drop it.
+            if (cinematicOn && !settings.cinematic) SetCinematic(false);
             ApplySettings(); // live tuning off the inline settings asset
 
             if (target == null) return;
@@ -537,8 +720,9 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
 
             // Tab / Back cycle the view — but only over live gameplay: every
             // menu in the project reads the same chord for its own tabs, and
-            // the vehicle may be holding the view (a menu open, a jump).
-            if (MenuNavigator.CameraCyclePressed() && Time.timeScale > 0f && !target.BlockModeCycle)
+            // the vehicle may be holding the view (a menu open, a jump), or
+            // the game may (the cinematic shot).
+            if (MenuNavigator.CameraCyclePressed() && Time.timeScale > 0f && !target.BlockModeCycle && !cinematicOn)
                 CycleMode();
 
             ApplyFraming(dt);
@@ -580,6 +764,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             float? fogFar = DistanceFog.Instance != null ? DistanceFog.Instance.FarClipPlane : null;
             cinemachineCamera.Lens.FarClipPlane = fogFar ?? defaultFarClip;
             firstPersonCamera.Lens.FarClipPlane = fogFar ?? defaultFarClip;
+            cinematicCamera.Lens.FarClipPlane = fogFar ?? defaultFarClip;
         }
 
         // After every vehicle's Update (the ship moves in Update, the car's
@@ -589,6 +774,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         {
             if (!built || target == null) return;
             SeatAnchor(Time.deltaTime);
+            SeatMount();
         }
 
         /// <summary>
