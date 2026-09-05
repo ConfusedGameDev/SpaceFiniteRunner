@@ -98,7 +98,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         ActionCameraLeft, ActionCameraRight, ActionCameraUp, ActionCameraDown,
         CarBurnoutTorque, CarBurnoutGrip, CarBurnoutMaxSpeed,
         Missions, MissionLabel, MissionNext, StartMissionTarget, RequiresMoney, RequiresUpgrade, ComingSoon, HintPlay,
-        DeleteProgress, DeleteProgressQuestion, DeleteProgressWarning
+        DeleteProgress, DeleteProgressQuestion, DeleteProgressWarning,
+        PoliceRamSpeed, PoliceRamBackoff
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -507,6 +508,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString policeChaseSpeed = new("CHASE SPEED", "VELOCIDAD DE PERSECUCIÓN", "追跡速度", "VITESSE DE POURSUITE");
         [TitleGroup("City police stats")]
         [SerializeField] LocalizedString policeCornerSpeed = new("CORNER SPEED", "VELOCIDAD EN CURVA", "コーナー速度", "VITESSE EN VIRAGE");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policeRamSpeed = new("RAM SPEED", "VELOCIDAD DE EMBESTIDA", "突撃速度", "VITESSE DE PERCUSSION");
+        [TitleGroup("City police stats")]
+        [SerializeField] LocalizedString policeRamBackoff = new("RAM BACK-OFF", "RETROCESO DE EMBESTIDA", "突撃の後退距離", "RECUL DE PERCUSSION");
 
         [TitleGroup("City level objectives")]
         [SerializeField] LocalizedString debugTabLevel = new("DEBUG — LEVEL", "DEPURACIÓN — NIVEL", "デバッグ — レベル", "DÉBOGAGE — NIVEAU");
@@ -1036,6 +1041,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.PolicePatrolSpeed => policePatrolSpeed,
             MenuTextId.PoliceChaseSpeed => policeChaseSpeed,
             MenuTextId.PoliceCornerSpeed => policeCornerSpeed,
+            MenuTextId.PoliceRamSpeed => policeRamSpeed,
+            MenuTextId.PoliceRamBackoff => policeRamBackoff,
             MenuTextId.DebugTabLevel => debugTabLevel,
             MenuTextId.ObjectiveReachSpeed => objectiveReachSpeed,
             MenuTextId.ObjectiveEscapePolice => objectiveEscapePolice,

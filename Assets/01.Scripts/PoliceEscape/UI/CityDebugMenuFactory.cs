@@ -390,6 +390,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                            20f, 250f, 5f, "0", s => s.chaseSpeedKmh, (s, v) => s.chaseSpeedKmh = v);
             AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceCornerSpeed,
                            5f, 80f, 1f, "0", s => s.cornerSpeedKmh, (s, v) => s.cornerSpeedKmh = v);
+            AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceRamSpeed,
+                           10f, 120f, 5f, "0", s => s.ramMinSpeedKmh, (s, v) => s.ramMinSpeedKmh = v);
+            // The run-up distance is the high end of the asset's back-off band;
+            // the contact (low) end follows it down so the band never inverts.
+            AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceRamBackoff,
+                           5f, 40f, 1f, "0", s => s.ramBackoffBand.y, (s, v) =>
+                           {
+                               s.ramBackoffBand.y = v;
+                               s.ramBackoffBand.x = Mathf.Min(s.ramBackoffBand.x, v - 2f);
+                           });
             return screen;
         }
 

@@ -299,3 +299,47 @@ Per-run objects stay runtime-spawned on purpose (but land under the headers abov
 and NPCs (spawn cells come from the live road graph), `MissionBriefScreen` (a modal that destroys
 itself on accept) and `EVP Ground Effects` (backend-conditional; its `TireMarksRenderer` builds its
 mesh in `OnEnable`, so an edit-mode copy would bake runtime state into the scene).
+
+## Police pursuit AI (`AI/PoliceCarInput.cs`, `AI/PursuitSettings.cs`)
+
+Patrol / Chase / Search state machine over the road graph (class summary has the states). The part
+that is easy to break is the **ram** inside Chase:
+
+- Close (< 1.5 cells) and visible on the same level, the player is held as a **ram target**
+  (`ramTarget`, `RamPhase.Charge`), **never queued as a waypoint**. A waypoint pops inside the reach
+  radius, and that parked cruisers a car-length behind a slow or stopped player. There is no pop on
+  the ram target: the car drives through it.
+- `ObstacleAhead` ignores the player's rigidbody while chasing. The anti-pileup brake would otherwise
+  hold the cruiser `forwardBrakeDistance` behind the player.
+- **Ram floor**: with the player inside a 75 degree front arc the target speed never drops below
+  `ramMinSpeedKmh`, so the corner slowdown cannot turn a charge into a crawl. Beside or behind, the
+  slow tight turn stays: that is what brings the nose back around.
+- **Spent charge → back off** (`ChargeSpent`): inside `RamContactDistance` (band low end) with
+  |closing speed| under `ramStallSpeedKmh` AND own speed under the ram floor. Closing speed, not
+  own speed, is the tell: shoving a crawling player closes at ~0 (spent), being out-run closes
+  negative (keep chasing, never reverse), full tilt means not arrived yet. A 0.35 s fuse filters the
+  impact frame; a fresh `OnCollisionEnter` with the player skips it.
+- **Backoff** (`DriveBackoff`): reverse at -0.9 with the nose swinging back onto the player
+  (steer = -angle/45; reverse flips the yaw, see the stuck rule's comment) until the player is
+  `RamBackoffDistance` (band high end) away, `ramBackoffMaxSeconds` passed, or the reverse is
+  blocked (0.6 s at < 2 km/h). Then Charge again. Leaving ram range drops the ram entirely
+  (`PlanRoute`), so a player who drives off is routed after, not reversed from.
+- The generic stuck/reverse rule still runs during a charge for walls and other cars; the ram
+  stall check runs first so nose-to-bumper never counts as wedged.
+
+Knobs are the asset's **Ramming** group; the debug menu's Police Chase tab exposes RAM SPEED and RAM
+BACK-OFF (the band's high end, dragging the low end down so the band never inverts). The
+`CarAiVisualizer` label reads `CHASE·CHARGE` / `CHASE·BACKOFF` and Backoff counts as Reversing.
+
+## NPC health: police are tougher and do not limp (`Vehicles/CarHealth.cs`)
+
+`CarHealth` is one component for traffic and police, but `PatrolManager` calls `MarkPolice()` right
+after attaching it. Two knobs in the health asset's **Police** group then apply:
+
+- `policeToughness` (3): every bite, shunt or blast, is divided by it. Health stays a normalized
+  0..1 bar so the smoke thresholds and the inspector read the same for every car.
+- `policeLimpHealth` (0.2): `SpeedTargetForHealth` returns 1 for a cruiser above it and runs the
+  last band down to zero below it (0 = never slows until dead). Civilians keep the one-to-one
+  health-matched speed. The crawl floor and the ease rate are shared.
+
+The reason is the ram loop: a cruiser that bleeds speed on its first hit can never charge again.

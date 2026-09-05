@@ -109,6 +109,32 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         [PropertyRange(1f, 8f), SuffixLabel("m", true)]
         public float wallBrakeDistance = 3.5f;
 
+        // ------------------------------------------------------------- ramming
+        [TitleGroup("Ramming")]
+        [Tooltip("A charging cruiser never drops below this speed while the player sits in its front arc — so a slow or parked player is still hit hard instead of nosed up to at corner speed.")]
+        [PropertyRange(10f, 120f), SuffixLabel("km/h", true)]
+        public float ramMinSpeedKmh = 45f;
+
+        [TitleGroup("Ramming")]
+        [Tooltip("A charge is spent when the cruiser sits inside the LOW end of this band and has stopped closing on the player; it then reverses until it is the HIGH end away and charges again — the back-up-and-hit-again rhythm.")]
+        [MinMaxSlider(3f, 40f, true), SuffixLabel("m", true)]
+        public Vector2 ramBackoffBand = new(8f, 18f);
+
+        [TitleGroup("Ramming")]
+        [Tooltip("Closing speed below which a cruiser touching the player counts its charge as spent (shoving a slow player along closes at ~0). Only applies while its own speed is under the ram floor — a cruiser still at full tilt is never pulled out of a charge, and one being out-run keeps chasing.")]
+        [PropertyRange(2f, 40f), SuffixLabel("km/h", true)]
+        public float ramStallSpeedKmh = 12f;
+
+        [TitleGroup("Ramming")]
+        [Tooltip("Longest a back-off reverse lasts before the cruiser charges from wherever it got to — a wall or another car behind it must not stall the fight.")]
+        [PropertyRange(0.5f, 5f), SuffixLabel("s", true)]
+        public float ramBackoffMaxSeconds = 2.5f;
+
+        /// <summary>Inside this distance a stalled cruiser calls its charge spent and backs off.</summary>
+        public float RamContactDistance => ramBackoffBand.x;
+        /// <summary>A backing-off cruiser reverses until it is this far from the player, then charges again.</summary>
+        public float RamBackoffDistance => ramBackoffBand.y;
+
         // ------------------------------------------------------------ recovery
         [TitleGroup("Recovery")]
         [Tooltip("Seconds of wanting to move while standing still before the patrol decides it is stuck.")]

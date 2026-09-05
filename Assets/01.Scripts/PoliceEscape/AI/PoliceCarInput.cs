@@ -21,11 +21,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
     /// waypoint, throttle chases a target speed that drops for corners, a
     /// stuck timer backs the car out of walls, and a forward ray brakes
     /// behind other cars (v1 anti-pileup). All knobs live on PursuitSettings.
+    ///
+    /// Close and visible, Chase becomes a RAM: the player is a target the
+    /// cruiser drives INTO, never a waypoint it can "reach" (a waypoint pops a
+    /// few metres short and would park the car behind a slow or stopped
+    /// player), the anti-pileup brake ignores the player, and a charge that
+    /// stops closing (nose against the bumper, shoving a crawling player) is
+    /// spent — the cruiser reverses for a run-up with its nose swinging back
+    /// onto the player, then charges again. Hit, back off, hit: the rhythm the
+    /// chase is built on, whatever speed the player is doing.
     /// </summary>
     [RequireComponent(typeof(CarController))]
     public class PoliceCarInput : MonoBehaviour, ICarInput, IAiDebugDriver
     {
         public enum AiState { Patrol, Chase, Search }
+
+        /// <summary>Chase sub-phase: Charge drives flat out into the player, Backoff reverses for a run-up after a spent hit.</summary>
+        public enum RamPhase { None, Charge, Backoff }
 
         [Required, InlineEditor]
         [Tooltip("All pursuit tunables live on this asset — assigned by the PatrolManager at spawn.")]
@@ -33,6 +45,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
         [TitleGroup("Debug"), ShowInInspector, ReadOnly]
         public AiState State { get; private set; } = AiState.Patrol;
+
+        [TitleGroup("Debug"), ShowInInspector, ReadOnly]
+        public RamPhase Ram { get; private set; } = RamPhase.None;
 
         /// <summary>Distance this cruiser can spot the player from — what the radar draws as its search disc.</summary>
         public float DetectionRange => settings != null ? settings.detectionRange : 0f;
@@ -76,6 +91,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         int travelDirection = -1;
         bool offRoad;
         float repathTimer, lostSightTimer, searchTimer, stuckTimer, reverseTimer, retargetTimer, noProgressTime;
+        // Ram bookkeeping: where the charge is aimed this frame, how long the
+        // charge has been stalled against the player, how long the current
+        // back-off has run, and a short window after touching the player that
+        // lets a stalled charge give up at once instead of waiting out the fuse.
+        Vector3 ramTarget;
+        float ramStallTimer, ramBackoffTimer, playerContactTimer;
         Vector3 progressAnchor;
         float lastForwardSteer;
         float reverseSteer;
@@ -120,6 +141,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
 
             if (recentContactTimer > 0f) recentContactTimer -= dt;
+            if (playerContactTimer > 0f) playerContactTimer -= dt;
 
             // A dead cruiser is a wreck burning its fuse: brake to a stop and
             // hold. Before the self-heal on purpose — a wreck must never be
@@ -198,6 +220,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                     if (lostSightTimer >= settings.loseSightSeconds)
                     {
                         State = AiState.Search;
+                        Ram = RamPhase.None;
                         searchTimer = settings.searchDuration;
                         ClearPlan();
                         PathToPosition(lastKnownPlayerPosition);
@@ -230,6 +253,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         void EnterChase()
         {
             State = AiState.Chase;
+            Ram = RamPhase.None;
             lostSightTimer = 0f;
             repathTimer = 0f;
             ClearPlan();
@@ -241,21 +265,41 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             switch (State)
             {
                 case AiState.Chase:
-                    if (player == null) break;
+                    if (player == null)
+                    {
+                        Ram = RamPhase.None;
+                        break;
+                    }
                     Vector3 predicted = player.transform.position + player.Velocity * settings.predictionLead;
 
-                    // Close and visible: skip the graph and hunt directly — but
-                    // not across levels; a player on an overpass right above us
-                    // is still a routing problem, not a ramming target.
+                    // Close and visible: skip the graph and ram — but not across
+                    // levels; a player on an overpass right above us is still a
+                    // routing problem, not a ramming target. The player is held
+                    // as a RAM TARGET, never queued as a waypoint: a waypoint is
+                    // "reached" inside the pop radius, and that is exactly how
+                    // the cruiser used to ease to a stop a car-length behind a
+                    // slow or parked player instead of hitting it.
                     if (seesPlayer && FlatDistance(transform.position, player.transform.position) < city.settings.cellSize * 1.5f
                         && Mathf.Abs(player.transform.position.y - transform.position.y) < 3f)
                     {
-                        ClearPlan();
-                        waypoints.Add(predicted);
-                        previousWaypoint = transform.position;
+                        if (waypoints.Count > 0)
+                        {
+                            ClearPlan();
+                            previousWaypoint = transform.position;
+                        }
+                        ramTarget = predicted;
+                        if (Ram == RamPhase.None) BeginCharge();
                         break;
                     }
 
+                    // Out of ram range (the player pulled away, or climbed a
+                    // level): back to routing, whatever the ram was doing —
+                    // with a route THIS frame, not after the repath interval.
+                    if (Ram != RamPhase.None)
+                    {
+                        Ram = RamPhase.None;
+                        repathTimer = 0f;
+                    }
                     repathTimer -= dt;
                     if (repathTimer <= 0f)
                     {
@@ -292,33 +336,51 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 return;
             }
 
-            // Tight tracking: pop when genuinely close OR just passed — a
-            // missed waypoint must never become an orbit center. Measured
-            // against the SAME lane-offset point we steer at: popping against
-            // the raw cell center while aiming beside it is exactly how a
-            // never-satisfied waypoint becomes an orbit center.
-            float reach = Mathf.Min(settings.waypointReachDistance, CellSize * 0.4f);
-            while (waypoints.Count > 0)
+            // The ram needs a player to aim at; a respawn gap drops it back to
+            // the ordinary plan until the next PlanRoute re-arms it.
+            if (Ram != RamPhase.None && player == null) Ram = RamPhase.None;
+            if (Ram == RamPhase.Backoff)
             {
-                Vector3? next = waypoints.Count >= 2 ? waypoints[1] : (Vector3?)null;
-                Vector3 to = SteerTarget(waypoints[0], previousWaypoint, next) - transform.position;
-                to.y = 0f;
-                bool reached = to.magnitude < reach;
-                bool passed = Vector3.Dot(transform.forward, to) < 0f && to.magnitude < reach * 2.5f;
-                if (!reached && !passed) break;
-                previousWaypoint = waypoints[0];
-                waypoints.RemoveAt(0);
-            }
-
-            if (waypoints.Count == 0)
-            {
-                Steer = 0f;
-                Throttle = car.SpeedKmh > 5f ? -0.3f : 0f; // ease to a stop until the next plan
-                steerAim = transform.position;
+                DriveBackoff(dt);
                 return;
             }
 
-            Vector3 target = SteerTarget(waypoints[0], previousWaypoint, waypoints.Count >= 2 ? waypoints[1] : (Vector3?)null);
+            Vector3 target;
+            if (Ram == RamPhase.Charge)
+            {
+                // No pop radius on a ram target — the car drives THROUGH it.
+                target = ramTarget;
+            }
+            else
+            {
+                // Tight tracking: pop when genuinely close OR just passed — a
+                // missed waypoint must never become an orbit center. Measured
+                // against the SAME lane-offset point we steer at: popping against
+                // the raw cell center while aiming beside it is exactly how a
+                // never-satisfied waypoint becomes an orbit center.
+                float reach = Mathf.Min(settings.waypointReachDistance, CellSize * 0.4f);
+                while (waypoints.Count > 0)
+                {
+                    Vector3? next = waypoints.Count >= 2 ? waypoints[1] : (Vector3?)null;
+                    Vector3 to = SteerTarget(waypoints[0], previousWaypoint, next) - transform.position;
+                    to.y = 0f;
+                    bool reached = to.magnitude < reach;
+                    bool passed = Vector3.Dot(transform.forward, to) < 0f && to.magnitude < reach * 2.5f;
+                    if (!reached && !passed) break;
+                    previousWaypoint = waypoints[0];
+                    waypoints.RemoveAt(0);
+                }
+
+                if (waypoints.Count == 0)
+                {
+                    Steer = 0f;
+                    Throttle = car.SpeedKmh > 5f ? -0.3f : 0f; // ease to a stop until the next plan
+                    steerAim = transform.position;
+                    return;
+                }
+
+                target = SteerTarget(waypoints[0], previousWaypoint, waypoints.Count >= 2 ? waypoints[1] : (Vector3?)null);
+            }
             steerAim = target;
             Vector3 local = transform.InverseTransformPoint(target);
             float angle = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
@@ -330,7 +392,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             // the closer we get to the corner cell the harder we brake.
             float steerFactor = Mathf.Clamp01(1f - Mathf.Abs(angle) / 90f);
             float approachFactor = 1f;
-            if (waypoints.Count >= 2)
+            if (Ram == RamPhase.None && waypoints.Count >= 2)
             {
                 float turnAhead = Vector3.Angle(Flat(waypoints[1] - waypoints[0]), Flat(waypoints[0] - transform.position)); // XZ only — a ramp is a climb, not a corner
                 if (turnAhead > 30f)
@@ -338,6 +400,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
             float cruise = State == AiState.Chase ? settings.chaseSpeedKmh : settings.patrolSpeedKmh;
             float desired = Mathf.Lerp(settings.cornerSpeedKmh, cruise, Mathf.Min(steerFactor, approachFactor));
+            // A charge is never a crawl: with the player in the front arc the
+            // corner slowdown is overruled by the ram floor, so a parked player
+            // still takes a real hit. Beside or behind us the tight turn keeps
+            // its slow speed — that is what brings the nose back around.
+            if (Ram == RamPhase.Charge && Mathf.Abs(angle) < 75f) desired = Mathf.Max(desired, settings.ramMinSpeedKmh);
             if (offRoad && State != AiState.Chase) desired = Mathf.Min(desired, settings.cornerSpeedKmh); // creep back onto the road
             ObstacleKind obstacle = ObstacleAhead();
             lastObstacle = obstacle;
@@ -345,6 +412,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             else if (obstacle == ObstacleKind.Vehicle) desired = Mathf.Min(desired, settings.cornerSpeedKmh * 0.5f);
             if (health != null) desired *= health.SpeedFactor; // a wounded engine can't hold cruise speed
             Throttle = Mathf.Clamp((desired - car.SpeedKmh) * settings.throttleGain, -1f, 1f);
+
+            // A charge that has stopped closing is spent — back off for the
+            // next one. Checked before the stuck rule so nose-to-bumper never
+            // reads as "wedged": the player is the one thing a cruiser pushes
+            // against on purpose.
+            if (Ram == RamPhase.Charge && ChargeSpent(dt))
+            {
+                stuckTimer = 0f;
+                BeginBackoff();
+                return;
+            }
 
             // Stuck escalation while standing still: walls escalate fast,
             // vehicles patiently (Chase keeps its short fuse — back up and
@@ -374,6 +452,80 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
         }
 
+        // ------------------------------------------------------------- ramming
+
+        void BeginCharge()
+        {
+            Ram = RamPhase.Charge;
+            ramStallTimer = 0f;
+            ramBackoffTimer = 0f;
+        }
+
+        void BeginBackoff()
+        {
+            Ram = RamPhase.Backoff;
+            ramStallTimer = 0f;
+            ramBackoffTimer = 0f;
+            playerContactTimer = 0f;
+        }
+
+        /// <summary>
+        /// Is the charge spent? Inside contact distance AND the gap has stopped
+        /// shrinking AND the cruiser itself is under the ram floor. Closing
+        /// speed, not own speed, is the tell: a cruiser shoving a crawling
+        /// player along closes at ~0 (spent), one being out-run closes negative
+        /// (keep chasing — reversing now would hand the player the gap), one
+        /// still at full tilt has simply not arrived yet. A short fuse filters
+        /// the physics jitter of the impact frame; a fresh touch of the player
+        /// skips it, so the reverse starts the moment the hit lands.
+        /// </summary>
+        bool ChargeSpent(float dt)
+        {
+            Vector3 toPlayer = Flat(player.transform.position - transform.position);
+            float distance = toPlayer.magnitude;
+            if (distance >= settings.RamContactDistance)
+            {
+                ramStallTimer = 0f;
+                return false;
+            }
+            Vector3 direction = distance > 0.01f ? toPlayer / distance : Flat(transform.forward).normalized;
+            float closingKmh = Vector3.Dot(car.Velocity - player.Velocity, direction) * 3.6f;
+            bool spent = Mathf.Abs(closingKmh) < settings.ramStallSpeedKmh && car.SpeedKmh < settings.ramMinSpeedKmh;
+            ramStallTimer = spent ? ramStallTimer + dt : 0f;
+            float fuse = playerContactTimer > 0f ? 0f : 0.35f;
+            return spent && ramStallTimer >= fuse;
+        }
+
+        /// <summary>
+        /// The run-up: reverse until the player is the back-off distance away,
+        /// with the nose swinging back ONTO the player (front-steer kinematics
+        /// flip the yaw in reverse, so steering away from the player's side
+        /// turns the nose toward it), and the next charge starts lined up.
+        /// Ends early when time runs out or the reverse itself is blocked — a
+        /// cruiser pinned against a wall behind charges from where it stands
+        /// rather than grinding its bumper. Leaving ram range mid-back-off is
+        /// PlanRoute's call (it drops the ram) — the player driving away is the
+        /// distance exit here, not a reason to keep reversing.
+        /// </summary>
+        void DriveBackoff(float dt)
+        {
+            ramBackoffTimer += dt;
+            float distance = FlatDistance(transform.position, player.transform.position);
+            bool blocked = ramBackoffTimer > 0.6f && car.SpeedKmh < 2f;
+            if (distance >= settings.RamBackoffDistance || ramBackoffTimer >= settings.ramBackoffMaxSeconds || blocked)
+            {
+                BeginCharge();
+                return;
+            }
+
+            Vector3 local = transform.InverseTransformPoint(player.transform.position);
+            float angle = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
+            Steer = Mathf.Clamp(-angle / 45f, -1f, 1f);
+            Throttle = -0.9f;
+            steerAim = player.transform.position;
+            lastObstacle = ObstacleKind.None;
+        }
+
         /// <summary>Lane offset in metres: the designer fraction of a cell under an absolute cap, so wide cells can't push the lane onto the sidewalk.</summary>
         float LaneOffset => Mathf.Min(CellSize * settings.laneOffsetFraction, settings.laneOffsetMaxMeters);
 
@@ -400,6 +552,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             // A car we just hit is a wreck to back out of, not a queue to
             // wait in — short patience for a while after any vehicle contact.
             if (collision.rigidbody != null) recentContactTimer = 3f;
+            // Touching the player is the hit landing: lets a spent charge back
+            // off at once instead of waiting out the stall fuse.
+            if (player != null && collision.rigidbody == player.Body) playerContactTimer = 0.6f;
         }
 
         /// <summary>
@@ -476,7 +631,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 if (blocked)
                 {
                     obstacleHitSide = Mathf.Sign(transform.InverseTransformPoint(hit.point).x);
-                    if (hit.rigidbody != null && hit.rigidbody != car.Body) verdict = ObstacleKind.Vehicle;
+                    // The player is the one car a chasing cruiser never brakes
+                    // for — the anti-pileup rule would otherwise park it a
+                    // brake-length behind a slow player instead of hitting it.
+                    bool isPlayer = State == AiState.Chase && player != null && hit.rigidbody == player.Body;
+                    if (hit.rigidbody != null && hit.rigidbody != car.Body && !isPlayer) verdict = ObstacleKind.Vehicle;
                     // Static geometry: a genuinely-close hit is an imminent wedge
                     // regardless of steering; farther hits only count when head-on
                     // and not mid-turn — a hard-steering cruiser's ray sweeps off a
@@ -652,7 +811,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
         // --------------------------------------------------------- debug view
 
-        string IAiDebugDriver.StateLabel => State.ToString().ToUpperInvariant();
+        string IAiDebugDriver.StateLabel => State == AiState.Chase && Ram != RamPhase.None
+            ? $"CHASE·{Ram.ToString().ToUpperInvariant()}"
+            : State.ToString().ToUpperInvariant();
 
         Color IAiDebugDriver.StateColor => State switch
         {
@@ -670,7 +831,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             ? LaneRules.SegmentDirection(previousWaypoint, waypoints[0])
             : travelDirection;
         bool IAiDebugDriver.OffRoad => offRoad;
-        bool IAiDebugDriver.Reversing => reverseTimer > 0f;
+        bool IAiDebugDriver.Reversing => reverseTimer > 0f || Ram == RamPhase.Backoff;
         float IAiDebugDriver.StuckTime => stuckTimer;
         ObstacleKind IAiDebugDriver.Obstacle => lastObstacle;
         IReadOnlyList<AiProbe> IAiDebugDriver.Probes => probeLog.Probes;

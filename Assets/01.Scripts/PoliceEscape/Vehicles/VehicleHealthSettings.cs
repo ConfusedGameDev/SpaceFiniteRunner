@@ -40,6 +40,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [PropertyRange(0.05f, 2f)]
         public float speedEasePerSecond = 0.4f;
 
+        // -------------------------------------------------------------- police
+        [TitleGroup("Police")]
+        [Tooltip("A cruiser's health bar as a multiple of a civilian's — every bite (shunts and blasts alike) is divided by this. 3 = three ram exchanges where a taxi would take one.")]
+        [PropertyRange(1f, 6f), SuffixLabel("x", true)]
+        public float policeToughness = 3f;
+
+        [TitleGroup("Police")]
+        [Tooltip("A cruiser holds FULL speed until its (normalized) health falls to this, then limps down to the crawl like a civilian — a chase car that bleeds speed on the first hit stops being a threat. 0 = never slows until it is dead.")]
+        [PropertyRange(0f, 1f)]
+        public float policeLimpHealth = 0.2f;
+
         // ---------------------------------------------------------- thresholds
         [TitleGroup("Thresholds")]
         [Tooltip("Health at or below which the engine starts blowing light white smoke — the first warning.")]

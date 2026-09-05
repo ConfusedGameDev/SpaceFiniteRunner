@@ -36,7 +36,7 @@ Material:
     - _TaperLength: 0.35
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _Focus: {r: 0.5001718, g: 0.38947982, b: 0, a: 0}
+    - _Focus: {r: 0.5000227, g: 0.44335318, b: 0, a: 0}
     - _InnerRadius: {r: 0.18, g: 0.42, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

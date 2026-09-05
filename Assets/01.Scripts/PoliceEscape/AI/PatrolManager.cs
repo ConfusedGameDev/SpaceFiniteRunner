@@ -153,7 +153,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
             // Health before Initialize, so the driver's fetch finds it — the
             // prefab stays untouched, attachment in code same as traffic.
-            go.AddComponent<CarHealth>();
+            // Marked police: tougher, and speed held until nearly dead.
+            go.AddComponent<CarHealth>().MarkPolice();
             driver.Initialize(settings, city);
             patrols.Add(driver);
             return true;

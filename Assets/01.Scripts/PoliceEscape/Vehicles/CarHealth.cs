@@ -53,6 +53,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [TitleGroup("Debug"), ShowInInspector, ReadOnly]
         public float SpeedFactor { get; private set; } = 1f;
 
+        /// <summary>
+        /// A police cruiser: tougher (damage divided by the asset's
+        /// <c>policeToughness</c>) and speed held at full until health falls
+        /// to <c>policeLimpHealth</c> — a chase car that limps after its first
+        /// ram exchange stops being a threat. Set by the PatrolManager right
+        /// after attaching the component; traffic never sets it.
+        /// </summary>
+        [TitleGroup("Debug"), ShowInInspector, ReadOnly]
+        public bool Police { get; private set; }
+
         VehicleHealthSettings settings;
         ParticleSystem lightSmoke;
         ParticleSystem heavySmoke;
@@ -68,6 +78,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             settings = VehicleHealthSettings.Load();
         }
 
+        /// <summary>Flag this car as a police cruiser — see <see cref="Police"/>.</summary>
+        public void MarkPolice() => Police = true;
+
         void Update()
         {
             if (exploded) return; // the wreck just lies there until its linger runs out
@@ -75,7 +88,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // Speed MATCHES health: the target is the health value itself,
             // floored at a crawl so a nearly dead car limps instead of
             // freezing mid-road — only the ease rate keeps it from snapping.
-            float target = IsDead ? 0f : Mathf.Max(settings.crawlSpeedFactor, Health);
+            float target = IsDead ? 0f : Mathf.Max(settings.crawlSpeedFactor, SpeedTargetForHealth());
             SpeedFactor = Mathf.MoveTowards(SpeedFactor, target, settings.speedEasePerSecond * Time.deltaTime);
 
             if (!IsDead) return;
@@ -98,10 +111,31 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             ApplyDamage((impact - settings.minImpactSpeed) * settings.damagePerImpactSpeed);
         }
 
-        /// <summary>Take a bite out of the car. Reaching zero starts the death fuse.</summary>
+        /// <summary>
+        /// The health-matched speed target before the crawl floor. A civilian
+        /// tracks health one to one. A cruiser holds 1 until health reaches
+        /// the police limp threshold, then runs that last band down to zero —
+        /// so the first hits cost it nothing but paint, and only a car about
+        /// to blow starts dragging.
+        /// </summary>
+        float SpeedTargetForHealth()
+        {
+            if (!Police) return Health;
+            float limp = settings.policeLimpHealth;
+            if (limp <= 0f || Health > limp) return 1f;
+            return Health / limp;
+        }
+
+        /// <summary>
+        /// Take a bite out of the car. Reaching zero starts the death fuse.
+        /// A cruiser's bite is divided by the police toughness — one health
+        /// bar for the inspector and the smoke thresholds, more punishment
+        /// behind it.
+        /// </summary>
         public void ApplyDamage(float amount)
         {
             if (IsDead || amount <= 0f) return;
+            if (Police) amount /= Mathf.Max(1f, settings.policeToughness);
             Health = Mathf.Max(0f, Health - amount);
 
             if (Health <= settings.lightSmokeHealth) SetEmitter(ref lightSmoke, true, heavy: false);

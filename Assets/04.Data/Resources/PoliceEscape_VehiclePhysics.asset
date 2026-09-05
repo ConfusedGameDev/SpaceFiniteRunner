@@ -24,3 +24,4 @@ MonoBehaviour:
   softImpactClip: {fileID: 8300000, guid: 2442b3b7c0179504ab02df5d40856ad7, type: 3}
   scratchClip: {fileID: 8300000, guid: b75c88da945e230429739740c8b1f102, type: 3}
   tireMarksMaterial: {fileID: 2100000, guid: 6ba50c5d1a2980d48bd1524a13b93827, type: 2}
+  burnoutClip: {fileID: 0}

@@ -113,6 +113,33 @@ MonoBehaviour:
     hasCompletionMessage: 1
     completionMessage: 'FAST FAST! '
     nextDelaySeconds: 4
+  - type: 0
+    targetSpeedKmh: 130
+    surviveSeconds: 30
+    targetId: 
+    arriveRadius: 12
+    mustBeHuntedFirst: 0
+    destroyCount: 5
+    destroyKind: 0
+    destroyPaint: 0
+    collectCount: 3
+    collectId: 
+    jumpMeasure: 0
+    jumpMeters: 30
+    jumpSeconds: 2
+    timeRule: 0
+    timeSeconds: 60
+    briefing: 
+    accent: {r: 0.45, g: 0.9, b: 1, a: 1}
+    reward: 0
+    hasCinema: 1
+    cinemaClip: {fileID: 0}
+    cinemaFormat: FullScreen
+    cinemaSeconds: 5
+    cinemaPausesGame: 0
+    hasCompletionMessage: 0
+    completionMessage: 
+    nextDelaySeconds: 0
   - type: 5
     targetSpeedKmh: 130
     surviveSeconds: 30
