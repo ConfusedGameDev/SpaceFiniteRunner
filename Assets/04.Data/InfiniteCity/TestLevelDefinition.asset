@@ -17,8 +17,12 @@ MonoBehaviour:
   mode: 0
   speakerName: OPERATOR
   messageHoldSeconds: 4
-  completionMessage: Hack complete. LFG!
-  timeUpMessage: Too slow. We lost them.
+  completionPages:
+  - Hack complete. LFG!
+  timeUpPages:
+  - Too slow. We lost them.
+  legacyCompletionMessage: 
+  legacyTimeUpMessage: 
   challengeFailedMessage: "Forget {0} \u2014 that bonus is gone."
   completionGlitchHoldSeconds: 1.2
   briefVideo: {fileID: 0}
@@ -45,7 +49,9 @@ MonoBehaviour:
     jumpSeconds: 2
     timeRule: 0
     timeSeconds: 60
-    briefing: We need to get those keycards
+    briefingPages:
+    - We need to get those keycards
+    legacyBriefing: 
     accent: {r: 1, g: 0.49622637, b: 0.7563828, a: 0}
     reward: 0
     hasCinema: 0
@@ -54,7 +60,9 @@ MonoBehaviour:
     cinemaSeconds: 5
     cinemaPausesGame: 1
     hasCompletionMessage: 1
-    completionMessage: We Did it!!
+    completionPages:
+    - We Did it!!
+    legacyCompletionMessage: 
     nextDelaySeconds: 3
     multiplier: 2
   - type: 7
@@ -73,7 +81,8 @@ MonoBehaviour:
     jumpSeconds: 2
     timeRule: 0
     timeSeconds: 60
-    briefing: 
+    briefingPages: []
+    legacyBriefing: 
     accent: {r: 0, g: 0, b: 0, a: 0}
     reward: 0
     hasCinema: 1
@@ -82,7 +91,9 @@ MonoBehaviour:
     cinemaSeconds: 4.2
     cinemaPausesGame: 1
     hasCompletionMessage: 1
-    completionMessage: Thats a big Jump!
+    completionPages:
+    - Thats a big Jump!
+    legacyCompletionMessage: 
     nextDelaySeconds: 0
     multiplier: 6
   objectives:
@@ -102,7 +113,9 @@ MonoBehaviour:
     jumpSeconds: 2
     timeRule: 0
     timeSeconds: 60
-    briefing: 'chase petronila '
+    briefingPages:
+    - 'chase petronila '
+    legacyBriefing: 
     accent: {r: 0.45, g: 0.9, b: 1, a: 1}
     reward: 250
     hasCinema: 0
@@ -111,7 +124,9 @@ MonoBehaviour:
     cinemaSeconds: 5
     cinemaPausesGame: 1
     hasCompletionMessage: 1
-    completionMessage: 'FAST FAST! '
+    completionPages:
+    - 'FAST FAST! '
+    legacyCompletionMessage: 
     nextDelaySeconds: 4
   - type: 0
     targetSpeedKmh: 130
@@ -129,7 +144,8 @@ MonoBehaviour:
     jumpSeconds: 2
     timeRule: 0
     timeSeconds: 60
-    briefing: 
+    briefingPages: []
+    legacyBriefing: 
     accent: {r: 0.45, g: 0.9, b: 1, a: 1}
     reward: 0
     hasCinema: 1
@@ -138,7 +154,8 @@ MonoBehaviour:
     cinemaSeconds: 5
     cinemaPausesGame: 0
     hasCompletionMessage: 0
-    completionMessage: 
+    completionPages: []
+    legacyCompletionMessage: 
     nextDelaySeconds: 0
   - type: 5
     targetSpeedKmh: 130
@@ -156,16 +173,19 @@ MonoBehaviour:
     jumpSeconds: 2
     timeRule: 1
     timeSeconds: 60
-    briefing: Lets get those chips
+    briefingPages:
+    - Lets get those chips
+    legacyBriefing: 
     accent: {r: 0.34901965, g: 1, b: 0.5226403, a: 1}
     reward: 250
     hasCinema: 1
     cinemaClip: {fileID: 32900000, guid: 4fd6ee9492f5f894c9f4512f081154c1, type: 3}
     cinemaFormat: SquareLeft
     cinemaSeconds: 4.2
-    cinemaPausesGame: 1
+    cinemaPausesGame: 0
     hasCompletionMessage: 0
-    completionMessage: 
+    completionPages: []
+    legacyCompletionMessage: 
     nextDelaySeconds: 0
   - type: 1
     targetSpeedKmh: 130
@@ -183,7 +203,9 @@ MonoBehaviour:
     jumpSeconds: 2
     timeRule: 0
     timeSeconds: 60
-    briefing: We need to hit 130km/h to trigger the portal
+    briefingPages:
+    - We need to hit 130km/h to trigger the portal
+    legacyBriefing: 
     accent: {r: 0.45, g: 0.9, b: 1, a: 1}
     reward: 250
     hasCinema: 0
@@ -192,7 +214,8 @@ MonoBehaviour:
     cinemaSeconds: 5
     cinemaPausesGame: 1
     hasCompletionMessage: 0
-    completionMessage: 
+    completionPages: []
+    legacyCompletionMessage: 
     nextDelaySeconds: 0
   - type: 0
     targetSpeedKmh: 130
@@ -210,7 +233,8 @@ MonoBehaviour:
     jumpSeconds: 2
     timeRule: 0
     timeSeconds: 60
-    briefing: 
+    briefingPages: []
+    legacyBriefing: 
     accent: {r: 0.45, g: 0.9, b: 1, a: 1}
     reward: 250
     hasCinema: 0
@@ -219,5 +243,6 @@ MonoBehaviour:
     cinemaSeconds: 5
     cinemaPausesGame: 1
     hasCompletionMessage: 0
-    completionMessage: 
+    completionPages: []
+    legacyCompletionMessage: 
     nextDelaySeconds: 0

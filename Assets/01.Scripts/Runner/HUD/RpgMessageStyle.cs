@@ -28,5 +28,12 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [PropertyRange(16, 72)] public int bodyFontSize = 30;
         [Tooltip("Left inset that clears the portrait frame.")]
         [PropertyRange(0f, 600f)] public float textLeftInset = 330f;
+
+        [TitleGroup("Continue marker")]
+        [Tooltip("The blinking triangle shown once a page has typed — distance from the panel's bottom-right corner.")]
+        public Vector2 continueMarkerInset = new(24f, 12f);
+        [PropertyRange(12, 64)] public int continueMarkerFontSize = 26;
+        [Tooltip("Full blink cycle. 0 = steady, no blink.")]
+        [PropertyRange(0f, 2f), SuffixLabel("s", true)] public float continueMarkerBlinkSeconds = 0.8f;
     }
 }

@@ -97,6 +97,9 @@ and a menu tap key), drawn as a `Radial360`-filled `UiSprites.Ring` (`UI/UiSprit
 disc/annulus generator — a filled disc reads as a pie) with the device glyph inside and the
 localized `HoldToSkip` caption. It arms only after `MenuTheme.InputGrace` **and** one seen
 release, so the press that accepted the brief can't pre-charge it, and drains fast on release.
+The dialogue box advances on a TAP of the same chord, so `Play` raises
+`RpgMessageSystem.SkipInputSuppressed` and `End` clears it: a line under the picture keeps
+playing on its own clock but cannot be fast-forwarded or dismissed until the cinema is over.
 
 ## `LevelManager` integration
 

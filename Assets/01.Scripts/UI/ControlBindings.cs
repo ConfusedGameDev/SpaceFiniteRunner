@@ -39,11 +39,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
     /// enforces:
     /// <list type="bullet">
     /// <item><b>Menu chords are never bindable.</b> Esc / Enter / Backspace and
-    /// B / Start are the menus' Confirm, Back and pause-open, hard-wired in
+    /// Start are the menus' Confirm, Back and pause-open, hard-wired in
     /// <see cref="MenuNavigator"/>; <see cref="IsReserved(Key)"/> keeps them
     /// out of every binding, so a bad rebind can never lock the player out of
     /// a menu. Menus keep polling the devices directly — only gameplay reads
-    /// through here.</item>
+    /// through here. Gamepad B is the menus' Back but NOT reserved, for the
+    /// same reason Space is not: menus only run with gameplay frozen, so the
+    /// handbrake (its default) and Back never meet. A is left free of any
+    /// default because the dialogue box and the cinema skip read it while the
+    /// world runs.</item>
     /// <item><b>A control is unique inside its context</b> (<see cref="BindingSection"/>):
     /// binding a control another action of the same context already holds
     /// SWAPS the two (the other action takes this one's old control) —
@@ -97,7 +101,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             new(GameAction.CarSteerRight, BindingSection.Car, Key.D, PadControl.LeftStickRight),
             new(GameAction.CarAccelerate, BindingSection.Car, Key.W, PadControl.RightTrigger),
             new(GameAction.CarBrake, BindingSection.Car, Key.S, PadControl.LeftTrigger),
-            new(GameAction.CarHandbrake, BindingSection.Car, Key.Space, PadControl.ButtonSouth),
+            new(GameAction.CarHandbrake, BindingSection.Car, Key.Space, PadControl.ButtonEast),
             new(GameAction.CarRespawn, BindingSection.Car, Key.R, PadControl.ButtonNorth),
             new(GameAction.CityMap, BindingSection.Car, Key.M, PadControl.DpadUp),
             new(GameAction.RadioPrevious, BindingSection.Car, Key.Digit5, PadControl.DpadLeft),
@@ -110,10 +114,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
             new(GameAction.CameraPanDown, BindingSection.General, Key.DownArrow, PadControl.RightStickDown)
         };
 
-        // Confirm (Enter / numpad Enter), Back (Esc / Backspace / B), the
-        // pause-open Start, and keys the OS or IME owns. Space is deliberately
-        // NOT here: it is the handbrake, and menus only run with gameplay
-        // frozen, so the two never meet.
+        // Confirm (Enter / numpad Enter), Back (Esc / Backspace), the
+        // pause-open Start, and keys the OS or IME owns. Space and gamepad B
+        // are deliberately NOT here: they are the handbrake, and menus only
+        // run with gameplay frozen, so the two never meet. Nor is A: it is
+        // the dialogue advance / cinema skip, read over live gameplay, so no
+        // default sits on it — but a player who wants it there may bind it.
         static readonly HashSet<Key> ReservedKeys = new()
         {
             Key.None, Key.Escape, Key.Enter, Key.NumpadEnter, Key.Backspace,
@@ -122,7 +128,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         static readonly HashSet<PadControl> ReservedPads = new()
         {
-            PadControl.None, PadControl.ButtonEast, PadControl.Start
+            PadControl.None, PadControl.Start
         };
 
         static readonly int ActionCount = Enum.GetValues(typeof(GameAction)).Length;
@@ -387,9 +393,20 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         // ---------------------------------------------------------- storage
 
+        // Bumped when a default moves. A file older than the bump has its
+        // entries that still sit on the RETIRED default moved to the new one
+        // — a deliberate rebind (anything else) is left alone.
+        const int FileVersion = 1;
+
+        static readonly (GameAction action, PadControl retiredPad)[] RetiredPadDefaults =
+        {
+            (GameAction.CarHandbrake, PadControl.ButtonSouth), // v1: handbrake moved A → B, freeing A for dialogue / cinema skip
+        };
+
         [Serializable]
         class BindingFile
         {
+            public int version;
             public List<BindingEntry> entries = new();
         }
 
@@ -403,7 +420,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         static void Save()
         {
-            var file = new BindingFile();
+            var file = new BindingFile { version = FileVersion };
             foreach (var action in Actions)
                 file.entries.Add(new BindingEntry
                 {
@@ -437,6 +454,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
                 if (Enum.TryParse(entry.key, out Key key)) bindings[(int)action].key = key;
                 if (Enum.TryParse(entry.pad, out PadControl pad)) bindings[(int)action].pad = pad;
             }
+
+            if (file.version >= FileVersion) return;
+            foreach (var (action, retiredPad) in RetiredPadDefaults)
+                if (bindings[(int)action].pad == retiredPad)
+                    bindings[(int)action].pad = DefaultPad(action);
         }
     }
 }

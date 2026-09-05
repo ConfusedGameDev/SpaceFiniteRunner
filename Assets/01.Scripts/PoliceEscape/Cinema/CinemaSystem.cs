@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.Video;
 
+using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.UI;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
@@ -399,6 +400,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
             }
             IsPlaying = true;
             IsFrozen = frozen;
+            // The skip is a long press of the same Enter / A the dialogue box
+            // advances on: a line under the picture keeps playing, but cannot
+            // be fast-forwarded or dismissed until the cinema is over.
+            RpgMessageSystem.SkipInputSuppressed = true;
             video.timeUpdateMode = frozen ? VideoTimeUpdateMode.DSPTime : VideoTimeUpdateMode.GameTime;
             openedTime = Time.unscaledTime;
             armed = false;
@@ -635,6 +640,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
             frozen = false;
             IsPlaying = false;
             IsFrozen = false;
+            RpgMessageSystem.SkipInputSuppressed = false;
             if (canvasGroup != null) canvasGroup.alpha = 1f;
 
             System.Action finished = callback;

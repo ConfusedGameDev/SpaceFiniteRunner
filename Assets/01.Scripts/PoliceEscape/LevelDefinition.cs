@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.Video;
 
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema;
@@ -131,9 +132,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [PropertyRange(5f, 600f), SuffixLabel("s", true)]
         public float timeSeconds = 60f;
 
-        [Tooltip("Dialogue line shown when the step becomes active. {0} = the speed / seconds / target id. Leave empty for the built-in line.")]
+        [Tooltip("Dialogue pages spoken when the step becomes active — one entry per page, Enter / A advances. {0} = the speed / seconds / target id. Leave empty for the built-in line.")]
+        [LabelText("Briefing"), ListDrawerSettings(ShowFoldout = false)]
         [MultiLineProperty(2)]
-        public string briefing = "";
+        public string[] briefingPages = System.Array.Empty<string>();
+
+        // Pre-pages authoring, kept only so an old asset can be upgraded: the
+        // owner's OnValidate moves it into briefingPages and blanks it.
+        [SerializeField, HideInInspector, FormerlySerializedAs("briefing")]
+        string legacyBriefing = "";
 
         [Tooltip("Dialogue accent and HUD tint for this step. Fully transparent = the type's default color.")]
         public Color accent = new(0.45f, 0.9f, 1f);
@@ -199,19 +206,53 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public bool hasCompletionMessage;
 
         [ToggleGroup(nameof(hasCompletionMessage))]
-        [Tooltip("The line. {0} = the speed / seconds / count, {1} = the time rule's seconds, {2} = the Destroy Cars filter, {3} = the Collect Objects id.")]
+        [Tooltip("The pages, Enter / A advances. {0} = the speed / seconds / count, {1} = the time rule's seconds, {2} = the Destroy Cars filter, {3} = the Collect Objects id.")]
+        [LabelText("Pages"), ListDrawerSettings(ShowFoldout = false)]
         [MultiLineProperty(2)]
-        public string completionMessage = "";
+        public string[] completionPages = System.Array.Empty<string>();
+
+        [SerializeField, HideInInspector, FormerlySerializedAs("completionMessage")]
+        string legacyCompletionMessage = "";
 
         [Tooltip("Pause after this step completes — and its completion message, if any, has cleared — before the next step activates and briefs. 0 = at once.")]
         [PropertyRange(0f, 30f), SuffixLabel("s", true)]
         public float nextDelaySeconds = 0f;
 
-        /// <summary>A completion line plays only when the toggle is on AND there is text.</summary>
-        public bool HasCompletionMessage => hasCompletionMessage && !string.IsNullOrWhiteSpace(completionMessage);
+        /// <summary>A completion line plays only when the toggle is on AND some page has text.</summary>
+        public bool HasCompletionMessage => hasCompletionMessage && HasText(completionPages);
 
-        /// <summary>The completion line with its placeholders filled (same {0}..{3} as the briefing).</summary>
-        public string CompletionText => Format(completionMessage);
+        /// <summary>The completion pages with their placeholders filled (same {0}..{3} as the briefing).</summary>
+        public string[] CompletionPages => FormatAll(completionPages);
+
+        /// <summary>True when any page carries more than whitespace.</summary>
+        public static bool HasText(IReadOnlyList<string> pages)
+        {
+            if (pages == null) return false;
+            for (int i = 0; i < pages.Count; i++)
+                if (!string.IsNullOrWhiteSpace(pages[i])) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Editor upgrade for assets authored before pages existed: a legacy
+        /// single line becomes page 1 (replacing whatever the new field
+        /// defaulted to — the legacy text is the authored one) and is
+        /// blanked so it never runs twice. Returns true when something moved.
+        /// </summary>
+        public bool MigrateLegacyText()
+        {
+            bool moved = MigrateLine(ref legacyBriefing, ref briefingPages);
+            moved |= MigrateLine(ref legacyCompletionMessage, ref completionPages);
+            return moved;
+        }
+
+        internal static bool MigrateLine(ref string legacy, ref string[] pages)
+        {
+            if (string.IsNullOrEmpty(legacy)) return false;
+            pages = new[] { legacy };
+            legacy = "";
+            return true;
+        }
 
         /// <summary>Speed and time are the parameters the debug menu can slide.</summary>
         public bool HasAdjustableValue => type == ObjectiveType.ReachSpeed || type == ObjectiveType.SurviveTime || type == ObjectiveType.DestroyCars || type == ObjectiveType.CollectObjects || type == ObjectiveType.Jump || HasTimeRule;
@@ -299,13 +340,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// built-in default, which grows a clause for the clock when the step
         /// has one.
         /// </summary>
-        public string BriefingText
+        public string[] BriefingPages =>
+            HasText(briefingPages) ? FormatAll(briefingPages) : new[] { Format(DefaultBriefing(type) + DefaultTimeClause) };
+
+        /// <summary><see cref="Format"/> over every page; blank pages pass through (the message system drops them).</summary>
+        public string[] FormatAll(IReadOnlyList<string> pages)
         {
-            get
-            {
-                string template = string.IsNullOrWhiteSpace(briefing) ? DefaultBriefing(type) + DefaultTimeClause : briefing;
-                return Format(template);
-            }
+            if (pages == null) return System.Array.Empty<string>();
+            var result = new string[pages.Count];
+            for (int i = 0; i < pages.Count; i++) result[i] = Format(pages[i]);
+            return result;
         }
 
         /// <summary>Fills a template's {0} value, {1} time-rule seconds, {2} Destroy Cars filter, {3} Collect Objects id and {4} Jump unit word.</summary>
@@ -406,14 +450,38 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         public float messageHoldSeconds = 4f;
 
         [TitleGroup("Messages")]
-        [Tooltip("Line shown when the last objective completes. The glitch handoff starts only after it disappears.")]
+        [Tooltip("Pages spoken when the last objective completes, Enter / A advances. The glitch handoff starts only after the last one disappears.")]
+        [LabelText("Completion Message"), ListDrawerSettings(ShowFoldout = false)]
         [MultiLineProperty(2)]
-        public string completionMessage = "Hack complete. LFG!";
+        public string[] completionPages = { "Hack complete. LFG!" };
 
         [TitleGroup("Messages")]
-        [Tooltip("Line shown when a Complete Within step runs out of time. The game-over glitch starts only after it disappears.")]
+        [Tooltip("Pages spoken when a Complete Within step runs out of time. The game-over glitch starts only after the last one disappears.")]
+        [LabelText("Time Up Message"), ListDrawerSettings(ShowFoldout = false)]
         [MultiLineProperty(2)]
-        public string timeUpMessage = "Too slow. We lost them.";
+        public string[] timeUpPages = { "Too slow. We lost them." };
+
+        // Pre-pages authoring — see LevelObjective.MigrateLegacyText.
+        [SerializeField, HideInInspector, FormerlySerializedAs("completionMessage")]
+        string legacyCompletionMessage = "";
+        [SerializeField, HideInInspector, FormerlySerializedAs("timeUpMessage")]
+        string legacyTimeUpMessage = "";
+
+        // Upgrades every single-line message on this asset and its steps to
+        // pages the first time the editor validates it; the asset is marked
+        // dirty so the next save persists the move.
+        void OnValidate()
+        {
+            bool moved = LevelObjective.MigrateLine(ref legacyCompletionMessage, ref completionPages);
+            moved |= LevelObjective.MigrateLine(ref legacyTimeUpMessage, ref timeUpPages);
+            if (objectives != null)
+                foreach (var step in objectives) if (step != null) moved |= step.MigrateLegacyText();
+            if (optionalChallenges != null)
+                foreach (var challenge in optionalChallenges) if (challenge != null) moved |= challenge.MigrateLegacyText();
+#if UNITY_EDITOR
+            if (moved) UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
 
         [TitleGroup("Messages")]
         [Tooltip("Line shown when an accepted optional challenge's deadline runs out (a completed challenge speaks its own completion message instead). {0} = the challenge, {1} = its multiplier. Empty = no line.")]

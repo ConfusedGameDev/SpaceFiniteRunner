@@ -63,9 +63,13 @@ binding.
 **Rules:**
 
 - **Menu chords are never bindable.** `IsReserved` keeps Esc / Enter / numpad Enter / Backspace /
-  meta keys and B / Start out of every binding and every capture. `MenuNavigator`'s Confirm / Back
+  meta keys and Start out of every binding and every capture. `MenuNavigator`'s Confirm / Back
   / navigate / pause-open stay hard-wired, and **menus keep polling the devices directly — only
-  gameplay reads through the table.**
+  gameplay reads through the table.** Gamepad B (the menus' Back) is deliberately NOT reserved,
+  for the same reason Space is not: it is the car handbrake's default, and menus only run with
+  gameplay frozen. Gamepad A carries no default at all — the dialogue box's advance and the
+  cinema's skip read it over live gameplay (`MenuNavigator.DialogueAdvancePressed` /
+  `ConfirmHeld`) — though a player may bind it.
 - A control is unique inside its **context** (`BindingSection` Ship / Car / General): same section
   conflicts, General conflicts with everything, Ship and Car never — both steer on A/D, and M is
   the ship's dash-right AND the car's map.
@@ -73,7 +77,10 @@ binding.
   old control a third action already holds is dropped to `None`, drawn `—`) — never a silent
   overwrite. `Sanitize` on load enforces the same walking the enum.
 - Stored by enum NAME as one JSON string in PlayerPrefs (`settings.bindings`, the `UserSettings`
-  shape). **Domain reload is off**, so `Boot()` reloads and drops stale `Changed` listeners.
+  shape) with a `version` (`FileVersion`, 1). **Moving a default is a version bump plus a row in
+  `RetiredPadDefaults`**: on load, a file older than the bump has every entry still sitting on the
+  retired default moved to the new one, and a deliberate rebind is left alone (v1: handbrake A → B).
+  **Domain reload is off**, so `Boot()` reloads and drops stale `Changed` listeners.
 
 ### The CONTROLS screen
 

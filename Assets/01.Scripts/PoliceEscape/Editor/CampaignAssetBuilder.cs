@@ -62,7 +62,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                     type = PoliceEscape.ObjectiveType.DestroyCars,
                     destroyCount = 3,
                     reward = 600,
-                    briefing = "They know your face now. Make a mess — total {0} cars and they will send everyone.",
+                    briefingPages = new[] { "They know your face now. Make a mess — total {0} cars and they will send everyone." },
                 });
                 cityLevel2.objectives.Add(new PoliceEscape.LevelObjective
                 {
@@ -70,7 +70,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                     mustBeHuntedFirst = true,
                     reward = 900,
                     accent = PoliceEscape.LevelObjective.DefaultAccent(PoliceEscape.ObjectiveType.EscapePolice),
-                    briefing = "Now lose them. All of them.",
+                    briefingPages = new[] { "Now lose them. All of them." },
                 });
                 EditorUtility.SetDirty(cityLevel2);
             }

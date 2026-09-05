@@ -40,7 +40,13 @@ chosen type's knobs show, via `[ShowIf]`. `ObjectiveType` is **append-only**.
 | Jump = 7 | `JumpMeasure` Distance → `jumpMeters`, AirTime → `jumpSeconds` |
 
 Each entry also carries a `reward` (hidden on challenges), the dialogue framing (`speakerName`,
-per-step `briefing`, `completionMessage`), and the level carries a `mode` and `nextSceneName`.
+per-step `briefingPages`, `completionPages` — **page lists**, one entry per dialogue page, Enter /
+A advances), and the level carries a `mode` and `nextSceneName`. The level's own
+`completionPages` / `timeUpPages` are lists too. Every one of these was a single string before:
+the old value lives on as a hidden `legacy*` field (`FormerlySerializedAs`) that
+`LevelDefinition.OnValidate` (and the two triggers' `OnValidate`) moves into page 1 via
+`LevelObjective.MigrateLine` and blanks — an old asset upgrades the first time the inspector
+validates it and persists on the next save. `challengeFailedMessage` stays a single line.
 
 Steps play top to bottom and brief once when first active.
 
@@ -108,9 +114,9 @@ page lists every challenge read-only, tinted by the same statuses (`AcceptedInde
 
 The third hand-placed volume beside `DialogueTrigger` (orange) and `CinemaTrigger` (blue), drawn
 green by the same visualizer. It carries a full inline `OptionalChallenge` (any type, clock and
-multiplier) plus a description line (speaker / portrait / text with the objective's `{0}..{3}`
-placeholders via the public `LevelObjective.Format`; empty text = the objective's own briefing,
-empty speaker / 0 hold = the level's).
+multiplier) plus a description (speaker / portrait / `pages` with the objective's `{0}..{3}`
+placeholders via the public `LevelObjective.FormatAll`; no page text = the objective's own
+`BriefingPages`, empty speaker / 0 hold = the level's).
 
 Driving in calls **`LevelManager.AcceptChallenge`** — the challenge joins `acceptedChallenges`
 with a fresh state (starts counting next frame, multiplies `MissionReward`; refused while the
@@ -136,8 +142,8 @@ Completion = completion line → (after it disappears) glitch slammed to max, he
 manager.
 
 **Every objective (challenges included) can carry a completion message and a delay**: the
-`Completion message` `[ToggleGroup]` (`hasCompletionMessage` + `completionMessage`, same
-`{0}..{3}` placeholders as the briefing via the shared `Format`, `[MSG]` in the list label) and
+`Completion message` `[ToggleGroup]` (`hasCompletionMessage` + `completionPages`, same
+`{0}..{3}` placeholders as the briefing via the shared `FormatAll`, `[MSG]` in the list label) and
 `nextDelaySeconds`.
 
 When a main step finishes, `LevelManager.BeginAdvance` raises the **`advancing` gate**

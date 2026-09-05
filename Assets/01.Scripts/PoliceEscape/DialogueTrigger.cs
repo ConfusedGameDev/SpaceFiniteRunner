@@ -3,14 +3,15 @@ using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.Ship;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
     /// <summary>
     /// A hand-placed volume that speaks one <see cref="RpgMessageSystem"/>
-    /// line when the player drives (or flies) into it: portrait sprite,
-    /// speaker name, text and hold duration are authored on the trigger
-    /// itself. It recognises both games' players — the city car by its
+    /// message when the player drives (or flies) into it: portrait sprite,
+    /// speaker name, the pages (one entry each, Enter / A advances) and the
+    /// per-page hold duration are authored on the trigger itself. It recognises both games' players — the city car by its
     /// <see cref="Vehicles.CarInput"/>, the runner ship by its
     /// <see cref="ShipMotor"/> — so the same component works in every scene.
     /// With <see cref="oneShot"/> on the object destroys itself after firing;
@@ -35,11 +36,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Required]
         [SerializeField] string characterName = "PILOT";
 
-        [Tooltip("The line the box types out.")]
+        [Tooltip("The pages the box types out, one entry each — Enter / A advances.")]
+        [ListDrawerSettings(ShowFoldout = false)]
         [MultiLineProperty(4)]
-        [SerializeField] string text = "";
+        [SerializeField] string[] pages = System.Array.Empty<string>();
 
-        [Tooltip("Seconds the finished line holds on screen before hiding.")]
+        // Pre-pages authoring, upgraded by OnValidate into pages[0].
+        [SerializeField, HideInInspector, FormerlySerializedAs("text")]
+        string legacyText = "";
+
+        [Tooltip("Seconds each finished page holds on screen before the next one (or hiding).")]
         [PropertyRange(0.5f, 15f)]
         [SerializeField] float duration = 3f;
 
@@ -70,6 +76,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             foreach (var col in GetComponents<Collider>()) col.isTrigger = true;
         }
 
+        void OnValidate()
+        {
+            if (!LevelObjective.MigrateLine(ref legacyText, ref pages)) return;
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
+
         void OnEnable()
         {
             active.Add(this);
@@ -84,7 +98,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             if (Time.time - lastFireTime < cooldownSeconds) return;
 
             lastFireTime = Time.time;
-            RpgMessageSystem.Instance.ShowMessage(characterName, text, duration, accent, characterSprite);
+            RpgMessageSystem.Instance.ShowMessage(characterName, pages, duration, accent, characterSprite);
             if (oneShot) Destroy(gameObject);
         }
 

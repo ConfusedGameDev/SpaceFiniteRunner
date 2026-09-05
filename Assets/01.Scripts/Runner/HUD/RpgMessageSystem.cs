@@ -11,10 +11,22 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// bottom panel with the speaker's name and a typewriter-revealed line.
     /// Singleton — auto-created on first use like FloatingTextSystem; pre-place
     /// one in the scene to wire the UnityEvents or assign a portrait sprite
-    /// and type sound. Only one message plays at a time: extra calls queue up
-    /// (identical lines are dropped), each types out, holds for its duration,
-    /// then hides and fires its onFinished callback — the GameManager uses
-    /// that to reset the run only after the game-over line has gone away.
+    /// and type sound. A message is one speaker with one or more PAGES: each
+    /// page types out, holds for the message's duration, then the next page
+    /// starts; after the last one the box hides and fires its onFinished
+    /// callback — the GameManager uses that to reset the run only after the
+    /// game-over line has gone away. Only one message plays at a time: extra
+    /// calls queue up (identical page lists are dropped).
+    /// Enter / numpad Enter / gamepad A is the advance chord (never Space — it
+    /// is the car's handbrake): a press while a page is typing FAST-FORWARDS
+    /// it (the typewriter keeps running, just <see cref="skipSpeedMultiplier"/>
+    /// times faster, so the effect survives), a press once it has typed ends
+    /// the hold at once. A short lockout after each page starts and again
+    /// after it finishes typing eats a double-tap, so a page can never be
+    /// skipped unread. The chord is ignored while the world is frozen (the
+    /// pause menu owns A there) and while <see cref="SkipInputSuppressed"/>
+    /// is raised (the cinema's long-press skip shares the button). A blinking
+    /// marker in the panel's corner says "press" once a page has typed.
     /// Runs on scaled time so an in-flight message freezes with the pause menu.
     /// The portrait falls back to the speaker's initial when no sprite is set,
     /// and the type blip falls back to a generated placeholder beep.
@@ -56,14 +68,20 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         [Header("Typewriter")]
         [SerializeField, Min(1f)] float charactersPerSecond = 45f;
-        [Tooltip("Seconds a finished message stays on screen when the caller doesn't specify.")]
+        [Tooltip("Seconds a finished page stays on screen when the caller doesn't specify.")]
         [SerializeField, Min(0f)] float defaultHoldSeconds = 2.5f;
+
+        [Header("Skip")]
+        [Tooltip("Enter / A while a page is typing multiplies the typing speed by this — the page lands almost at once but still types.")]
+        [SerializeField, PropertyRange(2f, 20f)] float skipSpeedMultiplier = 8f;
+        [Tooltip("Seconds after a page starts, and again after it finishes typing, during which Enter / A is ignored — eats a double-tap so a page can't be skipped unread.")]
+        [SerializeField, PropertyRange(0f, 0.5f), SuffixLabel("s", true)] float skipLockoutSeconds = 0.15f;
 
         [Header("Sound")]
         [Tooltip("Blip played while typing. Leave empty for a generated placeholder beep.")]
         [SerializeField] AudioClip typeSound;
         [SerializeField, Range(0f, 1f)] float typeSoundVolume = 0.35f;
-        [Tooltip("A blip plays every Nth visible character (1 = every character).")]
+        [Tooltip("A blip plays every Nth visible character (1 = every character). While fast-forwarding the blips keep this same rate in time, not per character.")]
         [SerializeField, Min(1)] int typeSoundEveryChars = 2;
 
         [Header("Portrait")]
@@ -72,13 +90,14 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         [Header("Events")]
         public UnityEvent onMessageStarted = new();
+        [Tooltip("Fires once per PAGE, the moment it has fully typed.")]
         public UnityEvent onTypingFinished = new();
         public UnityEvent onMessageFinished = new();
 
         struct Message
         {
             public string speaker;
-            public string text;
+            public string[] pages;
             public float hold;
             public Color accent;
             public Sprite avatar;
@@ -89,22 +108,41 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         readonly Queue<Message> queue = new();
         Message current;
         bool showing;
+        int pageIndex;
         bool typingDone;
+        bool fastForward;
         float visibleCount;
         int shownChars;
         int blipCounter;
+        float blipTimer;
         float holdTimer;
+        float lockoutTimer;
 
         GameObject root;
         Text nameText;
         Text bodyText;
         Text initialText;
+        Text continueMarker;
         Image portraitImage;
         Image portraitFrame;
         AudioSource audioSource;
 
         /// <summary>True while a message is on screen or waiting in the queue.</summary>
         public bool IsBusy => showing || queue.Count > 0;
+
+        /// <summary>
+        /// Raised by whoever owns the advance chord for the moment — the
+        /// cinema, whose skip is a long press of the same Enter / A — so a
+        /// message under it keeps playing on its own clock but cannot be
+        /// fast-forwarded or dismissed. Cleared again when that owner is done
+        /// (and by every fresh instance's Awake, so a scene change can never
+        /// leave it stuck).
+        /// </summary>
+        public static bool SkipInputSuppressed { get; set; }
+
+        /// <summary>The page currently on screen (0-based) and how many the message has — for HUD prompts and debug overlays.</summary>
+        public int CurrentPage => showing ? pageIndex : 0;
+        public int PageCount => showing ? current.pages.Length : 0;
 
         /// <summary>
         /// True while HUD gauges should stay off the screen: the system is set
@@ -126,11 +164,13 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 return;
             }
             instance = this;
+            SkipInputSuppressed = false;
             Build();
         }
 
         const string TestSpeaker = "Author";
         const string TestLine = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+        const string TestLine2 = "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.";
 
         /// <summary>Editor bake: regenerates the box and leaves it visible with sample text, so the prefab shows before play.</summary>
         [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
@@ -141,15 +181,16 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             nameText.text = "PILOT";
             bodyText.text = "Preview of the dialogue box — runtime rebuilds this from the style asset.";
             initialText.text = "P";
+            continueMarker.enabled = true;
         }
 
         /// <summary>
         /// Reverse of Build: reads the box as it currently stands in the scene
-        /// — panel rect and colors, portrait rect, font sizes, text inset —
-        /// back into the style asset and saves it. The edit-mode tuning loop:
-        /// Show Test Message, move/resize the built pieces by hand in the
-        /// scene view, fetch, then Rebuild Preview to confirm the asset now
-        /// reproduces the tweak.
+        /// — panel rect and colors, portrait rect, font sizes, text inset,
+        /// continue-marker corner inset — back into the style asset and saves
+        /// it. The edit-mode tuning loop: Show Test Message, move/resize the
+        /// built pieces by hand in the scene view, fetch, then Rebuild Preview
+        /// to confirm the asset now reproduces the tweak.
         /// </summary>
         [Button("Fetch Current Setup", ButtonSizes.Large), GUIColor(1f, 0.85f, 0.5f)]
         public void FetchCurrentSetup()
@@ -181,6 +222,12 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             style.bodyFontSize = bodyText.fontSize;
             style.textLeftInset = bodyText.rectTransform.offsetMin.x;
 
+            if (continueMarker != null)
+            {
+                style.continueMarkerInset = -continueMarker.rectTransform.anchoredPosition;
+                style.continueMarkerFontSize = continueMarker.fontSize;
+            }
+
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(style);
             UnityEditor.AssetDatabase.SaveAssetIfDirty(style);
@@ -189,17 +236,18 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         }
 
         /// <summary>
-        /// Shows a sample line — "{TestSpeaker}", lorem ipsum, the default
-        /// portrait, five seconds. In play mode it goes through the real queue
-        /// (typewriter, blips, hold); in edit mode it rebuilds the box and
-        /// leaves it fully visible, ready to be hand-tweaked and fetched.
+        /// Shows a sample two-page message — "{TestSpeaker}", lorem ipsum, the
+        /// default portrait, five seconds a page. In play mode it goes through
+        /// the real queue (typewriter, blips, hold, the advance chord); in edit
+        /// mode it rebuilds the box and leaves it fully visible, marker
+        /// included, ready to be hand-tweaked and fetched.
         /// </summary>
         [Button("Show Test Message", ButtonSizes.Large), GUIColor(0.6f, 0.8f, 1f)]
         public void ShowTestMessage()
         {
             if (Application.isPlaying)
             {
-                ShowMessage(TestSpeaker, TestLine, 5f, Color.white, defaultAvatar);
+                ShowMessage(TestSpeaker, new[] { TestLine, TestLine2 }, 5f, Color.white, defaultAvatar);
                 return;
             }
 
@@ -214,6 +262,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             initialText.text = TestSpeaker[..1];
             initialText.color = Color.white;
             portraitFrame.color = Color.Lerp(Color.white, Color.black, 0.78f);
+            continueMarker.enabled = true;
+            continueMarker.color = Color.white;
         }
 
         // Root components (canvas, scaler, audio) are reused by Build, not
@@ -223,7 +273,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         {
             for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
             root = null;
-            nameText = bodyText = initialText = null;
+            nameText = bodyText = initialText = continueMarker = null;
             portraitImage = portraitFrame = null;
             audioSource = null;
         }
@@ -242,33 +292,43 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         }
 
 
-        /// <summary>Shows a message with the default hold time and a white accent.</summary>
+        /// <summary>Shows a one-page message with the default hold time and a white accent.</summary>
         public void ShowMessage(string speaker, string text)
             => ShowMessage(speaker, text, defaultHoldSeconds, Color.white);
 
-        /// <summary>
-        /// Queues a message. Only one plays at a time; a line identical to one
-        /// already playing or queued is dropped (its callback still runs so a
-        /// caller waiting on it can't stall).
-        /// </summary>
+        /// <summary>One-page form of <see cref="ShowMessage(string, IReadOnlyList{string}, float, Color, Sprite, bool, System.Action)"/>.</summary>
         public void ShowMessage(string speaker, string text, float holdSeconds, Color accent,
                                 Sprite avatar = null, bool playTypeSound = true,
                                 System.Action onFinished = null)
+            => ShowMessage(speaker, new[] { text }, holdSeconds, accent, avatar, playTypeSound, onFinished);
+
+        /// <summary>
+        /// Queues a message of one or more pages, all spoken by one speaker
+        /// with one portrait and accent; every page holds for holdSeconds.
+        /// Blank pages are dropped, and a message left with none finishes at
+        /// once. Only one message plays at a time; one whose pages match a
+        /// message already playing or queued is dropped (its callback still
+        /// runs so a caller waiting on it can't stall).
+        /// </summary>
+        public void ShowMessage(string speaker, IReadOnlyList<string> pages, float holdSeconds, Color accent,
+                                Sprite avatar = null, bool playTypeSound = true,
+                                System.Action onFinished = null)
         {
-            if (string.IsNullOrEmpty(text))
+            string[] clean = CleanPages(pages);
+            if (clean.Length == 0)
             {
                 onFinished?.Invoke();
                 return;
             }
 
-            if (showing && current.text == text)
+            if (showing && SamePages(current.pages, clean))
             {
                 onFinished?.Invoke();
                 return;
             }
             foreach (var queued in queue)
             {
-                if (queued.text != text) continue;
+                if (!SamePages(queued.pages, clean)) continue;
                 onFinished?.Invoke();
                 return;
             }
@@ -276,13 +336,30 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             queue.Enqueue(new Message
             {
                 speaker = speaker,
-                text = text,
+                pages = clean,
                 hold = holdSeconds,
                 accent = accent,
                 avatar = avatar,
                 playSound = playTypeSound,
                 onFinished = onFinished,
             });
+        }
+
+        static string[] CleanPages(IReadOnlyList<string> pages)
+        {
+            if (pages == null) return System.Array.Empty<string>();
+            var list = new List<string>(pages.Count);
+            for (int i = 0; i < pages.Count; i++)
+                if (!string.IsNullOrWhiteSpace(pages[i])) list.Add(pages[i]);
+            return list.ToArray();
+        }
+
+        static bool SamePages(string[] a, string[] b)
+        {
+            if (a == null || b == null || a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (a[i] != b[i]) return false;
+            return true;
         }
 
         /// <summary>Hides the current message and drops the queue without firing callbacks or events (used when a run restarts mid-message).</summary>
@@ -303,48 +380,93 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 return;
             }
 
+            float dt = Time.deltaTime;
+            if (lockoutTimer > 0f) lockoutTimer -= dt;
+            bool advance = AdvancePressed();
+
             if (!typingDone)
             {
-                visibleCount += charactersPerSecond * Time.deltaTime;
-                int target = Mathf.Min(current.text.Length, Mathf.FloorToInt(visibleCount));
-                while (shownChars < target)
-                {
-                    char c = current.text[shownChars];
-                    shownChars++;
-                    if (current.playSound && !char.IsWhiteSpace(c) &&
-                        ++blipCounter >= typeSoundEveryChars)
-                    {
-                        blipCounter = 0;
-                        PlayBlip();
-                    }
-                }
-                bodyText.text = current.text.Substring(0, shownChars);
-
-                if (shownChars >= current.text.Length)
-                {
-                    typingDone = true;
-                    holdTimer = current.hold;
-                    onTypingFinished.Invoke();
-                }
+                if (advance) fastForward = true;
+                TypeStep(dt);
                 return;
             }
 
-            holdTimer -= Time.deltaTime;
-            if (holdTimer <= 0f) FinishCurrent();
+            BlinkMarker();
+            holdTimer -= dt;
+            if (advance || holdTimer <= 0f) AdvancePage();
+        }
+
+        // The advance chord, gated: never while the world is frozen (the
+        // pause menu is reading A), never under a cinema, never inside the
+        // double-tap lockout. A press the lockout swallows is lost, not
+        // deferred — deferring would make the mash it guards against work.
+        bool AdvancePressed()
+        {
+            if (SkipInputSuppressed || Time.timeScale <= 0f || lockoutTimer > 0f) return false;
+            return UI.MenuNavigator.DialogueAdvancePressed();
+        }
+
+        // Reveals the characters due this frame. Blips are per-character at
+        // normal speed; fast-forward switches them to a clock at the same
+        // rate, so an 8x page sounds like typing, not a buzz.
+        void TypeStep(float dt)
+        {
+            string page = current.pages[pageIndex];
+            float rate = fastForward ? charactersPerSecond * skipSpeedMultiplier : charactersPerSecond;
+            visibleCount += rate * dt;
+            int target = Mathf.Min(page.Length, Mathf.FloorToInt(visibleCount));
+            bool revealedVisible = false;
+            while (shownChars < target)
+            {
+                char c = page[shownChars];
+                shownChars++;
+                if (char.IsWhiteSpace(c)) continue;
+                revealedVisible = true;
+                if (current.playSound && !fastForward && ++blipCounter >= typeSoundEveryChars)
+                {
+                    blipCounter = 0;
+                    PlayBlip();
+                }
+            }
+            bodyText.text = page.Substring(0, shownChars);
+
+            if (fastForward && current.playSound)
+            {
+                blipTimer += dt;
+                float interval = typeSoundEveryChars / charactersPerSecond;
+                if (revealedVisible && blipTimer >= interval)
+                {
+                    blipTimer = 0f;
+                    PlayBlip();
+                }
+            }
+
+            if (shownChars >= page.Length)
+            {
+                typingDone = true;
+                holdTimer = current.hold;
+                lockoutTimer = skipLockoutSeconds;
+                continueMarker.enabled = true;
+                onTypingFinished.Invoke();
+            }
+        }
+
+        void BlinkMarker()
+        {
+            float period = style != null ? style.continueMarkerBlinkSeconds : 0.8f;
+            if (period <= 0f) { continueMarker.enabled = true; return; }
+            continueMarker.enabled = Mathf.Repeat(Time.time, period) < period * 0.6f;
         }
 
         void Begin(Message message)
         {
             current = message;
             showing = true;
-            typingDone = false;
-            visibleCount = 0f;
-            shownChars = 0;
-            blipCounter = 0;
+            pageIndex = 0;
 
             nameText.text = $"-{message.speaker}-";
             nameText.color = message.accent;
-            bodyText.text = "";
+            continueMarker.color = message.accent;
 
             var sprite = message.avatar != null ? message.avatar : defaultAvatar;
             portraitImage.enabled = sprite != null;
@@ -354,8 +476,36 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             initialText.color = message.accent;
             portraitFrame.color = Color.Lerp(message.accent, Color.black, 0.78f);
 
+            BeginPage();
             root.SetActive(true);
             onMessageStarted.Invoke();
+        }
+
+        // Fresh typewriter state for the page at pageIndex. The lockout starts
+        // here too, so the press that ended the previous page's hold cannot
+        // carry into this one.
+        void BeginPage()
+        {
+            typingDone = false;
+            fastForward = false;
+            visibleCount = 0f;
+            shownChars = 0;
+            blipCounter = 0;
+            blipTimer = 0f;
+            lockoutTimer = skipLockoutSeconds;
+            bodyText.text = "";
+            continueMarker.enabled = false;
+        }
+
+        void AdvancePage()
+        {
+            if (pageIndex + 1 < current.pages.Length)
+            {
+                pageIndex++;
+                BeginPage();
+                return;
+            }
+            FinishCurrent();
         }
 
         void FinishCurrent()
@@ -462,6 +612,18 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             bodyRect.offsetMin = new Vector2(s.textLeftInset, 18f);
             bodyRect.offsetMax = new Vector2(-28f, -66f);
             bodyText.fontStyle = FontStyle.Normal;
+
+            // Continue marker: the classic blinking triangle in the panel's
+            // bottom-right corner, shown only once a page has typed. Hidden
+            // until then so it never contradicts the typewriter.
+            continueMarker = MakeText("Continue", inner, TextAnchor.LowerRight, s.continueMarkerFontSize);
+            continueMarker.text = "▼";
+            var markerRect = continueMarker.rectTransform;
+            markerRect.anchorMin = markerRect.anchorMax = new Vector2(1f, 0f);
+            markerRect.pivot = new Vector2(1f, 0f);
+            markerRect.anchoredPosition = -s.continueMarkerInset;
+            markerRect.sizeDelta = new Vector2(s.continueMarkerFontSize * 1.5f, s.continueMarkerFontSize * 1.5f);
+            continueMarker.enabled = false;
 
             // Portrait frame sits on the root so it can poke out above the
             // panel, like a classic RPG talking head.

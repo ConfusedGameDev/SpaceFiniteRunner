@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using ConfusedGameDev.FiniteRunner.HUD;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 {
@@ -38,9 +39,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [SerializeField] string characterName = "";
 
         [TitleGroup("Description")]
-        [Tooltip("The line spoken as the trigger fires — what the challenge is. {0} = the objective's value, {1} = its time-rule seconds, {2} = the Destroy Cars filter, {3} = the Collect Objects id. Empty = the objective's own briefing line.")]
+        [Tooltip("The pages spoken as the trigger fires — what the challenge is; one entry each, Enter / A advances. {0} = the objective's value, {1} = its time-rule seconds, {2} = the Destroy Cars filter, {3} = the Collect Objects id. Empty = the objective's own briefing.")]
+        [ListDrawerSettings(ShowFoldout = false)]
         [MultiLineProperty(4)]
-        [SerializeField] string text = "";
+        [SerializeField] string[] pages = System.Array.Empty<string>();
+
+        // Pre-pages authoring, upgraded by OnValidate into pages[0].
+        [SerializeField, HideInInspector, FormerlySerializedAs("text")]
+        string legacyText = "";
 
         [TitleGroup("Description")]
         [Tooltip("Seconds the finished line holds on screen before hiding. 0 = the level's hold time.")]
@@ -66,6 +72,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             foreach (var col in GetComponents<Collider>()) col.isTrigger = true;
         }
 
+        // Upgrades the trigger's own line and the embedded challenge's lines
+        // to pages the first time the editor validates it.
+        void OnValidate()
+        {
+            bool moved = LevelObjective.MigrateLine(ref legacyText, ref pages);
+            if (challenge != null) moved |= challenge.MigrateLegacyText();
+#if UNITY_EDITOR
+            if (moved) UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
+
         void OnEnable()
         {
             active.Add(this);
@@ -88,10 +105,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
             LevelDefinition level = manager.Level;
             string speaker = string.IsNullOrWhiteSpace(characterName) ? level.speakerName : characterName;
-            string line = string.IsNullOrWhiteSpace(text) ? challenge.BriefingText : challenge.Format(text);
+            string[] lines = LevelObjective.HasText(pages) ? challenge.FormatAll(pages) : challenge.BriefingPages;
             float hold = duration > 0f ? duration : level.messageHoldSeconds;
             Color tint = accent.a > 0.001f ? accent : challenge.Accent;
-            RpgMessageSystem.Instance.ShowMessage(speaker, line, hold, tint, characterSprite);
+            RpgMessageSystem.Instance.ShowMessage(speaker, lines, hold, tint, characterSprite);
 
             Destroy(gameObject);
         }

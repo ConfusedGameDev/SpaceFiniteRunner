@@ -35,10 +35,25 @@ Auto-created like `FloatingTextSystem`; **pre-place one in the scene** to wire i
 UnityEvents (`onMessageStarted` / `onTypingFinished` / `onMessageFinished`) or assign a portrait
 sprite / type sound.
 
-`ShowMessage(speaker, text, hold, accent, avatar, playTypeSound, onFinished)` queues a line: one
-message at a time (duplicates dropped, **their `onFinished` still runs so callers can't stall**),
-typewriter reveal with an optional per-character blip (a placeholder beep is generated when no clip
-is assigned), then a hold for its duration before hiding and firing `onFinished`.
+`ShowMessage(speaker, pages, hold, accent, avatar, playTypeSound, onFinished)` queues a **message
+of one or more pages** (`IReadOnlyList<string>`; the `string` overload wraps one page, blank pages
+are dropped): one message at a time (a message whose page list matches one playing or queued is
+dropped, **its `onFinished` still runs so callers can't stall**). Each page types out with an
+optional blip (a placeholder beep is generated when no clip is assigned; `onTypingFinished` fires
+per page), holds for the duration, then the next page starts; after the last one the box hides and
+`onFinished` fires. A page's speaker, portrait and accent are the message's — a two-speaker
+exchange is two queued messages.
+
+**Advance chord**: Enter / numpad Enter / gamepad A (`MenuNavigator.DialogueAdvancePressed`,
+**never Space** — the handbrake — which is why the pad handbrake defaults to B). A press while a
+page is typing FAST-FORWARDS it (`skipSpeedMultiplier`× the typing speed, blips throttled to their
+normal rate so it still sounds like typing); a press once it has typed ends the hold at once.
+`skipLockoutSeconds` after a page starts and again after it finishes typing the chord is ignored
+(a swallowed press is lost, not deferred) so a mash can't skip a page unread. The chord is also
+ignored while `Time.timeScale` is 0 (the pause menu owns A) and while the static
+`SkipInputSuppressed` is raised — `CinemaSystem` raises it for the length of a cinema because its
+long-press skip is the same button. A blinking `▼` marker (`RpgMessageStyle.continueMarker*`)
+shows in the panel's corner once a page has typed.
 
 **It runs on scaled time**, so messages freeze with the pause menu — and any caller waiting on
 `onFinished` must not freeze the world under it.

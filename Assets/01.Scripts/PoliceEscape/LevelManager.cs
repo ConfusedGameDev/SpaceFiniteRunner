@@ -509,7 +509,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             advancing = true;
             int token = ++advanceToken;
             if (step.HasCompletionMessage)
-                RpgMessageSystem.Instance.ShowMessage(level.speakerName, step.CompletionText, level.messageHoldSeconds, DoneAccent,
+                RpgMessageSystem.Instance.ShowMessage(level.speakerName, step.CompletionPages, level.messageHoldSeconds, DoneAccent,
                                                       onFinished: () => StartCoroutine(FinishAdvance(index, token)));
             else
                 StartCoroutine(FinishAdvance(index, token));
@@ -615,7 +615,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             Debug.Log($"[Level] challenge {index + 1} complete — {challenge.ChallengeSummary}", this);
             // A challenge speaks its own completion message, like any step; nothing level-wide.
             if (challenge.HasCompletionMessage)
-                RpgMessageSystem.Instance.ShowMessage(level.speakerName, challenge.CompletionText, level.messageHoldSeconds, DoneAccent);
+                RpgMessageSystem.Instance.ShowMessage(level.speakerName, challenge.CompletionPages, level.messageHoldSeconds, DoneAccent);
         }
 
         void FailChallenge(int index)
@@ -649,7 +649,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             timedOut = true;
             Debug.Log($"[Level] objective {index + 1} ran out of time", this);
             RpgMessageSystem.Instance.ShowMessage(
-                level.speakerName, level.timeUpMessage, level.messageHoldSeconds, LevelObjective.DefaultAccent(ObjectiveType.EscapePolice),
+                level.speakerName, level.timeUpPages, level.messageHoldSeconds, LevelObjective.DefaultAccent(ObjectiveType.EscapePolice),
                 onFinished: () => RequestReboot("time limit"));
         }
 
@@ -841,7 +841,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         void ShowBriefLine(LevelObjective step)
         {
-            RpgMessageSystem.Instance.ShowMessage(level.speakerName, step.BriefingText, level.messageHoldSeconds, step.Accent);
+            RpgMessageSystem.Instance.ShowMessage(level.speakerName, step.BriefingPages, level.messageHoldSeconds, step.Accent);
         }
 
         // Completion: the line first; the glitch handoff only once it is gone.
@@ -872,7 +872,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                 level.Count > 0 ? level.objectives[level.Count - 1].Summary : string.Empty,
                 level.baseReward, objectiveRows, challengeRows, level.rankTable);
             RpgMessageSystem.Instance.ShowMessage(
-                level.speakerName, level.completionMessage, level.messageHoldSeconds, DoneAccent,
+                level.speakerName, level.completionPages, level.messageHoldSeconds, DoneAccent,
                 onFinished: BeginGlitchHandoff);
         }
 

@@ -69,6 +69,21 @@ namespace ConfusedGameDev.FiniteRunner.UI
             return Gamepad.current is { buttonSouth: { isPressed: true } };
         }
 
+        /// <summary>
+        /// The dialogue box's advance chord as an edge — Enter / numpad Enter
+        /// or gamepad A, the same set as <see cref="ConfirmHeld"/> and for the
+        /// same reason: Space is the car's handbrake, and a message is read
+        /// with the world still running under it.
+        /// </summary>
+        public static bool DialogueAdvancePressed()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard != null && (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame))
+                return true;
+
+            return Gamepad.current is { buttonSouth: { wasPressedThisFrame: true } };
+        }
+
         public static bool BackPressed()
         {
             var keyboard = Keyboard.current;
