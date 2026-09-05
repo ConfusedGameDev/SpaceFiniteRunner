@@ -555,6 +555,10 @@ MonoBehaviour:
   speedMotionBlur: 1
   rain: 1
   rainSettings: {fileID: 11400000, guid: 9d4b2c7e1f8a4356b0e9d2c5a7f13b64, type: 2}
+  vhs: 1
+  vhsSettings: {fileID: 0}
+  psx: 1
+  psxSettings: {fileID: 0}
 --- !u!4 &323002108
 Transform:
   m_ObjectHideFlags: 0
@@ -960,6 +964,55 @@ MonoBehaviour:
   m_FirstSelected: {fileID: 0}
   m_sendNavigationEvents: 1
   m_DragThreshold: 10
+--- !u!1 &701754664
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 701754666}
+  - component: {fileID: 701754665}
+  m_Layer: 0
+  m_Name: PsxLook
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &701754665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 701754664}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35a550a318284ed097008cc0516366d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.PsxLook
+  lookMaterial: {fileID: 2100000, guid: 222d40646937da648b83c60d9bc08a7c, type: 2}
+  settings: {fileID: 11400000, guid: 65e363f4c94922441a2e11916b386f35, type: 2}
+  intensityScale: 1
+  preview: 1
+  previewIntensity: 1
+--- !u!4 &701754666
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 701754664}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &729163627
 GameObject:
   m_ObjectHideFlags: 0
@@ -2377,6 +2430,55 @@ MonoBehaviour:
   responseSharpness: 6
   mode: 1
   quality: 1
+--- !u!1 &1596353341
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1596353343}
+  - component: {fileID: 1596353342}
+  m_Layer: 0
+  m_Name: VhsTape
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1596353342
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1596353341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f07481283d24317a00eccf1c9208afb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.VhsTape
+  tapeMaterial: {fileID: 2100000, guid: 2b07d7e49cbf10046aed5fbd7f83f2e5, type: 2}
+  settings: {fileID: 11400000, guid: f1af872363368834f86c802ff0c24059, type: 2}
+  intensityScale: 0.452
+  preview: 1
+  previewIntensity: 0.515
+--- !u!4 &1596353343
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1596353341}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1680052870 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 86f401e4213c1984e97a24fe0ea15af0, type: 3}
@@ -3130,3 +3232,5 @@ SceneRoots:
   - {fileID: 1499074117}
   - {fileID: 366956391}
   - {fileID: 1163134621}
+  - {fileID: 701754666}
+  - {fileID: 1596353343}

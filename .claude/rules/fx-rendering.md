@@ -6,6 +6,8 @@ paths:
   - "Assets/02.Art/04.Shaders/**"
   - "**/DistanceFog*.cs"
   - "**/SpeedLines*.cs"
+  - "**/VhsTape*.cs"
+  - "**/PsxLook*.cs"
   - "**/RainSystem.cs"
   - "**/RainSettings.cs"
   - "**/GlitchController.cs"
@@ -119,10 +121,112 @@ boosts scaled by tier (`rawMagnitude / powerUpSpeedBoost`); `Restart` clears the
 `SpeedLines` object in the open scene. `SpeedLinesDebugPage` (nine rows, `MenuTextId`
 `SpeedLines*`) is a pause-menu tab wherever a driver exists.
 
+## VHS tape
+
+`01.Scripts/FX/Vhs/` + `Rendering/VhsTapeFeature.cs` +
+`02.Art/04.Shaders/FiniteRunner/VhsTape.shader`.
+
+The finished picture played back off a worn cassette. Every knob is one real fault of the format,
+so the asset reads like a deck, not a filter stack: chroma recorded at a fraction of the luma
+bandwidth (`chromaBleed` smears the colour sideways, `chromaLag` trails it behind the luma — the
+fringe on every hard edge), a little vertical `lumaSoftness`, per-row-pair timing errors plus a slow
+sway of the whole frame (`jitter`), a **tracking band** of torn, streaky, colourless rows crawling
+down the frame (`tracking` also widens it; `trackingSpeed` / `trackingHeight`), the **head switch**
+skewing and filling the bottom rows (`headSwitch` / `headSwitchHeight`), tape `noise` (grain, sparse
+white dropout dashes, brightness flicker), CRT `scanlines` (`scanlineCount`, 480 = NTSC), a
+washed-out tone curve (`wash`) and a `vignette`. All colour work happens in **YIQ**, the split the
+tape itself makes.
+
+Everything random is keyed on a quantised clock (`floor(_Time.y * frameRate)`, like the far glitch
+and the speed lines) so the noise **steps at tape rate** instead of shimmering per frame, and the
+pause menu freezes the tape. `intensity` both scales every fault and blends the result over the
+clean picture, so a low value is a good dub rather than a ghosted one.
+
+ONE Render Graph pass at `AfterRenderingPostProcessing` that, like the fog, **copies the camera
+colour and draws back over the active target** (no depth). The installer **appends it AFTER the
+`GlitchPost` feature** (`DistanceFogInstaller.InsertAfterPostGlitch`, the mirror of the
+before-glitch rule): the tape is the recording medium, so the death glitch, the fog and the speed
+lines are all *on* the tape. It draws under the HUD.
+
+The driver is **`VhsTape`** (FX), a hand-placed `[ExecuteAlways]` object beside `DistanceFog`,
+`RainSystem` and `SpeedLines` in every scene, writing `VhsTapeSettings`
+(`04.Data/Resources/FiniteRunner_VhsTape.asset`, `Load()` falls back to an in-memory default) into
+the shared material each frame under the standard contract (`HasDriver`, last-one-standing zeroes
+`_Intensity`, `preview` for the Scene view). Its drive is small on purpose: `SetIntensity(0..1)` is
+gameplay's ramp, `TrackingPulse(strength, seconds)` is a max-wins burst on the tracking band for a
+hit or a story beat, `ClearPulse()` on restart.
+
+Owner wiring: the runner's `GameSettings` "VHS tape" toggle group (`vhsEnabled`, `vhsSettings`) →
+`GameManager.Awake` → `VhsTape.Apply`; the city's `CityManager` "VHS tape" group (`vhs`,
+`vhsSettings`) → `VhsTape.Apply` after the rain. `Apply` only **finds** the scene object (an error
+when missing) and parks it when off.
+
+`Tools → FiniteRunner → Install VHS Tape Feature` (`VhsTapeInstaller`, material at
+`02.Materials/FiniteRunner/VhsTape.mat`, never overwriting) also places and wires the `VhsTape`
+object in the open scene — run it once per scene. `VhsTapeDebugPage` (nine rows, `MenuTextId`
+`Vhs*`) is a pause-menu tab wherever a driver exists.
+
+## PSX look
+
+`01.Scripts/FX/Psx/` + `Rendering/PsxLookFeature.cs` +
+`02.Art/04.Shaders/FiniteRunner/PsxLook.shader`.
+
+The finished picture as a PlayStation-1 console would have put it out. Three faults of that
+hardware in ONE pass, all computed per **virtual pixel** ("cell") in *source pixels* of the target
+(`_ScreenParams`, never uv — `_BlitTexture_TexelSize` is not filled by `Blitter.BlitTexture`), so the
+grid is anchored at pixel (0,0) and cannot drift:
+
+- **Pixelation**: `targetHeight` rows with square cells (`cell = round(res.y / targetHeight)` source
+  pixels), nearest sampling. A partial last row/column is overscan, leave it.
+- **Wobble**: the PS1 snapped vertices to an integer screen grid and mapped textures affinely. There
+  are no vertices in a post pass, so this is a **screen-space stand-in**: the picture is cut into
+  `wobbleBlock`-cell blocks keyed on a **half-octave depth band** (`floor(log2(eye) * 2)`), and
+  every cell of a (block, band) samples the source with the SAME offset — a whole-pixel jitter
+  re-rolled at `jitterRate` (`wobble`, the vertex snap) plus a sub-pixel drift that grows through
+  the step and resets at the next (`swim`, the affine crawl). A surface therefore moves as a rigid
+  piece: silhouettes dance, interiors hold, which is the PS1 tell; per-pixel hashing would sparkle.
+  Seams follow geometry because the band changes where the object does. A **near-only depth guard**
+  (the fog's rule) drops the offset when the displaced sample is more than an octave nearer, so a far
+  block never smears the ship or the car into itself; the sky is one quad and never moves.
+  `wobbleDepthFalloff` calms far surfaces. Without a depth handle the feature writes `_HasDepth 0`
+  and the wobble keys on screen blocks alone.
+- **Colour**: `colorBits` per channel (5 = the 15-bit framebuffer) quantised in **gamma space** (the
+  project renders linear; quantising linear crushes the shadows) under a 4×4 Bayer `dither` computed
+  without a table and indexed by the cell — one dot per virtual pixel, locked to the grid.
+
+The clock is quantised (`floor(_Time.y * jitterRate)`) like the far glitch, the speed lines and the
+tape, so the pause menu freezes the jitter. `intensity` scales the wobble, the swim and the dither
+and blends the result over the clean picture.
+
+ONE Render Graph pass at `AfterRenderingPostProcessing` that copies the camera colour and draws
+back over the active target, **and reads depth** (`ConfigureInput(Depth)`; URP's copied
+`_CameraDepthTexture` is still bound after post — the copy is scheduled after transparents and
+nothing rewrites it before the after-post custom passes). The installer inserts it **right after
+`GlitchPost` and ahead of `VhsTape`** (`DistanceFogInstaller.InsertAfterPostGlitch`, which also
+keeps a PsxLook feature ahead of anything else inserted "after the glitch", so the two installers
+converge in either order): the console shows the death glitch, the tape records the console. It
+draws under the HUD (every canvas is Screen Space Overlay).
+
+The driver is **`PsxLook`** (FX), a hand-placed `[ExecuteAlways]` object beside `DistanceFog`,
+`RainSystem`, `SpeedLines` and `VhsTape` in every scene, writing `PsxLookSettings`
+(`04.Data/Resources/FiniteRunner_PsxLook.asset`, `Load()` falls back to an in-memory default) into
+the shared material each frame under the standard contract (`HasDriver`, last-one-standing zeroes
+`_Intensity`, `preview` for the Scene view). Its only drive is `SetIntensity(0..1)`.
+
+Owner wiring: the runner's `GameSettings` "PSX look" toggle group (`psxEnabled`, `psxSettings`) →
+`GameManager.Awake` → `PsxLook.Apply`; the city's `CityManager` "PSX look" group (`psx`,
+`psxSettings`) → `PsxLook.Apply` after the tape. `Apply` only **finds** the scene object (an error
+when missing) and parks it when off.
+
+`Tools → FiniteRunner → Install PSX Look Feature` (`PsxLookInstaller`, material at
+`02.Materials/FiniteRunner/PsxLook.mat`, never overwriting) also places and wires the `PsxLook`
+object in the open scene — run it once per scene. `PsxLookDebugPage` (nine rows, `MenuTextId`
+`Psx*`) is a pause-menu tab wherever a driver exists.
+
 ## Render pipeline asset and quality levels
 
 The game renders through `Assets/04.Data/URP Asset.asset` → `URP Asset_Renderer.asset`, feature
-order **GlitchSilhouette → DistanceFog → SpeedLines → GlitchPost**.
+order **GlitchSilhouette → DistanceFog → SpeedLines → GlitchPost → PsxLook → VhsTape**.
 
 **Both quality levels in `ProjectSettings/QualitySettings.asset` point at that asset explicitly —
 keep it that way.** A quality level's Render Pipeline Asset overrides the GraphicsSettings default,

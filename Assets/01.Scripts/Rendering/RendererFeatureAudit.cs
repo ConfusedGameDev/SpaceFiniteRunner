@@ -61,6 +61,8 @@ namespace ConfusedGameDev.FiniteRunner.Rendering
             DistanceFogFeature fog => fog.settings.material == material,
             GlitchSilhouetteFeature silhouette => silhouette.settings.material == material,
             SpeedLinesFeature lines => lines.settings.material == material,
+            VhsTapeFeature tape => tape.settings.material == material,
+            PsxLookFeature look => look.settings.material == material,
             _ => false,
         };
     }

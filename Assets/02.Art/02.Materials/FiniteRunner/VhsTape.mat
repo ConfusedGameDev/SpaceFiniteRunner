@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: DistanceFog
-  m_Shader: {fileID: 4800000, guid: 2d6eb851bd8939f498ea366d9f45dc63, type: 3}
+  m_Name: VhsTape
+  m_Shader: {fileID: 4800000, guid: 10c6028e74aa4b7daac0d9817bfa98b1, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -25,22 +25,22 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _BlockAmount: 0.5
-    - _ColorSplit: 0.008
-    - _FogDensity: 2.5
-    - _FogEnd: 480
-    - _FogStart: 280
-    - _GlitchRate: 12
-    - _GlitchStart: 300
-    - _GlitchStrength: 0.6
-    - _HeightBase: 0
-    - _HeightFalloff: 0
-    - _Intensity: 0.74999994
-    - _ScanlineStrength: 0.3
-    - _SkyFogAmount: 0.85
-    - _SliceStrength: 0.08
-    m_Colors:
-    - _FogColorFar: {r: 0.3, g: 0.09, b: 0.42, a: 1}
-    - _FogColorNear: {r: 0.07, g: 0.05, b: 0.14, a: 1}
+    - _ChromaBleed: 14
+    - _ChromaLag: 3
+    - _FrameRate: 24
+    - _HeadSwitch: 0.5
+    - _HeadSwitchHeight: 0.035
+    - _Intensity: 0.412
+    - _Jitter: 2
+    - _LumaSoftness: 0.8
+    - _Noise: 0.3
+    - _ScanlineCount: 480
+    - _Scanlines: 0.3
+    - _Tracking: 0.35
+    - _TrackingHeight: 0.06
+    - _TrackingSpeed: 0.12
+    - _Vignette: 0.35
+    - _Wash: 0.35
+    m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1

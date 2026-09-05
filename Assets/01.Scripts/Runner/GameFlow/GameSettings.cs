@@ -325,6 +325,24 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0.05f, 2f), SuffixLabel("s", true)]
         public float boostPulseSeconds = 0.6f;
 
+        // ------------------------------------------------------------ VHS tape
+        [ToggleGroup("vhsEnabled", "VHS tape")]
+        [Tooltip("Play the run back as a worn VHS tape: chroma bleed, row jitter, a crawling tracking band, grain and scanlines over the finished picture. The look lives on the asset below — this is only the on/off for this scene.")]
+        public bool vhsEnabled = true;
+
+        [ToggleGroup("vhsEnabled"), InlineEditor]
+        [Tooltip("VHS tape asset pushed onto the scene's VhsTape driver on boot. Empty = leave the driver with the asset it was authored with (the shipped FiniteRunner_VhsTape from Resources).")]
+        public VhsTapeSettings vhsSettings;
+
+        // ------------------------------------------------------------ PSX look
+        [ToggleGroup("psxEnabled", "PSX look")]
+        [Tooltip("Show the run as a PlayStation-1 console would: a 240-row picture with square pixels, vertex wobble and texture swim per polygon-sized block, 15-bit colour under a Bayer dither. The look lives on the asset below — this is only the on/off for this scene.")]
+        public bool psxEnabled = true;
+
+        [ToggleGroup("psxEnabled"), InlineEditor]
+        [Tooltip("PSX look asset pushed onto the scene's PsxLook driver on boot. Empty = leave the driver with the asset it was authored with (the shipped FiniteRunner_PsxLook from Resources).")]
+        public PsxLookSettings psxSettings;
+
         // --------------------------------------------------------- accessors
         /// <summary>How far behind the ship a fresh patrol drops in, in meters (band X).</summary>
         public float PatrolRedeployGap => patrolRedeployBand.x;

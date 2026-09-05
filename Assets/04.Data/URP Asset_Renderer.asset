@@ -16,22 +16,6 @@ MonoBehaviour:
   settings:
     material: {fileID: 2100000, guid: 7d7f93dfc5635234fac4fff2db1dc663, type: 2}
     renderPassEvent: 550
---- !u!114 &7345128900311527411
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a74dce891e7d673418cc9e43b0955f4f, type: 3}
-  m_Name: SpeedLines
-  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Rendering::ConfusedGameDev.FiniteRunner.Rendering.SpeedLinesFeature
-  m_Active: 1
-  settings:
-    material: {fileID: 2100000, guid: 947115ad6b8341738625b354beb26538, type: 2}
-    renderPassEvent: 600
 --- !u!114 &-3120460342863301374
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -52,6 +36,22 @@ MonoBehaviour:
   passIndex: 0
   bindDepthStencilAttachment: 0
   m_Version: 1
+--- !u!114 &-3062026056185715366
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ffb85815ef049dc9307a6f08177a1a5, type: 3}
+  m_Name: PsxLook
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Rendering::ConfusedGameDev.FiniteRunner.Rendering.PsxLookFeature
+  m_Active: 1
+  settings:
+    material: {fileID: 2100000, guid: 222d40646937da648b83c60d9bc08a7c, type: 2}
+    renderPassEvent: 600
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -81,7 +81,9 @@ MonoBehaviour:
   - {fileID: -5409355936520428380}
   - {fileID: 7345128900311527411}
   - {fileID: -3120460342863301374}
-  m_RendererFeatureMap: 56c295849f656b55a4a40c8c6f1beeb4f32f8694d123ef650275f0dfd9e5b1d4l
+  - {fileID: -3062026056185715366}
+  - {fileID: 6915945766458016075}
+  m_RendererFeatureMap: 56c295849f656b55a4a40c8c6f1beeb4f32f8694d123ef650275f0dfd9e5b1d45a650f74867f81d54bc198470860fa5fl
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   m_AssetVersion: 3
@@ -129,3 +131,35 @@ MonoBehaviour:
       serializedVersion: 2
       m_Bits: 2147483648
     renderPassEvent: 300
+--- !u!114 &6915945766458016075
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e15b08e305c640a58736013c2535038e, type: 3}
+  m_Name: VhsTape
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Rendering::ConfusedGameDev.FiniteRunner.Rendering.VhsTapeFeature
+  m_Active: 1
+  settings:
+    material: {fileID: 2100000, guid: 2b07d7e49cbf10046aed5fbd7f83f2e5, type: 2}
+    renderPassEvent: 600
+--- !u!114 &7345128900311527411
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74dce891e7d673418cc9e43b0955f4f, type: 3}
+  m_Name: SpeedLines
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Rendering::ConfusedGameDev.FiniteRunner.Rendering.SpeedLinesFeature
+  m_Active: 1
+  settings:
+    material: {fileID: 2100000, guid: 947115ad6b8341738625b354beb26538, type: 2}
+    renderPassEvent: 600

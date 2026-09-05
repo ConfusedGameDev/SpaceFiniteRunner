@@ -71,6 +71,22 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("Override asset pushed onto the scene's RainSystem on boot. Empty = leave that system with the asset it was authored with (the shipped FiniteRunner_Rain from Resources).")]
         public RainSettings rainSettings;
 
+        [ToggleGroup("vhs", "VHS tape")]
+        [Tooltip("Play the chase back as a worn VHS tape: chroma bleed, row jitter, a crawling tracking band, grain and scanlines over the finished picture. The look lives on the asset below — this is only the on/off for this scene.")]
+        public bool vhs = true;
+
+        [ToggleGroup("vhs"), InlineEditor]
+        [Tooltip("VHS tape asset pushed onto the scene's VhsTape driver on boot. Empty = leave the driver with the asset it was authored with (the shipped FiniteRunner_VhsTape from Resources).")]
+        public VhsTapeSettings vhsSettings;
+
+        [ToggleGroup("psx", "PSX look")]
+        [Tooltip("Show the chase as a PlayStation-1 console would: a 240-row picture with square pixels, vertex wobble and texture swim per polygon-sized block, 15-bit colour under a Bayer dither. The look lives on the asset below — this is only the on/off for this scene.")]
+        public bool psx = true;
+
+        [ToggleGroup("psx"), InlineEditor]
+        [Tooltip("PSX look asset pushed onto the scene's PsxLook driver on boot. Empty = leave the driver with the asset it was authored with (the shipped FiniteRunner_PsxLook from Resources).")]
+        public PsxLookSettings psxSettings;
+
         /// <summary>Waypoint graph over the baked roads — the AI's navigation source. Null until a CityRoot exists.</summary>
         public RoadGraph Graph => Root != null ? Root.Graph : null;
 
@@ -151,6 +167,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             // the car — it just has to exist before the first frame is drawn.
             // The scene's own RainSystem wins; switching this off parks it.
             RainSystem.Apply(rain, rainSettings);
+
+            // VHS tape: same rule — the scene's hand-placed VhsTape driver,
+            // found and parked, never spawned.
+            VhsTape.Apply(vhs, vhsSettings);
+
+            // PSX look: the console the tape records — same rule.
+            PsxLook.Apply(psx, psxSettings);
         }
 
         // ------------------------------------------------------------- buttons

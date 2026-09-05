@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac0b5067f62541319d65034b85f583d7, type: 3}
+  m_Name: FiniteRunner_VhsTape
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.VhsTapeSettings
+  material: {fileID: 2100000, guid: 2b07d7e49cbf10046aed5fbd7f83f2e5, type: 2}
+  intensity: 0.8
+  frameRate: 24
+  chromaBleed: 14
+  chromaLag: 3
+  lumaSoftness: 0.8
+  wash: 0.35
+  jitter: 2
+  tracking: 0.35
+  trackingSpeed: 0.12
+  trackingHeight: 0.06
+  headSwitch: 0.5
+  headSwitchHeight: 0.035
+  noise: 0.3
+  scanlines: 0.3
+  scanlineCount: 480
+  vignette: 0.35

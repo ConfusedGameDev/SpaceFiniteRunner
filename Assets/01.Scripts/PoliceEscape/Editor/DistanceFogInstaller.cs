@@ -96,6 +96,21 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         /// glitch) share this rule through <see cref="SpeedLinesInstaller"/>.
         /// </summary>
         internal static void InsertBeforePostGlitch(UniversalRendererData rendererData, ScriptableRendererFeature feature)
+            => Insert(rendererData, feature, after: false);
+
+        /// <summary>
+        /// The mirror rule for a feature that must see the glitched picture:
+        /// inserted just AFTER the GlitchPost full-screen pass (the PSX
+        /// console, then the VHS tape — the recording medium the death glitch
+        /// is on), at the end of the list when there is none. Same event, so
+        /// again list order decides; a PsxLook feature already there is kept
+        /// ahead of anything else, so the tape records the console whichever
+        /// installer ran first.
+        /// </summary>
+        internal static void InsertAfterPostGlitch(UniversalRendererData rendererData, ScriptableRendererFeature feature)
+            => Insert(rendererData, feature, after: true);
+
+        static void Insert(UniversalRendererData rendererData, ScriptableRendererFeature feature, bool after)
         {
             AssetDatabase.AddObjectToAsset(feature, rendererData);
             AssetDatabase.TryGetGUIDAndLocalFileIdentifier(feature, out _, out long localId);
@@ -109,10 +124,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 if (features.GetArrayElementAtIndex(i).objectReferenceValue is FullScreenPassRendererFeature fullScreen
                     && fullScreen.injectionPoint == FullScreenPassRendererFeature.InjectionPoint.AfterRenderingPostProcessing)
                 {
-                    index = i;
+                    index = after ? i + 1 : i;
                     break;
                 }
             }
+            // "After the glitch" also means after the PSX console: whichever
+            // installer runs first, the VHS tape lands after the PsxLook
+            // feature, so the tape records the console's picture.
+            if (after && !(feature is PsxLookFeature))
+                while (index < features.arraySize
+                       && features.GetArrayElementAtIndex(index).objectReferenceValue is PsxLookFeature)
+                    index++;
             features.InsertArrayElementAtIndex(index);
             features.GetArrayElementAtIndex(index).objectReferenceValue = feature;
             map.InsertArrayElementAtIndex(index);

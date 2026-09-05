@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: DistanceFog
-  m_Shader: {fileID: 4800000, guid: 2d6eb851bd8939f498ea366d9f45dc63, type: 3}
+  m_Name: PsxLook
+  m_Shader: {fileID: 4800000, guid: d3eecf68fe734cf294a54a6264bc6c86, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -25,22 +25,16 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _BlockAmount: 0.5
-    - _ColorSplit: 0.008
-    - _FogDensity: 2.5
-    - _FogEnd: 480
-    - _FogStart: 280
-    - _GlitchRate: 12
-    - _GlitchStart: 300
-    - _GlitchStrength: 0.6
-    - _HeightBase: 0
-    - _HeightFalloff: 0
-    - _Intensity: 0.74999994
-    - _ScanlineStrength: 0.3
-    - _SkyFogAmount: 0.85
-    - _SliceStrength: 0.08
-    m_Colors:
-    - _FogColorFar: {r: 0.3, g: 0.09, b: 0.42, a: 1}
-    - _FogColorNear: {r: 0.07, g: 0.05, b: 0.14, a: 1}
+    - _ColorBits: 5
+    - _Dither: 0.7
+    - _HasDepth: 1
+    - _Intensity: 1
+    - _JitterRate: 15
+    - _Swim: 0.6
+    - _TargetHeight: 240
+    - _Wobble: 1
+    - _WobbleBlock: 16
+    - _WobbleDepthFalloff: 0
+    m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1

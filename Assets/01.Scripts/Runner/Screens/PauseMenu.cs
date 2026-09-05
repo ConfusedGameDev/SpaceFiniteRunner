@@ -247,6 +247,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
             SpeedLinesDebugPage.Flush();
+            VhsTapeDebugPage.Flush();
+            PsxLookDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty(); // recorded stats reach the disk at the same commit points
             Blip(theme.BackClip);
         }
@@ -333,6 +335,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
             SpeedLinesDebugPage.Flush();
+            VhsTapeDebugPage.Flush();
+            PsxLookDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty();
         }
 
@@ -480,10 +484,14 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             DistanceFogSettings fog = DistanceFogDebugPage.Discover();
             // And the speed lines: any scene with a SpeedLines driver.
             SpeedLinesSettings lines = SpeedLinesDebugPage.Discover();
+            // And the VHS tape: any scene with a VhsTape driver.
+            VhsTapeSettings vhs = VhsTapeDebugPage.Discover();
+            // And the PSX look: any scene with a PsxLook driver.
+            PsxLookSettings psx = PsxLookDebugPage.Discover();
 
             int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0)
                          + (patrolReady ? 1 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0) + (fog != null ? 1 : 0)
-                         + (lines != null ? 1 : 0);
+                         + (lines != null ? 1 : 0) + (vhs != null ? 1 : 0) + (psx != null ? 1 : 0);
             if (tabCount == 0) return;
 
             debugMenu = new DebugMenu();
@@ -534,6 +542,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 debugMenu.AddTab(DistanceFogDebugPage.Build(panelRect, theme, fog, debugRefreshers, tab++, tabCount));
             if (lines != null)
                 debugMenu.AddTab(SpeedLinesDebugPage.Build(panelRect, theme, lines, debugRefreshers, tab++, tabCount));
+            if (vhs != null)
+                debugMenu.AddTab(VhsTapeDebugPage.Build(panelRect, theme, vhs, debugRefreshers, tab++, tabCount));
+            if (psx != null)
+                debugMenu.AddTab(PsxLookDebugPage.Build(panelRect, theme, psx, debugRefreshers, tab++, tabCount));
         }
 
         // The debug sliders saved their values into the TrackDebugSettings
@@ -549,6 +561,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
             SpeedLinesDebugPage.Flush();
+            VhsTapeDebugPage.Flush();
+            PsxLookDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty();
 
             Time.timeScale = 1f;

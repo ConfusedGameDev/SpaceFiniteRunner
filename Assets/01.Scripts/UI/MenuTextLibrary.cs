@@ -99,7 +99,13 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CarBurnoutTorque, CarBurnoutGrip, CarBurnoutMaxSpeed,
         Missions, MissionLabel, MissionNext, StartMissionTarget, RequiresMoney, RequiresUpgrade, ComingSoon, HintPlay,
         DeleteProgress, DeleteProgressQuestion, DeleteProgressWarning,
-        PoliceRamSpeed, PoliceRamBackoff
+        PoliceRamSpeed, PoliceRamBackoff,
+        DebugTabVhs,
+        VhsIntensity, VhsChromaBleed, VhsChromaLag, VhsJitter, VhsTracking,
+        VhsNoise, VhsScanlines, VhsWash, VhsVignette,
+        DebugTabPsx,
+        PsxIntensity, PsxResolution, PsxColorBits, PsxDither, PsxWobble,
+        PsxWobbleBlock, PsxSwim, PsxJitterRate, PsxDepthFalloff
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -483,6 +489,48 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString speedLinesFlicker = new("FLICKER RATE", "FRECUENCIA DE PARPADEO", "ちらつきの頻度", "FRÉQUENCE DE SCINTILLEMENT");
         [TitleGroup("Speed lines stats")]
         [SerializeField] LocalizedString speedLinesResponse = new("RESPONSE", "RESPUESTA", "反応速度", "RÉACTIVITÉ");
+
+        [TitleGroup("VHS tape stats")]
+        [SerializeField] LocalizedString debugTabVhs = new("DEBUG — VHS TAPE", "DEPURACIÓN — CINTA VHS", "デバッグ — VHSテープ", "DÉBOGAGE — CASSETTE VHS");
+        [TitleGroup("VHS tape stats")]
+        [SerializeField] LocalizedString vhsIntensity = new("TAPE INTENSITY", "INTENSIDAD DE CINTA", "テープの強さ", "INTENSITÉ DE LA CASSETTE");
+        [TitleGroup("VHS tape stats")]
+        [SerializeField] LocalizedString vhsChromaBleed = new("COLOR BLEED", "SANGRADO DE COLOR", "色にじみ", "BAVURE DES COULEURS");
+        [TitleGroup("VHS tape stats")]
+        [SerializeField] LocalizedString vhsChromaLag = new("COLOR LAG", "RETRASO DE COLOR", "色ずれ", "DÉCALAGE DES COULEURS");
+        [TitleGroup("VHS tape stats")]
+        [SerializeField] LocalizedString vhsJitter = new("LINE JITTER", "TEMBLOR DE LÍNEAS", "走査線のゆれ", "TREMBLEMENT DES LIGNES");
+        [TitleGroup("VHS tape stats")]
+        [SerializeField] LocalizedString vhsTracking = new("TRACKING", "TRACKING", "トラッキング", "TRACKING");
+        [TitleGroup("VHS tape stats")]
+        [SerializeField] LocalizedString vhsNoise = new("TAPE NOISE", "RUIDO DE CINTA", "テープノイズ", "BRUIT DE BANDE");
+        [TitleGroup("VHS tape stats")]
+        [SerializeField] LocalizedString vhsScanlines = new("SCANLINES", "LÍNEAS DE BARRIDO", "走査線", "LIGNES DE BALAYAGE");
+        [TitleGroup("VHS tape stats")]
+        [SerializeField] LocalizedString vhsWash = new("WASHED OUT", "DESLAVADO", "色あせ", "DÉLAVAGE");
+        [TitleGroup("VHS tape stats")]
+        [SerializeField] LocalizedString vhsVignette = new("VIGNETTE", "VIÑETA", "ビネット", "VIGNETTAGE");
+
+        [TitleGroup("PSX look stats")]
+        [SerializeField] LocalizedString debugTabPsx = new("DEBUG — PSX LOOK", "DEPURACIÓN — ESTILO PSX", "デバッグ — PSX風", "DÉBOGAGE — STYLE PSX");
+        [TitleGroup("PSX look stats")]
+        [SerializeField] LocalizedString psxIntensity = new("PSX INTENSITY", "INTENSIDAD PSX", "PSXの強さ", "INTENSITÉ PSX");
+        [TitleGroup("PSX look stats")]
+        [SerializeField] LocalizedString psxResolution = new("RESOLUTION (ROWS)", "RESOLUCIÓN (FILAS)", "解像度（行）", "RÉSOLUTION (LIGNES)");
+        [TitleGroup("PSX look stats")]
+        [SerializeField] LocalizedString psxColorBits = new("COLOR BITS", "BITS DE COLOR", "色深度（ビット）", "BITS DE COULEUR");
+        [TitleGroup("PSX look stats")]
+        [SerializeField] LocalizedString psxDither = new("DITHER", "TRAMADO", "ディザ", "TRAMAGE");
+        [TitleGroup("PSX look stats")]
+        [SerializeField] LocalizedString psxWobble = new("VERTEX WOBBLE", "TEMBLOR DE VÉRTICES", "頂点のゆれ", "TREMBLEMENT DES SOMMETS");
+        [TitleGroup("PSX look stats")]
+        [SerializeField] LocalizedString psxWobbleBlock = new("POLYGON SIZE", "TAMAÑO DE POLÍGONO", "ポリゴンの大きさ", "TAILLE DES POLYGONES");
+        [TitleGroup("PSX look stats")]
+        [SerializeField] LocalizedString psxSwim = new("TEXTURE SWIM", "DERIVA DE TEXTURAS", "テクスチャのゆがみ", "DÉRIVE DES TEXTURES");
+        [TitleGroup("PSX look stats")]
+        [SerializeField] LocalizedString psxJitterRate = new("JITTER RATE", "FRECUENCIA DE TEMBLOR", "ゆれの頻度", "FRÉQUENCE DU TREMBLEMENT");
+        [TitleGroup("PSX look stats")]
+        [SerializeField] LocalizedString psxDepthFalloff = new("DEPTH FALLOFF", "ATENUACIÓN POR DISTANCIA", "距離による減衰", "ATTÉNUATION PAR DISTANCE");
 
         [TitleGroup("City police stats")]
         [SerializeField] LocalizedString debugTabPoliceFleet = new("DEBUG — POLICE FLEET", "DEPURACIÓN — FLOTA POLICIAL", "デバッグ — 警察の台数", "DÉBOGAGE — FLOTTE DE POLICE");
@@ -1029,6 +1077,26 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.SpeedLinesInnerMin => speedLinesInnerMin,
             MenuTextId.SpeedLinesFlicker => speedLinesFlicker,
             MenuTextId.SpeedLinesResponse => speedLinesResponse,
+            MenuTextId.DebugTabVhs => debugTabVhs,
+            MenuTextId.VhsIntensity => vhsIntensity,
+            MenuTextId.VhsChromaBleed => vhsChromaBleed,
+            MenuTextId.VhsChromaLag => vhsChromaLag,
+            MenuTextId.VhsJitter => vhsJitter,
+            MenuTextId.VhsTracking => vhsTracking,
+            MenuTextId.VhsNoise => vhsNoise,
+            MenuTextId.VhsScanlines => vhsScanlines,
+            MenuTextId.VhsWash => vhsWash,
+            MenuTextId.VhsVignette => vhsVignette,
+            MenuTextId.DebugTabPsx => debugTabPsx,
+            MenuTextId.PsxIntensity => psxIntensity,
+            MenuTextId.PsxResolution => psxResolution,
+            MenuTextId.PsxColorBits => psxColorBits,
+            MenuTextId.PsxDither => psxDither,
+            MenuTextId.PsxWobble => psxWobble,
+            MenuTextId.PsxWobbleBlock => psxWobbleBlock,
+            MenuTextId.PsxSwim => psxSwim,
+            MenuTextId.PsxJitterRate => psxJitterRate,
+            MenuTextId.PsxDepthFalloff => psxDepthFalloff,
             MenuTextId.DebugTabPoliceFleet => debugTabPoliceFleet,
             MenuTextId.DebugTabPoliceChase => debugTabPoliceChase,
             MenuTextId.PolicePatrolCount => policePatrolCount,

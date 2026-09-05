@@ -234,6 +234,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (speedLines != null && motor != null)
                 speedLines.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, LightSpeedKmh);
 
+            // VHS tape: the scene's hand-placed VhsTape object, found and
+            // parked the same way. It needs nothing from the run — the whole
+            // picture, glitch included, is played back off the tape.
+            VhsTape.Apply(settings.vhsEnabled, settings.vhsSettings);
+
+            // PSX look: the console the tape records — same rule, the scene's
+            // hand-placed PsxLook object, found and parked.
+            PsxLook.Apply(settings.psxEnabled, settings.psxSettings);
+
             // After the patrol init, so the debug menu's patrol tab can bind
             // to the live definition clone.
             PauseMenu.Spawn(this, motor);
