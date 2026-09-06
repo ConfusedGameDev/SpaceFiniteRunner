@@ -440,6 +440,25 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [EnumToggleButtons]
         public CompletionMode mode = CompletionMode.Independent;
 
+        [TitleGroup("Level")]
+        [Tooltip("Id of the PlayerSpawnPoint the car starts at, on scene entry and on every retry. Empty = a random registered point; an unknown id warns and picks at random; a scene with no points uses the nearest straight runway to the PlayerCarSpawner.")]
+        [ValueDropdown(nameof(SpawnPointIds), AppendNextDrawer = true)]
+        public string spawnPointId = "";
+
+        // The dropdown is a convenience over the open scene (or prefab stage);
+        // AppendNextDrawer keeps the plain text field for ids authored before
+        // the city is open.
+        static IEnumerable<ValueDropdownItem<string>> SpawnPointIds()
+        {
+            yield return new ValueDropdownItem<string>("(random)", "");
+#if UNITY_EDITOR
+            var ids = new SortedSet<string>(System.StringComparer.Ordinal);
+            foreach (var point in FindObjectsByType<PlayerSpawnPoint>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (!string.IsNullOrWhiteSpace(point.Id)) ids.Add(point.Id.Trim());
+            foreach (string id in ids) yield return new ValueDropdownItem<string>(id, id);
+#endif
+        }
+
         [TitleGroup("Messages")]
         [Tooltip("Name shown next to the dialogue portrait.")]
         public string speakerName = "OPERATOR";

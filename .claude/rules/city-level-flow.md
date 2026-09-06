@@ -1,9 +1,11 @@
 ---
-description: City chase level flow — LevelManager, LevelDefinition objectives, optional challenges, ObjectiveHud, TargetObject
+description: City chase level flow — LevelManager, LevelDefinition objectives, optional challenges, ObjectiveHud, TargetObject, PlayerSpawnPoint
 paths:
   - "**/InfiniteCity/**"
   - "**/LevelManager.cs"
   - "**/LevelDefinition.cs"
+  - "**/PlayerSpawnPoint.cs"
+  - "**/PlayerCarSpawner.cs"
   - "**/LevelObjective.cs"
   - "**/OptionalChallenge.cs"
   - "**/ObjectiveHud.cs"
@@ -41,7 +43,8 @@ chosen type's knobs show, via `[ShowIf]`. `ObjectiveType` is **append-only**.
 
 Each entry also carries a `reward` (hidden on challenges), the dialogue framing (`speakerName`,
 per-step `briefingPages`, `completionPages` — **page lists**, one entry per dialogue page, Enter /
-A advances), and the level carries a `mode` and `nextSceneName`. The level's own
+A advances), and the level carries a `mode`, `nextSceneName` and `spawnPointId` (see
+`PlayerSpawnPoint` below). The level's own
 `completionPages` / `timeUpPages` are lists too. Every one of these was a single string before:
 the old value lives on as a hidden `legacy*` field (`FormerlySerializedAs`) that
 `LevelDefinition.OnValidate` (and the two triggers' `OnValidate`) moves into page 1 via
@@ -176,9 +179,10 @@ which resets in this order:
    (`IRunConsumable.OnRestored` resets each one's own latch; `OnDestroy → Forget` drops them on a
    real destroy, so the runner's culled coins leave the static list on their own). Then
    `DialogueTrigger.ReArmAll()` / `CinemaTrigger.ReArmAll()` clear the cooldowns.
-5. Car: `PlayerCarSpawner.SpawnCar()` — a fresh instance at the authored start, rolling, camera
-   retargeted (`OrbitCameraRig.SetTarget` warps Cinemachine so it cuts). Bound from
-   `SpawnedCar`, never found — the old car's Destroy is deferred.
+5. Car: `PlayerCarSpawner.SpawnCar()` — a fresh instance at a `PlayerSpawnPoint` (the level's
+   `spawnPointId`, else a random one; the nearest runway only when the scene has none — see
+   below), rolling, camera retargeted (`OrbitCameraRig.SetTarget` warps Cinemachine so it cuts).
+   Bound from `SpawnedCar`, never found — the old car's Destroy is deferred.
 6. Level: fresh `states`, `current = 0`, accepted challenges cleared, all gates down,
    `CollectibleManager.ResetRun()`, then `BeginRun()` — **the brief opens again** and the player
    re-picks challenges (`skipMissionBrief` goes straight to step 1). Road-found challenges are
@@ -197,6 +201,33 @@ socket, which survives rebakes — with a string `id` in a static registry (`Tar
 With `snapToRoad` it slides onto the nearest road cell
 (`CityManager.TryFindNearestRoadCell`, accepted only within two cells), useful after a rebake moved
 the streets. Distances are horizontal.
+
+## `PlayerSpawnPoint`
+
+Where the car starts. Hand-placed under the city prefab's `AdditionalItems` socket (rebake-proof,
+never streamed off), with an optional string `id` in a static registry
+(`PlayerSpawnPoint.TryFind` / `TryPickRandom` / `Count`, filled in `OnEnable`, duplicate ids warn
+and the newest wins). **`PlayerCarSpawner.SpawnCar()` is the one chokepoint** for both the scene's
+start and the in-place retry, and resolves the pose in this order: the point named by the level's
+`spawnPointId` → a random registered point (an unknown id warns first) → only when the scene has
+**no** points, the old rule (nearest straight runway to the spawner's own transform, then nearest
+road cell). So every entry and every retry rerolls unless the level pins an id. `SpawnCar(string)`
+takes an explicit id (the inspector's `Respawn At Id` debug button).
+
+**The pose is used exactly as authored**: position = the road surface (`CarFactory` adds the
+config's `respawnHeight` and the car settles on its wheels), Y rotation = heading (0 = +Z); scale
+and tilt are ignored. An empty id is legal — a random-only point. `snapToRoad` (off by default)
+moves **X/Z only** onto the nearest road cell when one lies within two cells, for after a rebake
+moved the streets; farther than that it warns and keeps the authored pose. A point on a deck
+therefore stays on the deck.
+
+The Scene view draws each point as a **wire mesh of the Quadron** (`CP_Quadron.fbx` LOD0 parts,
+loaded off the asset database inside `#if UNITY_EDITOR`, yawed by `CyberpunkCarKit.ModelYaw` so
+the bonnet points along the point's +Z — the project's first `Gizmos.DrawWireMesh`) plus a heading
+line; a missing model falls back to a car-sized box. `GameObject → Police Escape → Player Spawn
+Point` (`Editor/PlayerSpawnPointPlacer.cs`) drops one under the AdditionalItems socket of the open
+scene or prefab stage with a unique `spawn_n` id. `LevelDefinition.spawnPointId` has an Odin
+dropdown of the open scene's ids (free text still allowed; `(random)` = empty).
 
 ## `ObjectiveHud` (`Scripts/UI/`)
 

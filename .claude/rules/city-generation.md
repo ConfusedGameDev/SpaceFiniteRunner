@@ -49,7 +49,7 @@ Generates every block's `ChunkData` against the layout, stamps geometry via **`C
 
 **Only `Block_x_y` children are replaced.** The **`AdditionalItems`** and **`DefaultVehicles`**
 sockets under **`CityRoot`** are created once and never touched — that is the whole persistence
-mechanism for hand-placed content.
+mechanism for hand-placed content (`TargetObject`s, `PlayerSpawnPoint`s, collectibles, triggers).
 
 **Rebuilding ONE block (new seed or not) is safe by construction**: borders derive from the city
 seed; block seeds only drive interiors. Salts off the block seed: 303 layout, 606 features, 404

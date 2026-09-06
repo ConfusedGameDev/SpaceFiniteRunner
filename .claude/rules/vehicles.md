@@ -199,7 +199,8 @@ car models and `02.Art/01.Models/InfiniteCity/Vehicles` are flipped to `isReadab
 unreadable mesh is skipped with a warning in a build instead of throwing inside EVP.
 
 `CarRespawner.Respawn` calls `Repair()` (progressive); a level retry spawns a fresh car
-(`LevelManager.RestartLevel` → `PlayerCarSpawner.SpawnCar`), so it never repairs.
+(`LevelManager.RestartLevel` → `PlayerCarSpawner.SpawnCar`, at a `PlayerSpawnPoint` — see
+`city-level-flow.md`), so it never repairs.
 
 ## EVP traffic vehicles and vehicle identity
 

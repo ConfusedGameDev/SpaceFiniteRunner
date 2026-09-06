@@ -138,7 +138,7 @@ Loaded automatically by path. Listed here so you know what exists.
 | `city-generation.md` | Offline bake, `CityLayout`, road pieces, `RoadGraph`, features, decoration |
 | `city-districts-water.md` | Districts, parks, curved avenues, water, shoreline, building sets |
 | `city-performance.md` | Static flags, occlusion bake, `CityStreamer`, bounds and wrap |
-| `city-level-flow.md` | `LevelManager`, `LevelDefinition`, objectives, challenges, `ObjectiveHud` |
+| `city-level-flow.md` | `LevelManager`, `LevelDefinition`, objectives, challenges, `ObjectiveHud`, `PlayerSpawnPoint` |
 | `city-cinemas.md` | `CinemaSystem`, formats, triggers |
 | `vehicles.md` | Physics backends, EVP, car models, brake lights, damage, traffic, air-time |
 | `cameras.md` | `OrbitCameraRig`, view modes, look-back, camera shake |
