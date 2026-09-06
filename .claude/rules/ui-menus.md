@@ -84,11 +84,25 @@ binding.
 
 ### The CONTROLS screen
 
-Lives under SETTINGS in both menus — `MenuScreenFactory.BuildSettings(parent, theme, openControls,
-deleteProgress = null)` (the optional last argument adds the main menu's DELETE CAMPAIGN PROGRESS
-row and tightens the metrics to 74/14 so seven rows keep the six-row reach; see `campaign.md`)
-adds the row, and each host builds a `ControlsScreen` whose `OpenSub` / `Back` / `CloseSub` know
-CONTROLS returns to SETTINGS.
+Lives under SETTINGS in both menus — `MenuScreenFactory.BuildSettings(parent, theme, openVideo,
+openControls, deleteProgress = null)` (the optional last argument adds the main menu's DELETE
+CAMPAIGN PROGRESS row; see `campaign.md`) adds the VIDEO and CONTROLS rows, and each host builds a
+`ControlsScreen` whose `OpenSub` / `Back` / `CloseSub` know CONTROLS returns to SETTINGS.
+
+**Row metrics keep the six-row reach**: the pause menu's seven rows run at 74/14 and the main
+menu's eight (with DELETE CAMPAIGN PROGRESS) at 64/12, both ending where six rows at the theme's
+86/18 end (130 → about −400), clear of the footer strip. A new settings row means re-picking the
+metrics, not letting the list run under the footer.
+
+### The VIDEO screen
+
+Also under SETTINGS in both menus — `MenuScreenFactory.BuildVideo(parent, theme)`, a plain
+three-slider page (PSX LOOK / VHS TAPE / CRT SCREEN, `MenuTextId` `Video` / `Filter*`) writing the
+player's filter dials `UserSettings.PsxFilter` / `VhsFilter` / `CrtFilter` (PlayerPrefs, default 1).
+The FX drivers poll the dials every frame, so in the pause menu the picture changes behind the
+menu as the slider moves. Each host treats it like CONTROLS: `Back` / `CloseSub` return it to
+SETTINGS, it is hidden on open, and its footer is the settings page's (move / change / back). See
+`fx-rendering.md` for the driver side.
 
 It follows the LOG recipe: compact rows, SHIP / CAR / GENERAL `StatHeaderRow`s, a 9-row viewport,
 RESTORE DEFAULTS last. One `BindingRow` per action (label, key cap slot, pad glyph slot, an accent

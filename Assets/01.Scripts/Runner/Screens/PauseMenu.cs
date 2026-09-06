@@ -60,6 +60,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         RectTransform panelRect;
         MenuScreen pauseScreen;
         MenuScreen settingsScreen;
+        MenuScreen videoScreen;         // the VIDEO page under SETTINGS (the retro-filter dials)
         ControlsScreen controls;        // the CONTROLS page under SETTINGS (its Screen is the MenuScreen)
         MenuScreen confirmMenuScreen;   // "exit to main menu — are you sure?"
         MenuScreen confirmQuitScreen;   // "quit game — are you sure?"
@@ -215,6 +216,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             lockTimer = 0f;
             debugDirty = false;
             settingsScreen.HideImmediate();
+            videoScreen.HideImmediate();
             controls?.Screen.HideImmediate();
             confirmMenuScreen.HideImmediate();
             confirmQuitScreen.HideImmediate();
@@ -249,6 +251,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             SpeedLinesDebugPage.Flush();
             VhsTapeDebugPage.Flush();
             PsxLookDebugPage.Flush();
+            CrtScreenDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty(); // recorded stats reach the disk at the same commit points
             Blip(theme.BackClip);
         }
@@ -284,10 +287,11 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             Blip(theme.ConfirmClip);
         }
 
-        // One level out: CONTROLS returns to SETTINGS, everything else to the pause list.
+        // One level out: VIDEO and CONTROLS return to SETTINGS, everything else to the pause list.
         void CloseSub()
         {
-            var target = controls != null && current == controls.Screen ? settingsScreen : pauseScreen;
+            bool underSettings = (controls != null && current == controls.Screen) || current == videoScreen;
+            var target = underSettings ? settingsScreen : pauseScreen;
             current.SlideOut(theme.ScreenSlide);
             target.SlideIn(-theme.ScreenSlide);
             current = target;
@@ -337,6 +341,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             SpeedLinesDebugPage.Flush();
             VhsTapeDebugPage.Flush();
             PsxLookDebugPage.Flush();
+            CrtScreenDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty();
         }
 
@@ -357,7 +362,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
             panel = null;
             panelRect = null;
-            pauseScreen = settingsScreen = confirmMenuScreen = confirmQuitScreen = confirmReloadScreen = logScreen = current = null;
+            pauseScreen = settingsScreen = videoScreen = confirmMenuScreen = confirmQuitScreen = confirmReloadScreen = logScreen = current = null;
             controls = null;
             refreshLog = null;
             footer = null;
@@ -439,7 +444,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             controls = ControlsScreen.Build(panelRect, theme);
             controls.Captured += () => Blip(theme.ConfirmClip);
             controls.Cancelled += () => Blip(theme.BackClip);
-            settingsScreen = MenuScreenFactory.BuildSettings(panelRect, theme, () => OpenSub(controls.Screen));
+            videoScreen = MenuScreenFactory.BuildVideo(panelRect, theme);
+            settingsScreen = MenuScreenFactory.BuildSettings(panelRect, theme, () => OpenSub(videoScreen),
+                                                             () => OpenSub(controls.Screen));
             logScreen = LogScreenFactory.Build(panelRect, theme, out refreshLog);
             confirmMenuScreen = MenuScreenFactory.BuildConfirm(panelRect, theme, MenuTextId.ExitToMenu,
                                                                ExitToMainMenu, CloseSub);
@@ -488,10 +495,13 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             VhsTapeSettings vhs = VhsTapeDebugPage.Discover();
             // And the PSX look: any scene with a PsxLook driver.
             PsxLookSettings psx = PsxLookDebugPage.Discover();
+            // And the CRT screen: any scene with a CrtScreen driver.
+            CrtScreenSettings crt = CrtScreenDebugPage.Discover();
 
             int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0)
                          + (patrolReady ? 1 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0) + (fog != null ? 1 : 0)
-                         + (lines != null ? 1 : 0) + (vhs != null ? 1 : 0) + (psx != null ? 1 : 0);
+                         + (lines != null ? 1 : 0) + (vhs != null ? 1 : 0) + (psx != null ? 1 : 0)
+                         + (crt != null ? 1 : 0);
             if (tabCount == 0) return;
 
             debugMenu = new DebugMenu();
@@ -546,6 +556,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 debugMenu.AddTab(VhsTapeDebugPage.Build(panelRect, theme, vhs, debugRefreshers, tab++, tabCount));
             if (psx != null)
                 debugMenu.AddTab(PsxLookDebugPage.Build(panelRect, theme, psx, debugRefreshers, tab++, tabCount));
+            if (crt != null)
+                debugMenu.AddTab(CrtScreenDebugPage.Build(panelRect, theme, crt, debugRefreshers, tab++, tabCount));
         }
 
         // The debug sliders saved their values into the TrackDebugSettings
@@ -563,6 +575,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             SpeedLinesDebugPage.Flush();
             VhsTapeDebugPage.Flush();
             PsxLookDebugPage.Flush();
+            CrtScreenDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty();
 
             Time.timeScale = 1f;
@@ -571,7 +584,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
         void SetFooterFor(MenuScreen screen)
         {
-            if (screen == settingsScreen || (debugMenu != null && debugMenu.Contains(screen)))
+            if (screen == settingsScreen || screen == videoScreen || (debugMenu != null && debugMenu.Contains(screen)))
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintChange),
                                 (PromptAction.Back, MenuTextId.HintBack));
             else if (controls != null && screen == controls.Screen)

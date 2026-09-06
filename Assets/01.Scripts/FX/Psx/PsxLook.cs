@@ -1,4 +1,5 @@
 using ConfusedGameDev.FiniteRunner.Rendering;
+using ConfusedGameDev.FiniteRunner.UI;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -13,8 +14,9 @@ namespace ConfusedGameDev.FiniteRunner.FX
     /// <see cref="VhsTape"/> contract, including the "last one standing zeroes
     /// the material on disable" rule and the feature's HasDriver gate. The
     /// drive is the asset's <c>intensity</c> × gameplay's
-    /// <see cref="SetIntensity"/> scale, nothing more: the console is either
-    /// on or it is not. [ExecuteAlways] with <see cref="preview"/> on shows
+    /// <see cref="SetIntensity"/> scale × the player's
+    /// <see cref="UserSettings.PsxFilter"/> dial (the VIDEO settings page),
+    /// nothing more: the console is either on or it is not. [ExecuteAlways] with <see cref="preview"/> on shows
     /// the look in the Scene view (off by default).
     /// **It is a hand-placed scene object, never spawned**: each scene carries
     /// one next to its DistanceFog, RainSystem, SpeedLines and VhsTape, with
@@ -115,7 +117,11 @@ namespace ConfusedGameDev.FiniteRunner.FX
         void LateUpdate()
         {
             if (settings == null) return;
-            float scale = Application.isPlaying ? intensityScale : (preview ? previewIntensity : 0f);
+            // The player's VIDEO dial is read every frame (no event), so a
+            // slider drag in the pause menu shows through the menu live.
+            float scale = Application.isPlaying
+                ? intensityScale * UserSettings.PsxFilter
+                : (preview ? previewIntensity : 0f);
             CurrentIntensity = Mathf.Clamp01(settings.intensity * scale);
             Write();
         }

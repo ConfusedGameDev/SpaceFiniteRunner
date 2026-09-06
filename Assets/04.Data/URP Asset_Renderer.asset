@@ -83,7 +83,8 @@ MonoBehaviour:
   - {fileID: -3120460342863301374}
   - {fileID: -3062026056185715366}
   - {fileID: 6915945766458016075}
-  m_RendererFeatureMap: 56c295849f656b55a4a40c8c6f1beeb4f32f8694d123ef650275f0dfd9e5b1d45a650f74867f81d54bc198470860fa5fl
+  - {fileID: 4468120593366127811}
+  m_RendererFeatureMap: 56c295849f656b55a4a40c8c6f1beeb4f32f8694d123ef650275f0dfd9e5b1d45a650f74867f81d54bc198470860fa5fc31432ad01f4013el
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   m_AssetVersion: 3
@@ -162,4 +163,20 @@ MonoBehaviour:
   m_Active: 1
   settings:
     material: {fileID: 2100000, guid: 947115ad6b8341738625b354beb26538, type: 2}
+    renderPassEvent: 600
+--- !u!114 &4468120593366127811
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94ec3eade67e4f25897c0a71c1f39a1c, type: 3}
+  m_Name: CrtScreen
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Rendering::ConfusedGameDev.FiniteRunner.Rendering.CrtScreenFeature
+  m_Active: 1
+  settings:
+    material: {fileID: 2100000, guid: 51e286fba8b842e294007c3d358cd916, type: 2}
     renderPassEvent: 600

@@ -105,7 +105,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         VhsNoise, VhsScanlines, VhsWash, VhsVignette,
         DebugTabPsx,
         PsxIntensity, PsxResolution, PsxColorBits, PsxDither, PsxWobble,
-        PsxWobbleBlock, PsxSwim, PsxJitterRate, PsxDepthFalloff
+        PsxWobbleBlock, PsxSwim, PsxJitterRate, PsxDepthFalloff,
+        Video, FilterPsx, FilterVhs, FilterCrt,
+        DebugTabCrt,
+        CrtIntensity, CrtCurvature, CrtCorners, CrtScanlines, CrtBleed,
+        CrtGlow, CrtMask, CrtConvergence, CrtFlicker
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -531,6 +535,36 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString psxJitterRate = new("JITTER RATE", "FRECUENCIA DE TEMBLOR", "ゆれの頻度", "FRÉQUENCE DU TREMBLEMENT");
         [TitleGroup("PSX look stats")]
         [SerializeField] LocalizedString psxDepthFalloff = new("DEPTH FALLOFF", "ATENUACIÓN POR DISTANCIA", "距離による減衰", "ATTÉNUATION PAR DISTANCE");
+
+        [TitleGroup("Video settings")]
+        [SerializeField] LocalizedString video = new("VIDEO", "VÍDEO", "映像", "VIDÉO");
+        [TitleGroup("Video settings")]
+        [SerializeField] LocalizedString filterPsx = new("PSX LOOK", "ESTILO PSX", "PSX風", "STYLE PSX");
+        [TitleGroup("Video settings")]
+        [SerializeField] LocalizedString filterVhs = new("VHS TAPE", "CINTA VHS", "VHSテープ", "CASSETTE VHS");
+        [TitleGroup("Video settings")]
+        [SerializeField] LocalizedString filterCrt = new("CRT SCREEN", "PANTALLA CRT", "ブラウン管", "ÉCRAN CRT");
+
+        [TitleGroup("CRT screen stats")]
+        [SerializeField] LocalizedString debugTabCrt = new("DEBUG — CRT SCREEN", "DEPURACIÓN — PANTALLA CRT", "デバッグ — ブラウン管", "DÉBOGAGE — ÉCRAN CRT");
+        [TitleGroup("CRT screen stats")]
+        [SerializeField] LocalizedString crtIntensity = new("CRT INTENSITY", "INTENSIDAD CRT", "ブラウン管の強さ", "INTENSITÉ CRT");
+        [TitleGroup("CRT screen stats")]
+        [SerializeField] LocalizedString crtCurvature = new("CURVATURE", "CURVATURA", "画面の湾曲", "COURBURE");
+        [TitleGroup("CRT screen stats")]
+        [SerializeField] LocalizedString crtCorners = new("CORNER RADIUS", "RADIO DE ESQUINAS", "角の丸み", "RAYON DES COINS");
+        [TitleGroup("CRT screen stats")]
+        [SerializeField] LocalizedString crtScanlines = new("SCANLINES", "LÍNEAS DE BARRIDO", "走査線", "LIGNES DE BALAYAGE");
+        [TitleGroup("CRT screen stats")]
+        [SerializeField] LocalizedString crtBleed = new("PHOSPHOR BLEED", "SANGRADO DE FÓSFORO", "蛍光体のにじみ", "BAVURE DU PHOSPHORE");
+        [TitleGroup("CRT screen stats")]
+        [SerializeField] LocalizedString crtGlow = new("HALATION", "HALO", "ハレーション", "HALO");
+        [TitleGroup("CRT screen stats")]
+        [SerializeField] LocalizedString crtMask = new("APERTURE GRILLE", "REJILLA DE APERTURA", "アパーチャーグリル", "GRILLE D'OUVERTURE");
+        [TitleGroup("CRT screen stats")]
+        [SerializeField] LocalizedString crtConvergence = new("CONVERGENCE", "CONVERGENCIA", "色ずれ", "CONVERGENCE");
+        [TitleGroup("CRT screen stats")]
+        [SerializeField] LocalizedString crtFlicker = new("REFRESH FLICKER", "PARPADEO", "ちらつき", "SCINTILLEMENT");
 
         [TitleGroup("City police stats")]
         [SerializeField] LocalizedString debugTabPoliceFleet = new("DEBUG — POLICE FLEET", "DEPURACIÓN — FLOTA POLICIAL", "デバッグ — 警察の台数", "DÉBOGAGE — FLOTTE DE POLICE");
@@ -1097,6 +1131,20 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.PsxSwim => psxSwim,
             MenuTextId.PsxJitterRate => psxJitterRate,
             MenuTextId.PsxDepthFalloff => psxDepthFalloff,
+            MenuTextId.Video => video,
+            MenuTextId.FilterPsx => filterPsx,
+            MenuTextId.FilterVhs => filterVhs,
+            MenuTextId.FilterCrt => filterCrt,
+            MenuTextId.DebugTabCrt => debugTabCrt,
+            MenuTextId.CrtIntensity => crtIntensity,
+            MenuTextId.CrtCurvature => crtCurvature,
+            MenuTextId.CrtCorners => crtCorners,
+            MenuTextId.CrtScanlines => crtScanlines,
+            MenuTextId.CrtBleed => crtBleed,
+            MenuTextId.CrtGlow => crtGlow,
+            MenuTextId.CrtMask => crtMask,
+            MenuTextId.CrtConvergence => crtConvergence,
+            MenuTextId.CrtFlicker => crtFlicker,
             MenuTextId.DebugTabPoliceFleet => debugTabPoliceFleet,
             MenuTextId.DebugTabPoliceChase => debugTabPoliceChase,
             MenuTextId.PolicePatrolCount => policePatrolCount,

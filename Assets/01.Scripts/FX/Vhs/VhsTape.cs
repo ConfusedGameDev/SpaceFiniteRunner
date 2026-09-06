@@ -1,4 +1,5 @@
 using ConfusedGameDev.FiniteRunner.Rendering;
+using ConfusedGameDev.FiniteRunner.UI;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -13,7 +14,9 @@ namespace ConfusedGameDev.FiniteRunner.FX
     /// <see cref="SpeedLines"/> contract, including the "last one standing
     /// zeroes the material on disable" rule and the feature's HasDriver gate.
     /// The drive is deliberately small: the asset's <c>intensity</c> ×
-    /// gameplay's <see cref="SetIntensity"/> scale is the master, and
+    /// gameplay's <see cref="SetIntensity"/> scale × the player's
+    /// <see cref="UserSettings.VhsFilter"/> dial (the VIDEO settings page) is
+    /// the master, and
     /// <see cref="TrackingPulse"/> is a max-wins burst on the tracking band
     /// (a hit, a story beat) that decays on scaled time so it freezes with
     /// the pause menu. [ExecuteAlways] with <see cref="preview"/> on plays
@@ -151,7 +154,11 @@ namespace ConfusedGameDev.FiniteRunner.FX
             float dt = Time.deltaTime; // scaled on purpose: the burst freezes with the pause menu
             trackingPulse = Mathf.MoveTowards(trackingPulse, 0f, trackingPulseDecayPerSecond * dt);
 
-            float scale = Application.isPlaying ? intensityScale : (preview ? previewIntensity : 0f);
+            // The player's VIDEO dial is read every frame (no event), so a
+            // slider drag in the pause menu shows through the menu live.
+            float scale = Application.isPlaying
+                ? intensityScale * UserSettings.VhsFilter
+                : (preview ? previewIntensity : 0f);
             CurrentIntensity = Mathf.Clamp01(settings.intensity * scale);
             Write();
         }

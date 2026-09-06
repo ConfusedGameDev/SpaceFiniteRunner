@@ -4,12 +4,14 @@ using UnityEngine.Audio;
 namespace ConfusedGameDev.FiniteRunner.UI
 {
     /// <summary>
-    /// Player preferences — the three volumes and the subtitle flag. These are
+    /// Player preferences — the three volumes, the subtitle flag, the language
+    /// and the three retro-filter dials of the VIDEO page. These are
     /// deliberately NOT on <see cref="GameSettings"/>: that asset is balance
     /// data shipped with the build and shared by the whole project, while these
     /// belong to whoever is sitting at the machine. They live in PlayerPrefs,
     /// save on every change, and are pushed straight at the audio mixer so a
-    /// slider drag is audible while it moves.
+    /// slider drag is audible while it moves; the filter dials are polled by
+    /// the FX drivers every frame for the same reason.
     /// Named UserSettings rather than PlayerSettings so it can never collide
     /// with UnityEditor.PlayerSettings.
     /// </summary>
@@ -43,11 +45,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
         const string SfxKey = "settings.volume.sfx";
         const string SubtitlesKey = "settings.subtitles";
         const string LanguageKey = "settings.language";
+        const string PsxFilterKey = "settings.filter.psx";
+        const string VhsFilterKey = "settings.filter.vhs";
+        const string CrtFilterKey = "settings.filter.crt";
 
         const float MasterDefault = 0.8f;
         const float MusicDefault = 0.7f;
         const float SfxDefault = 0.8f;
         const bool SubtitlesDefault = true;
+        const float FilterDefault = 1f;
 
         /// <summary>
         /// Raised whenever the subtitle preference changes. Nothing consumes it
@@ -65,6 +71,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         static float sfx = SfxDefault;
         static bool subtitles = SubtitlesDefault;
         static MenuLanguage language = MenuLanguage.English;
+        static float psxFilter = FilterDefault;
+        static float vhsFilter = FilterDefault;
+        static float crtFilter = FilterDefault;
         static bool loaded;
         static bool warnedAboutMixer;
 
@@ -124,6 +133,34 @@ namespace ConfusedGameDev.FiniteRunner.UI
             }
         }
 
+        /// <summary>
+        /// The player's dial on the PSX look, 0..1 — the VIDEO settings page.
+        /// A multiplier on the scene driver's intensity (the asset's dial ×
+        /// gameplay's ramp), re-read by the driver every frame, so a slider
+        /// drag in the pause menu shows through the menu live — which is why
+        /// there is no change event. 0 switches the filter off for this
+        /// player without touching the designer's asset.
+        /// </summary>
+        public static float PsxFilter
+        {
+            get { EnsureLoaded(); return psxFilter; }
+            set => ApplyFilter(ref psxFilter, PsxFilterKey, value);
+        }
+
+        /// <summary>The player's dial on the VHS tape, 0..1. See <see cref="PsxFilter"/>.</summary>
+        public static float VhsFilter
+        {
+            get { EnsureLoaded(); return vhsFilter; }
+            set => ApplyFilter(ref vhsFilter, VhsFilterKey, value);
+        }
+
+        /// <summary>The player's dial on the CRT screen, 0..1. See <see cref="PsxFilter"/>.</summary>
+        public static float CrtFilter
+        {
+            get { EnsureLoaded(); return crtFilter; }
+            set => ApplyFilter(ref crtFilter, CrtFilterKey, value);
+        }
+
         /// <summary>The mixer these preferences drive; null until a mixer asset is assigned on the MenuTheme.</summary>
         public static AudioMixer Mixer { get { EnsureLoaded(); return mixer; } }
 
@@ -180,6 +217,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             language = (MenuLanguage)Mathf.Clamp(
                 PlayerPrefs.GetInt(LanguageKey, (int)MenuLanguage.English),
                 (int)MenuLanguage.English, (int)MenuLanguage.French);
+            psxFilter = ReadVolume(PsxFilterKey, FilterDefault);
+            vhsFilter = ReadVolume(VhsFilterKey, FilterDefault);
+            crtFilter = ReadVolume(CrtFilterKey, FilterDefault);
 
             PushAll();
         }
@@ -200,6 +240,17 @@ namespace ConfusedGameDev.FiniteRunner.UI
             PlayerPrefs.SetFloat(key, value);
             PlayerPrefs.Save();
             Push(param, value);
+        }
+
+        // A filter dial is a plain stored 0..1: nothing to push, the drivers poll it.
+        static void ApplyFilter(ref float field, string key, float value)
+        {
+            EnsureLoaded();
+            value = float.IsNaN(value) ? 0f : Mathf.Clamp01(value);
+            if (Mathf.Approximately(field, value)) return;
+            field = value;
+            PlayerPrefs.SetFloat(key, value);
+            PlayerPrefs.Save();
         }
 
         static void Push(string param, float linear01)

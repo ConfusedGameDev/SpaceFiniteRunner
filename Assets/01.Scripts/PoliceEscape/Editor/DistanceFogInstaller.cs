@@ -105,7 +105,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         /// is on), at the end of the list when there is none. Same event, so
         /// again list order decides; a PsxLook feature already there is kept
         /// ahead of anything else, so the tape records the console whichever
-        /// installer ran first.
+        /// installer ran first — and a CrtScreen feature is always LAST (it
+        /// appends, and nothing is ever inserted behind it), because the tube
+        /// is the display the console and the tape are shown on.
         /// </summary>
         internal static void InsertAfterPostGlitch(UniversalRendererData rendererData, ScriptableRendererFeature feature)
             => Insert(rendererData, feature, after: true);
@@ -135,6 +137,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 while (index < features.arraySize
                        && features.GetArrayElementAtIndex(index).objectReferenceValue is PsxLookFeature)
                     index++;
+            // And the CRT screen is the display everything is shown on, so it
+            // is always LAST: it appends, and nothing else ever lands behind
+            // an existing one.
+            if (after && feature is CrtScreenFeature)
+                index = features.arraySize;
+            else if (after)
+                while (index > 0
+                       && features.GetArrayElementAtIndex(index - 1).objectReferenceValue is CrtScreenFeature)
+                    index--;
             features.InsertArrayElementAtIndex(index);
             features.GetArrayElementAtIndex(index).objectReferenceValue = feature;
             map.InsertArrayElementAtIndex(index);

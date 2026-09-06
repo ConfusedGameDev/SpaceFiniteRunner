@@ -58,6 +58,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
         MenuScreen mainScreen;
         MenuScreen settingsScreen;
+        MenuScreen videoScreen;    // the VIDEO page under SETTINGS (the retro-filter dials)
         MenuScreen cheatsScreen;
         CheatConsole cheatConsole;
         ControlsScreen controls;   // the CONTROLS page under SETTINGS (its Screen is the MenuScreen)
@@ -272,7 +273,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             HapticsSystem.Instance.Pulse(theme.ConfirmRumble, theme.ConfirmRumble * 0.5f, 0.12f);
         }
 
-        /// <summary>B / Esc. Backs out of any sub-screen (CONTROLS and the delete-progress confirm to SETTINGS, the rest to the main list); on the main menu it returns to attract. It never quits.</summary>
+        /// <summary>B / Esc. Backs out of any sub-screen (VIDEO, CONTROLS and the delete-progress confirm to SETTINGS, the rest to the main list); on the main menu it returns to attract. It never quits.</summary>
         void Back()
         {
             if (phase != Phase.Browsing) return;
@@ -283,7 +284,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 return;
             }
 
-            bool underSettings = (controls != null && current == controls.Screen) || current == deleteProgressScreen;
+            bool underSettings = (controls != null && current == controls.Screen) || current == videoScreen
+                              || current == deleteProgressScreen;
             var target = underSettings ? settingsScreen : mainScreen;
             current.SlideOut(theme.ScreenSlide);
             target.SlideIn(-theme.ScreenSlide);
@@ -420,7 +422,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             attractText = null;
             attractGlyph = null;
             footer = null;
-            mainScreen = settingsScreen = cheatsScreen = creditsScreen = exitScreen = missionsScreen = deleteProgressScreen = current = null;
+            mainScreen = settingsScreen = videoScreen = cheatsScreen = creditsScreen = exitScreen = missionsScreen = deleteProgressScreen = current = null;
             refreshMissions = null;
             cheatConsole = null;
             controls = null;
@@ -537,7 +539,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         }
 
         // Shared with the pause menu, so the two settings pages never drift —
-        // and so is the CONTROLS page its last row opens. Only the main menu's
+        // and so are the VIDEO and CONTROLS pages its rows open. Only the main menu's
         // page carries DELETE CAMPAIGN PROGRESS: wiping the campaign is not a
         // mid-run action.
         void BuildSettings()
@@ -545,7 +547,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             controls = ControlsScreen.Build(root, theme);
             controls.Captured += () => Blip(theme.ConfirmClip);
             controls.Cancelled += () => Blip(theme.BackClip);
-            settingsScreen = MenuScreenFactory.BuildSettings(root, theme, () => OpenSub(controls.Screen),
+            videoScreen = MenuScreenFactory.BuildVideo(root, theme);
+            settingsScreen = MenuScreenFactory.BuildSettings(root, theme, () => OpenSub(videoScreen),
+                                                             () => OpenSub(controls.Screen),
                                                              () => OpenSub(deleteProgressScreen));
 
             // The confirm: YES wipes, NO / Back return to SETTINGS. The warning
@@ -643,7 +647,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             if (screen == mainScreen)
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Confirm, MenuTextId.HintSelect),
                                 (PromptAction.Back, MenuTextId.HintTitle));
-            else if (screen == settingsScreen)
+            else if (screen == settingsScreen || screen == videoScreen)
                 footer.SetHints((PromptAction.Navigate, MenuTextId.HintMove), (PromptAction.Adjust, MenuTextId.HintChange),
                                 (PromptAction.Back, MenuTextId.HintBack));
             else if (controls != null && screen == controls.Screen)

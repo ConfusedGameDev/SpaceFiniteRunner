@@ -248,21 +248,26 @@ namespace ConfusedGameDev.FiniteRunner.UI
         }
 
         /// <summary>
-        /// The settings page. <paramref name="openControls"/> is what its
-        /// CONTROLS row does — each host slides its own <see cref="ControlsScreen"/>
-        /// in, because the page-to-page transition is the host's.
+        /// The settings page. <paramref name="openVideo"/> and
+        /// <paramref name="openControls"/> are what its VIDEO and CONTROLS rows
+        /// do — each host slides its own <see cref="BuildVideo"/> page and
+        /// <see cref="ControlsScreen"/> in, because the page-to-page transition
+        /// is the host's.
         /// <paramref name="deleteProgress"/>, when given, adds a last
         /// DELETE CAMPAIGN PROGRESS row (the main menu's page only — the
         /// host owns the confirm) and tightens the row metrics so seven rows
         /// keep the six-row page's reach.
         /// </summary>
-        public static MenuScreen BuildSettings(RectTransform parent, MenuTheme theme, System.Action openControls,
-                                               System.Action deleteProgress = null)
+        public static MenuScreen BuildSettings(RectTransform parent, MenuTheme theme, System.Action openVideo,
+                                               System.Action openControls, System.Action deleteProgress = null)
         {
             var screen = MenuScreen.Create("SettingsScreen", parent, theme, 0f, 130f);
             screen.SetTitle(MenuTextId.Settings);
-            // Seven rows at 74/14 run 130 -> -398: the same reach as six at 86/18.
-            if (deleteProgress != null) screen.SetRowMetrics(74f, 14f);
+            // Six rows at the theme's 86/18 metrics run 130 -> -390 (the pause
+            // list's reach, clear of the footer strip). Seven rows at 74/14 run
+            // to -398 and eight at 64/12 to -402: the same reach, tighter rows.
+            bool eight = deleteProgress != null;
+            screen.SetRowMetrics(eight ? 64f : 74f, eight ? 12f : 14f);
 
             screen.AddRow<MenuSlider>(MenuTextId.MasterVolume)
                   .Configure(UserSettings.MasterVolume, 5, v => UserSettings.MasterVolume = v);
@@ -285,12 +290,33 @@ namespace ConfusedGameDev.FiniteRunner.UI
             screen.AddRow<MenuChoice>(MenuTextId.Language)
                   .Configure(names, (int)UserSettings.Language, i => UserSettings.Language = (MenuLanguage)i);
 
-            // Six rows at the theme's 86/18 metrics run 130 -> -390, the same
-            // reach as the pause list, clear of the footer strip.
+            screen.AddRow<MenuRow>(MenuTextId.Video).Activated += openVideo;
             screen.AddRow<MenuRow>(MenuTextId.Controls).Activated += openControls;
             if (deleteProgress != null)
                 screen.AddRow<MenuRow>(MenuTextId.DeleteProgress).Activated += deleteProgress;
 
+            return screen;
+        }
+
+        /// <summary>
+        /// The VIDEO page under SETTINGS: one dial per retro filter — the PSX
+        /// look, the VHS tape and the CRT screen — each a 0..1 multiplier on
+        /// the scene driver's intensity (<see cref="UserSettings.PsxFilter"/>
+        /// and friends). The drivers re-read the dials every frame, so in the
+        /// pause menu a drag shows through the menu live; 0 switches a filter
+        /// off for this player without touching the designer's asset. Built
+        /// here like the settings page so the two hosts stay pixel-identical.
+        /// </summary>
+        public static MenuScreen BuildVideo(RectTransform parent, MenuTheme theme)
+        {
+            var screen = MenuScreen.Create("VideoScreen", parent, theme, 0f, 130f);
+            screen.SetTitle(MenuTextId.Video);
+            screen.AddRow<MenuSlider>(MenuTextId.FilterPsx)
+                  .Configure(UserSettings.PsxFilter, 5, v => UserSettings.PsxFilter = v);
+            screen.AddRow<MenuSlider>(MenuTextId.FilterVhs)
+                  .Configure(UserSettings.VhsFilter, 5, v => UserSettings.VhsFilter = v);
+            screen.AddRow<MenuSlider>(MenuTextId.FilterCrt)
+                  .Configure(UserSettings.CrtFilter, 5, v => UserSettings.CrtFilter = v);
             return screen;
         }
     }

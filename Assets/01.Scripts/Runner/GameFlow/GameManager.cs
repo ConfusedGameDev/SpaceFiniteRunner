@@ -243,6 +243,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // hand-placed PsxLook object, found and parked.
             PsxLook.Apply(settings.psxEnabled, settings.psxSettings);
 
+            // CRT screen: the tube the console and the tape are shown on —
+            // same rule, the scene's hand-placed CrtScreen object, found and
+            // parked.
+            CrtScreen.Apply(settings.crtEnabled, settings.crtSettings);
+
             // After the patrol init, so the debug menu's patrol tab can bind
             // to the live definition clone.
             PauseMenu.Spawn(this, motor);

@@ -8,6 +8,7 @@ paths:
   - "**/SpeedLines*.cs"
   - "**/VhsTape*.cs"
   - "**/PsxLook*.cs"
+  - "**/CrtScreen*.cs"
   - "**/RainSystem.cs"
   - "**/RainSettings.cs"
   - "**/GlitchController.cs"
@@ -223,10 +224,73 @@ when missing) and parks it when off.
 object in the open scene — run it once per scene. `PsxLookDebugPage` (nine rows, `MenuTextId`
 `Psx*`) is a pause-menu tab wherever a driver exists.
 
+## CRT screen
+
+`01.Scripts/FX/Crt/` + `Rendering/CrtScreenFeature.cs` +
+`02.Art/04.Shaders/FiniteRunner/CrtScreen.shader`.
+
+The finished picture shown on a curved glass tube — the display the PSX console plugs into and the
+VHS deck plays out to, so it is **the last pass of the chain**. Every knob is one physical trait of
+a tube, all in ONE pass:
+
+- **Glass**: a barrel warp (`curvature`, each axis bowed by the square of the other) whose visible
+  area is the rounded barrel silhouette of a tube, black beyond it, with rounded corners
+  (`cornerRadius`, aspect-corrected so they are circular) and dimmer corners (`vignette`). The
+  scanlines and the grille bend *with* the picture.
+- **Beam**: each phosphor dot **bleeds** sideways into its neighbours (`bleed`, px at the centre,
+  five taps) and the beam loses focus toward the edges, so the bleed grows to 2.5× there; the three
+  guns never land on the same spot, so red and blue drift away from green toward the edges
+  (`convergence`, px at the corners, ~nothing at the centre); bright areas glow through the glass
+  (`glow`, a thresholded four-tap halation). This edge-keyed growth is what makes the picture go
+  soft and smeary at the borders — the "edges morph" read.
+- **Phosphors**: `scanlines` darken the gaps between `scanlineCount` rows, bright rows blooming
+  over the gaps; the aperture grille (`mask`) is R/G/B stripes `maskScale` screen pixels wide,
+  locked to the target's pixel columns (`_ScreenParams`, never uv) with the lost light put back.
+- **Refresh**: the whole frame breathes at `refreshRate` (`flicker`) on a quantised clock
+  (`floor(_Time.y * refreshRate)`) like the far glitch, the speed lines, the tape and the console,
+  so the pause menu freezes it.
+
+`intensity` scales every trait, **the warp included** (a low dial is a flatter tube, not a ghosted
+one), and blends the result over the clean picture.
+
+ONE Render Graph pass at `AfterRenderingPostProcessing` that copies the camera colour and draws
+back over the active target (no depth). The installer **appends it at the very END of the feature
+list** — after `PsxLook` and `VhsTape` — and `DistanceFogInstaller.Insert` keeps it there: a
+`CrtScreenFeature` always appends, and nothing inserted "after the glitch" ever lands behind an
+existing one, so the installers converge in any order. It draws under the HUD.
+
+The driver is **`CrtScreen`** (FX), a hand-placed `[ExecuteAlways]` object beside `DistanceFog`,
+`RainSystem`, `SpeedLines`, `VhsTape` and `PsxLook` in every scene, writing `CrtScreenSettings`
+(`04.Data/Resources/FiniteRunner_CrtScreen.asset`, `Load()` falls back to an in-memory default)
+into the shared material each frame under the standard contract (`HasDriver`, last-one-standing
+zeroes `_Intensity`, `preview` for the Scene view). Its only drive is `SetIntensity(0..1)`.
+
+Owner wiring: the runner's `GameSettings` "CRT screen" toggle group (`crtEnabled`, `crtSettings`)
+→ `GameManager.Awake` → `CrtScreen.Apply`; the city's `CityManager` "CRT screen" group (`crt`,
+`crtSettings`) → `CrtScreen.Apply` after the console. `Apply` only **finds** the scene object (an
+error when missing) and parks it when off.
+
+`Tools → FiniteRunner → Install CRT Screen Feature` (`CrtScreenInstaller`, material at
+`02.Materials/FiniteRunner/CrtScreen.mat`, never overwriting) also places and wires the
+`CrtScreen` object in the open scene — run it once per scene. `CrtScreenDebugPage` (nine rows,
+`MenuTextId` `Crt*`) is a pause-menu tab wherever a driver exists.
+
+## The player's filter dials (SETTINGS → VIDEO)
+
+The three retro filters — PSX look, VHS tape, CRT screen — each carry a **player dial** in
+`UserSettings` (`PsxFilter` / `VhsFilter` / `CrtFilter`, 0..1, PlayerPrefs `settings.filter.*`,
+default 1), set from the VIDEO page under SETTINGS in both menus (`MenuScreenFactory.BuildVideo`,
+`MenuTextId` `Video` / `Filter*`). Each driver multiplies the dial into its effective intensity
+**in play mode only, re-read every frame** (`intensity × intensityScale × UserSettings.XFilter`):
+no event, so a slider drag in the pause menu shows through the menu live, and 0 switches a filter
+off for that player without touching the designer's asset (the debug pages) or the scene owner's
+on/off. The fog, the speed lines and the death glitch are gameplay signals, not filters, and have
+no dial.
+
 ## Render pipeline asset and quality levels
 
 The game renders through `Assets/04.Data/URP Asset.asset` → `URP Asset_Renderer.asset`, feature
-order **GlitchSilhouette → DistanceFog → SpeedLines → GlitchPost → PsxLook → VhsTape**.
+order **GlitchSilhouette → DistanceFog → SpeedLines → GlitchPost → PsxLook → VhsTape → CrtScreen**.
 
 **Both quality levels in `ProjectSettings/QualitySettings.asset` point at that asset explicitly —
 keep it that way.** A quality level's Render Pipeline Asset overrides the GraphicsSettings default,

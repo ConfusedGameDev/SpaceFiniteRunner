@@ -87,6 +87,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("PSX look asset pushed onto the scene's PsxLook driver on boot. Empty = leave the driver with the asset it was authored with (the shipped FiniteRunner_PsxLook from Resources).")]
         public PsxLookSettings psxSettings;
 
+        [ToggleGroup("crt", "CRT screen")]
+        [Tooltip("Show the chase on a curved CRT tube: barrel curvature with rounded corners, phosphor bleed and colour convergence that grow toward the edges, scanlines, an aperture grille and refresh flicker over the finished picture — the last pass, the display the console and the tape play on. The look lives on the asset below — this is only the on/off for this scene; the player has their own dial on the VIDEO settings page.")]
+        public bool crt = true;
+
+        [ToggleGroup("crt"), InlineEditor]
+        [Tooltip("CRT screen asset pushed onto the scene's CrtScreen driver on boot. Empty = leave the driver with the asset it was authored with (the shipped FiniteRunner_CrtScreen from Resources).")]
+        public CrtScreenSettings crtSettings;
+
         /// <summary>Waypoint graph over the baked roads — the AI's navigation source. Null until a CityRoot exists.</summary>
         public RoadGraph Graph => Root != null ? Root.Graph : null;
 
@@ -174,6 +182,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
 
             // PSX look: the console the tape records — same rule.
             PsxLook.Apply(psx, psxSettings);
+
+            // CRT screen: the tube it is all shown on — same rule.
+            CrtScreen.Apply(crt, crtSettings);
         }
 
         // ------------------------------------------------------------- buttons

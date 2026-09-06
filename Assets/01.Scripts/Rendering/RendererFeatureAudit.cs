@@ -63,6 +63,7 @@ namespace ConfusedGameDev.FiniteRunner.Rendering
             SpeedLinesFeature lines => lines.settings.material == material,
             VhsTapeFeature tape => tape.settings.material == material,
             PsxLookFeature look => look.settings.material == material,
+            CrtScreenFeature crt => crt.settings.material == material,
             _ => false,
         };
     }
