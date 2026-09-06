@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.CrtScreenSettings
   material: {fileID: 2100000, guid: 51e286fba8b842e294007c3d358cd916, type: 2}
   intensity: 1
-  curvature: 0.35
-  cornerRadius: 0.08
-  vignette: 0.3
-  bleed: 2.5
+  curvature: 0.175
+  cornerRadius: 0.3
+  vignette: 0.122
+  bleed: 2.8
   convergence: 1
   glow: 0.3
-  scanlines: 0.45
-  scanlineCount: 540
-  mask: 0.25
-  maskScale: 1
-  flicker: 0.25
+  scanlines: 0.426
+  scanlineCount: 730
+  mask: 0.67
+  maskScale: 2
+  flicker: 0.765
   refreshRate: 60

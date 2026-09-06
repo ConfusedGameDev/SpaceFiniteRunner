@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.PsxLookSettings
   material: {fileID: 2100000, guid: 222d40646937da648b83c60d9bc08a7c, type: 2}
   intensity: 1
-  targetHeight: 240
-  colorBits: 5
-  dither: 0.7
+  targetHeight: 244
+  colorBits: 3
+  dither: 1
   wobble: 1
   swim: 0.6
   wobbleBlock: 16

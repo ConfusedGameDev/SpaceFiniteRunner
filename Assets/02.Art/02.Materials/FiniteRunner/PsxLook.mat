@@ -25,13 +25,13 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _ColorBits: 5
-    - _Dither: 0.7
+    - _ColorBits: 3
+    - _Dither: 1
     - _HasDepth: 1
     - _Intensity: 1
     - _JitterRate: 15
     - _Swim: 0.6
-    - _TargetHeight: 240
+    - _TargetHeight: 244
     - _Wobble: 1
     - _WobbleBlock: 16
     - _WobbleDepthFalloff: 0

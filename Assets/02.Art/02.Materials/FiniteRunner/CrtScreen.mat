@@ -25,19 +25,19 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Bleed: 2.5
+    - _Bleed: 2.8
     - _Convergence: 1
-    - _CornerRadius: 0.08
-    - _Curvature: 0.35
-    - _Flicker: 0.25
+    - _CornerRadius: 0.3
+    - _Curvature: 0.175
+    - _Flicker: 0.765
     - _Glow: 0.3
-    - _Intensity: 0
-    - _Mask: 0.25
-    - _MaskScale: 1
+    - _Intensity: 1
+    - _Mask: 0.67
+    - _MaskScale: 2
     - _RefreshRate: 60
-    - _ScanlineCount: 540
-    - _Scanlines: 0.45
-    - _Vignette: 0.3
+    - _ScanlineCount: 730
+    - _Scanlines: 0.426
+    - _Vignette: 0.122
     m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1
