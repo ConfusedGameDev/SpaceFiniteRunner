@@ -133,8 +133,9 @@ reached the end before the stall read as a hang; one that completes after it rea
 sets `timeScale = 1` on entry, one trip at a time (`IsLoading`).
 
 **Every scene trip goes through it** — main menu START (`MainMenuController.FinishStart`),
-`PauseMenu.ExitToMainMenu` / the debug RELOAD SCENE row, and the game-over answers (runner NO in
-`GameManager.ShowGameOver`, city YES/NO in `LevelManager`) — **except the city → runner completion
+`PauseMenu.ExitToMainMenu` / the debug RELOAD SCENE row, and the game-over NO answers (runner in
+`GameManager.ShowGameOver`, city in `LevelManager` — both YES answers retry **in place**, no
+load) — **except the city → runner completion
 handoff** (`LevelManager.TransitionToNextScene`, additive behind the maxed glitch, which is its own
 transition).
 

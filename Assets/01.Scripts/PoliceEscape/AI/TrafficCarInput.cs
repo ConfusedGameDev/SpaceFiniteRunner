@@ -107,6 +107,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             return EscapeRegistry.TryGetValue(id.Trim(), out car) && car != null;
         }
 
+        /// <summary>
+        /// Forget every escaping car — the level restarted in place and the
+        /// fleet is being destroyed this frame. <c>OnDestroy</c> prunes each
+        /// entry a frame later anyway; this keeps a Chase Car step from
+        /// resolving to a doomed car in between.
+        /// </summary>
+        public static void ClearEscapeRegistry() => EscapeRegistry.Clear();
+
         /// <summary>Copy every live escaping car into the buffer — how the minimap and the city map draw their yellow markers.</summary>
         public static void GetEscaping(List<TrafficCarInput> into)
         {

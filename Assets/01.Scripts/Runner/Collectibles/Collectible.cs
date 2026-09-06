@@ -1,3 +1,4 @@
+using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.UI;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -18,7 +19,10 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
     /// and the city car's input both do — so the same prefab works on the
     /// track and on the street. Collecting plays the optional
     /// <c>pickupClip</c>, raises the static <see cref="Collected"/> event and
-    /// destroys the object; it records NOTHING itself — the hand-placed
+    /// CONSUMES the object (<see cref="RunConsumables"/> — deactivated, not
+    /// destroyed, so the city's in-place retry can put it back; the runner's
+    /// generator destroys it with its stretch as before); it records NOTHING
+    /// itself — the hand-placed
     /// <see cref="CollectibleManager"/> is the one recorder and runs the
     /// per-kind logic, which is why a scene without one is an error, not a
     /// silent pickup. Every collider on it is forced to a trigger, and one is
@@ -28,7 +32,7 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
     /// Police Escape → Collectible drops a ready one; the runner's
     /// TrackGenerator streams money ones between the orbs.
     /// </summary>
-    public class Collectible : MonoBehaviour
+    public class Collectible : MonoBehaviour, IRunConsumable
     {
         /// <summary>The mesh's local axis the spin turns around. Order is the save format — append only.</summary>
         public enum SpinAxis { X = 0, Y = 1, Z = 2 }
@@ -168,8 +172,13 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
 
             if (pickupClip != null) PlayOneShot(pickupClip, transform.position, pickupVolume);
             Collected?.Invoke(this);
-            Destroy(gameObject);
+            RunConsumables.Consume(this);
         }
+
+        /// <summary>A level retry put the pickup back: it can be collected again.</summary>
+        public void OnRestored() => collected = false;
+
+        void OnDestroy() => RunConsumables.Forget(this);
 
         /// <summary>
         /// Is this collider the player? The marker sits on the city car's

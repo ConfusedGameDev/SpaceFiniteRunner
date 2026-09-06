@@ -177,10 +177,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         }
 
         /// <summary>
-        /// Clears the overlay before the answer runs. The city reloads its
-        /// scene on either answer so it would go away by itself, but the
-        /// runner retries IN PLACE — the dim panel would otherwise sit over
-        /// the new run still asking a question that has been answered. The
+        /// Clears the overlay before the answer runs. Both games retry IN
+        /// PLACE (the runner relaunches, the city restarts its level without
+        /// a scene load) — the dim panel would otherwise sit over the new run
+        /// still asking a question that has been answered. The
         /// root (canvas, audio source) survives for the next death, which is
         /// also what keeps the confirm blip audible through the teardown.
         /// </summary>

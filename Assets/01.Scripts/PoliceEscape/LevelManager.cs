@@ -8,9 +8,11 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.FX;
+using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.SaveData;
@@ -87,9 +89,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// The glitch doubles as the damage meter: every hard impact pulses it,
     /// police hits permanently raise the base level, and at full corruption
     /// the run ends: the glitch holds at max, then the
-    /// <see cref="Screens.GameOverScreen"/> asks RETRY? — YES reloads the scene,
-    /// NO returns to the main menu. Damage knobs stay here — they are the
-    /// chase's feel, not a level's design.
+    /// <see cref="Screens.GameOverScreen"/> asks RETRY? — YES restarts the
+    /// level IN PLACE (<see cref="RestartLevel"/>: no scene load — the car is
+    /// spawned anew at the start, fleets, consumed pickups and volumes,
+    /// objectives and the brief all start over), NO returns to the main menu.
+    /// Damage knobs stay here — they are the chase's feel, not a level's
+    /// design.
     /// </summary>
     public class LevelManager : MonoBehaviour
     {
@@ -169,6 +174,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         bool timedOut;
         string lastDamageReason; // what last filled the corruption meter — a police hit makes the reboot an arrest
         bool warnedEmpty;
+        float glitchFadeBeforeReset = -1f; // the glitch's healing rate, taken while the death screen holds at max; -1 = not held
 
         public LevelDefinition Level => level;
         public CarController Player => player;
@@ -335,7 +341,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         // The brief goes up in Start, after every Awake (city boot, HUD, menu
         // singletons) has run — it freezes scaled time itself, so the whole
         // scene holds under it until the player accepts.
-        void Start()
+        void Start() => BeginRun();
+
+        /// <summary>
+        /// Open the run: the base offer, then the brief (unless skipped — then
+        /// the first Update briefs step 1 as soon as the car exists). Shared
+        /// by the scene's Start and the in-place <see cref="RestartLevel"/>.
+        /// </summary>
+        void BeginRun()
         {
             MissionReward = (int)System.Math.Min(level.RewardBase, int.MaxValue);
             if (skipMissionBrief) return;
@@ -940,24 +953,115 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
         /// <summary>
         /// The shared death: hold the maxed glitch a beat, then ask instead of
-        /// rebooting on our own — GAME OVER, RETRY? YES reloads the level, NO
-        /// abandons the run back to the main menu. The screen freezes scaled
-        /// time itself and unfreezes before the chosen callback runs.
+        /// rebooting on our own — GAME OVER, RETRY? YES restarts the level in
+        /// place, NO abandons the run back to the main menu. The screen
+        /// freezes scaled time itself and unfreezes before the chosen
+        /// callback runs.
         /// </summary>
         IEnumerator ResetLevel()
         {
             resetting = true;
             // Healing stops here: the death screen must hold at full glitch.
+            // The rate is remembered so the retry can hand it back — a reload
+            // used to restore it for free.
             if (GlitchController.Instance != null)
             {
+                if (glitchFadeBeforeReset < 0f) glitchFadeBeforeReset = GlitchController.Instance.baseFadePerSecond;
                 GlitchController.Instance.baseFadePerSecond = 0f;
                 GlitchController.Instance.SetBaseIntensity(1f);
                 GlitchController.Instance.Pulse(1f);
             }
             yield return new WaitForSeconds(resetDelaySeconds);
-            GameOverScreen.Show(onRetry: ReloadLevel, onGiveUp: ExitToMainMenu);
+            GameOverScreen.Show(onRetry: RestartLevel, onGiveUp: ExitToMainMenu);
         }
 
+        /// <summary>
+        /// RETRY from the game-over screen, in place — no scene load, because
+        /// the baked city takes seconds to come back. Everything a reload used
+        /// to reset by accident is reset on purpose, in this order: the story
+        /// queue and any cinema are dropped (their callbacks would land on the
+        /// new run), pending advances are cancelled, the glitch gets its
+        /// healing rate back and a clean feed, the fleets are retired so they
+        /// respawn around the fresh car, consumed pickups and one-shot volumes
+        /// are put back on the street, the car is spawned anew at the authored
+        /// start (rolling, camera cut to it), every objective forgets its
+        /// progress and the brief opens again for a fresh pick of challenges
+        /// — challenges taken on the road are forgotten with their triggers
+        /// restored. Falls back to the scene reload only when the scene has no
+        /// <see cref="PlayerCarSpawner"/> to spawn from.
+        /// </summary>
+        public void RestartLevel()
+        {
+            if (loading) return; // the completion handoff is already in flight
+            Debug.Log("[Level] retry — restarting the level in place", this);
+
+            // Anything still waiting on the old run: the death hold, a pending
+            // advance, a cinema or a queued line with a callback into us.
+            StopAllCoroutines();
+            advanceToken++;
+            CinemaSystem.Instance?.Cancel(); // unconditional: a trigger's running-world cinema may be up too
+            cinemaOpen = false;
+            cinemaPlaying = false;
+            RpgMessageSystem.Instance.ClearMessages();
+
+            RestoreGlitchFade();
+            if (GlitchController.Instance != null) GlitchController.Instance.SetBaseIntensity(0f);
+            lastDamageReason = null;
+            CameraShake.Clear();
+
+            // The world: fleets gone (they refill on their next tick around
+            // the new car), everything the player used up back in place.
+            FindAnyObjectByType<PatrolManager>()?.Clear();
+            FindAnyObjectByType<TrafficManager>()?.Clear();
+            TrafficCarInput.ClearEscapeRegistry();
+            patrols = System.Array.Empty<PoliceCarInput>();
+            RunConsumables.RestoreAll();
+            DialogueTrigger.ReArmAll();
+            CinemaTrigger.ReArmAll();
+
+            // The car: a fresh instance at the authored start. Bound here
+            // rather than found — the old car's Destroy is deferred, so a
+            // find this frame could still answer it.
+            var spawner = FindAnyObjectByType<PlayerCarSpawner>();
+            if (spawner == null)
+            {
+                Debug.LogError($"[Level] no {nameof(PlayerCarSpawner)} in the scene to restart from — reloading instead.", this);
+                ReloadLevel();
+                return;
+            }
+            spawner.SpawnCar();
+            BindPlayer(spawner.SpawnedCar);
+            retargetTimer = 1f;
+            promoteTimer = 0f;
+
+            // The level: every step from zero, no challenges until the brief
+            // hands over the new picks.
+            states = new ObjectiveState[level.Count];
+            for (int i = 0; i < states.Length; i++) states[i] = new ObjectiveState();
+            current = 0;
+            acceptedChallenges.Clear();
+            challengeStates = System.Array.Empty<ObjectiveState>();
+            Completed = false;
+            advancing = false;
+            resetting = false;
+            timedOut = false;
+            warnedEmpty = false;
+
+            CollectibleManager.Instance?.ResetRun();
+            BeginRun();
+        }
+
+        // Hands the GlitchController its healing rate back once the death
+        // hold is over. Idempotent.
+        void RestoreGlitchFade()
+        {
+            if (glitchFadeBeforeReset < 0f) return;
+            if (GlitchController.Instance != null) GlitchController.Instance.baseFadePerSecond = glitchFadeBeforeReset;
+            glitchFadeBeforeReset = -1f;
+        }
+
+        // The fallback when an in-place restart is impossible: the whole scene
+        // again, under the loading curtain.
         void ReloadLevel()
         {
             Debug.Log("[Level] retry — reloading scene under the loading screen", this);
@@ -1044,11 +1148,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             retargetTimer -= dt;
             if (player != null && retargetTimer > 0f) return;
             retargetTimer = 1f;
-            player = PatrolManager.FindPlayerCar();
+            BindPlayer(PatrolManager.FindPlayerCar());
             patrols = FindObjectsByType<PoliceCarInput>(FindObjectsSortMode.None);
+        }
 
-            // The car is spawned from a prefab at runtime — bolt the impact
-            // sensor on when we first see it (survives respawns of the same object).
+        /// <summary>
+        /// Take a car as the player. It is spawned from a prefab at runtime —
+        /// the impact sensor is bolted on when we first see it (survives
+        /// respawns of the same object; a fresh instance gets a fresh one).
+        /// </summary>
+        void BindPlayer(CarController car)
+        {
+            player = car;
             if (player != null && player.GetComponent<PlayerImpactSensor>() == null)
                 player.gameObject.AddComponent<PlayerImpactSensor>().Impacted += OnPlayerImpact;
         }

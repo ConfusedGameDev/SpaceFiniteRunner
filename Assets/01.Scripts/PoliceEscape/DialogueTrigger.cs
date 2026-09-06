@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.Ship;
 using Sirenix.OdinInspector;
@@ -14,8 +15,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// per-page hold duration are authored on the trigger itself. It recognises both games' players — the city car by its
     /// <see cref="Vehicles.CarInput"/>, the runner ship by its
     /// <see cref="ShipMotor"/> — so the same component works in every scene.
-    /// With <see cref="oneShot"/> on the object destroys itself after firing;
-    /// otherwise it stays and re-arms only once the player has LEFT the
+    /// With <see cref="oneShot"/> on the object is consumed after firing
+    /// (<see cref="RunConsumables"/> — deactivated, and put back by the
+    /// level's in-place retry, which also re-arms every other trigger through
+    /// <see cref="ReArmAll"/>); otherwise it stays and re-arms only once the player has LEFT the
     /// volume AND <see cref="cooldownSeconds"/> has passed since the line
     /// fired — re-entering during the cooldown is swallowed, not deferred,
     /// so a player circling the trigger can't stack lines. The collider is
@@ -25,7 +28,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// dialogue-triggers channel); the gizmo below covers edit-mode placement.
     /// </summary>
     [RequireComponent(typeof(Collider))]
-    public class DialogueTrigger : MonoBehaviour
+    public class DialogueTrigger : MonoBehaviour, IRunConsumable
     {
         [TitleGroup("Line")]
         [Tooltip("Portrait shown in the dialogue box. Empty falls back to the message system's default, then to the speaker's initial.")]
@@ -99,8 +102,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
             lastFireTime = Time.time;
             RpgMessageSystem.Instance.ShowMessage(characterName, pages, duration, accent, characterSprite);
-            if (oneShot) Destroy(gameObject);
+            if (oneShot) RunConsumables.Consume(this);
         }
+
+        /// <summary>A level retry put a one-shot volume back: it has never fired.</summary>
+        public void OnRestored() => lastFireTime = float.NegativeInfinity;
+
+        /// <summary>Forget every live trigger's cooldown — the level restarted, so no line was heard "just now".</summary>
+        public static void ReArmAll()
+        {
+            foreach (DialogueTrigger trigger in active) trigger.lastFireTime = float.NegativeInfinity;
+        }
+
+        void OnDestroy() => RunConsumables.Forget(this);
 
         /// <summary>
         /// Is this collider the player? The two player markers: CarInput sits

@@ -44,6 +44,11 @@ The city calls it from `CarFactory.Spawn`, the runner from `GameManager.Awake` w
 `GameSettings.cameraSettings` (`Data/Fighter_CameraSettings.asset`; empty = the scene keeps its
 camera). `CameraRigInstaller.Warp` is what `CarFactory.Teleport` tells about a teleport.
 
+**`SetTarget` on a rig that already follows something is a cut**: the anchor and mount are
+persistent objects, so re-seating them on a vehicle far from the last one (the city's in-place
+retry spawns a fresh car at the start) would read to Cinemachine as its target jumping and damp the
+camera across the city; `SetTarget` reports the seat delta through `OnTargetObjectWarped` itself.
+
 **A hand-placed rig can be pre-built in edit mode** with the inspector's Odin **Setup** button
 (`OrbitCameraRig.Setup`, `#if UNITY_EDITOR`): it find-or-adds the orbit vcam's components
 (CinemachineCamera, OrbitalFollow, RotationComposer, Deoccluder, `CinemachineCameraShake`) on the

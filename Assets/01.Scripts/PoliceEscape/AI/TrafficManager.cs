@@ -17,7 +17,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
     /// manager only ever culls cars it spawned itself. Vehicles are rigged straight from the Kenney FBX
     /// assets at spawn time by VehicleRigBuilder — no per-type prefabs.
     /// Spawned by CityManager when its traffic settings field is wired;
-    /// maintenance runs on a 1 s tick, not per-frame.
+    /// maintenance runs on a 1 s tick, not per-frame. The level's in-place
+    /// retry calls <see cref="Clear"/> to retire the whole fleet — the only
+    /// thing that ever removes a fleeing escape car, which the cull exempts.
     /// </summary>
     public class TrafficManager : MonoBehaviour
     {
@@ -69,6 +71,21 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 if (!TrySpawnVehicle(player)) break; // no valid spot this tick — try again next tick
                 spawnedThisTick++;
             }
+        }
+
+        /// <summary>
+        /// Retire the whole fleet at once — the level restarted in place.
+        /// Sweeps the traffic header rather than the list, so wrecks (whose
+        /// driver the death stripped) and the exempt escape car go too; the
+        /// next tick ramps a fresh fleet in around wherever the player is now.
+        /// </summary>
+        public void Clear()
+        {
+            Transform header = SceneHierarchy.Traffic(gameObject.scene);
+            for (int i = header.childCount - 1; i >= 0; i--)
+                Destroy(header.GetChild(i).gameObject);
+            vehicles.Clear();
+            maintenanceTimer = 0f;
         }
 
         bool TrySpawnVehicle(CarController player)

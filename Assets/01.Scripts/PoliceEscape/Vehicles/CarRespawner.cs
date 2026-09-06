@@ -87,8 +87,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             CarFactory.Teleport(body, position, Quaternion.Euler(0f, transform.eulerAngles.y, 0f));
 
             // The respawn is also the body shop: EVP dents ease back to shape
-            // (progressively, at the config's repair rate). A level reboot
-            // reloads the scene and needs nothing here.
+            // (progressively, at the config's repair rate). A level retry
+            // spawns a fresh car instead and needs nothing here.
             var deformation = GetComponent<CarDeformation>();
             if (deformation != null) deformation.Repair();
         }

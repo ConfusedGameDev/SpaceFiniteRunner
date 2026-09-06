@@ -49,16 +49,16 @@ decides what an answer means. It lives here rather than in either game's UI fold
 Two layouts:
 
 - **Bare question** `Show(onRetry, onGiveUp)` — GAME OVER / RETRY? / YES / NO. The city chase
-  raises this once the completion glitch has filled and held (YES reloads the level, NO to the
-  main menu).
+  raises this once the completion glitch has filled and held (YES is `LevelManager.RestartLevel`
+  **in place** — no scene load, see `city-level-flow.md`; NO to the main menu).
 - **Retry panel** `Show(MenuTextId? reasonId, …)` — GAME OVER, a localized reason line in the
   accent colour where the question sat, then RETRY / EXIT TO MAIN MENU. The runner raises this the
   frame the run is lost; RETRY is `GameManager.Restart` **in place**, EXIT is
   `LoadingScreen.LoadMainMenu`.
 
 **There is no Back out** — the screen demands an answer, so Esc/B do nothing on it. It freezes
-scaled time, which also keeps the pause menu and the city map from stacking over it. Because the
-runner retries without a scene reload, an answer tears the overlay down **before** running the
+scaled time, which also keeps the pause menu and the city map from stacking over it. Because both
+games retry without a scene reload, an answer tears the overlay down **before** running the
 callback.
 
 ## `MissionCompleteScreen` (`Runner/Screens/`)

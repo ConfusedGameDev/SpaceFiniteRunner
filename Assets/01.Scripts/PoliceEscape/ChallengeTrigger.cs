@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.HUD;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -16,13 +17,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
     /// counting at once, shows on the map screen and multiplies the payout
     /// like any accepted challenge) and the line is spoken through the
     /// <see cref="RpgMessageSystem"/>. A challenge is taken once, so the
-    /// trigger always destroys itself after firing. Same player rule as the
+    /// trigger is always consumed after firing (<see cref="RunConsumables"/>
+    /// — deactivated, and put back by the level's in-place retry, which also
+    /// forgets every challenge taken on the road). Same player rule as the
     /// other volumes (<see cref="DialogueTrigger.IsPlayer"/>), collider forced
     /// to a trigger; the <see cref="Debugging.DialogueTriggerVisualizer"/>
     /// fills it in green next to the orange dialogue and blue cinema volumes.
     /// </summary>
     [RequireComponent(typeof(Collider))]
-    public class ChallengeTrigger : MonoBehaviour
+    public class ChallengeTrigger : MonoBehaviour, IRunConsumable
     {
         [TitleGroup("Optional objective")]
         [Tooltip("The challenge handed to the player on entry — a full objective plus its reward multiplier.")]
@@ -110,8 +113,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             Color tint = accent.a > 0.001f ? accent : challenge.Accent;
             RpgMessageSystem.Instance.ShowMessage(speaker, lines, hold, tint, characterSprite);
 
-            Destroy(gameObject);
+            RunConsumables.Consume(this);
         }
+
+        /// <summary>A level retry put the volume back on the road: the challenge is on offer again.</summary>
+        public void OnRestored() => fired = false;
+
+        void OnDestroy() => RunConsumables.Forget(this);
 
         // Edit-mode placement aid: a translucent green cube the size of the
         // collider — the visualizer's colours for this trigger kind.

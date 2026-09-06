@@ -59,8 +59,8 @@ shows in the panel's corner once a page has typed.
 `onFinished` must not freeze the world under it.
 
 `ClearMessages()` drops pending lines **without** firing their `onFinished`. `GameManager.EndRun`
-and `Restart()` both call it, so a story line can neither sit frozen under a panel nor land on the
-next run.
+and `Restart()` call it, and so does the city's `LevelManager.RestartLevel`, so a story line can
+neither sit frozen under a panel nor land on the next run.
 
 The portrait shows the speaker's initial until real art is assigned. `PlaceholderBlip()` is the
 shared rising-pitch blip the Mission Complete typewriter also uses.
@@ -100,7 +100,10 @@ up after `AddComponent`.
 marker** — `ShipMotor` and the city's `CarInput` implement it — so the pickup knows neither vehicle.
 
 Collecting plays the optional `pickupClip` through a throwaway source on `GameAudio.Fx`, raises the
-static `Collectible.Collected` event and destroys the object. **It records nothing itself.**
+static `Collectible.Collected` event and **consumes** the object — `RunConsumables.Consume`
+(`Runner/GameFlow/RunConsumables.cs`) deactivates it and remembers it so the city's in-place retry
+can `RestoreAll()`; `OnRestored` clears `collected`, `OnDestroy → Forget` drops it when the runner's
+generator destroys it with its stretch. **It records nothing itself.**
 
 ### `CollectibleManager` is the one recorder
 

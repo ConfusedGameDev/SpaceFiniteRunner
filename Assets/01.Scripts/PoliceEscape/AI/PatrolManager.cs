@@ -18,7 +18,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
     /// despawning a chasing or searching car would silently complete an
     /// EscapePolice objective the player never earned. Spawned by CityManager
     /// at play start when its police fields are wired — no scene object
-    /// needed. Maintenance runs on a 1 s tick, not per-frame.
+    /// needed. Maintenance runs on a 1 s tick, not per-frame. The level's
+    /// in-place retry calls <see cref="Clear"/> to retire the whole fleet
+    /// (wrecks included) so it respawns around the fresh car.
     /// </summary>
     public class PatrolManager : MonoBehaviour
     {
@@ -83,6 +85,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             {
                 if (!TrySpawnPatrol(player)) break; // no valid cell this tick — try again next tick
             }
+        }
+
+        /// <summary>
+        /// Retire the whole fleet at once — the level restarted in place.
+        /// Sweeps the police header rather than the list, so wrecks (whose
+        /// driver the death stripped, dropping them from the list) go too;
+        /// the next tick refills around wherever the player is now. A
+        /// chasing cruiser destroyed here cannot falsely complete an
+        /// Escape Police step: the level rebuilds its objective state after.
+        /// </summary>
+        public void Clear()
+        {
+            Transform header = SceneHierarchy.Police(gameObject.scene);
+            for (int i = header.childCount - 1; i >= 0; i--)
+                Destroy(header.GetChild(i).gameObject);
+            patrols.Clear();
+            maintenanceTimer = 0f;
         }
 
         /// <summary>The player's car: the one driven by a CarInput. Null while no player car exists.</summary>

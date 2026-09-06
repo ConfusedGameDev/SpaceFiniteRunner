@@ -120,9 +120,10 @@ placeholders via the public `LevelObjective.FormatAll`; no page text = the objec
 
 Driving in calls **`LevelManager.AcceptChallenge`** — the challenge joins `acceptedChallenges`
 with a fresh state (starts counting next frame, multiplies `MissionReward`; refused while the
-level is ending or if already accepted), the line is spoken, and the trigger **destroys itself**.
-A challenge is taken once — no cooldown. `CityMapScreen.challengeList` merges the asset's
-challenges with any accepted on the road.
+level is ending or if already accepted), the line is spoken, and the trigger **is consumed**
+(`RunConsumables.Consume` — deactivated, restored by the in-place retry below). A challenge is
+taken once — no cooldown. `CityMapScreen.challengeList` merges the asset's challenges with any
+accepted on the road.
 
 ## Rewards — and what banks
 
@@ -153,6 +154,41 @@ but the main list waits until the completion line has cleared (`RpgMessageSystem
 `nextDelaySeconds` (scaled `WaitForSeconds`, so it freezes with the pause menu / map) before
 `current++` and the next step's brief/cinema. A done step absorbs no kills or pickups meanwhile,
 and an All-Must-Hold regression bumps `advanceToken` to cancel the pending advance.
+
+## Losing and the in-place retry
+
+`RequestReboot(reason)` is the one lose funnel (full corruption, a Complete Within deadline, the
+car wrecked on its roof). It records the death, holds the glitch at max for `resetDelaySeconds`
+(remembering the glitch's healing rate) and raises the shared `GameOverScreen`. **RETRY never
+reloads the scene** — the baked city takes seconds — it calls **`LevelManager.RestartLevel`**,
+which resets in this order:
+
+1. `StopAllCoroutines`, `advanceToken++`, `CinemaSystem.Cancel()` (unconditional — a
+   `CinemaTrigger`'s running-world cinema may be up), `RpgMessageSystem.ClearMessages()` (drops a
+   queued time-up / completion line WITHOUT its callback).
+2. Glitch: healing rate handed back, base intensity 0; `CameraShake.Clear()`.
+3. Fleets: `PatrolManager.Clear()` / `TrafficManager.Clear()` sweep the `==Police==` /
+   `==TrafficNPC==` headers (wrecks and the cull-exempt escape car included) and refill on their
+   next tick; `TrafficCarInput.ClearEscapeRegistry()`.
+4. **Consumables restored**: `RunConsumables.RestoreAll()` (Runner assembly,
+   `GameFlow/RunConsumables.cs`) re-activates every `Collectible`, one-shot `DialogueTrigger` /
+   `CinemaTrigger` and every `ChallengeTrigger` — they **deactivate instead of destroying**
+   (`IRunConsumable.OnRestored` resets each one's own latch; `OnDestroy → Forget` drops them on a
+   real destroy, so the runner's culled coins leave the static list on their own). Then
+   `DialogueTrigger.ReArmAll()` / `CinemaTrigger.ReArmAll()` clear the cooldowns.
+5. Car: `PlayerCarSpawner.SpawnCar()` — a fresh instance at the authored start, rolling, camera
+   retargeted (`OrbitCameraRig.SetTarget` warps Cinemachine so it cuts). Bound from
+   `SpawnedCar`, never found — the old car's Destroy is deferred.
+6. Level: fresh `states`, `current = 0`, accepted challenges cleared, all gates down,
+   `CollectibleManager.ResetRun()`, then `BeginRun()` — **the brief opens again** and the player
+   re-picks challenges (`skipMissionBrief` goes straight to step 1). Road-found challenges are
+   forgotten, their triggers back on the street.
+
+Not restored (known limits): exploded `ExplosiveBarrel`s, wrecked `DefaultVehicle`s, pushed
+decoration props. `MissionSession` is untouched (`Awake` never re-runs). The scene reload survives
+only as the fallback when the scene has no `PlayerCarSpawner`, and as the pause menu's debug
+RELOAD SCENE row. `PlayerStats.CompleteBonusObjective` may count a re-completed challenge again
+across attempts — accepted, it is a lifetime tally and moves no money.
 
 ## `TargetObject`
 

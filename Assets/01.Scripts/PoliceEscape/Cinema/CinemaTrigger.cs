@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.GameFlow;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Video;
@@ -18,7 +19,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
     /// city car's CarInput, the runner ship's ShipMotor) keeps AI cars from
     /// tripping it.
     ///
-    /// With <see cref="oneShot"/> on the object destroys itself as it fires.
+    /// With <see cref="oneShot"/> on the object is consumed as it fires
+    /// (<see cref="RunConsumables"/> — deactivated, and put back by the
+    /// level's in-place retry, which also re-arms every other trigger through
+    /// <see cref="ReArmAll"/>; the retry cancels a running cinema WITHOUT its
+    /// callback, so that is the only way a trigger's <c>playing</c> clears).
     /// Otherwise it re-arms after <see cref="cooldownSeconds"/>, and the
     /// cooldown starts counting WHEN THE CINEMA CLEARS — after a skip, the
     /// duration running out, or another cinema taking the screen — not when
@@ -35,7 +40,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
     /// channel, and the gizmo below covers edit-mode placement.
     /// </summary>
     [RequireComponent(typeof(Collider))]
-    public class CinemaTrigger : MonoBehaviour
+    public class CinemaTrigger : MonoBehaviour, IRunConsumable
     {
         [TitleGroup("Cinema")]
         [Tooltip("The clip to play. Assigning one sets the duration to its length.")]
@@ -112,8 +117,25 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Cinema
 
             playing = true;
             cinema.Play(clip, format, duration, pauseGame, OnCinemaCleared);
-            if (oneShot) Destroy(gameObject);
+            if (oneShot) RunConsumables.Consume(this);
         }
+
+        /// <summary>A level retry put a one-shot volume back: it has never fired.</summary>
+        public void OnRestored() => ReArm();
+
+        /// <summary>Forget every live trigger's cinema and cooldown — the level restarted and the picture was torn down without calling back.</summary>
+        public static void ReArmAll()
+        {
+            foreach (CinemaTrigger trigger in active) trigger.ReArm();
+        }
+
+        void ReArm()
+        {
+            playing = false;
+            readyTime = float.NegativeInfinity;
+        }
+
+        void OnDestroy() => RunConsumables.Forget(this);
 
         // The cooldown starts here — when the screen is back (or handed to
         // another cinema) — never at fire time.

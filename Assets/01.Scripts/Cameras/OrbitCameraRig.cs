@@ -168,8 +168,19 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             {
                 TagRecursively(vehicle, PlayerTag);
                 laggedUp = vehicle.up;
+                // The anchor and mount are persistent objects the vcams follow,
+                // so a retarget to a vehicle far from the last one (the city's
+                // in-place retry spawns a fresh car at the start) reads to
+                // Cinemachine as its follow target jumping — it would damp the
+                // camera across the city. Tell it the seat was a warp: a cut.
+                Vector3 anchorBefore = anchor.position;
+                Vector3 mountBefore = mount.position;
                 SeatAnchor(0f);
                 SeatMount();
+                Vector3 anchorDelta = anchor.position - anchorBefore;
+                Vector3 mountDelta = mount.position - mountBefore;
+                if (anchorDelta.sqrMagnitude > 0f) CinemachineCore.OnTargetObjectWarped(anchor, anchorDelta);
+                if (mountDelta.sqrMagnitude > 0f) CinemachineCore.OnTargetObjectWarped(mount, mountDelta);
             }
             cinemachineCamera.Follow = vehicle != null ? anchor : null;
             cinemachineCamera.LookAt = vehicle != null ? anchor : null;
