@@ -68,8 +68,8 @@
   <Project Path="Unity.AI.Tracing.csproj" />
   <Project Path="Unity.RenderPipelines.Universal.2D.Editor.Overrides.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Rendering.csproj" />
-  <Project Path="EVP5.Editor.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.UI.csproj" />
+  <Project Path="EVP5.Editor.csproj" />
   <Project Path="Unity.2D.Sprite.Editor.csproj" />
   <Project Path="Unity.AI.Navigation.Editor.csproj" />
   <Project Path="Unity.AI.Toolkit.GenerationObjectPicker.csproj" />
