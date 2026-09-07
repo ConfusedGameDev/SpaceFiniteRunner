@@ -30,7 +30,7 @@ Material:
     - _FrameRate: 24
     - _HeadSwitch: 0.5
     - _HeadSwitchHeight: 0.035
-    - _Intensity: 0.412
+    - _Intensity: 0
     - _Jitter: 2
     - _LumaSoftness: 0.8
     - _Noise: 0.3

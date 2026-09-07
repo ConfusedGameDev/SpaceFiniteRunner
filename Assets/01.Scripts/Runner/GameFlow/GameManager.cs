@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.Audio;
 using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.Collectibles;
@@ -64,6 +65,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         bool loopCinematic;                // the rig is holding the cinematic shot for a loop (and its fall)
         float loopCinematicHoldLeft;       // real seconds the shot lingers past the exit, -1 = not releasing
         SpeedLines speedLines;             // null when the speed lines are off on GameSettings
+        RunnerMusic music;                 // null when the music is off on GameSettings
 
         /// <summary>How a run ended — typed, so the save record never has to match a result label.</summary>
         enum RunOutcome { Escaped, Caught, Stalled, TimedOut }
@@ -248,6 +250,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // parked.
             CrtScreen.Apply(settings.crtEnabled, settings.crtSettings);
 
+            // Music: the scene's hand-placed Music object under ===SYSTEMS===,
+            // found and parked the same way — never spawned. Its own Start
+            // begins the loop at a random point under a fade-in; this manager
+            // only fades it out on the endings and replays it on a retry.
+            music = RunnerMusic.Apply(settings.musicEnabled, settings.musicSettings);
+
             // After the patrol init, so the debug menu's patrol tab can bind
             // to the live definition clone.
             PauseMenu.Spawn(this, motor);
@@ -321,6 +329,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             RunOver = true;
             motor.Paused = true; // freeze the sim; the hover keeps the ship floating
 
+            // A loss fades the music under the panel at the asset's fade-out
+            // time; a win already booked its fade with the glitch in FinishWin.
+            if (!HasWon && music != null) music.FadeOut();
+
             // The record: an escape completed (and how long it took — the
             // timer only ran while flying, so this is launch-to-light-speed),
             // or a failed one; the patrol catching up is the runner's arrest.
@@ -352,6 +364,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             while (motor != null && (motor.State != ShipState.Grounded || motor.CurrentRamp != null))
                 yield return null;
+
+            // The sound washes out with the picture: the fade spans the ramp
+            // and the hold, so the music lands silent on the frame EndRun
+            // opens the panel.
+            if (music != null) music.FadeOut(settings.winGlitchRampSeconds + settings.winGlitchHoldSeconds);
 
             GlitchController glitch = GlitchController.Instance;
             if (glitch != null)
@@ -666,6 +683,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             RpgMessageSystem.Instance.ClearMessages();
             if (dashPrompt != null) dashPrompt.ResetForRun();
             if (speedLines != null) speedLines.ClearPulse(); // the speed term follows the relaunch on its own
+            if (music != null) music.Play(); // every attempt is a fresh play: a new random point under a fade-in
 
             // A retry from the panel: the wind-down is over, but a RETRY pressed
             // while a glitch is still decaying must start on a clean picture.

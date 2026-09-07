@@ -28,7 +28,7 @@ Material:
     - _ColorBits: 3
     - _Dither: 1
     - _HasDepth: 1
-    - _Intensity: 1
+    - _Intensity: 0
     - _JitterRate: 15
     - _Swim: 0.6
     - _TargetHeight: 244

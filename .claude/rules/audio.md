@@ -1,8 +1,10 @@
 ---
-description: Audio — mixer bus layout, GameAudio snapshots and ducking, menu sound slots, the car radio
+description: Audio — mixer bus layout, GameAudio snapshots and ducking, menu sound slots, the car radio, the runner's music
 paths:
   - "**/GameAudio.cs"
   - "**/PoliceEscape/Audio/**"
+  - "**/Runner/Audio/**"
+  - "**/MusicAssetBuilder.cs"
   - "**/RadioSystem.cs"
   - "**/RadioSettings.cs"
   - "**/RadioAssetBuilder.cs"
@@ -112,3 +114,35 @@ resumes and fades in. A request mid-fade replaces what happens at silence, so ma
 the last song asked for.
 
 Streamed clips are destroyed with the system; bundled clips are assets and never touched.
+
+## Runner music
+
+`Runner/Audio/`, namespace `…FiniteRunner.Audio`. One track, one big loop.
+
+`RunnerMusic` is a hand-placed scene-lifetime system under the runner scene's `===SYSTEMS===`
+(placed as `Music` by **Tools → FiniteRunner → Place Scene Systems**, which parents new systems
+under that header when the scene has one). `GameManager.Awake` calls
+`RunnerMusic.Apply(settings.musicEnabled, settings.musicSettings)` after the CRT screen: it only
+**finds** the object (an error naming the placer when missing) and parks it when the
+`GameSettings` "Music" toggle group is off — never spawned. Its knobs all live on `MusicSettings`
+(`04.Data/Resources/FiniteRunner_Music.asset`, created and seeded with the clip by **Tools →
+FiniteRunner → Create Music Settings** / `MusicAssetBuilder.CreateOrLoad`; `Load()` falls back to a
+silent in-memory default): `clip`, `volume`, `randomStart`, `fadeInSeconds`, `fadeOutSeconds`.
+
+The source is `loop = true` on `GameAudio.Music`, so **pause is the snapshot's job** — the Paused
+/ Loading / Cinema ducks hide it with no pause detection in the system, and it keeps running
+silently under the duck (a big loop resumes wherever it is). The clip's importer is
+CompressedInMemory + preload so the seek is instant.
+
+**Every play is a fresh play** (`Play()`, the system's own `Start` and `GameManager.Restart`):
+`source.time` is set to a random point (the last second excluded so a start never lands on the
+seam) **before** `Play()`, then the level fades in. The fades are the radio's idiom — one `level`
+scalar × `settings.volume` on `source.volume`, `MoveTowards` on **unscaled** time, an `atSilence`
+booking — and never `SetFloat` an exposed param (`MusicVolume` stays the player's slider).
+
+- **Win**: `FinishWin`, once the ship is grounded, books `FadeOut(winGlitchRampSeconds +
+  winGlitchHoldSeconds)` so the music reaches silence on the frame the Mission Complete panel
+  opens — sound washes out with the picture.
+- **Lose**: `EndRun` books `FadeOut()` at the asset's `fadeOutSeconds`, under the retry panel.
+- A fade-out that reaches silence **pauses** the source; `Play()` restarts it either way, and a
+  RETRY pressed mid-fade just turns the music around onto a new point.

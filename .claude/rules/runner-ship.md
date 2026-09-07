@@ -139,9 +139,13 @@ patrol chase tunables live on `PatrolDefinition` instead.
 `GameSettings.patrolEnabled` is off) and spawns the `PauseMenu` **after** that init so the debug
 menu can bind to the patrol's live definition.
 
+`Awake` also finds the scene's `RunnerMusic` (`RunnerMusic.Apply`, after the CRT screen — see
+`audio.md`); `FinishWin` fades it out over the glitch ramp + hold, `EndRun` fades a loss at the
+asset's time, and `Restart` replays it from a new random point.
+
 The timer only ticks while the motor isn't paused. `Restart()` rebuilds the track via
 `TrackGenerator.RegenerateForRun()`, relaunches ship and patrol, calls
-`CollectibleManager.ResetRun()`, and reopens the tuning screen if it is enabled.
+`CollectibleManager.ResetRun()`, replays the music, and reopens the tuning screen if it is enabled.
 
 `ShipMotor.Launch()` fires up to three times per run, so it cannot be used to count attempts —
 `GameManager` counts one on the first frame the motor is unpaused.

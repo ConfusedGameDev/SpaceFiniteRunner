@@ -31,7 +31,7 @@ Material:
     - _Curvature: 0.175
     - _Flicker: 0.765
     - _Glow: 0.3
-    - _Intensity: 1
+    - _Intensity: 0
     - _Mask: 0.67
     - _MaskScale: 2
     - _RefreshRate: 60

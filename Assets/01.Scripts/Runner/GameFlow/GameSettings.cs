@@ -1,6 +1,7 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.Audio;
 using ConfusedGameDev.FiniteRunner.FX;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
@@ -351,6 +352,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [ToggleGroup("crtEnabled"), InlineEditor]
         [Tooltip("CRT screen asset pushed onto the scene's CrtScreen driver on boot. Empty = leave the driver with the asset it was authored with (the shipped FiniteRunner_CrtScreen from Resources).")]
         public CrtScreenSettings crtSettings;
+
+        // --------------------------------------------------------------- music
+        [ToggleGroup("musicEnabled", "Music")]
+        [Tooltip("Play the runner's soundtrack loop over the run: a random start point every play, fade in on launch, fade out on win and lose. The clip, volume and fade times live on the asset below — this is only the on/off for this scene.")]
+        public bool musicEnabled = true;
+
+        [ToggleGroup("musicEnabled"), InlineEditor]
+        [Tooltip("Music asset pushed onto the scene's RunnerMusic system on boot. Empty = leave the system with the asset it was authored with (the shipped FiniteRunner_Music from Resources).")]
+        public MusicSettings musicSettings;
 
         // --------------------------------------------------------- accessors
         /// <summary>How far behind the ship a fresh patrol drops in, in meters (band X).</summary>
