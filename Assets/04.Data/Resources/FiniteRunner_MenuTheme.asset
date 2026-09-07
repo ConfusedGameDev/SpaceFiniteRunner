@@ -82,6 +82,7 @@ MonoBehaviour:
   confirmClip: {fileID: 8300000, guid: b8db834e45436404c825dd0d8154aaf3, type: 3}
   backClip: {fileID: 8300000, guid: 41107b74b2c95894b80682f78014673a, type: 3}
   adjustClip: {fileID: 8300000, guid: 2255e196007747a43ba95b9ce7cea3dd, type: 3}
+  debriefClip: {fileID: 8300000, guid: 879337b09f6b3d1409d1e17eecdc2109, type: 3}
   uiVolume: 0.8
   pauseMusicClip: {fileID: 0}
   pauseAudioFade: 0.4

@@ -141,7 +141,10 @@ menu can bind to the patrol's live definition.
 
 `Awake` also finds the scene's `RunnerMusic` (`RunnerMusic.Apply`, after the CRT screen — see
 `audio.md`); `FinishWin` fades it out over the glitch ramp + hold, `EndRun` fades a loss at the
-asset's time, and `Restart` replays it from a new random point.
+asset's time, and `Restart` replays it from a new random point. The ship's own sounds are
+`ShipAudio`, added beside `LoopSlowMo` (`ShipAudio.Ensure(motor).Configure(settings,
+LightSpeedKmh)` while `GameSettings.sfxEnabled`); its engine gates on `motor.Paused`, so the
+endings and `Restart` need no audio hook.
 
 The timer only ticks while the motor isn't paused. `Restart()` rebuilds the track via
 `TrackGenerator.RegenerateForRun()`, relaunches ship and patrol, calls

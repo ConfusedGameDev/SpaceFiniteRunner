@@ -152,6 +152,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // contract lives there); the knobs are on the settings asset.
                 LoopSlowMo.Ensure(motor).Configure(settings);
 
+                // The ship's own sounds (engine loop, pickup, jump) ride the
+                // ship the same way, reading the settings live; off = no
+                // component at all. The endings need no hook: the engine gates
+                // on the motor's pause.
+                if (settings.sfxEnabled) ShipAudio.Ensure(motor).Configure(settings, LightSpeedKmh);
+
                 // The DashMeterUI is a scene child of the Ship — it configures
                 // itself off the motor in Start, after ConfigureDash above.
                 if (settings.dashEnabled)

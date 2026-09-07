@@ -242,6 +242,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] AudioClip adjustClip;
 
         [TitleGroup("Audio")]
+        [Tooltip("The debrief (Mission Complete) panel powering on. 07.Audio/01.SFX/FiniteRunner computerNoise*. Empty = silent.")]
+        [SerializeField] AudioClip debriefClip;
+
+        [TitleGroup("Audio")]
         [PropertyRange(0f, 1f)]
         [SerializeField] float uiVolume = 0.8f;
 
@@ -361,6 +365,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         public AudioClip BackClip => backClip;
         /// <summary>Slider / toggle step. Borrows the move blip when nothing is assigned so an adjust is never silent.</summary>
         public AudioClip AdjustClip => adjustClip != null ? adjustClip : moveClip;
+        /// <summary>The Mission Complete panel powering on; null = silent.</summary>
+        public AudioClip DebriefClip => debriefClip;
         public float UiVolume => uiVolume;
         public AudioClip PauseMusicClip => pauseMusicClip;
         public float PauseAudioFade => pauseAudioFade;

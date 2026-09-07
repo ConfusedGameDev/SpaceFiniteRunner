@@ -223,6 +223,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             BuildSequence();
 
             MenuScreenFactory.EnsureEventSystem(); // mouse clicks on the buttons need one
+            Blip(theme.DebriefClip); // the panel powers on (UI bus, outside the pause duck)
             IsOpen = true;
             Time.timeScale = 0f;
             openedTime = Time.unscaledTime;

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b70bbe5221cca634089c26d0b9cf7213, type: 3}
+  m_Name: FiniteRunner_Sfx
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Audio.RunnerSfxSettings
+  powerUpClip: {fileID: 8300000, guid: 40a80c9e2630aea40b8067667387fede, type: 3}
+  powerUpVolume: 0.9
+  powerUpPitchBand: {x: 1, y: 1.5}
+  brakeClip: {fileID: 8300000, guid: 45898f8606c835349b9cd6abdf972810, type: 3}
+  brakeVolume: 0.9
+  engineClip: {fileID: 8300000, guid: 1ec3b2e5c117bf8439613d0e377b7e1d, type: 3}
+  engineVolumeBand: {x: 0.25, y: 0.9}
+  enginePitchBand: {x: 0.8, y: 2}
+  engineResponse: 6
+  engineFadeSeconds: 0.4
+  engineFollowsClock: 1
+  jumpClip: {fileID: 8300000, guid: e106f847181bead47b2da90514220902, type: 3}
+  jumpVolume: 0.8
+  dashClip: {fileID: 8300000, guid: f84f2815fd94ed54f9587c7b5fa66d84, type: 3}
+  dashVolume: 0.8
+  barrelRollClip: {fileID: 8300000, guid: 617e603137ae0154a8a4c461727d5b7f, type: 3}
+  barrelRollVolume: 0.8

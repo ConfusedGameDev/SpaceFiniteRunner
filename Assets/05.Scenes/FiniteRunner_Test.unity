@@ -4376,7 +4376,7 @@ MonoBehaviour:
   randomize: 1
   seed: 0
   aheadDistance: 1600
-  behindDistance: 150
+  behindDistance: 300
   segments: 3
   segmentLength: {x: 300, y: 420}
   maxTurnPerSegment: 24

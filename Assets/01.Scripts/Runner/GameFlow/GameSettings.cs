@@ -362,6 +362,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Music asset pushed onto the scene's RunnerMusic system on boot. Empty = leave the system with the asset it was authored with (the shipped FiniteRunner_Music from Resources).")]
         public MusicSettings musicSettings;
 
+        // ------------------------------------------------------- sound effects
+        [ToggleGroup("sfxEnabled", "Sound effects")]
+        [Tooltip("The ship's own sounds: the speed-driven engine loop, the power-up pickup and the jump takeoff. Clips and feel live on the asset below — this is only the on/off for this scene.")]
+        public bool sfxEnabled = true;
+
+        [ToggleGroup("sfxEnabled"), InlineEditor]
+        [Tooltip("Sound effects asset read live by the ship's ShipAudio. Empty = the shipped FiniteRunner_Sfx from Resources.")]
+        public RunnerSfxSettings sfxSettings;
+
         // --------------------------------------------------------- accessors
         /// <summary>How far behind the ship a fresh patrol drops in, in meters (band X).</summary>
         public float PatrolRedeployGap => patrolRedeployBand.x;

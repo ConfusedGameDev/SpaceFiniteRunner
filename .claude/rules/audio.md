@@ -33,9 +33,11 @@ Route sources through:
 | `GameAudio.LoadingMusic` | the loading curtain's loop |
 | `GameAudio.Cinema` | a cinema clip's own sound, outside the ducked Gameplay bus |
 
-**Menu clips are the four `MenuTheme` slots** — `moveClip` (focus/tab change), `confirmClip`,
-`backClip`, `adjustClip` (slider/toggle step; falls back to move when empty) — assigned on
-`FiniteRunner_MenuTheme.asset` from the Kenney UI pack in `Assets/07.Audio/02.UI`. Every menu
+**Menu clips are the `MenuTheme` slots** — `moveClip` (focus/tab change), `confirmClip`,
+`backClip`, `adjustClip` (slider/toggle step; falls back to move when empty) and `debriefClip`
+(the Mission Complete panel powering on, `01.SFX/FiniteRunner/computerNoise_002`, played once by
+`MissionCompleteScreen.Build`) — assigned on `FiniteRunner_MenuTheme.asset`, the four navigation
+blips from the Kenney UI pack in `Assets/07.Audio/02.UI`. Every menu
 (`MainMenuController`, `PauseMenu`, `GameOverScreen`, `MissionBriefScreen`) plays them through its
 own `AudioSource` on `theme.UiOutput`. **Add new menu sounds as theme slots, never as loose clips
 on a screen.**
@@ -146,3 +148,35 @@ booking — and never `SetFloat` an exposed param (`MusicVolume` stays the playe
 - **Lose**: `EndRun` books `FadeOut()` at the asset's `fadeOutSeconds`, under the retry panel.
 - A fade-out that reaches silence **pauses** the source; `Play()` restarts it either way, and a
   RETRY pressed mid-fade just turns the music around onto a new point.
+
+## Runner sound effects
+
+`Runner/Audio/ShipAudio.cs` + `RunnerSfxSettings` (`04.Data/Resources/FiniteRunner_Sfx.asset`,
+created and seeded with the clips by **Tools → FiniteRunner → Create Sound Effects Settings** /
+`SfxAssetBuilder.CreateOrLoad`; `Load()` falls back to a silent default). The ship's own sound:
+the power-up pickup, the engine loop and the jump takeoff, every clip "Empty = silent", bands
+unpacked by accessors.
+
+`ShipAudio` **rides the ship like `LoopSlowMo`**: `GameManager.Awake` calls
+`ShipAudio.Ensure(motor).Configure(settings, LightSpeedKmh)` while the `GameSettings` "Sound
+effects" toggle group is on (off = no component). It reads the settings live and builds three 2D
+child sources (`Engine` loop, `Pickups`, `Jumps`) on **`GameAudio.Fx`** — the ducks and the SFX
+slider come free, and nothing touches an exposed mixer param.
+
+- **Pickups hook `SpeedPad.Collected`, never `ShipMotor.PadImpulse`** — a ramp takeoff raises
+  the impulse too and would double up with the jump. Boost orbs play `powerUpClip` at a pitch
+  from `powerUpPitchBand` on a log scale of the tier (`SpeedDelta / powerUpSpeedBoost`: green 0,
+  blue 0.4, purple 1). Brake pads play `brakeClip` only when one is assigned (empty by default).
+- **Jumps hook `ShipMotor.TookOff`** (raised in `TakeOff()` only; tubes and loops never fire it).
+- **Dashes hook `ShipMotor.DashPerformed` and `BarrelRollStarted`.** An airborne dash raises
+  both the same frame, so `dashClip` plays only on the track (skipped while `Airborne` unless a
+  roll is already spinning) and `barrelRollClip` plays for the roll.
+- **The engine is a fraction of Light Speed**, smoothed by `engineResponse` on real time:
+  `volume = lerp(engineVolumeBand)`, `pitch = lerp(enginePitchBand)`, both by the smoothed
+  fraction (clamped — the ship may pass Light Speed after the win latch). It is **gated on the
+  sim** (`!motor.Paused && !HasStopped`, faded over `engineFadeSeconds`): `EndRun` pauses the
+  motor, so both endings fade the engine out with no manager hook, and `Restart` brings it back;
+  at 0 the source is stopped so nothing plays inaudibly under a panel. With `engineFollowsClock`
+  the pitch is multiplied by `Time.timeScale` while the clock runs, so the loop slow-mo drags the
+  engine down with the picture (Unity never ties pitch to the clock); a stopped clock leaves it.
+- `FiniteRunnerEngine.ogg` is imported with preload on so the loop is resident at launch.
