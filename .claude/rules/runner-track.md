@@ -74,6 +74,17 @@ stretch in `Awake`, then each `Update` keeps `aheadDistance` of finished track a
   `Generate`. One width knob drives the steering clamp, pad bounds and road meshes, which are
   authored for 60 m and stretch proportionally.
 - `straightness` — 100% = dead straight; scales the Shape section's turn/heading limits down.
+- `trackShape` — a `TrackShapeSettings` asset (`Data/FiniteRunner/FiniteRunner_TrackShape.asset`,
+  drawn inline) holding the road's own shape: the **elevation walk** (`elevationEnabled`,
+  `elevationBand` ±60 m, `maxGrade` 6°, `maxGradeStepPerKnot` 3°, `baselinePull` 0.5). Play runs
+  on a runtime clone (`Shape`, made in `PrepareShape` at the top of `Generate`); the Core Settings
+  debug tab edits the clone and `TrackDebugSettings` captures/re-applies it like straightness.
+  `AddSegment` keeps a `pitch` state: a random step per knot, leaned home in proportion to the
+  height already gained, forced home outside the band, clamped to the grade — and it draws
+  nothing while disabled, so a seed reproduces the flat track exactly. Knots go in through
+  `TrackManager.AppendKnot(position, rotation)` carrying heading + grade: AutoSmooth keeps the
+  rotation's up (projected onto the sloped tangent), which is how the grade reaches every pose.
+  Features inherit the grade (a loop stands on the slope); bank is M2's.
 - `spawnTable` — one `PadSpawnEntry` per pad/orb kind (optional prefab, `PadDefinition`, boost
   multiplier × `GameManager.powerUpSpeedBoost`, colour/sway), drawn once per spacing step by
   probability. Probability sliders auto-rebalance (`NormalizeProbabilities`) so the table always

@@ -33,6 +33,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public float straightness = 100f;
         public List<EntryValues> entries = new();
 
+        // The shape clone's elevation knobs (TrackShapeSettings), captured and
+        // re-applied like straightness: the asset on disk is never touched.
+        public bool elevationEnabled = true;
+        public float elevationBand = 60f;
+        public float maxGrade = 6f;
+        public float maxGradeStepPerKnot = 3f;
+        public float baselinePull = 0.5f;
+
         static TrackDebugSettings cached;
 
         /// <summary>
@@ -59,6 +67,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
             trackWidth = generator.TrackWidth;
             straightness = generator.Straightness;
 
+            var shape = generator.Shape;
+            elevationEnabled = shape.elevationEnabled;
+            elevationBand = shape.elevationBand;
+            maxGrade = shape.maxGrade;
+            maxGradeStepPerKnot = shape.maxGradeStepPerKnot;
+            baselinePull = shape.baselinePull;
+
             entries.Clear();
             var table = generator.SpawnTable;
             if (table != null)
@@ -76,6 +91,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (!applyOnLoad) return;
             generator.TrackWidth = trackWidth;
             generator.Straightness = straightness;
+
+            var shape = generator.Shape;
+            shape.elevationEnabled = elevationEnabled;
+            shape.elevationBand = elevationBand;
+            shape.maxGrade = maxGrade;
+            shape.maxGradeStepPerKnot = maxGradeStepPerKnot;
+            shape.baselinePull = baselinePull;
 
             var table = generator.SpawnTable;
             if (table == null) return;

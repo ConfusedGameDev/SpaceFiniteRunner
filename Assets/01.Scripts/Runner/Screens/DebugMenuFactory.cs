@@ -38,6 +38,22 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                   .Configure(0f, 100f, 5f, generator.Straightness, "0",
                              v => { generator.Straightness = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
 
+            // The road's elevation walk (TrackShapeSettings clone). Max grade 0
+            // is the flat track; all of these need the reload the tab offers.
+            var shape = generator.Shape;
+            screen.AddRow<DebugSliderRow>(MenuTextId.ElevationBand)
+                  .Configure(0f, 300f, 10f, shape.elevationBand, "0",
+                             v => { generator.Shape.elevationBand = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            screen.AddRow<DebugSliderRow>(MenuTextId.MaxGrade)
+                  .Configure(0f, 20f, 1f, shape.maxGrade, "0",
+                             v => { generator.Shape.maxGrade = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            screen.AddRow<DebugSliderRow>(MenuTextId.GradeStep)
+                  .Configure(0f, 10f, 0.5f, shape.maxGradeStepPerKnot, "0.0",
+                             v => { generator.Shape.maxGradeStepPerKnot = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            screen.AddRow<DebugSliderRow>(MenuTextId.BaselinePull)
+                  .Configure(0f, 1f, 0.05f, shape.baselinePull, "0.00",
+                             v => { generator.Shape.baselinePull = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+
             // One color-tinted percentage slider per spawn entry. Adjusting one
             // rebalances the others live, so the on-screen table always adds
             // up to exactly 100% — same rule as the inspector's spawn table.

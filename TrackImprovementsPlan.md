@@ -15,7 +15,7 @@ played and tuned before the next starts.
 | # | Milestone | One-liner | Status |
 |---|---|---|---|
 | M0 | **Fixes** | Loops only appear when the speed is already attainable; dash ghosts stay visible at any speed | Implemented 2026-09-08, in editor test |
-| M1 | **Elevation** | The road rolls up and down inside a band, never bumpy | Not started |
+| M1 | **Elevation** | The road rolls up and down inside a band, never bumpy | Implemented 2026-09-08, in editor test |
 | M2 | **Banking + curves** | Turns come back and the road banks into them; features sit on level road | Not started |
 | M3 | **Loop variation** | Corkscrew, yawed and elongated loops; the track continues from the loop's exit (piece-sequenced builder) | Not started |
 | M4 | **Authored circuit** | Generate → edit with scene handles → save to a layout asset; closed loop rebuilt on the first frame; per-lap streaming | Not started |
@@ -273,6 +273,10 @@ page gains their sliders.
   tube return, ramp landing).
 - The debug sliders change the next regenerate; `applyOnLoad` persists them.
 - `elevationEnabled` off reproduces today's flat track byte-for-byte for the same seed.
+
+*Implemented 2026-09-08 (`TrackShapeSettings` + asset wired on the scene's Track, `pitch` walk in
+`AddSegment`, `TrackManager.AppendKnot(position, rotation)`, `TrackDebugSettings` capture/apply,
+four Core Settings debug sliders). Editor play checks pending.*
 
 ---
 

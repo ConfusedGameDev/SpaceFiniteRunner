@@ -142,6 +142,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [SerializeField] float straightness = 100f;
 
         [TitleGroup("Core Settings")]
+        [Tooltip("Shape of the road itself — the elevation swells (and, later, banking). One settings asset so the road's feel is tuned in one place; play mode runs on a runtime clone the debug menu edits. Regenerate to see it.")]
+        [InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        [SerializeField] TrackShapeSettings trackShape;
+
+        [TitleGroup("Core Settings")]
         [Tooltip("One entry per track feature kind (jump ramps). Every feature step draws one entry by probability; the sliders auto-rebalance to always total 100%.")]
         [OnValueChanged(nameof(NormalizeFeatureProbabilities), true)]
         [SerializeField] FeatureSpawnEntry[] featureTable = System.Array.Empty<FeatureSpawnEntry>();
@@ -265,13 +270,52 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public FeatureSpawnEntry[] FeatureTable => featureTable;
         public Vector2 FeatureSpacing { get => featureSpacing; set => featureSpacing = new Vector2(Mathf.Max(100f, value.x), Mathf.Max(Mathf.Max(100f, value.x), value.y)); }
 
+        /// <summary>
+        /// The shape knobs in force: the runtime clone in play, the asset in
+        /// edit-mode previews, a throwaway default when nothing is wired. The
+        /// debug menu edits this, never the asset. Takes effect on the next Generate.
+        /// </summary>
+        public TrackShapeSettings Shape
+        {
+            get
+            {
+                if (shapeRuntime == null) PrepareShape();
+                return shapeRuntime;
+            }
+        }
+
+        // The shape asset is never mutated in play: a clone per Generate, like
+        // the feature definitions, so the debug menu edits the run's own copy.
+        void PrepareShape()
+        {
+            if (shapeRuntime != null && shapeRuntime != trackShape)
+                DestroyObject(shapeRuntime); // last run's clone (or the fallback)
+
+            if (trackShape != null)
+                shapeRuntime = Application.isPlaying ? Instantiate(trackShape) : trackShape;
+            else
+            {
+                shapeRuntime = ScriptableObject.CreateInstance<TrackShapeSettings>();
+                shapeRuntime.hideFlags = HideFlags.HideAndDontSave;
+            }
+        }
+
+        static void DestroyObject(Object target)
+        {
+            if (target == null) return;
+            if (Application.isPlaying) Destroy(target);
+            else DestroyImmediate(target);
+        }
+
         /// <summary>Height of the air lane above the flight line, from GameSettings (30 m without a manager).</summary>
         float AirLaneHeight => gameManager != null ? gameManager.AirLaneHeight : 30f;
 
         // Streaming state — all reset by Generate().
         Unity.Mathematics.Random rng;
         float heading;
+        float pitch;   // grade of the last segment, degrees (elevation walk)
         float3 endPosition;
+        TrackShapeSettings shapeRuntime;
         float padCursor;
         float collectibleCursor;
         float featureCursor;
@@ -319,6 +363,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // Debug-tab tweaks (saved to the TrackDebugSettings asset) override
             // the scene's Core Settings — play mode only, so edit-mode previews
             // and the inspector always reflect the authored scene values.
+            PrepareShape(); // the debug values land on the fresh clone
             if (Application.isPlaying) TrackDebugSettings.Load().ApplyTo(this);
 
             // Features play a runtime clone of their definition asset (the
@@ -354,6 +399,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // also drops last run's inserted sections).
             track.ClearKnots();
             heading = 0f;
+            pitch = 0f;
             endPosition = float3.zero;
             track.AppendKnot(endPosition);
 
@@ -415,10 +461,31 @@ namespace ConfusedGameDev.FiniteRunner.Track
             heading = math.clamp(
                 heading + rng.NextFloat(-turnLimit, turnLimit),
                 -headingLimit, headingLimit);
-            float rad = math.radians(heading);
-            endPosition += new float3(math.sin(rad), 0f, math.cos(rad)) *
-                           rng.NextFloat(segmentLength.x, segmentLength.y);
-            track.AppendKnot(endPosition);
+
+            // Elevation: a grade walk inside a band around the baseline — a
+            // random step per knot, leaned back home in proportion to the
+            // height already gained, forced home outside the band, capped.
+            // Off, it draws nothing, so a seed reproduces the flat track exactly.
+            var shape = Shape;
+            if (shape.elevationEnabled && shape.maxGrade > 0f)
+            {
+                float step = shape.maxGradeStepPerKnot;
+                float band = Mathf.Max(shape.elevationBand, 1f);
+                float y = endPosition.y;
+                pitch += rng.NextFloat(-step, step);
+                pitch -= shape.baselinePull * (y / band) * step;
+                if (Mathf.Abs(y) > band) pitch = -Mathf.Sign(y) * Mathf.Max(Mathf.Abs(pitch), step);
+                pitch = Mathf.Clamp(pitch, -shape.maxGrade, shape.maxGrade);
+            }
+            else pitch = 0f;
+
+            float yaw = math.radians(heading);
+            float grade = math.radians(pitch);
+            float3 direction = new float3(math.sin(yaw) * math.cos(grade), math.sin(grade), math.cos(yaw) * math.cos(grade));
+            endPosition += direction * rng.NextFloat(segmentLength.x, segmentLength.y);
+            // The knot carries its heading and grade: AutoSmooth keeps the
+            // authored up (world up here, projected onto the sloped tangent).
+            track.AppendKnot(endPosition, quaternion.LookRotationSafe(direction, math.up()));
         }
 
         /// <summary>

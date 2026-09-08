@@ -110,7 +110,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DebugTabCrt,
         CrtIntensity, CrtCurvature, CrtCorners, CrtScanlines, CrtBleed,
         CrtGlow, CrtMask, CrtConvergence, CrtFlicker,
-        LoopGateHeadroom
+        LoopGateHeadroom,
+        ElevationBand, MaxGrade, GradeStep, BaselinePull
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -250,6 +251,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString trackWidth = new("TRACK WIDTH", "ANCHO DE PISTA", "トラック幅", "LARGEUR DE PISTE");
         [TitleGroup("Debug menu")]
         [SerializeField] LocalizedString straightness = new("STRAIGHTNESS", "RECTITUD", "直線度", "RECTITUDE");
+        [SerializeField] LocalizedString elevationBand = new("ELEVATION BAND", "BANDA DE ALTURA", "高低差の幅", "BANDE D'ALTITUDE");
+        [SerializeField] LocalizedString maxGrade = new("MAX GRADE", "PENDIENTE MÁXIMA", "最大勾配", "PENTE MAXIMALE");
+        [SerializeField] LocalizedString gradeStep = new("GRADE STEP", "PASO DE PENDIENTE", "勾配ステップ", "PAS DE PENTE");
+        [SerializeField] LocalizedString baselinePull = new("BASELINE PULL", "RETORNO AL NIVEL", "基準高への復帰", "RAPPEL AU NIVEAU");
         [TitleGroup("Debug menu")]
         [SerializeField] LocalizedString reloadScene = new("RELOAD SCENE", "RECARGAR ESCENA", "シーンをリロード", "RECHARGER LA SCÈNE");
         [TitleGroup("Debug menu")]
@@ -991,6 +996,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DebugTabShipHover => debugTabShipHover,
             MenuTextId.TrackWidth => trackWidth,
             MenuTextId.Straightness => straightness,
+            MenuTextId.ElevationBand => elevationBand,
+            MenuTextId.MaxGrade => maxGrade,
+            MenuTextId.GradeStep => gradeStep,
+            MenuTextId.BaselinePull => baselinePull,
             MenuTextId.ReloadScene => reloadScene,
             MenuTextId.ReloadScenePrompt => reloadScenePrompt,
             MenuTextId.LaunchSpeed => launchSpeed,

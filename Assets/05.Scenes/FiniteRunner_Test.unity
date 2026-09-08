@@ -4308,6 +4308,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.TrackGenerator
   trackWidth: 104.4
+  trackShape: {fileID: 11400000, guid: ba50ea5278a64458aa28bc1c4e498c44, type: 2}
   spawnTable:
   - name: Green
     prefab: {fileID: 0}

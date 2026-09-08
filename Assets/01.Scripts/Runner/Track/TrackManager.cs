@@ -81,6 +81,18 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         /// <summary>
+        /// Appends an auto-smoothed knot carrying an authored rotation. AutoSmooth
+        /// recomputes the tangents from the neighbours but keeps the rotation's
+        /// UP (projected onto the tangent plane) — that up is how the road's
+        /// grade and bank reach every pose evaluated between the knots.
+        /// </summary>
+        public void AppendKnot(float3 position, quaternion rotation)
+        {
+            if (spline != null)
+                spline.Spline.Add(new BezierKnot(position, float3.zero, float3.zero, rotation), TangentMode.AutoSmooth);
+        }
+
+        /// <summary>
         /// Registers a section at its start distance. Must happen before
         /// anything is placed beyond that distance — an insert shifts every
         /// distance past it by its length.
