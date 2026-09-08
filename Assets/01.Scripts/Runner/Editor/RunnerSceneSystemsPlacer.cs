@@ -13,14 +13,18 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// <see cref="CollectibleManager"/> (the one pickup recorder), the
     /// <see cref="MoneyHud"/> (the top-right money counter) and the
     /// <see cref="RunnerMusic"/> soundtrack (as <c>Music</c>, wired to the
-    /// FiniteRunner_Music asset, created on the spot when missing). A new
-    /// object goes under the scene's <c>===SYSTEMS===</c> header when it has
-    /// one, at the root otherwise. The project rule: systems are hand-placed
-    /// so they can be tuned before play, nothing creates one at play time, and
-    /// the runtime only finds them (with an error when missing). Idempotent —
-    /// a scene that already has one (even disabled) is left alone. The city's
-    /// counterpart is Tools → Police Escape → Place Scene Systems, which
-    /// places the collectible pair under its own header.
+    /// FiniteRunner_Music asset, created on the spot when missing).
+    /// Tools → FiniteRunner → Place Main Menu Systems is the main menu
+    /// scene's counterpart: the same <see cref="RunnerMusic"/> object, wired
+    /// to the FiniteRunner_MenuMusic asset instead, and nothing else — the
+    /// menu has no pickups to record. A new object goes under the scene's
+    /// <c>===SYSTEMS===</c> header, created when the scene has none. The
+    /// project rule: systems are hand-placed so they can be tuned before
+    /// play, nothing creates one at play time, and the runtime only finds
+    /// them (with an error when missing). Idempotent — a scene that already
+    /// has one (even disabled) is left alone. The city's counterpart is
+    /// Tools → Police Escape → Place Scene Systems, which places the
+    /// collectible pair under its own header.
     /// </summary>
     public static class RunnerSceneSystemsPlacer
     {
@@ -42,12 +46,24 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             Debug.Log($"RunnerSceneSystemsPlacer: {placed} object(s) placed in '{EditorSceneManager.GetActiveScene().name}' — save the scene to keep them.");
         }
 
+        [MenuItem("Tools/FiniteRunner/Place Main Menu Systems")]
+        public static void PlaceInMainMenuScene()
+        {
+            if (Application.isPlaying)
+            {
+                Debug.LogWarning("RunnerSceneSystemsPlacer: place the systems in edit mode.");
+                return;
+            }
+
+            int placed = Place<RunnerMusic>("Music", music => music.settings = MusicAssetBuilder.CreateOrLoadMenu());
+            Debug.Log($"RunnerSceneSystemsPlacer: {placed} main menu object(s) placed in '{EditorSceneManager.GetActiveScene().name}' — save the scene to keep them.");
+        }
+
         static int Place<T>(string name, System.Action<T> configure = null) where T : Component
         {
             if (Object.FindAnyObjectByType<T>(FindObjectsInactive.Include) != null) return 0;
             var go = new GameObject(name);
-            Transform header = FindSystemsHeader();
-            if (header != null) go.transform.SetParent(header, false);
+            go.transform.SetParent(EnsureSystemsHeader(), false);
             T component = go.AddComponent<T>();
             configure?.Invoke(component);
             Undo.RegisterCreatedObjectUndo(go, $"Place {name}");
@@ -55,12 +71,16 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             return 1;
         }
 
-        /// <summary>The open scene's root <c>===SYSTEMS===</c> header, null when it has none.</summary>
-        static Transform FindSystemsHeader()
+        /// <summary>The open scene's root <c>===SYSTEMS===</c> header, created at the root when it has none.</summary>
+        static Transform EnsureSystemsHeader()
         {
             foreach (GameObject root in EditorSceneManager.GetActiveScene().GetRootGameObjects())
                 if (root.name == SystemsHeaderName) return root.transform;
-            return null;
+
+            var header = new GameObject(SystemsHeaderName);
+            Undo.RegisterCreatedObjectUndo(header, $"Place {SystemsHeaderName}");
+            EditorSceneManager.MarkSceneDirty(header.scene);
+            return header.transform;
         }
     }
 }

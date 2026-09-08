@@ -123,13 +123,24 @@ Streamed clips are destroyed with the system; bundled clips are assets and never
 
 `RunnerMusic` is a hand-placed scene-lifetime system under the runner scene's `===SYSTEMS===`
 (placed as `Music` by **Tools → FiniteRunner → Place Scene Systems**, which parents new systems
-under that header when the scene has one). `GameManager.Awake` calls
+under that header, creating it when the scene has none). `GameManager.Awake` calls
 `RunnerMusic.Apply(settings.musicEnabled, settings.musicSettings)` after the CRT screen: it only
 **finds** the object (an error naming the placer when missing) and parks it when the
 `GameSettings` "Music" toggle group is off — never spawned. Its knobs all live on `MusicSettings`
 (`04.Data/Resources/FiniteRunner_Music.asset`, created and seeded with the clip by **Tools →
 FiniteRunner → Create Music Settings** / `MusicAssetBuilder.CreateOrLoad`; `Load()` falls back to a
 silent in-memory default): `clip`, `volume`, `randomStart`, `fadeInSeconds`, `fadeOutSeconds`.
+
+**The main menu runs the same system on its own asset.** `MainMenu.unity` carries a second
+`Music` object under its own `===SYSTEMS===` (placed by **Tools → FiniteRunner → Place Main Menu
+Systems**, which places only the music — the menu has no pickups), wired to
+`04.Data/Resources/FiniteRunner_MenuMusic.asset` (`MusicSettings.MenuResourcePath`, seeded with
+`07.Audio/03.Music/MainMenu/MainMenu_Long.mp3` by **Create Main Menu Music Settings** /
+`MusicAssetBuilder.CreateOrLoadMenu`). `MainMenuController.Start` (the standalone path only — the
+overlay leaves the runner's music alone) calls `RunnerMusic.Apply(true)` just to find it. The loop
+starts on its own `Start` and is never faded by the menu: START goes through `LoadingScreen`, whose
+Loading duck takes the Gameplay bus out and the scene load destroys the source. The Store has no
+music of its own yet — the same placer call would give it one.
 
 The source is `loop = true` on `GameAudio.Music`, so **pause is the snapshot's job** — the Paused
 / Loading / Cinema ducks hide it with no pause detection in the system, and it keeps running

@@ -4,20 +4,25 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.Audio
 {
     /// <summary>
-    /// Every knob of the runner's soundtrack in one designer asset: the loop
+    /// Every knob of one looping soundtrack in one designer asset: the loop
     /// itself, its level, whether each play starts at a random point, and the
     /// fade-in / fade-out times. <see cref="RunnerMusic"/> reads it live (no
     /// runtime clone — the inline inspector and the GameSettings foldout tune
     /// the running scene). The only place these tunables live: the system
-    /// component owns no knobs of its own. Lives in Resources like the fog and
-    /// speed-lines assets; <see cref="Load"/> falls back to an in-memory
-    /// default, so a missing asset means silence, never an exception.
+    /// component owns no knobs of its own. Two shipped assets, one per scene
+    /// that plays a loop — the runner's (<see cref="ResourcePath"/>) and the
+    /// main menu's (<see cref="MenuResourcePath"/>) — live in Resources like
+    /// the fog and speed-lines assets; <see cref="Load"/> falls back to an
+    /// in-memory default, so a missing asset means silence, never an exception.
     /// </summary>
     [CreateAssetMenu(fileName = "FiniteRunner_Music", menuName = "FiniteRunner/Music Settings")]
     public class MusicSettings : ScriptableObject
     {
-        /// <summary>Path inside any Resources folder. Keep in sync with the asset's file name.</summary>
+        /// <summary>The runner's asset, inside any Resources folder. Keep in sync with the asset's file name.</summary>
         public const string ResourcePath = "FiniteRunner_Music";
+
+        /// <summary>The main menu's asset, inside any Resources folder. Keep in sync with the asset's file name.</summary>
+        public const string MenuResourcePath = "FiniteRunner_MenuMusic";
 
         // --------------------------------------------------------------- track
         [TitleGroup("Track")]
@@ -40,15 +45,19 @@ namespace ConfusedGameDev.FiniteRunner.Audio
         public float fadeInSeconds = 2f;
 
         [TitleGroup("Fades")]
-        [Tooltip("Seconds the music takes to fall to silence when the run is LOST (caught, timed out, stalled). A WIN fades over the glitch ramp + hold on GameSettings instead, so it lands silent as the Mission Complete panel opens.")]
+        [Tooltip("Seconds the music takes to fall to silence when the run is LOST (caught, timed out, stalled). A WIN fades over the glitch ramp + hold on GameSettings instead, so it lands silent as the Mission Complete panel opens. The main menu never fades its loop itself — the loading curtain's duck takes it out.")]
         [PropertyRange(0f, 10f), SuffixLabel("s", true)]
         public float fadeOutSeconds = 1.5f;
 
         // ------------------------------------------------------------- loading
-        /// <summary>The shipped asset from Resources, or an in-memory default (no clip — silent) when it is missing.</summary>
-        public static MusicSettings Load()
+        /// <summary>
+        /// A shipped asset from Resources — the runner's by default, the main
+        /// menu's with <see cref="MenuResourcePath"/> — or an in-memory
+        /// default (no clip — silent) when it is missing.
+        /// </summary>
+        public static MusicSettings Load(string resourcePath = ResourcePath)
         {
-            var asset = Resources.Load<MusicSettings>(ResourcePath);
+            var asset = Resources.Load<MusicSettings>(resourcePath);
             return asset != null ? asset : CreateDefault();
         }
 

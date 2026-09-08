@@ -6,15 +6,20 @@ using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.Audio
 {
     /// <summary>
-    /// The runner's soundtrack: one looping track, started at a random point
-    /// on every play (the scene's first frames and every RETRY), faded in on
-    /// start and faded out when the run is won or lost.
+    /// A scene's soundtrack: one looping track, started at a random point on
+    /// every play (the scene's first frames and every RETRY), faded in on
+    /// start and faded out when the run is won or lost. The runner and the
+    /// main menu each carry one, told apart only by the
+    /// <see cref="MusicSettings"/> asset wired in the scene (FiniteRunner_Music
+    /// / FiniteRunner_MenuMusic); the menu's simply plays until the loading
+    /// curtain's duck takes it out with the scene.
     ///
     /// A hand-placed scene-lifetime system under <c>===SYSTEMS===</c> (placed
-    /// as <c>Music</c> by Tools → FiniteRunner → Place Scene Systems), found by
-    /// <see cref="Apply"/> and NEVER spawned — systems live in the scene so
-    /// they can be tuned before play. Its knobs all live on the
-    /// <see cref="MusicSettings"/> asset it reads live.
+    /// as <c>Music</c> by Tools → FiniteRunner → Place Scene Systems, or Place
+    /// Main Menu Systems in the menu scene), found by <see cref="Apply"/> and
+    /// NEVER spawned — systems live in the scene so they can be tuned before
+    /// play. Its knobs all live on the <see cref="MusicSettings"/> asset it
+    /// reads live.
     ///
     /// The source is routed to <see cref="GameAudio.Music"/>, so the Paused /
     /// Loading / Cinema snapshots duck it for free — a pause needs no
@@ -29,7 +34,7 @@ namespace ConfusedGameDev.FiniteRunner.Audio
         public static RunnerMusic Instance { get; private set; }
 
         [InlineEditor]
-        [Tooltip("Clip, level and fade times. Empty = the FiniteRunner_Music asset from Resources.")]
+        [Tooltip("Clip, level and fade times. The placer wires the scene's own asset (FiniteRunner_Music in the runner, FiniteRunner_MenuMusic in the main menu); empty = the runner's from Resources.")]
         public MusicSettings settings;
 
         AudioSource source;
@@ -102,7 +107,7 @@ namespace ConfusedGameDev.FiniteRunner.Audio
             }
             if (system == null)
             {
-                Debug.LogError($"{nameof(RunnerMusic)}: the scene has no Music object — place one under ===SYSTEMS=== (Tools → FiniteRunner → Place Scene Systems adds it to the open scene). Systems are never spawned at play time.");
+                Debug.LogError($"{nameof(RunnerMusic)}: the scene has no Music object — place one under ===SYSTEMS=== (Tools → FiniteRunner → Place Scene Systems adds it to the runner scene, Place Main Menu Systems to the menu). Systems are never spawned at play time.");
                 return null;
             }
             if (settings != null) system.settings = settings;

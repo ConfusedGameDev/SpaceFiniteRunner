@@ -5,6 +5,7 @@ using UnityEngine.InputSystem.Controls;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+using ConfusedGameDev.FiniteRunner.Audio;
 using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Cheats;
 using ConfusedGameDev.FiniteRunner.Haptics;
@@ -102,6 +103,14 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             standalone = true;
             MissionSession.Clear(); // reaching the main menu ends any campaign mission in flight
             Open();
+
+            // The menu loop: the scene's hand-placed Music object under
+            // ===SYSTEMS=== (wired to FiniteRunner_MenuMusic), only FOUND here
+            // — never spawned. Its own Start begins the loop at a random point
+            // under a fade-in, and the loading curtain's duck takes it out
+            // with the scene, so START has nothing to stop. The overlay path
+            // never gets here and leaves the runner's own music alone.
+            RunnerMusic.Apply(true);
         }
 
         void Open()
