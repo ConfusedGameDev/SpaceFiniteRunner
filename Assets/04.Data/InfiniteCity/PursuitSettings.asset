@@ -28,3 +28,8 @@ MonoBehaviour:
   forwardBrakeDistance: 9
   stuckSeconds: 1.5
   reverseSeconds: 1.4
+  sirenEnabled: 1
+  sirenClip: {fileID: 8300000, guid: c74bb532680b00c4db62f4511aa603f1, type: 3}
+  sirenVolume: 0.7
+  sirenDistanceBand: {x: 8, y: 160}
+  sirenFadeSeconds: 0.4

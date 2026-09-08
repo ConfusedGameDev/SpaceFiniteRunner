@@ -117,6 +117,27 @@ the last song asked for.
 
 Streamed clips are destroyed with the system; bundled clips are assets and never touched.
 
+## Police siren
+
+`PoliceEscape/Audio/PoliceSiren.cs`, namespace `…PoliceEscape.Audio`. Every cruiser's wail.
+
+`PatrolManager` bolts a `PoliceSiren` onto each spawned cruiser next to `CarHealth` (the prefab
+stays untouched; `[RequireComponent(PoliceCarInput)]`). It builds one child `Siren` source —
+3D (`spatialBlend 1`, **linear** rolloff, doppler on, priority 64) on **`GameAudio.Fx`**, so
+the Paused / Loading / Cinema ducks and the SFX slider come free with no pause detection. Its
+knobs are the **"Siren" toggle group on `PursuitSettings`** (read live off the driver's asset):
+`sirenClip` (`07.Audio/01.SFX/Police Siren.mp3`, CompressedInMemory + preload),
+`sirenVolume`, `sirenDistanceBand` (near = full volume, far = silent, unpacked by
+`SirenNearDistance` / `SirenFarDistance`) and `sirenFadeSeconds`.
+
+**It plays only while the driver is in Chase.** Patrol and Search are silent, so the wail is the
+"spotted" cue; a dead cruiser (`CarHealth.IsDead`) and the end of the run — **`LevelManager.IsOver`**
+(`Completed || resetting || timedOut`: the completion handoff, the death hold before GAME OVER,
+the time-up line) or `GameOverScreen.IsOpen` — silence it too, because the world keeps running
+under a result panel and no snapshot catches that. Every change is one gain fade on unscaled time;
+at silence the source stops, and each rise restarts the loop at a random point so a fleet never
+wails in phase.
+
 ## Runner music
 
 `Runner/Audio/`, namespace `…FiniteRunner.Audio`. One track, one big loop.

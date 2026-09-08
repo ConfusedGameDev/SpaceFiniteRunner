@@ -185,6 +185,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// <summary>Every objective done — the completion line / handoff is playing.</summary>
         public bool Completed { get; private set; }
 
+        /// <summary>The run is ending, one way or the other: the completion handoff, the death hold before GAME OVER, or the time-up line. World sounds that mean "still in play" (the sirens) gate on this.</summary>
+        public bool IsOver => Completed || resetting || timedOut;
+
         /// <summary>True while the finished current step's completion message / delay plays out before the next step activates.</summary>
         public bool Advancing => advancing;
 

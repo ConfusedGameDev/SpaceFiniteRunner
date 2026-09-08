@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.PoliceEscape.Audio;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.City;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using Sirenix.OdinInspector;
@@ -174,6 +175,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             // prefab stays untouched, attachment in code same as traffic.
             // Marked police: tougher, and speed held until nearly dead.
             go.AddComponent<CarHealth>().MarkPolice();
+            go.AddComponent<PoliceSiren>(); // the chase wail — knobs on the settings' Siren block, gated on the driver's state
             driver.Initialize(settings, city);
             patrols.Add(driver);
             return true;

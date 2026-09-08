@@ -150,5 +150,34 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         [Tooltip("Last resort outside Chase: a patrol that has made no net progress this long (reverse-crash loops included) is snapped onto the nearest road cell instead of grinding forever.")]
         [PropertyRange(5f, 30f), SuffixLabel("s", true)]
         public float hardRecoverSeconds = 15f;
+
+        // --------------------------------------------------------------- siren
+        [ToggleGroup("sirenEnabled", "Siren")]
+        [Tooltip("Every cruiser wails while it is in Chase — Patrol and Search are silent, so the siren is the 'spotted' cue. Off = the fleet hunts mute.")]
+        public bool sirenEnabled = true;
+
+        [ToggleGroup("sirenEnabled")]
+        [Tooltip("The siren loop, played 3D from the car on the FX bus (ducked by pause / loading / cinema, scaled by the SFX slider). Empty = silent.")]
+        public AudioClip sirenClip;
+
+        [ToggleGroup("sirenEnabled")]
+        [Tooltip("Source volume at full wail. The SFX slider sits on top of this.")]
+        [PropertyRange(0f, 1f)]
+        public float sirenVolume = 0.7f;
+
+        [ToggleGroup("sirenEnabled")]
+        [Tooltip("Linear rolloff band: full volume inside the near distance, silent at the far one — how far away the player hears the police coming.")]
+        [MinMaxSlider(1f, 400f, true), SuffixLabel("m", true)]
+        public Vector2 sirenDistanceBand = new(8f, 160f);
+
+        [ToggleGroup("sirenEnabled")]
+        [Tooltip("Seconds the wail takes to rise when a chase starts and to fall when it ends (lost, dead, or the run is over). Real time.")]
+        [PropertyRange(0f, 3f), SuffixLabel("s", true)]
+        public float sirenFadeSeconds = 0.4f;
+
+        /// <summary>Inside this distance the siren plays at full volume (band X).</summary>
+        public float SirenNearDistance => sirenDistanceBand.x;
+        /// <summary>Beyond this distance the siren is silent (band Y).</summary>
+        public float SirenFarDistance => sirenDistanceBand.y;
     }
 }
