@@ -17,3 +17,8 @@ MonoBehaviour:
   maxGrade: 6
   maxGradeStepPerKnot: 3
   baselinePull: 0.5
+  bankEnabled: 1
+  maxBankAngle: 25
+  bankPerDegreeOfTurn: 1.5
+  maxBankStepPerKnot: 8
+  levelLeadDistance: 300

@@ -111,7 +111,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CrtIntensity, CrtCurvature, CrtCorners, CrtScanlines, CrtBleed,
         CrtGlow, CrtMask, CrtConvergence, CrtFlicker,
         LoopGateHeadroom,
-        ElevationBand, MaxGrade, GradeStep, BaselinePull
+        ElevationBand, MaxGrade, GradeStep, BaselinePull,
+        MaxBank, BankPerTurn, BankStep, LevelLead
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -255,6 +256,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString maxGrade = new("MAX GRADE", "PENDIENTE MÁXIMA", "最大勾配", "PENTE MAXIMALE");
         [SerializeField] LocalizedString gradeStep = new("GRADE STEP", "PASO DE PENDIENTE", "勾配ステップ", "PAS DE PENTE");
         [SerializeField] LocalizedString baselinePull = new("BASELINE PULL", "RETORNO AL NIVEL", "基準高への復帰", "RAPPEL AU NIVEAU");
+        [SerializeField] LocalizedString maxBank = new("MAX BANK", "PERALTE MÁXIMO", "最大バンク", "INCLINAISON MAX");
+        [SerializeField] LocalizedString bankPerTurn = new("BANK PER TURN", "PERALTE POR GIRO", "旋回バンク率", "INCLINAISON PAR VIRAGE");
+        [SerializeField] LocalizedString bankStep = new("BANK STEP", "PASO DE PERALTE", "バンクステップ", "PAS D'INCLINAISON");
+        [SerializeField] LocalizedString levelLead = new("LEVEL LEAD", "TRAMO NIVELADO", "水平化距離", "APPROCHE À PLAT");
         [TitleGroup("Debug menu")]
         [SerializeField] LocalizedString reloadScene = new("RELOAD SCENE", "RECARGAR ESCENA", "シーンをリロード", "RECHARGER LA SCÈNE");
         [TitleGroup("Debug menu")]
@@ -1000,6 +1005,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.MaxGrade => maxGrade,
             MenuTextId.GradeStep => gradeStep,
             MenuTextId.BaselinePull => baselinePull,
+            MenuTextId.MaxBank => maxBank,
+            MenuTextId.BankPerTurn => bankPerTurn,
+            MenuTextId.BankStep => bankStep,
+            MenuTextId.LevelLead => levelLead,
             MenuTextId.ReloadScene => reloadScene,
             MenuTextId.ReloadScenePrompt => reloadScenePrompt,
             MenuTextId.LaunchSpeed => launchSpeed,

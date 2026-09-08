@@ -314,6 +314,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         Unity.Mathematics.Random rng;
         float heading;
         float pitch;   // grade of the last segment, degrees (elevation walk)
+        float bank;    // roll of the last knot, degrees, right edge up positive (banking)
         float3 endPosition;
         TrackShapeSettings shapeRuntime;
         float padCursor;
@@ -400,6 +401,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             track.ClearKnots();
             heading = 0f;
             pitch = 0f;
+            bank = 0f;
             endPosition = float3.zero;
             track.AppendKnot(endPosition);
 
@@ -421,8 +423,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
             else
             {
-                for (int i = 0; i < segments; i++) AddSegment();
-                track.Recalculate();
+                for (int i = 0; i < segments; i++)
+                {
+                    AddSegment();
+                    track.Recalculate(); // the banking's level rule reads the spline end
+                }
                 PlaceFeaturesUpTo(track.Length - 150f);
                 PlacePadsUpTo(track.Length - 150f);
                 PlaceCollectiblesUpTo(track.Length - 150f);
@@ -458,9 +463,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float curviness = 1f - straightness / 100f;
             float turnLimit = maxTurnPerSegment * curviness;
             float headingLimit = maxHeading * curviness;
+            float previousHeading = heading;
             heading = math.clamp(
                 heading + rng.NextFloat(-turnLimit, turnLimit),
                 -headingLimit, headingLimit);
+            float turnDelta = heading - previousHeading;
 
             // Elevation: a grade walk inside a band around the baseline — a
             // random step per knot, leaned back home in proportion to the
@@ -479,13 +486,42 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
             else pitch = 0f;
 
+            // Banking: lean into the turn at this knot (a right turn drops the
+            // right edge), eased per knot, and level wherever a feature is
+            // coming. No random draws, so a seed with banking off reproduces
+            // the unbanked track exactly.
+            float bankTarget = 0f;
+            if (shape.bankEnabled && shape.maxBankAngle > 0f && !LevelRequired(shape))
+                bankTarget = Mathf.Clamp(-turnDelta * shape.bankPerDegreeOfTurn, -shape.maxBankAngle, shape.maxBankAngle);
+            bank = shape.bankEnabled
+                ? Mathf.MoveTowards(bank, bankTarget, Mathf.Max(shape.maxBankStepPerKnot, 0.01f))
+                : 0f;
+
             float yaw = math.radians(heading);
             float grade = math.radians(pitch);
             float3 direction = new float3(math.sin(yaw) * math.cos(grade), math.sin(grade), math.cos(yaw) * math.cos(grade));
             endPosition += direction * rng.NextFloat(segmentLength.x, segmentLength.y);
-            // The knot carries its heading and grade: AutoSmooth keeps the
-            // authored up (world up here, projected onto the sloped tangent).
-            track.AppendKnot(endPosition, quaternion.LookRotationSafe(direction, math.up()));
+            // The knot carries heading, grade and bank: AutoSmooth keeps the
+            // authored up (world up rolled about the segment, projected onto
+            // the sloped tangent), which is how the pose between knots leans.
+            quaternion rotation = quaternion.LookRotationSafe(direction, math.up());
+            if (bank != 0f) rotation = math.mul(quaternion.AxisAngle(direction, math.radians(bank)), rotation);
+            track.AppendKnot(endPosition, rotation);
+        }
+
+        /// <summary>
+        /// Features need level road (a loop must stand upright, a tube curls
+        /// from a flat pose, a ramp rides its rails), so the bank target is
+        /// zero at the spline's end whenever the next feature spot is within
+        /// the level lead PLUS the knots the current bank needs to unwind, or
+        /// the end is being laid under a tube section.
+        /// </summary>
+        bool LevelRequired(TrackShapeSettings shape)
+        {
+            float end = track.Length;
+            if (track.SectionAt(end) is TubeSection) return true;
+            float unwind = Mathf.Ceil(Mathf.Abs(bank) / Mathf.Max(shape.maxBankStepPerKnot, 0.01f)) * segmentLength.y;
+            return featureCursor - end <= shape.levelLeadDistance + unwind;
         }
 
         /// <summary>

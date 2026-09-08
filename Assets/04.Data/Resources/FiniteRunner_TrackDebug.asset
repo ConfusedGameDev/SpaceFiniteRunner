@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   applyOnLoad: 1
   trackWidth: 120
-  straightness: 100
+  straightness: 60
   entries:
   - name: Green
     probability: 50.16999

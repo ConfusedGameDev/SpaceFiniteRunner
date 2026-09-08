@@ -54,6 +54,20 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                   .Configure(0f, 1f, 0.05f, shape.baselinePull, "0.00",
                              v => { generator.Shape.baselinePull = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
 
+            // Banking into turns (turns come from STRAIGHTNESS above). Max bank 0 = level road.
+            screen.AddRow<DebugSliderRow>(MenuTextId.MaxBank)
+                  .Configure(0f, 60f, 1f, shape.maxBankAngle, "0",
+                             v => { generator.Shape.maxBankAngle = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            screen.AddRow<DebugSliderRow>(MenuTextId.BankPerTurn)
+                  .Configure(0f, 5f, 0.1f, shape.bankPerDegreeOfTurn, "0.0",
+                             v => { generator.Shape.bankPerDegreeOfTurn = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            screen.AddRow<DebugSliderRow>(MenuTextId.BankStep)
+                  .Configure(0f, 30f, 1f, shape.maxBankStepPerKnot, "0",
+                             v => { generator.Shape.maxBankStepPerKnot = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            screen.AddRow<DebugSliderRow>(MenuTextId.LevelLead)
+                  .Configure(0f, 3000f, 50f, shape.levelLeadDistance, "0",
+                             v => { generator.Shape.levelLeadDistance = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+
             // One color-tinted percentage slider per spawn entry. Adjusting one
             // rebalances the others live, so the on-screen table always adds
             // up to exactly 100% — same rule as the inspector's spawn table.
@@ -78,6 +92,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             }
 
             screen.AddRow<MenuRow>(MenuTextId.ReloadScene).Activated += () => reloadScene?.Invoke();
+            screen.SetViewport(9); // the shape rows pushed this page past the footer; the rest scroll in
             return screen;
         }
 

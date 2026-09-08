@@ -84,7 +84,16 @@ stretch in `Awake`, then each `Update` keeps `aheadDistance` of finished track a
   nothing while disabled, so a seed reproduces the flat track exactly. Knots go in through
   `TrackManager.AppendKnot(position, rotation)` carrying heading + grade: AutoSmooth keeps the
   rotation's up (projected onto the sloped tangent), which is how the grade reaches every pose.
-  Features inherit the grade (a loop stands on the slope); bank is M2's.
+  Features inherit the grade (a loop stands on the slope).
+  **Banking** (`bankEnabled`, `maxBankAngle` 25°, `bankPerDegreeOfTurn` 1.5, `maxBankStepPerKnot`
+  8°, `levelLeadDistance` 300 m): the bank target at a knot is −(heading change) ×
+  `bankPerDegreeOfTurn` (a right turn drops the right edge), capped, eased per knot, rolled into
+  the knot rotation about the segment direction — no rng draws. **Features need level road**
+  (`LevelRequired`): the target is 0 while the spline end is under a `TubeSection` or within
+  `levelLeadDistance` + the knots the current bank needs to unwind of the next `featureCursor`,
+  so every loop stands upright, every tube curls from a flat pose and every ramp rides its rails.
+  Turns come from `straightness`; the live `Resources/FiniteRunner_TrackDebug.asset` pins it at
+  60 (it was 100 = dead straight until M2).
 - `spawnTable` — one `PadSpawnEntry` per pad/orb kind (optional prefab, `PadDefinition`, boost
   multiplier × `GameManager.powerUpSpeedBoost`, colour/sway), drawn once per spacing step by
   probability. Probability sliders auto-rebalance (`NormalizeProbabilities`) so the table always

@@ -40,6 +40,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public float maxGrade = 6f;
         public float maxGradeStepPerKnot = 3f;
         public float baselinePull = 0.5f;
+        public bool bankEnabled = true;
+        public float maxBankAngle = 25f;
+        public float bankPerDegreeOfTurn = 1.5f;
+        public float maxBankStepPerKnot = 8f;
+        public float levelLeadDistance = 300f;
 
         static TrackDebugSettings cached;
 
@@ -73,6 +78,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             maxGrade = shape.maxGrade;
             maxGradeStepPerKnot = shape.maxGradeStepPerKnot;
             baselinePull = shape.baselinePull;
+            bankEnabled = shape.bankEnabled;
+            maxBankAngle = shape.maxBankAngle;
+            bankPerDegreeOfTurn = shape.bankPerDegreeOfTurn;
+            maxBankStepPerKnot = shape.maxBankStepPerKnot;
+            levelLeadDistance = shape.levelLeadDistance;
 
             entries.Clear();
             var table = generator.SpawnTable;
@@ -98,6 +108,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             shape.maxGrade = maxGrade;
             shape.maxGradeStepPerKnot = maxGradeStepPerKnot;
             shape.baselinePull = baselinePull;
+            shape.bankEnabled = bankEnabled;
+            shape.maxBankAngle = maxBankAngle;
+            shape.bankPerDegreeOfTurn = bankPerDegreeOfTurn;
+            shape.maxBankStepPerKnot = maxBankStepPerKnot;
+            shape.levelLeadDistance = levelLeadDistance;
 
             var table = generator.SpawnTable;
             if (table == null) return;

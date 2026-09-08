@@ -16,7 +16,7 @@ played and tuned before the next starts.
 |---|---|---|---|
 | M0 | **Fixes** | Loops only appear when the speed is already attainable; dash ghosts stay visible at any speed | Implemented 2026-09-08, in editor test |
 | M1 | **Elevation** | The road rolls up and down inside a band, never bumpy | Implemented 2026-09-08, in editor test |
-| M2 | **Banking + curves** | Turns come back and the road banks into them; features sit on level road | Not started |
+| M2 | **Banking + curves** | Turns come back and the road banks into them; features sit on level road | Implemented 2026-09-08, in editor test |
 | M3 | **Loop variation** | Corkscrew, yawed and elongated loops; the track continues from the loop's exit (piece-sequenced builder) | Not started |
 | M4 | **Authored circuit** | Generate → edit with scene handles → save to a layout asset; closed loop rebuilt on the first frame; per-lap streaming | Not started |
 
@@ -322,6 +322,12 @@ Same `TrackDebugSettings` / debug page treatment as M1.
 - Every loop entry, tube curl-in and ramp in 10 seeded runs is on level road (bank read from the
   pose at the feature start ≤ 1°).
 - `bankEnabled` off + `straightness 100` reproduces the M1 track for the same seed.
+
+*Implemented 2026-09-08. Deviation: `levelLeadDistance` defaults to 300 m and is a buffer on top
+of an automatic unwind distance (the knots the current bank needs at `maxBankStepPerKnot`), since
+a fixed 900 m lead left almost no bankable road between feature spots. `TrackDebug.asset`
+straightness set to 60; the scene's authored value stays 100 for edit-mode previews. Editor play
+checks pending.*
 
 ---
 
