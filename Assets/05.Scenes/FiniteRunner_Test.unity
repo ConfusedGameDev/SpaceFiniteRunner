@@ -4369,7 +4369,7 @@ MonoBehaviour:
     minSpacing: 600
     multiplier: 0
     color: {r: 0.9, g: 0.5, b: 1, a: 1}
-  featureSpacing: {x: 600, y: 1200}
+  featureSpacing: {x: 1500, y: 3000}
   track: {fileID: 1402584888}
   gameManager: {fileID: 0}
   ship: {fileID: 0}

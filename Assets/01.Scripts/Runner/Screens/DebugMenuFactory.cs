@@ -56,13 +56,13 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             // Banking into turns (turns come from STRAIGHTNESS above). Max bank 0 = level road.
             screen.AddRow<DebugSliderRow>(MenuTextId.MaxBank)
-                  .Configure(0f, 60f, 1f, shape.maxBankAngle, "0",
+                  .Configure(0f, 89f, 1f, shape.maxBankAngle, "0",
                              v => { generator.Shape.maxBankAngle = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
             screen.AddRow<DebugSliderRow>(MenuTextId.BankPerTurn)
-                  .Configure(0f, 5f, 0.1f, shape.bankPerDegreeOfTurn, "0.0",
+                  .Configure(0f, 10f, 0.5f, shape.bankPerDegreeOfTurn, "0.0",
                              v => { generator.Shape.bankPerDegreeOfTurn = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
             screen.AddRow<DebugSliderRow>(MenuTextId.BankStep)
-                  .Configure(0f, 30f, 1f, shape.maxBankStepPerKnot, "0",
+                  .Configure(0f, 90f, 5f, shape.maxBankStepPerKnot, "0",
                              v => { generator.Shape.maxBankStepPerKnot = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
             screen.AddRow<DebugSliderRow>(MenuTextId.LevelLead)
                   .Configure(0f, 3000f, 50f, shape.levelLeadDistance, "0",

@@ -326,8 +326,15 @@ Same `TrackDebugSettings` / debug page treatment as M1.
 *Implemented 2026-09-08. Deviation: `levelLeadDistance` defaults to 300 m and is a buffer on top
 of an automatic unwind distance (the knots the current bank needs at `maxBankStepPerKnot`), since
 a fixed 900 m lead left almost no bankable road between feature spots. `TrackDebug.asset`
-straightness set to 60; the scene's authored value stays 100 for edit-mode previews. Editor play
-checks pending.*
+straightness set to 60; the scene's authored value stays 100 for edit-mode previews.*
+
+*Revised 2026-09-08 after the first play: the per-knot heading wobble gave only a slight lean.
+Turns are now **sweeps** (`TrackShapeSettings` Turns group: rate 15–35°/knot, arc 45–120°, one
+direction held for arc / rate knots, alternating, drift-capped) and the bank defaults are a wall:
+max 80°, 4° per degree of turn, 45° step, 200 m lead. A sweep only starts when it, the unwind and
+the lead fit before the next feature (`TurnFits`), and the scene's `featureSpacing` went from
+600–1200 to 1500–3000 m to leave that room. The generator's `maxTurnPerSegment` / `maxHeading`
+were removed. Editor play checks pending.*
 
 ---
 

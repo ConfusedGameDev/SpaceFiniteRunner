@@ -85,15 +85,26 @@ stretch in `Awake`, then each `Update` keeps `aheadDistance` of finished track a
   `TrackManager.AppendKnot(position, rotation)` carrying heading + grade: AutoSmooth keeps the
   rotation's up (projected onto the sloped tangent), which is how the grade reaches every pose.
   Features inherit the grade (a loop stands on the slope).
-  **Banking** (`bankEnabled`, `maxBankAngle` 25°, `bankPerDegreeOfTurn` 1.5, `maxBankStepPerKnot`
-  8°, `levelLeadDistance` 300 m): the bank target at a knot is −(heading change) ×
+  **Turns are sweeps** (Turns group: `turnRateRange` 15–35°/knot, `turnArcRange` 45–120°,
+  `minStraightKnots` 1, `alternateTurnChance` 0.7, `maxHeadingDrift` 150°): on a straight knot
+  one rng draw against `1 − straightness/100` may `StartTurn` — rate and arc rolled off the
+  bands, knots = arc / rate, direction alternating by chance or forced back once the heading has
+  drifted past the cap — and the sweep then holds that rate per knot. `TurnFits` refuses a sweep
+  whose shortest run + the full bank's unwind + the lead would not fit before `featureCursor`;
+  `LevelRequired` ends one early if a feature closes in. The generator's old `maxTurnPerSegment`
+  / `maxHeading` are gone. The live `Resources/FiniteRunner_TrackDebug.asset` pins straightness
+  at 60 (it was 100 = dead straight until M2) and the scene's `featureSpacing` is 1500–3000 m so
+  a sweep has room between features.
+  **Banking** (`bankEnabled`, `maxBankAngle` 80°, `bankPerDegreeOfTurn` 4, `maxBankStepPerKnot`
+  45°, `levelLeadDistance` 200 m): the bank target at a knot is −(heading change) ×
   `bankPerDegreeOfTurn` (a right turn drops the right edge), capped, eased per knot, rolled into
-  the knot rotation about the segment direction — no rng draws. **Features need level road**
-  (`LevelRequired`): the target is 0 while the spline end is under a `TubeSection` or within
-  `levelLeadDistance` + the knots the current bank needs to unwind of the next `featureCursor`,
-  so every loop stands upright, every tube curls from a flat pose and every ramp rides its rails.
-  Turns come from `straightness`; the live `Resources/FiniteRunner_TrackDebug.asset` pins it at
-  60 (it was 100 = dead straight until M2).
+  the knot rotation about the segment direction — no rng draws. At the defaults a sweep is a
+  near-vertical wall the ship rides like an oval's banking (the F-Zero look the user asked for).
+  **Features need level road** (`LevelRequired`): the target is 0 while the spline end is under a
+  `TubeSection` or within `levelLeadDistance` + the knots the current bank needs to unwind of the
+  next `featureCursor`, so every loop stands upright, every tube curls from a flat pose and every
+  ramp rides its rails. `TrackDebugSettings`' bank defaults must equal the asset's — the shipped
+  debug asset has `applyOnLoad` on, so a key it lacks applies the C# default.
 - `spawnTable` — one `PadSpawnEntry` per pad/orb kind (optional prefab, `PadDefinition`, boost
   multiplier × `GameManager.powerUpSpeedBoost`, colour/sway), drawn once per spacing step by
   probability. Probability sliders auto-rebalance (`NormalizeProbabilities`) so the table always

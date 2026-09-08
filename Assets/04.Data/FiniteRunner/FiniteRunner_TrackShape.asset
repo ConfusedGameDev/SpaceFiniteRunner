@@ -17,8 +17,13 @@ MonoBehaviour:
   maxGrade: 6
   maxGradeStepPerKnot: 3
   baselinePull: 0.5
+  turnRateRange: {x: 15, y: 35}
+  turnArcRange: {x: 45, y: 120}
+  minStraightKnots: 1
+  alternateTurnChance: 0.7
+  maxHeadingDrift: 150
   bankEnabled: 1
-  maxBankAngle: 25
-  bankPerDegreeOfTurn: 1.5
-  maxBankStepPerKnot: 8
-  levelLeadDistance: 300
+  maxBankAngle: 80
+  bankPerDegreeOfTurn: 4
+  maxBankStepPerKnot: 45
+  levelLeadDistance: 200

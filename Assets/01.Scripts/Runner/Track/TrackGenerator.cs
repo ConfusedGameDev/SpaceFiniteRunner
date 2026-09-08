@@ -137,7 +137,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         };
 
         [TitleGroup("Core Settings")]
-        [Tooltip("100% = a dead straight line, 0% = the curviest track the Shape settings below allow. Regenerate to see it.")]
+        [Tooltip("Chance that a straight knot starts a banked sweep: 100% = a dead straight line, 0% = a sweep at every chance the features leave room for. The sweeps' rate, arc and bank live on the Track Shape asset. Regenerate to see it.")]
         [PropertyRange(0f, 100f), SuffixLabel("%", true)]
         [SerializeField] float straightness = 100f;
 
@@ -184,10 +184,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Segment count of a non-endless track. Endless mode grows on demand instead.")]
         [SerializeField, Min(3)] int segments = 12;
         [SerializeField] Vector2 segmentLength = new(300f, 420f);
-        [Tooltip("Max heading change per segment, degrees. Keep low — the ship is FAST.")]
-        [SerializeField, Range(0f, 60f)] float maxTurnPerSegment = 24f;
-        [Tooltip("Max total heading away from straight ahead, degrees. Stops the track from doubling back.")]
-        [SerializeField, Range(0f, 85f)] float maxHeading = 55f;
+        // Turn rate, arc and drift live on the TrackShapeSettings asset (Turns group).
 
         [Header("Pads")]
         [Tooltip("Base material of code-built boost primitives; each entry gets a recolored instance. Prefab entries keep their own materials.")]
@@ -315,6 +312,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         float heading;
         float pitch;   // grade of the last segment, degrees (elevation walk)
         float bank;    // roll of the last knot, degrees, right edge up positive (banking)
+        int turnKnotsLeft;   // knots left in the current sweep (0 = on a straight)
+        float turnRate;      // signed heading change per knot of the current sweep
+        int straightKnots;   // knots laid since the last sweep ended
+        float lastTurnSign;  // direction of the last sweep (0 = none yet)
         float3 endPosition;
         TrackShapeSettings shapeRuntime;
         float padCursor;
@@ -402,6 +403,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
             heading = 0f;
             pitch = 0f;
             bank = 0f;
+            turnKnotsLeft = 0;
+            turnRate = 0f;
+            straightKnots = 0;
+            lastTurnSign = 0f;
             endPosition = float3.zero;
             track.AppendKnot(endPosition);
 
@@ -458,22 +463,42 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         void AddSegment()
         {
-            // Straightness scales the Shape limits down: 100% pins the heading
-            // to dead ahead, 0% lets the full turn/heading ranges act.
+            var shape = Shape;
+
+            // Turns are SWEEPS, not a per-knot wobble: a sweep holds one
+            // direction at one rate for as many knots as its arc needs (that
+            // is what lets the bank build into a wall), then the road runs
+            // straight for a few. Straightness is the chance a straight knot
+            // starts a sweep — one draw per straight knot, so 100% never
+            // turns and still consumes the flat track's draws.
             float curviness = 1f - straightness / 100f;
-            float turnLimit = maxTurnPerSegment * curviness;
-            float headingLimit = maxHeading * curviness;
             float previousHeading = heading;
-            heading = math.clamp(
-                heading + rng.NextFloat(-turnLimit, turnLimit),
-                -headingLimit, headingLimit);
+            if (turnKnotsLeft == 0)
+            {
+                float roll = rng.NextFloat(0f, 1f);
+                straightKnots++;
+                if (roll < curviness && straightKnots > shape.minStraightKnots && TurnFits(shape)) StartTurn(shape);
+            }
+            if (turnKnotsLeft > 0)
+            {
+                if (LevelRequired(shape))
+                {
+                    // A feature is coming: end the sweep now so the bank unwinds.
+                    turnKnotsLeft = 0;
+                    straightKnots = 0;
+                }
+                else
+                {
+                    heading += turnRate;
+                    if (--turnKnotsLeft == 0) straightKnots = 0;
+                }
+            }
             float turnDelta = heading - previousHeading;
 
             // Elevation: a grade walk inside a band around the baseline — a
             // random step per knot, leaned back home in proportion to the
             // height already gained, forced home outside the band, capped.
             // Off, it draws nothing, so a seed reproduces the flat track exactly.
-            var shape = Shape;
             if (shape.elevationEnabled && shape.maxGrade > 0f)
             {
                 float step = shape.maxGradeStepPerKnot;
@@ -522,6 +547,43 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (track.SectionAt(end) is TubeSection) return true;
             float unwind = Mathf.Ceil(Mathf.Abs(bank) / Mathf.Max(shape.maxBankStepPerKnot, 0.01f)) * segmentLength.y;
             return featureCursor - end <= shape.levelLeadDistance + unwind;
+        }
+
+        /// <summary>
+        /// A sweep may only start when its shortest possible run PLUS the full
+        /// bank's unwind PLUS the level lead fit before the next feature spot,
+        /// and never under a tube — so a sweep is never cut short by the
+        /// level rule in the common case, and a feature never lands mid-bank.
+        /// </summary>
+        bool TurnFits(TrackShapeSettings shape)
+        {
+            float end = track.Length;
+            if (track.SectionAt(end) is TubeSection) return false;
+            float sweepKnots = Mathf.Ceil(shape.TurnArcMin / shape.TurnRateMax);
+            float unwindKnots = shape.bankEnabled
+                ? Mathf.Ceil(shape.maxBankAngle / Mathf.Max(shape.maxBankStepPerKnot, 0.01f))
+                : 0f;
+            float needed = (sweepKnots + unwindKnots) * segmentLength.y + shape.levelLeadDistance;
+            return featureCursor - end > needed;
+        }
+
+        /// <summary>
+        /// Rolls a sweep: rate and arc off their bands (knots = arc / rate),
+        /// direction alternating by chance — or straight back toward the start
+        /// heading once the road has drifted past <c>maxHeadingDrift</c>.
+        /// </summary>
+        void StartTurn(TrackShapeSettings shape)
+        {
+            float rate = rng.NextFloat(shape.TurnRateMin, shape.TurnRateMax);
+            float arc = rng.NextFloat(shape.TurnArcMin, shape.TurnArcMax);
+            float sign;
+            if (Mathf.Abs(heading) > shape.maxHeadingDrift) sign = -Mathf.Sign(heading);
+            else if (lastTurnSign == 0f) sign = rng.NextFloat(0f, 1f) < 0.5f ? -1f : 1f;
+            else sign = rng.NextFloat(0f, 1f) < shape.alternateTurnChance ? -lastTurnSign : lastTurnSign;
+
+            turnRate = sign * rate;
+            turnKnotsLeft = Mathf.Max(1, Mathf.RoundToInt(arc / rate));
+            lastTurnSign = sign;
         }
 
         /// <summary>

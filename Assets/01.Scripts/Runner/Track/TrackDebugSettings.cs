@@ -40,11 +40,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public float maxGrade = 6f;
         public float maxGradeStepPerKnot = 3f;
         public float baselinePull = 0.5f;
+        // Keep these defaults equal to the TrackShapeSettings asset's: the
+        // shipped debug asset has applyOnLoad on, so a key it lacks applies
+        // the default here on every play-mode Generate.
         public bool bankEnabled = true;
-        public float maxBankAngle = 25f;
-        public float bankPerDegreeOfTurn = 1.5f;
-        public float maxBankStepPerKnot = 8f;
-        public float levelLeadDistance = 300f;
+        public float maxBankAngle = 80f;
+        public float bankPerDegreeOfTurn = 4f;
+        public float maxBankStepPerKnot = 45f;
+        public float levelLeadDistance = 200f;
 
         static TrackDebugSettings cached;
 
