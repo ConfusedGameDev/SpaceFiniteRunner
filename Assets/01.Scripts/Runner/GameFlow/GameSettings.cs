@@ -220,6 +220,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float dashGhostStartAlpha = 0.45f;
 
         [ToggleGroup("dashEnabled")]
+        [Tooltip("Ghosts ride with the ship (only their sideways offset is frozen). This is how far BEHIND the ship a ghost has slid by the end of its life, metres. 0 = a pure sideways staircase beside the ship.")]
+        [PropertyRange(0f, 30f), SuffixLabel("m", true)]
+        public float dashGhostDriftMeters = 0f;
+
+        [ToggleGroup("dashEnabled")]
         [Tooltip("Transparent URP material for the onion-skin ghosts (Materials/DashGhost_Mat). Empty = a runtime fallback material is built instead.")]
         public Material dashGhostMaterial;
 

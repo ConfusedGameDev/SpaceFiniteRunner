@@ -14,6 +14,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
     /// happens inside; too slow and the ship rides up to the top, drops off
     /// it under <see cref="fallGravity"/> straight down onto the exit, loses
     /// <see cref="fallSpeedLoss"/> of its speed, and the patrol never slows.
+    /// A loop is only ever PLACED when the ship, as it is right then, would
+    /// arrive fast enough (<see cref="gateHeadroom"/> above the demand after
+    /// the bleed over the gap) — the generator redraws another feature
+    /// otherwise, so a red gate can only come from speed lost after the
+    /// loop was decided, never from a demand that was out of reach.
     /// </summary>
     [CreateAssetMenu(fileName = "Loop_Definition", menuName = "FiniteRunner/Loop Definition")]
     public class LoopDefinition : TrackFeatureDefinition
@@ -60,6 +65,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [Tooltip("How far ahead of the loop its required-speed number is shown, metres. At 1000+ m/s the ship crosses 400 m in a third of a second, so this sits beyond the fog end (1500 m) — the number is up before the gate itself clears the haze.")]
         [PropertyRange(50f, 4000f), SuffixLabel("m", true)]
         public float labelLeadMeters = 1800f;
+
+        [TitleGroup("Gate")]
+        [Tooltip("Placement rule: a loop is only placed when the ship's predicted speed at the gate (current speed minus the passive bleed over the gap) clears the required speed by this fraction. 0.1 = 10% above the demand. A refused spot draws another feature instead.")]
+        [PropertyRange(0f, 0.5f)]
+        public float gateHeadroom = 0.1f;
 
         public float Circumference => 2f * Mathf.PI * radius;
 

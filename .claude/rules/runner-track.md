@@ -150,6 +150,13 @@ km/h never lie. The number is **fixed above the gate as a world-space label**
 `labelLeadMeters` (1800 m — 300 m beyond the fog end, so the number leads the gate out of the
 haze) and tinted with the gate. It is never a popup riding ahead of the ship.
 
+**A loop is only placed when it is reachable** (`TrackGenerator.LoopReachable`): in an endless
+play run, the ship's predicted speed at the spot (current speed minus the passive bleed over the
+gap) must clear `LoopRequiredSpeed(spot)` × (1 + `LoopDefinition.gateHeadroom`, 0.1). A refused
+loop redraws among the other entries off the **same** roll (`PickWeighted(…, exclude)`), so seeds
+only diverge where a loop was refused; a table with nothing else skips the spot. Edit-mode and
+non-endless previews are not gated. So a red gate can only come from speed lost after placement.
+
 Verdict is taken once at the gate: fast enough and the loop is a pass whatever happens inside;
 too slow and the ship rides to the top and drops off it. No orbs inside a loop — footprint
 claimed.

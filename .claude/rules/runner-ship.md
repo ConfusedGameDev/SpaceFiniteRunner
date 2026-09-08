@@ -61,6 +61,16 @@ visual turns a full 360° in the dash direction on top of its bank (`rollAngle`,
 so a wall or landing that cuts the dash never leaves the ship on its side; `IsBarrelRolling` /
 `BarrelRollStarted(int)`).
 
+**Dash ghosts ride with the ship.** `DashGhostTrail` (hand-placed on the Ship, `Init`-ed by
+`GameManager`) parents every snapshot to a frame it seats each `LateUpdate` on the flight line at
+the ship's own distance (`track.GetPoseAtDistance(DistanceTravelled, 0)` — the section pose inside
+loops and tubes), so only the ship's sideways offset, hover and bank at the snapshot are frozen and
+the ghosts stay beside the ship at any speed. A world-space ghost was behind the bolted 33 m chase
+camera within a frame at Light Speed. Ground ghosts are spaced by **metres of lateral travel**
+(`dashDistance / dashGhostCount`, read off `ShipMotor.LateralOffset`); the barrel roll keeps its
+time spread. Ghosts are pooled, slide back by `GameSettings.dashGhostDriftMeters` over their life
+(0 = pure staircase), and are cleared on `Launched` and while `Falling`.
+
 `BarrelRollTrail` (added by `GameManager` beside `DashGhostTrail`) parents one `TrailRenderer` per
 wingtip under the rolling visual — emitters at the model's measured half-width ×
 `GameSettings.barrelRollTrailSpan`, emitting only while rolling, so the ribbons come out as two

@@ -57,6 +57,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             public float radius = 100f;
             public float fallGravity = 120f;
             public float fallSpeedLoss = 0.4f;
+            public float gateHeadroom = 0.1f;
         }
 
         [Tooltip("When on, these saved values override the scene's feature table and the jump definition on every play-mode Generate. Turned on the first time the debug menu saves; untick to return to the authored values.")]
@@ -97,7 +98,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                 {
                     entries.Add(new EntryValues { name = e.name, probability = e.probability, minSpacing = e.minSpacing, multiplier = e.multiplier });
                     if (e.Runtime is JumpDefinition j) CaptureJump(j);
-                    if (e.Runtime is LoopDefinition l) { loop.radius = l.radius; loop.fallGravity = l.fallGravity; loop.fallSpeedLoss = l.fallSpeedLoss; }
+                    if (e.Runtime is LoopDefinition l) { loop.radius = l.radius; loop.fallGravity = l.fallGravity; loop.fallSpeedLoss = l.fallSpeedLoss; loop.gateHeadroom = l.gateHeadroom; }
                     if (e.Runtime is TubeDefinition t) tubes.Add(new TubeValues { name = e.name, radius = t.radius, bandDegrees = t.bandDegrees, curlLength = t.curlLength });
                 }
 
@@ -136,7 +137,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                     table[i].multiplier = saved.multiplier;
                 }
                 if (table[i].Runtime is JumpDefinition j) ApplyJump(j);
-                if (table[i].Runtime is LoopDefinition l) { l.radius = loop.radius; l.fallGravity = loop.fallGravity; l.fallSpeedLoss = loop.fallSpeedLoss; }
+                if (table[i].Runtime is LoopDefinition l) { l.radius = loop.radius; l.fallGravity = loop.fallGravity; l.fallSpeedLoss = loop.fallSpeedLoss; l.gateHeadroom = loop.gateHeadroom; }
                 if (table[i].Runtime is TubeDefinition t)
                 {
                     var savedTube = tubes.Find(x => x.name == table[i].name);

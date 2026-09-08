@@ -190,6 +190,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                                             20f, 400f, 10f, "0", l => l.fallGravity, (l, v) => l.fallGravity = v);
                     AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopFallLoss,
                                             0f, 1f, 0.05f, "0.00", l => l.fallSpeedLoss, (l, v) => l.fallSpeedLoss = v);
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopGateHeadroom,
+                                            0f, 0.5f, 0.05f, "0.00", l => l.gateHeadroom, (l, v) => l.gateHeadroom = v);
                 }
                 else if (entry.Runtime is TubeDefinition)
                 {

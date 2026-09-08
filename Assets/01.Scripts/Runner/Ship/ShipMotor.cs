@@ -113,6 +113,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>The banking/hovering model child — for visual-only consumers (ghost trail).</summary>
         public Transform Visual => visual;
 
+        /// <summary>Metres across the track from the centre line, right positive — the steering coordinate.</summary>
+        public float LateralOffset => lateralOffset;
+
+        /// <summary>The track the ship rides — for consumers that need the flight-line pose (ghost trail).</summary>
+        public TrackManager Track => track;
+
         /// <summary>The run-level dash rules pushed in by the GameManager; null while unconfigured.</summary>
         public GameSettings DashSettings => dashSettings;
 

@@ -430,7 +430,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// road is placed beyond it: an insert under already-placed objects
         /// would shift their distances. The cursor then jumps past the
         /// footprint, the exclusion and the larger of the spacing roll and the
-        /// entry's own minimum.
+        /// entry's own minimum. A loop is only accepted when the ship can
+        /// already reach its required speed (<see cref="LoopReachable"/>);
+        /// a refused loop redraws among the other entries off the SAME roll,
+        /// so a seeded layout only diverges where a loop was refused.
         /// </summary>
         void PlaceFeaturesUpTo(float limit)
         {
@@ -439,7 +442,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 if (pendingFeature == null)
                 {
-                    pendingFeature = PickWeighted(featureTable, rng.NextFloat(0f, 1f)) as FeatureSpawnEntry;
+                    float roll = rng.NextFloat(0f, 1f);
+                    pendingFeature = PickWeighted(featureTable, roll) as FeatureSpawnEntry;
+                    if (pendingFeature != null && !LoopReachable(pendingFeature, featureCursor))
+                        pendingFeature = PickWeighted(featureTable, roll, exclude: pendingFeature) as FeatureSpawnEntry;
                     if (pendingFeature == null || pendingFeature.Runtime == null)
                     {
                         pendingFeature = null;
@@ -579,21 +585,52 @@ namespace ConfusedGameDev.FiniteRunner.Track
             spawnTable == null || spawnTable.Length == 0 ? null : PickWeighted(spawnTable, rng.NextFloat(0f, 1f)) as PadSpawnEntry;
 
         // Weighted draw off a 0..1 roll; probabilities are normalized by
-        // their sum, so the draw stays correct even mid-edit.
-        static IWeightedEntry PickWeighted(IWeightedEntry[] table, float roll01)
+        // their sum, so the draw stays correct even mid-edit. An excluded
+        // entry weighs nothing and is skipped; null when nothing else has weight.
+        static IWeightedEntry PickWeighted(IWeightedEntry[] table, float roll01, IWeightedEntry exclude = null)
         {
             if (table == null || table.Length == 0) return null;
             float total = 0f;
-            foreach (var e in table) total += e.Probability;
-            if (total <= 0f) return table[0];
+            IWeightedEntry last = null;
+            foreach (var e in table)
+            {
+                if (e == exclude) continue;
+                total += e.Probability;
+                last = e;
+            }
+            if (last == null) return null;
+            if (total <= 0f) return exclude == null ? table[0] : last;
 
             float roll = roll01 * total;
             foreach (var e in table)
             {
+                if (e == exclude) continue;
                 roll -= e.Probability;
                 if (roll <= 0f) return e;
             }
-            return table[^1];
+            return last;
+        }
+
+        /// <summary>
+        /// The loop placement gate. True for anything but a loop, and for a
+        /// loop in edit-mode or non-endless previews (no ship speed to read).
+        /// In play, the ship's speed when it reaches <paramref name="distance"/>
+        /// is predicted as its current speed minus the passive bleed over the
+        /// gap, and must clear the loop's required speed by the definition's
+        /// <see cref="LoopDefinition.gateHeadroom"/>. The requirement is the
+        /// same number the gate will be built with, so what is reachable now
+        /// stays reachable unless the player loses speed on the way.
+        /// </summary>
+        bool LoopReachable(FeatureSpawnEntry entry, float distance)
+        {
+            if (!Application.isPlaying || !endless || ship == null || gameManager == null) return true;
+            if (entry.Runtime is not LoopDefinition loop) return true;
+
+            float speed = ship.CurrentSpeed;
+            float gap = Mathf.Max(0f, distance - ship.DistanceTravelled);
+            float predicted = speed - ship.Definition.passiveDeceleration * gap / Mathf.Max(speed, 1f);
+            float required = gameManager.LoopRequiredSpeed(distance) * (1f + Mathf.Max(0f, loop.gateHeadroom));
+            return predicted >= required;
         }
 
         // Keeps the Core Settings probability sliders honest: whichever slider
