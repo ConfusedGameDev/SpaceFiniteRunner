@@ -573,7 +573,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 // The section is ours from the gate to the exit whatever
                 // happens to the feature object behind us.
                 if (loopSection == null) { ClearLoop(); SetState(ShipState.Grounded); return; }
-                if (!loopPassed && d - loopSection.StartDistance >= loopSection.Length * 0.5f) { DropFromLoop(); return; }
+                if (!loopPassed && d - loopSection.StartDistance >= loopSection.FirstTopLocal) { DropFromLoop(); return; }
                 if (d >= loopSection.EndDistance)
                 {
                     ClearLoop();

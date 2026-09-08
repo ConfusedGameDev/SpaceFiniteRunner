@@ -33,9 +33,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
         /// <summary>
         /// The section a feature that owns its pose routes the track through,
-        /// or null. <paramref name="roll01"/> is a draw off the layout rng for
-        /// per-instance variation (a tube's length), so seeded runs repeat.
+        /// or null. Per-instance variation (a tube's length, a loop's drift)
+        /// is drawn off the layout <paramref name="rng"/> in a fixed order, so
+        /// seeded runs repeat. Called at the knot the generator landed on the
+        /// feature's spot, so the spline end IS the entry pose.
         /// </summary>
-        public virtual TrackSection CreateSection(TrackManager track, float startDistance, float roll01) => null;
+        public virtual TrackSection CreateSection(TrackManager track, float startDistance, ref Unity.Mathematics.Random rng) => null;
     }
 }

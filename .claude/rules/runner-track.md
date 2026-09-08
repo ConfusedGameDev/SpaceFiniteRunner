@@ -31,12 +31,18 @@ replace. No consumer reads the spline directly.
 
 Stretches of track distance laid over the flat spline with their own pose function.
 
-- **Inserting sections** (`LoopSection`) add distance: track distance = spline distance + the
-  lengths of every section before it. `Length` is the whole track including inserts,
-  `SplineLength` the spline alone, and `DistanceToT` takes a **spline** distance.
-  `LoopSection` is a vertical circle standing on the entry pose, parameterised by arc length,
-  inverted at the top, lateral along the entry's right.
-- **Overlay sections** (`TubeSection`, `InsertsDistance` false) reshape the spline's own pose
+- A section covers `SplineExtent` metres of spline and `Length` metres of track; the difference,
+  `InsertedLength`, is track distance the spline lacks (`InsertsDistance` = it is > 0). Track
+  distance = spline distance + the inserted lengths of every section before it. `Length` is the
+  whole track including inserts, `SplineLength` the spline alone, and `DistanceToT` takes a
+  **spline** distance.
+- **`LoopSection`** is a helix standing on the entry pose (radius, `Turns`, `LateralDrift`,
+  `ForwardCarry`, `ExitYawDegrees` — all eased with a smoothstep so both mouths are tangent to
+  the road), parameterised by arc length through a 256-sample table (`UAt`), inverted at each
+  top, lateral along the (yawing) right. `FirstTopLocal` is where a failed loop lets go,
+  `GetExitPose` / `ExitForward` where the track continues. Its `SplineExtent` is the **bridge**
+  the generator lays between the entry and exit knots — spline the ship never rides.
+- **Overlay sections** (`TubeSection`, `SplineExtent == Length`) reshape the spline's own pose
   over their length through `GetSplinePoseAtDistance` and add nothing to `Length`.
 - `GetPoseAtDistance` routes a distance inside a section to it; `SectionAt` /
   `SplineDistanceOf` answer the rest.
@@ -44,8 +50,15 @@ Stretches of track distance laid over the flat spline with their own pose functi
   section's band inside one. The motor's clamp, the pad placer's range and the decorator's
   strips all ask it.
 - **`AddSection` must happen before anything is placed beyond its start.** The generator
-  registers a loop's section the moment it decides the spot (`pendingSection`), before that
-  stream's pads and road. `ClearKnots` drops sections too.
+  registers a section the moment it decides the spot (`DecideFeature`, at the knot that landed
+  on it), before that stream's pads and road. `ClearKnots` drops sections too.
+- Knots: `AppendKnot(position)` / `AppendKnot(position, rotation)` are AutoSmooth (reshaped by
+  the neighbours that land after them — the reason for the settle margin);
+  `AppendKnot(position, rotation, tangent)` is an explicit `Continuous` knot (in = −tangent,
+  out = tangent, chord/3) that nothing reshapes — feature entries and loop exits use it. The
+  tangent is given in WORLD space and converted: **a `BezierKnot` stores tangents in the knot's
+  local frame**, and a world tangent handed over as-is is rotated twice (a kink at every feature
+  knot, ramps facing the doubled heading — the M3 bug).
 
 ## `TrackGenerator` (+ `Editor/TrackGeneratorEditor`)
 
@@ -122,32 +135,47 @@ A second seeded table, `featureTable` of `FeatureSpawnEntry` (name, optional uni
 `minSpacing`, boost `multiplier`, colour). The roadmap for these lives in `TrackFeaturesPlan.md`:
 jumps (1), loops (2), cylinder sections (3) are built; multi-path is the one left.
 
-`PlaceFeaturesUpTo` runs before the pads at every stream, draws an entry per `featureSpacing`
-step, **claims its footprint the moment its spot is decided** (even while it waits for the settle
-margin — `pendingFeature`), creates it once settled, and advances the cursor by footprint +
+**The builder is piece-sequenced (M3).** `featureCursor` is the next spot. When the normal
+segment roll would reach it, `AddSegment` cuts the segment to land a knot **on** the spot (never
+shorter than a minimum segment — a closer spot is pushed out), snaps the bank to 0 and pins the
+knot with explicit tangents, and `StreamTo` calls `DecideFeature` right there: one weighted draw
+(+ the M0 loop gate), `CreateSection(track, spot, ref rng)`, `AddSection`, the footprint claimed,
+and **the spline continues from the feature** — a loop gets an exit knot at its displaced exit
+pose (`ContinueFromLoopExit`: explicit tangent along `ExitForward`, the bridge measured into
+`SetSplineExtent`, the builder's heading/grade re-read from the exit, bank 0), a tube just keeps
+the spline coming (level) underneath, a ramp goes on `pendingRamps` and lands once its run-up is
+settled (`SpawnPendingRamps`, before the pads). The cursor then advances by footprint +
 `ExclusionAhead` (a jump's longest arc, so nothing waits under a landing) + max(spacing roll,
 `minSpacing`). `PlacePadsUpTo` skips claimed ground.
 
 Every entry gets a **runtime clone** of its definition (`Runtime`) in play — the debug menu edits
 the clone, never the asset.
 
+- **A ramp needs a landing zone.** When `DecideFeature` draws a jump it reserves
+  `straightUntil = spot + length + MaxAirDistance(JumpStrength) + landingClearance`: until the
+  spline end passes it, `AddSegment` starts no sweep, ends one in progress, holds the bank at 0
+  and the grade where it is, so the longest jump the ship can make always lands on the road it
+  left. `JumpStrength` is the run definition's `jumpStrength` or the Store's
+  `ShipJumpStrength` multiplier, whichever is larger (the first stretch is generated in `Awake`,
+  possibly before the GameManager has built the run clone); edit-mode previews use 1. The
+  exclusion the cursor skips is the same longest jump + `landingClearance`, not the definition's
+  strength-1 `ExclusionAhead`.
 - **`CreateJump`** spawns a `JumpRamp` (start, length, lateral, half width =
   `HalfWidth × widthFraction`, boost = `powerUpSpeedBoost × multiplier`) with a picture only: the
   entry's unit prefab scaled to (width, lip, length), or a code-built slab pitched to `rampAngle`
   with a rail per edge. Colliders stripped, `featureMaterial` tinted per entry.
-- **A feature with an `InsertLength`** (`LoopDefinition`: `Circumference`) has zero
-  `SplineExtent`, so it never waits for the settle margin: `PlaceFeaturesUpTo` calls
-  `CreateSection` and `track.AddSection` at decision time (bumping its own `limit` by the insert;
-  `StreamTo` re-reads `settled` afterwards). `CreateLoop` spawns the `LoopFeature` (section +
-  `LoopRequiredSpeed(distance)`) with a portal-frame gate — two posts + crossbar, or the entry's
-  unit prefab scaled by the radius — whose renderers take the gate colour. The ring's road comes
-  from the decorator.
+- **A loop** (`LoopDefinition.CreateSection(track, spot, ref rng)`) rolls drift, its side, carry,
+  yaw, its side and turns — in that order — off the bands, builds the `LoopSection` from the
+  pose at the spot knot, and `DecideFeature` appends the exit knot and continues the spline from
+  it. `CreateLoop` spawns the `LoopFeature` (section + `LoopRequiredSpeed(distance)`) with a
+  portal-frame gate at the mouth — two posts + crossbar, or the entry's unit prefab scaled by
+  the radius — whose renderers take the gate colour. The ring's road comes from the decorator.
 - **A tube** (`TubeDefinition`, `ClaimsFootprint` false) is nothing but its section:
-  `CreateSection(track, start, roll01)` rolls the length off the layout rng, `CreateFeature`
-  builds nothing. **A feature with a section never waits for the settle margin** — only a
-  road-bound ramp does; a 4.5 km tube could never fit inside the settled stretch, and its pose is
-  only sampled where pads and road are placed. Pads keep spawning across it (`PadMargin` inside
-  `GetLateralBand`) and the decorator stamps the pipe.
+  `CreateSection` rolls the length off the rng, `CreateFeature` builds nothing. **A feature with
+  a section never waits for the settle margin** — only a road-bound ramp does; a 4.5 km tube
+  could never fit inside the settled stretch, and its pose is only sampled where pads and road
+  are placed. Pads keep spawning across it (`PadMargin` inside `GetLateralBand`) and the
+  decorator stamps the pipe.
 
 Loop knobs (`radius`, `exitClearance`, `fallGravity`, `fallSpeedLoss`, gate colours) live on
 `Loop_Definition.asset`. The debug Features tab edits radius / gravity / loss through the generic
@@ -169,9 +197,17 @@ physics step against a 12 m trigger box.
 
 ### Loops
 
-Mandatory vertical loops the whole track width wide, inserted into the track's **distance** — the
-spline stays flat — so pads, patrol, road stamps and streaming ride them unchanged and the
-decorator draws the ring's road chord by chord for free.
+Mandatory vertical loops the whole track width wide, inserted into the track's **distance**, so
+pads, patrol, road stamps and streaming ride them unchanged and the decorator draws the ring's
+road chord by chord for free. Since M3 a loop **goes somewhere**: per instance it may corkscrew
+sideways (`lateralDriftRange` 0–240 m, side random), carry forward (`forwardCarryRange`
+0–300 m), yaw its exit heading (`exitYawRange` 0–30°, side random) and turn more than once
+(`turnsRange` 1–1, up to 3) — all on `Loop_Definition.asset`, all eased so both mouths are
+tangent to the road. The track continues from the exit: the generator lays an explicit-tangent
+exit knot there and the bridge between entry and exit knots is the section's `SplineExtent`.
+A failed loop lets go at the top of the FIRST turn and lands on the (displaced) exit. The
+cinematic side shot is planted off the entry pose, so a strongly displaced loop may sit partly
+out of frame — a `Fighter_CameraSettings` tuning matter.
 
 The entry speed a loop demands is **fixed when it is placed**: `GameSettings` floor 1200 km/h +
 18 km/h per 100 m travelled, capped at 2900 (`GameManager.LoopRequiredSpeed`). So the

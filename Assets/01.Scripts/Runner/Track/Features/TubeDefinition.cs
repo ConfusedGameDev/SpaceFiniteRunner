@@ -61,9 +61,9 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public override float ExclusionAhead => exitClearance;
         public override bool ClaimsFootprint => false;
 
-        public override TrackSection CreateSection(TrackManager track, float startDistance, float roll01)
+        public override TrackSection CreateSection(TrackManager track, float startDistance, ref Unity.Mathematics.Random rng)
         {
-            float length = Mathf.Lerp(lengthRange.x, lengthRange.y, Mathf.Clamp01(roll01));
+            float length = rng.NextFloat(lengthRange.x, Mathf.Max(lengthRange.x, lengthRange.y));
             return new TubeSection(startDistance, length, radius, bandDegrees, centreDegrees, curlLength, returnLength, steeringFactor);
         }
     }

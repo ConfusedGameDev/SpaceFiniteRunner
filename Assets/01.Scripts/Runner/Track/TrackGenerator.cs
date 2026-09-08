@@ -8,6 +8,7 @@ using UnityEngine.Splines;
 using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
+using ConfusedGameDev.FiniteRunner.Store;
 using ConfusedGameDev.FiniteRunner.Track.Features;
 namespace ConfusedGameDev.FiniteRunner.Track
 {
@@ -321,9 +322,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         float padCursor;
         float collectibleCursor;
         float featureCursor;
-        FeatureSpawnEntry pendingFeature; // drawn for featureCursor, waiting for its footprint to settle
-        bool pendingClaimed;
-        TrackSection pendingSection;      // the insert a pending loop already routed the track through
+        readonly List<(FeatureSpawnEntry entry, float distance)> pendingRamps = new(); // decided at their knot, waiting for the run-up to settle
+        float straightUntil;   // track distance up to which the road is held straight, level and flat: a ramp's landing zone
         readonly List<(float distance, GameObject go)> spawned = new();
         readonly List<(float start, float end)> claims = new(); // feature footprints pads keep off
         readonly List<float> padDistances = new();               // where pads landed — coins keep off them
@@ -418,9 +418,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             padCursor = rng.NextFloat(120f, 200f);
             collectibleCursor = rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
             featureCursor = rng.NextFloat(featureSpacing.x, featureSpacing.y);
-            pendingFeature = null;
-            pendingClaimed = false;
-            pendingSection = null;
+            pendingRamps.Clear();
+            straightUntil = 0f;
 
             if (endless)
             {
@@ -430,10 +429,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 for (int i = 0; i < segments; i++)
                 {
-                    AddSegment();
-                    track.Recalculate(); // the banking's level rule reads the spline end
+                    bool spot = AddSegment();
+                    track.Recalculate(); // the level rule and the feature spots read the spline end
+                    if (spot) DecideFeature();
                 }
-                PlaceFeaturesUpTo(track.Length - 150f);
+                SpawnPendingRamps(track.Length - 150f);
                 PlacePadsUpTo(track.Length - 150f);
                 PlaceCollectiblesUpTo(track.Length - 150f);
                 PlaceMarkers();
@@ -442,28 +442,42 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         /// <summary>
-        /// Grows the spline until at least <paramref name="target"/> distance
-        /// of track is settled, then stamps pads and decoration on the settled
+        /// Grows the track piece by piece until at least <paramref name="target"/>
+        /// distance of it is settled — a knot that lands on the next feature
+        /// spot decides the feature there and then, and the spline continues
+        /// from the feature — then stamps pads and decoration on the settled
         /// region. The trailing SettleMargin stays bare until more knots land.
         /// </summary>
         void StreamTo(float target)
         {
             while (track.Length - SettleMargin < target)
             {
-                AddSegment();
+                bool spot = AddSegment();
                 track.Recalculate();
+                if (spot) DecideFeature();
             }
 
-            PlaceFeaturesUpTo(track.Length - SettleMargin); // first: features claim footprints the pads then avoid
-            float settled = track.Length - SettleMargin;    // re-read: a loop just inserted track
+            float settled = track.Length - SettleMargin;
+            SpawnPendingRamps(settled); // first: a ramp's footprint is already claimed, so the pads keep off it
             PlacePadsUpTo(settled);
             PlaceCollectiblesUpTo(settled); // after the pads: coins keep off where they landed
             if (decorator != null) decorator.DecorateUpTo(settled);
         }
 
-        void AddSegment()
+        /// <summary>
+        /// Lays the next knot. Returns true when it landed ON the next feature
+        /// spot: when the normal roll would reach or pass <c>featureCursor</c>
+        /// the segment is cut to it (never shorter than a minimum segment —
+        /// a closer spot is pushed out), the bank is zero and the knot carries
+        /// explicit tangents so its pose is fixed whatever lands next — the
+        /// feature is then decided at this knot (<see cref="DecideFeature"/>).
+        /// </summary>
+        bool AddSegment()
         {
             var shape = Shape;
+
+            float remaining = featureCursor - track.Length;
+            bool landOnSpot = featureTable != null && featureTable.Length > 0 && remaining <= segmentLength.y;
 
             // Turns are SWEEPS, not a per-knot wobble: a sweep holds one
             // direction at one rate for as many knots as its arc needs (that
@@ -473,17 +487,22 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // turns and still consumes the flat track's draws.
             float curviness = 1f - straightness / 100f;
             float previousHeading = heading;
+            // A ramp's landing zone: straight, level and flat until the
+            // longest jump the ship can make has landed — no sweep, no bank,
+            // no grade change, so a jump always comes down on the road it
+            // left, never on a wall or round a corner.
+            bool holdStraight = track.Length < straightUntil;
             if (turnKnotsLeft == 0)
             {
                 float roll = rng.NextFloat(0f, 1f);
                 straightKnots++;
-                if (roll < curviness && straightKnots > shape.minStraightKnots && TurnFits(shape)) StartTurn(shape);
+                if (!holdStraight && roll < curviness && straightKnots > shape.minStraightKnots && TurnFits(shape)) StartTurn(shape);
             }
             if (turnKnotsLeft > 0)
             {
-                if (LevelRequired(shape))
+                if (holdStraight || LevelRequired(shape))
                 {
-                    // A feature is coming: end the sweep now so the bank unwinds.
+                    // A feature is coming (or a landing): end the sweep now so the bank unwinds.
                     turnKnotsLeft = 0;
                     straightKnots = 0;
                 }
@@ -499,7 +518,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // random step per knot, leaned back home in proportion to the
             // height already gained, forced home outside the band, capped.
             // Off, it draws nothing, so a seed reproduces the flat track exactly.
-            if (shape.elevationEnabled && shape.maxGrade > 0f)
+            if (holdStraight)
+            {
+                // Under a jump the grade holds: the arc is authored against the
+                // road's own up at every distance, but a crest or dip moving
+                // under it reads as the ground rushing up or dropping away.
+            }
+            else if (shape.elevationEnabled && shape.maxGrade > 0f)
             {
                 float step = shape.maxGradeStepPerKnot;
                 float band = Mathf.Max(shape.elevationBand, 1f);
@@ -516,7 +541,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // coming. No random draws, so a seed with banking off reproduces
             // the unbanked track exactly.
             float bankTarget = 0f;
-            if (shape.bankEnabled && shape.maxBankAngle > 0f && !LevelRequired(shape))
+            if (shape.bankEnabled && shape.maxBankAngle > 0f && !holdStraight && !LevelRequired(shape))
                 bankTarget = Mathf.Clamp(-turnDelta * shape.bankPerDegreeOfTurn, -shape.maxBankAngle, shape.maxBankAngle);
             bank = shape.bankEnabled
                 ? Mathf.MoveTowards(bank, bankTarget, Mathf.Max(shape.maxBankStepPerKnot, 0.01f))
@@ -525,13 +550,19 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float yaw = math.radians(heading);
             float grade = math.radians(pitch);
             float3 direction = new float3(math.sin(yaw) * math.cos(grade), math.sin(grade), math.cos(yaw) * math.cos(grade));
-            endPosition += direction * rng.NextFloat(segmentLength.x, segmentLength.y);
+            float chord = landOnSpot
+                ? Mathf.Max(remaining, segmentLength.x)
+                : rng.NextFloat(segmentLength.x, segmentLength.y);
+            if (landOnSpot) bank = 0f; // the level rule has unwound it already; a feature's entry is level, full stop
+            endPosition += direction * chord;
             // The knot carries heading, grade and bank: AutoSmooth keeps the
             // authored up (world up rolled about the segment, projected onto
             // the sloped tangent), which is how the pose between knots leans.
             quaternion rotation = quaternion.LookRotationSafe(direction, math.up());
             if (bank != 0f) rotation = math.mul(quaternion.AxisAngle(direction, math.radians(bank)), rotation);
-            track.AppendKnot(endPosition, rotation);
+            if (landOnSpot) track.AppendKnot(endPosition, rotation, direction * (chord / 3f)); // pinned: the feature's entry pose
+            else track.AppendKnot(endPosition, rotation);
+            return landOnSpot;
         }
 
         /// <summary>
@@ -558,6 +589,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         bool TurnFits(TrackShapeSettings shape)
         {
             float end = track.Length;
+            if (end < straightUntil) return false; // a ramp's landing zone
             if (track.SectionAt(end) is TubeSection) return false;
             float sweepKnots = Mathf.Ceil(shape.TurnArcMin / shape.TurnRateMax);
             float unwindKnots = shape.bankEnabled
@@ -587,64 +619,135 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         /// <summary>
-        /// One weighted draw from the feature table per step. A feature only
-        /// lands once the SPLINE its footprint covers is settled — but it
-        /// claims that footprint the moment its spot is decided, so the pads
-        /// placed while it waits keep off it, and a feature that inserts track
-        /// (a loop) registers its section right then too, before any pad or
-        /// road is placed beyond it: an insert under already-placed objects
-        /// would shift their distances. The cursor then jumps past the
+        /// The piece-sequenced builder's decision, made AT THE KNOT that landed
+        /// on the feature spot: one weighted draw from the feature table (a
+        /// loop only when the ship can already reach its required speed —
+        /// <see cref="LoopReachable"/> — else a redraw among the other entries
+        /// off the SAME roll, so a seeded layout only diverges where a loop was
+        /// refused). A section is registered right here, before any pad or
+        /// road is placed beyond the spot, and the spline CONTINUES FROM THE
+        /// FEATURE: a loop's exit knot is appended at its (displaced) exit pose
+        /// and the bridge between the entry and exit knots — spline the ship
+        /// never rides — becomes the section's spline extent. A ramp claims
+        /// its footprint now and lands once its run-up is settled
+        /// (<see cref="SpawnPendingRamps"/>). The cursor then jumps past the
         /// footprint, the exclusion and the larger of the spacing roll and the
-        /// entry's own minimum. A loop is only accepted when the ship can
-        /// already reach its required speed (<see cref="LoopReachable"/>);
-        /// a refused loop redraws among the other entries off the SAME roll,
-        /// so a seeded layout only diverges where a loop was refused.
+        /// entry's own minimum.
         /// </summary>
-        void PlaceFeaturesUpTo(float limit)
+        void DecideFeature()
         {
-            if (featureTable == null || featureTable.Length == 0) return;
-            while (featureCursor < limit)
+            float spot = track.Length; // the knot that just landed, at its true track distance
+            featureCursor = spot;
+            if (featureTable == null || featureTable.Length == 0)
             {
-                if (pendingFeature == null)
-                {
-                    float roll = rng.NextFloat(0f, 1f);
-                    pendingFeature = PickWeighted(featureTable, roll) as FeatureSpawnEntry;
-                    if (pendingFeature != null && !LoopReachable(pendingFeature, featureCursor))
-                        pendingFeature = PickWeighted(featureTable, roll, exclude: pendingFeature) as FeatureSpawnEntry;
-                    if (pendingFeature == null || pendingFeature.Runtime == null)
-                    {
-                        pendingFeature = null;
-                        featureCursor += rng.NextFloat(featureSpacing.x, featureSpacing.y);
-                        continue;
-                    }
-                }
-                if (!pendingClaimed)
-                {
-                    // The section IS the feature's geometry: a loop inserts
-                    // track, a tube reshapes the spline under it. Either way
-                    // it exists from this moment on, so every pad and road
-                    // stamp beyond this point already rides it.
-                    pendingSection = pendingFeature.Runtime.CreateSection(track, featureCursor, rng.NextFloat(0f, 1f));
-                    if (pendingSection != null) track.AddSection(pendingSection);
-                    float claimed = pendingSection != null ? pendingSection.Length : pendingFeature.Runtime.FootprintLength;
-                    if (pendingFeature.Runtime.ClaimsFootprint) claims.Add((featureCursor, featureCursor + claimed));
-                    pendingClaimed = true;
-                    if (pendingSection != null && pendingSection.InsertsDistance) limit += pendingSection.Length; // the settled stretch grew with the insert
-                }
-                float footprint = pendingSection != null ? pendingSection.Length : pendingFeature.Runtime.FootprintLength;
-                // A feature with a section never waits: the section is its
-                // geometry and already routes the track, and its pose is only
-                // ever sampled where pads and road are placed — settled spline.
-                // Only a road-bound feature (a ramp) needs its footprint settled.
-                float splineExtent = pendingSection != null ? 0f : footprint;
-                if (featureCursor + splineExtent > limit) return; // wait for the next stream
+                featureCursor = spot + rng.NextFloat(featureSpacing.x, featureSpacing.y);
+                return;
+            }
 
-                CreateFeature(featureCursor, pendingFeature, pendingSection);
-                featureCursor += footprint + pendingFeature.Runtime.ExclusionAhead
-                               + Mathf.Max(rng.NextFloat(featureSpacing.x, featureSpacing.y), pendingFeature.minSpacing);
-                pendingFeature = null;
-                pendingClaimed = false;
-                pendingSection = null;
+            float roll = rng.NextFloat(0f, 1f);
+            var entry = PickWeighted(featureTable, roll) as FeatureSpawnEntry;
+            if (entry != null && !LoopReachable(entry, spot))
+                entry = PickWeighted(featureTable, roll, exclude: entry) as FeatureSpawnEntry;
+            if (entry == null || entry.Runtime == null)
+            {
+                featureCursor = spot + rng.NextFloat(featureSpacing.x, featureSpacing.y);
+                return;
+            }
+
+            TrackSection section = entry.Runtime.CreateSection(track, spot, ref rng);
+            float footprint = section != null ? section.Length : entry.Runtime.FootprintLength;
+            if (entry.Runtime.ClaimsFootprint) claims.Add((spot, spot + footprint));
+
+            // A ramp only lands where the road stays straight, level and flat
+            // for the LONGEST jump this ship can make — the definition's cap ×
+            // the ship's jump strength, which the Store raises — plus a landing
+            // clearance. The road beyond the spot is not laid yet, so the
+            // builder reserves it (straightUntil) rather than checking it, and
+            // the next feature keeps off the whole zone.
+            float exclusion = entry.Runtime.ExclusionAhead;
+            if (entry.Runtime is JumpDefinition jump)
+            {
+                float longestJump = jump.MaxAirDistance(JumpStrength);
+                exclusion = longestJump + jump.landingClearance;
+                straightUntil = spot + jump.length + exclusion;
+            }
+
+            if (section is LoopSection loop)
+            {
+                track.AddSection(loop);
+                ContinueFromLoopExit(loop);
+                CreateFeature(spot, entry, loop);
+            }
+            else if (section != null)
+            {
+                // A tube: the section is the whole feature; the spline keeps
+                // coming underneath it, level (LevelRequired sees the section).
+                track.AddSection(section);
+            }
+            else
+            {
+                // A ramp is road-bound: it lands once its run-up is settled.
+                pendingRamps.Add((entry, spot));
+            }
+
+            featureCursor = spot + footprint + exclusion
+                          + Mathf.Max(rng.NextFloat(featureSpacing.x, featureSpacing.y), entry.minSpacing);
+        }
+
+        /// <summary>
+        /// The jump strength the run actually flies with. The ship's definition
+        /// is the run clone (Store multipliers applied) once the GameManager
+        /// has built it, but the first stretch is generated in Awake, possibly
+        /// before that — so the Store's own multiplier is read too and the
+        /// larger wins (the asset's base strength is 1). Edit-mode previews
+        /// use 1.
+        /// </summary>
+        float JumpStrength
+        {
+            get
+            {
+                if (!Application.isPlaying) return 1f;
+                float fromShip = ship != null && ship.Definition != null ? ship.Definition.jumpStrength : 1f;
+                float fromStore = StoreUpgrades.Multiplier(StoreSectionKind.Ship, UpgradeIds.ShipJumpStrength);
+                return Mathf.Max(1f, fromShip, fromStore);
+            }
+        }
+
+        // The spline continues from the loop's exit: an explicit-tangent knot
+        // at the exit pose (fixed whatever lands next), the curve between the
+        // entry and exit knots measured as the section's spline extent, and
+        // the builder's heading, grade and bank re-read from the exit. With
+        // no displacement the two knots coincide and the bridge is a stub the
+        // ship never sees either.
+        void ContinueFromLoopExit(LoopSection loop)
+        {
+            loop.GetExitPose(0f, out Vector3 exitPosition, out Quaternion exitRotation);
+            Vector3 exitForward = loop.ExitForward;
+            float bridgeChord = Mathf.Max(Vector3.Distance((Vector3)endPosition, exitPosition), 1f);
+
+            float before = track.SplineLength;
+            track.AppendKnot((float3)exitPosition, (quaternion)exitRotation, (float3)(exitForward * (bridgeChord / 3f)));
+            track.Recalculate();
+            loop.SetSplineExtent(track.SplineLength - before);
+            track.Recalculate();
+
+            endPosition = exitPosition;
+            heading = Mathf.Atan2(exitForward.x, exitForward.z) * Mathf.Rad2Deg;
+            pitch = Mathf.Asin(Mathf.Clamp(exitForward.y, -1f, 1f)) * Mathf.Rad2Deg;
+            bank = 0f;
+            turnKnotsLeft = 0;
+            straightKnots = 0;
+        }
+
+        /// <summary>Decided ramps land once the spline under their run-up is settled (AutoSmooth reshapes the last two segments as knots land).</summary>
+        void SpawnPendingRamps(float limit)
+        {
+            for (int i = pendingRamps.Count - 1; i >= 0; i--)
+            {
+                var (entry, distance) = pendingRamps[i];
+                if (distance + entry.Runtime.FootprintLength > limit) continue;
+                CreateFeature(distance, entry, null);
+                pendingRamps.RemoveAt(i);
             }
         }
 

@@ -52,6 +52,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [MinMaxSlider(20f, 2000f, true), SuffixLabel("m", true)]
         public Vector2 airDistanceRange = new(80f, 600f);
 
+        [TitleGroup("Arc")]
+        [Tooltip("Straight, level, flat road kept BEYOND the longest possible landing, metres. A ramp is only placed where the road can stay straight from its lip to here — the longest jump is the arc cap × the ship's jump strength (the Store raises it) — so a jump always lands on the road it left, never on a wall or round a corner.")]
+        [PropertyRange(0f, 600f), SuffixLabel("m", true)]
+        public float landingClearance = 150f;
+
         [TitleGroup("Air")]
         [Tooltip("Steering and dash authority while airborne, as a fraction of grounded.")]
         [PropertyRange(0f, 1f)]
@@ -72,7 +77,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public float AirDistanceFor(float speed) =>
             Mathf.Clamp(speed * airDistancePerSpeed, airDistanceRange.x, airDistanceRange.y);
 
+        /// <summary>The longest arc a ship of <paramref name="jumpStrength"/> can fly off this ramp (the motor scales the arc by it).</summary>
+        public float MaxAirDistance(float jumpStrength) => airDistanceRange.y * Mathf.Max(0f, jumpStrength);
+
         public override float FootprintLength => length;
+        /// <summary>The arc cap at strength 1; the generator widens it by the run's jump strength and the landing clearance.</summary>
         public override float ExclusionAhead => airDistanceRange.y;
     }
 }

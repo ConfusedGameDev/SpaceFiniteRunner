@@ -112,7 +112,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CrtGlow, CrtMask, CrtConvergence, CrtFlicker,
         LoopGateHeadroom,
         ElevationBand, MaxGrade, GradeStep, BaselinePull,
-        MaxBank, BankPerTurn, BankStep, LevelLead
+        MaxBank, BankPerTurn, BankStep, LevelLead,
+        LoopDrift, LoopCarry, LoopExitYaw, LoopTurns,
+        JumpLandingClearance
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -639,10 +641,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString jumpMaxAir = new("MAX AIR DISTANCE", "VUELO MÁXIMO", "最大飛距離", "VOL MAXIMUM");
         [SerializeField] LocalizedString jumpAirControl = new("AIR CONTROL", "CONTROL AÉREO", "空中操作", "CONTRÔLE AÉRIEN");
         [SerializeField] LocalizedString jumpSideHitLoss = new("SIDE HIT LOSS", "PÉRDIDA LATERAL", "側面衝突ロス", "PERTE LATÉRALE");
+        [SerializeField] LocalizedString jumpLandingClearance = new("LANDING CLEARANCE", "ZONA DE ATERRIZAJE", "着地クリアランス", "DÉGAGEMENT D'ATTERRISSAGE");
         [SerializeField] LocalizedString loopRadius = new("LOOP RADIUS", "RADIO DEL LOOP", "ループ半径", "RAYON DU LOOPING");
         [SerializeField] LocalizedString loopFallGravity = new("FALL GRAVITY", "GRAVEDAD DE CAÍDA", "落下重力", "GRAVITÉ DE CHUTE");
         [SerializeField] LocalizedString loopFallLoss = new("FALL SPEED LOSS", "PÉRDIDA POR CAÍDA", "落下速度ロス", "PERTE DE CHUTE");
         [SerializeField] LocalizedString loopGateHeadroom = new("LOOP SPEED MARGIN", "MARGEN DEL LOOP", "ループ速度余裕", "MARGE DU LOOPING");
+        [SerializeField] LocalizedString loopDrift = new("LOOP DRIFT", "DERIVA DEL LOOP", "ループ横ずれ", "DÉRIVE DU LOOPING");
+        [SerializeField] LocalizedString loopCarry = new("LOOP CARRY", "AVANCE DEL LOOP", "ループ前進", "AVANCÉE DU LOOPING");
+        [SerializeField] LocalizedString loopExitYaw = new("LOOP EXIT YAW", "GIRO DE SALIDA", "ループ出口角", "ANGLE DE SORTIE");
+        [SerializeField] LocalizedString loopTurns = new("LOOP TURNS", "VUELTAS DEL LOOP", "ループ回転数", "TOURS DU LOOPING");
         [SerializeField] LocalizedString tubeRadius = new("TUBE RADIUS", "RADIO DEL TUBO", "チューブ半径", "RAYON DU TUBE");
         [SerializeField] LocalizedString tubeBand = new("TUBE BAND", "BANDA DEL TUBO", "チューブ可動域", "BANDE DU TUBE");
         [SerializeField] LocalizedString tubeCurl = new("TUBE CURL", "CURVATURA DEL TUBO", "チューブ巻き込み", "COURBURE DU TUBE");
@@ -1199,10 +1206,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.JumpMaxAir => jumpMaxAir,
             MenuTextId.JumpAirControl => jumpAirControl,
             MenuTextId.JumpSideHitLoss => jumpSideHitLoss,
+            MenuTextId.JumpLandingClearance => jumpLandingClearance,
             MenuTextId.LoopRadius => loopRadius,
             MenuTextId.LoopFallGravity => loopFallGravity,
             MenuTextId.LoopFallLoss => loopFallLoss,
             MenuTextId.LoopGateHeadroom => loopGateHeadroom,
+            MenuTextId.LoopDrift => loopDrift,
+            MenuTextId.LoopCarry => loopCarry,
+            MenuTextId.LoopExitYaw => loopExitYaw,
+            MenuTextId.LoopTurns => loopTurns,
             MenuTextId.TubeRadius => tubeRadius,
             MenuTextId.TubeBand => tubeBand,
             MenuTextId.TubeCurl => tubeCurl,

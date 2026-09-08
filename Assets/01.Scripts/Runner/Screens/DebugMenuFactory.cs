@@ -212,6 +212,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                                 0f, 1f, 0.05f, "0.00", j => j.airControlFactor, (j, v) => j.airControlFactor = v);
                     AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpSideHitLoss,
                                 0f, 1f, 0.05f, "0.00", j => j.sideHitSpeedLoss, (j, v) => j.sideHitSpeedLoss = v);
+                    AddJumpStat(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.JumpLandingClearance,
+                                0f, 600f, 10f, "0", j => j.landingClearance, (j, v) => j.landingClearance = v);
                 }
                 else if (entry.Runtime is LoopDefinition)
                 {
@@ -223,6 +225,19 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                                             0f, 1f, 0.05f, "0.00", l => l.fallSpeedLoss, (l, v) => l.fallSpeedLoss = v);
                     AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopGateHeadroom,
                                             0f, 0.5f, 0.05f, "0.00", l => l.gateHeadroom, (l, v) => l.gateHeadroom = v);
+                    // The variation bands: the sliders move each band's maximum (the minimum follows down).
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopDrift,
+                                            0f, 600f, 20f, "0", l => l.DriftMax,
+                                            (l, v) => l.lateralDriftRange = new Vector2(Mathf.Min(l.lateralDriftRange.x, v), v));
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopCarry,
+                                            0f, 1000f, 20f, "0", l => l.CarryMax,
+                                            (l, v) => l.forwardCarryRange = new Vector2(Mathf.Min(l.forwardCarryRange.x, v), v));
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopExitYaw,
+                                            0f, 60f, 5f, "0", l => l.YawMax,
+                                            (l, v) => l.exitYawRange = new Vector2(Mathf.Min(l.exitYawRange.x, v), v));
+                    AddStat<LoopDefinition>(screen, generator, entry, saved, onChanged, refreshers, MenuTextId.LoopTurns,
+                                            1f, 3f, 1f, "0", l => l.TurnsMax,
+                                            (l, v) => l.turnsRange = new Vector2Int(Mathf.Min(l.turnsRange.x, Mathf.RoundToInt(v)), Mathf.RoundToInt(v)));
                 }
                 else if (entry.Runtime is TubeDefinition)
                 {

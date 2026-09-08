@@ -40,6 +40,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             public float maxAirDistance = 600f;
             public float airControlFactor = 0.5f;
             public float sideHitSpeedLoss = 0.15f;
+            public float landingClearance = 150f;
         }
 
         [System.Serializable]
@@ -58,6 +59,10 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             public float fallGravity = 120f;
             public float fallSpeedLoss = 0.4f;
             public float gateHeadroom = 0.1f;
+            public float driftMax = 240f;   // the variation bands' maxima (their minima are clamped under them)
+            public float carryMax = 300f;
+            public float yawMax = 30f;
+            public int turnsMax = 1;
         }
 
         [Tooltip("When on, these saved values override the scene's feature table and the jump definition on every play-mode Generate. Turned on the first time the debug menu saves; untick to return to the authored values.")]
@@ -98,7 +103,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                 {
                     entries.Add(new EntryValues { name = e.name, probability = e.probability, minSpacing = e.minSpacing, multiplier = e.multiplier });
                     if (e.Runtime is JumpDefinition j) CaptureJump(j);
-                    if (e.Runtime is LoopDefinition l) { loop.radius = l.radius; loop.fallGravity = l.fallGravity; loop.fallSpeedLoss = l.fallSpeedLoss; loop.gateHeadroom = l.gateHeadroom; }
+                    if (e.Runtime is LoopDefinition l)
+                    {
+                        loop.radius = l.radius; loop.fallGravity = l.fallGravity; loop.fallSpeedLoss = l.fallSpeedLoss; loop.gateHeadroom = l.gateHeadroom;
+                        loop.driftMax = l.DriftMax; loop.carryMax = l.CarryMax; loop.yawMax = l.YawMax; loop.turnsMax = l.TurnsMax;
+                    }
                     if (e.Runtime is TubeDefinition t) tubes.Add(new TubeValues { name = e.name, radius = t.radius, bandDegrees = t.bandDegrees, curlLength = t.curlLength });
                 }
 
@@ -116,6 +125,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             jump.maxAirDistance = j.airDistanceRange.y;
             jump.airControlFactor = j.airControlFactor;
             jump.sideHitSpeedLoss = j.sideHitSpeedLoss;
+            jump.landingClearance = j.landingClearance;
         }
 
         /// <summary>Writes the saved values onto the generator's table and definition CLONES. Entries match by name, then by index.</summary>
@@ -137,7 +147,14 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                     table[i].multiplier = saved.multiplier;
                 }
                 if (table[i].Runtime is JumpDefinition j) ApplyJump(j);
-                if (table[i].Runtime is LoopDefinition l) { l.radius = loop.radius; l.fallGravity = loop.fallGravity; l.fallSpeedLoss = loop.fallSpeedLoss; l.gateHeadroom = loop.gateHeadroom; }
+                if (table[i].Runtime is LoopDefinition l)
+                {
+                    l.radius = loop.radius; l.fallGravity = loop.fallGravity; l.fallSpeedLoss = loop.fallSpeedLoss; l.gateHeadroom = loop.gateHeadroom;
+                    l.lateralDriftRange = new Vector2(Mathf.Min(l.lateralDriftRange.x, loop.driftMax), loop.driftMax);
+                    l.forwardCarryRange = new Vector2(Mathf.Min(l.forwardCarryRange.x, loop.carryMax), loop.carryMax);
+                    l.exitYawRange = new Vector2(Mathf.Min(l.exitYawRange.x, loop.yawMax), loop.yawMax);
+                    l.turnsRange = new Vector2Int(Mathf.Min(l.turnsRange.x, loop.turnsMax), loop.turnsMax);
+                }
                 if (table[i].Runtime is TubeDefinition t)
                 {
                     var savedTube = tubes.Find(x => x.name == table[i].name);
@@ -155,6 +172,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             j.airDistanceRange = new Vector2(Mathf.Min(j.airDistanceRange.x, jump.maxAirDistance), jump.maxAirDistance);
             j.airControlFactor = jump.airControlFactor;
             j.sideHitSpeedLoss = jump.sideHitSpeedLoss;
+            j.landingClearance = jump.landingClearance;
         }
 
         /// <summary>Writes the asset to disk (editor only). Called at commit points, not on every slider tick.</summary>

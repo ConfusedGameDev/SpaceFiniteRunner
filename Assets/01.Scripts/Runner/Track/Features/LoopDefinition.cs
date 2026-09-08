@@ -33,6 +33,36 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [PropertyRange(0f, 1000f), SuffixLabel("m", true)]
         public float exitClearance = 200f;
 
+        [TitleGroup("Loop"), Title("Variation (rolled per loop)")]
+        [Tooltip("How far sideways the exit lands from the entry (min, max), metres — a corkscrew. Side is random. 120 m is one track width.")]
+        [MinMaxSlider(0f, 600f, true), SuffixLabel("m", true)]
+        public Vector2 lateralDriftRange = new(0f, 240f);
+
+        [TitleGroup("Loop")]
+        [Tooltip("How far AHEAD of the entry the exit lands (min, max), metres — an elongated loop that carries the ship forward.")]
+        [MinMaxSlider(0f, 1000f, true), SuffixLabel("m", true)]
+        public Vector2 forwardCarryRange = new(0f, 300f);
+
+        [TitleGroup("Loop")]
+        [Tooltip("Heading change between entry and exit (min, max), degrees, about the entry's up. Side is random.")]
+        [MinMaxSlider(0f, 60f, true), SuffixLabel("°", true)]
+        public Vector2 exitYawRange = new(0f, 30f);
+
+        [TitleGroup("Loop")]
+        [Tooltip("Full turns per loop (min, max). Every turn is another circumference of track; a failed loop still drops from the top of the first.")]
+        [MinMaxSlider(1, 3, true)]
+        public Vector2Int turnsRange = new(1, 1);
+
+        // Bands unpacked so nothing else reads .x/.y.
+        public float DriftMin => Mathf.Max(0f, lateralDriftRange.x);
+        public float DriftMax => Mathf.Max(DriftMin, lateralDriftRange.y);
+        public float CarryMin => Mathf.Max(0f, forwardCarryRange.x);
+        public float CarryMax => Mathf.Max(CarryMin, forwardCarryRange.y);
+        public float YawMin => Mathf.Max(0f, exitYawRange.x);
+        public float YawMax => Mathf.Max(YawMin, exitYawRange.y);
+        public int TurnsMin => Mathf.Max(1, turnsRange.x);
+        public int TurnsMax => Mathf.Max(TurnsMin, turnsRange.y);
+
         [TitleGroup("Fall")]
         [Tooltip("Fake gravity of the drop from the top of a failed loop, m/s². Higher is a shorter fall (a 100 m loop is a 200 m drop).")]
         [PropertyRange(20f, 400f), SuffixLabel("m/s²", true)]
@@ -76,10 +106,18 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public override float FootprintLength => Circumference;
         public override float ExclusionAhead => exitClearance;
 
-        public override TrackSection CreateSection(TrackManager track, float startDistance, float roll01)
+        public override TrackSection CreateSection(TrackManager track, float startDistance, ref Unity.Mathematics.Random rng)
         {
             track.GetPoseAtDistance(startDistance, 0f, out Vector3 origin, out Quaternion rotation);
-            return new LoopSection(startDistance, radius, origin, rotation);
+            // Fixed draw order, so a seed reproduces the loop: drift, its
+            // side, carry, yaw, its side, turns.
+            float drift = rng.NextFloat(DriftMin, DriftMax);
+            if (rng.NextFloat(0f, 1f) < 0.5f) drift = -drift;
+            float carry = rng.NextFloat(CarryMin, CarryMax);
+            float yaw = rng.NextFloat(YawMin, YawMax);
+            if (rng.NextFloat(0f, 1f) < 0.5f) yaw = -yaw;
+            int turns = rng.NextInt(TurnsMin, TurnsMax + 1);
+            return new LoopSection(startDistance, radius, origin, rotation, drift, carry, yaw, turns);
         }
     }
 }

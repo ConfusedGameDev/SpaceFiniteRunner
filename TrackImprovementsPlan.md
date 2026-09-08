@@ -17,7 +17,7 @@ played and tuned before the next starts.
 | M0 | **Fixes** | Loops only appear when the speed is already attainable; dash ghosts stay visible at any speed | Implemented 2026-09-08, in editor test |
 | M1 | **Elevation** | The road rolls up and down inside a band, never bumpy | Implemented 2026-09-08, in editor test |
 | M2 | **Banking + curves** | Turns come back and the road banks into them; features sit on level road | Implemented 2026-09-08, in editor test |
-| M3 | **Loop variation** | Corkscrew, yawed and elongated loops; the track continues from the loop's exit (piece-sequenced builder) | Not started |
+| M3 | **Loop variation** | Corkscrew, yawed and elongated loops; the track continues from the loop's exit (piece-sequenced builder) | Implemented 2026-09-08, in editor test |
 | M4 | **Authored circuit** | Generate → edit with scene handles → save to a layout asset; closed loop rebuilt on the first frame; per-lap streaming | Not started |
 
 M3 introduces the **piece-sequenced builder** (the track is laid as a sequence of pieces, each
@@ -416,6 +416,19 @@ trigger point, exit pose), `Debug/FeatureDebugSettings.cs`, `Loop_Definition.ass
 - Fail case lands on the displaced exit; the patrol passes through without a jump; gate and label
   stand at the mouth; `LoopSlowMo` runs.
 - Seeded runs reproduce; no orb or ramp inside a loop; no feature starts inside a tube.
+
+*Implemented 2026-09-08: helix `LoopSection` (arc table, smoothstep-eased drift/carry/yaw so
+both mouths stay tangent), `TrackSection.SplineExtent` / `InsertedLength`, the piece-sequenced
+builder (`AddSegment` lands on the spot with an explicit-tangent knot, `DecideFeature`,
+`ContinueFromLoopExit`, `SpawnPendingRamps`), `CreateSection(…, ref rng)`, four loop debug rows.
+Editor play checks pending; the loop cinematic framing needs a look once displaced loops play.*
+
+*Added after the first M3 play (2026-09-08): explicit-tangent knots are now converted into the
+knot's local frame (a world tangent was rotated twice — a kink at every feature knot, ramps
+facing the doubled heading). And a **ramp landing rule**: a ramp reserves straight, level, flat
+road from its lip to the longest jump the ship can make (`airDistanceRange.y` × the run's jump
+strength, which the Store raises) plus `JumpDefinition.landingClearance` (150 m); no sweep, bank
+or grade change is laid inside it, and the next feature keeps off the whole zone.*
 
 ---
 

@@ -62,8 +62,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             SplineLength = spline != null ? spline.CalculateLength() : 0f;
             float inserted = 0f;
-            foreach (var s in sections)
-                if (s.InsertsDistance) inserted += s.Length;
+            foreach (var s in sections) inserted += s.InsertedLength;
             Length = SplineLength + inserted;
         }
 
@@ -93,6 +92,24 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         /// <summary>
+        /// Appends a knot with an EXPLICIT tangent (in = −tangent, out =
+        /// tangent, Continuous): unlike AutoSmooth it is never reshaped by
+        /// the knots that land after it, so the pose at this knot is fixed
+        /// the moment it is laid — what a feature's entry and a loop's exit
+        /// need. A uniform-parameter tangent is the segment direction ×
+        /// chord / 3. <paramref name="tangent"/> is in WORLD space; a
+        /// BezierKnot stores its tangents in the knot's local frame, so it is
+        /// brought into that frame here (a world tangent handed over as-is
+        /// would be rotated twice — a kink at every feature knot).
+        /// </summary>
+        public void AppendKnot(float3 position, quaternion rotation, float3 tangent)
+        {
+            if (spline == null) return;
+            float3 local = math.mul(math.inverse(rotation), tangent);
+            spline.Spline.Add(new BezierKnot(position, -local, local, rotation), TangentMode.Continuous);
+        }
+
+        /// <summary>
         /// Registers a section at its start distance. Must happen before
         /// anything is placed beyond that distance — an insert shifts every
         /// distance past it by its length.
@@ -117,16 +134,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return null;
         }
 
-        /// <summary>Spline distance for a track distance (inside an insert: the insert's start).</summary>
+        /// <summary>Spline distance for a track distance (inside an insert: the insert's start; past one: shifted by what it inserted, so a loop's exit maps to its exit knot).</summary>
         public float SplineDistanceOf(float distance)
         {
             float offset = 0f;
             foreach (var s in sections)
             {
                 if (distance < s.StartDistance) break;
-                if (!s.InsertsDistance) continue;
-                if (distance < s.EndDistance) return s.StartDistance - offset;
-                offset += s.Length;
+                if (distance < s.EndDistance) return s.InsertsDistance ? s.StartDistance - offset : distance - offset;
+                offset += s.InsertedLength;
             }
             return distance - offset;
         }
@@ -187,7 +203,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     s.GetPose(this, s.StartDistance - offset, distance - s.StartDistance, lateral, out position, out rotation);
                     return;
                 }
-                if (s.InsertsDistance) offset += s.Length;
+                offset += s.InsertedLength;
             }
             GetPose(DistanceToT(distance - offset), lateral, out position, out rotation);
         }
