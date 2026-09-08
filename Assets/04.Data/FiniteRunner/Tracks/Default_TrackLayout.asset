@@ -1,0 +1,3048 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d25b259bc4e947babef51f872fcf06fd, type: 3}
+  m_Name: Default_TrackLayout
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.Layout.TrackLayout
+  seed: 0
+  targetLengthKm: 20
+  closingDistanceKm: 4
+  closed: 1
+  trackWidth: 120
+  straightness: 60
+  jumpStrengthAllowance: 1.5
+  shape: {fileID: 11400000, guid: ba50ea5278a64458aa28bc1c4e498c44, type: 2}
+  length: 25728.69
+  knotCount: 71
+  pieces:
+  - kind: 0
+    distance: 0
+    chord: 323.73978
+    heading: 0
+    pitch: -2.8585532
+    bank: -0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 323.7398
+    chord: 404.30444
+    heading: 0
+    pitch: 0.38878265
+    bank: -0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 728.08167
+    chord: 364.2049
+    heading: 18.948608
+    pitch: 2.0380707
+    bank: -45
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 1093.6349
+    chord: 418.2725
+    heading: 37.897217
+    pitch: 1.1315155
+    bank: -75.79443
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 1513.6221
+    chord: 411.28473
+    heading: 56.845825
+    pitch: -0.09952877
+    bank: -75.79443
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 1926.7377
+    chord: 376.98325
+    heading: 56.845825
+    pitch: -1.3123279
+    bank: -30.794434
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 2303.7498
+    chord: 372.54504
+    heading: 56.845825
+    pitch: -2.7568216
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 2676.3044
+    chord: 300
+    heading: 56.845825
+    pitch: -3.2292988
+    bank: 0
+    pinned: 1
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 1
+    distance: 2976.3057
+    chord: 360
+    heading: 0
+    pitch: 0
+    bank: 0
+    pinned: 0
+    entryName: Loop
+    radius: 100
+    lateralDrift: -173.27617
+    forwardCarry: 208.56793
+    exitYaw: 20.883
+    turns: 1
+    requiredKmh: 1735.735
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 3588.3164
+    chord: 368.04553
+    heading: 81.056015
+    pitch: 0.41223997
+    bank: -0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 3956.4224
+    chord: 388.68805
+    heading: 104.30049
+    pitch: 2.807046
+    bank: -45
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 4347.083
+    chord: 416.94098
+    heading: 127.54497
+    pitch: 2.5865946
+    bank: -80
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 4766.637
+    chord: 321.34036
+    heading: 150.78944
+    pitch: 2.9616036
+    bank: -80
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 5090.4023
+    chord: 314.41473
+    heading: 150.78944
+    pitch: 5.341626
+    bank: -35
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 5404.861
+    chord: 361.9901
+    heading: 150.78944
+    pitch: 2.0391996
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 5766.8813
+    chord: 300
+    heading: 150.78944
+    pitch: -1.392463
+    bank: 0
+    pinned: 1
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 3
+    distance: 6066.931
+    chord: 360
+    heading: 0
+    pitch: 0
+    bank: 0
+    pinned: 0
+    entryName: Jump
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 39.468197
+  - kind: 0
+    distance: 6066.931
+    chord: 305.12817
+    heading: 150.78944
+    pitch: -1.392463
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 6372.0596
+    chord: 328.82922
+    heading: 150.78944
+    pitch: -1.392463
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 6700.888
+    chord: 314.2291
+    heading: 150.78944
+    pitch: -1.392463
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 7015.117
+    chord: 329.8705
+    heading: 150.78944
+    pitch: -1.392463
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 7344.988
+    chord: 360.61316
+    heading: 150.78944
+    pitch: 0.032063533
+    bank: -0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 7705.608
+    chord: 369.6486
+    heading: 126.55753
+    pitch: -2.9346359
+    bank: 45
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 8077.3184
+    chord: 393.41483
+    heading: 102.32562
+    pitch: -5.2386384
+    bank: 80
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 8473.436
+    chord: 348.34756
+    heading: 78.09371
+    pitch: -1.4649514
+    bank: 80
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 8824.455
+    chord: 323.92123
+    heading: 78.09371
+    pitch: -1.0009412
+    bank: 35
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 9148.41
+    chord: 327.22324
+    heading: 78.09371
+    pitch: 0.24051455
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 9475.639
+    chord: 300
+    heading: 78.09371
+    pitch: 2.8311315
+    bank: 0
+    pinned: 1
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 3
+    distance: 9775.663
+    chord: 360
+    heading: 0
+    pitch: 0
+    bank: 0
+    pinned: 0
+    entryName: Jump
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 40.362682
+  - kind: 0
+    distance: 9775.663
+    chord: 407.02258
+    heading: 78.09371
+    pitch: 2.8311315
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 10182.686
+    chord: 400.14468
+    heading: 78.09371
+    pitch: 2.8311315
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 10582.83
+    chord: 335.44733
+    heading: 78.09371
+    pitch: 2.8311315
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 10918.277
+    chord: 410.1881
+    heading: 61.408207
+    pitch: 4.910231
+    bank: 45
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 11329.482
+    chord: 309.99963
+    heading: 44.722702
+    pitch: 0.64394915
+    bank: 66.74202
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 11640.773
+    chord: 368.2981
+    heading: 28.037197
+    pitch: -3
+    bank: 66.74202
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 12010.289
+    chord: 335.26794
+    heading: 11.351692
+    pitch: -4.821389
+    bank: 66.74202
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 12346.78
+    chord: 370.84714
+    heading: -5.3338127
+    pitch: -6
+    bank: 66.74202
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 12718.836
+    chord: 386.86273
+    heading: -5.3338127
+    pitch: -3.3821576
+    bank: 21.74202
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 13105.739
+    chord: 412.2119
+    heading: -5.3338127
+    pitch: -4.804829
+    bank: 0
+    pinned: 1
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 2
+    distance: 13517.955
+    chord: 360
+    heading: 0
+    pitch: 0
+    bank: 0
+    pinned: 0
+    entryName: Full Tube
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 3561.556
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 13517.955
+    chord: 315.13635
+    heading: -5.3338127
+    pitch: 4.326223
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 13833.896
+    chord: 373.56744
+    heading: -5.3338127
+    pitch: 6
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 14207.516
+    chord: 383.9113
+    heading: -5.3338127
+    pitch: 5.7882867
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 14591.427
+    chord: 376.82056
+    heading: -5.3338127
+    pitch: 2.5055034
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 14968.289
+    chord: 413.4005
+    heading: -5.3338127
+    pitch: 3.8054903
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 15381.692
+    chord: 364.07806
+    heading: -5.3338127
+    pitch: -3.2767367
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 15745.955
+    chord: 339.0802
+    heading: -5.3338127
+    pitch: -4.580962
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 16085.053
+    chord: 313.81464
+    heading: -40.333813
+    pitch: -0.08926076
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 16402.531
+    chord: 316.38785
+    heading: -75.33382
+    pitch: -0.08660738
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 16723.348
+    chord: 309.58542
+    heading: -110.33382
+    pitch: -0.085521
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 17037.328
+    chord: 349.6198
+    heading: -127.3998
+    pitch: -0.08539524
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 17388.395
+    chord: 314.2358
+    heading: -127.3998
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 17702.646
+    chord: 375.4108
+    heading: -127.3998
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 18078.057
+    chord: 402.5816
+    heading: -127.3998
+    pitch: -0.08539525
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 18480.639
+    chord: 369.7873
+    heading: -127.3998
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 18850.426
+    chord: 374.2996
+    heading: -127.3998
+    pitch: -0.08539526
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 19224.725
+    chord: 370.16043
+    heading: -127.39982
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 19594.885
+    chord: 354.38458
+    heading: -127.3998
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 19949.27
+    chord: 388.71793
+    heading: -127.3998
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 20337.988
+    chord: 318.96652
+    heading: -127.39982
+    pitch: -0.08539525
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 20656.955
+    chord: 312.1641
+    heading: -127.39982
+    pitch: -0.08539525
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 20969.12
+    chord: 372.73917
+    heading: -127.39982
+    pitch: -0.08539524
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 21341.857
+    chord: 355.3823
+    heading: -127.39982
+    pitch: -0.08539525
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 21697.24
+    chord: 304.33908
+    heading: -127.39982
+    pitch: -0.08539524
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 22001.58
+    chord: 413.15982
+    heading: -127.39982
+    pitch: -0.08539525
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 22414.74
+    chord: 385.40433
+    heading: -127.39982
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 22800.145
+    chord: 368.82727
+    heading: -127.39982
+    pitch: -0.08539525
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 23168.973
+    chord: 316.76453
+    heading: -127.39982
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 23485.736
+    chord: 371.32037
+    heading: -127.39982
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 23857.057
+    chord: 367.60837
+    heading: -127.39982
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 24224.664
+    chord: 333.8175
+    heading: -127.3998
+    pitch: -0.085395254
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 24558.482
+    chord: 379.55862
+    heading: -92.3998
+    pitch: -0.10743057
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  - kind: 0
+    distance: 24941.982
+    chord: 404.66516
+    heading: -91.76193
+    pitch: -0.10742838
+    bank: 0
+    pinned: 0
+    entryName: 
+    radius: 100
+    lateralDrift: 0
+    forwardCarry: 0
+    exitYaw: 0
+    turns: 1
+    requiredKmh: 1200
+    length: 2000
+    tubeRadius: 60
+    bandDegrees: 180
+    centreDegrees: 0
+    curlLength: 150
+    returnLength: 500
+    steeringFactor: 3
+    lateral: 0
+  items:
+  - kind: 0
+    distance: 169.62628
+    lateral: 14.690519
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 387.90765
+    lateral: -11.565884
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 542.5359
+    lateral: 21.419222
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 709.6848
+    lateral: -13.212039
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 863.14154
+    lateral: -33.669292
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 1079.3853
+    lateral: -2.832885
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 1277.6935
+    lateral: -7.011565
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 1485.7019
+    lateral: 4.3418207
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 1694.6226
+    lateral: 15.774579
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 1859.375
+    lateral: 33.184807
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 2039.9177
+    lateral: 17.995989
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 2212.751
+    lateral: -8.41393
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 2367.4263
+    lateral: -4.2112637
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 2585.9402
+    lateral: -34.49852
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 2741.8245
+    lateral: -26.401321
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 2937.3643
+    lateral: -16.198282
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 3608.3164
+    lateral: -4.307436
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 3769.038
+    lateral: -34.220745
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 3932.2007
+    lateral: -20.33446
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 4138.996
+    lateral: 10.73363
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 4306.763
+    lateral: -7.2157764
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 4494.097
+    lateral: -41.58679
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 4677.4336
+    lateral: -29.104593
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 4857.5884
+    lateral: -36.524277
+    entryName: Purple
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 5029.7627
+    lateral: 16.156616
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 5227.287
+    lateral: -19.90157
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 5435.634
+    lateral: -26.57045
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 5600.3706
+    lateral: -4.516372
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 5789.315
+    lateral: -8.49325
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 5979.6396
+    lateral: -40.12441
+    entryName: Purple
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 6146.931
+    lateral: -27.523808
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 6354.7656
+    lateral: 8.509397
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 6550.9663
+    lateral: -45.034958
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 6741.0635
+    lateral: 2.356925
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 6934.076
+    lateral: 21.91231
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 7131.9688
+    lateral: 27.605503
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 7342.8228
+    lateral: 24.048191
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 7496.957
+    lateral: -46.642887
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 7687.0527
+    lateral: 49.933014
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 7900.9126
+    lateral: 33.595646
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 8104.2256
+    lateral: 27.90043
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 8280.272
+    lateral: -4.608945
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 8449.19
+    lateral: -20.123878
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 8633.463
+    lateral: 8.538666
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 8827.925
+    lateral: -11.8563175
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 9011.264
+    lateral: 49.65716
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 9184.736
+    lateral: -24.929642
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 9337.093
+    lateral: -39.986176
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 9554.057
+    lateral: -47.057785
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 9855.663
+    lateral: -7.6919622
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 10060.45
+    lateral: -19.095842
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 10260.642
+    lateral: 33.054153
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 10462.783
+    lateral: 6.772719
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 10643.754
+    lateral: 53.5501
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 10833.466
+    lateral: -25.71239
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 11003.794
+    lateral: -49.031513
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 11208.478
+    lateral: -0.944
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 11380.865
+    lateral: 1.2917833
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 11551.082
+    lateral: 26.407682
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 11711.742
+    lateral: 20.791752
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 11873.013
+    lateral: -12.138825
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 12059.205
+    lateral: -38.39597
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 12273.704
+    lateral: -43.298283
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 12474.032
+    lateral: -16.820282
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 12666.252
+    lateral: 37.83722
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 12837.142
+    lateral: -3.6529293
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 13049.145
+    lateral: 4.2835956
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 13220.792
+    lateral: 17.190788
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 13434.938
+    lateral: 9.662506
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 13641.422
+    lateral: 1.7067648
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 13799.839
+    lateral: -101.72659
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 14019.508
+    lateral: -2.2378511
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 14224.518
+    lateral: 127.79677
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 14425.99
+    lateral: -173.99854
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 14619.498
+    lateral: -23.724934
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 14798.588
+    lateral: -4.81328
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 14949.106
+    lateral: -53.413292
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 15110.167
+    lateral: -19.995636
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 15305.509
+    lateral: 24.827862
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 15493.522
+    lateral: -29.909658
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 15663.768
+    lateral: 120.61378
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 15848.314
+    lateral: 116.770584
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 16020.546
+    lateral: 162.43411
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 16219.222
+    lateral: -131.75526
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 16425.283
+    lateral: 156.76299
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 16589.477
+    lateral: -34.88415
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 16754.902
+    lateral: -47.94158
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 16928.455
+    lateral: 69.78515
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 17113.908
+    lateral: -51.522404
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 17267.523
+    lateral: 27.818802
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 17461.367
+    lateral: -27.259495
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 17627.87
+    lateral: 7.6268992
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 17805.752
+    lateral: -36.802395
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 18024.926
+    lateral: -3.9048746
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 18242.95
+    lateral: 13.229386
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 18418.357
+    lateral: -23.604794
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 18576.479
+    lateral: 25.287283
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 18728.848
+    lateral: 1.3007945
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 18944.34
+    lateral: 23.768152
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 19107.027
+    lateral: 11.193555
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 19319.818
+    lateral: -7.289546
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 19510.805
+    lateral: 39.14924
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 19694.535
+    lateral: -28.462791
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 19846.176
+    lateral: -34.647533
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 20063.611
+    lateral: -9.244897
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 20228.865
+    lateral: -33.044453
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 20403.848
+    lateral: -52.930313
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 20598.902
+    lateral: -31.07365
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 20774.512
+    lateral: -30.558186
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 20976.785
+    lateral: -44.156612
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 21164.48
+    lateral: -50.17928
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 21353.934
+    lateral: -30.373648
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 21540.213
+    lateral: -43.220642
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 21699.287
+    lateral: 33.166996
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 21889.676
+    lateral: 37.42036
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 22097.379
+    lateral: -6.732173
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 22255.098
+    lateral: -3.3549528
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 22463.855
+    lateral: -21.522356
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 22651.697
+    lateral: 52.552605
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 22853.959
+    lateral: 52.847637
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 23043.24
+    lateral: 53.829987
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 23244.82
+    lateral: -41.882736
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 23418.908
+    lateral: -15.94424
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 23636.91
+    lateral: -46.611248
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 23840.627
+    lateral: -13.4840145
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 24043.406
+    lateral: 54.045025
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 24205.344
+    lateral: -4.5790544
+    entryName: Blue
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 24407.855
+    lateral: -43.316315
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 24592.719
+    lateral: -30.718048
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 0
+    distance: 24809.496
+    lateral: 54.196373
+    entryName: Brake
+    lane: 0
+    count: 3
+    step: 30
+    value: 10
+  - kind: 1
+    distance: 420.81506
+    lateral: -10.672337
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 2
+  - kind: 1
+    distance: 834.3091
+    lateral: 25.127716
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 5
+  - kind: 1
+    distance: 1244.1731
+    lateral: -50.2673
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 3
+  - kind: 1
+    distance: 1622.4952
+    lateral: -11.521357
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 5
+  - kind: 1
+    distance: 1990.2439
+    lateral: 1.4818246
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 1
+  - kind: 1
+    distance: 2268.6707
+    lateral: -1.5082759
+    entryName: Green
+    lane: 0
+    count: 4
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 2763.842
+    lateral: 9.51842
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 15
+    value: 1
+  - kind: 1
+    distance: 4997.141
+    lateral: 49.452156
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 1
+  - kind: 1
+    distance: 5057.141
+    lateral: 49.452156
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 1
+  - kind: 1
+    distance: 5492.6064
+    lateral: -48.125557
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 15
+    value: 5
+  - kind: 1
+    distance: 6399.9004
+    lateral: 26.970873
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 5
+  - kind: 1
+    distance: 6822.9316
+    lateral: -37.308674
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 1
+  - kind: 1
+    distance: 7230.6177
+    lateral: 49.27348
+    entryName: Green
+    lane: 0
+    count: 4
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 7625.7764
+    lateral: -8.7782755
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 15
+    value: 3
+  - kind: 1
+    distance: 8975.484
+    lateral: 54.555206
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 9484.958
+    lateral: 0.6199697
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 2
+  - kind: 1
+    distance: 9885.663
+    lateral: 41.03615
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 5
+  - kind: 1
+    distance: 10281.946
+    lateral: -53.872395
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 10810.298
+    lateral: -18.835499
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 1
+  - kind: 1
+    distance: 11240.842
+    lateral: -45.689743
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 11749.032
+    lateral: -0.46799755
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 1
+  - kind: 1
+    distance: 12187.95
+    lateral: 11.062715
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 15
+    value: 3
+  - kind: 1
+    distance: 12619.387
+    lateral: -30.195475
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 2
+  - kind: 1
+    distance: 13151.993
+    lateral: 8.887692
+    entryName: Green
+    lane: 0
+    count: 4
+    step: 15
+    value: 2
+  - kind: 1
+    distance: 14105.067
+    lateral: 125.323524
+    entryName: Green
+    lane: 0
+    count: 5
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 14531.802
+    lateral: -168.38313
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 15
+    value: 1
+  - kind: 1
+    distance: 14974.128
+    lateral: 156.86357
+    entryName: Green
+    lane: 0
+    count: 5
+    step: 15
+    value: 3
+  - kind: 1
+    distance: 15339.455
+    lateral: -24.635675
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 15
+    value: 2
+  - kind: 1
+    distance: 15749.281
+    lateral: -183.33565
+    entryName: Green
+    lane: 0
+    count: 5
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 16313.598
+    lateral: 179.50558
+    entryName: Green
+    lane: 0
+    count: 4
+    step: 15
+    value: 5
+  - kind: 1
+    distance: 16852.645
+    lateral: -44.42096
+    entryName: Green
+    lane: 0
+    count: 4
+    step: 15
+    value: 3
+  - kind: 1
+    distance: 17200.22
+    lateral: 13.135279
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 2
+  - kind: 1
+    distance: 17520.531
+    lateral: -24.782963
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 2
+  - kind: 1
+    distance: 17894.865
+    lateral: 53.701687
+    entryName: Green
+    lane: 0
+    count: 4
+    step: 15
+    value: 5
+  - kind: 1
+    distance: 19003.77
+    lateral: -52.052116
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 2
+  - kind: 1
+    distance: 19487.926
+    lateral: 16.187517
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 20010.271
+    lateral: -50.548275
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 2
+  - kind: 1
+    distance: 20429.244
+    lateral: 21.015747
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 20861.213
+    lateral: -11.420422
+    entryName: Green
+    lane: 0
+    count: 5
+    step: 15
+    value: 1
+  - kind: 1
+    distance: 21248.127
+    lateral: 3.7101984
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 15
+    value: 3
+  - kind: 1
+    distance: 21571.412
+    lateral: 16.480188
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 21951.818
+    lateral: -13.264968
+    entryName: Green
+    lane: 0
+    count: 3
+    step: 15
+    value: 5
+  - kind: 1
+    distance: 22495.527
+    lateral: 15.392896
+    entryName: Green
+    lane: 0
+    count: 4
+    step: 15
+    value: 1
+  - kind: 1
+    distance: 22886.945
+    lateral: 51.93141
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 3
+  - kind: 1
+    distance: 23452.4
+    lateral: -33.28024
+    entryName: Green
+    lane: 0
+    count: 1
+    step: 15
+    value: 5
+  - kind: 1
+    distance: 23873.139
+    lateral: 10.6876335
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 4
+  - kind: 1
+    distance: 24264.81
+    lateral: 23.9476
+    entryName: Green
+    lane: 0
+    count: 2
+    step: 15
+    value: 2

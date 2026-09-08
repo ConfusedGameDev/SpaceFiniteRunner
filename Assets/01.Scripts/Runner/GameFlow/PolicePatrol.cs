@@ -237,8 +237,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             Vector3 pos;
             Quaternion rot;
 
-            if (DistanceTravelled >= 0f)
+            if (DistanceTravelled >= 0f || track.Closed)
             {
+                // On a circuit the road behind the start line is the end of the
+                // lap, and the manager wraps a negative distance onto it.
                 track.GetPoseAtDistance(DistanceTravelled, 0f, out pos, out rot);
             }
             else

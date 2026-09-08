@@ -61,6 +61,12 @@ visual turns a full 360° in the dash direction on top of its bank (`rollAngle`,
 so a wall or landing that cuts the dash never leaves the ship on its side; `IsBarrelRolling` /
 `BarrelRollStarted(int)`).
 
+**Laps (authored circuit).** `DistanceTravelled` never wraps; `TrackManager.Wrap` handles every
+lookup. The motor compares its distance against the `LoopFeature` (unwrapped `StartDistance` /
+`EndDistance` / `Contains`, captured as `loopStart` / `loopEnd` on entry — `DropFromLoop` parks at
+`loopEnd`), and a tube's local is `track.Wrap(DistanceTravelled) − tube.StartDistance`.
+`AdvanceAlongTrack` counts `Lap` and raises `LapCompleted(int)` on a closed track; `Launch` resets it.
+
 **Dash ghosts ride with the ship.** `DashGhostTrail` (hand-placed on the Ship, `Init`-ed by
 `GameManager`) parents every snapshot to a frame it seats each `LateUpdate` on the flight line at
 the ship's own distance (`track.GetPoseAtDistance(DistanceTravelled, 0)` — the section pose inside

@@ -29,8 +29,19 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         /// <summary>Entry speed the loop demands, m/s.</summary>
         public float RequiredSpeed { get; private set; }
 
-        public float StartDistance => Section != null ? Section.StartDistance : 0f;
-        public float EndDistance => Section != null ? Section.EndDistance : 0f;
+        /// <summary>
+        /// Unwrapped track distance of the lap this gate was spawned for (0 on
+        /// an open track). The section lives in lap coordinates and is shared
+        /// by every lap; the ship's distance never wraps, so the feature — not
+        /// the section — is what the motor compares it against.
+        /// </summary>
+        public float LapOffset { get; private set; }
+
+        public float StartDistance => Section != null ? Section.StartDistance + LapOffset : 0f;
+        public float EndDistance => Section != null ? Section.EndDistance + LapOffset : 0f;
+
+        /// <summary>True while an unwrapped ship distance is inside this lap's ride of the loop.</summary>
+        public bool Contains(float distance) => Section != null && distance >= StartDistance && distance < EndDistance;
 
         /// <summary>Whether the required-speed label at the mouth is currently shown.</summary>
         public bool LabelVisible => label != null && label.gameObject.activeSelf;
@@ -40,11 +51,12 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         bool? gateState;
         TextMesh label;
 
-        public void Configure(LoopDefinition definition, LoopSection section, float requiredSpeed)
+        public void Configure(LoopDefinition definition, LoopSection section, float requiredSpeed, float lapOffset = 0f)
         {
             Definition = definition;
             Section = section;
             RequiredSpeed = requiredSpeed;
+            LapOffset = lapOffset;
         }
 
         /// <summary>Renderers the gate colour is pushed onto.</summary>

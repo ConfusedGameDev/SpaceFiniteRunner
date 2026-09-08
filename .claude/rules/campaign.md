@@ -21,6 +21,8 @@ Everything reads the catalog directly; there is no runtime registry.
 
 - **Mission** — one city Level plus its runner Level, cleared, paid and replayed together.
 - **Level** — a definition asset with objectives (`LevelDefinition` city, `RunnerLevelDefinition` runner).
+  A runner level may carry its own `trackLayout` (`TrackLayout`, the authored circuit); the
+  runner scene's `TrackGenerator` plays it in place of its default layout (`ResolveLayoutForRun`).
 - **World** — a city scene plus its ordered Missions. The runner is always one scene
   (`CampaignCatalog.runnerSceneName`) playing each mission's own runner level.
 

@@ -99,6 +99,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             return kmh / 3.6f;
         }
 
+        /// <summary>On an authored circuit, how much more a loop demands per completed lap, km/h.</summary>
+        public float LoopSpeedPerLapKmh => settings.loopSpeedPerLapKmh;
+
         public PolicePatrol Patrol => patrol;
         /// <summary>The run's goal speed: the level's first mandatory Reach Speed objective, else the settings' fallback.</summary>
         public float LightSpeedKmh => level != null && level.LightSpeedKmh > 0f ? level.LightSpeedKmh : settings.lightSpeedKmh;

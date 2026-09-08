@@ -83,7 +83,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (track == null || decorParent == null) return;
             if (stampCursor <= 0f) stampCursor = roadSpacing * 0.5f;
 
-            float limit = Mathf.Min(distance, track.Length);
+            // A circuit is stamped lap after lap (the poses wrap); an open
+            // track ends where it ends.
+            float limit = track.Closed ? distance : Mathf.Min(distance, track.Length);
             while (stampCursor < limit)
             {
                 StampAt(stampCursor);
@@ -178,8 +180,25 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             var piece = Instantiate(prefab, position, rotation, decorParent);
             piece.transform.localScale = scale;
+            MarkPreview(piece);
             stamped.Add((distance, piece));
             return piece;
+        }
+
+        /// <summary>
+        /// In edit mode a spawned object is a PREVIEW: flagged so it is never
+        /// written into the scene file (the object and every component — a
+        /// component left unflagged would be saved as a dangling reference).
+        /// In play it is an ordinary runtime object.
+        /// </summary>
+        public static void MarkPreview(GameObject go)
+        {
+            if (go == null || Application.isPlaying) return;
+            go.hideFlags |= HideFlags.DontSaveInEditor;
+            foreach (var component in go.GetComponentsInChildren<Component>(true))
+                if (component != null) component.hideFlags |= HideFlags.DontSaveInEditor;
+            foreach (var child in go.GetComponentsInChildren<Transform>(true))
+                if (child != null) child.gameObject.hideFlags |= HideFlags.DontSaveInEditor;
         }
 
         public void Clear()
@@ -193,6 +212,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         public static void SafeDestroy(GameObject go)
         {
+            if (go == null) return;
+            // A clear only ever removes what the generator spawned. Whatever a
+            // parent slot points at, the track itself and the ship are never
+            // on the list — losing the SplineContainer takes the scene down.
+            if (go.GetComponentInChildren<TrackManager>(true) != null || go.GetComponentInChildren<Ship.ShipMotor>(true) != null)
+            {
+                Debug.LogError($"TrackDecorator: refused to destroy '{go.name}' — it holds the track or the ship. Check the generator's Pads / Markers and the decorator's Decor parents.", go);
+                return;
+            }
             if (Application.isPlaying) Destroy(go);
             else DestroyImmediate(go);
         }

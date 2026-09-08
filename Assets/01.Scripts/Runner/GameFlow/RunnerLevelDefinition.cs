@@ -5,6 +5,7 @@ using UnityEngine.Video;
 
 using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.SaveData;
+using ConfusedGameDev.FiniteRunner.Track.Layout;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>The things an escape run can ask of the pilot. Order is the save format — append only.</summary>
@@ -128,6 +129,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [TitleGroup("Level")]
         [Tooltip("Scene the panel's NEXT MISSION loads (through the loading curtain).")]
         public string nextSceneName = "CarTest";
+
+        [TitleGroup("Level")]
+        [Tooltip("The authored circuit this run plays. Empty = the runner scene's default layout (the Track's generator).")]
+        [InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        public TrackLayout trackLayout;
 
         [TitleGroup("Mission complete")]
         [Tooltip("Clip looping in the panel's video holder. Empty = the holder shows a dead NO SIGNAL screen.")]

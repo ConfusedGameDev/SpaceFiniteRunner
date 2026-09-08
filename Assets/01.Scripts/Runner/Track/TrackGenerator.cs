@@ -5,11 +5,13 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.Splines;
 
+using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Store;
 using ConfusedGameDev.FiniteRunner.Track.Features;
+using ConfusedGameDev.FiniteRunner.Track.Layout;
 namespace ConfusedGameDev.FiniteRunner.Track
 {
     /// <summary>Which lane a pad spawns on: the flight line, or the air lane above it that only a jump reaches.</summary>
@@ -148,6 +150,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [SerializeField] TrackShapeSettings trackShape;
 
         [TitleGroup("Core Settings")]
+        [Tooltip("The authored circuit this scene plays while Endless is OFF: rebuilt from the asset on the first frame, lapped, its pickups streamed per lap. A mission's runner level may override it. GENERATE LAYOUT fills an empty one from the procedural rules; Endless ON ignores it (the streamer).")]
+        [InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        [SerializeField] TrackLayout layout;
+
+        [TitleGroup("Core Settings")]
         [Tooltip("One entry per track feature kind (jump ramps). Every feature step draws one entry by probability; the sliders auto-rebalance to always total 100%.")]
         [OnValueChanged(nameof(NormalizeFeatureProbabilities), true)]
         [SerializeField] FeatureSpawnEntry[] featureTable = System.Array.Empty<FeatureSpawnEntry>();
@@ -259,6 +266,22 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         public bool Randomize => randomize;
 
+        /// <summary>The authored circuit assigned to this generator (a mission's level may swap it in at play).</summary>
+        public TrackLayout Layout => layout;
+
+        /// <summary>True when the scene plays an authored circuit: a layout is assigned, Endless is off and the layout has pieces.</summary>
+        public bool LayoutMode => layout != null && !endless && !endlessFallback;
+
+        /// <summary>Lap length of the built circuit (0 until built).</summary>
+        public float LapLength => lapLength;
+
+        /// <summary>The track the generator builds — for the editor's layout tool.</summary>
+        public TrackManager Track => track;
+
+        // The streamer runs when Endless is on — or when layout mode has
+        // nothing to build yet (an unauthored layout) and falls back for the session.
+        bool Endless => endless || endlessFallback;
+
         // Live access for the pause menu's debug tab. Width/straightness only
         // take effect on the next Generate (the debug tab reloads the scene);
         // spawn-table edits affect streaming immediately.
@@ -286,11 +309,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         // the feature definitions, so the debug menu edits the run's own copy.
         void PrepareShape()
         {
-            if (shapeRuntime != null && shapeRuntime != trackShape)
+            if (shapeRuntime != null && shapeRuntime != trackShape && shapeRuntime != shapeOverride)
                 DestroyObject(shapeRuntime); // last run's clone (or the fallback)
 
-            if (trackShape != null)
-                shapeRuntime = Application.isPlaying ? Instantiate(trackShape) : trackShape;
+            TrackShapeSettings source = shapeOverride != null ? shapeOverride : trackShape; // a layout may bring its own
+            if (source != null)
+                shapeRuntime = Application.isPlaying ? Instantiate(source) : source;
             else
             {
                 shapeRuntime = ScriptableObject.CreateInstance<TrackShapeSettings>();
@@ -322,8 +346,30 @@ namespace ConfusedGameDev.FiniteRunner.Track
         float padCursor;
         float collectibleCursor;
         float featureCursor;
-        readonly List<(FeatureSpawnEntry entry, float distance)> pendingRamps = new(); // decided at their knot, waiting for the run-up to settle
+        readonly List<(FeatureSpawnEntry entry, float distance, float lateral)> pendingRamps = new(); // decided at their knot, waiting for the run-up to settle
         float straightUntil;   // track distance up to which the road is held straight, level and flat: a ramp's landing zone
+
+        // Layout mode — an authored circuit (BuildForRun / StreamLayoutTo /
+        // GenerateLayout). The same builder, either REPLAYING the layout's
+        // pieces or RECORDING the procedural build into them.
+        TrackLayout recording;              // non-null while GenerateLayout records
+        TrackShapeSettings shapeOverride;   // a layout's own shape asset while it builds
+        bool endlessFallback;               // layout mode with nothing to build: stream endless this session
+        bool closing;                       // GenerateLayout's closing leg: steer home, no sweeps, no features
+        bool layoutBuilt;
+        float lapLength;
+        int spawnIndex;
+        float lapBase;                      // unwrapped distance of the lap being streamed
+        readonly List<LayoutSpawn> spawnQueue = new();
+        readonly List<(TrackPiece piece, float start, LoopSection section)> replayed = new();
+
+        struct LayoutSpawn
+        {
+            public float distance;          // lap-local
+            public TrackPiece piece;        // a ramp or a loop gate, else null
+            public TrackItem item;          // a pad or coin row, else null
+            public LoopSection section;     // the loop piece's section
+        }
         readonly List<(float distance, GameObject go)> spawned = new();
         readonly List<(float start, float end)> claims = new(); // feature footprints pads keep off
         readonly List<float> padDistances = new();               // where pads landed — coins keep off them
@@ -339,28 +385,91 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         void Awake()
         {
-            if (endless && ship == null) ship = FindFirstObjectByType<ShipMotor>();
+            if (ship == null) ship = FindFirstObjectByType<ShipMotor>();
             if (gameManager == null) gameManager = FindFirstObjectByType<GameManager>();
-            if (randomize || endless) Generate();
+            ResolveLayoutForRun();
+            if (LayoutMode) BuildForRun();
+            else if (randomize || Endless) Generate();
         }
 
         void Update()
         {
-            if (!endless || ship == null || track == null) return;
+            if (ship == null || track == null) return;
+            if (LayoutMode)
+            {
+                StreamLayoutTo(ship.DistanceTravelled + aheadDistance);
+                CullBehind(ship.DistanceTravelled - behindDistance);
+                return;
+            }
+            if (!Endless) return;
             StreamTo(ship.DistanceTravelled + aheadDistance);
             CullBehind(ship.DistanceTravelled - behindDistance);
         }
 
-        /// <summary>Full rebuild for a new run. Endless runs always rebuild — the old stretch behind the start was culled.</summary>
+        /// <summary>Full rebuild for a new run. Endless runs always rebuild — the old stretch behind the start was culled; a circuit is rebuilt from its layout.</summary>
         public void RegenerateForRun()
         {
-            if (randomize || endless) Generate();
+            if (LayoutMode) BuildForRun();
+            else if (randomize || Endless) Generate();
+        }
+
+        /// <summary>
+        /// The circuit a play session builds: a campaign mission's runner
+        /// level may name its own layout; the generator's is the default. A
+        /// layout with nothing in it yet (GENERATE LAYOUT never clicked) is
+        /// no track at all, so the session falls back to the endless streamer
+        /// and says so.
+        /// </summary>
+        void ResolveLayoutForRun()
+        {
+            if (!Application.isPlaying) return;
+            if (MissionSession.Current != null && MissionSession.Current.runnerLevel is RunnerLevelDefinition level && level.trackLayout != null)
+                layout = level.trackLayout;
+            if (layout != null && !endless && !layout.IsAuthored)
+            {
+                Debug.LogWarning($"TrackGenerator: layout '{layout.name}' has no pieces — select the Track and click GENERATE LAYOUT. Streaming an endless track this session.", this);
+                endlessFallback = true;
+            }
         }
 
         [ContextMenu("Regenerate Track")]
         void RegenerateFromMenu() => Generate();
 
+        /// <summary>The procedural build: an endless stream (the default) or a fixed number of segments.</summary>
         public void Generate()
+        {
+            recording = null;
+            shapeOverride = null;
+            BeginBuild(seed, null);
+
+            if (Endless)
+            {
+                StreamTo(aheadDistance);
+            }
+            else
+            {
+                for (int i = 0; i < segments; i++)
+                {
+                    bool spot = AddSegment();
+                    track.Recalculate(); // the level rule and the feature spots read the spline end
+                    if (spot) DecideFeature();
+                }
+                SpawnPendingRamps(track.Length - 150f);
+                PlacePadsUpTo(track.Length - 150f);
+                PlaceCollectiblesUpTo(track.Length - 150f);
+                PlaceMarkers();
+                if (decorator != null) decorator.DecorateUpTo(track.Length);
+            }
+        }
+
+        /// <summary>
+        /// Everything a build starts from, procedural or replayed: the shape
+        /// clone, the debug overrides (play only), the feature clones, the
+        /// width, the rng, a clean scene and a one-knot spline at the origin.
+        /// <paramref name="widthOverride"/> is a layout's width; null takes
+        /// the scene's (after the debug override has had its say).
+        /// </summary>
+        void BeginBuild(int seedValue, float? widthOverride)
         {
             // Debug-tab tweaks (saved to the TrackDebugSettings asset) override
             // the scene's Core Settings — play mode only, so edit-mode previews
@@ -383,12 +492,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (Application.isPlaying) FeatureDebugSettings.Load().ApplyTo(this);
 
             // One width knob for everything: steering clamp, pad bounds, meshes.
-            if (track != null) track.SetWidth(trackWidth);
-            if (decorator != null) decorator.SetTrackWidth(trackWidth);
+            float width = widthOverride ?? trackWidth;
+            if (track != null) track.SetWidth(width);
+            if (decorator != null) decorator.SetTrackWidth(width);
 
-            rng = seed == 0
+            rng = seedValue == 0
                 ? new Unity.Mathematics.Random((uint)System.Environment.TickCount)
-                : new Unity.Mathematics.Random((uint)seed);
+                : new Unity.Mathematics.Random((uint)seedValue);
 
             spawned.Clear();
             claims.Clear();
@@ -420,25 +530,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
             featureCursor = rng.NextFloat(featureSpacing.x, featureSpacing.y);
             pendingRamps.Clear();
             straightUntil = 0f;
+            closing = false;
 
-            if (endless)
-            {
-                StreamTo(aheadDistance);
-            }
-            else
-            {
-                for (int i = 0; i < segments; i++)
-                {
-                    bool spot = AddSegment();
-                    track.Recalculate(); // the level rule and the feature spots read the spline end
-                    if (spot) DecideFeature();
-                }
-                SpawnPendingRamps(track.Length - 150f);
-                PlacePadsUpTo(track.Length - 150f);
-                PlaceCollectiblesUpTo(track.Length - 150f);
-                PlaceMarkers();
-                if (decorator != null) decorator.DecorateUpTo(track.Length);
-            }
+            layoutBuilt = false;
+            lapLength = 0f;
+            spawnQueue.Clear();
+            replayed.Clear();
+            spawnIndex = 0;
+            lapBase = 0f;
         }
 
         /// <summary>
@@ -475,81 +574,88 @@ namespace ConfusedGameDev.FiniteRunner.Track
         bool AddSegment()
         {
             var shape = Shape;
+            float startDistance = track.Length;
 
             float remaining = featureCursor - track.Length;
             bool landOnSpot = featureTable != null && featureTable.Length > 0 && remaining <= segmentLength.y;
 
-            // Turns are SWEEPS, not a per-knot wobble: a sweep holds one
-            // direction at one rate for as many knots as its arc needs (that
-            // is what lets the bank build into a wall), then the road runs
-            // straight for a few. Straightness is the chance a straight knot
-            // starts a sweep — one draw per straight knot, so 100% never
-            // turns and still consumes the flat track's draws.
-            float curviness = 1f - straightness / 100f;
-            float previousHeading = heading;
-            // A ramp's landing zone: straight, level and flat until the
-            // longest jump the ship can make has landed — no sweep, no bank,
-            // no grade change, so a jump always comes down on the road it
-            // left, never on a wall or round a corner.
-            bool holdStraight = track.Length < straightUntil;
-            if (turnKnotsLeft == 0)
+            if (closing)
             {
-                float roll = rng.NextFloat(0f, 1f);
-                straightKnots++;
-                if (!holdStraight && roll < curviness && straightKnots > shape.minStraightKnots && TurnFits(shape)) StartTurn(shape);
+                // GenerateLayout's closing leg: no sweeps, no features, steer home.
+                ClosingStep(shape);
             }
-            if (turnKnotsLeft > 0)
+            else
             {
-                if (holdStraight || LevelRequired(shape))
+                // Turns are SWEEPS, not a per-knot wobble: a sweep holds one
+                // direction at one rate for as many knots as its arc needs (that
+                // is what lets the bank build into a wall), then the road runs
+                // straight for a few. Straightness is the chance a straight knot
+                // starts a sweep — one draw per straight knot, so 100% never
+                // turns and still consumes the flat track's draws.
+                float curviness = 1f - straightness / 100f;
+                float previousHeading = heading;
+                // A ramp's landing zone: straight, level and flat until the
+                // longest jump the ship can make has landed — no sweep, no bank,
+                // no grade change, so a jump always comes down on the road it
+                // left, never on a wall or round a corner.
+                bool holdStraight = track.Length < straightUntil;
+                if (turnKnotsLeft == 0)
                 {
-                    // A feature is coming (or a landing): end the sweep now so the bank unwinds.
-                    turnKnotsLeft = 0;
-                    straightKnots = 0;
+                    float roll = rng.NextFloat(0f, 1f);
+                    straightKnots++;
+                    if (!holdStraight && roll < curviness && straightKnots > shape.minStraightKnots && TurnFits(shape)) StartTurn(shape);
                 }
-                else
+                if (turnKnotsLeft > 0)
                 {
-                    heading += turnRate;
-                    if (--turnKnotsLeft == 0) straightKnots = 0;
+                    if (holdStraight || LevelRequired(shape))
+                    {
+                        // A feature is coming (or a landing): end the sweep now so the bank unwinds.
+                        turnKnotsLeft = 0;
+                        straightKnots = 0;
+                    }
+                    else
+                    {
+                        heading += turnRate;
+                        if (--turnKnotsLeft == 0) straightKnots = 0;
+                    }
                 }
-            }
-            float turnDelta = heading - previousHeading;
+                float turnDelta = heading - previousHeading;
 
-            // Elevation: a grade walk inside a band around the baseline — a
-            // random step per knot, leaned back home in proportion to the
-            // height already gained, forced home outside the band, capped.
-            // Off, it draws nothing, so a seed reproduces the flat track exactly.
-            if (holdStraight)
-            {
-                // Under a jump the grade holds: the arc is authored against the
-                // road's own up at every distance, but a crest or dip moving
-                // under it reads as the ground rushing up or dropping away.
-            }
-            else if (shape.elevationEnabled && shape.maxGrade > 0f)
-            {
-                float step = shape.maxGradeStepPerKnot;
-                float band = Mathf.Max(shape.elevationBand, 1f);
-                float y = endPosition.y;
-                pitch += rng.NextFloat(-step, step);
-                pitch -= shape.baselinePull * (y / band) * step;
-                if (Mathf.Abs(y) > band) pitch = -Mathf.Sign(y) * Mathf.Max(Mathf.Abs(pitch), step);
-                pitch = Mathf.Clamp(pitch, -shape.maxGrade, shape.maxGrade);
-            }
-            else pitch = 0f;
+                // Elevation: a grade walk inside a band around the baseline — a
+                // random step per knot, leaned back home in proportion to the
+                // height already gained, forced home outside the band, capped.
+                // Off, it draws nothing, so a seed reproduces the flat track exactly.
+                if (holdStraight)
+                {
+                    // Under a jump the grade holds: the arc is authored against the
+                    // road's own up at every distance, but a crest or dip moving
+                    // under it reads as the ground rushing up or dropping away.
+                }
+                else if (shape.elevationEnabled && shape.maxGrade > 0f)
+                {
+                    float step = shape.maxGradeStepPerKnot;
+                    float band = Mathf.Max(shape.elevationBand, 1f);
+                    float y = endPosition.y;
+                    pitch += rng.NextFloat(-step, step);
+                    pitch -= shape.baselinePull * (y / band) * step;
+                    if (Mathf.Abs(y) > band) pitch = -Mathf.Sign(y) * Mathf.Max(Mathf.Abs(pitch), step);
+                    pitch = Mathf.Clamp(pitch, -shape.maxGrade, shape.maxGrade);
+                }
+                else pitch = 0f;
 
-            // Banking: lean into the turn at this knot (a right turn drops the
-            // right edge), eased per knot, and level wherever a feature is
-            // coming. No random draws, so a seed with banking off reproduces
-            // the unbanked track exactly.
-            float bankTarget = 0f;
-            if (shape.bankEnabled && shape.maxBankAngle > 0f && !holdStraight && !LevelRequired(shape))
-                bankTarget = Mathf.Clamp(-turnDelta * shape.bankPerDegreeOfTurn, -shape.maxBankAngle, shape.maxBankAngle);
-            bank = shape.bankEnabled
-                ? Mathf.MoveTowards(bank, bankTarget, Mathf.Max(shape.maxBankStepPerKnot, 0.01f))
-                : 0f;
+                // Banking: lean into the turn at this knot (a right turn drops the
+                // right edge), eased per knot, and level wherever a feature is
+                // coming. No random draws, so a seed with banking off reproduces
+                // the unbanked track exactly.
+                float bankTarget = 0f;
+                if (shape.bankEnabled && shape.maxBankAngle > 0f && !holdStraight && !LevelRequired(shape))
+                    bankTarget = Mathf.Clamp(-turnDelta * shape.bankPerDegreeOfTurn, -shape.maxBankAngle, shape.maxBankAngle);
+                bank = shape.bankEnabled
+                    ? Mathf.MoveTowards(bank, bankTarget, Mathf.Max(shape.maxBankStepPerKnot, 0.01f))
+                    : 0f;
+            }
 
-            float yaw = math.radians(heading);
-            float grade = math.radians(pitch);
-            float3 direction = new float3(math.sin(yaw) * math.cos(grade), math.sin(grade), math.cos(yaw) * math.cos(grade));
+            float3 direction = Direction(heading, pitch);
             float chord = landOnSpot
                 ? Mathf.Max(remaining, segmentLength.x)
                 : rng.NextFloat(segmentLength.x, segmentLength.y);
@@ -558,11 +664,68 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // The knot carries heading, grade and bank: AutoSmooth keeps the
             // authored up (world up rolled about the segment, projected onto
             // the sloped tangent), which is how the pose between knots leans.
-            quaternion rotation = quaternion.LookRotationSafe(direction, math.up());
-            if (bank != 0f) rotation = math.mul(quaternion.AxisAngle(direction, math.radians(bank)), rotation);
+            quaternion rotation = KnotRotation(direction, bank);
             if (landOnSpot) track.AppendKnot(endPosition, rotation, direction * (chord / 3f)); // pinned: the feature's entry pose
             else track.AppendKnot(endPosition, rotation);
+
+            if (recording != null)
+                recording.pieces.Add(new TrackPiece
+                {
+                    kind = TrackPieceKind.Straight, distance = startDistance, chord = chord,
+                    heading = heading, pitch = pitch, bank = bank, pinned = landOnSpot,
+                });
             return landOnSpot;
+        }
+
+        /// <summary>Vector3 twins of the knot maths, for the editor's layout tool (no Unity.Mathematics there).</summary>
+        public static Vector3 KnotDirection(float headingDeg, float pitchDeg) => (Vector3)Direction(headingDeg, pitchDeg);
+        public static Quaternion KnotRotation(Vector3 direction, float bankDeg) => (Quaternion)KnotRotation((float3)direction, bankDeg);
+
+        /// <summary>Unit direction of a segment from its heading (about world up) and grade, degrees.</summary>
+        static float3 Direction(float headingDeg, float pitchDeg)
+        {
+            float yaw = math.radians(headingDeg);
+            float grade = math.radians(pitchDeg);
+            return new float3(math.sin(yaw) * math.cos(grade), math.sin(grade), math.cos(yaw) * math.cos(grade));
+        }
+
+        /// <summary>A knot's rotation: looking along the segment, world up rolled about it by the bank (right edge up positive).</summary>
+        static quaternion KnotRotation(float3 direction, float bankDeg)
+        {
+            quaternion rotation = quaternion.LookRotationSafe(direction, math.up());
+            if (bankDeg != 0f) rotation = math.mul(quaternion.AxisAngle(direction, math.radians(bankDeg)), rotation);
+            return rotation;
+        }
+
+        // GenerateLayout's closing leg, one knot: aim two segments BEHIND the
+        // start first (so the final approach runs along the start heading),
+        // then at the start; heading turns at most a sweep's top rate per
+        // knot, the grade runs the height out over the distance left, the bank
+        // unwinds. The seam itself is the spline's closing curve, both knots
+        // AutoSmooth, which Unity re-smooths on close.
+        void ClosingStep(TrackShapeSettings shape)
+        {
+            Vector3 end = (Vector3)endPosition;
+            float toOrigin = new Vector2(end.x, end.z).magnitude;
+            Vector3 aim = toOrigin > 3f * segmentLength.y ? new Vector3(0f, 0f, -2f * segmentLength.y) : Vector3.zero;
+            Vector3 delta = aim - end;
+            float bearing = Mathf.Atan2(delta.x, delta.z) * Mathf.Rad2Deg;
+            heading = Mathf.MoveTowardsAngle(heading, bearing, shape.TurnRateMax);
+            float remaining = Mathf.Max(new Vector2(delta.x, delta.z).magnitude, 1f);
+            pitch = Mathf.Clamp(Mathf.Atan2(-end.y, remaining) * Mathf.Rad2Deg, -shape.maxGrade, shape.maxGrade);
+            bank = Mathf.MoveTowards(bank, 0f, Mathf.Max(shape.maxBankStepPerKnot, 0.01f));
+            turnKnotsLeft = 0;
+            straightKnots = 0;
+        }
+
+        /// <summary>The closing leg is done: the spline end is within a segment and a half of the start, heading roughly at it.</summary>
+        bool CloseReached()
+        {
+            Vector3 end = (Vector3)endPosition;
+            float toOrigin = new Vector2(end.x, end.z).magnitude;
+            if (toOrigin > 1.5f * segmentLength.y) return false;
+            float bearing = Mathf.Atan2(-end.x, -end.z) * Mathf.Rad2Deg;
+            return Mathf.Abs(Mathf.DeltaAngle(heading, bearing)) < 60f;
         }
 
         /// <summary>
@@ -665,29 +828,56 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // builder reserves it (straightUntil) rather than checking it, and
             // the next feature keeps off the whole zone.
             float exclusion = entry.Runtime.ExclusionAhead;
+            float rampLateral = 0f;
             if (entry.Runtime is JumpDefinition jump)
             {
                 float longestJump = jump.MaxAirDistance(JumpStrength);
                 exclusion = longestJump + jump.landingClearance;
                 straightUntil = spot + jump.length + exclusion;
+                rampLateral = RollRampLateral(jump);
             }
 
             if (section is LoopSection loop)
             {
+                float required = RequiredLoopSpeed(spot);
                 track.AddSection(loop);
                 ContinueFromLoopExit(loop);
-                CreateFeature(spot, entry, loop);
+                CreateFeature(spot, entry, loop, 0f, required);
+                if (recording != null)
+                    recording.pieces.Add(new TrackPiece
+                    {
+                        kind = TrackPieceKind.Loop, distance = spot, entryName = entry.name,
+                        radius = loop.Radius, lateralDrift = loop.LateralDrift, forwardCarry = loop.ForwardCarry,
+                        exitYaw = loop.ExitYawDegrees, turns = loop.Turns, requiredKmh = required * 3.6f,
+                    });
             }
-            else if (section != null)
+            else if (section is TubeSection tube)
             {
                 // A tube: the section is the whole feature; the spline keeps
                 // coming underneath it, level (LevelRequired sees the section).
+                track.AddSection(tube);
+                if (recording != null)
+                    recording.pieces.Add(new TrackPiece
+                    {
+                        kind = TrackPieceKind.Tube, distance = spot, entryName = entry.name,
+                        length = tube.Length, tubeRadius = tube.Radius,
+                        bandDegrees = tube.BandRadians * Mathf.Rad2Deg, centreDegrees = tube.CentreRadians * Mathf.Rad2Deg,
+                        curlLength = tube.CurlLength, returnLength = tube.ReturnLength, steeringFactor = tube.SteeringFactor,
+                    });
+            }
+            else if (section != null)
+            {
                 track.AddSection(section);
             }
             else
             {
                 // A ramp is road-bound: it lands once its run-up is settled.
-                pendingRamps.Add((entry, spot));
+                pendingRamps.Add((entry, spot, rampLateral));
+                if (recording != null)
+                    recording.pieces.Add(new TrackPiece
+                    {
+                        kind = TrackPieceKind.Ramp, distance = spot, entryName = entry.name, lateral = rampLateral,
+                    });
             }
 
             featureCursor = spot + footprint + exclusion
@@ -706,7 +896,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             get
             {
-                if (!Application.isPlaying) return 1f;
+                if (!Application.isPlaying) return recording != null ? recording.jumpStrengthAllowance : 1f;
                 float fromShip = ship != null && ship.Definition != null ? ship.Definition.jumpStrength : 1f;
                 float fromStore = StoreUpgrades.Multiplier(StoreSectionKind.Ship, UpgradeIds.ShipJumpStrength);
                 return Mathf.Max(1f, fromShip, fromStore);
@@ -744,11 +934,433 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             for (int i = pendingRamps.Count - 1; i >= 0; i--)
             {
-                var (entry, distance) = pendingRamps[i];
+                var (entry, distance, lateral) = pendingRamps[i];
                 if (distance + entry.Runtime.FootprintLength > limit) continue;
-                CreateFeature(distance, entry, null);
+                CreateFeature(distance, entry, null, lateral);
                 pendingRamps.RemoveAt(i);
             }
+        }
+
+        /// <summary>A ramp's lateral: anywhere the ramp fits fully on the road, rolled at decision time so a layout records it.</summary>
+        float RollRampLateral(JumpDefinition def)
+        {
+            float rampHalf = track.HalfWidth * Mathf.Clamp01(def.widthFraction);
+            float maxLat = Mathf.Max(0f, track.HalfWidth - rampHalf - 2f);
+            return rng.NextFloat(-maxLat, maxLat);
+        }
+
+        /// <summary>The entry speed a loop placed at <paramref name="distance"/> demands, m/s — the GameManager's rule, or its shipped defaults when no manager is around (edit-mode Generate).</summary>
+        float RequiredLoopSpeed(float distance)
+        {
+            if (gameManager != null) return gameManager.LoopRequiredSpeed(distance);
+            return Mathf.Min(2900f, 1200f + 18f * distance / 100f) / 3.6f;
+        }
+
+        // ------------------------------------------------- Layout mode (circuit)
+
+        /// <summary>
+        /// Builds the authored circuit for a run: the layout's pieces replayed
+        /// into knots and sections (no rng), the spline closed, the spawn queue
+        /// (ramps, loop gates, pickups, sorted by lap distance) prepared, and
+        /// the first stretch streamed — all inside one frame, which is the
+        /// glitch handoff's. Every later frame streams the next stretch per lap.
+        /// </summary>
+        public void BuildForRun()
+        {
+            if (layout == null || !TrackReady()) return;
+            recording = null;
+            shapeOverride = layout.shape;
+            BeginBuild(layout.seed, layout.trackWidth);
+            ReplayPieces();
+            if (layout.closed) track.SetClosed(true);
+            lapLength = track.Length;
+            BuildSpawnQueue();
+            layoutBuilt = true;
+            StreamLayoutTo(aheadDistance);
+        }
+
+        // The builder state driven by the recorded pieces instead of the rng:
+        // a Straight is one knot at its absolute heading / grade / bank, a Loop
+        // stands on the previous knot and continues the spline from its exit
+        // exactly as DecideFeature does, a Tube overlays the spline laid after
+        // it, a Ramp is spawned per lap by the queue.
+        void ReplayPieces()
+        {
+            replayed.Clear();
+            bool refresh = !Application.isPlaying; // the recorded distances are display only; never touch the asset in play
+            foreach (var piece in layout.pieces)
+            {
+                if (piece == null) continue;
+                float start = track.Length;
+                if (refresh) piece.distance = start;
+                LoopSection section = null;
+                switch (piece.kind)
+                {
+                    case TrackPieceKind.Straight:
+                    {
+                        heading = piece.heading;
+                        pitch = piece.pitch;
+                        bank = piece.bank;
+                        float chord = Mathf.Max(piece.chord, 1f);
+                        float3 direction = Direction(heading, pitch);
+                        endPosition += direction * chord;
+                        quaternion rotation = KnotRotation(direction, bank);
+                        if (piece.pinned) track.AppendKnot(endPosition, rotation, direction * (chord / 3f));
+                        else track.AppendKnot(endPosition, rotation);
+                        track.Recalculate();
+                        break;
+                    }
+                    case TrackPieceKind.Loop:
+                    {
+                        track.GetPoseAtDistance(start, 0f, out Vector3 origin, out Quaternion rotation);
+                        section = new LoopSection(start, piece.radius, origin, rotation,
+                                                  piece.lateralDrift, piece.forwardCarry, piece.exitYaw, piece.turns);
+                        track.AddSection(section);
+                        ContinueFromLoopExit(section);
+                        break;
+                    }
+                    case TrackPieceKind.Tube:
+                        track.AddSection(new TubeSection(start, piece.length, piece.tubeRadius, piece.bandDegrees, piece.centreDegrees,
+                                                         piece.curlLength, piece.returnLength, piece.steeringFactor));
+                        break;
+                }
+                replayed.Add((piece, start, section));
+            }
+        }
+
+        void BuildSpawnQueue()
+        {
+            spawnQueue.Clear();
+            foreach (var (piece, start, section) in replayed)
+            {
+                if (piece.kind == TrackPieceKind.Loop && section != null)
+                    spawnQueue.Add(new LayoutSpawn { distance = start, piece = piece, section = section });
+                else if (piece.kind == TrackPieceKind.Ramp)
+                    spawnQueue.Add(new LayoutSpawn { distance = start, piece = piece });
+            }
+            if (layout.items != null)
+                foreach (var item in layout.items)
+                    if (item != null) spawnQueue.Add(new LayoutSpawn { distance = item.distance, item = item });
+            spawnQueue.Sort((a, b) => a.distance.CompareTo(b.distance));
+            spawnIndex = 0;
+            lapBase = 0f;
+        }
+
+        /// <summary>
+        /// Streams the circuit up to an UNWRAPPED distance: the queue is walked
+        /// in lap order, each entry spawned at lapBase + its lap distance, and
+        /// when the queue runs out on a closed track the next lap begins —
+        /// so orbs, coins, ramps and gates are back every lap (a gate's speed
+        /// climbs with the lap). The cull keys on the same unwrapped distances,
+        /// and the decorator stamps lap after lap because every pose wraps.
+        /// </summary>
+        void StreamLayoutTo(float target)
+        {
+            if (!layoutBuilt) return;
+            if (spawnQueue.Count > 0)
+            {
+                int guard = 0;
+                while (guard++ < 100000)
+                {
+                    if (spawnIndex >= spawnQueue.Count)
+                    {
+                        if (!track.Closed || lapLength <= 1f) break;
+                        spawnIndex = 0;
+                        lapBase += lapLength;
+                    }
+                    LayoutSpawn entry = spawnQueue[spawnIndex];
+                    float d = lapBase + entry.distance;
+                    if (d > target) break;
+                    SpawnLayoutEntry(entry, d);
+                    spawnIndex++;
+                }
+            }
+            if (decorator != null) decorator.DecorateUpTo(target);
+        }
+
+        void SpawnLayoutEntry(LayoutSpawn entry, float distance)
+        {
+            if (entry.item != null)
+            {
+                TrackItem item = entry.item;
+                switch (item.kind)
+                {
+                    case TrackItemKind.Pad:
+                    {
+                        PadSpawnEntry pad = FindPadEntry(item.entryName);
+                        if (pad != null && pad.definition != null) CreatePad(distance, item.lateral, pad, item.lane);
+                        break;
+                    }
+                    case TrackItemKind.CoinRow:
+                        for (int i = 0; i < Mathf.Max(1, item.count); i++)
+                            CreateCollectible(distance + i * item.step, item.lateral, item.value);
+                        break;
+                }
+                return;
+            }
+
+            if (entry.piece == null) return;
+            FeatureSpawnEntry feature = FindFeatureEntry(entry.piece.entryName);
+            if (feature == null || feature.Runtime == null) return;
+            if (entry.piece.kind == TrackPieceKind.Ramp && feature.Runtime is JumpDefinition jump)
+            {
+                CreateJump(distance, feature, jump, entry.piece.lateral);
+            }
+            else if (entry.piece.kind == TrackPieceKind.Loop && feature.Runtime is LoopDefinition def && entry.section != null)
+            {
+                int lap = lapLength > 1f ? Mathf.RoundToInt(lapBase / lapLength) : 0;
+                float perLap = gameManager != null ? gameManager.LoopSpeedPerLapKmh : 0f;
+                float required = (entry.piece.requiredKmh + lap * perLap) / 3.6f;
+                CreateLoop(distance, feature, def, entry.section, required, lapBase);
+            }
+        }
+
+        FeatureSpawnEntry FindFeatureEntry(string entryName)
+        {
+            if (featureTable == null) return null;
+            foreach (var e in featureTable)
+                if (e != null && e.name == entryName) return e;
+            return null;
+        }
+
+        PadSpawnEntry FindPadEntry(string entryName)
+        {
+            if (spawnTable == null) return null;
+            foreach (var e in spawnTable)
+                if (e != null && e.name == entryName) return e;
+            return null;
+        }
+
+        /// <summary>
+        /// The editor's GENERATE LAYOUT: the procedural builder run with the
+        /// layout's seed, width, straightness and shape while RECORDING every
+        /// knot, feature and pickup into it, up to the target length minus the
+        /// closing distance; then the closing leg steers the road home with no
+        /// more features (pickups keep off the last 500 m) and the spline is
+        /// closed. Ends by rebuilding the recorded layout as a preview — the
+        /// replay is the proof the recording is complete. Editor only.
+        /// </summary>
+        public void GenerateLayout()
+        {
+            if (layout == null || !TrackReady()) return;
+            layout.Clear();
+            float savedStraightness = straightness;
+            recording = layout;
+            shapeOverride = layout.shape;
+            straightness = layout.straightness;
+            bool closedOk = false;
+            try
+            {
+                BeginBuild(layout.seed, layout.trackWidth);
+                float target = layout.TargetLength;
+                float closingStart = Mathf.Max(target - layout.ClosingDistance, segmentLength.y * 2f);
+
+                // The body: pieces and features as the streamer would lay them.
+                int guard = 0;
+                while (track.Length < closingStart && guard++ < 10000)
+                {
+                    bool spot = AddSegment();
+                    track.Recalculate();
+                    if (spot) DecideFeature();
+                }
+
+                // The closing leg.
+                featureCursor = float.PositiveInfinity;
+                straightUntil = 0f;
+                closing = true;
+                guard = 0;
+                while (!CloseReached() && guard++ < 1000)
+                {
+                    AddSegment();
+                    track.Recalculate();
+                    if (track.Length > target * 1.5f)
+                    {
+                        Debug.LogWarning($"TrackGenerator: the closing leg could not reach the start within 1.5× the target length; '{layout.name}' is left open.", this);
+                        break;
+                    }
+                }
+                closedOk = CloseReached();
+                closing = false;
+
+                // Pickups over the whole body, off the final approach; ramps
+                // decided in the body land now (their run-ups are all settled).
+                SpawnPendingRamps(track.Length);
+                float itemLimit = Mathf.Max(0f, track.Length - 500f);
+                PlacePadsUpTo(itemLimit);
+                PlaceCollectiblesUpTo(itemLimit);
+
+                if (closedOk && layout.closed) track.SetClosed(true);
+                layout.length = track.Length;
+                layout.knotCount = track.Spline != null ? track.Spline.Spline.Count : 0;
+            }
+            finally
+            {
+                recording = null;
+                straightness = savedStraightness;
+                shapeOverride = null;
+            }
+
+            if (layout.closed && !closedOk)
+                Debug.LogWarning($"TrackGenerator: '{layout.name}' was generated OPEN. Try a larger closing distance or a different seed.", this);
+
+            // Show the recorded layout, not the recording session.
+            PreviewLayout();
+        }
+
+        /// <summary>Editor preview of the whole circuit: built from the layout and streamed for one full lap (or the open track's length), every object flagged as a preview.</summary>
+        public void PreviewLayout()
+        {
+            if (layout == null || !layout.IsAuthored || !TrackReady()) return;
+            BuildForRun();
+            StreamLayoutTo(track.Closed ? lapLength : track.Length);
+            if (!Application.isPlaying)
+            {
+                layout.length = lapLength;
+                layout.knotCount = track.Spline != null ? track.Spline.Spline.Count : 0;
+            }
+        }
+
+        /// <summary>
+        /// The editor tool's cheap rebuild while a handle drags: the layout
+        /// replayed into knots and sections only (no pickups, no road), so the
+        /// tool can redraw the circuit's lines at once; the full preview follows
+        /// once the drag settles.
+        /// </summary>
+        public void PreviewSpline()
+        {
+            if (layout == null || !layout.IsAuthored || !TrackReady()) return;
+            recording = null;
+            shapeOverride = layout.shape;
+            BeginBuild(layout.seed, layout.trackWidth);
+            ReplayPieces();
+            if (layout.closed) track.SetClosed(true);
+            lapLength = track.Length;
+            BuildSpawnQueue();
+            layoutBuilt = true;
+        }
+
+        /// <summary>The loop section the last build made for a Loop piece, for the editor tool's exit handles.</summary>
+        public bool TryGetLoopSection(TrackPiece piece, out LoopSection section)
+        {
+            foreach (var (replayedPiece, _, replayedSection) in replayed)
+                if (replayedPiece == piece && replayedSection != null) { section = replayedSection; return true; }
+            section = null;
+            return false;
+        }
+
+        /// <summary>
+        /// Editor: a ramp piece at the knot nearest <paramref name="distance"/>.
+        /// A ramp sits on a knot, so the Straight ending at that knot is
+        /// pinned (an explicit-tangent knot, a level entry) and the Ramp piece
+        /// goes right after it. Returns the new piece, or null when the layout
+        /// has no straights or no jump entry of that name.
+        /// </summary>
+        public TrackPiece InsertRampPiece(float distance, string entryName, float lateral)
+        {
+            if (layout == null || FindFeatureEntry(entryName) == null) return null;
+            int best = -1;
+            float bestGap = float.MaxValue;
+            for (int i = 0; i < layout.pieces.Count; i++)
+            {
+                var piece = layout.pieces[i];
+                if (piece == null || piece.kind != TrackPieceKind.Straight) continue;
+                float knot = piece.distance + piece.chord;
+                float gap = Mathf.Abs(knot - distance);
+                if (gap < bestGap) { bestGap = gap; best = i; }
+            }
+            if (best < 0) return null;
+            layout.pieces[best].pinned = true;
+            layout.pieces[best].bank = 0f;
+            var ramp = new TrackPiece
+            {
+                kind = TrackPieceKind.Ramp, entryName = entryName, lateral = lateral,
+                distance = layout.pieces[best].distance + layout.pieces[best].chord,
+            };
+            layout.pieces.Insert(best + 1, ramp);
+            return ramp;
+        }
+
+        /// <summary>
+        /// The track this generator builds on, re-found beside it when the
+        /// serialized slot is empty or stale, with its spline component
+        /// present. False (with an error) rather than an exception when the
+        /// Track object has been damaged — reopening the scene restores it.
+        /// </summary>
+        bool TrackReady()
+        {
+            if (track == null) track = GetComponent<TrackManager>();
+            if (track == null || track.Spline == null)
+            {
+                Debug.LogError("TrackGenerator: the Track object has no TrackManager / SplineContainer to build on. Reopen the scene from disk (the layout asset is intact).", this);
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Editor: reads knots moved with Unity's own spline tools BACK into
+        /// the layout, so a hand edit of the preview spline survives the next
+        /// rebuild. The knot sequence is the pieces': one knot per Straight
+        /// (its end) and one per Loop (its exit, which the loop's own numbers
+        /// define — a moved exit knot is not captured). A Straight takes its
+        /// chord, heading and grade from the knot's offset to the previous
+        /// one and its bank from the knot's up. Adding or removing knots is
+        /// not a piece edit and is refused: use the pieces list for that.
+        /// </summary>
+        public bool CaptureSplineIntoLayout()
+        {
+            if (layout == null || !layout.IsAuthored || !TrackReady()) return false;
+            var spline = track.Spline.Spline;
+
+            int expected = 1;
+            foreach (var piece in layout.pieces)
+                if (piece != null && (piece.kind == TrackPieceKind.Straight || piece.kind == TrackPieceKind.Loop)) expected++;
+            if (spline.Count != expected)
+            {
+                Debug.LogError($"TrackGenerator: the spline has {spline.Count} knots but the layout expects {expected} — knots were added or removed. Only moving knots can be captured; edit the pieces list instead, then Rebuild Preview.", this);
+                return false;
+            }
+
+            int k = 1;
+            Vector3 previous = (Vector3)spline[0].Position;
+            foreach (var piece in layout.pieces)
+            {
+                if (piece == null) continue;
+                switch (piece.kind)
+                {
+                    case TrackPieceKind.Straight:
+                    {
+                        BezierKnot knot = spline[k++];
+                        Vector3 position = (Vector3)knot.Position;
+                        Vector3 delta = position - previous;
+                        float chord = Mathf.Max(delta.magnitude, 1f);
+                        Vector3 direction = delta / chord;
+                        piece.chord = Mathf.Clamp(chord, 50f, 1000f);
+                        piece.heading = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+                        piece.pitch = Mathf.Clamp(Mathf.Asin(Mathf.Clamp(direction.y, -1f, 1f)) * Mathf.Rad2Deg, -30f, 30f);
+                        Vector3 up = (Quaternion)knot.Rotation * Vector3.up;
+                        Vector3 upRef = Quaternion.LookRotation(direction, Vector3.up) * Vector3.up;
+                        piece.bank = Mathf.Clamp(Vector3.SignedAngle(upRef, up, direction), -89f, 89f);
+                        previous = position;
+                        break;
+                    }
+                    case TrackPieceKind.Loop:
+                        previous = (Vector3)spline[k++].Position; // the exit knot: the loop's numbers own it
+                        break;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>Drops every preview object (the spline stays).</summary>
+        public void ClearPreview()
+        {
+            spawned.Clear();
+            claims.Clear();
+            padDistances.Clear();
+            ClearChildren(padsParent);
+            ClearChildren(markersParent);
+            if (decorator != null) decorator.Clear();
         }
 
         /// <summary>End of the claimed footprint covering <paramref name="distance"/>, or -1 when it is free.</summary>
@@ -803,13 +1415,32 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 float lo = bandMin + margin;
                 float hi = bandMax - margin;
                 float lateral = hi > lo ? rng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f;
+                // One value per row (NextInt's max is exclusive), so a layout can record the row as one item.
+                int value = rng.NextInt(collectibleValue.x, Mathf.Max(collectibleValue.x, collectibleValue.y) + 1);
 
+                // A recorded row is the coins that actually landed: a pad or a
+                // claim in the middle splits it into two items.
+                float rowStart = 0f;
+                int rowCount = 0;
+                void FlushRow()
+                {
+                    if (recording != null && rowCount > 0)
+                        recording.items.Add(new TrackItem
+                        {
+                            kind = TrackItemKind.CoinRow, distance = rowStart, lateral = lateral,
+                            count = rowCount, step = collectibleStep, value = value,
+                        });
+                    rowCount = 0;
+                }
                 for (int i = 0; i < count; i++)
                 {
                     float d = collectibleCursor + i * collectibleStep;
-                    if (d >= limit || ClaimEnd(d) >= 0f || NearPad(d)) continue;
-                    CreateCollectible(d, lateral);
+                    if (d >= limit || ClaimEnd(d) >= 0f || NearPad(d)) { FlushRow(); continue; }
+                    CreateCollectible(d, lateral, value);
+                    if (rowCount == 0) rowStart = d;
+                    rowCount++;
                 }
+                FlushRow();
 
                 collectibleCursor += count * collectibleStep + rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
             }
@@ -891,7 +1522,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// </summary>
         bool LoopReachable(FeatureSpawnEntry entry, float distance)
         {
-            if (!Application.isPlaying || !endless || ship == null || gameManager == null) return true;
+            if (!Application.isPlaying || !Endless || ship == null || gameManager == null) return true;
             if (entry.Runtime is not LoopDefinition loop) return true;
 
             float speed = ship.CurrentSpeed;
@@ -1021,12 +1652,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return mat;
         }
 
-        void CreateFeature(float distance, FeatureSpawnEntry entry, TrackSection section)
+        void CreateFeature(float distance, FeatureSpawnEntry entry, TrackSection section, float lateral = 0f, float requiredSpeed = 0f, float lapOffset = 0f)
         {
             switch (entry.Runtime)
             {
-                case JumpDefinition jump: CreateJump(distance, entry, jump); break;
-                case LoopDefinition loop when section is LoopSection loopSection: CreateLoop(distance, entry, loop, loopSection); break;
+                case JumpDefinition jump: CreateJump(distance, entry, jump, lateral); break;
+                case LoopDefinition loop when section is LoopSection loopSection: CreateLoop(distance, entry, loop, loopSection, requiredSpeed, lapOffset); break;
                 case TubeDefinition: break; // the section registered at decision time is the whole feature: the decorator stamps the pipe
                 default:
                     Debug.LogWarning($"TrackGenerator: no builder for feature definition {entry.Runtime.GetType().Name}.", this);
@@ -1040,11 +1671,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// scaled to the ramp, or a code-built slab pitched to the ramp angle
         /// with a rail down each edge. No colliders: nothing here is physics.
         /// </summary>
-        void CreateJump(float distance, FeatureSpawnEntry entry, JumpDefinition def)
+        void CreateJump(float distance, FeatureSpawnEntry entry, JumpDefinition def, float lateral)
         {
             float rampHalf = track.HalfWidth * Mathf.Clamp01(def.widthFraction);
             float maxLat = Mathf.Max(0f, track.HalfWidth - rampHalf - 2f);
-            float lateral = rng.NextFloat(-maxLat, maxLat);
+            lateral = Mathf.Clamp(lateral, -maxLat, maxLat); // fully on the road whatever a layout says
             track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
 
             var go = new GameObject($"{entry.name}{def.displayName}Ramp_{distance:00000}");
@@ -1097,7 +1728,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             var ramp = go.AddComponent<JumpRamp>();
             float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost : 15f;
             ramp.Configure(def, distance, lateral, rampHalf, baseBoost * entry.multiplier);
-            spawned.Add((distance, go));
+            Register(distance, go);
         }
 
         /// <summary>
@@ -1110,7 +1741,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// round the loop needs nothing here: the decorator stamps it chord by
         /// chord off the section's poses like any stretch of track.
         /// </summary>
-        void CreateLoop(float distance, FeatureSpawnEntry entry, LoopDefinition def, LoopSection section)
+        void CreateLoop(float distance, FeatureSpawnEntry entry, LoopDefinition def, LoopSection section, float required, float lapOffset)
         {
             track.GetPoseAtDistance(distance, 0f, out Vector3 pos, out Quaternion rot);
             var go = new GameObject($"{entry.name}{def.displayName}Loop_{distance:00000}");
@@ -1118,8 +1749,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             go.transform.SetPositionAndRotation(pos, rot);
 
             var loop = go.AddComponent<LoopFeature>();
-            float required = gameManager != null ? gameManager.LoopRequiredSpeed(distance) : 0f;
-            loop.Configure(def, section, required);
+            loop.Configure(def, section, required, lapOffset);
             float labelHeight = def.labelHeight;
 
             if (entry.prefab != null)
@@ -1165,18 +1795,21 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // Culled by its EXIT, not its mouth: the loop is 2πR of track
             // (630 m at R = 100) and the cull line trails the ship by far
             // less, so keyed on the mouth it was destroyed with the ship
-            // still climbing it.
-            spawned.Add((section.EndDistance, go));
+            // still climbing it. On a circuit the key is this lap's exit.
+            Register(section.EndDistance + lapOffset, go);
         }
 
-        void CreatePad(float distance, float lateral, PadSpawnEntry entry)
+        void CreatePad(float distance, float lateral, PadSpawnEntry entry, PadLane? laneOverride = null)
         {
             PadDefinition def = entry.definition;
+            PadLane lane = laneOverride ?? entry.lane;
             track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
             // Orbs sit on the flight line; flat pads sink to road level. The
             // air lane rides the track's up so it stays overhead on a roll.
             Vector3 padPos = def.floatingOrb ? pos : pos + rot * new Vector3(0f, -0.9f, 0f);
-            if (entry.lane == PadLane.Air) padPos += rot * (Vector3.up * AirLaneHeight);
+            if (lane == PadLane.Air) padPos += rot * (Vector3.up * AirLaneHeight);
+            if (recording != null)
+                recording.items.Add(new TrackItem { kind = TrackItemKind.Pad, entryName = entry.name, distance = distance, lateral = lateral, lane = lane });
             Material mat = EntryMaterial(entry);
             GameObject pad;
 
@@ -1238,7 +1871,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // definition's own delta so dodging stays predictable.
             if (def.speedDelta >= 0f) speedPad.SetDefinition(def, EffectiveBoost(entry), entry.color, entry.name);
             else speedPad.SetDefinition(def);
-            spawned.Add((distance, pad));
+            Register(distance, pad);
             padDistances.Add(distance);
 
             // Orbs are their own landmark; the gate-style sign only suits flat pads.
@@ -1249,7 +1882,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 sign.name = pad.name + "_Sign";
                 sign.transform.localScale = Vector3.one * padSignScale;
                 if (mat != null) TrackDecorator.OverrideMaterials(sign, mat);
-                spawned.Add((distance, sign));
+                Register(distance, sign);
             }
         }
 
@@ -1259,7 +1892,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// gold cylinder standing on the track, spun round the track's up by
         /// the Collectible itself — under a root carrying the long trigger box.
         /// </summary>
-        void CreateCollectible(float distance, float lateral)
+        void CreateCollectible(float distance, float lateral, int value)
         {
             track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
             GameObject go;
@@ -1307,9 +1940,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 collectible.Configure("Money", CollectibleKind.Money, Collectible.SpinAxis.Z, coin.transform);
             }
 
-            // NextInt's max is exclusive.
-            collectible.SetValue(rng.NextInt(collectibleValue.x, Mathf.Max(collectibleValue.x, collectibleValue.y) + 1));
+            collectible.SetValue(Mathf.Max(1, value));
             go.name = $"Money_{distance:00000}";
+            Register(distance, go);
+        }
+
+        /// <summary>Every spawned object goes through here: keyed for the cull on its (unwrapped) distance, and flagged as a preview in edit mode so it never lands in the scene file.</summary>
+        void Register(float distance, GameObject go)
+        {
+            TrackDecorator.MarkPreview(go);
             spawned.Add((distance, go));
         }
 

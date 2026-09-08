@@ -92,6 +92,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>Raised the frame the ship drops off the top of a loop it was too slow for.</summary>
         public event System.Action LoopFailed;
 
+        /// <summary>Raised on a closed circuit each time the ship crosses the start line again, with the lap it is now on (1 = second time round).</summary>
+        public event System.Action<int> LapCompleted;
+
+        /// <summary>Laps completed on a closed circuit (0 on the first lap and on any open track).</summary>
+        public int Lap { get; private set; }
+
         /// <summary>While true the simulation is frozen (setup screen); the hover keeps running.</summary>
         public bool Paused { get; set; }
 
@@ -202,6 +208,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         LoopFeature loop;
         LoopSection loopSection;
         LoopDefinition loopDefinition;
+        float loopStart, loopEnd; // this lap's ride, unwrapped — the section itself is in lap coordinates
         bool loopPassed;
         float fallDistance;     // metres fallen so far
         float fallVelocity;
@@ -246,6 +253,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             CurrentSpeed = definition.initialImpulse;
             DistanceTravelled = 0f;
+            Lap = 0;
             lateralOffset = 0f;
             lateralVelocity = 0f;
             pendingSpeedChange = 0f;
@@ -418,7 +426,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             // ignored, so the road never unrolls under a ship hanging off it.
             if (State == ShipState.OnTube && track.SectionAt(DistanceTravelled) is TubeSection tube)
             {
-                float local = DistanceTravelled - tube.StartDistance;
+                float local = track.Wrap(DistanceTravelled) - tube.StartDistance; // sections live in lap coordinates
                 float progress = tube.ReturnProgress(local);
                 if (progress > 0f)
                 {
@@ -496,8 +504,19 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             // Distance is authoritative: the endless streamer grows the spline
             // during the run (and loops insert track), so the pose is always
-            // looked up from distance, never from a stored t.
+            // looked up from distance, never from a stored t. On a circuit the
+            // distance keeps growing across laps — the TrackManager wraps every
+            // lookup — and the lap is counted off it here.
             DistanceTravelled += CurrentSpeed * dt;
+            if (track.Closed && track.Length > 0f)
+            {
+                int lap = Mathf.FloorToInt(DistanceTravelled / track.Length);
+                if (lap != Lap)
+                {
+                    Lap = lap;
+                    LapCompleted?.Invoke(lap);
+                }
+            }
         }
 
         /// <summary>
@@ -573,8 +592,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 // The section is ours from the gate to the exit whatever
                 // happens to the feature object behind us.
                 if (loopSection == null) { ClearLoop(); SetState(ShipState.Grounded); return; }
-                if (!loopPassed && d - loopSection.StartDistance >= loopSection.FirstTopLocal) { DropFromLoop(); return; }
-                if (d >= loopSection.EndDistance)
+                if (!loopPassed && d - loopStart >= loopSection.FirstTopLocal) { DropFromLoop(); return; }
+                if (d >= loopEnd)
                 {
                     ClearLoop();
                     SetState(ShipState.Grounded);
@@ -591,10 +610,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (State != ShipState.Grounded) return;
             foreach (var candidate in LoopFeature.Active)
             {
-                if (candidate == null || candidate.Section == null || !candidate.Section.Contains(d)) continue;
+                if (candidate == null || !candidate.Contains(d)) continue;
                 loop = candidate;
                 loopSection = candidate.Section;
                 loopDefinition = candidate.Definition;
+                loopStart = candidate.StartDistance;
+                loopEnd = candidate.EndDistance;
                 loopPassed = CurrentSpeed >= candidate.RequiredSpeed;
                 SetState(ShipState.Looping);
                 LoopEntered?.Invoke(loopPassed);
@@ -612,8 +633,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             fallDistance = 0f;
             fallVelocity = 0f;
             // The track waits for the ship at the exit: the patrol, which never
-            // slows, gains the whole fall.
-            DistanceTravelled = section.EndDistance;
+            // slows, gains the whole fall. This lap's exit, unwrapped.
+            DistanceTravelled = loopEnd;
             CurrentSpeed *= 1f - Mathf.Clamp01(loopDefinition.fallSpeedLoss);
             lateralVelocity = 0f;
             dashTimeLeft = 0f;

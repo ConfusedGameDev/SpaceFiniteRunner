@@ -18,7 +18,7 @@ played and tuned before the next starts.
 | M1 | **Elevation** | The road rolls up and down inside a band, never bumpy | Implemented 2026-09-08, in editor test |
 | M2 | **Banking + curves** | Turns come back and the road banks into them; features sit on level road | Implemented 2026-09-08, in editor test |
 | M3 | **Loop variation** | Corkscrew, yawed and elongated loops; the track continues from the loop's exit (piece-sequenced builder) | Implemented 2026-09-08, in editor test |
-| M4 | **Authored circuit** | Generate → edit with scene handles → save to a layout asset; closed loop rebuilt on the first frame; per-lap streaming | Not started |
+| M4 | **Authored circuit** | Generate → edit with scene handles → save to a layout asset; closed loop rebuilt on the first frame; per-lap streaming | Implemented 2026-09-08 (4a asset/laps/Generate, 4b scene handles), in editor test |
 
 M3 introduces the **piece-sequenced builder** (the track is laid as a sequence of pieces, each
 starting at the previous piece's exit pose). M4 runs that same builder offline. Do not build a
@@ -553,6 +553,31 @@ per existing runner level (3) + a default on the test scene's generator.
 - The city→runner handoff shows the authored track on the first clean frame; a mission's level
   plays its own layout; direct play of `FiniteRunner_Test` plays the generator's default layout.
 - `endless` on: the M3 streamer still runs unchanged.
+
+*M4a implemented 2026-09-08: `TrackLayout` (pieces + items, Generate knobs, `jumpStrengthAllowance`),
+`TrackManager.Closed` / `Wrap`, per-lap `LoopFeature` gates and `ShipMotor.Lap`, the generator's
+layout mode (`BuildForRun` / `ReplayPieces` / spawn queue / `StreamLayoutTo`), `GenerateLayout`
+with the recorder and closing leg, `PreviewLayout` with don't-save previews, the inspector
+buttons, `Tools → FiniteRunner → Create Track Layout`, `RunnerLevelDefinition.trackLayout`,
+`GameSettings.loopSpeedPerLapKmh`. The test scene's generator has `endless` off and the empty
+`Default_TrackLayout` wired: the first GENERATE LAYOUT click fills it (the builder needs Unity
+Splines, so it cannot be generated outside the editor); until then play falls back to the
+streamer. Deviations: ramp pieces carry only the lateral (size/angle stay on the Jump definition),
+coin rows carry one value, `closingDistance` lives on the layout.*
+
+*M4b implemented 2026-09-08: `TrackLayoutTool` (EditorTool on the Track) with the five handle
+sets of §7.4 — knot rotation (turn / grade / bank) + chord slider, loop radius + exit drift /
+carry / yaw, tube radius + length, ramp lateral, pickup free-move projected back onto the track
+(`TrackManager.NearestDistance`, so loops and tubes count) — Delete on the selection, Undo on the
+asset, spline-only rebuild while dragging and the full preview 0.4 s after. The inspector's Add
+palette drops pickups and ramps at the scene view's pivot. Deviation: the editor assembly gained
+no Splines reference; nearest-point search samples the track through the manager instead of
+`SplineUtility.GetNearestPoint`. Editor play checks pending.*
+
+*After the first 4b play (2026-09-08): CAPTURE SPLINE EDITS reads knots moved with Unity's spline
+tools back into the pieces (the asset stays the track; adding/removing knots is refused);
+`SafeDestroy` refuses the track and the ship; builds re-find the manager/spline and error cleanly
+after a damaged editor session.*
 
 ---
 

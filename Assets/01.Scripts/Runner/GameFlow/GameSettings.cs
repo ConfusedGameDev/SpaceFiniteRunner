@@ -138,6 +138,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0f, 1f), SuffixLabel("s", true)]
         public float loopCinematicHoldSeconds = 0.25f;
 
+        [TitleGroup("Loops")]
+        [Tooltip("On an authored circuit each loop carries its own required km/h; every completed lap adds this much, so later laps stay tense.")]
+        [PropertyRange(0f, 1000f), SuffixLabel("km/h per lap", true)]
+        public float loopSpeedPerLapKmh = 150f;
+
         // --------------------------------------------------------- loop slow-mo
         [ToggleGroup("loopSlowMo", "Loop slow-mo")]
         [Tooltip("Slow the world while the ship is inside a loop (and through the fall of a failed one). Ship, patrol and the countdown all ride the same clock, so the loop costs no run time — it only plays longer in real time.")]

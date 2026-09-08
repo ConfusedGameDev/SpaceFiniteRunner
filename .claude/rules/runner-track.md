@@ -81,6 +81,76 @@ stretch in `Awake`, then each `Update` keeps `aheadDistance` of finished track a
   start was culled.
 - `seed == 0` means non-repeatable.
 
+### Layout mode — the authored circuit (M4a)
+
+With a `TrackLayout` asset (`Track/Layout/TrackLayout.cs`; `Data/FiniteRunner/Tracks/*.asset`,
+created by `Tools → FiniteRunner → Create Track Layout`) assigned and `endless` OFF the scene plays
+an **authored closed circuit** (`LayoutMode`). A mission's `RunnerLevelDefinition.trackLayout`
+overrides the generator's default at play (`ResolveLayoutForRun`). A layout with no pieces cannot
+be built, so that session falls back to the endless streamer with a warning (`endlessFallback`).
+
+- **The layout is the builder's tape.** `pieces` in order: a **Straight** is one knot (chord and
+  the absolute heading / grade / bank at it, `pinned` for a feature spot); a **Loop** (radius,
+  drift, carry, yaw, turns, `requiredKmh`) stands on the previous knot and continues the spline
+  from its exit; a **Tube** overlays the spline laid after it; a **Ramp** (lateral) is spawned per
+  lap. Feature pieces name their `featureTable` entry. `items` are pads (by `spawnTable` entry
+  name, lateral, lane) and coin rows (count, step, one value). Every piece/item is the same
+  builder call either RECORDED or REPLAYED — `AddSegment`, `DecideFeature`, `CreatePad`,
+  `PlaceCollectiblesUpTo` write into `recording` when it is set.
+- **`GenerateLayout`** (editor, GENERATE LAYOUT): `layout.Clear()`, then the procedural build
+  with the layout's seed / width / straightness / shape recorded up to `targetLength −
+  closingDistance`, then the **closing leg** (`closing`: no features, no sweeps, `ClosingStep`
+  aims two segments behind the start and then at it, heading turned by at most `TurnRateMax` per
+  knot, grade running the height out, bank unwinding) until `CloseReached`, then pickups over the
+  body (off the last 500 m), `SetClosed`, and a `PreviewLayout` of the recording. A leg that cannot
+  reach the start within 1.5× the target warns and leaves the track open. Ramp landing zones are
+  sized for `jumpStrengthAllowance` (1.5), since the circuit is fixed at authoring.
+- **`BuildForRun`** (play, first frame; also `RegenerateForRun` and the preview): `BeginBuild`
+  (shared with `Generate`: shape clone, debug overrides, feature clones, width, a clean scene, the
+  seed knot), `ReplayPieces` (no rng), `track.SetClosed(layout.closed)`, `lapLength`, the
+  **spawn queue** (ramps, loop gates, items sorted by lap distance), then `StreamLayoutTo`.
+- **Laps.** `ShipMotor.DistanceTravelled` never wraps; `TrackManager.Wrap` brings every lookup
+  (`SectionAt`, `GetLateralBand`, `GetPoseAtDistance`, `SplineDistanceOf`, `DistanceToT`) into
+  the lap, so sections live in lap coordinates and are built once. `StreamLayoutTo` walks the
+  queue with an unwrapped `lapBase + distance` cursor and starts the next lap when the queue runs
+  out, so every lap replays the same gauntlet; `CullBehind` and the decorator (`DecorateUpTo` has
+  no length clamp on a closed track) key on the same unwrapped distances. A loop gate is a
+  per-lap object: `LoopFeature.Configure(def, section, required, lapOffset)` gives it unwrapped
+  `StartDistance` / `EndDistance` / `Contains`, its required speed is the piece's `requiredKmh`
+  + lap × `GameSettings.loopSpeedPerLapKmh`, and the motor keeps `loopStart` / `loopEnd` from the
+  gate. Tube locals use `track.Wrap`. `ShipMotor.Lap` / `LapCompleted(int)` count laps.
+- **Previews never reach the scene file**: every spawned object and road stamp goes through
+  `Register` / `TrackDecorator.MarkPreview` (`HideFlags.DontSaveInEditor` on the object and its
+  components in edit mode). The spline's knots do serialize with the scene; `BuildForRun` rewrites
+  them. `ClearPreview` drops the objects.
+- `TrackGeneratorEditor` shows GENERATE LAYOUT / REBUILD PREVIEW / CLEAR PREVIEW / SAVE LAYOUT
+  with a layout assigned, else the old REGENERATE TRACK — plus the **Add palette** (one button
+  per pad-table entry, a coin row, a ramp per jump entry) that inserts at the scene view's pivot
+  (`TrackLayoutTool.PivotOnTrack` → `TrackManager.NearestDistance`; a ramp goes through
+  `InsertRampPiece`, which pins the nearest straight's knot).
+- **The asset is the track; the spline is a preview.** Knots moved with Unity's own spline tools
+  are lost by REBUILD PREVIEW / GENERATE LAYOUT unless **CAPTURE SPLINE EDITS**
+  (`TrackGenerator.CaptureSplineIntoLayout`) reads them back: the knot sequence is one knot per
+  Straight (its end) and one per Loop (its exit, owned by the loop's numbers), a Straight taking
+  chord / heading / grade from the offset to the previous knot and bank from the knot's up.
+  Added or removed knots are refused (edit the pieces list instead). `SafeDestroy` refuses to
+  destroy anything holding a `TrackManager` or `ShipMotor`; `TrackReady` re-finds the manager and
+  its spline and errors cleanly if the Track object is damaged.
+- **`TrackLayoutTool`** (`Editor/TrackLayoutTool.cs`, `[EditorTool("Track Layout",
+  typeof(TrackGenerator))]`, M4b): draws the circuit's centre and edge lines off
+  `GetPoseAtDistance` every 15 m, a pick button per piece and pickup, and the selected one's
+  handles — a straight's knot: `Handles.RotationHandle` decomposed into heading / grade / bank
+  (forward → heading and pitch, `SignedAngle` of the up about forward → bank) and a chord
+  `Slider`; a loop: `RadiusHandle` on the first ring and, at `LoopSection.GetExitPose`, drift
+  and carry `Slider`s and a yaw `Disc` about the entry up; a tube: `RadiusHandle` on the pipe's
+  axis and a length slider at its end; a ramp: a lateral slider; a pickup: `FreeMoveHandle`
+  projected back with `NearestDistance`. Delete removes the selected pickup or feature piece
+  (never a straight). Every edit is `Undo.RecordObject(layout)` + `SetDirty`; a piece edit
+  replays the spline at once (`PreviewSpline`, knots + sections only) and the full preview
+  (`PreviewLayout`) follows 0.4 s after the last edit via `EditorApplication.update`. The editor
+  asmdef references neither Splines nor Mathematics: the tool works in Vector3 through
+  `TrackGenerator.KnotDirection` / `KnotRotation(Vector3, float)` and the manager's sampling.
+
 ### Core Settings (Odin region)
 
 - `trackWidth` — pushed into `TrackManager.SetWidth` and `TrackDecorator.SetTrackWidth` on every
@@ -271,8 +341,9 @@ brake — and the effect is divided by the ship's `weight`.
 - **Tiered boost orbs override the definition's delta and colour per instance** via
   `SetDefinition(def, speedDelta, tint)` — the shared `PadDefinition` asset is never mutated.
   Three rarity tiers: green 1×, blue 2.5×, purple 10× of `GameManager.powerUpSpeedBoost`; the
-  higher the multiplier the scarcer the orb and the more it sways. Tier weights/colours/sway live
-  in `TrackGenerator.orbTiers`.
+  higher the multiplier the scarcer the orb and the more it sways. A tier is simply a
+  `spawnTable` entry (multiplier, colour, sway); `SetDefinition(def, speedDelta, tint, tierName)`
+  applies it per instance. There is no separate `orbTiers` field.
 - `PadSpawnEntry.lane` (Ground / Air) is the prepared **air lane**: Air entries spawn
   `GameSettings.airLaneHeight` above the flight line along the track's up, reachable only off a
   jump. No table carries one yet.

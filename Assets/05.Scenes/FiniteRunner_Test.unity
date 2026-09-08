@@ -4309,6 +4309,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.TrackGenerator
   trackWidth: 104.4
   trackShape: {fileID: 11400000, guid: ba50ea5278a64458aa28bc1c4e498c44, type: 2}
+  layout: {fileID: 11400000, guid: fb722176b4ce45cfb3d5f63cca7f5974, type: 2}
   spawnTable:
   - name: Green
     prefab: {fileID: 0}
@@ -4373,7 +4374,7 @@ MonoBehaviour:
   track: {fileID: 1402584888}
   gameManager: {fileID: 0}
   ship: {fileID: 0}
-  endless: 1
+  endless: 0
   randomize: 1
   seed: 0
   aheadDistance: 1600
