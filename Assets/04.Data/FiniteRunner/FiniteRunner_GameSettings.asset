@@ -27,10 +27,29 @@ MonoBehaviour:
   airLaneHeight: 30
   landingShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
   wallHitShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  landingSparkleCount: 45
+  landingSparkleScale: 3
+  landingSparkleColor: {r: 1, g: 0.85, b: 0.4, a: 1}
   loopSpeedFloorKmh: 1200
   loopSpeedRampKmhPer100m: 18
   loopSpeedCapKmh: 2900
   loopFallGlitchStrength: 0.8
+  loopCinematic: 1
+  loopCinematicHoldSeconds: 0.25
+  loopSlowMo: 1
+  loopApparentSpeedKmh: 650
+  loopMinTimeScale: 0.08
+  loopTimeScale: 0.5
+  loopSlowMoBlendIn: 0.2
+  loopSlowMoBlendOut: 0.35
+  winCameraHoldSeconds: 2
+  winGlitchRampSeconds: 0.8
+  winGlitchHoldSeconds: 0.4
+  winBannerDelaySeconds: 0.2
+  winBannerLetterStaggerSeconds: 0.045
+  winBannerLetterSlamSeconds: 0.32
+  winBannerGlitchPunch: 0.4
+  winBannerShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
   dashEnabled: 1
   dashCost: 0.5
   dashDoubleTapSeconds: 0.3
@@ -38,6 +57,7 @@ MonoBehaviour:
   dashWallHitCooldownSeconds: 0.5
   dashGhostLifetime: 0.35
   dashGhostStartAlpha: 0.45
+  dashGhostDriftMeters: 0
   dashGhostMaterial: {fileID: 2100000, guid: a3d45f0c8b21463f9d6e7c5a1b2f8d43, type: 2}
   barrelRollTrailSeconds: 0.6
   barrelRollTrailWidth: 0.9
@@ -62,3 +82,13 @@ MonoBehaviour:
   speedLinesSettings: {fileID: 0}
   boostPulseStrength: 0.4
   boostPulseSeconds: 0.6
+  vhsEnabled: 1
+  vhsSettings: {fileID: 0}
+  psxEnabled: 1
+  psxSettings: {fileID: 0}
+  crtEnabled: 1
+  crtSettings: {fileID: 0}
+  musicEnabled: 1
+  musicSettings: {fileID: 0}
+  sfxEnabled: 1
+  sfxSettings: {fileID: 0}

@@ -107,6 +107,16 @@ rank table and **banks nothing**. The runner's rows come off the live `GameManag
 Layout is the mission brief's clothes: a left column of `ResultRow`s under `StatHeaderRow`s, video
 holder at right showing NO SIGNAL until `RunnerLevelDefinition.completeVideo` is assigned.
 
+**The rows are text lines, not plates**: `ResultRow` disables its plate and draws a WHITE label
+(not `theme.TextPrimary`, which the shipped theme asset has at 49% grey — fine on a plate, unreadable
+on the bare backdrop) with an accent value, like the section headers. The title is white for the
+same reason. `ResultRow.RequiredWidth` scales the screen's 34 pt label measurement to its 28 pt
+render and reserves 220 px for the value. After the TOTAL row, `results.FitColumn(ColumnLeft,
+ColumnMaxWidth)` pins the column's LEFT edge to the title's glyph edge (−880) and caps its width so
+the widest row ends at −20, clear of the video plate (+35); a label that still cannot fit shrinks
+its own font (`FitLabel`, floor 18 pt) rather than running into the value. Fit before the labels
+are cleared for typing — `FitLabel` measures what the row shows.
+
 Played as a **`RevealSequencer`** of steps on unscaled time — plain C#, no coroutines, so a skip
 resolves in one frame:
 

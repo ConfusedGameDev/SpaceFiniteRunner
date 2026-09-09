@@ -68,7 +68,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     public class MissionCompleteScreen : MonoBehaviour
     {
         const int SortingOrder = 25;      // the game-over tier: the two never coexist
-        const float ColumnX = -430f;      // left column: the result rows
+        const float ColumnX = -430f;      // left column: the title and level name
+        const float ColumnLeft = -880f;   // the title's glyph edge: the result rows line up on it
+        const float ColumnMaxWidth = 860f; // rows end at -20, clear of the video plate's left edge (+35)
         const float PanelX = 450f;        // right side: video holder, rank, buttons
         const float RowsTop = 330f;
         const float RowHeight = 44f;
@@ -242,7 +244,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             var title = MenuScreen.MakeText("MissionComplete", rect, new Vector2(ColumnX, 462f), new Vector2(900f, 70f),
                                             MenuTextLibrary.Load().Get(MenuTextId.MissionComplete), TitleFontSize,
-                                            theme.TextPrimary, theme.TitleFont, TextAnchor.MiddleLeft);
+                                            Color.white, theme.TitleFont, TextAnchor.MiddleLeft);
             LocalizedLabel.Bind(title, MenuTextId.MissionComplete);
             MenuScreen.MakeText("LevelName", rect, new Vector2(ColumnX, 404f), new Vector2(900f, 44f),
                                 (data.title ?? string.Empty).ToUpperInvariant(), 30, theme.Accent, theme.BodyFont, TextAnchor.MiddleLeft);
@@ -299,6 +301,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             totalRow.SetValueFontSize(TotalValueFontSize);
             totalRow.SetTint(theme.Accent, theme.Accent);
             totalRow.SetValueText(StatFormat.Money(0));
+
+            // The uniform fit centred the rows on the column and grew them both
+            // ways; pin them to the title's edge and keep them off the video.
+            results.FitColumn(ColumnLeft, ColumnMaxWidth);
 
             results.Show(staggered: false);
             foreach (var row in results.Rows) row.EntranceAlpha = 0f;
@@ -492,7 +498,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                     ChallengeResult challenge = data.challenges[ChallengeIndex(line)];
                     if (challenge.done)
                     {
-                        result.SetTint(theme.TextPrimary, theme.Accent);
+                        result.SetTint(Color.white, theme.Accent);
                         sequence.Add(new ActionStep(RevealTotal));
                         sequence.Add(new CountUpStep(result, challenge.multiplier, CountSeconds,
                                                      v => "×" + v.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture),

@@ -98,8 +98,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
         /// </summary>
         public virtual bool Focusable => true;
 
-        /// <summary>Plate width this row needs for a label of the given rendered width.</summary>
-        public float RequiredWidth(float labelWidth) => LabelInset * 2f + labelWidth + ReservedRightWidth;
+        /// <summary>
+        /// Plate width this row needs for a label measured at
+        /// <see cref="LabelFontSize"/>. A row type that renders its label at
+        /// another size overrides this to scale the measurement.
+        /// </summary>
+        public virtual float RequiredWidth(float labelWidth) => LabelInset * 2f + labelWidth + ReservedRightWidth;
 
         /// <summary>
         /// Re-widens the row after a later sibling turned out to need more

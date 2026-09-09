@@ -224,6 +224,28 @@ namespace ConfusedGameDev.FiniteRunner.UI
             foreach (var row in rows) row.SetWidth(width);
         }
 
+        /// <summary>
+        /// Re-seats the column so the plates' LEFT edge sits at
+        /// <paramref name="leftEdge"/> and caps their width at
+        /// <paramref name="maxWidth"/>. The uniform fit centres plates on the
+        /// column and widens them both ways, so a page that must line up with
+        /// something (a title, a screen edge) or stay clear of something (a
+        /// video holder) calls this once its rows are in. A row wider than the
+        /// cap re-fits itself in <see cref="MenuRow.SetWidth"/>.
+        /// </summary>
+        public void FitColumn(float leftEdge, float maxWidth)
+        {
+            if (rowWidth > maxWidth) SetRowWidth(maxWidth);
+            columnX = leftEdge + rowWidth * 0.5f;
+            foreach (var row in rows)
+            {
+                if (row == null) continue;
+                Vector2 pos = row.Rect.anchoredPosition;
+                pos.x = columnX;
+                row.Rect.anchoredPosition = pos;
+            }
+        }
+
         /// <summary>Adds a non-interactive line of text that joins the entrance animation.</summary>
         public Text AddLabel(string name, Vector2 position, Vector2 size, string content, int fontSize,
                              Color color, Font font, TextAnchor anchor, float delay)
