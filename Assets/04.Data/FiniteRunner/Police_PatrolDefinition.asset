@@ -16,7 +16,7 @@ MonoBehaviour:
   ramp: 0.083
   rubberBand: 0.95
   catchUpAccel: 3.33
-  boostShare: 0.442
+  boostShare: 0.156
   startGap: 548
   catchDistance: 10
   warnDistance: 130

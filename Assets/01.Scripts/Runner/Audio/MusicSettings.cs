@@ -24,6 +24,9 @@ namespace ConfusedGameDev.FiniteRunner.Audio
         /// <summary>The main menu's asset, inside any Resources folder. Keep in sync with the asset's file name.</summary>
         public const string MenuResourcePath = "FiniteRunner_MenuMusic";
 
+        /// <summary>The Store's asset, inside any Resources folder — the runner's track from its first beat. Keep in sync with the asset's file name.</summary>
+        public const string StoreResourcePath = "FiniteRunner_StoreMusic";
+
         // --------------------------------------------------------------- track
         [TitleGroup("Track")]
         [Tooltip("The soundtrack. Authored as a seamless loop: the source loops it and every play may start anywhere in it.")]
@@ -35,7 +38,7 @@ namespace ConfusedGameDev.FiniteRunner.Audio
         public float volume = 0.8f;
 
         [TitleGroup("Track")]
-        [Tooltip("Start every play (scene start, every RETRY) at a random point in the loop instead of its first beat.")]
+        [Tooltip("Start every play (scene start, every RETRY) at a random point in the loop instead of its first beat. Off on the Store's asset: the shop always opens on the track's first beat.")]
         public bool randomStart = true;
 
         // --------------------------------------------------------------- fades

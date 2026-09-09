@@ -160,8 +160,17 @@ Systems**, which places only the music — the menu has no pickups), wired to
 `MusicAssetBuilder.CreateOrLoadMenu`). `MainMenuController.Start` (the standalone path only — the
 overlay leaves the runner's music alone) calls `RunnerMusic.Apply(true)` just to find it. The loop
 starts on its own `Start` and is never faded by the menu: START goes through `LoadingScreen`, whose
-Loading duck takes the Gameplay bus out and the scene load destroys the source. The Store has no
-music of its own yet — the same placer call would give it one.
+Loading duck takes the Gameplay bus out and the scene load destroys the source.
+
+**The Store runs it too, on a third asset.** `Store.unity` carries its own `===SYSTEMS===` / `Music`
+object (placed by **Tools → FiniteRunner → Place Store Systems**) wired to
+`04.Data/Resources/FiniteRunner_StoreMusic.asset` (`MusicSettings.StoreResourcePath`, seeded by
+**Create Store Music Settings** / `MusicAssetBuilder.CreateOrLoadStore`): the RUNNER's track
+(`Music Finite runner.mp3`) with **`randomStart` OFF**, so the shop always opens on the first beat,
+fade-in 1.5 s, fade-out 0.6 s. `StoreScreen.Start` calls `RunnerMusic.Apply(true)` to find it, and
+`StoreScreen.Leave` (START MISSION, Coming Soon, Back to menu) books `RunnerMusic.Instance.FadeOut()` at
+the asset's fade-out **alongside** the curtain's Loading duck, so the track falls away as the curtain
+draws instead of cutting with the scene, and the next scene's music rises after it.
 
 The source is `loop = true` on `GameAudio.Music`, so **pause is the snapshot's job** — the Paused
 / Loading / Cinema ducks hide it with no pause detection in the system, and it keeps running

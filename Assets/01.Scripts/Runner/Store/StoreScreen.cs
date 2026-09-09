@@ -5,6 +5,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
+using ConfusedGameDev.FiniteRunner.Audio;
 using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.HUD;
@@ -96,6 +97,11 @@ namespace ConfusedGameDev.FiniteRunner.Store
             MenuScreenFactory.EnsureEventSystem();
             if (wallet != null) wallet.ValueSource = () => PlayerStats.Balance;
             openedTime = Time.unscaledTime;
+            // The shop's music: the scene's hand-placed Music object on the
+            // FiniteRunner_StoreMusic asset (Tools → FiniteRunner → Place Store
+            // Systems). Found, never spawned; it starts its own play on its
+            // Start — the runner's track from the first beat, faded in.
+            RunnerMusic.Apply(true);
 
             current = built.Count > 0 ? built[0] : null;
             if (current != null)
@@ -481,6 +487,11 @@ namespace ConfusedGameDev.FiniteRunner.Store
             leaving = true;
             PlayerProfileStore.SaveIfDirty();
             Blip(sceneName == null ? theme.BackClip : theme.ConfirmClip);
+            // The music leaves with the scene, not under it: its own fade
+            // (the asset's fade-out) runs alongside the curtain's Loading duck,
+            // so START MISSION never cuts the track — it falls away as the
+            // curtain draws, and the next scene's music rises after it.
+            if (RunnerMusic.Instance != null) RunnerMusic.Instance.FadeOut();
             if (sceneName == null) LoadingScreen.LoadMainMenu();
             else LoadingScreen.Load(sceneName);
         }

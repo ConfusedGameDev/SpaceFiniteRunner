@@ -17,7 +17,9 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// Tools → FiniteRunner → Place Main Menu Systems is the main menu
     /// scene's counterpart: the same <see cref="RunnerMusic"/> object, wired
     /// to the FiniteRunner_MenuMusic asset instead, and nothing else — the
-    /// menu has no pickups to record. A new object goes under the scene's
+    /// menu has no pickups to record. Tools → FiniteRunner → Place Store
+    /// Systems does the same for the Store scene on the FiniteRunner_StoreMusic
+    /// asset (the runner's track from its first beat). A new object goes under the scene's
     /// <c>===SYSTEMS===</c> header, created when the scene has none. The
     /// project rule: systems are hand-placed so they can be tuned before
     /// play, nothing creates one at play time, and the runtime only finds
@@ -57,6 +59,19 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
 
             int placed = Place<RunnerMusic>("Music", music => music.settings = MusicAssetBuilder.CreateOrLoadMenu());
             Debug.Log($"RunnerSceneSystemsPlacer: {placed} main menu object(s) placed in '{EditorSceneManager.GetActiveScene().name}' — save the scene to keep them.");
+        }
+
+        [MenuItem("Tools/FiniteRunner/Place Store Systems")]
+        public static void PlaceInStoreScene()
+        {
+            if (Application.isPlaying)
+            {
+                Debug.LogWarning("RunnerSceneSystemsPlacer: place the systems in edit mode.");
+                return;
+            }
+
+            int placed = Place<RunnerMusic>("Music", music => music.settings = MusicAssetBuilder.CreateOrLoadStore());
+            Debug.Log($"RunnerSceneSystemsPlacer: {placed} store object(s) placed in '{EditorSceneManager.GetActiveScene().name}' — save the scene to keep them.");
         }
 
         static int Place<T>(string name, System.Action<T> configure = null) where T : Component
