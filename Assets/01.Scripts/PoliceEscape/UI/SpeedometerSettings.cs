@@ -91,5 +91,60 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
         [TitleGroup("Readout")]
         public Color textColor = new(0.92f, 0.95f, 1f, 1f);
+
+        // ----------------------------------------------------------- life ring
+        // The player's life is the glitch corruption meter: LevelManager.ApplyDamage
+        // raises GlitchController.baseIntensity on every police hit and blast,
+        // and full corruption ends the run. The ring wraps the gauge's border
+        // and shows what is LEFT, so the risk reads at a glance.
+        [ToggleGroup(nameof(lifeRing), "Life Ring")]
+        [Tooltip("Draw a segmented ring around the gauge showing the car's remaining life (1 − glitch corruption): green when whole, yellow worn, red when the next hit could end it. Segment count and thickness are built once; colours apply live.")]
+        public bool lifeRing = true;
+
+        [ToggleGroup(nameof(lifeRing))]
+        [Tooltip("Arc segments around the ring. Fewer = chunkier, each hit visibly knocks segments out.")]
+        [PropertyRange(6, 48)]
+        public int lifeRingSegments = 24;
+
+        [ToggleGroup(nameof(lifeRing))]
+        [Tooltip("Ring thickness, just outside the border.")]
+        [PropertyRange(4f, 30f), SuffixLabel("px", true)]
+        public float lifeRingThickness = 12f;
+
+        [ToggleGroup(nameof(lifeRing))]
+        [Tooltip("Dark gap between neighbouring segments.")]
+        [PropertyRange(0f, 8f), SuffixLabel("°", true)]
+        public float lifeRingGapDegrees = 2.5f;
+
+        [ToggleGroup(nameof(lifeRing))]
+        [Tooltip("Ring colour at full life.")]
+        public Color lifeFullColor = new(0.35f, 1f, 0.45f, 1f);
+
+        [ToggleGroup(nameof(lifeRing))]
+        [Tooltip("Ring colour at half life.")]
+        public Color lifeMidColor = new(1f, 0.85f, 0.2f, 1f);
+
+        [ToggleGroup(nameof(lifeRing))]
+        [Tooltip("Ring colour as life runs out.")]
+        public Color lifeLowColor = new(1f, 0.2f, 0.15f, 1f);
+
+        [ToggleGroup(nameof(lifeRing))]
+        [Tooltip("Life fraction under which the ring blinks — one more police hit (0.34 corruption) and the run ends.")]
+        [PropertyRange(0f, 1f)]
+        public float lifeLowFraction = 0.35f;
+
+        [ToggleGroup(nameof(lifeRing))]
+        [Tooltip("Alpha of a lost segment: the ring keeps its shape so the missing part reads as missing.")]
+        [PropertyRange(0f, 0.5f)]
+        public float lifeRingEmptyAlpha = 0.12f;
+
+        [ToggleGroup(nameof(lifeRing))]
+        [Tooltip("Scale the ring punches to on a hit before settling back. 1 = no punch.")]
+        [PropertyRange(1f, 1.6f)]
+        public float lifeHitPunch = 1.2f;
+
+        [ToggleGroup(nameof(lifeRing))]
+        [Tooltip("Full ring drawn under the segments so the gauge has a rim even at zero life. Alpha 0 = none.")]
+        public Color lifeRingTrackColor = new(0f, 0f, 0f, 0.35f);
     }
 }

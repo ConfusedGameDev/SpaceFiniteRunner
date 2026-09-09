@@ -62,6 +62,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             ? Mathf.Clamp01(lostSightTimer / settings.loseSightSeconds)
             : 0f;
 
+        /// <summary>
+        /// 0..1 of a searching cruiser's sweep still to run: 1 the moment it
+        /// drops to Search, 0 as it gives up back to Patrol — the radar's
+        /// chase ring keeps a little heat on it. 0 in any other state.
+        /// </summary>
+        public float SearchRemaining => State == AiState.Search && settings != null && settings.searchDuration > 0f
+            ? Mathf.Clamp01(searchTimer / settings.searchDuration)
+            : 0f;
+
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
         public bool Handbrake => health != null && health.IsDead;

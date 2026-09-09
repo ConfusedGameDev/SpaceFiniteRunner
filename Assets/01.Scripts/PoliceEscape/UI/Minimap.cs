@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
+using ConfusedGameDev.FiniteRunner.UI;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,7 +18,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     /// red/blue), clamped to the rim when beyond radar range. A chasing
     /// cruiser also casts its detection radius as a translucent disc that
     /// tints from red to blue as the player nears its edge (or its line of
-    /// sight runs out), so "out of range" is a place you can see. Built entirely
+    /// sight runs out), so "out of range" is a place you can see. A segmented
+    /// CHASE RING around the rim sums the fleet into one read-out — full and
+    /// red under a cruiser's nose, draining to blue as the player pulls away,
+    /// empty once every patrol has given up (the escape). Built entirely
     /// from code on its own overlay canvas — no scene wiring, no layers, no
     /// fonts; sprites are generated at runtime. CityManager spawns it when
     /// its minimap settings field is assigned; hides itself while no player
@@ -47,6 +51,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         readonly List<PoliceCarInput> police = new();
         readonly List<TrafficCarInput> escapees = new();
         CarController player;
+        RingGauge chaseRing;
+        float chaseShown;        // the ring's eased fill, 0..1
         float refreshTimer;
         bool built;
 
@@ -67,6 +73,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
 
             UpdateCamera();
             UpdateSearchDiscs();
+            UpdateChaseRing(Time.deltaTime);
             UpdateRoute();
             UpdateBlips();
         }
@@ -98,6 +105,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             blipRoot = playerArrow = routeRoot = discRoot = null;
             destinationBlip = null;
             objectivePin = null;
+            chaseRing = null;
+            chaseShown = 0f;
             blips.Clear();
             routeDots.Clear();
             searchDiscs.Clear();
@@ -133,9 +142,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             root.pivot = new Vector2(1f, 0f);
             root.anchoredPosition = new Vector2(-settings.marginPixels, settings.marginPixels);
 
-            // Ring behind the map circle.
-            CreateImage("Border", root, circleSprite, settings.borderColor,
-                new Vector2(size + settings.borderWidth * 2f, size + settings.borderWidth * 2f));
+            // Ring behind the map circle; it also backs the chase ring just outside it.
+            float ringOut = settings.chaseRing ? settings.chaseRingThickness : 0f;
+            float borderDiameter = size + (settings.borderWidth + ringOut) * 2f;
+            CreateImage("Border", root, circleSprite, settings.borderColor, new Vector2(borderDiameter, borderDiameter));
+            // A sibling of the mask, never a child: the mask would clip it to the disc.
+            if (settings.chaseRing)
+            {
+                chaseRing = RingGauge.Create("ChaseRing", root, new RingGauge.Layout
+                {
+                    segments = settings.chaseRingSegments,
+                    diameter = borderDiameter,
+                    thickness = settings.chaseRingThickness,
+                    gapDegrees = settings.chaseRingGapDegrees,
+                    startDegrees = 0f,
+                    sweepDegrees = 360f,
+                    clockwise = true,
+                    emptyAlpha = settings.chaseRingEmptyAlpha,
+                    trackColor = settings.chaseRingTrackColor
+                });
+                chaseRing.SetFill(0.6f, _ => settings.chaseHotColor); // the preview shows a live chase
+            }
 
             // Circular mask with the rendered map inside.
             Image maskImage = CreateImage("MapMask", root, circleSprite, Color.white, new Vector2(size, size));
@@ -321,6 +348,57 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             }
             for (int i = used; i < searchDiscs.Count; i++) searchDiscs[i].enabled = false;
         }
+
+        /// <summary>
+        /// The chase ring: how hunted the player is, as one number off the
+        /// fleet. A CHASING cruiser scores 1 − its safety — the search disc's
+        /// own read-out (distance across the outer part of its range, or its
+        /// lose-sight timer, whichever says safer). A SEARCHING cruiser scores
+        /// what is left of its sweep, weighted down: still hunting, but blind.
+        /// The ring shows the worst cruiser, eased so it visibly drains as
+        /// the player pulls away, and is EMPTY in a safe zone — every patrol
+        /// back on Patrol, which is when the Escape Police objective lands.
+        /// Under a cruiser's nose with a clear view it flashes on the blips'
+        /// beat, so "seen" and "merely near" read differently.
+        /// </summary>
+        void UpdateChaseRing(float dt)
+        {
+            if (chaseRing == null) return;
+            float danger = 0f;
+            bool seen = false;
+            Vector3 origin = player.transform.position;
+            foreach (PoliceCarInput cruiser in police)
+            {
+                if (cruiser == null) continue;
+                if (cruiser.State == PoliceCarInput.AiState.Chase)
+                {
+                    float range = cruiser.DetectionRange;
+                    Vector3 delta = cruiser.transform.position - origin;
+                    delta.y = 0f;
+                    float distance01 = range > 0f ? Mathf.Clamp01(delta.magnitude / range) : 1f;
+                    float byDistance = Mathf.InverseLerp(settings.searchDiscBlendStart, 1f, distance01);
+                    float safety = Mathf.Max(byDistance, cruiser.LoseSightProgress);
+                    danger = Mathf.Max(danger, 1f - safety);
+                    if (safety <= 0f) seen = true;
+                }
+                else if (cruiser.State == PoliceCarInput.AiState.Search)
+                {
+                    danger = Mathf.Max(danger, cruiser.SearchRemaining * settings.chaseSearchWeight);
+                }
+            }
+
+            chaseShown = Mathf.Lerp(chaseShown, danger, 1f - Mathf.Exp(-settings.chaseRingSharpness * dt));
+            if (chaseShown < 0.005f) chaseShown = 0f;
+            Color colour = ChaseColor(chaseShown);
+            if (seen && Mathf.FloorToInt(Time.time / settings.chaseFlashInterval) % 2 == 1)
+                colour = Color.Lerp(colour, Color.white, 0.6f);
+            chaseRing.SetFill(chaseShown, _ => colour);
+        }
+
+        // Safe → warm over the lower half of the danger, warm → hot over the upper.
+        Color ChaseColor(float danger) => danger > 0.5f
+            ? Color.Lerp(settings.chaseWarmColor, settings.chaseHotColor, (danger - 0.5f) / 0.5f)
+            : Color.Lerp(settings.chaseSafeColor, settings.chaseWarmColor, danger / 0.5f);
 
         void PlaceBlip(ref int used, Vector3 world, Color color, float uiRadius, float scale, Vector3 forward, Vector3 right)
         {

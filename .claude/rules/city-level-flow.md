@@ -238,4 +238,26 @@ escape — with prefixes from the four `Objective*` `MenuTextId`s.
 **Its ReachSpeed line shows only the target — the speedometer already shows the current speed.**
 The HUD carries the objective alone; challenges live on the map screen.
 
+## HUD rings — life and chase (`UI/Speedometer.cs`, `UI/Minimap.cs`)
+
+Both gauges wear a segmented ring just outside their border, built on the UI assembly's
+`RingGauge` (`UI/RingGauge.cs`: N Radial360-filled annulus Images rotated to their start angle,
+a dim track under them, `SetFill(fraction, colorAt)` with the runner's `SpeedGauge` contract —
+alpha is the lit channel, no Image writes unless something changed). Geometry is built once with
+the gauge (`Build`/`TearDown`, the Rebuild Preview button), colours apply live. All knobs sit in
+`ToggleGroup`s on `SpeedometerSettings` ("Life Ring") and `MinimapSettings` ("Chase Ring").
+
+- **Life ring (speedometer)** = `1 − GlitchController.baseIntensity`, the corruption meter
+  `LevelManager.ApplyDamage` raises (three police hits end the run). There is no damage event, so
+  a DROP between frames is the hit: the ring punches (`lifeHitPunch`) and flashes white, then
+  settles on the colour of what remains (full → mid → low over the two halves of life); under
+  `lifeLowFraction` it blinks. A rising value (the opening glitch healing) is not a hit.
+- **Chase ring (minimap)** = the fleet's worst cruiser: a CHASING one scores `1 − safety`, safety
+  being the search disc's own read-out (`InverseLerp(searchDiscBlendStart, 1, distance/range)` or
+  `LoseSightProgress`, whichever is safer); a SEARCHING one scores `SearchRemaining ×
+  chaseSearchWeight` (new `PoliceCarInput.SearchRemaining`, 1 → 0 over `searchDuration`). The
+  fill is eased (`chaseRingSharpness`) so it visibly drains as the player pulls away, and is EMPTY
+  exactly when `AnyPatrolHunting()` is false — the Escape Police completion. Deep in range with a
+  clear view it flashes on the blips' `chaseFlashInterval`.
+
 `CarTestSceneBuilder` creates/loads the level asset and the hand-placed `PauseMenu`.

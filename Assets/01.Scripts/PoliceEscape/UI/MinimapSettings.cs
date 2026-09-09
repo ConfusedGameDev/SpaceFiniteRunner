@@ -151,5 +151,60 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         [Tooltip("How far into the disc the tint starts sliding from danger toward safe (fraction of the radius). 0.5 = the outer half of the disc is the gradient.")]
         [PropertyRange(0f, 0.95f)]
         public float searchDiscBlendStart = 0.5f;
+
+        // ----------------------------------------------------------- chase ring
+        // How hunted the player is, as one number off the fleet, on a ring
+        // around the radar. It drains as the player pulls out of range or
+        // breaks line of sight, and is EMPTY once every patrol is back on
+        // Patrol — which is exactly when the Escape Police objective completes.
+        [ToggleGroup(nameof(chaseRing), "Chase Ring")]
+        [Tooltip("Draw a segmented ring around the radar filled by how hunted the player is: full and red under a chasing cruiser's nose, draining to blue as they pull away, empty in a safe zone. Segment count and thickness are built once; colours apply live.")]
+        public bool chaseRing = true;
+
+        [ToggleGroup(nameof(chaseRing))]
+        [Tooltip("Arc segments around the ring.")]
+        [PropertyRange(8, 64)]
+        public int chaseRingSegments = 32;
+
+        [ToggleGroup(nameof(chaseRing))]
+        [Tooltip("Ring thickness, just outside the border.")]
+        [PropertyRange(4f, 30f), SuffixLabel("px", true)]
+        public float chaseRingThickness = 10f;
+
+        [ToggleGroup(nameof(chaseRing))]
+        [Tooltip("Dark gap between neighbouring segments.")]
+        [PropertyRange(0f, 8f), SuffixLabel("°", true)]
+        public float chaseRingGapDegrees = 2f;
+
+        [ToggleGroup(nameof(chaseRing))]
+        [Tooltip("Ring colour when a cruiser is right on the player with a clear view.")]
+        public Color chaseHotColor = new(1f, 0.15f, 0.15f, 1f);
+
+        [ToggleGroup(nameof(chaseRing))]
+        [Tooltip("Ring colour halfway to safe.")]
+        public Color chaseWarmColor = new(1f, 0.6f, 0.15f, 1f);
+
+        [ToggleGroup(nameof(chaseRing))]
+        [Tooltip("Ring colour as the last of the danger drains — the cruiser is about to lose the player.")]
+        public Color chaseSafeColor = new(0.2f, 0.5f, 1f, 1f);
+
+        [ToggleGroup(nameof(chaseRing))]
+        [Tooltip("How much a SEARCHING cruiser (blind, sweeping the last known position) fills the ring at the start of its search, draining to nothing as it gives up. The objective is not met until it does, so this keeps the ring lit while the player is still hunted.")]
+        [PropertyRange(0f, 1f)]
+        public float chaseSearchWeight = 0.4f;
+
+        [ToggleGroup(nameof(chaseRing))]
+        [Tooltip("How quickly the ring follows the fleet's danger. Higher = stiffer; lower = a visible drain as the player pulls away.")]
+        [PropertyRange(0.5f, 10f)]
+        public float chaseRingSharpness = 3f;
+
+        [ToggleGroup(nameof(chaseRing))]
+        [Tooltip("Alpha of an unlit segment.")]
+        [PropertyRange(0f, 0.5f)]
+        public float chaseRingEmptyAlpha = 0.1f;
+
+        [ToggleGroup(nameof(chaseRing))]
+        [Tooltip("Full ring drawn under the segments so the radar keeps its rim when safe. Alpha 0 = none.")]
+        public Color chaseRingTrackColor = new(0f, 0f, 0f, 0.35f);
     }
 }

@@ -1,6 +1,8 @@
+using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.HUD;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.AI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
+using ConfusedGameDev.FiniteRunner.UI;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,7 +13,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     /// Analog speedometer in the bottom-left corner, mirroring the radar in
     /// the bottom-right: circular face with tick marks (red past the
     /// redline), a smoothed needle sweeping the dial and a digital km/h
-    /// readout (built-in LegacyRuntime font — no TMP setup needed). Built
+    /// readout (built-in LegacyRuntime font — no TMP setup needed), and a
+    /// segmented LIFE RING around the border: what is left of the car, off
+    /// the glitch corruption meter (LevelManager.ApplyDamage), green to red,
+    /// punched and flashed on every hit, blinking when the next one could
+    /// end the run. Built
     /// entirely from code on its own overlay canvas; CityManager spawns it
     /// when its speedometer settings field is assigned; hides itself while
     /// no player car exists. All look/feel knobs live on SpeedometerSettings.
@@ -19,6 +25,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     public class Speedometer : MonoBehaviour
     {
         const int UiLayer = 5;
+        const float HitFlashSeconds = 0.3f;
+        const float LowBlinkHz = 1.6f;
 
         [Required, InlineEditor]
         [Tooltip("All gauge tunables live on this asset — add new knobs there, not here.")]
@@ -31,6 +39,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         Text unitLabel;
         CarController player;
         Sprite circleSprite;
+        RingGauge lifeRing;
+        float lastLife = -1f;    // < 0 = no sample yet; a drop from here is a hit
+        float hitFlash;          // 1 on a hit, decays: the punch and the white flash
         float needleAngle;
         float refreshTimer;
         bool built;
@@ -55,6 +66,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             needle.localEulerAngles = new Vector3(0f, 0f, needleAngle);
             needleImage.color = settings.needleColor;
 
+            UpdateLifeRing(Time.deltaTime);
+
             digital.enabled = unitLabel.enabled = settings.showDigital;
             if (settings.showDigital)
             {
@@ -71,6 +84,34 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             refreshTimer = 1f;
             player = PatrolManager.FindPlayerCar();
         }
+
+        // The life ring: what is left of the car, off the glitch corruption
+        // meter (LevelManager.ApplyDamage raises it; full = the run ends).
+        // There is no damage event, so a DROP between frames is the hit: the
+        // ring punches and flashes white, then settles on the colour of what
+        // remains. Under lifeLowFraction it blinks. A rising value (the scene's
+        // opening glitch healing, the meter's own fade) is not a hit.
+        void UpdateLifeRing(float dt)
+        {
+            if (lifeRing == null) return;
+            GlitchController glitch = GlitchController.Instance;
+            float life = glitch != null ? 1f - Mathf.Clamp01(glitch.baseIntensity) : 1f;
+            if (lastLife >= 0f && life < lastLife - 0.01f) hitFlash = 1f;
+            lastLife = life;
+
+            hitFlash = Mathf.MoveTowards(hitFlash, 0f, dt / HitFlashSeconds);
+            lifeRing.Rect.localScale = Vector3.one * Mathf.Lerp(1f, settings.lifeHitPunch, hitFlash);
+
+            Color colour = Color.Lerp(LifeColor(life), Color.white, hitFlash);
+            if (life > 0f && life <= settings.lifeLowFraction)
+                colour.a = Mathf.Lerp(0.45f, 1f, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * LowBlinkHz * Mathf.PI * 2f));
+            lifeRing.SetFill(life, _ => colour);
+        }
+
+        // Full → mid over the upper half of life, mid → low over the lower half.
+        Color LifeColor(float life) => life > 0.5f
+            ? Color.Lerp(settings.lifeMidColor, settings.lifeFullColor, (life - 0.5f) / 0.5f)
+            : Color.Lerp(settings.lifeLowColor, settings.lifeMidColor, life / 0.5f);
 
         // --------------------------------------------------------------- build
 
@@ -90,6 +131,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             needle = null;
             needleImage = null;
             digital = unitLabel = null;
+            lifeRing = null;
+            lastLife = -1f;
+            hitFlash = 0f;
         }
 
         static void Kill(Object o)
@@ -123,8 +167,26 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             root.pivot = new Vector2(0f, 0f);
             root.anchoredPosition = new Vector2(settings.marginPixels, settings.marginPixels);
 
-            CreateImage("Border", root, circleSprite, settings.borderColor,
-                new Vector2(size + settings.borderWidth * 2f, size + settings.borderWidth * 2f));
+            // The border disc also backs the life ring, which sits just outside it.
+            float ringOut = settings.lifeRing ? settings.lifeRingThickness : 0f;
+            float borderDiameter = size + (settings.borderWidth + ringOut) * 2f;
+            CreateImage("Border", root, circleSprite, settings.borderColor, new Vector2(borderDiameter, borderDiameter));
+            if (settings.lifeRing)
+            {
+                lifeRing = RingGauge.Create("LifeRing", root, new RingGauge.Layout
+                {
+                    segments = settings.lifeRingSegments,
+                    diameter = borderDiameter,
+                    thickness = settings.lifeRingThickness,
+                    gapDegrees = settings.lifeRingGapDegrees,
+                    startDegrees = 0f,
+                    sweepDegrees = 360f,
+                    clockwise = true,
+                    emptyAlpha = settings.lifeRingEmptyAlpha,
+                    trackColor = settings.lifeRingTrackColor
+                });
+                lifeRing.SetFill(1f, _ => settings.lifeFullColor); // the preview shows a whole car
+            }
             CreateImage("Face", root, circleSprite, settings.backgroundColor, new Vector2(size, size));
 
             BuildTicks(root, radius);
