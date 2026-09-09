@@ -170,8 +170,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         // ---------------------------------------------------- mission complete
         // Once the objectives are met the ship keeps flying until it is back on
-        // the track (a jump, loop or tube finishes first), then the glitch
-        // ramps to max, holds, and the Mission Complete panel opens.
+        // the track (a jump, loop or tube finishes first), then the camera
+        // plants for the fly-past, the glitch ramps to max, holds, and the
+        // Mission Complete panel opens.
+        [TitleGroup("Mission complete")]
+        [Tooltip("Real seconds the camera holds a planted trackside shot, watching the escaping ship fly on out of it, before the glitch ramps and the debrief opens. The player cannot move the camera for it. 0 = straight from the chase view into the glitch.")]
+        [PropertyRange(0f, 5f), SuffixLabel("s", true)]
+        public float winCameraHoldSeconds = 2f;
+
         [TitleGroup("Mission complete")]
         [Tooltip("Seconds the glitch takes to ramp from its current level to max once the ship is back on the track after the win.")]
         [PropertyRange(0.1f, 3f), SuffixLabel("s", true)]
@@ -181,6 +187,30 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Seconds the glitch holds at max before the Mission Complete panel opens.")]
         [PropertyRange(0f, 2f), SuffixLabel("s", true)]
         public float winGlitchHoldSeconds = 0.4f;
+
+        [TitleGroup("Mission complete")]
+        [Tooltip("Real seconds after the ship is back on the track before the MISSION ACCOMPLISHED banner starts slamming in over the fly-past.")]
+        [PropertyRange(0f, 2f), SuffixLabel("s", true)]
+        public float winBannerDelaySeconds = 0.2f;
+
+        [TitleGroup("Mission complete")]
+        [Tooltip("Real seconds between one banner letter's entrance and the next. The whole word is in after letters × stagger + slam.")]
+        [PropertyRange(0.01f, 0.2f), SuffixLabel("s", true)]
+        public float winBannerLetterStaggerSeconds = 0.045f;
+
+        [TitleGroup("Mission complete")]
+        [Tooltip("Real seconds one banner letter takes to drop from 3× onto the screen and bounce to rest.")]
+        [PropertyRange(0.1f, 1f), SuffixLabel("s", true)]
+        public float winBannerLetterSlamSeconds = 0.32f;
+
+        [TitleGroup("Mission complete")]
+        [Tooltip("Glitch pulse strength on the frame the banner's last letter lands. 0 = none.")]
+        [PropertyRange(0f, 1f)]
+        public float winBannerGlitchPunch = 0.4f;
+
+        [TitleGroup("Mission complete")]
+        [Tooltip("Camera shake on the frame the banner's last letter lands. Empty = no shake.")]
+        public Cameras.CameraShakeSettings winBannerShake;
 
         // --------------------------------------------------------------- dash
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on

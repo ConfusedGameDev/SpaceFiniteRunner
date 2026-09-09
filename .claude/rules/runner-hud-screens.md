@@ -61,6 +61,31 @@ scaled time, which also keeps the pause menu and the city map from stacking over
 games retry without a scene reload, an answer tears the overlay down **before** running the
 callback.
 
+## `MissionAccomplishedBanner` (`Runner/Screens/`)
+
+The win's exclamation mark, and the ONE text the win prints before the debrief: MISSION
+ACCOMPLISHED (`MenuTextId.MissionAccomplished`, four languages) slams onto the upper third of the
+screen over the planted fly-past shot. `GameManager.FinishWin` raises it (`Show(settings)`) the
+frame the ship is back on the track, calls `Dismiss(ramp + hold)` where the glitch ramp starts,
+and `KillBanner()`s whatever is left in `EndRun` (before the panel) and in `Restart`.
+
+- Its own `ScreenSpaceOverlay` canvas at sorting order 22 — above the HUD (10), messages (15)
+  and pause (20), below the debrief/game over (25). No raycaster; it is a picture.
+- **One object per character**, slots laid out on the theme's `TitleFont` advances
+  (`MenuTextLibrary.MeasureWidth` per glyph; the space is `"A A" − "AA"`), the font shrunk to
+  fit `MaxWordWidth` — so it auto-fits all four languages, never a hardcoded width.
+- **Juice**: a dark band wipes out from the centre; each letter drops from 3.2× (ease-in — the
+  impact is the fast part), bounces once, and lands with a red/cyan split that converges over
+  0.18 s, a rising-pitch `PlaceholderBlip` and a kick that dips the whole word. The LAST letter
+  fires `GameSettings.winBannerShake`, a `GlitchController.Pulse(winBannerGlitchPunch)`, a haptic
+  thump, a white flash and the accent underline wiping out under the word. While holding, one
+  random letter flickers off-register now and then; the word breathes.
+- **Dismiss** tears the letters apart sideways behind a growing split and fades the root; a
+  word still entering finishes first (a zero camera hold still shows the whole word).
+- Unscaled time throughout. Tunables (`winBannerDelaySeconds`, `winBannerLetterStaggerSeconds`,
+  `winBannerLetterSlamSeconds`, `winBannerGlitchPunch`, `winBannerShake`) sit in `GameSettings`'
+  "Mission complete" group next to the camera hold and glitch timings.
+
 ## `MissionCompleteScreen` (`Runner/Screens/`)
 
 The mission's results panel, raised by `GameManager.ShowMissionComplete` once the win's wind-down

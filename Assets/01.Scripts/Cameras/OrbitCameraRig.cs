@@ -151,6 +151,20 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         /// <summary>True while the cinematic shot holds the picture (the view cycle is locked meanwhile).</summary>
         public bool Cinematic => cinematicOn;
 
+        /// <summary>
+        /// Whether the player may move the camera. False locks the orbit where
+        /// it is: every pan source is ignored — the mouse included, which
+        /// <see cref="ICameraTarget.BlockPanInput"/> never silences — and
+        /// auto-recenter stops, so the framing a moment opens on is the framing
+        /// it keeps. A look-back still held when control is taken eases home
+        /// instead of freezing mid-swing. The view cycle is deliberately left
+        /// alone: a result screen is still worth seeing from another angle.
+        /// Game code owns this for the beats where it owns the picture — the
+        /// runner's win fly-past — and hands it back after.
+        /// </summary>
+        [Tooltip("Uncheck to lock the camera: every pan source is ignored — the MOUSE included, which the vehicle's own BlockPanInput never silences — and auto-recenter stops, so the orbit holds the framing it has. The view cycle (Tab / Back) still works. Authored here and driven by game code for the beats where it owns the picture, like the runner's win fly-past.")]
+        public bool hasPlayerControl = true;
+
         // The camera this rig drives (set by the installer, which found it in
         // the target's own scene) — never Camera.main, which answers the OTHER
         // scene's camera during the city → runner additive handoff.
@@ -190,7 +204,11 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             cinematicCamera.Follow = vehicle != null ? mount : null;
             cinematicCamera.LookAt = vehicle != null ? anchor : null;
             // Fresh vehicle: start resting behind it, in the default view,
-            // never mid-glance and never mid-shot.
+            // never mid-glance and never mid-shot. hasPlayerControl is NOT reset
+            // here: it is authored on the rig and Attach seats the target during
+            // Awake, so forcing it true would undo an unchecked box before the
+            // first frame. The runner hands control back itself — FinishWin at
+            // the debrief, Restart on a retry.
             lookBackBlend = 0f;
             cinematicOn = false;
             cinematicBlendLeft = 0f;
@@ -738,7 +756,9 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
 
             ApplyFraming(dt);
 
-            if (!UpdateLookBack(dt))
+            // With control taken away neither branch runs and the orbit simply
+            // holds the axes it has — that hold is what "locked" means here.
+            if (!UpdateLookBack(dt) && hasPlayerControl)
             {
                 Vector2 pan = ReadPan(dt);
                 if (pan.sqrMagnitude > 0.0001f)
@@ -799,7 +819,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         /// </summary>
         bool UpdateLookBack(float dt)
         {
-            bool held = settings.lookBack && LookBackHeld();
+            bool held = hasPlayerControl && settings.lookBack && LookBackHeld();
             if (held && lookBackBlend <= 0f)
             {
                 // Remember the pan we are glancing away from, so the release
@@ -853,7 +873,8 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         /// (<see cref="ICameraTarget.BlockPanInput"/> — a car's air control),
         /// only the mouse keeps panning; auto-recenter runs as usual. The
         /// keys are a settings knob (<c>arrowKeysPan</c>) because a vehicle
-        /// may want them for itself.
+        /// may want them for itself. Only called while
+        /// <see cref="hasPlayerControl"/> — that gate silences the mouse too.
         /// </summary>
         Vector2 ReadPan(float dt)
         {

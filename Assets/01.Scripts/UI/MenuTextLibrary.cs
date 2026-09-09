@@ -114,7 +114,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         ElevationBand, MaxGrade, GradeStep, BaselinePull,
         MaxBank, BankPerTurn, BankStep, LevelLead,
         LoopDrift, LoopCarry, LoopExitYaw, LoopTurns,
-        JumpLandingClearance
+        JumpLandingClearance,
+        MissionAccomplished
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -826,6 +827,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Mission complete")]
         [SerializeField] LocalizedString missionComplete = new("MISSION COMPLETE", "MISIÓN COMPLETADA", "ミッション完了", "MISSION ACCOMPLIE");
         [TitleGroup("Mission complete")]
+        [Tooltip("The banner that slams onto the screen over the escaping ship the moment the win is sealed, before the debrief panel.")]
+        [SerializeField] LocalizedString missionAccomplished = new("MISSION ACCOMPLISHED", "MISIÓN CUMPLIDA", "ミッション達成", "MISSION ACCOMPLIE");
+        [TitleGroup("Mission complete")]
         [SerializeField] LocalizedString mainObjectives = new("MAIN OBJECTIVES", "OBJETIVOS PRINCIPALES", "メイン目標", "OBJECTIFS PRINCIPAUX");
         [TitleGroup("Mission complete")]
         [SerializeField] LocalizedString finiteRunObjectives = new("ESCAPE RUN", "CARRERA DE HUIDA", "エスケープラン", "COURSE D'ÉVASION");
@@ -1288,6 +1292,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.ChallengeFailed => challengeFailed,
             MenuTextId.HoldToSkip => holdToSkip,
             MenuTextId.MissionComplete => missionComplete,
+            MenuTextId.MissionAccomplished => missionAccomplished,
             MenuTextId.MainObjectives => mainObjectives,
             MenuTextId.FiniteRunObjectives => finiteRunObjectives,
             MenuTextId.Total => total,

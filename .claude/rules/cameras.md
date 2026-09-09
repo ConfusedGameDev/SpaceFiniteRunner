@@ -74,6 +74,18 @@ trigger volume, so its eye is authored).
 
 Mouse / right stick / arrows pan; after `recenterDelay` of idle it swings home.
 
+`hasPlayerControl` (a **serialized field**, default true) is the switch over all of that: false
+ignores **every** pan source — the mouse included, which `BlockPanInput` never silences — stops
+auto-recenter, and eases a held look-back home rather than freezing it, so the orbit holds the axes
+it has. The **view cycle stays live** on purpose: a result screen is still worth seeing from another
+angle. It is for the beats where the game owns the picture, not the player — today the runner's win
+fly-past.
+
+**`SetTarget` deliberately does not reset it.** `Attach` seats the target during `Awake`, so a reset
+there would force the checkbox back to true before the first frame and an unchecked rig would look
+like the flag does nothing. Whoever takes control away hands it back — the runner does it in
+`FinishWin` (at the debrief) and in `Restart` (on a retry).
+
 ## Three views on one button
 
 Tab / gamepad Back (`MenuNavigator.CameraCyclePressed`, read only while `Time.timeScale > 0` and
@@ -154,6 +166,15 @@ Who cuts: the city's `AirTimeSlowMo` (slow-mo in and still airborne — back the
 touch; it finds the rig with `CameraRigInstaller.FindRig(scene)`, public for that) and the runner's
 `GameManager` on `ShipMotor.LoopEntered`, held until the state is Grounded again (the fall of a
 failed loop included) and force-dropped on `Restart`.
+
+**The win fly-past** is the runner's other cut: once `FinishWin` has the ship back on the track it
+disarms any loop hold, cuts to the planted shot and takes `HasPlayerControl` away for
+`GameSettings.winCameraHoldSeconds` (2 s) while the ship — still unpaused — flies on out of the
+frame; then the glitch ramps as before and both the shot and the player's control are handed back
+on the frame the Mission Complete panel opens. Because the shot is planted it only pans to keep the
+ship framed: a camera frozen dead behind the ship would lose it in a tenth of a second at Light
+Speed. If the camera asset's `cinematic` toggle is off the cut is refused, and the beat is skipped
+rather than sitting the player in front of a locked chase view.
 
 ## Camera shake
 

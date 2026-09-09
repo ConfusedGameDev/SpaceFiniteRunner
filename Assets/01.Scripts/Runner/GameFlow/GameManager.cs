@@ -75,6 +75,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // The win wind-down: objectives met, ship still flying until it is back
         // on the track, then the glitch ramps to max and the panel opens.
         Coroutine winRoutine;
+        MissionAccomplishedBanner banner; // the MISSION ACCOMPLISHED slam over the fly-past; killed before the panel
         float glitchFadeBeforeWin = -1f; // the GlitchController's fade rate to restore; < 0 = nothing remembered
 
         // The run's objective state: latched per entry (speed bleeds after the
@@ -351,6 +352,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // (an orb hype line, a patrol taunt) would sit frozen under the
             // panel — drop it, and its callback with it.
             RpgMessageSystem.Instance.ClearMessages();
+            KillBanner(); // the panel is the win's text from here on
             if (HasWon) ShowMissionComplete();
             else ShowGameOver(outcome);
         }
@@ -359,7 +361,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// The win's wind-down, on unscaled time: wait for the ship to be
         /// back on the track surface (a jump, a loop, a loop fall or a tube
         /// plays out first — and a ramp it is already committed to is taken,
-        /// not frozen on), ramp the glitch from wherever it is to max over
+        /// not frozen on), plant the camera and let the ship fly on out of
+        /// the shot for <c>winCameraHoldSeconds</c>, ramp the glitch from
+        /// wherever it is to max over
         /// <c>winGlitchRampSeconds</c>, hold it <c>winGlitchHoldSeconds</c>,
         /// then end the run — which opens the panel behind the full glitch,
         /// the city handoff's picture. The controller's fade is remembered
@@ -371,10 +375,44 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             while (motor != null && (motor.State != ShipState.Grounded || motor.CurrentRamp != null))
                 yield return null;
 
+            // The exclamation mark: MISSION ACCOMPLISHED slams in letter by
+            // letter over the shot below, holds through the fly-past, and is
+            // torn apart with the picture once the glitch starts to ramp.
+            banner = MissionAccomplishedBanner.Show(settings);
+
+            // The escape beat: the picture stops chasing and watches the ship
+            // go. The rig's cinematic shot is PLANTED for the ship — a level
+            // tripod that holds its ground and only pans to keep the ship in
+            // frame — which is the only framing that reads here: at Light Speed
+            // the ship covers 1.8 km a second, so a camera frozen dead behind it
+            // would lose it in a tenth of one. The sim is still running (nothing
+            // pauses until EndRun), so the ship flies on through the shot, and
+            // the player's hands come off the camera for it.
+            if (cameraRig != null && settings.winCameraHoldSeconds > 0f)
+            {
+                // A loop shot may still be up with its own hold counting down;
+                // disarm it so it cannot cut back out from under this one.
+                loopCinematic = false;
+                loopCinematicHoldLeft = -1f;
+                cameraRig.SetCinematic(true); // a no-op if that loop shot is already live
+                // The shot can refuse — the camera asset's Cinematic toggle kills
+                // it per vehicle. Without a planted camera there is nothing to
+                // hold on, so don't sit the player in front of a locked chase
+                // view for two seconds; go straight to the glitch.
+                if (cameraRig.Cinematic)
+                {
+                    cameraRig.hasPlayerControl = false;
+                    yield return new WaitForSecondsRealtime(settings.winCameraHoldSeconds);
+                }
+            }
+
             // The sound washes out with the picture: the fade spans the ramp
             // and the hold, so the music lands silent on the frame EndRun
             // opens the panel.
             if (music != null) music.FadeOut(settings.winGlitchRampSeconds + settings.winGlitchHoldSeconds);
+            // The banner tears apart over the same span, so the word is gone on
+            // the frame the panel opens (EndRun kills any remainder).
+            if (banner != null) banner.Dismiss(settings.winGlitchRampSeconds + settings.winGlitchHoldSeconds);
 
             GlitchController glitch = GlitchController.Instance;
             if (glitch != null)
@@ -396,8 +434,23 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 yield return new WaitForSecondsRealtime(settings.winGlitchHoldSeconds);
 
             winRoutine = null;
+            // The debrief is the player's screen again: the shot cuts back to a
+            // live chase view and the camera answers to them while they read it.
+            if (cameraRig != null)
+            {
+                cameraRig.SetCinematic(false);
+                cameraRig.hasPlayerControl = true;
+            }
             EndRun(RunOutcome.Escaped);
             RestoreGlitchFade();
+        }
+
+        // Drops the MISSION ACCOMPLISHED banner this frame, mid-tear or not.
+        // Idempotent: the banner may already have torn itself down.
+        void KillBanner()
+        {
+            if (banner != null) banner.Kill();
+            banner = null;
         }
 
         // Hands the GlitchController its fade rate back so a held max decays
@@ -694,10 +747,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // A retry from the panel: the wind-down is over, but a RETRY pressed
             // while a glitch is still decaying must start on a clean picture.
             if (winRoutine != null) { StopCoroutine(winRoutine); winRoutine = null; }
+            KillBanner(); // a retry mid-beat must not leave the word over the new run
             RestoreGlitchFade();
             if (GlitchController.Instance != null) GlitchController.Instance.SetBaseIntensity(0f);
             // A retry from inside a loop must not leave the shot armed.
             EndLoopCinematic();
+            // Nor a retry pressed mid-win-beat leave the camera planted and the
+            // player locked out of it (EndLoopCinematic only drops a LOOP shot).
+            if (cameraRig != null)
+            {
+                cameraRig.SetCinematic(false);
+                cameraRig.hasPlayerControl = true;
+            }
 
             RunOver = false;
             HasWon = false;

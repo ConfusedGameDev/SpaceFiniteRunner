@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c1b119ea93664cd68aa7d784276386a, type: 3}
   m_Name: Fighter_CameraSettings
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Cameras::ConfusedGameDev.FiniteRunner.Cameras.OrbitCameraSettings
-  distance: 33.2
-  lookHeight: 5
+  distance: 60
+  lookHeight: 12
   defaultPitch: 12
   pitchRange: {x: 2, y: 55}
   positionDamping: 0
@@ -40,18 +40,17 @@ MonoBehaviour:
   autoRecenter: 1
   recenterDelay: 1.5
   recenterSpeed: 120
-  lookBack: 1
+  lookBack: 0
   lookBackAngle: 180
   lookBackInSeconds: 0.18
   lookBackOutSeconds: 0.32
   lookBackPitch: 12
-  baseFov: 71
-  fovPerKmh: 0.005
-  maxFovBoost: 15
+  lookBackDistance: 8
+  lookBackDamping: 0
   cinematic: 1
   cinematicPlanted: 1
   cinematicYaw: 90
-  cinematicDistance: 350
+  cinematicDistance: 451
   cinematicHeight: 100
   cinematicLead: 100
   cinematicLookHeight: 0
@@ -59,3 +58,6 @@ MonoBehaviour:
   cinematicAimDamping: 1.2
   cinematicFov: 55
   cinematicBlendSeconds: 0.1
+  baseFov: 71
+  fovPerKmh: 0.005
+  maxFovBoost: 15

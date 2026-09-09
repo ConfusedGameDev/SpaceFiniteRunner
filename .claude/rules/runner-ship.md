@@ -123,7 +123,9 @@ Win/lose and the countdown.
   latches each entry once met; takeoffs are counted in `OnTookOff`. **The win latches the frame
   it is met but the run does not end yet** (`FinishWin`, unscaled time): the lose checks and the
   countdown stop, the ship flies on until `State == Grounded` with no committed `CurrentRamp` (a
-  jump, loop, loop fall or tube plays out first), the `GlitchController` ramps to max over
+  jump, loop, loop fall or tube plays out first), the MISSION ACCOMPLISHED banner slams in
+  (`MissionAccomplishedBanner`, see `runner-hud-screens.md`) over the planted fly-past shot
+  (`winCameraHoldSeconds`), the banner is dismissed and the `GlitchController` ramps to max over
   `GameSettings.winGlitchRampSeconds` (its fade zeroed, remembered and handed back once the
   panel is up), holds `winGlitchHoldSeconds`, then `EndRun` raises `ShowMissionComplete`.
   `PauseMenu.CanPause` refuses while `HasWon`; `Restart` stops the routine and zeroes the glitch.
