@@ -273,16 +273,47 @@ The chaser: a scene object whose chase tunables live on its `PatrolDefinition` a
 edits the live run and never the asset — the same rule as the ship. Run-level rules (enabled,
 minimap range, redeploy) stay on `GameSettings`.
 
-- **Rubber band**: targets the ship's current speed × a rubber-band factor, blending toward it at
-  a catch-up acceleration, never below a minimum floor (launch speed + slow ramp). It advances by
-  distance along the track centre, extrapolating straight back when still behind the start line,
-  and freezes whenever the ship's motor is paused.
-- **Boost share** (`PatrolDefinition.boostShare`, 0.7): every speed-up the ship collects — orbs,
+- **It drives the same `TrackBody` as the ship**, through `PatrolDriver` (`GameFlow/`, plain C#,
+  stateless) which outputs the same `BodyControls` the player's input does — so it is held to
+  the ship's physics (steering force, grip on flat sweeps, open edges, ramps and jumps, tubes,
+  the swept pickup query) and takes every loop perfectly (no gate is asked of it). It ticks in
+  `FixedUpdate` with `simSubsteps` and renders an interpolated pose like the motor:
+  `DistanceTravelled` / `GapToShip` are the RENDERED values (minimap), the catch, the warning and
+  the redeploy judge on `SimGap` (the ticks' own, off `ShipMotor.Body`).
+- **Rubber band**: targets the ship's current speed × a rubber-band factor, never below a minimum
+  floor (launch speed + slow ramp). **The band IS the body's speed model**: `cruiseSpeed` = the
+  target, `thrust` and the over-cruise bleed both = `catchUpAccel`, throttle held — so the speed
+  moves toward the target at that rate either way, exactly the old MoveTowards. It extrapolates
+  straight back while still behind the start line (negative body distance) and freezes whenever
+  the ship's motor is paused.
+- **The driver**: steers for the ship's lateral (nearest equivalent round a full tube); a boost
+  orb it can still reach inside `orbLookaheadSeconds` pulls the line toward itself by
+  `orbSeekWeight`, fading out as the gap closes inside the warn distance; a ramp in its line
+  inside `rampLookaheadSeconds` is steered ROUND when the sideways travel fits in the time left,
+  else it lines up with the middle and jumps it (the body does the jump); the line is kept 6 m
+  inside any open edge; and for the next flat sweep inside `curveLookaheadSeconds` it solves the
+  speed its own grip holds the tightest point at (`v²κ = gripBase + gripPerSpeed·v`, × 0.9) and
+  brakes (`brakeDecel`) to arrive at it, capping the rubber band to that speed meanwhile.
+- **Orbs it collects itself are used up** (`SpeedPad.Take()` — silent: `SpeedPad.Collected` is
+  the player's event) and give it `orbBoostShare` of their boost as speed above the band, which
+  bleeds back. Brake pads and coins are the player's alone.
+- **A patrol fall** (`body.LeftTrack`) redeploys it behind the ship at once
+  (`Redeploy(raiseFloor: false)` — new number, the inbound event, but NOT the raised floor an
+  outrun patrol brings). The player is never frozen or penalised by it.
+- **Handling knobs** on `PatrolDefinition`: `lateralSpeed` 22 / `handlingResponse` 6 (the same
+  derived force-against-drag steering as the ship; below the ship's 30 so the player can
+  out-dodge it), `gripBase`, `gripPerSpeed`, `brakeDecel`, and the Driver group above. Debug rows
+  and `PatrolDebugSettings` persistence for them are M7.
+- **Boost share** (`PatrolDefinition.boostShare`, 0.156 on the asset): every speed-up the ship collects — orbs,
   ramp takeoffs, anything through `ShipMotor.AddSpeedImpulse`, heard via `PadImpulse` — gives the
   patrol that fraction of the ship's actual gain (after weight) in the same frame. A +100 km/h orb
   is +70 km/h for the patrol, so boosts stop buying the gap. Brakes are never shared and the floor
   is untouched.
-- Reaching the catch distance triggers a game over (`HasCaught`, polled by `GameManager`).
+- **Catch** (`UpdateCatch`, `HasCaught` polled by `GameManager`): inside `catchDistance` the
+  patrol stops gaining (its target is capped to the ship's speed, and it is never let closer
+  than 1 m) and works on the sideways gap; it catches when ALSO within `catchLateral` (18 m)
+  across the track, or after `sustainedCatchSeconds` (1.5) inside the catch distance whatever
+  the sideways gap — a last-moment dodge works, dodging forever does not.
 - **`Hold`** (`SetHold`) stops it moving and catching while the ship is off the track or waiting
   to relaunch — separate from `motor.Paused` because the clock keeps running. Releasing it drops
   a patrol closer than the given gap back to that gap and suppresses the taunt for it.

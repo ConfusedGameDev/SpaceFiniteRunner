@@ -38,9 +38,13 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   to its cruise speed and the brake (S / LT) slows it. Only boost orbs (small, 0.3, must be aimed
   for; green 1× / blue 2.5× / purple 10×) push past cruise, where a passive bleed pulls the speed
   back down to it; brake pads (large, 1.2, must be dodged) lower it. No cap.
-- **The patrol** rubber-bands to the ship's speed and takes a 0.7 share of every boost the ship
-  collects, so boosts no longer buy the gap. Outrun it far enough and a fresh one cuts in
-  behind you at a new, higher floor — coasting can never shake it.
+- **The patrol** drives the same physics as the ship: it rubber-bands to the ship's speed and
+  takes a share (`boostShare`) of every boost the ship collects, steers for the ship, goes after
+  boost orbs of its own (which it uses up), rounds ramps or jumps them, brakes for flat sweeps,
+  and can fall off — a fall just drops a fresh one in behind you. It catches by being on your
+  tail AND close across the track (or on your tail for long enough), so a last-moment dodge
+  works. Outrun it far enough and a fresh one cuts in behind you at a new, higher floor —
+  coasting can never shake it.
 - **Curves**: banked sweeps always hold the ship. A share of sweeps is authored FLAT, with no
   wall on the outer edge: taken too fast the ship loses grip and slides outward — brake first.
   Some straight runs have no walls at all: drift or dash too close to the side and the ship drops.

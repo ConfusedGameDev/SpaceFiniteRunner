@@ -41,15 +41,75 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0f, 1.5f), SuffixLabel("x ship boost", true)]
         public float boostShare = 0.7f;
 
+        [TitleGroup("Handling")]
+        [Tooltip("Lateral speed the patrol's full steer settles at — the same force-against-drag steering as the ship. Below the ship's, so the player can out-dodge it.")]
+        [PropertyRange(0f, 100f), SuffixLabel("m/s", true)]
+        public float lateralSpeed = 22f;
+
+        [TitleGroup("Handling")]
+        [Tooltip("Lateral drag, 1/s: how fast its steering settles.")]
+        [PropertyRange(0.01f, 30f)]
+        public float handlingResponse = 6f;
+
+        [TitleGroup("Handling")]
+        [Tooltip("Grip at a standstill on a flat sweep (the ship's rule). The driver brakes to the speed this grip holds, so lower = it slows more for flat sweeps.")]
+        [PropertyRange(0f, 500f), SuffixLabel("m/s²", true)]
+        public float gripBase = 50f;
+
+        [TitleGroup("Handling")]
+        [Tooltip("Extra grip per m/s of speed (the ship's rule).")]
+        [PropertyRange(0f, 3f), SuffixLabel("m/s² per m/s", true)]
+        public float gripPerSpeed = 0.5f;
+
+        [TitleGroup("Handling")]
+        [Tooltip("How hard the patrol can brake for a flat sweep ahead.")]
+        [PropertyRange(0f, 500f), SuffixLabel("m/s per s", true)]
+        public float brakeDecel = 140f;
+
+        [TitleGroup("Driver")]
+        [Tooltip("How far ahead (in seconds at its speed) the driver looks for a flat sweep to brake for.")]
+        [PropertyRange(0.5f, 10f), SuffixLabel("s", true)]
+        public float curveLookaheadSeconds = 4f;
+
+        [TitleGroup("Driver")]
+        [Tooltip("How far ahead (seconds) it looks for boost orbs it can still reach.")]
+        [PropertyRange(0f, 10f), SuffixLabel("s", true)]
+        public float orbLookaheadSeconds = 2.5f;
+
+        [TitleGroup("Driver")]
+        [Tooltip("How strongly a reachable orb pulls its line away from the ship's: 0 = it only ever chases, 1 = it goes straight for the orb. Fades out as the gap closes — up close it wants the ship.")]
+        [PropertyRange(0f, 1f)]
+        public float orbSeekWeight = 0.6f;
+
+        [TitleGroup("Driver")]
+        [Tooltip("Share of an orb's boost the patrol gains when it collects one ITSELF (the orb is used up). Separate from Boost Share, which is its cut of the SHIP's pickups.")]
+        [PropertyRange(0f, 1.5f), SuffixLabel("x orb boost", true)]
+        public float orbBoostShare = 0.5f;
+
+        [TitleGroup("Driver")]
+        [Tooltip("How far ahead (seconds) it decides about a ramp in its line: round it if the sideways travel still fits, otherwise line up and jump it.")]
+        [PropertyRange(0.5f, 10f), SuffixLabel("s", true)]
+        public float rampLookaheadSeconds = 2.5f;
+
         [TitleGroup("Distances")]
         [Tooltip("Meters behind the start line the patrol launches from.")]
         [PropertyRange(0f, 1000f), SuffixLabel("m", true)]
         public float startGap = 250f;
 
         [TitleGroup("Distances")]
-        [Tooltip("Gap that counts as caught — the run is over. Keep it below the warn distance.")]
+        [Tooltip("Gap inside which the patrol can catch the ship. Inside it the patrol stops gaining and sits on the ship's tail, steering for it. Keep it below the warn distance.")]
         [PropertyRange(0f, 100f), SuffixLabel("m", true)]
         public float catchDistance = 10f;
+
+        [TitleGroup("Distances")]
+        [Tooltip("Inside the catch distance, the patrol must ALSO be within this far of the ship across the track to catch it — so a last-moment dodge works.")]
+        [PropertyRange(0f, 60f), SuffixLabel("m", true)]
+        public float catchLateral = 18f;
+
+        [TitleGroup("Distances")]
+        [Tooltip("...but dodging is not an escape: this long inside the catch distance is a catch whatever the sideways gap.")]
+        [PropertyRange(0f, 10f), SuffixLabel("s", true)]
+        public float sustainedCatchSeconds = 1.5f;
 
         [TitleGroup("Distances")]
         [Tooltip("Gap below which the patrol's proximity line (once per approach) and the proximity rumble kick in.")]

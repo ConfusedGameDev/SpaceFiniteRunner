@@ -3,6 +3,7 @@ using UnityEngine;
 
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.Ship;
+using ConfusedGameDev.FiniteRunner.Simulation;
 using ConfusedGameDev.FiniteRunner.Track;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
@@ -11,8 +12,29 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// its target speed is the ship's current speed times a factor, floored
     /// by a minimum that starts at the launch speed and slowly ramps up — so
     /// it speeds up with the player but never drops below that threshold,
-    /// and without boost orbs it always closes in. When the gap drops to the
-    /// catch distance the run is over (GameManager polls <see cref="HasCaught"/>).
+    /// and without boost orbs it always closes in.
+    ///
+    /// <b>It drives the same <see cref="TrackBody"/> the ship does</b>, through
+    /// a <see cref="PatrolDriver"/> that outputs steer / throttle / brake: the
+    /// rubber band is simply the body's cruise target (thrust and over-cruise
+    /// bleed both set to the catch-up accel, so the speed moves toward it
+    /// exactly as the old MoveTowards did), and everything else — steering
+    /// force, grip on flat sweeps, open edges, ramps and jumps, tubes, the
+    /// swept pickup query — is the ship's own physics. So it steers for the
+    /// ship, goes after boost orbs (which it uses up), rounds a ramp or jumps
+    /// it, brakes for flat sweeps, and can fall off: a fall redeploys it
+    /// behind the ship and never touches the player. It takes every loop
+    /// perfectly (no gate is asked of it). Like the ship it ticks in
+    /// FixedUpdate and renders an interpolated pose, so
+    /// <see cref="DistanceTravelled"/> / <see cref="GapToShip"/> are the
+    /// rendered values (minimap) and the catch is judged on the ticks' own.
+    ///
+    /// <b>Catch</b>: inside the catch distance the patrol stops gaining and
+    /// sits on the ship's tail; it catches when it is also within
+    /// <see cref="PatrolDefinition.catchLateral"/> across the track, or after
+    /// <see cref="PatrolDefinition.sustainedCatchSeconds"/> there — a
+    /// last-moment dodge works, dodging forever does not (GameManager polls
+    /// <see cref="HasCaught"/>).
     /// The chase is never allowed to go stale: outrun the patrol past the
     /// redeploy distance and a fresh one cuts in just behind the ship, already
     /// faster than it, so the only way to shake it is to boost again.
@@ -41,7 +63,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float redeploySpeedFactor; // fresh patrol's speed as a multiple of the ship's
 
         float minSpeed;       // current floor: baseSpeed + accumulated ramp
-        float currentSpeed;
+        TrackBody body;       // the same track-space body the ship rides
+        readonly PatrolDriver driver = new();
+        float lastTickTime = float.NegativeInfinity; // Time.fixedTime of the last tick, for the render's blend
+        float tailTimer;      // seconds spent inside the catch distance
+        float shownBank;
         float warnCooldown;
         bool warned;          // proximity warning already raised for this approach
         float blinkTimer;
@@ -51,8 +77,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         GameObject redLight;
         GameObject blueLight;
 
+        // Half width / half height of the cruiser's pickup volume, metres.
+        static readonly Vector2 PickupReach = new(2.5f, 2.3f);
+
+        /// <summary>Metres from the track start (negative behind the start line), as RENDERED this frame.</summary>
         public float DistanceTravelled { get; private set; }
         public bool HasCaught { get; private set; }
+
+        /// <summary>The track-space body the patrol drives; null until <see cref="Init"/>.</summary>
+        public TrackBody Body => body;
+
+        /// <summary>The gap on the simulation's own state — what the catch and the driver judge by.</summary>
+        float SimGap => target != null && target.Body != null && body != null ? target.Body.Distance - body.Distance : float.MaxValue;
         /// <summary>How many patrols have joined the chase this run (1 = the launch patrol).</summary>
         public int PatrolNumber { get; private set; } = 1;
         public float GapToShip => target != null ? target.DistanceTravelled - DistanceTravelled : float.MaxValue;
@@ -93,11 +129,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             Hold = hold;
             if (hold || target == null) return;
 
-            if (GapToShip < minGapOnRelease)
+            if (body != null && SimGap < minGapOnRelease)
             {
-                DistanceTravelled = target.DistanceTravelled - minGapOnRelease;
-                ApplyPose();
+                body.Distance = target.Body.Distance - minGapOnRelease;
+                body.SnapInterpolation();
+                ApplyPose(1f);
             }
+            tailTimer = 0f;
             warnCooldown = 0f;
             warned = GapToShip <= (runtimeDef != null ? runtimeDef.warnDistance : 0f); // no taunt for a gap the respawn made
         }
@@ -126,6 +164,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             runtimeDef = Instantiate(definition);
             PatrolDebugSettings.Load().ApplyTo(runtimeDef);
 
+            // The body is this component's own object: its events die with it.
+            body = track != null ? new TrackBody(track) : null;
+            if (body != null)
+            {
+                body.PickedUp += OnPickedUp;
+                body.LeftTrack += OnLeftTrack;
+            }
+
             BuildVisual();
             Launch();
         }
@@ -148,16 +194,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>Resets the chase to the launch gap behind the start line.</summary>
         public void Launch()
         {
-            if (runtimeDef == null) return; // scene object never Init'd (patrol disabled)
-            DistanceTravelled = -runtimeDef.startGap;
+            if (runtimeDef == null || body == null) return; // scene object never Init'd (patrol disabled)
+            body.Reset(-runtimeDef.startGap, runtimeDef.baseSpeed);
             minSpeed = runtimeDef.baseSpeed;
-            currentSpeed = runtimeDef.baseSpeed;
             HasCaught = false;
             Hold = false;
+            tailTimer = 0f;
             warnCooldown = 0f;
             warned = false;
             PatrolNumber = 1;
-            ApplyPose();
+            ApplyPose(1f);
         }
 
         void OnDestroy()
@@ -179,64 +225,151 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         void OnShipImpulse(float rawMagnitude)
         {
-            if (rawMagnitude <= 0f || runtimeDef == null || HasCaught) return;
+            if (rawMagnitude <= 0f || runtimeDef == null || body == null || HasCaught) return;
             float gain = target.Definition != null ? target.Definition.ScalePadEffect(rawMagnitude) : rawMagnitude;
-            currentSpeed += gain * runtimeDef.boostShare;
+            body.ForwardSpeed += gain * runtimeDef.boostShare;
         }
+
+        // Its own pickups: only boost orbs mean anything to it. The orb is
+        // used up (it disappears) and a share of its boost is speed above the
+        // rubber band's target, which then bleeds back at the catch-up accel.
+        // Brake pads and coins are the player's alone.
+        void OnPickedUp(ITrackPickup pickup)
+        {
+            if (pickup is SpeedPad pad && pad.IsBoostOrb)
+                body.ForwardSpeed += pad.Take() * runtimeDef.orbBoostShare;
+        }
+
+        // Over an open edge (a mistimed ramp, a slide the driver misjudged):
+        // this cruiser is gone and a fresh one drops in behind the ship. The
+        // player is never frozen or penalised by it — and, unlike outrunning
+        // a patrol, it does not raise the rubber band's floor.
+        void OnLeftTrack(int side) => Redeploy(raiseFloor: false);
 
         void Update()
         {
-            if (target == null || track == null || runtimeDef == null) return;
+            if (target == null || track == null || runtimeDef == null || body == null) return;
 
             Blink(Time.deltaTime);
 
-            // Freezes with the ship: tuning screen open or run over — and
-            // holds while the ship is off the track or waiting to relaunch.
             if (!HasCaught && !target.Paused && !Hold)
             {
-                float dt = Time.deltaTime;
-
-                // Rubber band: chase the ship's speed (scaled), but never drop
-                // below the floor — the launch speed plus the accumulated ramp.
-                minSpeed += runtimeDef.ramp * dt;
-                float desired = Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.rubberBand);
-                currentSpeed = Mathf.MoveTowards(currentSpeed, desired, runtimeDef.catchUpAccel * dt);
-
-                DistanceTravelled += currentSpeed * dt;
-
-                if (redeployDistance > 0f && GapToShip > redeployDistance) Redeploy();
-
-                if (GapToShip <= runtimeDef.catchDistance) HasCaught = true;
-                else WarnIfClose(dt);
-
                 // Proximity rumble that grows as the patrol closes in. The
                 // haptics channel self-fades when this stops being refreshed
-                // (pause, catch, or the patrol falling behind again).
+                // (pause, catch, hold, or the patrol falling behind again).
                 float gap = GapToShip;
                 if (ProximityRumble && gap <= runtimeDef.warnDistance && runtimeDef.warnDistance > 0f)
                     HapticsSystem.Instance.SetChaseIntensity(1f - Mathf.Clamp01(gap / runtimeDef.warnDistance));
             }
 
-            ApplyPose();
+            // Between two ticks the pose is the track-space blend of them; with
+            // no fresh tick (paused, held, caught) it rests on the current state.
+            ApplyPose(Mathf.Clamp01((Time.time - lastTickTime) / Mathf.Max(Time.fixedDeltaTime, 1e-5f)));
+        }
+
+        void FixedUpdate()
+        {
+            if (target == null || track == null || runtimeDef == null || body == null) return;
+            // Freezes with the ship: tuning screen open or run over — and
+            // holds while the ship is off the track or waiting to relaunch.
+            if (HasCaught || target.Paused || Hold || target.Body == null) return;
+
+            float dt = Time.fixedDeltaTime;
+            GameSettings rules = target.DashSettings;
+            int substeps = Mathf.Max(1, rules != null ? rules.simSubsteps : 1);
+
+            body.BeginTick();
+            float h = dt / substeps;
+            for (int i = 0; i < substeps && !HasCaught; i++) Step(h, rules);
+            lastTickTime = Time.fixedTime;
+        }
+
+        void Step(float dt, GameSettings rules)
+        {
+            // Rubber band: chase the ship's speed (scaled), but never drop
+            // below the floor — the launch speed plus the accumulated ramp.
+            minSpeed += runtimeDef.ramp * dt;
+            float desired = Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.rubberBand);
+
+            float gap = SimGap;
+            bool onTail = gap <= runtimeDef.catchDistance;
+            // On the ship's tail it stops gaining: it matches the ship and
+            // works on the sideways gap instead of driving through it.
+            if (onTail) desired = Mathf.Min(desired, target.CurrentSpeed);
+
+            BodyControls controls = driver.Drive(body, target.Body, track, runtimeDef, gap, out float speedCap);
+            desired = Mathf.Min(desired, speedCap);
+
+            // The rubber band IS the body's speed model: cruise = the target,
+            // thrust and over-cruise bleed = the catch-up accel, so the speed
+            // moves toward the target at that rate either way.
+            body.Params = new BodyParams
+            {
+                impulseBlendRate = 1000f,
+                cruiseSpeed = desired,
+                thrust = runtimeDef.catchUpAccel,
+                brakeDecel = runtimeDef.brakeDecel,
+                coastDrag = 0f,
+                passiveDeceleration = runtimeDef.catchUpAccel,
+                lateralSpeed = runtimeDef.lateralSpeed,
+                handlingResponse = runtimeDef.handlingResponse,
+                gripBase = runtimeDef.gripBase,
+                gripPerSpeed = runtimeDef.gripPerSpeed,
+                slideThreshold = 4f,
+                slideSpeedLoss = 0.1f,
+                jumpStrength = 1f,
+                wallHitCooldownSeconds = 0.5f,
+                pickupReach = PickupReach,
+                edgeOverhang = rules != null ? rules.edgeOverhang : 1f,
+                edgeGraceSeconds = rules != null ? rules.edgeGraceSeconds : 0.25f,
+            };
+            body.Step(dt, controls);
+            if (body.State == ShipState.OffTrack) return; // it fell: OnLeftTrack has already redeployed it
+
+            // Never through the ship: the tail is as close as it gets.
+            if (SimGap < 1f) body.Distance = target.Body.Distance - 1f;
+
+            if (redeployDistance > 0f && SimGap > redeployDistance) Redeploy(raiseFloor: true);
+
+            UpdateCatch(dt);
+            if (!HasCaught) WarnIfClose(dt);
+        }
+
+        // Inside the catch distance: caught when also close enough across the
+        // track, or after long enough there whatever the sideways gap.
+        void UpdateCatch(float dt)
+        {
+            if (SimGap > runtimeDef.catchDistance) { tailTimer = 0f; return; }
+            tailTimer += dt;
+
+            float across = target.Body.Lateral - body.Lateral;
+            if (track.SectionAt(body.Distance) is TubeSection { Unbounded: true } tube)
+                across = Mathf.Repeat(across + tube.Circumference * 0.5f, tube.Circumference) - tube.Circumference * 0.5f;
+
+            if (Mathf.Abs(across) <= runtimeDef.catchLateral || tailTimer >= runtimeDef.sustainedCatchSeconds)
+                HasCaught = true;
         }
 
         /// <summary>
-        /// The old patrol is left in the dust, so a fresh interceptor cuts in
-        /// just behind the ship — same cruiser, new number. It arrives above the
-        /// ship's current speed and that speed becomes the rubber band's new
-        /// floor, so coasting is never enough: the player has to find more
-        /// boosts to open the gap again.
+        /// A fresh interceptor cuts in just behind the ship — same cruiser,
+        /// new number. When the old one was OUTRUN it arrives above the ship's
+        /// current speed and that speed becomes the rubber band's new floor,
+        /// so coasting is never enough: the player has to find more boosts to
+        /// open the gap again. When the old one merely fell off the track the
+        /// floor is left alone.
         /// </summary>
-        void Redeploy()
+        void Redeploy(bool raiseFloor)
         {
-            float speed = Mathf.Max(minSpeed, target.CurrentSpeed * redeploySpeedFactor);
-            minSpeed = speed;
-            currentSpeed = speed;
-            DistanceTravelled = target.DistanceTravelled - redeployGap;
+            float speed = raiseFloor
+                ? Mathf.Max(minSpeed, target.CurrentSpeed * redeploySpeedFactor)
+                : Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.rubberBand);
+            if (raiseFloor) minSpeed = speed;
+            body.Reset(target.Body.Distance - redeployGap, speed);
+            tailTimer = 0f;
             warnCooldown = 0f;
             warned = false;
             PatrolNumber++;
-            ApplyPose();
+            ApplyPose(1f);
 
             HapticsSystem.Instance.Pulse(0.6f, 0.4f, 0.4f);
             Redeployed?.Invoke(PatrolNumber);
@@ -249,7 +382,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void WarnIfClose(float dt)
         {
             warnCooldown -= dt;
-            float gap = GapToShip;
+            float gap = SimGap;
             if (gap > runtimeDef.warnDistance)
             {
                 if (warnCooldown <= 0f) warned = false;
@@ -261,29 +394,46 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             Warned?.Invoke(gap);
         }
 
-        void ApplyPose()
+        void ApplyPose(float alpha)
         {
+            if (body == null)
+            {
+                // Edit-mode preview, or never Init'd: nothing to seat.
+                return;
+            }
+
+            float distance = body.DistanceAt(alpha);
+            float lateral = body.LateralAt(alpha);
+            float height = body.HeightAt(alpha);
+            DistanceTravelled = distance;
+
             Vector3 pos;
             Quaternion rot;
-
-            if (DistanceTravelled >= 0f)
+            if (distance >= 0f)
             {
-                track.GetPoseAtDistance(DistanceTravelled, 0f, out pos, out rot);
+                track.GetPoseAtDistance(distance, lateral, out pos, out rot);
             }
             else
             {
                 // Before the start line: extrapolate straight back from it.
-                track.GetPoseAtDistance(0f, 0f, out pos, out rot);
-                pos += rot * Vector3.back * -DistanceTravelled;
+                track.GetPoseAtDistance(0f, lateral, out pos, out rot);
+                pos += rot * Vector3.back * -distance;
             }
+            // The lift is along the track's up, so it survives roll (loops, tubes).
+            if (height > 0f) pos += rot * (Vector3.up * height);
 
             transform.SetPositionAndRotation(pos, rot);
 
-            // Hover bob on the visual child only, same trick as the ship.
+            // Hover bob on the visual child only, same trick as the ship —
+            // plus a lean into its steering and the nose following a jump.
             if (visual != null)
             {
                 float bob = (Mathf.PerlinNoise(Time.time * 1.3f, 0.53f) - 0.5f) * 0.8f;
                 visual.localPosition = new Vector3(0f, 2f + bob, 0f);
+                float dt = Time.deltaTime;
+                float bank = -Mathf.Clamp(body.BankDemand, -1.25f, 1.25f) * 25f;
+                shownBank = dt > 0f ? Mathf.Lerp(shownBank, bank, 1f - Mathf.Exp(-6f * dt)) : bank;
+                visual.localRotation = Quaternion.Euler(body.PitchDegrees, 0f, shownBank);
             }
         }
 

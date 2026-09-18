@@ -55,6 +55,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public Vector3 TrackHalfExtents => trackHalfExtents;
         public bool Available => placed && !taken && definition != null;
 
+        /// <summary>A floating orb that speeds a ship up — what the patrol goes after.</summary>
+        public bool IsBoostOrb => definition != null && definition.floatingOrb && SpeedDelta > 0f;
+
         /// <summary>Runtime assignment used by the track generator.</summary>
         public void SetDefinition(PadDefinition def)
         {
@@ -100,6 +103,21 @@ namespace ConfusedGameDev.FiniteRunner.Track
             motor.AddSpeedImpulse(SpeedDelta);
             Collected?.Invoke(this, motor);
             if (definition.floatingOrb) gameObject.SetActive(false); // OnDisable drops it from the registry
+        }
+
+        /// <summary>
+        /// Taken by something that is not the player's ship (the patrol): the
+        /// pad is used up exactly as if collected, but nothing is announced —
+        /// <see cref="Collected"/> is the player's event (stats, story lines).
+        /// Returns the speed change it carried, 0 if it was already gone.
+        /// </summary>
+        public float Take()
+        {
+            if (!Available) return 0f;
+            taken = true;
+            float delta = SpeedDelta;
+            if (definition.floatingOrb) gameObject.SetActive(false);
+            return delta;
         }
 
         void Awake() => ApplyColor();

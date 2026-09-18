@@ -288,6 +288,16 @@ Each milestone ends in a playable `FiniteRunner_Test` and can be merged on its o
   `collectiblePickupSize`. New behaviour: a taken ORB now disappears (needed for M6; brake pads
   stay but bite once).
 
+- **M6 — code landed 2026-09-18, play check pending.** `PolicePatrol` on its own `TrackBody`
+  (fixed tick + interpolated pose; the rubber band expressed as the body's cruise target),
+  `GameFlow/PatrolDriver.cs` (chase line, orb seek, ramp round-or-jump, open-edge margin, flat
+  sweep braking), the D12 catch (`catchLateral` 18 m, `sustainedCatchSeconds` 1.5, tail-sitting
+  inside the catch distance), `SpeedPad.Take()`, and a fall → `Redeploy(raiseFloor: false)`
+  (OQ4: the existing drop-in gap, without the raised floor). New `PatrolDefinition` groups
+  Handling / Driver; `lateralSpeed` + `handlingResponse` instead of `steerForce` + `lateralDrag`
+  (same derivation as the ship), plus `orbBoostShare` 0.5 for orbs it collects itself
+  (`boostShare` keeps the asset's 0.156).
+
 ## 9. Verification (every milestone)
 
 1. Compile check (`Logs/Editor.log` plus Bee DLL timestamps, or the bundled Roslyn).
