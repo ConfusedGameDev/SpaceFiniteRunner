@@ -12,9 +12,9 @@ paths:
 
 # Runner track
 
-The runner is spline-based, not physics-based: the ship is moved kinematically along a
-`SplineContainer` (Unity Splines) and pads detect it via trigger colliders against its
-kinematic rigidbody.
+The runner is spline-based, not rigidbody-based: the ship is a track-space `TrackBody` posed
+along a `SplineContainer` (Unity Splines), and pads, orbs and coins are found by an analytic
+sweep of the `PickupRegistry` — never by trigger colliders.
 
 ## `TrackManager` — owns the spline
 
@@ -49,6 +49,33 @@ Stretches of track distance laid over the flat spline with their own pose functi
 - `GetLateralBand(distance)` is the steering lane at a distance — ±`HalfWidth` on the road, a
   section's band inside one. The motor's clamp, the pad placer's range and the decorator's
   strips all ask it.
+- **Body queries** (what `TrackBody` asks): `GetFrameAtDistance` (position + forward / up /
+  right), `GetCurvatureAtDistance` (signed 1/m, **positive to the right**, the forward's change
+  over ±5 m projected on the track's right — a loop's pitch and the grade read as 0),
+  `GetBankAtDistance` (degrees, **right edge up positive** — the generator's own convention, so
+  a right-hand sweep banks negative), `FlatSweepAt(distance)` and `IsEdgeOpen(distance, side)`.
+- **Flat sweeps are the one dangerous kind of road** (`TrackManager.FlatSweep`: Start, End,
+  OuterSide). One object answers both the physics (grip is tested only inside one) and the
+  decorator (`IsEdgeOpen` = the OUTER side of a flat sweep, nowhere else, never inside a
+  section), so a missing wall is always a real drop. `TrackShapeSettings.unbankedSweepChance`
+  (0.3; **not** mirrored in `TrackDebugSettings` until its debug row exists — with `applyOnLoad`
+  the mirror silently overrode the asset) is rolled once per sweep in `StartTurn` — no draw at 0,
+  so that reproduces the all-banked layout. A flat sweep must stand on level road: rolled while
+  the last bank is still unwinding it is DEFERRED (`deferredFlatKnots`, started by `AddSegment`
+  at the first level knot, dropped if the road ahead gets claimed) rather than lost. It has no
+  bank to unwind, so `TurnFits(shape, flat: true)` lets it into gaps a banked sweep cannot fit —
+  in such a gap a sweep only happens if the flat roll says so. A flat sweep gets bank target 0. Its span opens at the knot BEFORE the first turned knot (AutoSmooth
+  bends the segment before a heading change too; that knot is still inside the unstamped settle
+  margin) and `GrowFlatSweep` pushes `End` to each new knot after `Recalculate` — always ahead
+  of the decorator. `ClearKnots` drops the spans.
+- **Open straights** (`TrackManager.OpenStretch`, `TrackShapeSettings.openStraightChance` 0.5):
+  a straight run may lose BOTH walls — `IsEdgeOpen` answers yes for either side, grip is not
+  involved. A segment only counts as plain straight when the knots at both its ends are (no
+  heading change, bank 0, no landing zone, not the feature spot, `LevelRequired` false, no
+  section), which is only known while the NEXT knot is being laid — so `AddSegment` opens the
+  segment behind the spline's end (still inside the unstamped settle margin) and grows one
+  stretch per run. One roll per straight run, no draw at chance 0. The decorator drops the
+  full-width barrier piece entirely where both sides are open and marks both edges.
 - **`AddSection` must happen before anything is placed beyond its start.** The generator
   registers a section the moment it decides the spot (`DecideFeature`, at the knot that landed
   on it), before that stream's pads and road. `ClearKnots` drops sections too.
@@ -186,12 +213,28 @@ entry name.
 
 The "Collectibles" toggle group (`spawnCollectibles`, optional `collectiblePrefab`,
 `collectibleSpacing` between rows, `collectibleGroupSize` coins per row a `collectibleStep`
-apart at one lateral, `collectibleValue`, `collectibleTriggerSize`, coin size/colour).
+apart at one lateral, `collectibleValue`, `collectiblePickupSize`, coin size/colour).
 `PlaceCollectiblesUpTo` runs after the pads in every stream, skips claimed ground and any
 distance within a pad length of a pad (`padDistances`, pruned with the cull).
 
-`collectibleTriggerSize` is **20 m long** because at Light Speed the ship covers ~36 m per
-physics step against a 12 m trigger box.
+`collectiblePickupSize` (width, height; `FormerlySerializedAs` the old 20 m long
+`collectibleTriggerSize`) is the coin's pickup volume for the swept query — there is no trigger
+box to pad out for speed any more.
+
+### Analytic pickups (`Simulation/PickupRegistry.cs`)
+
+`ITrackPickup` (distance, live lateral, height above the flight line, half extents, `Available`)
+is implemented by `SpeedPad` and `Collectible`. The generator calls `PlaceOnTrack(distance,
+lateral, height, halfExtents)` on each as it spawns them (an orb = a ball of its size, a flat pad
+= its slab, the air lane = `AirLaneHeight`); they register in play while enabled and drop out on
+disable/destroy (cull, consume). The registry is static and cleared on boot (domain reload off).
+`TrackBody.SweepPickups` runs every step over the distance just covered — tunnel-proof at any
+speed — with the body's own `pickupReach` (the ship's: half its `BoxCollider`, 2.5 × 2.3 m)
+added on, the height test making a jump clear the ground lane, and laterals compared modulo the
+circumference round a full tube. It raises `body.PickedUp`; the OWNER decides what taking it
+means (`ShipMotor.OnPickedUp` → `SpeedPad.Collect(motor)` / `Collectible.Collect()`), which is
+what lets the patrol sweep the same registry. A swaying orb reports its live lateral through
+`OrbHover.SwayOffset`.
 
 ## Feature geometry
 
@@ -260,8 +303,11 @@ the flight line.
 
 ## `SpeedPad` + `PadDefinition`
 
-Pads call `ShipMotor.AddSpeedImpulse(speedDelta)` on trigger enter — positive boost, negative
-brake — and the effect is divided by the ship's `weight`.
+`SpeedPad.Collect(motor)` (from the swept query — there is no `OnTriggerEnter`) calls
+`ShipMotor.AddSpeedImpulse(speedDelta)` — positive boost, negative brake, divided by the ship's
+`weight` — and raises the static `Collected`. **A boost orb is used up** (deactivated) when
+taken; a brake pad stays painted on the road but only bites once. Whatever colliders a pad's
+visual carries are only a picture.
 
 - `sizeMultiplier` scales the spawned pad. Speed-ups are small **hovering orbs (0.3)** on the
   flight line that must be aimed for; speed-downs are large **1.2 pads** that must be dodged.
@@ -278,6 +324,13 @@ brake — and the effect is divided by the ship's `weight`.
   jump. No table carries one yet.
 
 ## `TrackDecorator`
+
+**Open edges**: where `track.IsEdgeOpen` the wall is left off that side. The test scene uses
+the full-width `road-straight-barrier` piece (`barrierLateral` 0, both walls in one mesh), so
+that stamp is swapped for `oneSidedBarrierPrefab` (wall authored on the LEFT; turned 180° for an
+open left edge) or, while that art does not exist, a code-built placeholder wall on the closed
+side (`placeholderWallSize`); side-barrier setups just skip the open side. The open edge gets a
+low marker strip (`openEdgeMarkerSize`, `openEdgeMaterial`). Code-built boxes lose their collider.
 
 Stamps road-kit meshes (road surface, side barriers) along the spline, streaming-style:
 `DecorateUpTo(distance)` advances an internal stamp cursor, `CullBefore(distance)` drops pieces

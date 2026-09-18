@@ -229,8 +229,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [SerializeField] Vector2Int collectibleValue = new(1, 5);
 
         [ToggleGroup("spawnCollectibles")]
-        [Tooltip("Trigger box of a coin (width, height, length). Long along the track: at Light Speed the ship covers ~36 m per physics step against a 12 m trigger box, so a short volume would be tunnelled.")]
-        [SerializeField] Vector3 collectibleTriggerSize = new(5f, 5f, 20f);
+        [Tooltip("Width and height of a coin's pickup volume, metres. The ship sweeps the track analytically, so there is no trigger to size (and no length to pad out for speed).")]
+        [UnityEngine.Serialization.FormerlySerializedAs("collectibleTriggerSize")]
+        [SerializeField] Vector2 collectiblePickupSize = new(5f, 5f);
 
         [ToggleGroup("spawnCollectibles")]
         [Tooltip("Diameter of the code-built coin, metres.")]
@@ -317,6 +318,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
         float turnRate;      // signed heading change per knot of the current sweep
         int straightKnots;   // knots laid since the last sweep ended
         float lastTurnSign;  // direction of the last sweep (0 = none yet)
+        bool sweepFlat;      // the current sweep is authored flat: no bank, grip tested, outer edge open
+        int deferredFlatKnots; // a flat sweep rolled while the last bank was still unwinding: it starts once the road is level
+        TrackManager.FlatSweep flatSweep; // ...and its span while it is still being laid
+        bool flatSweepGrew;  // the knot just laid belongs to it: push its end out once the length is known
+        float lastKnotDistance; // track distance of the knot BEFORE the spline's end knot
+        bool lastKnotStraight;  // that knot was plain straight road (see AddSegment's open-straight rule)
+        bool straightRunRolled; // this straight run's open-or-walled roll is made...
+        bool straightRunOpen;   // ...and this is what it said
+        TrackManager.OpenStretch openStretch; // the open straight being grown, or null
         float3 endPosition;
         TrackShapeSettings shapeRuntime;
         float padCursor;
@@ -407,6 +417,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             turnRate = 0f;
             straightKnots = 0;
             lastTurnSign = 0f;
+            sweepFlat = false;
+            deferredFlatKnots = 0;
+            flatSweep = null;
+            flatSweepGrew = false;
+            lastKnotDistance = 0f;
+            lastKnotStraight = false;
+            straightRunRolled = false;
+            straightRunOpen = false;
+            openStretch = null;
             endPosition = float3.zero;
             track.AppendKnot(endPosition);
 
@@ -431,6 +450,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 {
                     bool spot = AddSegment();
                     track.Recalculate(); // the level rule and the feature spots read the spline end
+                    GrowFlatSweep();
                     if (spot) DecideFeature();
                 }
                 SpawnPendingRamps(track.Length - 150f);
@@ -454,6 +474,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 bool spot = AddSegment();
                 track.Recalculate();
+                GrowFlatSweep();
                 if (spot) DecideFeature();
             }
 
@@ -496,7 +517,20 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 float roll = rng.NextFloat(0f, 1f);
                 straightKnots++;
-                if (!holdStraight && roll < curviness && straightKnots > shape.minStraightKnots && TurnFits(shape)) StartTurn(shape);
+                if (deferredFlatKnots > 0)
+                {
+                    // A flat sweep waiting for level road (two knots at most):
+                    // dropped if the road ahead was claimed in the meantime.
+                    if (holdStraight || !TurnFits(shape, flat: true)) deferredFlatKnots = 0;
+                    else if (Mathf.Approximately(bank, 0f))
+                    {
+                        turnKnotsLeft = deferredFlatKnots;
+                        deferredFlatKnots = 0;
+                        sweepFlat = true;
+                        lastTurnSign = Mathf.Sign(turnRate);
+                    }
+                }
+                else if (!holdStraight && roll < curviness && straightKnots > shape.minStraightKnots) StartTurn(shape);
             }
             if (turnKnotsLeft > 0)
             {
@@ -513,6 +547,50 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 }
             }
             float turnDelta = heading - previousHeading;
+
+            // A flat sweep's span: a heading change at the spline's end knot
+            // bends the segment BEFORE that knot as well as the one being laid
+            // (AutoSmooth), so the span opens at the previous knot — still
+            // inside the unstamped settle margin — and its end is pushed out
+            // to each new knot once its distance is known (GrowFlatSweep).
+            float here = track.Length;
+            if (turnDelta != 0f && sweepFlat)
+            {
+                flatSweep ??= track.AddFlatSweep(lastKnotDistance, here, turnDelta > 0f ? -1 : 1);
+                flatSweepGrew = true;
+            }
+            else flatSweep = null;
+
+            // Open straights: a segment is plain straight road when the knots
+            // at BOTH its ends are — no heading change (AutoSmooth bends the
+            // segments either side of one), no bank, no landing zone, no
+            // feature inside the level lead, no section. That is only known
+            // once the knot after it is being laid, so the segment BEHIND the
+            // spline's end is the one opened here (still unstamped: the
+            // settle margin is two segments). One roll per straight run.
+            bool straightKnot = turnDelta == 0f && turnKnotsLeft == 0 && deferredFlatKnots == 0
+                                && Mathf.Approximately(bank, 0f) && !holdStraight && !landOnSpot
+                                && !LevelRequired(shape) && track.SectionAt(here) == null;
+            if (straightKnot && lastKnotStraight)
+            {
+                if (!straightRunRolled)
+                {
+                    straightRunRolled = true;
+                    straightRunOpen = shape.openStraightChance > 0f && rng.NextFloat(0f, 1f) < shape.openStraightChance;
+                }
+                if (straightRunOpen)
+                {
+                    if (openStretch != null) openStretch.End = here;
+                    else openStretch = track.AddOpenStretch(lastKnotDistance, here);
+                }
+            }
+            else if (!straightKnot)
+            {
+                straightRunRolled = false;
+                openStretch = null;
+            }
+            lastKnotStraight = straightKnot;
+            lastKnotDistance = here;
 
             // Elevation: a grade walk inside a band around the baseline — a
             // random step per knot, leaned back home in proportion to the
@@ -541,7 +619,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // coming. No random draws, so a seed with banking off reproduces
             // the unbanked track exactly.
             float bankTarget = 0f;
-            if (shape.bankEnabled && shape.maxBankAngle > 0f && !holdStraight && !LevelRequired(shape))
+            if (shape.bankEnabled && shape.maxBankAngle > 0f && !holdStraight && !sweepFlat && !LevelRequired(shape))
                 bankTarget = Mathf.Clamp(-turnDelta * shape.bankPerDegreeOfTurn, -shape.maxBankAngle, shape.maxBankAngle);
             bank = shape.bankEnabled
                 ? Mathf.MoveTowards(bank, bankTarget, Mathf.Max(shape.maxBankStepPerKnot, 0.01f))
@@ -565,6 +643,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return landOnSpot;
         }
 
+        // The knot just laid closed another stretch of a flat sweep: its
+        // distance is only known now that the length was recalculated.
+        void GrowFlatSweep()
+        {
+            if (!flatSweepGrew) return;
+            flatSweepGrew = false;
+            if (flatSweep != null) flatSweep.End = track.Length;
+        }
+
         /// <summary>
         /// Features need level road (a loop must stand upright, a tube curls
         /// from a flat pose, a ramp rides its rails), so the bank target is
@@ -585,14 +672,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// bank's unwind PLUS the level lead fit before the next feature spot,
         /// and never under a tube — so a sweep is never cut short by the
         /// level rule in the common case, and a feature never lands mid-bank.
+        /// A FLAT sweep has no bank to unwind, so it fits in gaps a banked one
+        /// cannot.
         /// </summary>
-        bool TurnFits(TrackShapeSettings shape)
+        bool TurnFits(TrackShapeSettings shape, bool flat)
         {
             float end = track.Length;
             if (end < straightUntil) return false; // a ramp's landing zone
             if (track.SectionAt(end) is TubeSection) return false;
             float sweepKnots = Mathf.Ceil(shape.TurnArcMin / shape.TurnRateMax);
-            float unwindKnots = shape.bankEnabled
+            float unwindKnots = shape.bankEnabled && !flat
                 ? Mathf.Ceil(shape.maxBankAngle / Mathf.Max(shape.maxBankStepPerKnot, 0.01f))
                 : 0f;
             float needed = (sweepKnots + unwindKnots) * segmentLength.y + shape.levelLeadDistance;
@@ -606,6 +695,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// </summary>
         void StartTurn(TrackShapeSettings shape)
         {
+            // Nothing is drawn for a sweep that cannot fit either way — and at
+            // flat chance 0 this is exactly the old gate, so that reproduces
+            // the all-banked layout draw for draw.
+            bool bankedFits = TurnFits(shape, flat: false);
+            bool flatPossible = shape.unbankedSweepChance > 0f && TurnFits(shape, flat: true);
+            if (!bankedFits && !flatPossible) return;
+
             float rate = rng.NextFloat(shape.TurnRateMin, shape.TurnRateMax);
             float arc = rng.NextFloat(shape.TurnArcMin, shape.TurnArcMax);
             float sign;
@@ -613,8 +709,25 @@ namespace ConfusedGameDev.FiniteRunner.Track
             else if (lastTurnSign == 0f) sign = rng.NextFloat(0f, 1f) < 0.5f ? -1f : 1f;
             else sign = rng.NextFloat(0f, 1f) < shape.alternateTurnChance ? -lastTurnSign : lastTurnSign;
 
+            int knots = Mathf.Max(1, Mathf.RoundToInt(arc / rate));
+
+            // Flat or banked? One draw per sweep — none at chance 0.
+            bool flat = flatPossible && rng.NextFloat(0f, 1f) < shape.unbankedSweepChance;
+            if (!flat && !bankedFits) return; // only a flat sweep fitted this gap, and the roll said banked
+
             turnRate = sign * rate;
-            turnKnotsLeft = Mathf.Max(1, Mathf.RoundToInt(arc / rate));
+            sweepFlat = false;
+            if (flat && !Mathf.Approximately(bank, 0f))
+            {
+                // A flat sweep must stand on level road: while the last
+                // sweep's bank is still unwinding it waits (AddSegment starts
+                // it at the first level knot) instead of being thrown away —
+                // otherwise most flat rolls were lost and the chance lied.
+                deferredFlatKnots = knots;
+                return;
+            }
+            turnKnotsLeft = knots;
+            sweepFlat = flat;
             lastTurnSign = sign;
         }
 
@@ -799,7 +912,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
                 int count = rng.NextInt(collectibleGroupSize.x, Mathf.Max(collectibleGroupSize.x, collectibleGroupSize.y) + 1);
                 track.GetLateralBand(collectibleCursor, out float bandMin, out float bandMax);
-                float margin = collectibleTriggerSize.x * 0.5f + 2f;
+                float margin = collectiblePickupSize.x * 0.5f + 2f;
                 float lo = bandMin + margin;
                 float hi = bandMax - margin;
                 float lateral = hi > lo ? rng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f;
@@ -883,8 +996,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// The loop placement gate. True for anything but a loop, and for a
         /// loop in edit-mode or non-endless previews (no ship speed to read).
         /// In play, the ship's speed when it reaches <paramref name="distance"/>
-        /// is predicted as its current speed minus the passive bleed over the
-        /// gap, and must clear the loop's required speed by the definition's
+        /// is predicted as its current speed minus the over-cruise bleed over
+        /// the gap — which never takes it below cruise (or below where it is,
+        /// if it is under cruise already: the throttle holds that) — and must clear the loop's required speed by the definition's
         /// <see cref="LoopDefinition.gateHeadroom"/>. The requirement is the
         /// same number the gate will be built with, so what is reachable now
         /// stays reachable unless the player loses speed on the way.
@@ -896,7 +1010,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             float speed = ship.CurrentSpeed;
             float gap = Mathf.Max(0f, distance - ship.DistanceTravelled);
-            float predicted = speed - ship.Definition.passiveDeceleration * gap / Mathf.Max(speed, 1f);
+            float bled = speed - ship.Definition.passiveDeceleration * gap / Mathf.Max(speed, 1f);
+            float predicted = Mathf.Max(bled, Mathf.Min(speed, ship.Definition.cruiseSpeed));
             float required = gameManager.LoopRequiredSpeed(distance) * (1f + Mathf.Max(0f, loop.gateHeadroom));
             return predicted >= required;
         }
@@ -1234,6 +1349,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             pad.name = $"{entry.name}{def.displayName}Pad_{distance:00000}";
             var speedPad = pad.AddComponent<SpeedPad>();
+            // Its pickup volume, in track space: an orb is a ball of its own
+            // size, a flat pad the whole slab (and as tall as the ship, so a
+            // grounded ship always reads as on it). The air lane lifts both.
+            float padScale = def.sizeMultiplier;
+            Vector3 halfExtents = def.floatingOrb
+                ? Vector3.one * (padSize.x * padScale * 0.5f)
+                : new Vector3(padSize.x * padScale * 0.5f, 1f, padSize.z * padScale * 0.5f);
+            speedPad.PlaceOnTrack(distance, lateral, entry.lane == PadLane.Air ? AirLaneHeight : 0f, halfExtents);
             // Boosts scale off the shared power-up base; brakes keep their
             // definition's own delta so dodging stays predictable.
             if (def.speedDelta >= 0f) speedPad.SetDefinition(def, EffectiveBoost(entry), entry.color, entry.name);
@@ -1275,12 +1398,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     TrackDecorator.SafeDestroy(go);
                     return;
                 }
-                if (go.GetComponent<Collider>() == null)
-                {
-                    var box = go.AddComponent<BoxCollider>();
-                    box.isTrigger = true;
-                    box.size = collectibleTriggerSize;
-                }
             }
             else
             {
@@ -1299,16 +1416,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 Material mat = CollectibleMaterial();
                 if (mat != null) coin.GetComponent<Renderer>().sharedMaterial = mat;
 
-                var box = go.AddComponent<BoxCollider>();
-                box.isTrigger = true;
-                box.size = collectibleTriggerSize;
-
                 collectible = go.AddComponent<Collectible>();
                 collectible.Configure("Money", CollectibleKind.Money, Collectible.SpinAxis.Z, coin.transform);
             }
 
             // NextInt's max is exclusive.
             collectible.SetValue(rng.NextInt(collectibleValue.x, Mathf.Max(collectibleValue.x, collectibleValue.y) + 1));
+            // Collected by the ship's swept query, not by a trigger: width and
+            // height of the volume are the knob, its length does not matter.
+            collectible.PlaceOnTrack(distance, lateral, 0f,
+                                     new Vector3(collectiblePickupSize.x * 0.5f, collectiblePickupSize.y * 0.5f, 0.5f));
             go.name = $"Money_{distance:00000}";
             spawned.Add((distance, go));
         }

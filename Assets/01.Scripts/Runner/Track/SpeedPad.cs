@@ -1,14 +1,21 @@
 using UnityEngine;
 
 using ConfusedGameDev.FiniteRunner.Ship;
+using ConfusedGameDev.FiniteRunner.Simulation;
 namespace ConfusedGameDev.FiniteRunner.Track
 {
     /// <summary>
-    /// A pad on the track that changes the speed of any ship passing over it.
-    /// Needs a trigger collider; the ship carries a kinematic rigidbody.
+    /// A pad or orb on the track that changes the speed of a ship passing
+    /// through it. <b>Detection is analytic, not physics</b>: the generator
+    /// hands it its track-space spot (<see cref="PlaceOnTrack"/>), it sits in
+    /// the <see cref="PickupRegistry"/> while enabled, and the ship's
+    /// <see cref="TrackBody"/> finds it by sweeping the distance it covered —
+    /// a trigger collider was tunnelled at speed. Whatever colliders the
+    /// visual carries are only ever a picture. A boost ORB is used up when
+    /// taken (it disappears); a brake pad stays painted on the road but only
+    /// bites once.
     /// </summary>
-    [RequireComponent(typeof(Collider))]
-    public class SpeedPad : MonoBehaviour
+    public class SpeedPad : MonoBehaviour, ITrackPickup
     {
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -20,6 +27,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
         // 0 delta / null tint = fall back to the shared definition.
         float speedDeltaOverride;
         Color? tintOverride;
+
+        // Track-space spot, from the generator.
+        bool placed;
+        bool taken;
+        float trackDistance, trackLateral, trackHeight;
+        Vector3 trackHalfExtents;
+        OrbHover hover; // a swaying orb's lateral moves with it
 
         /// <summary>Raised whenever any pad or orb is collected by a ship. Static so listeners (GameManager story messages) need no per-pad wiring.</summary>
         public static event System.Action<SpeedPad, ShipMotor> Collected;
@@ -33,6 +47,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public float SpeedDelta =>
             speedDeltaOverride != 0f ? speedDeltaOverride :
             definition != null ? definition.speedDelta : 0f;
+
+        // ------------------------------------------------------- ITrackPickup
+        public float TrackDistance => trackDistance;
+        public float TrackLateral => trackLateral + (hover != null ? hover.SwayOffset : 0f);
+        public float TrackHeight => trackHeight;
+        public Vector3 TrackHalfExtents => trackHalfExtents;
+        public bool Available => placed && !taken && definition != null;
 
         /// <summary>Runtime assignment used by the track generator.</summary>
         public void SetDefinition(PadDefinition def)
@@ -54,17 +75,42 @@ namespace ConfusedGameDev.FiniteRunner.Track
             ApplyColor();
         }
 
+        /// <summary>
+        /// Where the pad is in track space and how big its pickup volume is
+        /// (half extents: x across the track, y up, z along it). The generator
+        /// calls this once, after the visual is built; in play it puts the pad
+        /// in the <see cref="PickupRegistry"/>.
+        /// </summary>
+        public void PlaceOnTrack(float distance, float lateral, float height, Vector3 halfExtents)
+        {
+            trackDistance = distance;
+            trackLateral = lateral;
+            trackHeight = height;
+            trackHalfExtents = halfExtents;
+            hover = GetComponent<OrbHover>();
+            placed = true;
+            if (Application.isPlaying && isActiveAndEnabled) PickupRegistry.Register(this);
+        }
+
+        /// <summary>A ship went through it: apply the speed change, tell the listeners, use an orb up.</summary>
+        public void Collect(ShipMotor motor)
+        {
+            if (!Available || motor == null) return;
+            taken = true;
+            motor.AddSpeedImpulse(SpeedDelta);
+            Collected?.Invoke(this, motor);
+            if (definition.floatingOrb) gameObject.SetActive(false); // OnDisable drops it from the registry
+        }
+
         void Awake() => ApplyColor();
         void OnValidate() => ApplyColor();
 
-        void OnTriggerEnter(Collider other)
+        void OnEnable()
         {
-            if (definition == null) return;
-            var motor = other.GetComponentInParent<ShipMotor>();
-            if (motor == null) return;
-            motor.AddSpeedImpulse(SpeedDelta);
-            Collected?.Invoke(this, motor);
+            if (placed && Application.isPlaying) PickupRegistry.Register(this);
         }
+
+        void OnDisable() => PickupRegistry.Unregister(this);
 
         void ApplyColor()
         {

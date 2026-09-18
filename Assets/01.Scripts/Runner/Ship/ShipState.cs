@@ -6,6 +6,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// camera's forced framing, HUD, haptics — reads this off
     /// <see cref="ShipMotor.State"/> rather than a per-feature flag, and the
     /// enum is where the loop and tube features will add their own values.
+    /// Append-only.
     /// </summary>
     public enum ShipState
     {
@@ -23,5 +24,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>On a tube section: the road is a pipe and lateral is an arc round it; steering is ordinary, the band is the section's.</summary>
         OnTube,
+
+        /// <summary>Left the track over an open edge: a world-space ballistic fall, no spline under it. The clock keeps running, the patrol is held.</summary>
+        OffTrack,
+
+        /// <summary>Back on the track after a fall, at a standstill and blinking: no control, nothing can touch it, until the wait ends and it relaunches.</summary>
+        Respawning,
     }
 }

@@ -62,6 +62,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         DashPromptController dashPrompt;
         OrbitCameraRig cameraRig;          // null when GameSettings has no camera asset
         CameraMode modeBeforeJump;         // the view a jump forced to Far hands back on landing
+        float fallCameraLeft = -1f;        // seconds until the camera stops following an off-track fall, -1 = not counting
+        bool fallCinematic;                // the rig is holding the planted shot for an off-track fall
         bool loopCinematic;                // the rig is holding the cinematic shot for a loop (and its fall)
         float loopCinematicHoldLeft;       // real seconds the shot lingers past the exit, -1 = not releasing
         SpeedLines speedLines;             // null when the speed lines are off on GameSettings
@@ -142,6 +144,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             {
                 motor.ConfigureDash(settings);
                 motor.WallHit += OnWallHit;
+                motor.Sliding += OnSliding;
+                motor.FellOff += OnFellOff;
+                motor.RespawnStarted += OnRespawnStarted;
+                motor.Respawned += OnRespawned;
                 motor.DashPerformed += OnDashPerformed;
                 motor.TookOff += OnTookOff;
                 motor.Landed += OnLanded;
@@ -152,6 +158,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // The loop's slow motion rides on the ship (the clock-owner
                 // contract lives there); the knobs are on the settings asset.
                 LoopSlowMo.Ensure(motor).Configure(settings);
+
+                // The respawn blink rides the ship the same way.
+                RespawnBlink.Ensure(motor).Configure(settings);
 
                 // The ship's own sounds (engine loop, pickup, jump) ride the
                 // ship the same way, reading the settings live; off = no
@@ -277,6 +286,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (speedLines != null && cameraRig != null)
                 speedLines.SetCameraMode(cameraRig.Cinematic ? SpeedLines.CinematicMode : (int)cameraRig.Mode);
             UpdateLoopCinematicHold();
+            UpdateFallCamera();
 
             if (motor == null || RunOver) return;
 
@@ -300,6 +310,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (!HasWon && EvaluateObjectives(motor.CurrentSpeed * 3.6f))
             {
                 HasWon = true;
+                motor.Autopilot = true; // nothing can go wrong from here: edges closed, grip untested, steered home
                 winRoutine = StartCoroutine(FinishWin());
             }
             if (HasWon)
@@ -705,6 +716,58 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         // Dash into the wall, or a ramp hit from the side: a thud in the
         // hands, a burst of signal corruption and a kick on the picture.
+        // Over an open edge: the patrol holds (the clock does not), the
+        // picture glitches, and after a beat of following the fall the camera
+        // plants itself and just watches the ship go.
+        void OnFellOff()
+        {
+            if (patrol != null) patrol.SetHold(true);
+            HapticsSystem.Instance.Pulse(1f, 0.5f, 0.8f);
+            if (GlitchController.Instance != null)
+                GlitchController.Instance.Pulse(settings.fallGlitchStrength);
+            fallCameraLeft = Mathf.Max(0f, settings.fallCameraFollowSeconds);
+        }
+
+        void UpdateFallCamera()
+        {
+            if (fallCameraLeft < 0f) return;
+            fallCameraLeft -= Time.deltaTime;
+            if (fallCameraLeft > 0f) return;
+            fallCameraLeft = -1f;
+            if (cameraRig == null || cameraRig.Cinematic) return;
+            cameraRig.SetCinematic(true);
+            fallCinematic = cameraRig.Cinematic;
+        }
+
+        // Back on the track: hand the picture back and cut the camera along
+        // with the teleport instead of letting it damp across the gap.
+        void OnRespawnStarted(Vector3 teleport)
+        {
+            EndFallCamera();
+            if (cameraRig != null) cameraRig.NotifyWarp(teleport);
+        }
+
+        void OnRespawned()
+        {
+            if (patrol != null) patrol.SetHold(false, settings.respawnMinPatrolGap);
+        }
+
+        void EndFallCamera()
+        {
+            fallCameraLeft = -1f;
+            if (!fallCinematic) return;
+            fallCinematic = false;
+            if (cameraRig != null) cameraRig.SetCinematic(false);
+        }
+
+        // Grip lost on a flat sweep: the warning before the edge, so it is a
+        // long low rumble rather than the wall's sharp knock.
+        void OnSliding(float excess)
+        {
+            HapticsSystem.Instance.Pulse(0.6f, 0.2f, 0.5f);
+            CameraShake.Shake(settings.slideShake);
+        }
+
         void OnWallHit(float impactSpeed)
         {
             HapticsSystem.Instance.Pulse(0.8f, 0.4f, 0.2f);
@@ -719,6 +782,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             {
                 motor.PadImpulse -= OnPadImpulse;
                 motor.WallHit -= OnWallHit;
+                motor.Sliding -= OnSliding;
+                motor.FellOff -= OnFellOff;
+                motor.RespawnStarted -= OnRespawnStarted;
+                motor.Respawned -= OnRespawned;
                 motor.DashPerformed -= OnDashPerformed;
                 motor.TookOff -= OnTookOff;
                 motor.Landed -= OnLanded;
@@ -750,8 +817,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             KillBanner(); // a retry mid-beat must not leave the word over the new run
             RestoreGlitchFade();
             if (GlitchController.Instance != null) GlitchController.Instance.SetBaseIntensity(0f);
-            // A retry from inside a loop must not leave the shot armed.
+            // A retry from inside a loop must not leave the shot armed — nor one mid-fall.
             EndLoopCinematic();
+            EndFallCamera();
             // Nor a retry pressed mid-win-beat leave the camera planted and the
             // player locked out of it (EndLoopCinematic only drops a LOOP shot).
             if (cameraRig != null)

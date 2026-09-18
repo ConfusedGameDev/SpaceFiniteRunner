@@ -5,19 +5,37 @@ using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Screens;
+using ConfusedGameDev.FiniteRunner.Simulation;
 using ConfusedGameDev.FiniteRunner.Track;
 using ConfusedGameDev.FiniteRunner.Track.Features;
 namespace ConfusedGameDev.FiniteRunner.Ship
 {
     /// <summary>
     /// Drives the ship along the track spline. Core speed rule: an initial
-    /// impulse at launch followed by constant decay — pads are the only way
-    /// to regain speed, and there is no upper cap (the win condition is
-    /// reaching Light Speed). The track streams endlessly ahead (see
-    /// TrackGenerator); the run ends when speed hits 0 or the GameManager's
-    /// timer expires. All tunables come from the assigned <see cref="ShipDefinition"/>.
+    /// impulse at launch, then the player's throttle holds the ship up to
+    /// its cruise speed and the brake slows it — boost orbs are the only way
+    /// past cruise (a bleed pulls the speed back down to it), and there is no
+    /// upper cap (the win condition is reaching Light Speed). The track
+    /// streams endlessly ahead (see TrackGenerator); the run ends when the
+    /// ship sits at a standstill for <see cref="GameSettings.stallGraceSeconds"/>
+    /// (<see cref="HasStopped"/>) or the GameManager's timer expires. All
+    /// tunables come from the assigned <see cref="ShipDefinition"/>.
     ///
-    /// <b>Jumps</b> are resolved here, analytically: every frame the motor
+    /// <b>The motor is a driver around a <see cref="TrackBody"/></b>: the
+    /// body holds the track-space state (distance, lateral, height and their
+    /// velocities) and the rules any body shares — speed, the lane, ramps and
+    /// the jump arc — while the motor feeds it the player's controls and
+    /// keeps what only the ship has: the dash meter, the barrel roll, the
+    /// loop verdict and its fall, the visual. <b>The simulation ticks in
+    /// FixedUpdate</b> (cut into <see cref="GameSettings.simSubsteps"/>
+    /// substeps) and the pose is rendered in Update, interpolated in track
+    /// space between the last two ticks — so <see cref="DistanceTravelled"/>,
+    /// <see cref="LateralOffset"/> and <see cref="AirHeight"/> are the
+    /// RENDERED values, which is what every Update-time reader (the patrol's
+    /// gap, the ghost trail, the streamer) wants; <see cref="Body"/> has the
+    /// tick's own.
+    ///
+    /// <b>Jumps</b> are resolved analytically, in the body: every step it
     /// scans the live <see cref="JumpRamp"/>s. Inside a ramp's run-up with
     /// the centre far enough inside its edge, the ship is committed — lateral
     /// pinned to the ramp (side rails), root riding up the slope — and
@@ -39,6 +57,19 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// (<see cref="ShipState.Falling"/>: off the track, straight down under
     /// the loop's fake gravity onto the exit, distance frozen at the exit so
     /// the patrol keeps gaining) and lands with the loop's speed penalty.
+    /// <b>Falling off</b>: when the body leaves the track over an open edge
+    /// (<see cref="ShipState.OffTrack"/>) the motor takes its velocity into
+    /// world space and flies a plain ballistic fall — no spline — for
+    /// <see cref="GameSettings.fallDurationSeconds"/> (<see cref="FellOff"/>),
+    /// then seats the ship at the first safe stretch PAST the fall point
+    /// (<see cref="FindRespawnDistance"/>: you lose time, never distance, and
+    /// never respawn into the sweep that threw you), at a standstill and
+    /// untouchable (<see cref="ShipState.Respawning"/>,
+    /// <see cref="RespawnStarted"/>, <see cref="RespawnBlink"/>), and after
+    /// <see cref="GameSettings.respawnWaitSeconds"/> relaunches it at the
+    /// speed it fell with minus the penalty (<see cref="Respawned"/>). The
+    /// run's clock never stops for any of it. <see cref="Autopilot"/> is the
+    /// post-win lockdown: edges closed, grip untested, the ship steered home.
     /// It is also the chase camera's <see cref="ICameraTarget"/>: the rig
     /// follows this root (the pose above the flight line, never the bobbing
     /// visual) and the view cycle is locked while airborne.
@@ -55,9 +86,16 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [SerializeField] Transform visual;
 
         public ShipDefinition Definition => definition;
-        public float CurrentSpeed { get; private set; }
+        public float CurrentSpeed => body != null ? body.ForwardSpeed : 0f;
+
+        /// <summary>Metres from the track start, as RENDERED this frame (interpolated between simulation ticks). <see cref="Body"/> holds the tick's own.</summary>
         public float DistanceTravelled { get; private set; }
+
+        /// <summary>Stalled out: the ship sat at speed 0 with the throttle released for the whole stall grace. Latched until the next <see cref="Launch"/>; braking to a stop alone never sets it.</summary>
         public bool HasStopped { get; private set; }
+
+        /// <summary>The track-space body the motor drives: the simulation's own state, at most one tick ahead of the rendered pose.</summary>
+        public TrackBody Body => body;
 
         /// <summary>Raised when a pad impulse is applied. Argument is the raw magnitude (positive = boost).</summary>
         public event System.Action<float> PadImpulse;
@@ -76,6 +114,30 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>Raised when a dash slams the track edge, or the ship hits a ramp from the side. Argument: lateral impact speed in m/s.</summary>
         public event System.Action<float> WallHit;
+
+        /// <summary>Raised when the ship starts sliding outward on a flat sweep taken too fast. Argument: lateral acceleration beyond its grip, m/s².</summary>
+        public event System.Action<float> Sliding;
+
+        /// <summary>True while the ship is sliding on a flat sweep (and scrubbing speed).</summary>
+        public bool IsSliding => body != null && body.IsSliding;
+
+        /// <summary>Raised the step the ship leaves the track over an open edge (it is <see cref="ShipState.OffTrack"/> and falling).</summary>
+        public event System.Action FellOff;
+
+        /// <summary>Raised when the fall ends and the ship is seated back on the track to wait (<see cref="ShipState.Respawning"/>), its root already moved. Argument: the world-space teleport, for the camera's warp.</summary>
+        public event System.Action<Vector3> RespawnStarted;
+
+        /// <summary>Raised when the respawn wait ends and the ship relaunches.</summary>
+        public event System.Action Respawned;
+
+        /// <summary>
+        /// Post-win lockdown: the player's steering is replaced by a gentle
+        /// pull to the centre line, the throttle is held, dash input is
+        /// swallowed, every edge is a wall and grip is never tested — so the
+        /// Mission Complete sequence can never end in a slide or a fall.
+        /// Cleared by <see cref="Launch"/>.
+        /// </summary>
+        public bool Autopilot { get; set; }
 
         /// <summary>Raised on every <see cref="State"/> change, after the new state is set.</summary>
         public event System.Action<ShipState> StateChanged;
@@ -98,7 +160,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>Dash power meter, 0..1. Starts each run empty.</summary>
         public float DashMeter => dashMeter;
 
-        /// <summary>True during the short dash burst.</summary>
+        /// <summary>True for the dash's window after the shove (the ghost trail's span; no new dash inside it). A wall ends it early.</summary>
         public bool IsDashing => dashTimeLeft > 0f;
 
         /// <summary>Seconds the current (or last) dash burst was spread over: the dash duration on the ground, the barrel roll's length in the air.</summary>
@@ -113,8 +175,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>The banking/hovering model child — for visual-only consumers (ghost trail).</summary>
         public Transform Visual => visual;
 
-        /// <summary>Metres across the track from the centre line, right positive — the steering coordinate.</summary>
-        public float LateralOffset => lateralOffset;
+        /// <summary>Metres across the track from the centre line, right positive — the steering coordinate, as rendered this frame.</summary>
+        public float LateralOffset { get; private set; }
 
         /// <summary>The track the ship rides — for consumers that need the flight-line pose (ghost trail).</summary>
         public TrackManager Track => track;
@@ -123,16 +185,16 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public GameSettings DashSettings => dashSettings;
 
         /// <summary>Grounded or Airborne — see <see cref="ShipState"/>.</summary>
-        public ShipState State { get; private set; }
+        public ShipState State => body != null ? body.State : ShipState.Grounded;
 
         /// <summary>Seconds since takeoff while airborne; the last flight's length otherwise.</summary>
-        public float AirTime { get; private set; }
+        public float AirTime => body != null ? body.AirTime : 0f;
 
-        /// <summary>Height of the root above the flight line (ramp slope or arc), metres.</summary>
-        public float AirHeight => height;
+        /// <summary>Height of the root above the flight line (ramp slope or arc), metres, as rendered this frame.</summary>
+        public float AirHeight { get; private set; }
 
         /// <summary>The ramp the ship is committed to (riding its run-up), or null.</summary>
-        public JumpRamp CurrentRamp => ramp;
+        public JumpRamp CurrentRamp => body?.Ramp;
 
         /// <summary>The loop the ship is inside (or falling out of), or null.</summary>
         public LoopFeature CurrentLoop => loop;
@@ -149,20 +211,21 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         }
         bool ICameraTarget.BlockPanInput => false; // the ship steers with the left stick and the arrows; the right stick is the camera's
         // A jump forces the Far framing; the cycle is locked so it cannot be undone mid-arc.
-        bool ICameraTarget.BlockModeCycle => MainMenuController.IsOpen || State == ShipState.Airborne || State == ShipState.Falling;
+        bool ICameraTarget.BlockModeCycle => MainMenuController.IsOpen || State == ShipState.Airborne || State == ShipState.Falling
+                                             || State == ShipState.OffTrack;
 
         ISteeringInput steering;
         IDashInput dashInput;
-        GameSettings dashSettings; // null = dash feature off
-        float lateralOffset;
-        float lateralVelocity;
+        IThrottleInput throttleInput; // null = no throttle device: the ship holds full throttle
+        float stallTimer;             // seconds at a standstill with the throttle released
+        GameSettings dashSettings; // null = dash feature off; also carries the simulation's tick rules
+        TrackBody body;
+        float lastTickTime = float.NegativeInfinity; // Time.fixedTime of the last simulation tick, for the render's blend
         float bankAngle;
-        float pendingSpeedChange; // pad effects blend in via ShipDefinition.acceleration
         float dashMeter;
         float dashTimeLeft;
         int dashDirection;
         float dashBurstDuration;     // the profile's span: dashDuration grounded, barrelRollSeconds airborne
-        float dashVelocityThisFrame; // handed from UpdateLateral to ApplyPose for the bank
 
         // Barrel roll (airborne dash). Visual-only, on the model child like the
         // bank: a full 360° in the dash direction eased over its own timer, so
@@ -172,26 +235,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float rollDuration;
         int rollDirection;
         float rollAngle;
-        float wallHitCooldown;
         bool meterWasFull;
-
-        // Jump state. `height` is the root's lift above the flight line; the
-        // arc is y(s) = arcH0 + arcSlope·s − arcA·s² over s = distance past the
-        // lip, chosen so it leaves the lip tangent to the ramp and lands at
-        // exactly airLength (see JumpDefinition).
-        float height;
-        JumpRamp ramp;          // committed: riding the run-up
-        JumpRamp blockingRamp;  // beside a ramp: its edge is a wall this frame
-        int blockSide;          // which side of the blocking ramp the ship is on (+1 right)
-        JumpDefinition airDefinition; // the jump in flight (control authority)
-        float airStart, airLength, arcH0, arcSlope, arcA;
-        float visualPitch;      // nose up on the slope and the climb, down on the descent
-        float shownPitch;       // visualPitch, eased
-
-        // Tube return: before a tube unrolls, the motor eases the lateral back
-        // to the band's centre from wherever the player left it.
-        bool returnLocked;
-        float returnFromLateral;
+        float shownPitch;       // the body's pitch (nose up on the slope and the climb, down on the descent), eased
 
         // Loop state. Inside a loop the track pose does the work; the motor
         // only remembers the verdict taken at the gate and, on a fail, runs
@@ -204,23 +249,62 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         LoopDefinition loopDefinition;
         bool loopPassed;
         float fallDistance;     // metres fallen so far
+        float prevFallDistance; // ...at the start of the tick, for the render's blend
         float fallVelocity;
         float fallHeight;       // the drop: twice the radius
         Vector3 fallTopPosition;
         Quaternion fallTopRotation, fallExitRotation;
         Vector3 fallExitPosition;
 
+        // Off-track fall and respawn. The fall is the one stretch the ship is
+        // NOT in track space: a world position and velocity under gravity.
+        // Both it and the wait run on the simulation's clock (timers in the
+        // tick, not a coroutine), so a pause freezes them with everything else.
+        Vector3 offPosition, prevOffPosition, offVelocity;
+        Quaternion offRotation;
+        int offSide;            // the side it left over: the tumble rolls that way
+        float offTimer;         // seconds fallen, then seconds waited
+        float speedAtFall;      // what the relaunch is measured against
+
+        Vector2 pickupReach = new(2.5f, 2.3f); // half width / half height of the ship's pickup volume
+
+        // Metres of lateral offset the autopilot answers with full steer.
+        const float AutopilotReach = 6f;
+
         void Awake()
         {
             steering = GetComponent<ISteeringInput>();
             dashInput = GetComponent<IDashInput>();
+            throttleInput = GetComponent<IThrottleInput>();
             if (visual == null) visual = transform;
 
             if (track == null)
             {
                 Debug.LogError("ShipMotor needs a TrackManager reference.", this);
                 enabled = false;
+                return;
             }
+
+            // The body is this component's own object, so its events need no
+            // unsubscribe: they die together (nothing static is involved).
+            body = new TrackBody(track);
+            body.StateChanged += next => StateChanged?.Invoke(next);
+            body.Landed += () => Landed?.Invoke();
+            body.WallHit += impactSpeed => WallHit?.Invoke(impactSpeed);
+            body.Sliding += excess => Sliding?.Invoke(excess);
+            body.LeftTrack += OnLeftTrack;
+            body.PickedUp += OnPickedUp;
+
+            // The pickup volume is the one authored on the ship: its box
+            // (once a physics trigger, now only a measure).
+            var box = GetComponent<BoxCollider>();
+            if (box != null) pickupReach = new Vector2(box.size.x * 0.5f, box.size.y * 0.5f);
+            body.TookOff += boost =>
+            {
+                // The takeoff boost rides the pad path: "+N" text, shake and rumble come free.
+                if (boost != 0f) AddSpeedImpulse(boost);
+                TookOff?.Invoke();
+            };
         }
 
         // Launch in Start so a TrackGenerator's Awake can rebuild the spline first.
@@ -232,7 +316,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>
         /// Hands the motor the dash tunables (GameManager pushes the shared
         /// GameSettings asset here — the motor holds no settings reference of
-        /// its own). Null or dashEnabled off leaves the feature inert.
+        /// its own). Null or dashEnabled off leaves the feature inert. The
+        /// same asset carries the simulation's run rules (substeps, the
+        /// stall grace).
         /// </summary>
         public void ConfigureDash(GameSettings settings)
         {
@@ -244,31 +330,24 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>Resets the run to the track start and applies the initial impulse.</summary>
         public void Launch()
         {
-            CurrentSpeed = definition.initialImpulse;
-            DistanceTravelled = 0f;
-            lateralOffset = 0f;
-            lateralVelocity = 0f;
-            pendingSpeedChange = 0f;
+            if (body == null) return;
+
             dashMeter = 0f; // the meter charges from empty every run
             dashTimeLeft = 0f;
-            dashVelocityThisFrame = 0f;
             rollTimeLeft = 0f;
             rollAngle = 0f;
-            wallHitCooldown = 0f;
             meterWasFull = false;
             HasStopped = false;
+            stallTimer = 0f;
+            Autopilot = false;
+            ClearLoop();
+            fallDistance = prevFallDistance = 0f;
 
             // Back on the line, silently: a restart mid-arc is not a landing.
-            height = 0f;
-            ramp = null;
-            blockingRamp = null;
-            airDefinition = null;
-            ClearLoop();
-            AirTime = 0f;
-            visualPitch = 0f;
-            SetState(ShipState.Grounded);
+            body.Reset(0f, definition.initialImpulse);
 
-            ApplyPose(0f);
+            bankAngle = 0f;
+            RenderPose(1f);
             Launched?.Invoke();
         }
 
@@ -278,55 +357,110 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         public void AddSpeedImpulse(float rawMagnitude)
         {
-            if (HasStopped) return;
-            pendingSpeedChange += definition.ScalePadEffect(rawMagnitude);
+            if (HasStopped || body == null) return;
+            if (State == ShipState.OffTrack || State == ShipState.Respawning) return; // nothing touches a ship that is not on the track
+            body.AddSpeedChange(definition.ScalePadEffect(rawMagnitude));
             PadImpulse?.Invoke(rawMagnitude);
         }
 
         void Update()
         {
             float dt = Time.deltaTime;
+            bool running = !Paused && !HasStopped;
 
-            if (!Paused && !HasStopped)
-            {
-                UpdateSpeed(dt);
-                UpdateDash(dt);
-                UpdateRoll(dt);
-                UpdateLateral(dt);
-                if (State != ShipState.Falling) AdvanceAlongTrack(dt); // a fall is off the track: distance waits at the exit
-                UpdateJump(dt);
-                UpdateLoop(dt);
-                ApplyPose(dt);
+            if (running) UpdateRoll(dt); // visual only, so it turns at the frame rate, not the tick's
 
-                if (CurrentSpeed <= 0f)
-                {
-                    CurrentSpeed = 0f;
-                    HasStopped = true;
-                }
-            }
+            // Between two ticks the pose is the track-space blend of them; with
+            // no fresh tick (paused, stopped) the blend runs out at the current
+            // state and rests there.
+            float alpha = Mathf.Clamp01((Time.time - lastTickTime) / Mathf.Max(Time.fixedDeltaTime, 1e-5f));
+            RenderPose(alpha);
+            if (running) UpdateBank(dt);
 
             // Hover runs even after the run ends, so the ship keeps floating.
             ApplyHover(dt);
         }
 
-        void UpdateSpeed(float dt)
+        void FixedUpdate()
         {
-            // Blend queued pad effects in at the ship's acceleration rate.
-            if (!Mathf.Approximately(pendingSpeedChange, 0f))
-            {
-                float step = Mathf.Sign(pendingSpeedChange) *
-                             Mathf.Min(Mathf.Abs(pendingSpeedChange), definition.acceleration * dt);
-                CurrentSpeed += step;
-                pendingSpeedChange -= step;
-            }
-
-            // The core rule: speed always bleeds away. No upper cap — the win
-            // condition is climbing all the way to Light Speed.
-            CurrentSpeed = Mathf.Max(0f, CurrentSpeed - definition.passiveDeceleration * dt);
+            if (Paused || HasStopped) return;
+            Simulate(Time.fixedDeltaTime, dashSettings != null ? dashSettings.simSubsteps : 1);
+            lastTickTime = Time.fixedTime;
         }
 
-        // Meter recharge and dash triggering. Runs before UpdateLateral so a
-        // request fires on the frame it was consumed.
+        /// <summary>One simulation tick of <paramref name="dt"/> seconds, cut into equal substeps.</summary>
+        void Simulate(float dt, int substeps)
+        {
+            body.BeginTick();
+            prevFallDistance = fallDistance;
+            prevOffPosition = offPosition;
+            if (throttleInput != null) throttleInput.DigitalRampSeconds = definition.digitalThrottleRampSeconds;
+            body.Params = new BodyParams
+            {
+                impulseBlendRate = definition.acceleration,
+                cruiseSpeed = definition.cruiseSpeed,
+                thrust = definition.thrust,
+                brakeDecel = definition.brakeDecel,
+                coastDrag = definition.coastDrag,
+                passiveDeceleration = definition.passiveDeceleration,
+                lateralSpeed = definition.lateralSpeed,
+                handlingResponse = definition.handlingResponse,
+                gripBase = definition.gripBase,
+                gripPerSpeed = definition.gripPerSpeed,
+                slideThreshold = definition.slideThreshold,
+                slideSpeedLoss = definition.slideSpeedLoss,
+                jumpStrength = definition.jumpStrength,
+                wallHitCooldownSeconds = dashSettings != null ? dashSettings.dashWallHitCooldownSeconds : 0.5f,
+                pickupReach = pickupReach,
+                edgeOverhang = dashSettings != null ? dashSettings.edgeOverhang : 1f,
+                edgeGraceSeconds = dashSettings != null ? dashSettings.edgeGraceSeconds : 0.25f,
+            };
+            body.HoldOnTrack = Autopilot;
+
+            substeps = Mathf.Max(1, substeps);
+            float h = dt / substeps;
+            for (int i = 0; i < substeps && !HasStopped; i++) Step(h);
+        }
+
+        void Step(float dt)
+        {
+            if (State == ShipState.OffTrack) { StepFall(dt); return; }
+            if (State == ShipState.Respawning) { StepRespawnWait(dt); return; }
+
+            UpdateDash(dt);
+
+            var controls = new BodyControls
+            {
+                steer = steering?.SteerAxis ?? 0f,
+                throttle = throttleInput != null ? throttleInput.Throttle : 1f,
+                brake = throttleInput != null ? throttleInput.Brake : 0f,
+            };
+            if (Autopilot)
+            {
+                controls.steer = Mathf.Clamp(-body.Lateral / AutopilotReach, -1f, 1f);
+                controls.throttle = 1f;
+                controls.brake = 0f;
+            }
+            body.Step(dt, controls);
+            dashTimeLeft = body.LateralBlocked ? 0f : Mathf.Max(0f, dashTimeLeft - dt); // a wall (or a tube's return) ends the dash
+
+            UpdateLoop(dt);
+            UpdateStall(dt, controls.throttle);
+        }
+
+        // A standstill is no longer the end by itself — the brake can stop the
+        // ship and the throttle pulls it away again. Stalling out is sitting
+        // at 0 with the throttle released for the whole grace.
+        void UpdateStall(float dt, float throttle)
+        {
+            bool stalled = body.ForwardSpeed <= 0.01f && throttle <= 0.01f;
+            stallTimer = stalled ? stallTimer + dt : 0f;
+            float grace = dashSettings != null ? dashSettings.stallGraceSeconds : 2f;
+            if (stallTimer >= grace) HasStopped = true;
+        }
+
+        // Meter recharge and dash triggering. Runs before the body's step so a
+        // request fires on the step it was consumed.
         void UpdateDash(float dt)
         {
             if (dashSettings == null || !dashSettings.dashEnabled) return;
@@ -343,20 +477,23 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             }
             else meterWasFull = false;
 
-            wallHitCooldown = Mathf.Max(0f, wallHitCooldown - dt);
-
             int request = dashInput?.ConsumeDashRequest() ?? 0;
+            if (Autopilot) request = 0; // swallowed: the win's fly-on is hands-off
             if (request != 0 && !IsDashing && dashMeter >= dashSettings.dashCost)
             {
                 dashMeter -= dashSettings.dashCost;
                 dashDirection = request;
 
                 // In the air the dash is a barrel roll: the same sideways
-                // burst (at the jump's reduced authority), spread over the
-                // roll's length so the drift and the spin are one motion.
+                // shove (at the jump's reduced authority) under a full spin
+                // of the model, and the dash window lasts the roll's length.
                 bool airborne = State == ShipState.Airborne;
                 dashBurstDuration = Mathf.Max(airborne ? definition.barrelRollSeconds : definition.dashDuration, 0.01f);
                 dashTimeLeft = dashBurstDuration;
+                // The dash is a shove: a burst of lateral velocity the body's
+                // drag eats over dashDistance (at the air's reduced authority
+                // off a jump) — not a scripted slide.
+                body.AddLateralImpulse(request * definition.DashImpulse);
                 DashPerformed?.Invoke(request);
 
                 if (airborne && !IsBarrelRolling)
@@ -381,175 +518,6 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (rollTimeLeft <= 0f) rollAngle = 0f; // a full turn is where it started
         }
 
-        void UpdateLateral(float dt)
-        {
-            float steer = steering?.SteerAxis ?? 0f;
-            // The lane at this distance: ±half width on the road, the arc round
-            // the pipe on a tube (its edge behaves exactly like the road's).
-            track.GetLateralBand(DistanceTravelled, out float bandMin, out float bandMax);
-
-            // In the air the stick and the dash both work at the jump's reduced
-            // authority; on a tube the stick alone gets the pipe's extra reach.
-            float control = State == ShipState.Airborne && airDefinition != null ? airDefinition.airControlFactor : 1f;
-            float steerFactor = State == ShipState.OnTube && track.SectionAt(DistanceTravelled) is TubeSection onTube
-                ? onTube.SteeringFactor : 1f;
-
-            float targetVelocity = steer * definition.lateralSpeed * control * steerFactor;
-            lateralVelocity = Mathf.MoveTowards(
-                lateralVelocity, targetVelocity,
-                definition.lateralSpeed * steerFactor * definition.handlingResponse * dt);
-
-            // The dash is an additive velocity with its own state, so the
-            // steering MoveTowards above never sees (and never decays) it.
-            // Triangular ease-out profile: starts strong, tapers to 0, and
-            // integrates to exactly dashDistance over dashDuration.
-            float dashVelocity = 0f;
-            if (dashTimeLeft > 0f && dashSettings != null)
-            {
-                float duration = Mathf.Max(dashBurstDuration, 0.01f);
-                dashVelocity = dashDirection * (2f * definition.dashDistance / duration)
-                                             * Mathf.Clamp01(dashTimeLeft / duration) * control;
-                dashTimeLeft -= dt;
-            }
-            dashVelocityThisFrame = dashVelocity;
-
-            // The end of a tube is the system's: over the return stretch the
-            // lateral eases home to the band's centre, steering and dash
-            // ignored, so the road never unrolls under a ship hanging off it.
-            if (State == ShipState.OnTube && track.SectionAt(DistanceTravelled) is TubeSection tube)
-            {
-                float local = DistanceTravelled - tube.StartDistance;
-                float progress = tube.ReturnProgress(local);
-                if (progress > 0f)
-                {
-                    if (!returnLocked) { returnLocked = true; returnFromLateral = lateralOffset; }
-                    // A full tube unwinds to the NEAREST top (a whole number of
-                    // turns is the same pose), then snaps that to 0 for the
-                    // flat road once the curl-out begins — same pose, no jolt.
-                    float home = tube.Unbounded
-                        ? Mathf.Round(returnFromLateral / tube.Circumference) * tube.Circumference
-                        : (bandMin + bandMax) * 0.5f;
-                    lateralOffset = progress >= 1f ? 0f : Mathf.Lerp(returnFromLateral, home, progress);
-                    lateralVelocity = 0f;
-                    dashTimeLeft = 0f;
-                    dashVelocityThisFrame = 0f;
-                    return;
-                }
-                if (tube.IsUnboundedAt(local))
-                {
-                    // Round and round: no clamp, no wall.
-                    returnLocked = false;
-                    lateralOffset += (lateralVelocity + dashVelocity) * dt;
-                    return;
-                }
-            }
-            returnLocked = false;
-
-            // The clamp is what guarantees a dash can never leave the track.
-            lateralOffset = Mathf.Clamp(lateralOffset + (lateralVelocity + dashVelocity) * dt, bandMin, bandMax);
-            bool hitEdge = lateralOffset <= bandMin || lateralOffset >= bandMax;
-
-            // Committed to a ramp: the side rails hold the ship on the slope.
-            if (ramp != null)
-            {
-                float rail = Mathf.Max(0f, ramp.HalfWidth - ramp.Definition.entryMargin);
-                lateralOffset = Mathf.Clamp(lateralOffset, ramp.Lateral - rail, ramp.Lateral + rail);
-            }
-            // Beside a ramp: its edge is a wall. Crossing into it is a side hit —
-            // the ship is held outside, rumbles, glitches and loses a slice of
-            // speed (WallHit is the shared feedback path with the dash slam).
-            else if (blockingRamp != null && State == ShipState.Grounded && blockingRamp.Spans(DistanceTravelled))
-            {
-                float edge = blockingRamp.Lateral + blockSide * Mathf.Max(0f, blockingRamp.HalfWidth - blockingRamp.Definition.entryMargin);
-                bool intoWall = blockSide > 0 ? lateralOffset < edge : lateralOffset > edge;
-                if (intoWall)
-                {
-                    lateralOffset = edge;
-                    if (wallHitCooldown <= 0f)
-                    {
-                        CurrentSpeed *= 1f - Mathf.Clamp01(blockingRamp.Definition.sideHitSpeedLoss);
-                        WallHit?.Invoke(Mathf.Abs(lateralVelocity + dashVelocity));
-                        wallHitCooldown = dashSettings != null ? dashSettings.dashWallHitCooldownSeconds : 0.5f;
-                    }
-                    dashTimeLeft = 0f;
-                    dashVelocityThisFrame = 0f;
-                    lateralVelocity = 0f;
-                }
-            }
-
-            if (hitEdge)
-            {
-                // Only a dash carried into the wall counts as a slam — gentle
-                // steering saturation stays silent, and a cooldown stops spam.
-                if (dashVelocity != 0f && wallHitCooldown <= 0f)
-                {
-                    WallHit?.Invoke(Mathf.Abs(lateralVelocity + dashVelocity));
-                    wallHitCooldown = dashSettings.dashWallHitCooldownSeconds;
-                }
-                dashTimeLeft = 0f; // the wall ends the dash
-                dashVelocityThisFrame = 0f;
-                lateralVelocity = 0f;
-            }
-        }
-
-        void AdvanceAlongTrack(float dt)
-        {
-            // Distance is authoritative: the endless streamer grows the spline
-            // during the run (and loops insert track), so the pose is always
-            // looked up from distance, never from a stored t.
-            DistanceTravelled += CurrentSpeed * dt;
-        }
-
-        /// <summary>
-        /// Jump state machine, off the distance just advanced: the arc while
-        /// airborne, the slope while committed, otherwise a scan of the live
-        /// ramps for a run-up the ship is on — inside the entry band it is
-        /// committed, beside it the ramp becomes next frame's wall.
-        /// </summary>
-        void UpdateJump(float dt)
-        {
-            float d = DistanceTravelled;
-            if (State == ShipState.Looping || State == ShipState.Falling) return;
-
-            if (State == ShipState.Airborne)
-            {
-                AirTime += dt;
-                float s = d - airStart;
-                if (s >= airLength) { Land(); return; }
-                height = Mathf.Max(0f, arcH0 + arcSlope * s - arcA * s * s);
-                float slope = arcSlope - 2f * arcA * s;
-                visualPitch = -Mathf.Atan(slope) * Mathf.Rad2Deg;
-                return;
-            }
-
-            if (ramp != null)
-            {
-                if (d >= ramp.EndDistance) { TakeOff(); return; }
-                height = ramp.HeightAt(d);
-                visualPitch = -ramp.Definition.rampAngle;
-                return;
-            }
-
-            height = 0f;
-            visualPitch = 0f;
-            blockingRamp = null;
-            foreach (var candidate in JumpRamp.Active)
-            {
-                if (candidate == null || candidate.Definition == null || !candidate.Spans(d)) continue;
-                float rel = lateralOffset - candidate.Lateral;
-                float inner = Mathf.Max(0f, candidate.HalfWidth - candidate.Definition.entryMargin);
-                if (Mathf.Abs(rel) <= inner)
-                {
-                    ramp = candidate; // committed: no abort window at these speeds
-                    height = ramp.HeightAt(d);
-                    visualPitch = -ramp.Definition.rampAngle;
-                    break;
-                }
-                blockingRamp = candidate;
-                blockSide = rel >= 0f ? 1 : -1;
-            }
-        }
-
         /// <summary>
         /// The loop gate and the fall. Entering a loop section takes the
         /// verdict once, against the speed the loop was built to demand; a
@@ -558,7 +526,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         void UpdateLoop(float dt)
         {
-            float d = DistanceTravelled;
+            float d = body.Distance;
 
             if (State == ShipState.Falling)
             {
@@ -572,22 +540,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             {
                 // The section is ours from the gate to the exit whatever
                 // happens to the feature object behind us.
-                if (loopSection == null) { ClearLoop(); SetState(ShipState.Grounded); return; }
+                if (loopSection == null) { ClearLoop(); body.SetState(ShipState.Grounded); return; }
                 if (!loopPassed && d - loopSection.StartDistance >= loopSection.FirstTopLocal) { DropFromLoop(); return; }
                 if (d >= loopSection.EndDistance)
                 {
                     ClearLoop();
-                    SetState(ShipState.Grounded);
+                    body.SetState(ShipState.Grounded);
                 }
                 return;
             }
 
-            // A tube is a state only so readers can tell; the pose function and
-            // the lane band do all the work. Ramps and loops never sit in one.
-            bool onTube = track.SectionAt(d) is TubeSection;
-            if (State == ShipState.Grounded && onTube) { SetState(ShipState.OnTube); return; }
-            if (State == ShipState.OnTube) { if (!onTube) SetState(ShipState.Grounded); return; }
-
+            // (Grounded / OnTube is the body's own call, already settled for
+            // this step. Ramps and loops never sit in a tube.)
             if (State != ShipState.Grounded) return;
             foreach (var candidate in LoopFeature.Active)
             {
@@ -596,7 +560,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 loopSection = candidate.Section;
                 loopDefinition = candidate.Definition;
                 loopPassed = CurrentSpeed >= candidate.RequiredSpeed;
-                SetState(ShipState.Looping);
+                body.SetState(ShipState.Looping);
                 LoopEntered?.Invoke(loopPassed);
                 break;
             }
@@ -605,28 +569,128 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         void DropFromLoop()
         {
             LoopSection section = loopSection;
+            // From where the ship is SEEN (the rendered pose), so the drop
+            // starts without a pop.
             fallTopPosition = transform.position;
             fallTopRotation = transform.rotation;
-            section.GetExitPose(lateralOffset, out fallExitPosition, out fallExitRotation);
+            section.GetExitPose(body.Lateral, out fallExitPosition, out fallExitRotation);
             fallHeight = Mathf.Max(0.01f, Vector3.Distance(fallTopPosition, fallExitPosition));
-            fallDistance = 0f;
+            fallDistance = prevFallDistance = 0f;
             fallVelocity = 0f;
             // The track waits for the ship at the exit: the patrol, which never
             // slows, gains the whole fall.
-            DistanceTravelled = section.EndDistance;
-            CurrentSpeed *= 1f - Mathf.Clamp01(loopDefinition.fallSpeedLoss);
-            lateralVelocity = 0f;
+            body.Distance = section.EndDistance;
+            body.ForwardSpeed *= 1f - Mathf.Clamp01(loopDefinition.fallSpeedLoss);
+            body.StopLateralMotion();
+            body.SnapInterpolation();
             dashTimeLeft = 0f;
-            SetState(ShipState.Falling);
+            body.SetState(ShipState.Falling);
             LoopFailed?.Invoke();
         }
 
         void LandFromLoop()
         {
             ClearLoop();
-            fallDistance = 0f;
-            SetState(ShipState.Grounded);
+            fallDistance = prevFallDistance = 0f;
+            body.SnapInterpolation();
+            body.SetState(ShipState.Grounded);
             Landed?.Invoke();
+        }
+
+        // The body swept over something lying on the track. What taking it
+        // means is the pickup's own business — the motor only says who came.
+        void OnPickedUp(ITrackPickup pickup)
+        {
+            if (pickup is SpeedPad pad) pad.Collect(this);
+            else if (pickup is Collectible collectible) collectible.Collect();
+        }
+
+        // ------------------------------------------------ off-track + respawn
+
+        // The body just went over an open edge. Its track-space velocity
+        // becomes a world velocity at the pose it left from, and from here
+        // the fall is plain ballistics.
+        void OnLeftTrack(int side)
+        {
+            track.GetPoseAtDistance(body.Distance, body.Lateral, out Vector3 position, out Quaternion rotation);
+            position += rotation * (Vector3.up * body.Height);
+
+            offSide = side;
+            offTimer = 0f;
+            speedAtFall = body.ForwardSpeed;
+            offVelocity = rotation * new Vector3(body.TotalLateralVelocity, body.VerticalVelocity, body.ForwardSpeed);
+            offRotation = rotation;
+            offPosition = position;
+            prevOffPosition = transform.position; // from where the ship is SEEN, so the fall starts without a pop
+
+            dashTimeLeft = 0f;
+            FellOff?.Invoke();
+        }
+
+        void StepFall(float dt)
+        {
+            float gravity = dashSettings != null ? dashSettings.fallGravity : 30f;
+            float tumble = dashSettings != null ? dashSettings.fallTumbleDegreesPerSecond : 120f;
+            offVelocity += Vector3.down * (gravity * dt);
+            offPosition += offVelocity * dt;
+            // Rolls over the edge it left by, nose dropping as it goes.
+            offRotation *= Quaternion.Euler(tumble * 0.35f * dt, 0f, -offSide * tumble * dt);
+
+            offTimer += dt;
+            if (offTimer >= (dashSettings != null ? dashSettings.fallDurationSeconds : 1.5f)) BeginRespawnWait();
+        }
+
+        void BeginRespawnWait()
+        {
+            Vector3 from = transform.position;
+            rollTimeLeft = 0f;
+            rollAngle = 0f;
+            bankAngle = 0f;
+            offTimer = 0f;
+            body.Reset(FindRespawnDistance(body.Distance), 0f, ShipState.Respawning);
+            RenderPose(1f);
+            RespawnStarted?.Invoke(transform.position - from);
+        }
+
+        void StepRespawnWait(float dt)
+        {
+            offTimer += dt;
+            if (offTimer < (dashSettings != null ? dashSettings.respawnWaitSeconds : 3f)) return;
+
+            float penalty = dashSettings != null ? dashSettings.respawnSpeedPenalty : 0.15f;
+            body.ForwardSpeed = speedAtFall * (1f - Mathf.Clamp01(penalty));
+            body.SetState(ShipState.Grounded);
+            Respawned?.Invoke();
+        }
+
+        /// <summary>
+        /// The first safe stretch at or past <paramref name="from"/>: plain
+        /// road — no section (loop, tube), no flat sweep, no ramp — with none
+        /// of them starting within <see cref="GameSettings.respawnClearance"/>
+        /// ahead. Anything in the way pushes the spot past its end, so a
+        /// stretch crowded with features is skipped as a whole and the ship
+        /// never relaunches into the sweep that threw it.
+        /// </summary>
+        float FindRespawnDistance(float from)
+        {
+            float clearance = dashSettings != null ? dashSettings.respawnClearance : 150f;
+            float d = from;
+            for (int guard = 0; guard < 64; guard++)
+            {
+                float before = d;
+
+                foreach (var section in track.Sections)
+                    if (section.EndDistance > d && section.StartDistance - d < clearance) d = section.EndDistance;
+
+                var sweep = track.FlatSweepWithin(d, clearance);
+                if (sweep != null) d = sweep.End;
+
+                foreach (var candidate in JumpRamp.Active)
+                    if (candidate != null && candidate.EndDistance > d && candidate.StartDistance - d < clearance) d = candidate.EndDistance;
+
+                if (Mathf.Approximately(d, before)) break;
+            }
+            return Mathf.Min(d, Mathf.Max(from, track.Length - 1f));
         }
 
         void ClearLoop()
@@ -636,76 +700,52 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             loopDefinition = null;
         }
 
-        void TakeOff()
+        /// <summary>
+        /// Seats the root on the simulation's state blended
+        /// <paramref name="alpha"/> of the way from the previous tick to the
+        /// current one. The blend is in track space (distance, lateral,
+        /// height), so the pose stays exactly on the track whatever its shape.
+        /// </summary>
+        void RenderPose(float alpha)
         {
-            JumpDefinition def = ramp.Definition;
-            airDefinition = def;
-            airStart = ramp.EndDistance;
-            // The ship's jump strength (the Store's upgrade rides the run's
-            // definition clone) scales the arc — arcA below derives from it,
-            // so length and height grow together — and the boost at the lip.
-            airLength = def.AirDistanceFor(CurrentSpeed) * definition.jumpStrength;
-            arcH0 = def.LipHeight;
-            arcSlope = def.Slope;
-            arcA = (arcH0 + arcSlope * airLength) / Mathf.Max(airLength * airLength, 0.01f);
-            height = arcH0;
-            AirTime = 0f;
-            float boost = ramp.Boost * definition.jumpStrength;
-            ramp = null;
-            blockingRamp = null;
+            DistanceTravelled = body.DistanceAt(alpha);
+            LateralOffset = body.LateralAt(alpha);
+            AirHeight = body.HeightAt(alpha);
 
-            SetState(ShipState.Airborne);
-            // The takeoff boost rides the pad path: "+N" text, shake and rumble come free.
-            if (boost != 0f) AddSpeedImpulse(boost);
-            TookOff?.Invoke();
-        }
-
-        void Land()
-        {
-            height = 0f;
-            visualPitch = 0f;
-            airDefinition = null;
-            SetState(ShipState.Grounded);
-            Landed?.Invoke();
-        }
-
-        void SetState(ShipState next)
-        {
-            if (State == next) return;
-            State = next;
-            StateChanged?.Invoke(next);
-        }
-
-        void ApplyPose(float dt)
-        {
             Vector3 position;
             Quaternion rotation;
-            if (State == ShipState.Falling)
+            if (State == ShipState.OffTrack)
             {
-                // Off the track: a straight drop from the top of the loop onto
-                // its exit, rolling upright on the way down.
-                float f = Mathf.Clamp01(fallDistance / fallHeight);
+                // Off the track altogether: the world-space fall.
+                position = Vector3.Lerp(prevOffPosition, offPosition, alpha);
+                rotation = offRotation;
+            }
+            else if (State == ShipState.Falling)
+            {
+                // Off the top of a loop: a straight drop onto its exit,
+                // rolling upright on the way down.
+                float f = Mathf.Clamp01(Mathf.Lerp(prevFallDistance, fallDistance, alpha) / fallHeight);
                 position = Vector3.Lerp(fallTopPosition, fallExitPosition, f);
                 rotation = Quaternion.Slerp(fallTopRotation, fallExitRotation, f);
             }
             else
             {
-                track.GetPoseAtDistance(DistanceTravelled, lateralOffset, out position, out rotation);
+                track.GetPoseAtDistance(DistanceTravelled, LateralOffset, out position, out rotation);
                 // The lift is along the track's up, so it survives roll (loops, tubes).
-                if (height > 0f) position += rotation * (Vector3.up * height);
+                if (AirHeight > 0f) position += rotation * (Vector3.up * AirHeight);
             }
             transform.SetPositionAndRotation(position, rotation);
+        }
 
-            // Bank into the movement: roll opposite to lateral velocity. A dash
-            // pushes a little past full bank (clamped so it reads as a hard
-            // lean, not a barrel roll).
-            float normalizedLateral = Mathf.Clamp(
-                (lateralVelocity + dashVelocityThisFrame) / Mathf.Max(definition.lateralSpeed, 0.01f),
-                -1.25f, 1.25f);
-            float targetBank = -normalizedLateral * definition.maxBankAngle;
-            bankAngle = dt > 0f
-                ? Mathf.Lerp(bankAngle, targetBank, 1f - Mathf.Exp(-definition.bankResponse * dt))
-                : 0f;
+        // Bank into the push: roll with the lateral acceleration the body
+        // actually applied (steering force and any slip; full steer = full
+        // bank). A dash or a slide pushes a little past full bank (clamped so
+        // it reads as a hard lean, not a barrel roll).
+        void UpdateBank(float dt)
+        {
+            float demand = Mathf.Clamp(body.BankDemand, -1.25f, 1.25f);
+            float targetBank = -demand * definition.maxBankAngle;
+            bankAngle = Mathf.Lerp(bankAngle, targetBank, 1f - Mathf.Exp(-definition.bankResponse * dt));
         }
 
         // Visual-only float: offset + organic bob and pitch wobble on the model.
@@ -717,7 +757,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             float t = Time.time * definition.bobFrequency;
             float bob = (Mathf.PerlinNoise(t, 0.37f) - 0.5f) * 2f * definition.bobAmplitude;
             float pitch = (Mathf.PerlinNoise(0.71f, t * 0.8f) - 0.5f) * 2f * definition.hoverPitchDegrees;
-            shownPitch = dt > 0f ? Mathf.Lerp(shownPitch, visualPitch, 1f - Mathf.Exp(-8f * dt)) : visualPitch;
+            shownPitch = dt > 0f ? Mathf.Lerp(shownPitch, body.PitchDegrees, 1f - Mathf.Exp(-8f * dt)) : body.PitchDegrees;
 
             visual.localPosition = new Vector3(0f, definition.hoverHeight + bob, 0f);
             // The barrel roll rides on top of the bank: one full turn, so the

@@ -16,6 +16,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// space, so any world orientation at init is fine), the trail runs on
     /// the game clock like the roll, and the launch teleport clears both
     /// ribbons so a restart never draws a line across the world.
+    /// <b>They also stream through an off-track fall</b>
+    /// (<see cref="ShipState.OffTrack"/>): the tumbling ship draws its own
+    /// way down, and the respawn teleport clears them like a launch does.
     /// </summary>
     public class BarrelRollTrail : MonoBehaviour
     {
@@ -53,11 +56,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             };
 
             motor.Launched += ClearTrails;
+            motor.RespawnStarted += OnRespawnStarted;
         }
+
+        void OnRespawnStarted(Vector3 teleport) => ClearTrails();
 
         void OnDestroy()
         {
-            if (motor != null) motor.Launched -= ClearTrails;
+            if (motor != null)
+            {
+                motor.Launched -= ClearTrails;
+                motor.RespawnStarted -= OnRespawnStarted;
+            }
             if (ownsMaterial && trailMaterial != null) Destroy(trailMaterial);
         }
 
@@ -146,7 +156,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         void Update()
         {
             if (motor == null) return;
-            bool rolling = motor.IsBarrelRolling;
+            bool rolling = motor.IsBarrelRolling || motor.State == ShipState.OffTrack;
             if (rolling == wasRolling) return;
             wasRolling = rolling;
             foreach (var trail in trails)

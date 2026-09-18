@@ -18,44 +18,141 @@ paths:
 
 ## `ShipMotor`
 
-The simulation. Applies the launch impulse, constant `passiveDeceleration` (no upper cap), queued
-pad impulses (blended in at the ship's `acceleration` rate), lateral steering clamped to
-`TrackManager.HalfWidth`, and sets `HasStopped` at speed 0. Tracks `DistanceTravelled` and remaps
-it to spline t each frame. Exposes a `PadImpulse` event and a `Paused` flag (used by the tuning
+The simulation. Applies the launch impulse, the throttle speed model (below), queued pad
+impulses (blended in at the ship's `acceleration` rate) and lateral steering clamped to
+`TrackManager.HalfWidth`. Tracks `DistanceTravelled` and remaps it to spline t each frame. Exposes a `PadImpulse` event and a `Paused` flag (used by the tuning
 screen, and by `GameManager` to freeze the sim when the run ends).
 
-**Hover bob and banking are visual-only**, applied to a `visual` child transform — the root stays
-exactly on the flight line so trigger detection is unaffected. Keep that separation when touching
-movement code.
+**The motor is a driver around a `TrackBody`** (`Runner/Simulation/TrackBody.cs`, plain C#, no
+MonoBehaviour — the patrol will run the same class). The body holds the track-space state
+(`Distance`, `Lateral`, `Height`, `ForwardSpeed`, `LateralVelocity`, `VerticalVelocity`) and the
+rules any body shares: the speed model, the lane (edge, ramp rails and side wall, tube wrap and
+assisted return) and the jump state machine, plus `State`. The motor feeds it `BodyControls`
+(steer, the dash burst's velocity) and a `BodyParams` struct refilled from the live definition
+clone before every tick (the body never holds an asset), and keeps what only the ship has: dash
+meter, barrel roll, loop verdict and fall (it forces `Looping` / `Falling` through
+`body.SetState`), the visual. The rules inside the body are still the scripted ones, ported
+one-to-one; `SpaceShipUpdatePRD.md` replaces them milestone by milestone.
 
-**A trigger volume would be tunnelled at 20 m per physics step — never move detection back onto
-colliders.** Everything below is analytic for that reason.
+**The simulation ticks in `FixedUpdate`** (`GameSettings.simSubsteps` substeps;
+`body.BeginTick()` once per tick, `body.Step` per substep) **and the pose is rendered in
+`Update`**, interpolated in TRACK SPACE between the last two ticks (`RenderPose(alpha)`, alpha
+clamped so a paused or stopped motor rests on the current state). So `DistanceTravelled`,
+`LateralOffset` and `AirHeight` are the **rendered** values — what every Update-time reader
+(patrol gap, ghost trail, streamer) wants — and `ShipMotor.Body` has the tick's own. Anything
+that teleports the state must keep the blend honest: `body.SnapInterpolation()` (launch, loop
+drop and landing), or shift the origin with the value (the tube's turn-unwinding snap to 0).
+
+**Speed is a throttle model** (`TrackBody.StepSpeed`, tunables on `ShipDefinition`): queued
+impulses blend in first and are the ONLY thing that lifts speed past `cruiseSpeed`; above cruise
+`passiveDeceleration` (now the *over-cruise bleed*) pulls it back down to cruise, never through
+it; at or below cruise `thrust × throttle` accelerates up to cruise and no further, and a
+released throttle loses `coastDrag`; `brakeDecel × brake` works everywhere. Still no upper cap —
+orbs are the way to Light Speed. `TrackGenerator.LoopReachable` predicts with the same rule (the
+bleed never takes the ship below cruise).
+
+**Steering is a lateral force against a lateral drag** (`TrackBody.StepLateral`): the drag is
+`handlingResponse` (1/s) and the force `lateralSpeed × handlingResponse`, so full steer still
+settles at `lateralSpeed` in about 1 / response seconds — the two existing stats (and the store
+upgrade, the tuning screen and the debug rows on them) drive the force model unchanged; there is
+no separate `steerForce` / `lateralDrag` field. Drag is integrated implicitly (stable at any
+step). The dash burst is still an additive velocity on top. The visual bank leans on
+`body.BankDemand` — the applied lateral acceleration (steer force + slip) over the full steer
+force, plus the dash — not on lateral velocity.
+
+**Grip is tested on flat sweeps only** (`TrackBody.SlipAcceleration`, `TrackManager.FlatSweepAt`
+— see `runner-track.md`). There, while Grounded, the demand `v² × curvature` beyond
+`gripBase + gripPerSpeed × v` becomes an outward lateral acceleration. Slipping outward faster
+than `slideThreshold` is a slide: `IsSliding`, `slideSpeedLoss` (fraction of speed per second)
+scrubbed, and `Sliding(excess)` fired once as it begins (`GameManager.OnSliding`: long low rumble
++ `GameSettings.slideShake`). Banked sweeps, straights, sections and the air always hold. Demand
+grows with v², grip with v, so braking is the only answer past a point — at the defaults a 490 m
+flat sweep holds to ~1.3 × cruise.
+
+**Falling off and respawn.** An open edge (`TrackManager.IsEdgeOpen`) has no clamp: the body
+runs past it, and staying beyond `GameSettings.edgeOverhang` (1 m) for `edgeGraceSeconds` (0.25)
+takes it `ShipState.OffTrack` (`body.LeftTrack`) — counter-steer inside the window saves it, and
+a wall resuming under a body still hanging out there drops it at once. The body then stands
+still and the MOTOR flies the fall: the track-space velocity becomes a world velocity at the pose
+it left (`OnLeftTrack`), plain ballistics under `fallGravity` with a cosmetic tumble, started
+from the rendered pose so nothing pops. After `fallDurationSeconds` (1.5) `BeginRespawnWait`
+seats the ship at `FindRespawnDistance` — the first plain stretch at or PAST the fall point with
+no section, flat sweep or ramp inside it or starting within `respawnClearance` (150 m) ahead, so
+time is lost, never distance, and never back into the sweep that threw it — via
+`body.Reset(d, 0, ShipState.Respawning)`. For `respawnWaitSeconds` (3) it sits at speed 0, no
+control, `AddSpeedImpulse` ignored, `RespawnBlink` (added by `GameManager`) swapping the model's
+materials with the dash ghost material at `respawnBlinkRate`; then it relaunches at the speed it
+fell with × (1 − `respawnSpeedPenalty`). Events: `FellOff`, `RespawnStarted(Vector3 teleport)`,
+`Respawned`. **Both phases are timers in the simulation tick, not a coroutine**, so
+`motor.Paused` and a menu's timeScale freeze them; the countdown keeps running through them
+(only `motor.Paused` stops it) and the stall timer does not (it lives in the normal step).
+
+`GameManager` answers: `OnFellOff` holds the patrol (`PolicePatrol.SetHold(true)`), pulses the
+glitch (`fallGlitchStrength`) and rumble, and after `fallCameraFollowSeconds` cuts to the rig's
+planted cinematic shot, which just watches the ship drop; `OnRespawnStarted` hands the picture
+back and `NotifyWarp`s the rig across the teleport; `OnRespawned` releases the patrol with at
+least `respawnMinPatrolGap`. `Restart` clears the fall camera, `PolicePatrol.Launch` the hold.
+
+**Post-win lockdown** (`ShipMotor.Autopilot`, set the frame the win latches, cleared by
+`Launch`): steering is replaced by a pull to lateral 0, throttle held, dash requests swallowed,
+and `body.HoldOnTrack` closes every edge and turns the grip test off — a win never ends in a
+slide or a fall. `FinishWin` still waits for Grounded, so a win latched mid-respawn plays the
+respawn out first.
+
+**A standstill is not the end by itself.** `HasStopped` latches only after
+`GameSettings.stallGraceSeconds` (2) at speed 0 with the throttle released (`UpdateStall`), so the
+brake can stop the ship and the throttle pulls it away again; `GameManager` still just polls
+`HasStopped` for the Stalled loss.
+
+**Hover bob and banking are visual-only**, applied to a `visual` child transform — the root stays
+exactly on the flight line (the body's pose). Keep that separation when touching movement code.
+
+**A trigger volume would be tunnelled at 20 m per physics step — never move detection onto
+colliders.** Everything is analytic for that reason: ramps, loops, and since M5 the pickups
+(`PickupRegistry`, see `runner-track.md`). The ship's `BoxCollider` is only the measure of its
+pickup volume now.
 
 ### State
 
-`State` (`ShipState` — Grounded / Airborne / Looping / Falling / OnTube) with `StateChanged` /
+`State` (`ShipState` — Grounded / Airborne / Looping / Falling / OnTube / OffTrack /
+Respawning; append-only; owned by the `TrackBody`) with `StateChanged` /
 `TookOff` / `Landed` events and `AirTime` / `AirHeight` readouts.
 
-### Jumps (`UpdateJump`)
+### Jumps (`TrackBody.StepJump`)
 
-Every frame it scans `JumpRamp.Active`:
+Every step the body scans `JumpRamp.Active`:
 
 - A ship whose centre is inside a ramp's run-up by more than `entryMargin` is **committed** —
   lateral pinned to the ramp's rails, root riding the slope.
 - **Beside** a ramp, its edge is a **wall**: held outside, `WallHit` fired,
   `sideHitSpeedLoss × speed` lost, plus rumble and glitch.
 - At the lip it takes off: `AddSpeedImpulse(ramp.Boost)` (so "+N", shake and rumble come free)
-  into `y(s) = h0 + slope·s − a·s²`, tangent to the ramp, landing at exactly
-  `JumpDefinition.AirDistanceFor(speed)` metres — longer and higher the faster the takeoff,
-  capped.
+  into a **real flight**: `VerticalVelocity = slope × speed`, and a per-jump gravity
+  (`airGravity = 2(h0 + vy·T)/T²`, `T = AirDistanceFor(speed) × jumpStrength / speed`) chosen so
+  that AT THE TAKEOFF SPEED it lands exactly the authored distance on — longer and higher the
+  faster the takeoff, capped. Gravity is integrated exactly (step-size independent). Speed
+  changes in the air now matter: the blending takeoff boost adds a few metres (well inside
+  `landingClearance`), braking shortens the jump. Landing is `Height <= 0` on the way down —
+  and coming down more than `edgeOverhang` outside the band over an OPEN edge is a fall
+  (`LeaveTrack`), not a landing; every landing zone is walled today, so this is dormant. In the
+  air an open edge runs no fall clock.
 
 The root's lift is along the track's up (`ApplyPose`), so the trigger box leaves the ground lane
 and ground orbs and brake pads are physically missed; the visual pitches with the slope. Lateral
 speed and dash are scaled by `airControlFactor` while airborne, and `ICameraTarget.BlockModeCycle`
 locks Tab so the forced Far framing holds.
 
-**The airborne dash is a barrel roll.** A dash requested while `Airborne` keeps its sideways burst
-(at air authority) but spreads it over `ShipDefinition.barrelRollSeconds` (`DashBurstDuration` —
+**The dash is a shove, not a scripted slide.** A dash calls
+`body.AddLateralImpulse(±ShipDefinition.DashImpulse)` — `dashDistance × handlingResponse` m/s, so
+the lateral drag stops it after exactly `dashDistance` (there is no `dashImpulse` field: the
+distance stat, the store's Dash Power and the debug row keep working). The body keeps it as
+`ShoveVelocity`, decayed by the same drag as steering — separate only so a wall can tell a slam
+(`WallHit` on closed edges) from steering; steering can fight it, and on an open edge it can carry
+the ship off (the overhang grace applies). `dashDuration` is now just the dash WINDOW
+(`IsDashing`: the ghost trail's span, no new dash inside it); a wall ends it early.
+
+**The airborne dash is a barrel roll.** A dash requested while `Airborne` keeps its sideways shove
+(at air authority) and its window lasts `ShipDefinition.barrelRollSeconds` (`DashBurstDuration` —
 the ghost trail spreads its snapshots over the same span, so the ghosts show the spin) while the
 visual turns a full 360° in the dash direction on top of its bank (`rollAngle`, on its own timer
 so a wall or landing that cuts the dash never leaves the ship on its side; `IsBarrelRolling` /
@@ -70,6 +167,9 @@ camera within a frame at Light Speed. Ground ghosts are spaced by **metres of la
 (`dashDistance / dashGhostCount`, read off `ShipMotor.LateralOffset`); the barrel roll keeps its
 time spread. Ghosts are pooled, slide back by `GameSettings.dashGhostDriftMeters` over their life
 (0 = pure staircase), and are cleared on `Launched` and while `Falling`.
+
+The same ribbons stream through an off-track fall (`State == OffTrack`) and are cleared on
+`RespawnStarted`, like a launch teleport.
 
 `BarrelRollTrail` (added by `GameManager` beside `DashGhostTrail`) parents one `TrailRenderer` per
 wingtip under the rolling visual — emitters at the model's measured half-width ×
@@ -130,7 +230,8 @@ Win/lose and the countdown.
   panel is up), holds `winGlitchHoldSeconds`, then `EndRun` raises `ShowMissionComplete`.
   `PauseMenu.CanPause` refuses while `HasWon`; `Restart` stops the routine and zeroes the glitch.
   `GameSettings.lightSpeedKmh` is only the fallback for a definition with no Reach Speed target.
-- **Lose** = the patrol catches up, `TimeRemaining` hits 0, or the ship stops. It raises
+- **Lose** = the patrol catches up, `TimeRemaining` hits 0, or the ship stalls out
+  (`motor.HasStopped` — the stall grace above, not merely speed 0). It raises
   `ShowGameOver(RunOutcome)` the same frame, mapping Caught / TimedOut / Stalled to
   `MenuTextId.LoseCaught` / `LoseTimeOut` / `LoseStalled`.
 - Both endings call `ClearMessages()` so no story line sits frozen under the panel, and neither
@@ -182,6 +283,9 @@ minimap range, redeploy) stay on `GameSettings`.
   is +70 km/h for the patrol, so boosts stop buying the gap. Brakes are never shared and the floor
   is untouched.
 - Reaching the catch distance triggers a game over (`HasCaught`, polled by `GameManager`).
+- **`Hold`** (`SetHold`) stops it moving and catching while the ship is off the track or waiting
+  to relaunch — separate from `motor.Paused` because the clock keeps running. Releasing it drops
+  a patrol closer than the given gap back to that gap and suppresses the taunt for it.
 - **`Warned(gap)` fires ONCE per approach** when the gap drops inside the warn distance, re-armed
   once the ship opens it again, plus a proximity rumble (`ProximityRumble`, from
   `GameSettings.patrolProximityRumble`). **The patrol draws no floating text** — `GameManager`
@@ -203,11 +307,17 @@ Right-edge chase gauge, spawned by `GameManager` with the patrol: a vertical str
 diamond pinned at the top, the patrol icon (red/blue flicker) climbing as the gap closes, and the
 gap in metres underneath. Built from code on its own overlay canvas — no scene wiring.
 
-## `SteeringInput` / `ISteeringInput`
+## `SteeringInput` / `ISteeringInput` / `IThrottleInput`
 
 The motor only reads `ISteeringInput.SteerAxis` (−1..+1). The current implementation reads the
 Ship actions of `ControlBindings` (A/D and the left stick by default) plus the touch screen
 halves; the interface exists so a VR implementation can be swapped in later.
+
+The same component is the `IThrottleInput` (`Throttle` / `Brake`, 0..1): `ShipAccelerate` (W /
+right trigger) and `ShipBrake` (S / left trigger). Triggers are read analog; a key eases to full
+over `ShipDefinition.digitalThrottleRampSeconds` (the motor pushes it in each tick, so the debug
+clone stays live); the further-down of key and trigger wins. **Touch has no throttle control**: a
+touch-only device holds throttle 1 / brake 0. A ship with no `IThrottleInput` holds full throttle.
 
 Gamepad South also restarts on the result screen (`RaceHud`) and launches from the tuning screen,
 with a 0.3 s grace period so one press can't do both. Start is reserved for the pause menu.

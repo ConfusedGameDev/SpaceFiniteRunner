@@ -29,17 +29,47 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     }
 
     /// <summary>
+    /// Platform-agnostic throttle and brake. Both are 0..1 and analog where
+    /// the device is (the triggers); how a key's 0/1 is softened stays an
+    /// input-side detail, timed by <see cref="DigitalRampSeconds"/>.
+    /// </summary>
+    public interface IThrottleInput
+    {
+        /// <summary>0 (released) .. 1 (full throttle).</summary>
+        float Throttle { get; }
+
+        /// <summary>0 (released) .. 1 (full brake).</summary>
+        float Brake { get; }
+
+        /// <summary>Seconds a key takes to ease from 0 to full (and back). 0 = a key is instantly 0 or 1. A ship stat, pushed in by the motor.</summary>
+        float DigitalRampSeconds { get; set; }
+    }
+
+    /// <summary>
     /// Test-phase steering: the bound steer keys / pad controls (A/D and the
     /// left stick by default — <see cref="ControlBindings"/>, rebindable on
     /// the CONTROLS screen) and touch (hold left/right half of the screen).
     /// Also detects the dash double taps (the bound dash controls: N/M, LB/RB
     /// by default) and latches them until the motor consumes the request, so
     /// a tap landing between the motor's reads is never lost.
+    /// It is the throttle too (<see cref="IThrottleInput"/>: W / right trigger
+    /// accelerates, S / left trigger brakes by default): the triggers are read
+    /// analog, a key eases to full over <see cref="DigitalRampSeconds"/>, and
+    /// whichever of the two is further down wins. <b>Touch has no throttle
+    /// control</b>: on a touch-only device the throttle is held at full and
+    /// the brake at 0, so the run plays as steering alone.
     /// </summary>
-    public class SteeringInput : MonoBehaviour, ISteeringInput, IDashInput
+    public class SteeringInput : MonoBehaviour, ISteeringInput, IDashInput, IThrottleInput
     {
+        const float TriggerDeadzone = 0.02f;
+
         public float SteerAxis { get; private set; }
         public float DoubleTapSeconds { get; set; } = 0.3f;
+        public float Throttle { get; private set; }
+        public float Brake { get; private set; }
+        public float DigitalRampSeconds { get; set; } = 0.15f;
+
+        float throttleKey, brakeKey; // the keys' eased 0..1
 
         float lastLeftTap = float.NegativeInfinity;
         float lastRightTap = float.NegativeInfinity;
@@ -55,6 +85,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         void Update()
         {
             SteerAxis = ReadSteer();
+            ReadThrottle(Time.deltaTime);
 
             // No tap collection while paused: the pause menu uses the bumpers
             // for its debug tabs, and frozen Time.time would otherwise make any
@@ -76,6 +107,40 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             {
                 lastTap = Time.time;
             }
+        }
+
+        void ReadThrottle(float dt)
+        {
+            if (TouchOnly)
+            {
+                Throttle = 1f;
+                Brake = 0f;
+                return;
+            }
+
+            Throttle = Mathf.Max(EaseKey(ref throttleKey, GameAction.ShipAccelerate, dt), PadValue(GameAction.ShipAccelerate));
+            Brake = Mathf.Max(EaseKey(ref brakeKey, GameAction.ShipBrake, dt), PadValue(GameAction.ShipBrake));
+        }
+
+        // No keyboard and no pad to press: a phone or a tablet.
+        static bool TouchOnly =>
+            Application.isMobilePlatform ||
+            (Touchscreen.current != null && Keyboard.current == null && Gamepad.current == null);
+
+        float EaseKey(ref float eased, GameAction action, float dt)
+        {
+            var key = ControlBindings.KeyControlFor(ControlBindings.KeyFor(action));
+            float target = key != null && key.isPressed ? 1f : 0f;
+            eased = DigitalRampSeconds > 0f ? Mathf.MoveTowards(eased, target, dt / DigitalRampSeconds) : target;
+            return eased;
+        }
+
+        static float PadValue(GameAction action)
+        {
+            var pad = Gamepad.current;
+            if (pad == null) return 0f;
+            float value = PadControls.ReadValue(pad, ControlBindings.PadFor(action));
+            return value > TriggerDeadzone ? Mathf.Clamp01(value) : 0f;
         }
 
         static bool LeftTapped() => ControlBindings.WasPressedThisFrame(GameAction.ShipDashLeft);

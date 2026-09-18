@@ -75,6 +75,33 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         public event System.Action<float> Warned;
 
+        /// <summary>
+        /// True while the patrol stands still and cannot catch: the ship is
+        /// off the track or waiting to relaunch. Separate from the motor's
+        /// pause on purpose — the run's clock keeps running through a hold.
+        /// </summary>
+        public bool Hold { get; private set; }
+
+        /// <summary>
+        /// Starts or ends a hold. Ending it guarantees the ship a head start:
+        /// a patrol closer than <paramref name="minGapOnRelease"/> is dropped
+        /// back to exactly that gap (the respawn moved the ship, not the patrol).
+        /// </summary>
+        public void SetHold(bool hold, float minGapOnRelease = 0f)
+        {
+            if (Hold == hold) return;
+            Hold = hold;
+            if (hold || target == null) return;
+
+            if (GapToShip < minGapOnRelease)
+            {
+                DistanceTravelled = target.DistanceTravelled - minGapOnRelease;
+                ApplyPose();
+            }
+            warnCooldown = 0f;
+            warned = GapToShip <= (runtimeDef != null ? runtimeDef.warnDistance : 0f); // no taunt for a gap the respawn made
+        }
+
         /// <summary>Proximity rumble that grows as the patrol closes in (GameSettings.patrolProximityRumble).</summary>
         public bool ProximityRumble { get; set; } = true;
 
@@ -126,6 +153,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             minSpeed = runtimeDef.baseSpeed;
             currentSpeed = runtimeDef.baseSpeed;
             HasCaught = false;
+            Hold = false;
             warnCooldown = 0f;
             warned = false;
             PatrolNumber = 1;
@@ -162,8 +190,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             Blink(Time.deltaTime);
 
-            // Freezes with the ship: tuning screen open or run over.
-            if (!HasCaught && !target.Paused)
+            // Freezes with the ship: tuning screen open or run over — and
+            // holds while the ship is off the track or waiting to relaunch.
+            if (!HasCaught && !target.Paused && !Hold)
             {
                 float dt = Time.deltaTime;
 
