@@ -99,6 +99,18 @@ and `body.HoldOnTrack` closes every edge and turns the grip test off — a win n
 slide or a fall. `FinishWin` still waits for Grounded, so a win latched mid-respawn plays the
 respawn out first.
 
+**Debug menu** (`DebugMenuFactory`, `runner` tabs of the pause menu): SHIP SPEED has cruise /
+thrust / brake / coast drag / the over-cruise bleed / key throttle ramp, SHIP HANDLING the grip and
+slide rows, CORE SETTINGS the flat-curve and open-straight percentages, PATROL + PATROL DRIVER the
+patrol's. Those edit runtime clones and persist through `ShipDebugSettings` /
+`TrackDebugSettings` / `PatrolDebugSettings`. **Every key added to a debug-settings asset after
+it was first saved defaults to −1 = "never captured, leave the definition alone"** — the shipped
+ship and track debug assets have `applyOnLoad` ON, and a real default would silently stamp a
+made-up number over the authored one (it did, for `unbankedSweepChance`). FALL & RESPAWN
+(`Screens/FallRespawnDebugPage`) is different: `GameSettings` is read live and never cloned, so
+that page edits the ASSET, like the fog and rain pages — applies at once, no reload, flushed at
+the pause menu's commit points.
+
 **A standstill is not the end by itself.** `HasStopped` latches only after
 `GameSettings.stallGraceSeconds` (2) at speed 0 with the throttle released (`UpdateStall`), so the
 brake can stop the ship and the throttle pulls it away again; `GameManager` still just polls
@@ -302,8 +314,9 @@ minimap range, redeploy) stay on `GameSettings`.
   outrun patrol brings). The player is never frozen or penalised by it.
 - **Handling knobs** on `PatrolDefinition`: `lateralSpeed` 22 / `handlingResponse` 6 (the same
   derived force-against-drag steering as the ship; below the ship's 30 so the player can
-  out-dodge it), `gripBase`, `gripPerSpeed`, `brakeDecel`, and the Driver group above. Debug rows
-  and `PatrolDebugSettings` persistence for them are M7.
+  out-dodge it), `gripBase`, `gripPerSpeed`, `brakeDecel`, and the Driver group above. The
+  debug menu has them on the PATROL tab (catch width / tail catch time) and the PATROL DRIVER
+  tab, persisted by `PatrolDebugSettings`.
 - **Boost share** (`PatrolDefinition.boostShare`, 0.156 on the asset): every speed-up the ship collects — orbs,
   ramp takeoffs, anything through `ShipMotor.AddSpeedImpulse`, heard via `PadImpulse` — gives the
   patrol that fraction of the ship's actual gain (after weight) in the same frame. A +100 km/h orb

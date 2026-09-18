@@ -244,6 +244,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             debugSettings?.Flush();     // commit any debug tweaks to disk
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
+            FallRespawnDebugPage.Flush();
             featureDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
@@ -334,6 +335,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             debugSettings?.Flush();
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
+            FallRespawnDebugPage.Flush();
             featureDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
@@ -498,8 +500,11 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // And the CRT screen: any scene with a CrtScreen driver.
             CrtScreenSettings crt = CrtScreenDebugPage.Discover();
 
-            int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0)
-                         + (patrolReady ? 1 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0) + (fog != null ? 1 : 0)
+            // The run rules of falling off (GameSettings, edited live like the fog).
+            GameSettings runRules = shipReady ? motor.DashSettings : null;
+
+            int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0) + (runRules != null ? 1 : 0)
+                         + (patrolReady ? 2 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0) + (fog != null ? 1 : 0)
                          + (lines != null ? 1 : 0) + (vhs != null ? 1 : 0) + (psx != null ? 1 : 0)
                          + (crt != null ? 1 : 0);
             if (tabCount == 0) return;
@@ -531,10 +536,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 debugMenu.AddTab(DebugMenuFactory.BuildShipHoverTab(
                     panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
             }
+            // No `changed`: the run reads these live off the asset, nothing to reload.
+            if (runRules != null)
+                debugMenu.AddTab(FallRespawnDebugPage.Build(panelRect, theme, runRules, debugRefreshers, tab++, tabCount));
             if (patrolReady)
             {
                 patrolDebugSettings = PatrolDebugSettings.Load();
                 debugMenu.AddTab(DebugMenuFactory.BuildPatrolTab(
+                    panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                debugMenu.AddTab(DebugMenuFactory.BuildPatrolDriverTab(
                     panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
             }
 
@@ -568,6 +578,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             debugSettings?.Flush();
             shipDebugSettings?.Flush();
             patrolDebugSettings?.Flush();
+            FallRespawnDebugPage.Flush();
             featureDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();

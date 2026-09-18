@@ -28,7 +28,21 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float acceleration = 40f;
         public float weight = 1f;
 
+        // Added after the debug asset was first saved with applyOnLoad ON: a
+        // key the file lacks deserializes to the default here, so the default
+        // is "never captured" (-1 = leave the definition alone) — otherwise
+        // the armed asset would stamp a made-up number over the authored one.
+        public float cruiseSpeed = -1f;
+        public float thrust = -1f;
+        public float brakeDecel = -1f;
+        public float coastDrag = -1f;
+        public float digitalThrottleRampSeconds = -1f;
+
         [Header("Handling")]
+        public float gripBase = -1f;
+        public float gripPerSpeed = -1f;
+        public float slideThreshold = -1f;
+        public float slideSpeedLoss = -1f;
         public float lateralSpeed = 8f;
         public float handlingResponse = 8f;
         public float maxBankAngle = 35f;
@@ -75,7 +89,16 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             passiveDeceleration = definition.passiveDeceleration;
             acceleration = definition.acceleration;
             weight = definition.weight;
+            cruiseSpeed = definition.cruiseSpeed;
+            thrust = definition.thrust;
+            brakeDecel = definition.brakeDecel;
+            coastDrag = definition.coastDrag;
+            digitalThrottleRampSeconds = definition.digitalThrottleRampSeconds;
 
+            gripBase = definition.gripBase;
+            gripPerSpeed = definition.gripPerSpeed;
+            slideThreshold = definition.slideThreshold;
+            slideSpeedLoss = definition.slideSpeedLoss;
             lateralSpeed = definition.lateralSpeed;
             handlingResponse = definition.handlingResponse;
             maxBankAngle = definition.maxBankAngle;
@@ -109,7 +132,16 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             definition.passiveDeceleration = passiveDeceleration;
             definition.acceleration = acceleration;
             definition.weight = weight;
+            if (cruiseSpeed >= 0f) definition.cruiseSpeed = cruiseSpeed;
+            if (thrust >= 0f) definition.thrust = thrust;
+            if (brakeDecel >= 0f) definition.brakeDecel = brakeDecel;
+            if (coastDrag >= 0f) definition.coastDrag = coastDrag;
+            if (digitalThrottleRampSeconds >= 0f) definition.digitalThrottleRampSeconds = digitalThrottleRampSeconds;
 
+            if (gripBase >= 0f) definition.gripBase = gripBase;
+            if (gripPerSpeed >= 0f) definition.gripPerSpeed = gripPerSpeed;
+            if (slideThreshold >= 0f) definition.slideThreshold = slideThreshold;
+            if (slideSpeedLoss >= 0f) definition.slideSpeedLoss = slideSpeedLoss;
             definition.lateralSpeed = lateralSpeed;
             definition.handlingResponse = handlingResponse;
             definition.maxBankAngle = maxBankAngle;

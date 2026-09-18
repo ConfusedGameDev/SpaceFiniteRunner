@@ -48,6 +48,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public float bankPerDegreeOfTurn = 4f;
         public float maxBankStepPerKnot = 45f;
         public float levelLeadDistance = 200f;
+        // -1 = never captured: leave the shape asset's value alone (the armed
+        // debug asset predates these keys — a real default here would
+        // silently override whatever the TrackShape asset says).
+        public float unbankedSweepChance = -1f;
+        public float openStraightChance = -1f;
 
         static TrackDebugSettings cached;
 
@@ -86,6 +91,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             bankPerDegreeOfTurn = shape.bankPerDegreeOfTurn;
             maxBankStepPerKnot = shape.maxBankStepPerKnot;
             levelLeadDistance = shape.levelLeadDistance;
+            unbankedSweepChance = shape.unbankedSweepChance;
+            openStraightChance = shape.openStraightChance;
 
             entries.Clear();
             var table = generator.SpawnTable;
@@ -116,6 +123,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             shape.bankPerDegreeOfTurn = bankPerDegreeOfTurn;
             shape.maxBankStepPerKnot = maxBankStepPerKnot;
             shape.levelLeadDistance = levelLeadDistance;
+            if (unbankedSweepChance >= 0f) shape.unbankedSweepChance = unbankedSweepChance;
+            if (openStraightChance >= 0f) shape.openStraightChance = openStraightChance;
 
             var table = generator.SpawnTable;
             if (table == null) return;

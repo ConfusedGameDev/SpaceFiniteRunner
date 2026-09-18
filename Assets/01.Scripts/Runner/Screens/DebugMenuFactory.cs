@@ -68,6 +68,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                   .Configure(0f, 3000f, 50f, shape.levelLeadDistance, "0",
                              v => { generator.Shape.levelLeadDistance = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
 
+            // Where the road can kill: the share of sweeps laid flat (grip
+            // tested, outer wall gone) and of straight runs with no walls.
+            screen.AddRow<DebugSliderRow>(MenuTextId.UnbankedSweeps)
+                  .Configure(0f, 100f, 5f, shape.unbankedSweepChance * 100f, "0",
+                             v => { generator.Shape.unbankedSweepChance = v / 100f; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            screen.AddRow<DebugSliderRow>(MenuTextId.OpenStraights)
+                  .Configure(0f, 100f, 5f, shape.openStraightChance * 100f, "0",
+                             v => { generator.Shape.openStraightChance = v / 100f; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+
             // One color-tinted percentage slider per spawn entry. Adjusting one
             // rebalances the others live, so the on-screen table always adds
             // up to exactly 100% — same rule as the inspector's spawn table.
@@ -304,12 +313,24 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.LaunchSpeed,
                         0f, 1000f, 10f, "0", d => d.initialImpulse, (d, v) => d.initialImpulse = v);
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.CruiseSpeed,
+                        0f, 1000f, 10f, "0", d => d.cruiseSpeed, (d, v) => d.cruiseSpeed = v);
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.Thrust,
+                        0f, 300f, 5f, "0", d => d.thrust, (d, v) => d.thrust = v);
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.BrakePower,
+                        0f, 500f, 10f, "0", d => d.brakeDecel, (d, v) => d.brakeDecel = v);
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.CoastDrag,
+                        0f, 100f, 1f, "0", d => d.coastDrag, (d, v) => d.coastDrag = v);
+            // The over-cruise bleed: what pulls a boosted ship back down to cruise.
             AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.Deceleration,
                         0f, 50f, 0.5f, "0.0", d => d.passiveDeceleration, (d, v) => d.passiveDeceleration = v);
             AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.Acceleration,
                         1f, 200f, 5f, "0", d => d.acceleration, (d, v) => d.acceleration = v);
             AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.Weight,
                         0.1f, 5f, 0.1f, "0.0", d => d.weight, (d, v) => d.weight = v);
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.KeyThrottleRamp,
+                        0f, 1f, 0.05f, "0.00", d => d.digitalThrottleRampSeconds, (d, v) => d.digitalThrottleRampSeconds = v);
+            screen.SetViewport(9);
             return screen;
         }
 
@@ -325,6 +346,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                         0f, 100f, 1f, "0", d => d.lateralSpeed, (d, v) => d.lateralSpeed = v);
             AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.SteerResponse,
                         0.5f, 30f, 0.5f, "0.0", d => d.handlingResponse, (d, v) => d.handlingResponse = v);
+            // Grip on flat sweeps: demand v²κ against gripBase + gripPerSpeed·v.
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.GripBase,
+                        0f, 500f, 5f, "0", d => d.gripBase, (d, v) => d.gripBase = v);
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.GripPerSpeed,
+                        0f, 3f, 0.05f, "0.00", d => d.gripPerSpeed, (d, v) => d.gripPerSpeed = v);
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.SlideThreshold,
+                        0f, 30f, 0.5f, "0.0", d => d.slideThreshold, (d, v) => d.slideThreshold = v);
+            AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.SlideSpeedLoss,
+                        0f, 1f, 0.05f, "0.00", d => d.slideSpeedLoss, (d, v) => d.slideSpeedLoss = v);
             AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.BankAngle,
                         0f, 90f, 5f, "0", d => d.maxBankAngle, (d, v) => d.maxBankAngle = v);
             AddShipStat(screen, motor, saved, onChanged, refreshers, MenuTextId.BankResponse,
@@ -404,6 +434,49 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                           0f, 100f, 5f, "0", d => d.catchDistance, (d, v) => d.catchDistance = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolWarnDistance,
                           0f, 500f, 10f, "0", d => d.warnDistance, (d, v) => d.warnDistance = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolCatchLateral,
+                          0f, 60f, 1f, "0", d => d.catchLateral, (d, v) => d.catchLateral = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolSustainedCatch,
+                          0f, 10f, 0.25f, "0.00", d => d.sustainedCatchSeconds, (d, v) => d.sustainedCatchSeconds = v);
+            screen.SetViewport(9);
+            return screen;
+        }
+
+        /// <summary>
+        /// Patrol driver tab: how the cruiser handles (the ship's own steering
+        /// and grip rules, its brake) and how its <see cref="PatrolDriver"/>
+        /// reads the road — look-aheads, orb appetite, its cut of an orb.
+        /// Same clone / capture rules as the patrol tab; all apply instantly.
+        /// </summary>
+        public static MenuScreen BuildPatrolDriverTab(RectTransform parent, MenuTheme theme, PolicePatrol patrol,
+                                                      PatrolDebugSettings saved, System.Action onChanged,
+                                                      List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_PatrolDriver", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabPatrolDriver, tabIndex, tabCount);
+
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.LateralSpeed,
+                          0f, 100f, 1f, "0", d => d.lateralSpeed, (d, v) => d.lateralSpeed = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.SteerResponse,
+                          0.5f, 30f, 0.5f, "0.0", d => d.handlingResponse, (d, v) => d.handlingResponse = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.GripBase,
+                          0f, 500f, 5f, "0", d => d.gripBase, (d, v) => d.gripBase = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.GripPerSpeed,
+                          0f, 3f, 0.05f, "0.00", d => d.gripPerSpeed, (d, v) => d.gripPerSpeed = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.BrakePower,
+                          0f, 500f, 10f, "0", d => d.brakeDecel, (d, v) => d.brakeDecel = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolCurveLookahead,
+                          0.5f, 10f, 0.25f, "0.00", d => d.curveLookaheadSeconds, (d, v) => d.curveLookaheadSeconds = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolOrbLookahead,
+                          0f, 10f, 0.25f, "0.00", d => d.orbLookaheadSeconds, (d, v) => d.orbLookaheadSeconds = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolOrbSeek,
+                          0f, 1f, 0.05f, "0.00", d => d.orbSeekWeight, (d, v) => d.orbSeekWeight = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolOrbBoost,
+                          0f, 1.5f, 0.05f, "0.00", d => d.orbBoostShare, (d, v) => d.orbBoostShare = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolRampLookahead,
+                          0.5f, 10f, 0.25f, "0.00", d => d.rampLookaheadSeconds, (d, v) => d.rampLookaheadSeconds = v);
+            screen.SetViewport(9);
             return screen;
         }
 

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Fighter_ShipDefinition
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.ShipDefinition
   displayName: Fighter
-  description: First feel-test ship. Launches at 25, bleeds 3 speed/s.
+  description: First feel-test ship. Throttle holds it at cruise; only orbs push past it.
   initialImpulse: 249
   passiveDeceleration: 6
   acceleration: 60

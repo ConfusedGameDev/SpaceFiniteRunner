@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft. Decisions settled in the grill session on 2026-09-18. Open questions are listed at the end. |
+| **Status** | Implemented M0–M7 (2026-09-18), play checks and tuning pending. Was: Draft. Decisions settled in the grill session on 2026-09-18. Open questions are listed at the end. |
 | **Branch** | `feature/finiterunnerPhysicsBased` |
 | **Source plan** | `SpaceShipUpdatePlan.md` (superseded by this document where the two disagree) |
 | **Scope** | Runner game only (`FiniteRunner_Test`, campaign runner levels). The city chase is untouched. |
@@ -297,6 +297,16 @@ Each milestone ends in a playable `FiniteRunner_Test` and can be merged on its o
   Handling / Driver; `lateralSpeed` + `handlingResponse` instead of `steerForce` + `lateralDrag`
   (same derivation as the ship), plus `orbBoostShare` 0.5 for orbs it collects itself
   (`boostShare` keeps the asset's 0.156).
+
+- **M7 — code landed 2026-09-18, play check pending.** 31 new `MenuTextId` labels (4 languages);
+  debug rows for every new ship / track / patrol tunable, a PATROL DRIVER tab and a FALL &
+  RESPAWN tab (`FallRespawnDebugPage` — edits `GameSettings` live, like the fog page, since the
+  run never clones it); persistence in `ShipDebugSettings` / `TrackDebugSettings` /
+  `PatrolDebugSettings` with −1 = "never captured" defaults for the new keys; store remap per
+  OQ3 (Handling also scales grip, Speed Multiplier also scales `cruiseSpeed`); docs pass; the
+  Fighter's stale description. `useLegacyMotor` was already removed at the end of M0. **Still
+  open:** OQ1 (late-run grip balance), OQ2 (what is below the track), OQ6 (one-sided barrier
+  art — the placeholder wall stands in), and the per-milestone play checks.
 
 ## 9. Verification (every milestone)
 

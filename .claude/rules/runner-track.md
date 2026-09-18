@@ -58,8 +58,8 @@ Stretches of track distance laid over the flat spline with their own pose functi
   OuterSide). One object answers both the physics (grip is tested only inside one) and the
   decorator (`IsEdgeOpen` = the OUTER side of a flat sweep, nowhere else, never inside a
   section), so a missing wall is always a real drop. `TrackShapeSettings.unbankedSweepChance`
-  (0.3; **not** mirrored in `TrackDebugSettings` until its debug row exists — with `applyOnLoad`
-  the mirror silently overrode the asset) is rolled once per sweep in `StartTurn` — no draw at 0,
+  (0.3; a CORE SETTINGS debug row, mirrored in `TrackDebugSettings` with a −1 "never captured"
+  default — a real default silently overrode the asset through `applyOnLoad`) is rolled once per sweep in `StartTurn` — no draw at 0,
   so that reproduces the all-banked layout. A flat sweep must stand on level road: rolled while
   the last bank is still unwinding it is DEFERRED (`deferredFlatKnots`, started by `AddSegment`
   at the first level knot, dropped if the road ahead gets claimed) rather than lost. It has no
