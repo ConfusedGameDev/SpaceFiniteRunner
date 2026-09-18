@@ -131,11 +131,30 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public event System.Action Respawned;
 
         /// <summary>
-        /// Post-win lockdown: the player's steering is replaced by a gentle
-        /// pull to the centre line, the throttle is held, dash input is
-        /// swallowed, every edge is a wall and grip is never tested — so the
-        /// Mission Complete sequence can never end in a slide or a fall.
-        /// Cleared by <see cref="Launch"/>.
+        /// Raised the step the ship runs out of road at the end of a finite
+        /// track, already <see cref="ShipState.OffTrack"/> and dropping — a
+        /// fall that never respawns, unless the listener turns it into the
+        /// winning flight with <see cref="BeginEscape"/> right here. Argument:
+        /// true when it left by the lip of an end ramp, false when it missed
+        /// them. <see cref="FellOff"/> is NOT raised: nothing is put on hold
+        /// for a respawn that will not come.
+        /// </summary>
+        public event System.Action<bool> ReachedTrackEnd;
+
+        /// <summary>True from the step the ship left the END of the track (won or lost) until the next <see cref="Launch"/>. The patrol stops judging a ship that is no longer on the road.</summary>
+        public bool HasLeftTrackEnd => offMode != OffTrackMode.Fall;
+
+        /// <summary>True while the ship is flying on off an end ramp with the run won.</summary>
+        public bool IsEscaping => offMode == OffTrackMode.Escape;
+
+        /// <summary>
+        /// A lockdown for a ship that must not be lost: the player's steering
+        /// is replaced by a gentle pull to the centre line, the throttle is
+        /// held, dash input is swallowed, every edge is a wall and grip is
+        /// never tested. The win no longer uses it — the run is won by LEAVING
+        /// the track (<see cref="BeginEscape"/>) — but the capability stays
+        /// for set pieces. It never stops the end of the track. Cleared by
+        /// <see cref="Launch"/>.
         /// </summary>
         public bool Autopilot { get; set; }
 
@@ -262,6 +281,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         // tick, not a coroutine), so a pause freezes them with everything else.
         Vector3 offPosition, prevOffPosition, offVelocity;
         Quaternion offRotation;
+
+        /// <summary>What an <see cref="ShipState.OffTrack"/> ship is doing: they are all the same world-space flight, flown by the motor.</summary>
+        enum OffTrackMode
+        {
+            /// <summary>Over an open edge: falls, then respawns further down the track.</summary>
+            Fall,
+            /// <summary>Off the end of the track without the win: falls and tumbles for good.</summary>
+            TerminalFall,
+            /// <summary>Off an end ramp with the win: flies on along the ramp's line, upright, for good.</summary>
+            Escape
+        }
+        OffTrackMode offMode;
         int offSide;            // the side it left over: the tumble rolls that way
         float offTimer;         // seconds fallen, then seconds waited
         float speedAtFall;      // what the relaunch is measured against
@@ -293,6 +324,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             body.WallHit += impactSpeed => WallHit?.Invoke(impactSpeed);
             body.Sliding += excess => Sliding?.Invoke(excess);
             body.LeftTrack += OnLeftTrack;
+            body.ReachedEnd += OnReachedEnd;
             body.PickedUp += OnPickedUp;
 
             // The pickup volume is the one authored on the ship: its box
@@ -340,6 +372,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             HasStopped = false;
             stallTimer = 0f;
             Autopilot = false;
+            offMode = OffTrackMode.Fall;
             ClearLoop();
             fallDistance = prevFallDistance = 0f;
 
@@ -612,6 +645,37 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         // the fall is plain ballistics.
         void OnLeftTrack(int side)
         {
+            offMode = OffTrackMode.Fall;
+            BeginWorldFlight(side);
+            FellOff?.Invoke();
+        }
+
+        // The body just ran out of road at the end of the track. It drops for
+        // good unless the listener (the GameManager, with the objectives met
+        // and a ramp taken) turns this very flight into the escape.
+        void OnReachedEnd(bool tookRamp)
+        {
+            offMode = OffTrackMode.TerminalFall;
+            BeginWorldFlight(body.Lateral >= 0f ? 1 : -1);
+            ReachedTrackEnd?.Invoke(tookRamp);
+        }
+
+        /// <summary>
+        /// The win: the flight off the end ramp stops being a fall. The ship
+        /// flies on along the line it left the lip with — upright, no tumble,
+        /// under <see cref="GameSettings.winEscapeGravity"/> (0 = dead
+        /// straight) — until the run is restarted. Only meaningful from a
+        /// <see cref="ReachedTrackEnd"/> handler.
+        /// </summary>
+        public void BeginEscape()
+        {
+            if (State != ShipState.OffTrack || offMode == OffTrackMode.Fall) return;
+            offMode = OffTrackMode.Escape;
+        }
+
+        // Track space to world space, at the pose the body left from.
+        void BeginWorldFlight(int side)
+        {
             track.GetPoseAtDistance(body.Distance, body.Lateral, out Vector3 position, out Quaternion rotation);
             position += rotation * (Vector3.up * body.Height);
 
@@ -624,11 +688,23 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             prevOffPosition = transform.position; // from where the ship is SEEN, so the fall starts without a pop
 
             dashTimeLeft = 0f;
-            FellOff?.Invoke();
         }
 
         void StepFall(float dt)
         {
+            if (offMode == OffTrackMode.Escape)
+            {
+                // The winning flight: on along the ramp's line, nose on the
+                // velocity, never coming back.
+                float escapeGravity = dashSettings != null ? dashSettings.winEscapeGravity : 0f;
+                offVelocity += Vector3.down * (escapeGravity * dt);
+                offPosition += offVelocity * dt;
+                if (offVelocity.sqrMagnitude > 0.01f)
+                    offRotation = Quaternion.LookRotation(offVelocity.normalized, offRotation * Vector3.up);
+                offTimer += dt;
+                return;
+            }
+
             float gravity = dashSettings != null ? dashSettings.fallGravity : 30f;
             float tumble = dashSettings != null ? dashSettings.fallTumbleDegreesPerSecond : 120f;
             offVelocity += Vector3.down * (gravity * dt);
@@ -637,6 +713,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             offRotation *= Quaternion.Euler(tumble * 0.35f * dt, 0f, -offSide * tumble * dt);
 
             offTimer += dt;
+            // Off the end of the track there is nothing to come back to.
+            if (offMode == OffTrackMode.TerminalFall) return;
             if (offTimer >= (dashSettings != null ? dashSettings.fallDurationSeconds : 1.5f)) BeginRespawnWait();
         }
 
@@ -685,12 +763,21 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 var sweep = track.FlatSweepWithin(d, clearance);
                 if (sweep != null) d = sweep.End;
 
+                // The end ramps are not ground to clear: past them is the void.
                 foreach (var candidate in JumpRamp.Active)
-                    if (candidate != null && candidate.EndDistance > d && candidate.StartDistance - d < clearance) d = candidate.EndDistance;
+                    if (candidate != null && !candidate.IsEndRamp && candidate.EndDistance > d && candidate.StartDistance - d < clearance)
+                        d = candidate.EndDistance;
 
                 if (Mathf.Approximately(d, before)) break;
             }
-            return Mathf.Min(d, Mathf.Max(from, track.Length - 1f));
+            d = Mathf.Min(d, Mathf.Max(from, track.Length - 1f));
+
+            // A finite track's final run-up (straight, walled, nothing on it)
+            // is the last place to come back on: never further down than its
+            // start — unless the ship fell from inside it, which only a wall
+            // could allow and none does.
+            if (track.EndZoneStart >= 0f) d = Mathf.Min(d, Mathf.Max(from, track.EndZoneStart));
+            return d;
         }
 
         void ClearLoop()

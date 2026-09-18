@@ -7,6 +7,7 @@ using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
+using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.HUD
 {
     /// <summary>
@@ -91,13 +92,23 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         readonly List<(RunnerObjective step, bool challenge, int index, Text text)> objectiveLines = new();
 
         SpeedGauge gauge;
+        Text distanceLine;      // metres of track left, under the goal line; null on an endless track
+        string distanceFormat;  // "END  {0} KM", localized when the HUD font can draw it
+        Color targetColor;      // the goal line's authored colour, before the done tint
 
         void Start()
         {
             BuildGauge();
             if (gameManager == null || targetText == null || gameManager.Level == null) return;
+            targetColor = targetText.color;
             RunnerLevelDefinition level = gameManager.Level;
             int slot = 0;
+            // The track ends: how much of it is left is the run's second clock.
+            if (gameManager.HasTrackEnd)
+            {
+                distanceLine = MakeObjectiveLine(slot++);
+                distanceFormat = HudFormat(MenuTextId.HudDistanceToEnd, distanceLine.font);
+            }
             for (int i = 0; i < level.Count; i++)
             {
                 RunnerObjective step = level.objectives[i];
@@ -132,6 +143,20 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             number.sizeDelta = new Vector2(number.sizeDelta.x, gauge.Height);
             speedText.fontSize = gaugeNumberFontSize;
             speedText.alignment = TextAnchor.LowerLeft; // baseline on the wedge's baseline
+        }
+
+        // The HUD draws with the scene's own font, which need not carry every
+        // language's glyphs: a localized format it cannot draw falls back to
+        // the English one instead of printing boxes.
+        static string HudFormat(MenuTextId id, Font font)
+        {
+            MenuTextLibrary library = MenuTextLibrary.Load();
+            string format = library.Get(id);
+            if (font != null && font.dynamic) return format;
+            foreach (char c in format)
+                if (c != '{' && c != '}' && !char.IsWhiteSpace(c) && font != null && !font.HasCharacter(c))
+                    return library.Get(id, MenuLanguage.English);
+            return format;
         }
 
         // A smaller sibling of the goal text, stacked under it — cloned from
@@ -216,7 +241,24 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                               fraction => SpeedColor(fraction * lightSpeed, lightSpeed));
 
             if (targetText != null && lightSpeed > 0f)
+            {
                 targetText.text = $"LIGHT SPEED  {lightSpeed:0} KM/H";
+                // Reached once is reached: the goal line stays done while the
+                // ship still has to make it to an end ramp.
+                if (gameManager != null && gameManager.Level != null)
+                    targetText.color = gameManager.LightSpeedReached ? winColor : targetColor;
+            }
+
+            if (distanceLine != null)
+            {
+                float remaining = gameManager.DistanceRemaining;
+                distanceLine.text = string.Format(distanceFormat, (remaining / 1000f).ToString("0.0"));
+                // Red when, at this speed, the clock runs out before the
+                // ship reaches the end.
+                float speed = Mathf.Max(motor.CurrentSpeed, 1f);
+                bool late = remaining / speed > gameManager.TimeRemaining;
+                distanceLine.color = late ? failColor : timeColor;
+            }
 
             foreach (var line in objectiveLines)
             {

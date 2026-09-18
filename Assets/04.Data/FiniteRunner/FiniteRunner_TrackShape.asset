@@ -22,6 +22,8 @@ MonoBehaviour:
   minStraightKnots: 1
   alternateTurnChance: 0.7
   maxHeadingDrift: 150
+  unbankedSweepChance: 1
+  openStraightChance: 1
   bankEnabled: 1
   maxBankAngle: 80
   bankPerDegreeOfTurn: 4

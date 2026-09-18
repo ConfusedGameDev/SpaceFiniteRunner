@@ -103,15 +103,30 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         float dismissAt = -1f;   // banner time the tear begins; < 0 = not dismissed
         float dismissSeconds;
 
+        MenuTextId textId = MenuTextId.MissionAccomplished;
+        Color? wordColor;       // null = the theme's primary text colour
+        Color? underlineColor;  // null = the theme's accent
+
         /// <summary>
         /// Raises the banner over the win beat. A banner already up is replaced.
         /// </summary>
-        public static MissionAccomplishedBanner Show(GameSettings settings)
+        public static MissionAccomplishedBanner Show(GameSettings settings) =>
+            Show(settings, MenuTextId.MissionAccomplished, null, null);
+
+        /// <summary>
+        /// The same slam with another word and colours: the loss's MISSION
+        /// FAILED is this banner in the fail colour. A banner already up is
+        /// replaced.
+        /// </summary>
+        public static MissionAccomplishedBanner Show(GameSettings settings, MenuTextId textId, Color? wordColor, Color? underlineColor)
         {
             if (Current != null) Current.Kill();
             var banner = new GameObject("MissionAccomplishedBanner").AddComponent<MissionAccomplishedBanner>();
             banner.settings = settings;
             banner.theme = MenuTheme.Load();
+            banner.textId = textId;
+            banner.wordColor = wordColor;
+            banner.underlineColor = underlineColor;
             banner.Build();
             Current = banner;
             return banner;
@@ -203,7 +218,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             bandImage.color = bandColor;
             bandImage.raycastTarget = false;
 
-            BuildLetters(MenuTextLibrary.Load().Get(MenuTextId.MissionAccomplished));
+            BuildLetters(MenuTextLibrary.Load().Get(textId));
 
             // The underline: the accent bar that wipes out under the word on the last impact.
             var lineGo = new GameObject("Underline", typeof(RectTransform));
@@ -215,7 +230,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             underline.sizeDelta = new Vector2(wordWidth + 80f, UnderlineHeight);
             underline.localScale = new Vector3(0f, 1f, 1f);
             var lineImage = lineGo.AddComponent<Image>();
-            lineImage.color = theme.Accent;
+            lineImage.color = underlineColor ?? theme.Accent;
             lineImage.raycastTarget = false;
 
             nextFlicker = float.MaxValue; // armed once the word is in
@@ -286,7 +301,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                     // Ghosts first so the main glyph draws on top of them.
                     Text red = MenuScreen.MakeText("Red", body, Vector2.zero, size, glyph, fontSize, GhostRed, font, TextAnchor.MiddleCenter);
                     Text cyan = MenuScreen.MakeText("Cyan", body, Vector2.zero, size, glyph, fontSize, GhostCyan, font, TextAnchor.MiddleCenter);
-                    Text main = MenuScreen.MakeText("Main", body, Vector2.zero, size, glyph, fontSize, theme.TextPrimary, font, TextAnchor.MiddleCenter);
+                    Text main = MenuScreen.MakeText("Main", body, Vector2.zero, size, glyph, fontSize, wordColor ?? theme.TextPrimary, font, TextAnchor.MiddleCenter);
                     red.enabled = cyan.enabled = false;
 
                     letters.Add(new Letter

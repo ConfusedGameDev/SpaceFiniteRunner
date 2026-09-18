@@ -28,16 +28,26 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         /// <summary>Raw takeoff boost (m/s, before the ship's weight scaling).</summary>
         public float Boost { get; private set; }
 
+        /// <summary>
+        /// One of the three ramps the track ENDS in: its lip is the end of the
+        /// road, so there is no flight to solve and nothing to land on — the
+        /// body hands itself to its owner there (<c>TrackBody.ReachedEnd</c>).
+        /// The patrol's driver never steers round one and a respawn never
+        /// counts one as ground to clear.
+        /// </summary>
+        public bool IsEndRamp { get; private set; }
+
         public float Length => Definition != null ? Definition.length : 0f;
         public float EndDistance => StartDistance + Length;
 
-        public void Configure(JumpDefinition definition, float startDistance, float lateral, float halfWidth, float boost)
+        public void Configure(JumpDefinition definition, float startDistance, float lateral, float halfWidth, float boost, bool isEndRamp = false)
         {
             Definition = definition;
             StartDistance = startDistance;
             Lateral = lateral;
             HalfWidth = halfWidth;
             Boost = boost;
+            IsEndRamp = isEndRamp;
         }
 
         /// <summary>True while <paramref name="distance"/> lies on the run-up.</summary>

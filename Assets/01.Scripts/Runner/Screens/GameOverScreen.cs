@@ -43,6 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         System.Action onRetry;
         System.Action onGiveUp;
         MenuTextId? reasonId; // the lose reason under the title; null = the bare RETRY? question
+        MenuTextId titleId = MenuTextId.GameOver;
         float openedTime;
         bool decided;
 
@@ -51,17 +52,21 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             => Show(null, onRetry, onGiveUp);
 
         /// <summary>
-        /// The retry panel: GAME OVER, the localized <paramref name="reasonId"/>
-        /// line saying why the run ended, then RETRY / EXIT TO MAIN MENU. Null
-        /// reason = the bare question layout.
+        /// The retry panel with a reason: the <paramref name="titleId"/> plate
+        /// (the runner's is MISSION FAILED), the localized
+        /// <paramref name="reasonId"/> line saying why the run ended, then
+        /// RETRY? — YES / NO, where NO is <paramref name="onGiveUp"/>. Null
+        /// reason = the bare question layout under the same title.
         /// </summary>
-        public static GameOverScreen Show(MenuTextId? reasonId, System.Action onRetry, System.Action onGiveUp)
+        public static GameOverScreen Show(MenuTextId? reasonId, System.Action onRetry, System.Action onGiveUp,
+                                          MenuTextId titleId = MenuTextId.GameOver)
         {
             var over = FindFirstObjectByType<GameOverScreen>(FindObjectsInactive.Include);
             if (over == null) over = new GameObject("GameOverScreen").AddComponent<GameOverScreen>();
             over.enabled = true;
             over.decided = false;
             over.reasonId = reasonId;
+            over.titleId = titleId;
             over.onRetry = onRetry;
             over.onGiveUp = onGiveUp;
             over.theme = MenuTheme.Load();
@@ -121,19 +126,24 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             if (reasonId.HasValue)
             {
-                // The reason takes the question's slot; the rows name the
-                // answers outright, so no RETRY? line is needed above them.
+                // The confirm layout with one more line: the title plate is
+                // lifted a label's height so the reason (accent) fits between
+                // it and the RETRY? question, then YES / NO.
+                const float ReasonLift = 60f;
                 screen = MenuScreen.Create("RetryPanel", panelRect, theme, 0f, 0f);
-                screen.SetTitle(MenuTextId.GameOver);
-                screen.AddLabel("Reason", new Vector2(0f, 66f), new Vector2(900f, 60f),
+                screen.SetTitle(titleId, ReasonLift);
+                screen.AddLabel("Reason", new Vector2(0f, 66f + ReasonLift), new Vector2(1100f, 60f),
                                 reasonId.Value, 36, theme.Accent, theme.BodyFont,
                                 TextAnchor.MiddleCenter, theme.TitleLead);
-                screen.AddRow<MenuRow>(MenuTextId.Retry).Activated += () => Decide(onRetry);
-                screen.AddRow<MenuRow>(MenuTextId.ExitToMenu).Activated += () => Decide(onGiveUp);
+                screen.AddLabel("Question", new Vector2(0f, 66f), new Vector2(900f, 60f),
+                                MenuTextId.RetryPrompt, 36, theme.TextPrimary, theme.BodyFont,
+                                TextAnchor.MiddleCenter, theme.TitleLead);
+                screen.AddRow<MenuRow>(MenuTextId.Yes).Activated += () => Decide(onRetry);
+                screen.AddRow<MenuRow>(MenuTextId.No).Activated += () => Decide(onGiveUp);
             }
             else
                 screen = MenuScreenFactory.BuildConfirm(panelRect, theme,
-                                                        MenuTextId.GameOver, MenuTextId.RetryPrompt,
+                                                        titleId, MenuTextId.RetryPrompt,
                                                         () => Decide(onRetry), () => Decide(onGiveUp));
             screen.SetFocus(0); // retrying is the expected answer, not the dangerous one — focus starts on it
 

@@ -138,6 +138,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         {
             if (motor == null || patrol == null) return;
 
+            // A patrol the end of the track took is off the gauge altogether.
+            bool gone = patrol.IsGone;
+            if (policeIcon.gameObject.activeSelf == gone) policeIcon.gameObject.SetActive(!gone);
+            if (gone)
+            {
+                distanceText.text = "";
+                return;
+            }
+
             float gap = Mathf.Max(0f, patrol.GapToShip);
 
             // Bottom of the strip = rangeMeters (or more) behind; top = caught.

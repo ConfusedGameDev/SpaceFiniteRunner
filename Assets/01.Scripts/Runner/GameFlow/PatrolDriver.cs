@@ -107,6 +107,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             foreach (var ramp in JumpRamp.Active)
             {
                 if (ramp == null || ramp.Definition == null) continue;
+                // The end of the track is not an obstacle to plan round: there
+                // is nothing beyond it, and the end takes the patrol either way.
+                if (ramp.IsEndRamp) continue;
                 if (ramp.EndDistance <= d || ramp.StartDistance - d > reach) continue;
                 if (body.Ramp == ramp) return ramp.Lateral; // committed: the rails hold it anyway
 

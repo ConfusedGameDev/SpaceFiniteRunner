@@ -104,7 +104,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         /// rows. The plate grows to the title's widest translation (never
         /// below the designed 560), so no language ever clips.
         /// </summary>
-        public void SetTitle(MenuTextId titleId)
+        public void SetTitle(MenuTextId titleId, float lift = 0f)
         {
             const float TitleFontSize = 46;
             const float TitlePadding = 30f; // plate border on each side of the text
@@ -113,7 +113,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             float plateWidth = Mathf.Max(
                 560f, Mathf.Ceil(library.MaxWidth(titleId, theme.TitleFont, (int)TitleFontSize) + TitlePadding * 2f));
 
-            var plate = MakeImage("TitlePlate", root, new Vector2(columnX, contentTop + 150f),
+            // lift: extra height above the usual slot, for a page that stacks
+            // more than one line between the title and its rows.
+            var plate = MakeImage("TitlePlate", root, new Vector2(columnX, contentTop + 150f + lift),
                                   new Vector2(plateWidth, 110f), theme.TitlePlate, theme.PlateFocused);
             var text = MakeText("TitleText", plate.rectTransform, Vector2.zero,
                                 new Vector2(plateWidth - TitlePadding * 2f, 100f),

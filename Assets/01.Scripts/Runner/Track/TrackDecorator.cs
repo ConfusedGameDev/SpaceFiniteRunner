@@ -218,6 +218,22 @@ namespace ConfusedGameDev.FiniteRunner.Track
                      openEdgeMaterial != null ? openEdgeMaterial : roadMaterialOverride);
         }
 
+        /// <summary>
+        /// Marks a gap between two of the ramps a finite track ends in: a low
+        /// strip in the open-edge material down the whole gap, from the foot
+        /// of the ramps to the end of the road, so the lane that leads
+        /// nowhere reads as a drop. Keyed on its far end for the cull.
+        /// </summary>
+        public void StampEndMarker(float startDistance, float lateralCentre, float width, float length)
+        {
+            if (track == null || width <= 0f || length <= 0f) return;
+            float height = Mathf.Max(0.05f, openEdgeMarkerSize.y);
+            track.GetPoseAtDistance(startDistance + length * 0.5f, lateralCentre, out Vector3 pos, out Quaternion rot);
+            StampBox(startDistance + length, pos + rot * new Vector3(0f, height * 0.5f, 0f), rot,
+                     new Vector3(width, height, length),
+                     openEdgeMaterial != null ? openEdgeMaterial : roadMaterialOverride);
+        }
+
         // A code-built box: a picture only, so its collider goes (nothing on
         // the track may trip the ship's trigger volume).
         void StampBox(float distance, Vector3 position, Quaternion rotation, Vector3 size, Material material)

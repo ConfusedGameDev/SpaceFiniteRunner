@@ -93,6 +93,21 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public int PatrolNumber { get; private set; } = 1;
         public float GapToShip => target != null ? target.DistanceTravelled - DistanceTravelled : float.MaxValue;
 
+        /// <summary>
+        /// True once this patrol has run off the END of the track: it is
+        /// falling (then hidden) and never comes back — no redeploy, no catch,
+        /// no warning — until the next <see cref="Launch"/>. The track's end
+        /// takes every patrol that reaches it, whatever the ship did there.
+        /// </summary>
+        public bool IsGone { get; private set; }
+
+        // The end fall, flown in world space like the ship's.
+        Vector3 offPosition, prevOffPosition, offVelocity;
+        Quaternion offRotation;
+        int offSide;
+        float goneTimer;
+        const float GoneHideSeconds = 4f; // the cruiser is switched off this long into its fall
+
         /// <summary>The live chase tunables — the runtime clone, so the debug menu can edit them mid-run. Null until <see cref="Init"/>.</summary>
         public PatrolDefinition Definition => runtimeDef;
 
@@ -170,6 +185,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             {
                 body.PickedUp += OnPickedUp;
                 body.LeftTrack += OnLeftTrack;
+            body.ReachedEnd += OnReachedEnd;
             }
 
             BuildVisual();
@@ -199,6 +215,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             minSpeed = runtimeDef.baseSpeed;
             HasCaught = false;
             Hold = false;
+            IsGone = false;
+            goneTimer = 0f;
+            if (visual != null && !visual.gameObject.activeSelf) visual.gameObject.SetActive(true);
             tailTimer = 0f;
             warnCooldown = 0f;
             warned = false;
@@ -225,7 +244,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         void OnShipImpulse(float rawMagnitude)
         {
-            if (rawMagnitude <= 0f || runtimeDef == null || body == null || HasCaught) return;
+            if (rawMagnitude <= 0f || runtimeDef == null || body == null || HasCaught || IsGone) return;
             float gain = target.Definition != null ? target.Definition.ScalePadEffect(rawMagnitude) : rawMagnitude;
             body.ForwardSpeed += gain * runtimeDef.boostShare;
         }
@@ -246,13 +265,46 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // a patrol, it does not raise the rubber band's floor.
         void OnLeftTrack(int side) => Redeploy(raiseFloor: false);
 
+        // Off the END of the track (by an end ramp's lip or beside them):
+        // there is no road to drop a fresh one onto and nothing left to
+        // chase, so this cruiser simply falls — the same world-space
+        // ballistics as the ship's fall, from the pose it left by.
+        void OnReachedEnd(bool tookRamp)
+        {
+            track.GetPoseAtDistance(body.Distance, body.Lateral, out Vector3 position, out Quaternion rotation);
+            position += rotation * (Vector3.up * body.Height);
+
+            IsGone = true;
+            goneTimer = 0f;
+            offSide = body.Lateral >= 0f ? 1 : -1;
+            offVelocity = rotation * new Vector3(body.TotalLateralVelocity, body.VerticalVelocity, body.ForwardSpeed);
+            offRotation = rotation;
+            offPosition = position;
+            prevOffPosition = transform.position; // from where it is SEEN, so the fall starts without a pop
+            HapticsSystem.Instance.SetChaseIntensity(0f);
+        }
+
+        void StepEndFall(float dt)
+        {
+            GameSettings rules = target.DashSettings;
+            float gravity = rules != null ? rules.fallGravity : 30f;
+            float tumble = rules != null ? rules.fallTumbleDegreesPerSecond : 120f;
+            prevOffPosition = offPosition;
+            offVelocity += Vector3.down * (gravity * dt);
+            offPosition += offVelocity * dt;
+            offRotation *= Quaternion.Euler(tumble * 0.35f * dt, 0f, -offSide * tumble * dt);
+            goneTimer += dt;
+            if (goneTimer >= GoneHideSeconds && visual != null && visual.gameObject.activeSelf)
+                visual.gameObject.SetActive(false);
+        }
+
         void Update()
         {
             if (target == null || track == null || runtimeDef == null || body == null) return;
 
             Blink(Time.deltaTime);
 
-            if (!HasCaught && !target.Paused && !Hold)
+            if (!HasCaught && !target.Paused && !Hold && !IsGone)
             {
                 // Proximity rumble that grows as the patrol closes in. The
                 // haptics channel self-fades when this stops being refreshed
@@ -270,6 +322,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void FixedUpdate()
         {
             if (target == null || track == null || runtimeDef == null || body == null) return;
+            // Off the end of the track: only the fall is left, on the run's clock.
+            if (IsGone)
+            {
+                if (!target.Paused) StepEndFall(Time.fixedDeltaTime);
+                lastTickTime = Time.fixedTime;
+                return;
+            }
             // Freezes with the ship: tuning screen open or run over — and
             // holds while the ship is off the track or waiting to relaunch.
             if (HasCaught || target.Paused || Hold || target.Body == null) return;
@@ -280,7 +339,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             body.BeginTick();
             float h = dt / substeps;
-            for (int i = 0; i < substeps && !HasCaught; i++) Step(h, rules);
+            for (int i = 0; i < substeps && !HasCaught && !IsGone; i++) Step(h, rules);
             lastTickTime = Time.fixedTime;
         }
 
@@ -291,8 +350,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             minSpeed += runtimeDef.ramp * dt;
             float desired = Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.rubberBand);
 
+            // The ship has left the END of the track (won or lost): it is no
+            // longer on the road to be tailed, caught, warned or cut in
+            // behind — this patrol just drives on, and the end takes it too.
+            bool shipLeft = target.HasLeftTrackEnd;
+
             float gap = SimGap;
-            bool onTail = gap <= runtimeDef.catchDistance;
+            bool onTail = !shipLeft && gap <= runtimeDef.catchDistance;
             // On the ship's tail it stops gaining: it matches the ship and
             // works on the sideways gap instead of driving through it.
             if (onTail) desired = Mathf.Min(desired, target.CurrentSpeed);
@@ -324,7 +388,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 edgeGraceSeconds = rules != null ? rules.edgeGraceSeconds : 0.25f,
             };
             body.Step(dt, controls);
-            if (body.State == ShipState.OffTrack) return; // it fell: OnLeftTrack has already redeployed it
+            if (body.State == ShipState.OffTrack) return; // it fell: OnLeftTrack has already redeployed it (or the end took it)
+            if (shipLeft) return; // nothing left to judge against
 
             // Never through the ship: the tail is as close as it gets.
             if (SimGap < 1f) body.Distance = target.Body.Distance - 1f;
@@ -399,6 +464,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (body == null)
             {
                 // Edit-mode preview, or never Init'd: nothing to seat.
+                return;
+            }
+
+            if (IsGone)
+            {
+                // Off the end of the track: the world-space fall.
+                transform.SetPositionAndRotation(Vector3.Lerp(prevOffPosition, offPosition, alpha), offRotation);
                 return;
             }
 

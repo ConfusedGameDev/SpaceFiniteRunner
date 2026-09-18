@@ -102,9 +102,38 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float lightSpeedKmh = 6500f;
 
         [TitleGroup("Win condition")]
-        [Tooltip("Seconds to reach Light Speed before the chase is lost.")]
+        [Tooltip("Seconds to reach Light Speed AND leave the track by one of its end ramps before the chase is lost.")]
         [PropertyRange(10f, 300f), SuffixLabel("s", true)]
         public float timeLimitSeconds = 60f;
+
+        // ---------------------------------------------------------- track end
+        // The track is finite: it ends in three ramps side by side over a
+        // void. The run is won by leaving one of them with every objective
+        // met; anything else that reaches the end falls.
+        [TitleGroup("Track end")]
+        [Tooltip("Track length, metres, for a level that does not author its own (RunnerLevelDefinition.trackLengthMeters = 0). At the defaults a cruise-only run covers 15 km in the time limit and a run reaching Light Speed near the end of the clock about 40 km.")]
+        [PropertyRange(5000f, 100000f), SuffixLabel("m", true)]
+        public float trackLengthMeters = 40000f;
+
+        [TitleGroup("Track end")]
+        [Tooltip("Length of the final run-up to the end ramps, metres: dead straight, level, unbanked, walled, with no pads, coins or features on it. It is also where a late fall respawns, so keep it well above the respawn clearance.")]
+        [PropertyRange(600f, 3000f), SuffixLabel("m", true)]
+        public float endRunUpMeters = 1200f;
+
+        [TitleGroup("Track end")]
+        [Tooltip("Gap between two end ramps, metres: the drop a ship that misses the ramps goes through. Wider = easier to miss.")]
+        [PropertyRange(4f, 40f), SuffixLabel("m", true)]
+        public float endRampGapMeters = 10f;
+
+        [TitleGroup("Track end")]
+        [Tooltip("Gap between an outer end ramp and the wall, metres. 0 = the outer ramps stand flush against the walls.")]
+        [PropertyRange(0f, 20f), SuffixLabel("m", true)]
+        public float endRampSideGapMeters = 0f;
+
+        [TitleGroup("Track end")]
+        [Tooltip("Gravity on the winning ship once it has left an end ramp, m/s². 0 = it flies on dead straight along the ramp's line.")]
+        [PropertyRange(0f, 60f), SuffixLabel("m/s²", true)]
+        public float winEscapeGravity = 0f;
 
         // ------------------------------------------------------------- patrol
         // The chase tunables (speeds, rubber band, distances) moved to the
@@ -245,10 +274,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float loopSlowMoBlendOut = 0.35f;
 
         // ---------------------------------------------------- mission complete
-        // Once the objectives are met the ship keeps flying until it is back on
-        // the track (a jump, loop or tube finishes first), then the camera
-        // plants for the fly-past, the glitch ramps to max, holds, and the
-        // Mission Complete panel opens.
+        // The win latches as the ship leaves an end ramp with every objective
+        // met: it flies on, the camera plants for the fly-past, the glitch
+        // ramps to max, holds, and the Mission Complete panel opens.
         [TitleGroup("Mission complete")]
         [Tooltip("Real seconds the camera holds a planted trackside shot, watching the escaping ship fly on out of it, before the glitch ramps and the debrief opens. The player cannot move the camera for it. 0 = straight from the chase view into the glitch.")]
         [PropertyRange(0f, 5f), SuffixLabel("s", true)]
@@ -287,6 +315,23 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [TitleGroup("Mission complete")]
         [Tooltip("Camera shake on the frame the banner's last letter lands. Empty = no shake.")]
         public Cameras.CameraShakeSettings winBannerShake;
+
+        // ------------------------------------------------------ mission failed
+        // Every loss slams the MISSION FAILED banner in (the win banner's own
+        // letter timings) before the retry panel opens.
+        [TitleGroup("Mission failed")]
+        [Tooltip("Real seconds the MISSION FAILED banner stays up before the retry panel opens. A fall off the end of the track plays out under it.")]
+        [PropertyRange(0f, 5f), SuffixLabel("s", true)]
+        public float failBannerHoldSeconds = 2f;
+
+        [TitleGroup("Mission failed")]
+        [Tooltip("Real seconds the MISSION FAILED banner takes to tear away before the retry panel opens.")]
+        [PropertyRange(0.25f, 2f), SuffixLabel("s", true)]
+        public float failBannerDismissSeconds = 0.5f;
+
+        [TitleGroup("Mission failed")]
+        [Tooltip("Colour of the MISSION FAILED banner's letters and underline.")]
+        public Color failBannerColor = new(1f, 0.22f, 0.25f, 1f);
 
         // --------------------------------------------------------------- dash
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on

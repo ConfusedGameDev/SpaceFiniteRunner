@@ -13,6 +13,20 @@ MonoBehaviour:
   m_Name: FiniteRunner_GameSettings
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.GameSettings
   useTuningScreen: 0
+  simSubsteps: 2
+  stallGraceSeconds: 2
+  edgeOverhang: 1
+  edgeGraceSeconds: 0.25
+  fallGravity: 30
+  fallTumbleDegreesPerSecond: 120
+  fallDurationSeconds: 1.5
+  fallCameraFollowSeconds: 0.5
+  fallGlitchStrength: 0.8
+  respawnWaitSeconds: 3
+  respawnBlinkRate: 8
+  respawnSpeedPenalty: 0.15
+  respawnClearance: 150
+  respawnMinPatrolGap: 150
   lightSpeedKmh: 6500
   timeLimitSeconds: 60
   patrolEnabled: 1
@@ -27,6 +41,7 @@ MonoBehaviour:
   airLaneHeight: 30
   landingShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
   wallHitShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  slideShake: {fileID: 0}
   landingSparkleCount: 45
   landingSparkleScale: 3
   landingSparkleColor: {r: 1, g: 0.85, b: 0.4, a: 1}
