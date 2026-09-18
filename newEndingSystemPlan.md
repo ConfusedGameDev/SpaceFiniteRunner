@@ -129,3 +129,20 @@ Use a temporary 6–8 km length and a lowered speed target for fast loops.
 6. Patrol drives off the end and falls (ramp or gap), no replacement; a mid-track patrol fall still redeploys.
 7. Pause refused during either ending; late respawn never lands in/past the end zone.
 8. City game over unchanged in `CarTest`.
+
+## Implementation status (2026-09-18)
+
+M0–M6 are implemented in code and compile (UI → Runner → PoliceEscape → Runner.Editor, checked
+with Unity's bundled Roslyn). NOT yet play-tested in the Editor — run the Verification list above.
+
+Deviations from the plan as written:
+
+- The end ramps' definition is loaded from `Assets/04.Data/Resources/FiniteRunner_EndRamp.asset`
+  when `TrackGenerator.endRamp.definition` is empty (built-in numbers if that is missing too), so
+  the scene needs no new wiring. Wire a prefab/definition on the generator's `End Ramp` entry to
+  override it.
+- An end ramp's lip and the track's end are computed apart, so `TrackBody` treats a body still
+  committed to an end ramp at the end distance as having left BY the ramp (float rounding guard).
+- The outer end ramps reach 0.5 m past a flush wall in total (0.25 m shift + 0.25 m half-width).
+- `RaceHud`'s distance line uses the localized `HudDistanceToEnd` format only when the HUD's scene
+  font can draw it; otherwise the English format (the HUD's other labels are English already).

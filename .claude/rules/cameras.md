@@ -167,14 +167,20 @@ touch; it finds the rig with `CameraRigInstaller.FindRig(scene)`, public for tha
 `GameManager` on `ShipMotor.LoopEntered`, held until the state is Grounded again (the fall of a
 failed loop included) and force-dropped on `Restart`.
 
-**The win fly-past** is the runner's other cut: once `FinishWin` has the ship back on the track it
-disarms any loop hold, cuts to the planted shot and takes `HasPlayerControl` away for
+**The win fly-past** is the runner's other cut: the step the ship leaves an end ramp with the win
+(`GameManager.OnReachedTrackEnd` → `FinishWin`; the ship is already in its escape flight, off the
+track for good) it disarms any loop or fall hold, cuts to the planted shot — planted AT THE LIP,
+which is what frames the ship flying off the end of the road — and takes `HasPlayerControl` away for
 `GameSettings.winCameraHoldSeconds` (2 s) while the ship — still unpaused — flies on out of the
 frame; then the glitch ramps as before and both the shot and the player's control are handed back
 on the frame the Mission Complete panel opens. Because the shot is planted it only pans to keep the
 ship framed: a camera frozen dead behind the ship would lose it in a tenth of a second at Light
 Speed. If the camera asset's `cinematic` toggle is off the cut is refused, and the beat is skipped
-rather than sitting the player in front of a locked chase view.
+rather than sitting the player in front of a locked chase view. **A loss off the end of the track**
+(`FinishFail` for MissedRamp / TooSlow) takes the same planted shot under the MISSION FAILED
+banner, so the ship's fall — and the patrol's, right behind it — plays out; losses ON the track
+freeze the sim in the chase view instead. An end ramp's lip never fires `TookOff`, so the forced
+Far framing of a jump is not involved.
 
 ## Camera shake
 

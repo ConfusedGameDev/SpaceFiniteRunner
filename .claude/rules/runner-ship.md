@@ -93,11 +93,29 @@ planted cinematic shot, which just watches the ship drop; `OnRespawnStarted` han
 back and `NotifyWarp`s the rig across the teleport; `OnRespawned` releases the patrol with at
 least `respawnMinPatrolGap`. `Restart` clears the fall camera, `PolicePatrol.Launch` the hold.
 
-**Post-win lockdown** (`ShipMotor.Autopilot`, set the frame the win latches, cleared by
-`Launch`): steering is replaced by a pull to lateral 0, throttle held, dash requests swallowed,
-and `body.HoldOnTrack` closes every edge and turns the grip test off — a win never ends in a
-slide or a fall. `FinishWin` still waits for Grounded, so a win latched mid-respawn plays the
-respawn out first.
+**The end of the track** (`TrackManager.HasEnd` / `EndDistance`, see `runner-track.md`). A body
+that reaches it leaves the road for good: `TrackBody.LeaveEnd` → `ShipState.OffTrack` +
+`ReachedEnd(bool tookRamp)`. Committed to an END RAMP (`JumpRamp.IsEndRamp`) it leaves by the lip
+— `TakeOff` early-outs, so there is no gravity solve, no `TookOff`, no jump count, no landing —
+keeping the slope's height and climb; anything else runs off the road level. `HoldOnTrack` never
+stops it. **No new `ShipState`**: `OffTrack` already means "the body stands still, the owner flies
+it in world space", and the motor tells the three flights apart with its own `OffTrackMode`
+(`Fall` = open edge, respawns; `TerminalFall` = off the end without the win, gravity + tumble,
+never respawns; `Escape` = the win, flies on along the lip's line, nose on the velocity, under
+`GameSettings.winEscapeGravity`, never respawns). `ShipMotor.ReachedTrackEnd(bool)` is raised
+already in `TerminalFall`; the listener turns it into the win with `BeginEscape()`. `FellOff` is
+NOT raised at the end (nothing is put on hold for a respawn that will not come);
+`HasLeftTrackEnd` / `IsEscaping` are the readouts, reset by `Launch`. `FindRespawnDistance` skips
+end ramps and never goes past `TrackManager.EndZoneStart`, so a late fall comes back at the start
+of the (straight, walled) final run-up and nothing ever respawns at the end.
+
+**Beside-a-ramp walls are a lateral window** (`rampWallMin` / `rampWallMax`, rebuilt every scan
+from EVERY spanning ramp the body is not on), not one remembered ramp — between two end ramps
+both sides are walled. End ramps use `entryMargin` 0 and the outer two reach 0.5 m past the wall,
+so a ship pressed against the wall is ON the ramp.
+
+**`ShipMotor.Autopilot`** (pull to lateral 0, throttle held, dash swallowed, `HoldOnTrack`) is no
+longer used by the win — the run is won by LEAVING the track — but the capability stays.
 
 **Debug menu** (`DebugMenuFactory`, `runner` tabs of the pause menu): SHIP SPEED has cruise /
 thrust / brake / coast drag / the over-cruise bleed / key throttle ramp, SHIP HANDLING the grip and
@@ -230,22 +248,38 @@ second half, so nothing cuts mid-drop), ended by `StateChanged(Grounded)`:
 
 Win/lose and the countdown.
 
-- **Win** = every mandatory objective of `level` (`RunnerLevelDefinition`,
-  `Data/FiniteRunner_LevelDefinition.asset`, drawn inline) is `Satisfied`. `EvaluateObjectives`
-  latches each entry once met; takeoffs are counted in `OnTookOff`. **The win latches the frame
-  it is met but the run does not end yet** (`FinishWin`, unscaled time): the lose checks and the
-  countdown stop, the ship flies on until `State == Grounded` with no committed `CurrentRamp` (a
-  jump, loop, loop fall or tube plays out first), the MISSION ACCOMPLISHED banner slams in
+- **Win** = two halves. (1) Every mandatory objective of `level` (`RunnerLevelDefinition`,
+  `Data/FiniteRunner_LevelDefinition.asset`, drawn inline) is `Satisfied`: `EvaluateObjectives`
+  latches each entry once met (takeoffs are counted in `OnTookOff`) and `ObjectivesMet` latches
+  with them — a level with no objectives latches the plain Light Speed test the same way.
+  `LightSpeedReached` is the HUD's done flag. That alone wins nothing: the countdown, the catch
+  and the stall all stay live. (2) `OnReachedTrackEnd(tookRamp)` (from `ShipMotor.ReachedTrackEnd`,
+  in the sim tick; the objectives are read once more first): `tookRamp && ObjectivesMet` latches
+  `HasWon`, calls `motor.BeginEscape()` and starts `FinishWin` (unscaled time) — no wait for
+  Grounded any more: the MISSION ACCOMPLISHED banner slams in
   (`MissionAccomplishedBanner`, see `runner-hud-screens.md`) over the planted fly-past shot
   (`winCameraHoldSeconds`), the banner is dismissed and the `GlitchController` ramps to max over
   `GameSettings.winGlitchRampSeconds` (its fade zeroed, remembered and handed back once the
   panel is up), holds `winGlitchHoldSeconds`, then `EndRun` raises `ShowMissionComplete`.
-  `PauseMenu.CanPause` refuses while `HasWon`; `Restart` stops the routine and zeroes the glitch.
-  `GameSettings.lightSpeedKmh` is only the fallback for a definition with no Reach Speed target.
-- **Lose** = the patrol catches up, `TimeRemaining` hits 0, or the ship stalls out
-  (`motor.HasStopped` — the stall grace above, not merely speed 0). It raises
-  `ShowGameOver(RunOutcome)` the same frame, mapping Caught / TimedOut / Stalled to
-  `MenuTextId.LoseCaught` / `LoseTimeOut` / `LoseStalled`.
+  `PauseMenu.CanPause` refuses while `IsEnding` (`HasWon` or a fail playing out); `Restart`
+  stops both routines and zeroes the glitch. `GameSettings.lightSpeedKmh` is only the fallback
+  for a definition with no Reach Speed target. The lip wins a same-frame catch (`Update` returns
+  on `IsEnding` before polling `HasCaught`); a timeout while still on the slope is a loss.
+  `PlayerStats.fastestEscapeSeconds` is now launch-to-lip.
+- **Lose** = the patrol catches up, `TimeRemaining` hits 0, the ship stalls out
+  (`motor.HasStopped` — the stall grace above, not merely speed 0), or the end of the track is
+  reached without the win: `RunOutcome.TooSlow` (an objective open, ramp or not) /
+  `MissedRamp` (objectives met, no ramp). `RunOutcome` is private and never serialized. Every
+  loss goes through `BeginFail` → `FinishFail` (unscaled): messages cleared, music faded, the
+  MISSION FAILED banner for `failBannerHoldSeconds` + `failBannerDismissSeconds`, then `EndRun` →
+  `ShowGameOver`. A loss ON the track pauses the motor at once; a loss off the END keeps the sim
+  running from the planted camera so the fall (and the patrol's) plays out under the banner.
+  Reasons: `LoseCaught` / `LoseTimeOut` / `LoseStalled` / `LoseMissedRamp` / `LoseTooSlow`
+  (Light Speed open) / `LoseObjectivesIncomplete`.
+- **The run's track length is PULLED by the generator** (`TrackLengthMeters`: the level's, else
+  `GameSettings.trackLengthMeters`; also `EndRunUpMeters`, `EndRampGapMeters`,
+  `EndRampSideGapMeters`) through `ResolveRunData()` — idempotent and safe before Awake, because
+  `TrackGenerator.Awake` builds the first stretch and the Awake order between the two is undefined.
 - Both endings call `ClearMessages()` so no story line sits frozen under the panel, and neither
   speaks a line or prints HUD text.
 
@@ -312,6 +346,14 @@ minimap range, redeploy) stay on `GameSettings`.
 - **A patrol fall** (`body.LeftTrack`) redeploys it behind the ship at once
   (`Redeploy(raiseFloor: false)` — new number, the inbound event, but NOT the raised floor an
   outrun patrol brings). The player is never frozen or penalised by it.
+- **The end of the track takes every patrol that reaches it, for good** (`body.ReachedEnd` →
+  `IsGone`): a world-space ballistic fall mirroring the ship's (`fallGravity`, the tumble), the
+  visual switched off after 4 s, no redeploy; `Launch` brings it back. The driver ignores end
+  ramps (`PlanRamps`), so it leaves by a ramp or beside one, whichever its line gives. While
+  `target.HasLeftTrackEnd` (the ship won or fell off the end) the patrol stops judging: no tail
+  cap, no 1 m "never through the ship" clamp (the ship's distance is frozen at the end — the
+  clamp would hold the patrol a metre short of it forever), no catch, no warning, no redeploy.
+  `ChaseMinimap` hides a gone patrol.
 - **Handling knobs** on `PatrolDefinition`: `lateralSpeed` 22 / `handlingResponse` 6 (the same
   derived force-against-drag steering as the ship; below the ship's 30 so the player can
   out-dodge it), `gripBase`, `gripPerSpeed`, `brakeDecel`, and the Driver group above. The

@@ -87,12 +87,57 @@ Stretches of track distance laid over the flat spline with their own pose functi
   local frame**, and a world tangent handed over as-is is rotated twice (a kink at every feature
   knot, ramps facing the doubled heading — the M3 bug).
 
+### Track end (`HasEnd`, `EndDistance`, `EndZoneStart`)
+
+A finite track's two marks, both TRACK distances read off the built spline (never the authored
+target), set by the generator (`SetEndZone` at the knot that opens the final run-up, `SetEnd`
+right after the last knot) and dropped by `ClearKnots`; −1 = not there yet. Past `EndDistance`
+`GetPoseAtDistance` runs on along the last knot's line instead of freezing on it (a body
+overshoots the end by up to a step). The band and `IsEdgeOpen` say nothing special there — a body
+leaves at the end by `TrackBody`'s own rule (`runner-ship.md`), not by an open edge.
+
 ## `TrackGenerator` (+ `Editor/TrackGeneratorEditor`)
 
-Procedural builder **and** endless streamer. With `endless` on (default) it builds an initial
+Procedural builder **and** streamer. With `endless` on (default) it builds an initial
 stretch in `Awake`, then each `Update` keeps `aheadDistance` of finished track ahead of the ship
 (appending knots, placing pads, decorating) and culls spawned objects more than
-`behindDistance` behind.
+`behindDistance` behind. **In play the streamed track is FINITE** (below); an edit-mode preview
+and a scene with no `GameManager` stay endless.
+
+### The finite track (`IsFinite`, `EndDistance`, `TargetLength`)
+
+- `Generate` PULLS the run's length: `TrackLengthOverride` (the debug row, −1 = none) else
+  `gameManager.TrackLengthMeters` — play mode only. `endZoneTarget = length − EndRunUpMeters`.
+- **The last knot cannot be placed at an authored distance** (a chord is only arc length where
+  the knots are collinear, and loops insert distance), so the END ZONE START is a pinned
+  pseudo-spot — `AddSegment` returns a `SpotKind` (`None / Feature / EndZoneStart / End`) and
+  lands on it with the same explicit-tangent knot a feature gets — and every knot after it is
+  collinear (`inEndZone` → `holdStraight`: no sweep, no bank, the grade held, never an open
+  stretch, so both walls are up). Inside the zone a chord IS arc length, so `BeginEndZone` measures
+  `endTarget = builtStart + runUp` and the road stops exactly one run-up on. The authoritative
+  end is `track.EndDistance = track.Length` after the final knot; the authored length is a target.
+- Too far for one segment and too near for two, the rest is split evenly instead of pushing the
+  spot out; an end spot may land on a half-minimum segment (collinear, so harmless).
+- `NextLevelSpot` = min(`featureCursor`, `endZoneTarget`) drives `LevelRequired` and `TurnFits`:
+  the bank is unwound and no sweep starts that cannot finish before the zone.
+- **Nothing reaches into the zone**: `DecideFeature` skips a spot whose footprint + exclusion
+  (a loop, a 3–7 km tube, the longest landing off a ramp) would pass `endZoneTarget` — before the
+  claim, `straightUntil` or `AddSection`, so nothing was registered — a feature cursor that the
+  zone would swallow is parked, and one claim over the whole zone keeps pads and coins off.
+- `FinishTrack` sets the end, flags `trackComplete` (the `StreamTo` loop never appends again and
+  `settled` becomes `track.Length` — no trailing margin after the last knot, so the run-up and the
+  ramps are stamped at once; the end knot exists when the ship is still ≥ `aheadDistance` +
+  `SettleMargin` out) and calls `CreateEndRamps`.
+- **`CreateEndRamps`**: three `JumpRamp`s (`IsEndRamp`) side by side, lips ON the end of the
+  road, equal widths `(trackWidth − 2·gap − 2·sideGap) / 3` at laterals 0 and ±(width + gap)
+  (`GameSettings.endRampGapMeters` / `endRampSideGapMeters`), boost 0, the outer two reaching
+  0.5 m past a flush wall; a `TrackDecorator.StampEndMarker` strip marks each gap as a drop. They
+  are keyed on their END for the cull. Their definition is `endRamp.definition`, else
+  `Resources/FiniteRunner_EndRamp` (a `JumpDefinition`: `entryMargin` 0, length 120, 15°, side hit
+  0.05 — width fraction and arc knobs unused), else built-in numbers; cloned in play.
+  `BuildRamp` is the one ramp builder, shared with `CreateJump`.
+- Debug: CORE SETTINGS → TRACK LENGTH (0 = the level's own), persisted as
+  `TrackDebugSettings.trackLength` with the −1 "never captured" rule.
 
 **Invariants:**
 
@@ -103,7 +148,8 @@ stretch in `Awake`, then each `Update` keeps `aheadDistance` of finished track a
   motor dropped to Grounded mid-loop. `ShipMotor` also keeps its own `loopSection` /
   `loopDefinition` from the gate, so the state never depends on the feature object surviving.
 - Nothing is placed on the trailing `SettleMargin` (two segments): AutoSmooth reshapes those
-  curves when the next knot lands.
+  curves when the next knot lands. (A finished finite track has no margin: nothing lands after
+  its last knot.)
 - `RegenerateForRun()` fully rebuilds — endless restarts must, since the stretch behind the
   start was culled.
 - `seed == 0` means non-repeatable.
@@ -334,6 +380,7 @@ low marker strip (`openEdgeMarkerSize`, `openEdgeMaterial`). Code-built boxes lo
 
 Stamps road-kit meshes (road surface, side barriers) along the spline, streaming-style:
 `DecorateUpTo(distance)` advances an internal stamp cursor, `CullBefore(distance)` drops pieces
-behind the ship. There is no goal gantry — there is no end goal.
+behind the ship. There is no goal gantry: the end of a finite track is its three end ramps, and
+`StampEndMarker` (open-edge material, keyed on its far end) marks the gaps between them.
 
 MPB tints are unreliable with the SRP Batcher — hence the material-override fields.
