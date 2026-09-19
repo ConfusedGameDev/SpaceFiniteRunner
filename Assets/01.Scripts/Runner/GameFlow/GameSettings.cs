@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -332,6 +333,81 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [TitleGroup("Mission failed")]
         [Tooltip("Colour of the MISSION FAILED banner's letters and underline.")]
         public Color failBannerColor = new(1f, 0.22f, 0.25f, 1f);
+
+        // ----------------------------------------------------- hull and lives
+        // The ship's hull points live on ShipDefinition (maxHull) — this
+        // section holds the run-level rules: what hurts, how much, how many
+        // failed runs a mission forgives, and the explosion.
+        [ToggleGroup("hullEnabled", "Hull and lives")]
+        [Tooltip("Walls and brake pads damage the ship's hull (the HUD's life bar); at 0 it explodes and the run fails. Every failed run costs a life, and the last one lost is GAME OVER: no retry, back to the Store, the mission forfeited. Off = no damage, no bar, no lives — every loss retries for free.")]
+        public bool hullEnabled = true;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Runs a mission forgives: every failed run (destroyed, caught, out of time, stalled, off the end) takes one, and losing the last is GAME OVER. A fresh set every time the runner is entered.")]
+        [PropertyRange(1, 9)]
+        public int startingLives = 3;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Hull points a brake pad takes.")]
+        [PropertyRange(0f, 200f)]
+        public float brakePadDamage = 20f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Hull points a hard wall hit takes: a dash slammed into the track's edge, or a ramp hit from the side.")]
+        [PropertyRange(0f, 200f)]
+        public float wallSlamDamage = 25f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Hull points steering (or sliding) into a wall takes. Still pressed against it when the invulnerability ends, it takes them again.")]
+        [PropertyRange(0f, 200f)]
+        public float wallScrapeDamage = 10f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Hull points falling off the track takes, the moment the ship goes over an open edge — on top of the time the fall costs. It ignores the invulnerability blink; taking the last points, the ship blows up in the fall.")]
+        [PropertyRange(0f, 200f)]
+        public float fallDamage = 30f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Seconds the ship blinks and takes no damage after a hit.")]
+        [PropertyRange(0f, 5f), SuffixLabel("s", true)]
+        public float hitInvulnerabilitySeconds = 1f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Camera shake on a wall scrape (the dash slam keeps Wall Hit Shake). Empty = no shake.")]
+        public Cameras.CameraShakeSettings scrapeShake;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Glitch-effect burst strength on any hull hit.")]
+        [PropertyRange(0f, 1f)]
+        public float hullHitGlitchStrength = 0.35f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Sprites of the ship's explosion — one is picked per fireball puff. Empty = no fireball (the ship still vanishes).")]
+        public List<Texture2D> explosionTextures = new();
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Size of the explosion's fireball.")]
+        [PropertyRange(1f, 60f), SuffixLabel("m", true)]
+        public float explosionScale = 14f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Seconds the fireball lives.")]
+        [PropertyRange(0.2f, 5f), SuffixLabel("s", true)]
+        public float explosionLifetime = 1.4f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Puffs in the fireball.")]
+        [PropertyRange(1, 80)]
+        public int explosionParticles = 24;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Camera shake as the ship explodes. Empty = no shake.")]
+        public Cameras.CameraShakeSettings explosionShake;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Glitch-effect burst strength as the ship explodes.")]
+        [PropertyRange(0f, 1f)]
+        public float explosionGlitchStrength = 1f;
 
         // --------------------------------------------------------------- dash
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on

@@ -129,6 +129,23 @@ made-up number over the authored one (it did, for `unbankedSweepChance`). FALL &
 that page edits the ASSET, like the fog and rain pages — applies at once, no reload, flushed at
 the pause menu's commit points.
 
+**Hull (`Ship/ShipHealth.cs`).** Rides the ship like `RespawnBlink` (`Ensure` + `Configure(settings,
+gameManager)` in `GameManager.Awake`, AFTER the run definition is set so the bar fills to the
+clone's `ShipDefinition.maxHull`; always added, it gates itself on `GameSettings.hullEnabled`).
+Three sources, one `ApplyDamage`: `SpeedPad.Collected` with a negative delta (`brakePadDamage`),
+`ShipMotor.WallHit` — the dash slam / ramp side (`wallSlamDamage`) — and the polled
+`ShipMotor.IsTouchingWall` (`wallScrapeDamage`) — plus `ShipMotor.FellOff` (`fallDamage`), the one
+FORCED hit: it lands on a ship already `OffTrack` and through the blink, and taking the last
+points it blows the ship up in the fall (the fall camera plants and watches; `Restart` clears it).
+`TrackBody.IsTouchingWall` is true only on a step that PUSHED the body into a closed edge or a ramp's side (the unclamped move went past the
+band) — resting on the wall is not contact, and an open edge, a full tube and a tube return never
+are. It has no cooldown: the pacing is the hull's `hitInvulnerabilitySeconds` after every hit
+(`RespawnBlink` blinks through `IsInvulnerable`), so grinding a wall hurts once per window.
+Nothing hurts a ship that is `OffTrack` / `Respawning` / `Falling`, paused, or in a run that is
+ending. `Damaged(amount, hard)` / `Destroyed` are the events; what 0 MEANS is the GameManager's.
+`SetShipVisible(false)` switches off every renderer under the visual and hands back exactly
+those on `ResetForRun` / disable.
+
 **A standstill is not the end by itself.** `HasStopped` latches only after
 `GameSettings.stallGraceSeconds` (2) at speed 0 with the throttle released (`UpdateStall`), so the
 brake can stop the ship and the throttle pulls it away again; `GameManager` still just polls
@@ -276,6 +293,19 @@ Win/lose and the countdown.
   running from the planted camera so the fall (and the patrol's) plays out under the banner.
   Reasons: `LoseCaught` / `LoseTimeOut` / `LoseStalled` / `LoseMissedRamp` / `LoseTooSlow`
   (Light Speed open) / `LoseObjectivesIncomplete`.
+- **Hull and lives** (`GameSettings` "Hull and lives" toggle group). `ShipHealth.Destroyed` →
+  `BeginFail(RunOutcome.Destroyed)`: an on-track loss (motor paused) whose `FinishFail` first
+  runs `ExplodeShip` — `ExplosionVfx.SpawnFireball` off `GameSettings.explosionTextures` (the
+  runner's own list: the city's lives in an assembly the runner cannot see), the ship hidden,
+  `explosionShake`, glitch, rumble, `ShipAudio.PlayExplosion` (`RunnerSfxSettings.explosionClip`).
+  Reason `LoseDestroyed`. **`BeginFail` takes a life on EVERY loss** (`LivesLeft`, dealt from
+  `startingLives` in `Awake` only — the runner is entered once per mission and retried in place;
+  `Restart` refills the hull and shows the ship, never the lives, except after a WIN, which also
+  re-bases the rollback wallet on the paid balance). The loss that takes the last life is
+  `isGameOver`: the banner reads GAME OVER, and `ShowGameOver` calls
+  `PlayerStats.ForfeitMission(walletAtMissionStart)` AT ONCE (quitting on the screen cannot dodge
+  it) then `GameOverScreen.ShowFinal` → `MissionSession.Clear()` + `LoadingScreen.Load(Store)`.
+  `walletAtMissionStart` = `MissionSession.WalletAtStart`, or the balance at `Awake` in direct play.
 - **The run's track length is PULLED by the generator** (`TrackLengthMeters`: the level's, else
   `GameSettings.trackLengthMeters`; also `EndRunUpMeters`, `EndRampGapMeters`,
   `EndRampSideGapMeters`) through `ResolveRunData()` — idempotent and safe before Awake, because

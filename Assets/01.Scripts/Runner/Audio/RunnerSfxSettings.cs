@@ -98,6 +98,15 @@ namespace ConfusedGameDev.FiniteRunner.Audio
         [PropertyRange(0f, 1f)]
         public float barrelRollVolume = 0.8f;
 
+        // ---------------------------------------------------------------- hull
+        [TitleGroup("Hull")]
+        [Tooltip("One-shot as the ship explodes at 0 hull (FX bus). Empty = silent.")]
+        public AudioClip explosionClip;
+
+        [TitleGroup("Hull")]
+        [PropertyRange(0f, 1f)]
+        public float explosionVolume = 1f;
+
         // ----------------------------------------------------------- accessors
         /// <summary>Pickup pitch at a 1× orb (band X).</summary>
         public float PowerUpPitchMin => powerUpPitchBand.x;

@@ -135,6 +135,14 @@ namespace ConfusedGameDev.FiniteRunner.Audio
             }
         }
 
+        /// <summary>The ship's explosion at 0 hull — called by the GameManager, which owns that moment.</summary>
+        public void PlayExplosion()
+        {
+            if (sfx == null || sfx.explosionClip == null || pickups == null) return;
+            pickups.pitch = 1f;
+            pickups.PlayOneShot(sfx.explosionClip, sfx.explosionVolume);
+        }
+
         void OnTookOff()
         {
             if (sfx == null || sfx.jumpClip == null || jumps == null) return;

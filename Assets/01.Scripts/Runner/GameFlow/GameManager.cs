@@ -73,11 +73,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// How a run ended — typed, so the save record never has to match a
         /// result label. Never serialized. MissedRamp = reached the end of the
         /// track with every objective met but not on an end ramp; TooSlow =
-        /// reached it with an objective still open, ramp or not.
+        /// reached it with an objective still open, ramp or not; Destroyed =
+        /// the hull reached 0 and the ship blew up.
         /// </summary>
-        enum RunOutcome { Escaped, Caught, Stalled, TimedOut, MissedRamp, TooSlow }
+        enum RunOutcome { Escaped, Caught, Stalled, TimedOut, MissedRamp, TooSlow, Destroyed }
 
         bool runCounted; // this run's "escape attempted" has been recorded
+
+        // Hull and lives. The lives are this SCENE's: the runner is entered
+        // once per mission and retried in place, so Awake deals a fresh set
+        // and Restart never touches them.
+        ShipHealth shipHealth;
+        bool isGameOver;           // the failed run in progress took the last life
+        long walletAtMissionStart; // what a GAME OVER rolls the wallet back to
 
         // The win wind-down: the ship has left an end ramp with every
         // objective met and flies on; the glitch ramps to max and the panel opens.
@@ -144,6 +152,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool IsEnding => HasWon || failRoutine != null;
         /// <summary>True from the frame the run ended until <see cref="Restart"/>.</summary>
         public bool RunOver { get; private set; }
+
+        /// <summary>True while walls and brake pads damage the ship and failed runs cost lives (<see cref="GameSettings.hullEnabled"/>).</summary>
+        public bool HullEnabled => settings != null && settings.hullEnabled;
+        /// <summary>The ship's hull, for the HUD's life bar. Null without a ship.</summary>
+        public ShipHealth ShipHealth => shipHealth;
+        /// <summary>Failed runs this mission still forgives — the HUD's ×N. Every failed run takes one; the run that takes the last is GAME OVER. Survives <see cref="Restart"/>.</summary>
+        public int LivesLeft { get; private set; }
 
         /// <summary>
         /// Length of this run's track, metres: the level's own, else the
@@ -274,6 +289,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     tuningScreen.Park();
                     tuningScreen = null;
                 }
+            }
+
+            // The hull rides the ship like the blink (which it drives through
+            // the invulnerability after a hit) — after the run definition is
+            // set, so the bar fills to the clone's maxHull. Always added: it
+            // gates itself on GameSettings.hullEnabled, read live.
+            LivesLeft = settings.startingLives;
+            // What a GAME OVER hands back: the wallet as the mission began
+            // (before the city), or as this scene opened in direct play.
+            walletAtMissionStart = MissionSession.Active ? MissionSession.WalletAtStart : PlayerStats.Balance;
+            if (motor != null)
+            {
+                shipHealth = ShipHealth.Ensure(motor);
+                shipHealth.Configure(settings, this);
+                shipHealth.Damaged += OnHullDamaged;
+                shipHealth.Destroyed += OnShipDestroyed;
             }
 
             // Above the pause menu's canvas and holding timeScale at 0, so the
@@ -451,10 +482,48 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         // Every loss goes through the MISSION FAILED wind-down, once.
+        // Every failed run costs a life, whatever ended it; the one that takes
+        // the last is GAME OVER (no retry — see ShowGameOver).
         void BeginFail(RunOutcome outcome)
         {
             if (RunOver || IsEnding) return;
+            if (HullEnabled)
+            {
+                LivesLeft = Mathf.Max(0, LivesLeft - 1);
+                isGameOver = LivesLeft == 0;
+            }
             failRoutine = StartCoroutine(FinishFail(outcome));
+        }
+
+        void OnShipDestroyed() => BeginFail(RunOutcome.Destroyed);
+
+        // Any hull hit: a scrape gets its own light feedback; a hard hit (brake
+        // pad, dash slam, ramp side) already has the pad's / OnWallHit's.
+        void OnHullDamaged(float amount, bool hard)
+        {
+            if (GlitchController.Instance != null)
+                GlitchController.Instance.Pulse(settings.hullHitGlitchStrength);
+            if (hard) return;
+            HapticsSystem.Instance.Pulse(0.5f, 0.3f, 0.15f);
+            CameraShake.Shake(settings.scrapeShake);
+        }
+
+        // 0 hull: the fireball where the ship was, and the ship gone. The sim
+        // is already frozen (FinishFail), so nothing moves out from under it.
+        void ExplodeShip()
+        {
+            Vector3 origin = motor.Visual != null ? motor.Visual.position : motor.transform.position;
+            if (settings.explosionTextures != null && settings.explosionTextures.Count > 0)
+                ExplosionVfx.SpawnFireball(origin, settings.explosionTextures, settings.explosionScale,
+                                           settings.explosionLifetime, settings.explosionParticles);
+            if (shipHealth != null) shipHealth.SetShipVisible(false);
+
+            HapticsSystem.Instance.Pulse(1f, 1f, 0.8f);
+            CameraShake.Shake(settings.explosionShake);
+            if (GlitchController.Instance != null)
+                GlitchController.Instance.Pulse(settings.explosionGlitchStrength);
+            var shipAudio = motor.GetComponent<ShipAudio>();
+            if (shipAudio != null) shipAudio.PlayExplosion();
         }
 
         /// <summary>
@@ -475,7 +544,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (music != null) music.FadeOut(); // at the asset's fade-out time, under the banner
 
             bool planted = false;
-            if (!offTheEnd) motor.Paused = true; // freeze the sim; the hover keeps the ship floating
+            if (!offTheEnd)
+            {
+                motor.Paused = true; // freeze the sim; the hover keeps the ship floating
+                if (outcome == RunOutcome.Destroyed) ExplodeShip();
+            }
             else if (cameraRig != null)
             {
                 // A loop or fall shot may still be armed; this one replaces it.
@@ -487,7 +560,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 if (planted) cameraRig.hasPlayerControl = false;
             }
 
-            banner = MissionAccomplishedBanner.Show(settings, MenuTextId.MissionFailed,
+            // The last life lost says so: GAME OVER, not MISSION FAILED.
+            banner = MissionAccomplishedBanner.Show(settings, isGameOver ? MenuTextId.GameOver : MenuTextId.MissionFailed,
                                                     settings.failBannerColor, settings.failBannerColor);
             if (settings.failBannerHoldSeconds > 0f)
                 yield return new WaitForSecondsRealtime(settings.failBannerHoldSeconds);
@@ -651,8 +725,26 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // The speed goal is the one the HUD is about; any other goal
                 // left open gets the general line.
                 RunOutcome.TooSlow => SpeedGoalOpen ? MenuTextId.LoseTooSlow : MenuTextId.LoseObjectivesIncomplete,
+                RunOutcome.Destroyed => MenuTextId.LoseDestroyed,
                 _ => MenuTextId.LoseStalled
             };
+
+            // The last life lost: no retry. The mission is forfeited HERE, not
+            // on the button — quitting on the screen must not dodge it: the
+            // wallet goes back to what it was when the mission began and the
+            // city clear is dropped, so the Store's START MISSION replays the
+            // city. Any button then leads back to the Store.
+            if (isGameOver)
+            {
+                PlayerStats.ForfeitMission(walletAtMissionStart);
+                GameOverScreen.ShowFinal(reason, onContinue: () =>
+                {
+                    MissionSession.Clear();
+                    LoadingScreen.Load(StoreSettings.SceneName);
+                });
+                return;
+            }
+
             GameOverScreen.Show(reason, onRetry: Restart, onGiveUp: LoadingScreen.LoadMainMenu,
                                 titleId: MenuTextId.MissionFailed);
         }
@@ -979,6 +1071,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol.Warned -= OnPatrolWarned;
             }
             SpeedPad.Collected -= OnPadCollected;
+            if (shipHealth != null)
+            {
+                shipHealth.Damaged -= OnHullDamaged;
+                shipHealth.Destroyed -= OnShipDestroyed;
+            }
         }
 
         /// <summary>Resets the run; rebuilds the track (endless runs must — the stretch behind the start was culled).</summary>
@@ -1009,12 +1106,24 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 cameraRig.hasPlayerControl = true;
             }
 
+            bool wasWon = HasWon;
             RunOver = false;
             HasWon = false;
             ObjectivesMet = false;
             runCounted = false;
             TimeRemaining = settings.timeLimitSeconds;
             ResetObjectives();
+            // A fresh hull and the ship back on screen; the LIVES are the
+            // mission's and carry over. A retry after a WIN is another go at a
+            // mission already paid: a new set, and the payout is now part of
+            // what a GAME OVER hands back.
+            if (wasWon)
+            {
+                LivesLeft = settings.startingLives;
+                walletAtMissionStart = PlayerStats.Balance;
+            }
+            isGameOver = false;
+            if (shipHealth != null) shipHealth.ResetForRun();
             // This run's money counter goes back to $0; what was picked up is
             // already banked in the profile.
             CollectibleManager collectibles = CollectibleManager.Instance;

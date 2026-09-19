@@ -168,6 +168,16 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
         /// <summary>True when the last step's lateral move was stopped or taken over (the edge, a ramp's side, a tube's return): a dash burst ends there.</summary>
         public bool LateralBlocked { get; private set; }
 
+        /// <summary>
+        /// True when the last step PUSHED the body into a wall — a closed edge
+        /// of the lane or a ramp's side — whether by steering, a slide or a
+        /// dash. Resting against the wall without pressing on it is not
+        /// contact; an open edge, a full tube and a tube's return never are.
+        /// The quiet sibling of <see cref="WallHit"/>: no cooldown, no event —
+        /// the owner polls it (the ship's hull damage).
+        /// </summary>
+        public bool IsTouchingWall { get; private set; }
+
         // ------------------------------------------------------------ events
         /// <summary>Raised on every <see cref="State"/> change, after the new state is set.</summary>
         public event System.Action<ShipState> StateChanged;
@@ -369,6 +379,7 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
         void StepLateral(float dt, in BodyControls controls)
         {
             LateralBlocked = false;
+            IsTouchingWall = false;
 
             // The lane at this distance: ±half width on the road, the arc round
             // the pipe on a tube (its edge behaves exactly like the road's).
@@ -467,8 +478,11 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
             edgeTimer = 0f;
 
             // The clamp is what guarantees a dash can never leave a walled track.
-            Lateral = Mathf.Clamp(Lateral + (LateralVelocity + dashVelocity) * dt, bandMin, bandMax);
+            float unclamped = Lateral + (LateralVelocity + dashVelocity) * dt;
+            Lateral = Mathf.Clamp(unclamped, bandMin, bandMax);
             bool hitEdge = Lateral <= bandMin || Lateral >= bandMax;
+            // Pressed INTO the wall, not merely resting on it.
+            IsTouchingWall = unclamped < bandMin || unclamped > bandMax;
 
             // Committed to a ramp: the side rails hold the body on the slope.
             if (Ramp != null)
@@ -484,6 +498,7 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
             {
                 bool leftWall = Lateral < rampWallMin;
                 Lateral = leftWall ? rampWallMin : rampWallMax;
+                IsTouchingWall = true;
                 if (wallHitCooldown <= 0f)
                 {
                     ForwardSpeed *= 1f - Mathf.Clamp01(leftWall ? rampWallMinLoss : rampWallMaxLoss);

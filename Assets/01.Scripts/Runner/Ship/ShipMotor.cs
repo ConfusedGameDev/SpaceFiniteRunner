@@ -115,6 +115,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>Raised when a dash slams the track edge, or the ship hits a ramp from the side. Argument: lateral impact speed in m/s.</summary>
         public event System.Action<float> WallHit;
 
+        /// <summary>True while the last simulation step pushed the ship into a wall (a closed edge or a ramp's side) — steering, slide or dash. Polled by <see cref="ShipHealth"/>; <see cref="WallHit"/> stays the hard slam's event.</summary>
+        public bool IsTouchingWall => body != null && body.IsTouchingWall;
+
         /// <summary>Raised when the ship starts sliding outward on a flat sweep taken too fast. Argument: lateral acceleration beyond its grip, m/s².</summary>
         public event System.Action<float> Sliding;
 

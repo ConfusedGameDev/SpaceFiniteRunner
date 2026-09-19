@@ -6,7 +6,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 {
     /// <summary>
     /// The respawn blink: while the ship waits on the track after a fall
-    /// (<see cref="ShipState.Respawning"/>) its model flickers between its
+    /// (<see cref="ShipState.Respawning"/>) — and through the invulnerability
+    /// after a hull hit (<see cref="ShipHealth.IsInvulnerable"/>) — its model flickers between its
     /// own materials and the dash's ghost material at
     /// <see cref="GameSettings.respawnBlinkRate"/>, the classic "you can't be
     /// touched yet" read. It SWAPS the renderers' materials — a
@@ -19,6 +20,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     public class RespawnBlink : MonoBehaviour
     {
         ShipMotor motor;
+        ShipHealth health; // optional: found lazily, the GameManager adds it after this
         GameSettings settings;
         Material ghostMaterial;
         bool ownsGhostMaterial;
@@ -49,7 +51,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             if (motor == null || settings == null) return;
 
-            bool shouldBlink = motor.State == ShipState.Respawning;
+            // The same "can't be touched" read covers the blink after a hull hit.
+            if (health == null) health = motor.GetComponent<ShipHealth>();
+            bool shouldBlink = motor.State == ShipState.Respawning || (health != null && health.IsInvulnerable);
             if (shouldBlink && !blinking) Begin();
             else if (!shouldBlink && blinking) End();
             if (!blinking) return;

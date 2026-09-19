@@ -77,7 +77,11 @@ the FULL total into the wallet on every completion (replaying is the intended mo
 best-of delta bank is gone), and a best-of `MissionRecord` (`bestTotal`, `bestRank`,
 `timesCompleted`) that never downgrades. NEXT MISSION → Store; RETRY in place; EXIT → menu.
 Missions are **all-or-nothing across a sitting**: quitting before the runner is won loses the
-city clear (v1). When the frontier is exhausted, START MISSION leads to the **Coming Soon** scene
+city clear (v1). **The runner's GAME OVER** (its last life lost — `runner-ship.md`) forfeits the
+mission outright: `PlayerStats.ForfeitMission(MissionSession.WalletAtStart)` rolls the wallet
+back to what `Begin` snapshotted (after the Store's purchases, before the city) and drops the city
+clear, the session is cleared and the Store is loaded — the mission is still the frontier, so
+START MISSION replays its city. A REPLAY that ends that way keeps the clear it already had. When the frontier is exhausted, START MISSION leads to the **Coming Soon** scene
 (`ComingSoonScreen`, built by `Create Coming Soon Scene`) — the only door to it.
 
 ## Screens

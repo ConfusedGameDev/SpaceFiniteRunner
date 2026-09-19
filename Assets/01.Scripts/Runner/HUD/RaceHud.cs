@@ -81,6 +81,34 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Tooltip("Gap between the wedge and the number.")]
         [SerializeField, Range(0f, 100f)] float gaugeNumberGap = 24f;
 
+        [Header("Life bar")]
+        [Tooltip("The KM/H caption under the wedge — pushed down with the goal lines to make room for the life bar. Empty = found by name (KmhLabel) beside the speed text.")]
+        [SerializeField] Text unitText;
+        [Tooltip("Cells of the hull bar under the speed wedge. A cell stays lit while any of its share of the hull is left.")]
+        [SerializeField, Range(1, 30)] int lifeSegments = 6;
+        [Tooltip("Height of the bar, px at 1920×1080. Its width is the wedge's.")]
+        [SerializeField, Range(4f, 80f)] float lifeBarHeight = 22f;
+        [Tooltip("Gap between cells.")]
+        [SerializeField, Range(0f, 30f)] float lifeSegmentGap = 6f;
+        [Tooltip("Gap between the wedge and the bar, and between the bar and the KM/H caption.")]
+        [SerializeField, Range(0f, 60f)] float lifeBarGap = 12f;
+        [Tooltip("Alpha of the cells already lost.")]
+        [SerializeField, Range(0f, 1f)] float lifeEmptyAlpha = 0.2f;
+        [SerializeField] Color lifeFullColor = new(0.48f, 0.83f, 0.32f);
+        [SerializeField] Color lifeMidColor = new(1f, 0.85f, 0.3f);
+        [SerializeField] Color lifeLowColor = new(1f, 0.25f, 0.2f);
+        [Tooltip("Hull fraction under which the bar blinks.")]
+        [SerializeField, Range(0f, 1f)] float lifeLowFraction = 0.34f;
+        [Tooltip("Blinks per second while low.")]
+        [SerializeField, Range(0.5f, 10f)] float lifeLowBlinkHz = 3f;
+        [Tooltip("Scale the bar (and the lives count, when a life is lost) jumps to on a hit.")]
+        [SerializeField, Min(1f)] float lifeHitPunch = 1.25f;
+        [Tooltip("Font size of the ×N lives count at the bar's right end.")]
+        [SerializeField, Range(12, 120)] int livesFontSize = 40;
+        [Tooltip("Gap between the bar and the lives count.")]
+        [SerializeField, Range(0f, 100f)] float livesGap = 18f;
+        [SerializeField] Color livesColor = Color.white;
+
         [Header("Boost floating text")]
         [SerializeField] bool spawnBoostText = true;
         [SerializeField] Color boostTextColor = new(0.48f, 1f, 0.4f);
@@ -98,9 +126,19 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         Color targetColor;      // the goal line's authored colour, before the done tint
         int shownSeconds = -1;  // what the timer text currently reads, so it is rebuilt once a second
 
+        // The hull bar under the wedge and the ×N beside it; null while the hull is off.
+        SpeedGauge lifeBar;
+        Text livesText;
+        float lastLife = 1f;   // last frame's hull fraction: a drop is a hit
+        float lifeFlash;       // 1 → 0 white flash after a hit
+        float lifePunch = 1f;  // the bar's scale, decaying to 1
+        float livesPunch = 1f; // the count's scale, decaying to 1
+        int shownLives = -1;   // what the count currently reads
+
         void Start()
         {
             BuildGauge();
+            BuildLifeBar();
             SeatTimer();
             if (gameManager == null || targetText == null || gameManager.Level == null) return;
             targetColor = targetText.color;
@@ -140,6 +178,96 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             number.sizeDelta = new Vector2(number.sizeDelta.x, gauge.Height);
             speedText.fontSize = gaugeNumberFontSize;
             speedText.alignment = TextAnchor.LowerLeft; // baseline on the wedge's baseline
+        }
+
+        // The hull bar takes a row of its own right under the wedge — the
+        // wedge's width in flat cells, the ×N lives count at its right end —
+        // and everything that stood there (the KM/H caption, the goal line
+        // and so the objective lines stacked off it) moves down by that row.
+        // Built only while the hull is on (GameSettings.hullEnabled).
+        void BuildLifeBar()
+        {
+            if (gauge == null || gameManager == null || !gameManager.HullEnabled || gameManager.ShipHealth == null) return;
+
+            var gaugeRect = (RectTransform)gauge.transform;
+            int cells = Mathf.Max(1, lifeSegments);
+            Vector2 topLeft = gaugeRect.anchoredPosition - new Vector2(0f, gauge.Height + lifeBarGap);
+            lifeBar = SpeedGauge.Build((RectTransform)gaugeRect.parent, topLeft, new SpeedGauge.Layout
+            {
+                segments = cells,
+                segmentWidth = (gauge.Width - (cells - 1) * lifeSegmentGap) / cells,
+                gap = lifeSegmentGap,
+                minHeight = lifeBarHeight,
+                maxHeight = lifeBarHeight,
+                emptyAlpha = lifeEmptyAlpha,
+            });
+            lifeBar.name = "LifeBar";
+
+            var go = new GameObject("Lives", typeof(RectTransform));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(gaugeRect.parent, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 0.5f); // centred on the bar, punching from its own middle
+            rect.anchoredPosition = topLeft + new Vector2(lifeBar.Width + livesGap, -lifeBarHeight * 0.5f);
+            rect.sizeDelta = new Vector2(200f, lifeBarHeight);
+            livesText = go.AddComponent<Text>();
+            // The goal line's font: it is the one known to carry the × glyph (the challenge lines print it).
+            livesText.font = targetText != null ? targetText.font : speedText.font;
+            livesText.fontSize = livesFontSize;
+            livesText.alignment = TextAnchor.MiddleLeft;
+            livesText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            livesText.verticalOverflow = VerticalWrapMode.Overflow;
+            livesText.color = livesColor;
+            livesText.raycastTarget = false;
+
+            Vector2 push = new(0f, lifeBarHeight + lifeBarGap);
+            if (unitText == null)
+            {
+                Transform found = gaugeRect.parent.Find("KmhLabel");
+                if (found != null) unitText = found.GetComponent<Text>();
+            }
+            if (unitText != null) unitText.rectTransform.anchoredPosition -= push;
+            if (targetText != null) targetText.rectTransform.anchoredPosition -= push;
+        }
+
+        void UpdateLifeBar()
+        {
+            if (lifeBar == null) return;
+
+            float life = gameManager.ShipHealth.Fraction;
+            if (life < lastLife - 1e-4f)
+            {
+                lifeFlash = 1f;
+                lifePunch = lifeHitPunch;
+            }
+            lastLife = life;
+            lifeFlash = Mathf.MoveTowards(lifeFlash, 0f, pulseDecay * Time.deltaTime);
+            lifePunch = Mathf.MoveTowards(lifePunch, 1f, pulseDecay * Time.deltaTime);
+            lifeBar.transform.localScale = Vector3.one * lifePunch;
+
+            // One colour for the whole bar — how hurt the ship is, not a scale.
+            Color color = life > 0.5f
+                ? Color.Lerp(lifeMidColor, lifeFullColor, (life - 0.5f) / 0.5f)
+                : Color.Lerp(lifeLowColor, lifeMidColor, life / 0.5f);
+            if (life > 0f && life <= lifeLowFraction && Mathf.Repeat(Time.time * lifeLowBlinkHz, 1f) > 0.5f)
+                color *= 0.45f;
+            color = Color.Lerp(color, Color.white, lifeFlash);
+            color.a = 1f;
+
+            // A cell stays lit while any of its share is left: round UP to cells.
+            int cells = Mathf.Max(1, lifeSegments);
+            float shown = Mathf.Ceil(life * cells - 1e-4f) / cells;
+            lifeBar.SetFill(shown, _ => color);
+
+            int lives = gameManager.LivesLeft;
+            if (lives != shownLives)
+            {
+                if (shownLives >= 0) livesPunch = lifeHitPunch * 1.2f;
+                shownLives = lives;
+                livesText.text = $"×{lives}";
+            }
+            livesPunch = Mathf.MoveTowards(livesPunch, 1f, pulseDecay * Time.deltaTime);
+            livesText.rectTransform.localScale = Vector3.one * livesPunch;
         }
 
         // The countdown is the scene's timer text, re-seated by code like the
@@ -237,6 +365,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             if (gauge != null)
                 gauge.SetFill(lightSpeed > 0f ? Mathf.Clamp01(kmh / lightSpeed) : 0f,
                               fraction => SpeedColor(fraction * lightSpeed, lightSpeed));
+
+            UpdateLifeBar();
 
             if (targetText != null && lightSpeed > 0f)
             {

@@ -39,9 +39,19 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 - **Lose**: the countdown hits 0, the patrol catches you, the ship stalls out (sits at a
   standstill with the throttle released for the stall grace — braking to a stop alone is fine),
   or it reaches the end of the track without the win — an objective still open (ramp or not), or
-  through a gap between the ramps — and drops into the void. EVERY loss slams a MISSION FAILED
-  banner in (the win banner's animation), then the `GameOverScreen` retry panel: MISSION FAILED,
-  the localized reason, RETRY? YES / NO (NO = main menu).
+  through a gap between the ramps — and drops into the void — or the **hull reaches 0 and the ship
+  explodes**. EVERY loss slams a MISSION FAILED banner in (the win banner's animation), then the
+  `GameOverScreen` retry panel: MISSION FAILED, the localized reason, RETRY? YES / NO (NO = main
+  menu).
+- **Hull and lives** (`GameSettings.hullEnabled`): the HUD's life bar sits under the speed wedge
+  with a ×N lives count at its right end. Brake pads, hard wall hits (a dash slam, a ramp's side),
+  plain wall contact and falling off the track take hull points; every hit blinks the ship
+  invulnerable for a moment.
+  **Every failed run costs a life** — a fresh set (`startingLives`) each time the runner is
+  entered, kept across retries. The run that takes the last one is **GAME OVER**: the banner says
+  so, the panel has no retry (PRESS ANY BUTTON → the Store), and the mission is forfeited — the
+  wallet goes back to what it was when the mission started and the city clear is dropped, so
+  START MISSION replays the city. Cleared missions and bought upgrades are kept.
 - Neither ending speaks an RPG line and neither prints HUD result text.
 - **Speed** is the whole game: one launch impulse, then the throttle (W / RT) holds the ship up
   to its cruise speed and the brake (S / LT) slows it. Only boost orbs (small, 0.3, must be aimed

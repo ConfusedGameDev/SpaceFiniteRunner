@@ -24,6 +24,14 @@ The runner's scene-wired HUD on the `RaceHUD` canvas object.
 - The scene's km/h number is re-seated at the wedge's right end by code at `Start` (smaller font,
   baseline on the wedge's), then KM/H, the LIGHT SPEED target line, and one code-built line per
   extra objective under it (`JUMP 1/3  ×2`).
+- **The life bar** (`BuildLifeBar`, only while `GameManager.HullEnabled`) is a second
+  `SpeedGauge` right under the wedge — the wedge's width in `lifeSegments` flat cells — with the
+  `×N` lives count (`GameManager.LivesLeft`, the goal line's font: it carries the × glyph) at its
+  right end. The KM/H caption (`unitText`, else found by name `KmhLabel`) and the goal line are
+  pushed down by the bar's row, before the objective lines are stacked off the goal line. One
+  colour for the whole bar (full → mid → low by `ShipHealth.Fraction`), cells rounded UP, a drop
+  between frames = white flash + scale punch, a blink under `lifeLowFraction`; the count punches
+  when a life goes. Knobs are the "Life bar" header.
 - **Reached once is reached**: the LIGHT SPEED line turns `winColor` the frame
   `GameManager.LightSpeedReached` latches and stays so while the ship still has to make an end ramp.
 - **The distance left is NOT a HUD line** — it reads on top of the `ChaseMinimap` track map (see
@@ -55,7 +63,7 @@ The shared death screen, on the themed menu framework, driven by two callbacks s
 decides what an answer means. It lives here rather than in either game's UI folder because
 **both scenes show it** and `PoliceEscape` references `Runner`, never the reverse.
 
-Two layouts:
+Three layouts:
 
 - **Bare question** `Show(onRetry, onGiveUp)` — GAME OVER / RETRY? / YES / NO. The city chase
   raises this once the completion glitch has filled and held (YES is `LevelManager.RestartLevel`
@@ -69,6 +77,12 @@ Two layouts:
   `LoseStalled`, `LoseMissedRamp` (end reached with the objectives met, not on a ramp),
   `LoseTooSlow` (end reached with Light Speed open) / `LoseObjectivesIncomplete` (another
   objective open).
+
+- **Final** `ShowFinal(reasonId, onContinue)` — the runner's last life lost: the GAME OVER plate,
+  the reason, a breathing PRESS ANY BUTTON line; **no rows, no prompt strip, no retry**. After the
+  input grace `MenuNavigator.AnyPressed()` (any key, mouse button or pad button — the attract
+  screen's poll, promoted to the UI assembly) runs `onContinue`. The mission is already forfeited
+  when it opens (`runner-ship.md`); the runner's `onContinue` loads the Store.
 
 **There is no Back out** — the screen demands an answer, so Esc/B do nothing on it. It freezes
 scaled time, which also keeps the pause menu and the city map from stacking over it. Because both

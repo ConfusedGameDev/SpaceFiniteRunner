@@ -127,7 +127,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         PatrolOrbSeek, PatrolOrbBoost, PatrolRampLookahead,
         // The finite track's ending: the fail banner / panel title, the end-of-track lose reasons, the HUD's distance line, the debug row.
         MissionFailed, LoseMissedRamp, LoseTooSlow, LoseObjectivesIncomplete,
-        HudDistanceToEnd, TrackLength
+        HudDistanceToEnd, TrackLength,
+        // Hull and lives: the lose reason of a ship blown up, and the final GAME OVER's prompt (no retry — any button leads to the Store).
+        LoseDestroyed, PressAnyButton
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -692,6 +694,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Game over")]
         [Tooltip("The runner HUD's distance-to-the-end line. {0} = kilometres left.")]
         [SerializeField] LocalizedString hudDistanceToEnd = new("END  {0} KM", "FIN  {0} KM", "ゴールまで  {0} KM", "FIN  {0} KM");
+        [TitleGroup("Game over")]
+        [Tooltip("Lose reason: the ship's hull reached 0 and it exploded.")]
+        [SerializeField] LocalizedString loseDestroyed = new("SHIP DESTROYED", "NAVE DESTRUIDA", "機体大破", "VAISSEAU DÉTRUIT");
+        [TitleGroup("Game over")]
+        [Tooltip("The final GAME OVER's only prompt (the last life is gone, there is no retry): any key or button leads back to the Store.")]
+        [SerializeField] LocalizedString pressAnyButton = new("PRESS ANY BUTTON", "PULSA CUALQUIER BOTÓN", "ボタンを押してください", "APPUYEZ SUR UN BOUTON");
 
         // The Store: section titles, the model row, the purchase rows and the
         // upgrade categories. Category labels are kept short on purpose — the
@@ -1434,6 +1442,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.LoseObjectivesIncomplete => loseObjectivesIncomplete,
             MenuTextId.HudDistanceToEnd => hudDistanceToEnd,
             MenuTextId.TrackLength => trackLength,
+            MenuTextId.LoseDestroyed => loseDestroyed,
+            MenuTextId.PressAnyButton => pressAnyButton,
             _ => start
         };
     }

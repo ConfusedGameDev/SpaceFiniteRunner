@@ -65,6 +65,30 @@ MonoBehaviour:
   winBannerLetterSlamSeconds: 0.32
   winBannerGlitchPunch: 0.4
   winBannerShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  hullEnabled: 1
+  startingLives: 3
+  brakePadDamage: 20
+  wallSlamDamage: 25
+  wallScrapeDamage: 10
+  fallDamage: 30
+  hitInvulnerabilitySeconds: 1
+  scrapeShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  hullHitGlitchStrength: 0.35
+  explosionTextures:
+  - {fileID: 2800000, guid: a96c4488e59bb435d8aaa0cff43270fe, type: 3}
+  - {fileID: 2800000, guid: 1c846224768ab4d11ae85c0dde9fc69a, type: 3}
+  - {fileID: 2800000, guid: d98f18ebb21b44d03a8f2847c5999b86, type: 3}
+  - {fileID: 2800000, guid: 8c9f1958f431f48a491b1a254a7f1207, type: 3}
+  - {fileID: 2800000, guid: ef8c7540bd3234f33b8d5ab008294d24, type: 3}
+  - {fileID: 2800000, guid: 8235e261889ee4b4c8e34e7c66246e56, type: 3}
+  - {fileID: 2800000, guid: 6fddb8dfa38c94a4394e6b3bbbcbb133, type: 3}
+  - {fileID: 2800000, guid: 8281bac6ed4ca42b3a7a3e7629485344, type: 3}
+  - {fileID: 2800000, guid: 08c8fb6595d634540806f7e021e09e67, type: 3}
+  explosionScale: 14
+  explosionLifetime: 1.4
+  explosionParticles: 24
+  explosionShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  explosionGlitchStrength: 1
   dashEnabled: 1
   dashCost: 0.5
   dashDoubleTapSeconds: 0.3

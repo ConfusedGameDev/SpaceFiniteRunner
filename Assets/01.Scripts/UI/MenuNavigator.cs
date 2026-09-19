@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.UI;
 
 namespace ConfusedGameDev.FiniteRunner.UI
@@ -82,6 +83,27 @@ namespace ConfusedGameDev.FiniteRunner.UI
                 return true;
 
             return Gamepad.current is { buttonSouth: { wasPressedThisFrame: true } };
+        }
+
+        /// <summary>
+        /// Anything at all pressed this frame — any key, either mouse button,
+        /// any gamepad button (sticks pushed are not buttons). The "press any
+        /// button" poll: the attract screen's wake and the runner's final
+        /// GAME OVER.
+        /// </summary>
+        public static bool AnyPressed()
+        {
+            if (Keyboard.current is { anyKey: { wasPressedThisFrame: true } }) return true;
+            if (Mouse.current is { leftButton: { wasPressedThisFrame: true } }) return true;
+            if (Mouse.current is { rightButton: { wasPressedThisFrame: true } }) return true;
+
+            var pad = Gamepad.current;
+            if (pad == null) return false;
+            foreach (var control in pad.allControls)
+                if (control is ButtonControl button && button.wasPressedThisFrame)
+                    return true;
+
+            return false;
         }
 
         public static bool BackPressed()

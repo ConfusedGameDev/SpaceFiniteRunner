@@ -47,7 +47,10 @@ because domain reload is off** — a cached profile would otherwise be re-saved 
 the city scene is about to unload; **it banks no money**), `RecordMissionCompleted(missionId, total,
 rank)` (**the ONE bank** — the runner's panel pays the FULL total on every completion, replay or
 panel RETRY included, and latches the campaign `MissionRecord` best-of; `lastLevel.banked` is
-vestigial since profile v3), `Mission` / `IsMissionCompleted` / `AnyMissionCompleted`,
+vestigial since profile v3), `ForfeitMission(walletAtStart)` (the runner's GAME OVER: `moneyEarned`
+is set to `moneySpent + walletAtStart` — what was picked up since the mission began comes off the
+earnings, never booked as spending — `lastLevel` is dropped and its id struck from
+`completedLevelIds`; mission records untouched; **saves at once**), `Mission` / `IsMissionCompleted` / `AnyMissionCompleted`,
 `RecordRunStarted` / `RecordRunEnded(escaped, seconds)`, `RecordPad(boost)`, `AddMoney` /
 `CompleteBonusObjective`, `TrySpend` / `Balance` / `SetUpgradeLevel`,
 `Unlock` / `IsUnlocked` / `IsLevelCompleted`, `RecordCollectible(id)`.

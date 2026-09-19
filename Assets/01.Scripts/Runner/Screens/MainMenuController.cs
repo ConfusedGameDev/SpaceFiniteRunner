@@ -390,20 +390,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         // Navigation/confirm/back live on the shared MenuNavigator; only the
         // attract screen's wake-on-anything check is menu-specific.
 
-        static bool AnyInput()
-        {
-            if (Keyboard.current is { anyKey: { wasPressedThisFrame: true } }) return true;
-            if (Mouse.current is { leftButton: { wasPressedThisFrame: true } }) return true;
-            if (Mouse.current is { rightButton: { wasPressedThisFrame: true } }) return true;
-
-            var pad = Gamepad.current;
-            if (pad == null) return false;
-            foreach (var control in pad.allControls)
-                if (control is ButtonControl button && button.wasPressedThisFrame)
-                    return true;
-
-            return false;
-        }
+        static bool AnyInput() => MenuNavigator.AnyPressed();
 
         // -------------------------------------------------------------- audio
 
