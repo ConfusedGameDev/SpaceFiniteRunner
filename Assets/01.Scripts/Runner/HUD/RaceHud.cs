@@ -16,8 +16,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// of Light Speed, built here in code at the top-left) with the scene's
     /// km/h number re-seated at its right end at Start — smaller font, its
     /// baseline on the wedge's — heating up as you approach Light Speed and
-    /// pulsing on pad hits, the Light Speed goal, a countdown
-    /// bar (time is the limit, not distance), and
+    /// pulsing on pad hits, the Light Speed goal, the countdown as a plain
+    /// yellow MM:SS at the bottom centre (the scene's timer text re-seated
+    /// at Start, sized like the speed number — no bar; the distance left is
+    /// the <see cref="ChaseMinimap"/>'s), and
     /// floating "+boost" text spawned at the ship on every booster hit (and a
     /// gold "+$N" on every money pickup, off the CollectibleManager), plus
     /// one code-built line per runner objective / challenge under the goal
@@ -35,8 +37,6 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [SerializeField] Text targetText;
         [FormerlySerializedAs("distanceText")]
         [SerializeField] Text timeText;
-        [FormerlySerializedAs("distanceFill")]
-        [SerializeField] Image timeFill;
 
         [Header("Speed colors")]
         [Tooltip("Far below Light Speed.")]
@@ -49,12 +49,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Header("Status colors")]
         [FormerlySerializedAs("perfectColor")]
         [SerializeField] Color winColor = new(0.48f, 0.83f, 0.32f);
-        [SerializeField] Color failColor = new(1f, 0.3f, 0.25f);
+        [Tooltip("Objective / challenge lines not yet done.")]
+        [FormerlySerializedAs("timeColor")]
+        [SerializeField] Color lineColor = Color.white;
 
         [Header("Countdown")]
-        [Tooltip("The timer text tints with the fail color below this many seconds.")]
-        [SerializeField, Min(0f)] float lowTimeWarning = 10f;
-        [SerializeField] Color timeColor = Color.white;
+        [Tooltip("The MM:SS readout's colour — always, it never tints.")]
+        [SerializeField] Color timerColor = new(1f, 0.9f, 0.2f);
+        [Tooltip("Gap between the bottom of the screen and the timer's baseline, px at 1920×1080. Its font size is the speed number's.")]
+        [SerializeField, Range(0f, 300f)] float timerBottomMargin = 40f;
 
         [Header("Pad pulse")]
         [SerializeField, Min(1f)] float pulseScale = 1.3f;
@@ -92,23 +95,17 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         readonly List<(RunnerObjective step, bool challenge, int index, Text text)> objectiveLines = new();
 
         SpeedGauge gauge;
-        Text distanceLine;      // metres of track left, under the goal line; null on an endless track
-        string distanceFormat;  // "END  {0} KM", localized when the HUD font can draw it
         Color targetColor;      // the goal line's authored colour, before the done tint
+        int shownSeconds = -1;  // what the timer text currently reads, so it is rebuilt once a second
 
         void Start()
         {
             BuildGauge();
+            SeatTimer();
             if (gameManager == null || targetText == null || gameManager.Level == null) return;
             targetColor = targetText.color;
             RunnerLevelDefinition level = gameManager.Level;
             int slot = 0;
-            // The track ends: how much of it is left is the run's second clock.
-            if (gameManager.HasTrackEnd)
-            {
-                distanceLine = MakeObjectiveLine(slot++);
-                distanceFormat = HudFormat(MenuTextId.HudDistanceToEnd, distanceLine.font);
-            }
             for (int i = 0; i < level.Count; i++)
             {
                 RunnerObjective step = level.objectives[i];
@@ -145,18 +142,19 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             speedText.alignment = TextAnchor.LowerLeft; // baseline on the wedge's baseline
         }
 
-        // The HUD draws with the scene's own font, which need not carry every
-        // language's glyphs: a localized format it cannot draw falls back to
-        // the English one instead of printing boxes.
-        static string HudFormat(MenuTextId id, Font font)
+        // The countdown is the scene's timer text, re-seated by code like the
+        // speed number: bottom centre, the speed number's size, always yellow.
+        void SeatTimer()
         {
-            MenuTextLibrary library = MenuTextLibrary.Load();
-            string format = library.Get(id);
-            if (font != null && font.dynamic) return format;
-            foreach (char c in format)
-                if (c != '{' && c != '}' && !char.IsWhiteSpace(c) && font != null && !font.HasCharacter(c))
-                    return library.Get(id, MenuLanguage.English);
-            return format;
+            if (timeText == null) return;
+            RectTransform rect = timeText.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(0f, timerBottomMargin);
+            timeText.fontSize = gaugeNumberFontSize;
+            timeText.alignment = TextAnchor.LowerCenter;
+            timeText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            timeText.verticalOverflow = VerticalWrapMode.Overflow;
+            timeText.color = timerColor;
         }
 
         // A smaller sibling of the goal text, stacked under it — cloned from
@@ -180,7 +178,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             text.alignment = targetText.alignment;
             text.horizontalOverflow = targetText.horizontalOverflow;
             text.verticalOverflow = targetText.verticalOverflow;
-            text.color = timeColor;
+            text.color = lineColor;
             text.raycastTarget = false;
             return text;
         }
@@ -249,17 +247,6 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                     targetText.color = gameManager.LightSpeedReached ? winColor : targetColor;
             }
 
-            if (distanceLine != null)
-            {
-                float remaining = gameManager.DistanceRemaining;
-                distanceLine.text = string.Format(distanceFormat, (remaining / 1000f).ToString("0.0"));
-                // Red when, at this speed, the clock runs out before the
-                // ship reaches the end.
-                float speed = Mathf.Max(motor.CurrentSpeed, 1f);
-                bool late = remaining / speed > gameManager.TimeRemaining;
-                distanceLine.color = late ? failColor : timeColor;
-            }
-
             foreach (var line in objectiveLines)
             {
                 bool done = line.challenge ? gameManager.IsChallengeDone(line.index) : gameManager.IsObjectiveDone(line.index);
@@ -268,7 +255,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 if (progress.Length > 0) label += "  " + progress;
                 if (line.step is RunnerOptionalChallenge challenge) label += $"  \u00d7{challenge.multiplier}";
                 line.text.text = label;
-                line.text.color = done ? winColor : timeColor;
+                line.text.color = done ? winColor : lineColor;
             }
 
             UpdateCountdown();
@@ -276,16 +263,14 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void UpdateCountdown()
         {
-            if (gameManager == null) return;
+            if (gameManager == null || timeText == null) return;
 
-            float remaining = gameManager.TimeRemaining;
-            if (timeText != null)
-            {
-                timeText.text = $"{remaining:0.0} S";
-                timeText.color = remaining <= lowTimeWarning ? failColor : timeColor;
-            }
-            if (timeFill != null)
-                timeFill.fillAmount = gameManager.TimeLimit > 0f ? remaining / gameManager.TimeLimit : 0f;
+            // Whole seconds, rounded up so 00:00 is the moment the clock runs out.
+            int seconds = Mathf.CeilToInt(Mathf.Max(0f, gameManager.TimeRemaining));
+            if (seconds == shownSeconds) return;
+            shownSeconds = seconds;
+            timeText.text = $"{seconds / 60:00}:{seconds % 60:00}";
+            timeText.color = timerColor;
         }
 
         // The readout heats up as speed climbs toward Light Speed: blue when

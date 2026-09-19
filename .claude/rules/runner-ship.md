@@ -389,9 +389,23 @@ minimap range, redeploy) stay on `GameSettings`.
 
 ## `ChaseMinimap`
 
-Right-edge chase gauge, spawned by `GameManager` with the patrol: a vertical strip with the ship
-diamond pinned at the top, the patrol icon (red/blue flicker) climbing as the gap closes, and the
-gap in metres underneath. Built from code on its own overlay canvas — no scene wiring.
+Right-edge **track map**, spawned by `GameManager.Awake` whenever there is a motor — with or
+without a patrol (`Spawn(motor, patrol, gameManager, range, warn)`, `patrol` may be null). The
+vertical strip IS the track: the ship diamond starts at the bottom and climbs to the top
+(`DistanceTravelled / (DistanceTravelled + GameManager.DistanceRemaining)`; pinned at the top on
+an endless track), the distance to the end reads above the strip (`12.4 KM`, metres on the last
+kilometre, always white) and the patrol gap in metres below it (red inside the warn distance).
+
+**The patrol icon hangs under the ship on a zoomed scale** — `GameSettings.minimapRangeMeters` =
+`ChaseMinimapSettings.chaseSpan` pixels, because at track scale a few hundred metres is a pixel or
+two. It is drawn only when the gap is inside that range AND its spot is still on the strip (a
+ship at the very bottom has nothing under it to draw on); a null or gone patrol hides the icon and
+blanks the gap. Red/blue flicker as before.
+
+A scene prefab instance (`03.Prefabs/Runner/ChaseMinimap.prefab`) with a baked editor preview
+(**Rebuild Preview** — re-bake after changing `Build`); `Spawn` finds it, tears the preview down
+and rebuilds live on its own overlay canvas. Label strings are rebuilt only when the shown number
+changes.
 
 ## `SteeringInput` / `ISteeringInput` / `IThrottleInput`
 

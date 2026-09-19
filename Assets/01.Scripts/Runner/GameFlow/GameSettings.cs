@@ -144,7 +144,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool patrolEnabled = true;
 
         [ToggleGroup("patrolEnabled")]
-        [Tooltip("Gap that puts the patrol icon at the very bottom of the chase minimap.")]
+        [Tooltip("Gap beyond which the patrol is off the track map; at this gap its icon hangs a full chase span (ChaseMinimapSettings.chaseSpan) under the ship.")]
         [PropertyRange(50f, 2000f), SuffixLabel("m", true)]
         public float minimapRangeMeters = 400f;
 

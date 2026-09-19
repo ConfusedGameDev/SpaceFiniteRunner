@@ -292,7 +292,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol.Redeployed += OnPatrolRedeployed;
                 patrol.Warned += OnPatrolWarned;
                 patrol.ProximityRumble = settings.patrolProximityRumble;
-                ChaseMinimap.Spawn(motor, patrol, settings.minimapRangeMeters, patrol.Definition.warnDistance);
             }
             else
             {
@@ -301,6 +300,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 if (patrol != null) patrol.gameObject.SetActive(false);
                 patrol = null;
             }
+
+            // The track map shows the run's progress with or without a chase;
+            // the patrol is only its second marker.
+            if (motor != null)
+                ChaseMinimap.Spawn(motor, patrol, this, settings.minimapRangeMeters,
+                                   patrol != null ? patrol.Definition.warnDistance : 0f);
 
             // The chase camera: the shared Cinemachine rig, attached to the ship
             // root with the ship's own settings asset (Far framing, target-up

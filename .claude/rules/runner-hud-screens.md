@@ -26,12 +26,14 @@ The runner's scene-wired HUD on the `RaceHUD` canvas object.
   extra objective under it (`JUMP 1/3  ×2`).
 - **Reached once is reached**: the LIGHT SPEED line turns `winColor` the frame
   `GameManager.LightSpeedReached` latches and stays so while the ship still has to make an end ramp.
-- **The distance line** (`END  12.4 KM`, `MenuTextId.HudDistanceToEnd`) is the first code-built
-  line under the goal, drawn only when `GameManager.HasTrackEnd`; it reads
-  `GameManager.DistanceRemaining` and turns `failColor` when, at the current speed, the clock runs
-  out before the ship gets there. The HUD draws with the scene's own font, so `HudFormat` falls
-  back to the English format when that font lacks a localized glyph (no boxes).
-- The countdown bar sits at the bottom, showing `GameManager.TimeRemaining`.
+- **The distance left is NOT a HUD line** — it reads on top of the `ChaseMinimap` track map (see
+  `runner-ship.md`). The old `END  12.4 KM` line and its "too slow to make it" red tint are gone;
+  `MenuTextId.HudDistanceToEnd` is left in the (append-only) enum, unused.
+- **The countdown is a plain `MM:SS`** (`GameManager.TimeRemaining`, whole seconds rounded up, the
+  string rebuilt once a second): the scene's timer text re-seated by `SeatTimer` at `Start` —
+  bottom centre (`timerBottomMargin`), the speed number's font size (`gaugeNumberFontSize`),
+  ALWAYS `timerColor` yellow, no low-time tint. There is no bar/slider any more. Unfinished
+  objective lines use `lineColor` (white, the old `timeColor`).
 - Every booster hit spawns a floating "+N" at the ship (`FloatingWorldText`, spawned here);
   `MoneyChanged` is answered with a gold `+$N` floating text.
 - **The HUD owns no retry and prints no result text.** Its old result/prompt texts and the R
