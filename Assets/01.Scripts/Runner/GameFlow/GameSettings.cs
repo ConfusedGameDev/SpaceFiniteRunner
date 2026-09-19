@@ -368,6 +368,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float fallDamage = 30f;
 
         [ToggleGroup("hullEnabled")]
+        [Tooltip("Hull points flying through a laser beam takes — a fall's worth by default. The invulnerability blink shields it like any other hit.")]
+        [PropertyRange(0f, 200f)]
+        public float laserDamage = 30f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Camera shake on a laser hit, on top of the heavy rumble. Empty = no shake.")]
+        public Cameras.CameraShakeSettings laserHitShake;
+
+        [ToggleGroup("hullEnabled")]
         [Tooltip("Seconds the ship blinks and takes no damage after a hit.")]
         [PropertyRange(0f, 5f), SuffixLabel("s", true)]
         public float hitInvulnerabilitySeconds = 1f;

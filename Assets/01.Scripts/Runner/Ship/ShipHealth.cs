@@ -168,18 +168,28 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             ApplyDamage(settings.brakePadDamage, hard: true);
         }
 
-        void ApplyDamage(float amount, bool hard, bool forced = false)
+        /// <summary>
+        /// The ship flew through a laser beam (<c>LaserGate.Hit</c>, routed by
+        /// the GameManager so the rumble and the shake only play for a hit
+        /// that landed). An ordinary hard hit: the blink shields it. Returns
+        /// whether it took any hull.
+        /// </summary>
+        public bool ApplyLaserHit() =>
+            settings != null && ApplyDamage(settings.laserDamage, hard: true);
+
+        bool ApplyDamage(float amount, bool hard, bool forced = false)
         {
-            if (amount <= 0f || !CanBeHurt(forced)) return;
+            if (amount <= 0f || !CanBeHurt(forced)) return false;
 
             Hull = Mathf.Max(0f, Hull - amount);
             invulnerableLeft = settings.hitInvulnerabilitySeconds;
             Damaged?.Invoke(amount, hard);
 
-            if (Hull > 0f) return;
+            if (Hull > 0f) return true;
             IsDestroyed = true;
             invulnerableLeft = 0f; // nothing left to blink
             Destroyed?.Invoke();
+            return true;
         }
 
         // forced = the fall's own hit: the blink and the off-track state do not shield it.

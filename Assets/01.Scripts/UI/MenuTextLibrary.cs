@@ -129,7 +129,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         MissionFailed, LoseMissedRamp, LoseTooSlow, LoseObjectivesIncomplete,
         HudDistanceToEnd, TrackLength,
         // Hull and lives: the lose reason of a ship blown up, and the final GAME OVER's prompt (no retry — any button leads to the Store).
-        LoseDestroyed, PressAnyButton
+        LoseDestroyed, PressAnyButton,
+        // Laser gates: the debug menu's density row.
+        LaserDensity
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1018,6 +1020,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString slideSpeedLoss = new("SLIDE SPEED LOSS", "PÉRDIDA AL DERRAPAR", "スライド時の減速", "PERTE EN GLISSADE");
         [SerializeField] LocalizedString unbankedSweeps = new("FLAT CURVES %", "CURVAS PLANAS %", "フラットカーブ %", "VIRAGES PLATS %");
         [SerializeField] LocalizedString openStraights = new("OPEN STRAIGHTS %", "RECTAS ABIERTAS %", "壁なし直線 %", "LIGNES DROITES OUVERTES %");
+        [SerializeField] LocalizedString laserDensity = new("LASER DENSITY", "DENSIDAD DE LÁSERES", "レーザー密度", "DENSITÉ DES LASERS");
         [SerializeField] LocalizedString trackLength = new("TRACK LENGTH", "LONGITUD DE PISTA", "コース長", "LONGUEUR DE PISTE");
         [SerializeField] LocalizedString debugTabFall = new("FALL & RESPAWN", "CAÍDA Y REAPARICIÓN", "落下とリスポーン", "CHUTE ET RETOUR");
         [SerializeField] LocalizedString edgeOverhang = new("EDGE OVERHANG", "MARGEN DEL BORDE", "縁のはみ出し", "DÉBORD DU BORD");
@@ -1444,6 +1447,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.TrackLength => trackLength,
             MenuTextId.LoseDestroyed => loseDestroyed,
             MenuTextId.PressAnyButton => pressAnyButton,
+            MenuTextId.LaserDensity => laserDensity,
             _ => start
         };
     }

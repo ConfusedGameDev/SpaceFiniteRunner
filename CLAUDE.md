@@ -45,7 +45,7 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   menu).
 - **Hull and lives** (`GameSettings.hullEnabled`): the HUD's life bar sits under the speed wedge
   with a ×N lives count at its right end. Brake pads, hard wall hits (a dash slam, a ramp's side),
-  plain wall contact and falling off the track take hull points; every hit blinks the ship
+  plain wall contact, laser beams and falling off the track take hull points; every hit blinks the ship
   invulnerable for a moment.
   **Every failed run costs a life** — a fresh set (`startingLives`) each time the runner is
   entered, kept across retries. The run that takes the last one is **GAME OVER**: the banner says
@@ -73,6 +73,10 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   stopped — falling costs time, not the run.
 - **Track features**: ramps/jumps (1), vertical loops (2), cylinder sections (3). Multi-path is
   the one feature not yet built.
+- **Laser gates**: emitter pairs firing a beam across 20–30 % of the road — single horizontal,
+  single vertical, three stacked, or a flat spinning rotor — steered round, never jumped. A beam
+  costs a fall's worth of hull with a heavy rumble. Never on or near a ramp, its landing, a loop,
+  a tube or the final run-up.
 - Time AND distance are the limits. The track is streamed ahead of the ship but finite.
 - Story beats are RPG dialogue lines on purple-orb pickups and patrol taunts only.
 

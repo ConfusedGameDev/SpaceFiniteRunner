@@ -56,6 +56,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         // Track length override, metres. -1 = none (never captured, or the row
         // set back to 0): the run keeps its level's / GameSettings' length.
         public float trackLength = -1f;
+        // Laser gate density multiplier (0 = none, 1 = the authored spacing).
+        // -1 = never captured: the generator keeps its own 1.
+        public float laserDensity = -1f;
 
         static TrackDebugSettings cached;
 
@@ -97,6 +100,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             unbankedSweepChance = shape.unbankedSweepChance;
             openStraightChance = shape.openStraightChance;
             trackLength = generator.TrackLengthOverride;
+            laserDensity = generator.LaserDensity;
 
             entries.Clear();
             var table = generator.SpawnTable;
@@ -130,6 +134,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (unbankedSweepChance >= 0f) shape.unbankedSweepChance = unbankedSweepChance;
             if (openStraightChance >= 0f) shape.openStraightChance = openStraightChance;
             if (trackLength > 0f) generator.TrackLengthOverride = trackLength;
+            if (laserDensity >= 0f) generator.LaserDensity = laserDensity;
 
             var table = generator.SpawnTable;
             if (table == null) return;

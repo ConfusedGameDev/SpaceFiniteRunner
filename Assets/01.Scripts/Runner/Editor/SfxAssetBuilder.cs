@@ -22,6 +22,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         public const string PowerUpClipPath = ClipFolder + "PowerUpFX.ogg";
         public const string EngineClipPath = ClipFolder + "FiniteRunnerEngine.ogg";
         public const string JumpClipPath = ClipFolder + "doorOpen_002.ogg";
+        public const string LaserHitClipPath = ClipFolder + "laserLarge_000.ogg";
 
         [MenuItem("Tools/FiniteRunner/Create Sound Effects Settings")]
         public static void CreateFromMenu()
@@ -43,6 +44,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             settings.powerUpClip = LoadClip(PowerUpClipPath);
             settings.engineClip = LoadClip(EngineClipPath);
             settings.jumpClip = LoadClip(JumpClipPath);
+            settings.laserHitClip = LoadClip(LaserHitClipPath);
             AssetDatabase.CreateAsset(settings, AssetPath);
             EditorUtility.SetDirty(settings);
             return settings;

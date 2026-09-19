@@ -107,6 +107,14 @@ namespace ConfusedGameDev.FiniteRunner.Audio
         [PropertyRange(0f, 1f)]
         public float explosionVolume = 1f;
 
+        [TitleGroup("Hull")]
+        [Tooltip("One-shot as the ship flies through a laser beam and the hit lands (FX bus). Empty = silent.")]
+        public AudioClip laserHitClip;
+
+        [TitleGroup("Hull")]
+        [PropertyRange(0f, 1f)]
+        public float laserHitVolume = 1f;
+
         // ----------------------------------------------------------- accessors
         /// <summary>Pickup pitch at a 1× orb (band X).</summary>
         public float PowerUpPitchMin => powerUpPitchBand.x;

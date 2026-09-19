@@ -15,6 +15,7 @@ using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Store;
 using ConfusedGameDev.FiniteRunner.Track;
+using ConfusedGameDev.FiniteRunner.Track.Features;
 using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
@@ -227,6 +228,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             TimeRemaining = settings.timeLimitSeconds;
             if (motor != null) motor.PadImpulse += OnPadImpulse;
             SpeedPad.Collected += OnPadCollected;
+            LaserGate.Hit += OnLaserHit;
 
             if (motor != null)
             {
@@ -1047,6 +1049,23 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 GlitchController.Instance.Pulse(settings.dashWallGlitchStrength);
         }
 
+        // Through a laser beam: a fall's worth of hull (ShipHealth — the blink
+        // shields it, and then nothing plays) and the heaviest rumble short
+        // of the explosion's. The hull's own Damaged handler adds the glitch.
+        void OnLaserHit(LaserGate gate, ShipMotor hitMotor)
+        {
+            if (hitMotor != motor || IsEnding || RunOver) return;
+            bool hullOn = settings.hullEnabled && shipHealth != null;
+            if (hullOn && !shipHealth.ApplyLaserHit()) return;
+
+            HapticsSystem.Instance.Pulse(1f, 0.7f, 0.8f);
+            CameraShake.Shake(settings.laserHitShake);
+            var shipAudio = motor.GetComponent<ShipAudio>();
+            if (shipAudio != null) shipAudio.PlayLaserHit();
+            if (!hullOn && GlitchController.Instance != null)
+                GlitchController.Instance.Pulse(settings.hullHitGlitchStrength);
+        }
+
         void OnDestroy()
         {
             if (motor != null)
@@ -1071,6 +1090,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol.Warned -= OnPatrolWarned;
             }
             SpeedPad.Collected -= OnPadCollected;
+            LaserGate.Hit -= OnLaserHit;
             if (shipHealth != null)
             {
                 shipHealth.Damaged -= OnHullDamaged;

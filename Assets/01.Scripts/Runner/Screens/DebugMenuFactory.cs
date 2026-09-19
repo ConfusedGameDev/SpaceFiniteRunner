@@ -83,6 +83,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                   .Configure(0f, 100f, 5f, shape.openStraightChance * 100f, "0",
                              v => { generator.Shape.openStraightChance = v / 100f; saved.CaptureFrom(generator); onChanged?.Invoke(); });
 
+            // Laser gates: a multiplier on the authored spacing (0 = none).
+            // Live — it only changes the gates still to be streamed.
+            screen.AddRow<DebugSliderRow>(MenuTextId.LaserDensity)
+                  .Configure(0f, 5f, 0.25f, generator.LaserDensity, "0.00",
+                             v => { generator.LaserDensity = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+
             // One color-tinted percentage slider per spawn entry. Adjusting one
             // rebalances the others live, so the on-screen table always adds
             // up to exactly 100% — same rule as the inspector's spawn table.

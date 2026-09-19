@@ -18,7 +18,7 @@ MonoBehaviour:
   entries:
   - name: Green
     probability: 50.16999
-    multiplier: 5.699997
+    multiplier: 2.0000002
   - name: Blue
     probability: 14.803075
     multiplier: 2.5
@@ -40,3 +40,4 @@ MonoBehaviour:
   levelLeadDistance: 200
   unbankedSweepChance: 1
   openStraightChance: 1
+  trackLength: -1

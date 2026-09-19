@@ -639,6 +639,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             if (pickup is SpeedPad pad) pad.Collect(this);
             else if (pickup is Collectible collectible) collectible.Collect();
+            // A gate is found by the box round its beams; whether the ship
+            // actually crossed one of them is the gate's own, finer test.
+            else if (pickup is LaserGate gate
+                     && gate.Touches(body.SweepFrom, body.Distance, body.Lateral, body.Height, pickupReach))
+                gate.RaiseHit(this);
         }
 
         // ------------------------------------------------ off-track + respawn

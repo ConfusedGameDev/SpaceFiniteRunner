@@ -29,6 +29,11 @@ MonoBehaviour:
   respawnMinPatrolGap: 150
   lightSpeedKmh: 6500
   timeLimitSeconds: 60
+  trackLengthMeters: 40000
+  endRunUpMeters: 1200
+  endRampGapMeters: 10
+  endRampSideGapMeters: 0
+  winEscapeGravity: 0
   patrolEnabled: 1
   minimapRangeMeters: 1012
   patrolRedeploys: 1
@@ -65,12 +70,17 @@ MonoBehaviour:
   winBannerLetterSlamSeconds: 0.32
   winBannerGlitchPunch: 0.4
   winBannerShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  failBannerHoldSeconds: 2
+  failBannerDismissSeconds: 0.5
+  failBannerColor: {r: 1, g: 0.22, b: 0.25, a: 1}
   hullEnabled: 1
   startingLives: 3
   brakePadDamage: 20
   wallSlamDamage: 25
   wallScrapeDamage: 10
   fallDamage: 30
+  laserDamage: 30
+  laserHitShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
   hitInvulnerabilitySeconds: 1
   scrapeShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
   hullHitGlitchStrength: 0.35
@@ -130,4 +140,4 @@ MonoBehaviour:
   musicEnabled: 1
   musicSettings: {fileID: 0}
   sfxEnabled: 1
-  sfxSettings: {fileID: 0}
+  sfxSettings: {fileID: 11400000, guid: 51a483726754a874489d5f34f40b4ace, type: 2}

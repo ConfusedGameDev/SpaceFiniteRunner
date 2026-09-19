@@ -246,6 +246,43 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Tint of the code-built coin (a recolored instance of the boost material).")]
         [SerializeField] Color collectibleColor = new(1f, 0.8f, 0.2f);
 
+        // -------------------------------------------------------- Laser gates
+        [ToggleGroup("spawnLasers", "Laser gates")]
+        [Tooltip("Stream laser gates along the track: emitter pairs firing a beam across part of the road that burns the hull of a ship flying through it. On a cursor of their own — never on or near a ramp, its landing zone, a loop, a tube or the final run-up (flat sweeps and open edges are the two toggles below). Play mode only.")]
+        [SerializeField] bool spawnLasers = true;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("The emitter pair (PF_LaserSystem): LaserA and LaserB, each with a ShootPoint child, carrying a LaserBeam. One instance per beam — three for the triple gate.")]
+        [SerializeField] GameObject laserPrefab;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("Beam size, variant weights, rotor speed and the look. Cloned at play, so the asset is never edited by a run.")]
+        [InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        [SerializeField] LaserGateDefinition laserDefinition;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("Metres of track between one gate and the next (min, max), before the keep-outs push one further on.")]
+        [MinMaxSlider(100f, 5000f, true), SuffixLabel("m", true)]
+        [SerializeField] Vector2 laserSpacing = new(600f, 1200f);
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("No gate before this distance, so the launch is clean.")]
+        [PropertyRange(0f, 5000f), SuffixLabel("m", true)]
+        [SerializeField] float laserStartDistance = 1500f;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("Clear road kept between a gate and every feature (ramp + its longest landing, loop, tube), flat sweep and the final run-up, either side. Must stay under the settle margin (two segments), which is what guarantees no feature is decided behind an already placed gate.")]
+        [PropertyRange(0f, 500f), SuffixLabel("m", true)]
+        [SerializeField] float laserClearance = 150f;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("Gates may stand on a FLAT sweep (no bank, the outer wall gone, grip tested). Off = the clearance is kept round every flat sweep too — on a track authored with mostly flat sweeps that leaves few spots.")]
+        [SerializeField] bool lasersOnFlatSweeps = true;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("Gates may stand where the road has no wall (an open straight, the outer edge of a flat sweep). Off = walled road only.")]
+        [SerializeField] bool lasersOnOpenEdges = true;
+
         [Header("Features")]
         [Tooltip("Material of the code-built ramp slab and rails; each entry gets a recolored instance. Empty = the boost material.")]
         [SerializeField] Material featureMaterial;
@@ -272,6 +309,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public PadSpawnEntry[] SpawnTable => spawnTable;
         public FeatureSpawnEntry[] FeatureTable => featureTable;
         public Vector2 FeatureSpacing { get => featureSpacing; set => featureSpacing = new Vector2(Mathf.Max(100f, value.x), Mathf.Max(Mathf.Max(100f, value.x), value.y)); }
+
+        /// <summary>Debug multiplier on the laser gates' density (the debug menu's LASER DENSITY row): 0 = none, 1 = the authored spacing, 2 = twice as many. Affects streaming immediately.</summary>
+        public float LaserDensity { get; set; } = 1f;
+
+        /// <summary>The laser definition in force: the runtime clone in play. Null when none is wired.</summary>
+        public LaserGateDefinition LaserDefinition => laserRuntime;
 
         /// <summary>Resources path of the end ramps' definition, used when the scene wires none.</summary>
         public const string EndRampResourcePath = "FiniteRunner_EndRamp";
@@ -373,6 +416,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         readonly List<(float distance, GameObject go)> spawned = new();
         readonly List<(float start, float end)> claims = new(); // feature footprints pads keep off
         readonly List<float> padDistances = new();               // where pads landed — coins keep off them
+        readonly List<(float start, float end)> laserKeepOuts = new(); // every feature's ground + what lies ahead of it (a ramp's landing), and the end zone
+        Unity.Mathematics.Random laserRng; // the gates' own stream: the road and pad layout of a seed does not depend on them
+        float laserCursor;
+        LaserGateDefinition laserRuntime;
         Dictionary<PadSpawnEntry, Material> entryMaterials;
         Dictionary<FeatureSpawnEntry, Material> featureMaterials;
         Material collectibleMaterial;
@@ -436,9 +483,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 ? new Unity.Mathematics.Random((uint)System.Environment.TickCount)
                 : new Unity.Mathematics.Random((uint)seed);
 
+            // Seeded off the layout stream's STATE, not a draw from it.
+            laserRng = new Unity.Mathematics.Random(math.hash(new uint2(rng.state, 0x1A5E12u)) | 1u);
+            if (laserRuntime != null && laserRuntime != laserDefinition) DestroyObject(laserRuntime); // last run's clone
+            laserRuntime = laserDefinition != null && Application.isPlaying ? Instantiate(laserDefinition) : laserDefinition;
+
             spawned.Clear();
             claims.Clear();
             padDistances.Clear();
+            laserKeepOuts.Clear();
             ClearChildren(padsParent);
             ClearChildren(markersParent);
             if (decorator != null) decorator.Clear();
@@ -473,6 +526,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             padCursor = rng.NextFloat(120f, 200f);
             collectibleCursor = rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
             featureCursor = rng.NextFloat(featureSpacing.x, featureSpacing.y);
+            laserCursor = laserStartDistance + laserRng.NextFloat(0f, laserSpacing.x);
             pendingRamps.Clear();
             straightUntil = 0f;
 
@@ -510,6 +564,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     if (spot == SpotKind.Feature) DecideFeature();
                 }
                 SpawnPendingRamps(track.Length - 150f);
+                PlaceLasersUpTo(track.Length - 150f);
                 PlacePadsUpTo(track.Length - 150f);
                 PlaceCollectiblesUpTo(track.Length - 150f);
                 PlaceMarkers();
@@ -543,6 +598,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // last knot, so the run-up and the end are stamped at once.
             float settled = trackComplete ? track.Length : track.Length - SettleMargin;
             SpawnPendingRamps(settled); // first: a ramp's footprint is already claimed, so the pads keep off it
+            PlaceLasersUpTo(settled);   // before the pads: a gate claims its ground, so pads and coins keep off it
             PlacePadsUpTo(settled);
             PlaceCollectiblesUpTo(settled); // after the pads: coins keep off where they landed
             if (decorator != null) decorator.DecorateUpTo(settled);
@@ -898,6 +954,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
 
             if (entry.Runtime.ClaimsFootprint) claims.Add((spot, spot + footprint));
+            // Laser gates keep off EVERY feature — a tube too, which claims
+            // nothing — and off what lies ahead of it (a ramp's longest landing).
+            laserKeepOuts.Add((spot, spot + footprint + exclusion));
             if (jump != null) straightUntil = spot + jump.length + exclusion;
 
             if (section is LoopSection loop)
@@ -984,6 +1043,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             track.SetEndZone(start);
             endTarget = start + endRunUp;
             claims.Add((start, endTarget + 1000f));
+            laserKeepOuts.Add((start, float.PositiveInfinity));
             featureCursor = float.MaxValue;
         }
 
@@ -1106,6 +1166,113 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
         }
 
+        // ------------------------------------------------------- laser gates
+
+        /// <summary>
+        /// Laser gates on a cursor of their own, drawn from their own rng (so
+        /// a seed's road and pads are the same with or without them). A gate
+        /// is rolled first — variant and beam length decide how much track it
+        /// takes — then tested against the keep-outs and pushed on if it does
+        /// not fit. Placed before the pads, claiming its ground, so no pad or
+        /// coin sits in a beam. Play mode only: the beams are runtime objects.
+        /// </summary>
+        void PlaceLasersUpTo(float limit)
+        {
+            if (!Application.isPlaying || !spawnLasers || laserPrefab == null || laserRuntime == null) return;
+            if (LaserDensity <= 0f || laserRuntime.TotalWeight <= 0f) return;
+
+            while (laserCursor < limit)
+            {
+                LaserGateVariant variant = laserRuntime.PickVariant(laserRng.NextFloat());
+                track.GetLateralBand(laserCursor, out float bandMin, out float bandMax);
+                float length = (bandMax - bandMin) * laserRng.NextFloat(laserRuntime.CoverageMin, laserRuntime.CoverageMax);
+                // Only the rotor has depth: its blade sweeps a disc of road.
+                float halfDepth = laserRuntime.beamRadius + (variant == LaserGateVariant.Rotor ? length * 0.5f : 0f);
+
+                float blockedUntil = LaserBlockedUntil(laserCursor, halfDepth);
+                if (float.IsPositiveInfinity(blockedUntil)) { laserCursor = float.MaxValue; return; } // the end zone: no more gates, ever
+                if (blockedUntil >= 0f) { laserCursor = Mathf.Max(blockedUntil, laserCursor + 10f); continue; }
+
+                CreateLaserGate(laserCursor, variant, length, halfDepth, bandMin, bandMax);
+                laserCursor += laserRng.NextFloat(laserSpacing.x, laserSpacing.y) / LaserDensity;
+            }
+        }
+
+        /// <summary>
+        /// Where a gate at <paramref name="distance"/> could go instead, or -1
+        /// when the spot is free: clear of every feature and what lies ahead
+        /// of it (a ramp's landing zone), of any section, of the final run-up
+        /// (+infinity — nothing fits after it) and, when the two toggles say
+        /// so, of flat sweeps and open edges.
+        /// Every one of those is registered while its knot is still inside the
+        /// settle margin, and the clearance is shorter than the margin, so
+        /// nothing is ever decided behind a gate that already stands.
+        /// </summary>
+        float LaserBlockedUntil(float distance, float halfDepth)
+        {
+            float reach = halfDepth + laserClearance;
+            float start = distance - reach, end = distance + reach;
+
+            foreach (var keepOut in laserKeepOuts)
+                if (end > keepOut.start && start < keepOut.end)
+                    return float.IsPositiveInfinity(keepOut.end) ? keepOut.end : keepOut.end + reach;
+
+            if (!lasersOnFlatSweeps)
+            {
+                TrackManager.FlatSweep sweep = track.FlatSweepWithin(start, end - start);
+                if (sweep != null) return sweep.End + reach;
+            }
+
+            // A loop or a tube is a keep-out already (belt and braces); an open edge is not.
+            for (float d = start; d <= end; d += 25f)
+                if (track.SectionAt(d) != null
+                    || (!lasersOnOpenEdges && (track.IsEdgeOpen(d, -1) || track.IsEdgeOpen(d, 1))))
+                    return d + reach + 25f;
+            return -1f;
+        }
+
+        /// <summary>
+        /// One gate: a root on the track pose at the flight line's middle, a
+        /// laser prefab instance per beam under it, and the <see cref="LaserGate"/>
+        /// that owns the beams' track-space segments. The beam's lateral is
+        /// rolled so the whole beam (and the emitters' bulk) stays in the lane.
+        /// </summary>
+        void CreateLaserGate(float distance, LaserGateVariant variant, float length, float halfDepth, float bandMin, float bandMax)
+        {
+            float halfAcross = variant == LaserGateVariant.Vertical ? laserRuntime.beamRadius : length * 0.5f;
+            float margin = halfAcross + 2f * laserRuntime.emitterScale; // the emitter is ~2 m long at scale 1
+            float lo = bandMin + margin, hi = bandMax - margin;
+            float lateral = hi > lo ? laserRng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f;
+            float rotorSpeed = laserRng.NextFloat(laserRuntime.RotorSpeedMin, laserRuntime.RotorSpeedMax) * (laserRng.NextBool() ? 1f : -1f);
+            float rotorPhase = laserRng.NextFloat(0f, 360f);
+            bool wavy = laserRuntime.wavy && laserRng.NextFloat() < laserRuntime.waveChance; // no draw while the wave is off
+
+            track.GetPoseAtDistance(distance, 0f, out Vector3 pos, out Quaternion rot);
+            var root = new GameObject($"LaserGate_{variant}_{distance:00000}");
+            root.transform.SetParent(padsParent, false);
+            root.transform.SetPositionAndRotation(pos, rot);
+
+            int beamCount = variant == LaserGateVariant.Triple ? 3 : 1;
+            var visuals = new List<LaserBeam>(beamCount);
+            for (int i = 0; i < beamCount; i++)
+            {
+                GameObject instance = Instantiate(laserPrefab, root.transform);
+                instance.name = $"Beam_{i}";
+                instance.transform.localPosition = Vector3.zero; // the emitters are posed in world space by the beam
+                instance.transform.localRotation = Quaternion.identity;
+                var beam = instance.GetComponent<LaserBeam>();
+                if (beam == null) beam = instance.AddComponent<LaserBeam>();
+                beam.Configure(laserRuntime, wavy);
+                visuals.Add(beam);
+            }
+
+            var gate = root.AddComponent<LaserGate>();
+            gate.Configure(laserRuntime, variant, distance, lateral, length, rotorSpeed, rotorPhase, visuals, wavy);
+
+            spawned.Add((distance + halfDepth, root)); // keyed on its END, like everything that spans track
+            claims.Add((distance - halfDepth, distance + halfDepth));
+        }
+
         /// <summary>
         /// Rows of coins between the orbs: one lateral per row, coins a step
         /// apart along the track, every coin skipped where a pad already sits
@@ -1157,6 +1324,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (claims[i].end < minDistance) claims.RemoveAt(i);
             for (int i = padDistances.Count - 1; i >= 0; i--)
                 if (padDistances[i] < minDistance) padDistances.RemoveAt(i);
+            for (int i = laserKeepOuts.Count - 1; i >= 0; i--)
+                if (laserKeepOuts[i].end < minDistance) laserKeepOuts.RemoveAt(i);
             if (decorator != null) decorator.CullBefore(minDistance);
         }
 

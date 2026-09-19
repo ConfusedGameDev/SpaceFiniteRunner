@@ -134,8 +134,12 @@ gameManager)` in `GameManager.Awake`, AFTER the run definition is set so the bar
 clone's `ShipDefinition.maxHull`; always added, it gates itself on `GameSettings.hullEnabled`).
 Three sources, one `ApplyDamage`: `SpeedPad.Collected` with a negative delta (`brakePadDamage`),
 `ShipMotor.WallHit` — the dash slam / ramp side (`wallSlamDamage`) — and the polled
-`ShipMotor.IsTouchingWall` (`wallScrapeDamage`) — plus `ShipMotor.FellOff` (`fallDamage`), the one
-FORCED hit: it lands on a ship already `OffTrack` and through the blink, and taking the last
+`ShipMotor.IsTouchingWall` (`wallScrapeDamage`) — plus a laser beam (`laserDamage`, a fall's 30 by
+default): `LaserGate.Hit` is heard by the GAMEMANAGER (`OnLaserHit`), which calls the public
+`ShipHealth.ApplyLaserHit()` and only when the hit landed (the blink shields it) plays the heavy
+rumble `Pulse(1, 0.7, 0.8)`, `GameSettings.laserHitShake` and `ShipAudio.PlayLaserHit`
+(`RunnerSfxSettings.laserHitClip`); with the hull off the feedback still plays — plus
+`ShipMotor.FellOff` (`fallDamage`), the one FORCED hit: it lands on a ship already `OffTrack` and through the blink, and taking the last
 points it blows the ship up in the fall (the fall camera plants and watches; `Restart` clears it).
 `TrackBody.IsTouchingWall` is true only on a step that PUSHED the body into a closed edge or a ramp's side (the unclamped move went past the
 band) — resting on the wall is not contact, and an open edge, a full tube and a tube return never

@@ -11,9 +11,10 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b7e2d4c6a1f04c3e9d8a5b2c7e6f1a03, type: 3}
   m_Name: FiniteRunner_LevelDefinition
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   levelName: Escape Run
   nextSceneName: Store
+  trackLengthMeters: 0
   completeVideo: {fileID: 0}
   rankTable:
     sThreshold: 10000
@@ -29,7 +30,7 @@ MonoBehaviour:
     multiplier: 2
   objectives:
   - type: 0
-    targetSpeedKmh: 6500
+    targetSpeedKmh: 2250
     jumpCount: 3
     reward: 500
     accent: {r: 0, g: 0, b: 0, a: 0}

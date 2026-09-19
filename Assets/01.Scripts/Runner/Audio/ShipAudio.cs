@@ -143,6 +143,14 @@ namespace ConfusedGameDev.FiniteRunner.Audio
             pickups.PlayOneShot(sfx.explosionClip, sfx.explosionVolume);
         }
 
+        /// <summary>The ship flew through a laser beam — called by the GameManager, only for a hit that landed.</summary>
+        public void PlayLaserHit()
+        {
+            if (sfx == null || sfx.laserHitClip == null || pickups == null) return;
+            pickups.pitch = 1f;
+            pickups.PlayOneShot(sfx.laserHitClip, sfx.laserHitVolume);
+        }
+
         void OnTookOff()
         {
             if (sfx == null || sfx.jumpClip == null || jumps == null) return;

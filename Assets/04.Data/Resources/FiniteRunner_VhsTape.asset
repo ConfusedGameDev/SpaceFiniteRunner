@@ -13,19 +13,19 @@ MonoBehaviour:
   m_Name: FiniteRunner_VhsTape
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.VhsTapeSettings
   material: {fileID: 2100000, guid: 2b07d7e49cbf10046aed5fbd7f83f2e5, type: 2}
-  intensity: 0.8
+  intensity: 0.59999996
   frameRate: 24
   chromaBleed: 14
   chromaLag: 3
   lumaSoftness: 0.8
   wash: 0.35
-  jitter: 2
+  jitter: 0
   tracking: 0.35
   trackingSpeed: 0.12
   trackingHeight: 0.06
   headSwitch: 0.5
   headSwitchHeight: 0.035
-  noise: 0.3
+  noise: 0.25
   scanlines: 0.3
   scanlineCount: 480
   vignette: 0.35

@@ -191,6 +191,9 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
         public event System.Action<int> LeftTrack;
         /// <summary>Raised for every pickup the body touched over the distance a step covered (<see cref="PickupRegistry"/>). The owner decides what taking it means.</summary>
         public event System.Action<ITrackPickup> PickedUp;
+
+        /// <summary>Where the stretch the last pickup sweep covered began (it ends at <see cref="Distance"/>) — for a pickup whose own shape needs a finer test than the registry's box (a laser gate's beams).</summary>
+        public float SweepFrom { get; private set; }
         /// <summary>Raised on the step a slide begins (see <see cref="IsSliding"/>). Argument: the lateral acceleration beyond the grip, m/s².</summary>
         public event System.Action<float> Sliding;
         /// <summary>
@@ -335,6 +338,7 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
         // lane. Round a full tube laterals compare modulo its circumference.
         void SweepPickups(float from)
         {
+            SweepFrom = from;
             if (PickedUp == null || PickupRegistry.All.Count == 0) return;
             float wrap = track.SectionAt(Distance) is TubeSection { Unbounded: true } tube ? tube.Circumference : 0f;
             touched.Clear();
