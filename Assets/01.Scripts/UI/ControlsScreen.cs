@@ -272,6 +272,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
             GameAction.CameraPanRight => MenuTextId.ActionCameraRight,
             GameAction.CameraPanUp => MenuTextId.ActionCameraUp,
             GameAction.CameraPanDown => MenuTextId.ActionCameraDown,
+            GameAction.ShipAccelerate => MenuTextId.ActionAccelerate,
+            GameAction.ShipBrake => MenuTextId.ActionBrake,
             _ => MenuTextId.Controls
         };
     }

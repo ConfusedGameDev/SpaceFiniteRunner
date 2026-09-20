@@ -30,15 +30,27 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   Reach Speed objective, whose target IS the HUD's "Light Speed"). The win latches the frame it
   is met (nothing can be lost after, the clock stops), the ship flies on until it is back on the
   track, the glitch ramps to max, then the Mission Complete panel opens.
-- **Lose**: the countdown hits 0, the patrol catches you, or the ship bleeds to a standstill.
+- **Lose**: the countdown hits 0, the patrol catches you, or the ship stalls out (sits at a
+  standstill with the throttle released for the stall grace — braking to a stop alone is fine).
   Ends on the `GameOverScreen` retry panel with a localized reason.
 - Neither ending speaks an RPG line and neither prints HUD result text.
-- **Speed** is the whole game: one launch impulse, constant passive bleed, no cap. Boost orbs
-  (small, 0.3, must be aimed for; green 1× / blue 2.5× / purple 10×) raise it; brake pads
-  (large, 1.2, must be dodged) lower it.
-- **The patrol** rubber-bands to the ship's speed and takes a 0.7 share of every boost the ship
-  collects, so boosts no longer buy the gap. Outrun it far enough and a fresh one cuts in
-  behind you at a new, higher floor — coasting can never shake it.
+- **Speed** is the whole game: one launch impulse, then the throttle (W / RT) holds the ship up
+  to its cruise speed and the brake (S / LT) slows it. Only boost orbs (small, 0.3, must be aimed
+  for; green 1× / blue 2.5× / purple 10×) push past cruise, where a passive bleed pulls the speed
+  back down to it; brake pads (large, 1.2, must be dodged) lower it. No cap.
+- **The patrol** drives the same physics as the ship: it rubber-bands to the ship's speed and
+  takes a share (`boostShare`) of every boost the ship collects, steers for the ship, goes after
+  boost orbs of its own (which it uses up), rounds ramps or jumps them, brakes for flat sweeps,
+  and can fall off — a fall just drops a fresh one in behind you. It catches by being on your
+  tail AND close across the track (or on your tail for long enough), so a last-moment dodge
+  works. Outrun it far enough and a fresh one cuts in behind you at a new, higher floor —
+  coasting can never shake it.
+- **Curves**: banked sweeps always hold the ship. A share of sweeps is authored FLAT, with no
+  wall on the outer edge: taken too fast the ship loses grip and slides outward — brake first.
+  Some straight runs have no walls at all: drift or dash too close to the side and the ship drops.
+  Over the edge it falls, then comes back further down the track: a 3 s blinking standstill with
+  the patrol frozen, a relaunch at 85% of the speed it fell with, and the countdown never
+  stopped — falling costs time, not the run.
 - **Track features**: ramps/jumps (1), vertical loops (2), cylinder sections (3). Multi-path is
   the one feature not yet built.
 - Time is the limit, not distance. The track is endless and streamed.

@@ -84,9 +84,12 @@ games. Anything unresolvable reads ×1.
 ## Applying
 
 - **Ship** — `ShipUpgradeApplier` on a fresh `ShipDefinition` clone: Handling → `lateralSpeed` and
-  `handlingResponse`; Dash Power → `dashDistance`; Speed Multiplier → `passiveDeceleration`
-  **divided** (a slower bleed); Jump Strength → `ShipDefinition.jumpStrength`, which
-  `ShipMotor.TakeOff` multiplies into both the arc length and the lip boost.
+  `handlingResponse` (together the steering force; scaling both keeps a dash's distance honest)
+  plus `gripBase` and `gripPerSpeed` (the grip a flat sweep is held with); Dash Power →
+  `dashDistance` (the shove, `DashImpulse`, is derived from it); Speed Multiplier →
+  `cruiseSpeed` **multiplied** and `passiveDeceleration` **divided** (a higher cruise, and a
+  boost that lasts longer above it); Jump Strength → `ShipDefinition.jumpStrength`, which
+  `TrackBody.TakeOff` multiplies into both the air distance and the lip boost.
 - **Car** — `CarUpgradeApplier.Clone` in `CarFactory.Spawn` gives the PLAYER a per-spawn
   `CarConfig` clone (Speed → `topSpeedKmh`; Acceleration → `maxMotorTorque` + `evpDriveForce`;
   Weight → `mass`, heavier; Handling → `maxSteerAngle`, `steerResponse`, `sideStiffness`,

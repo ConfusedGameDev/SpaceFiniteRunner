@@ -7,8 +7,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// spawn position plus a slow spin, and — for the rarer orb tiers — a
     /// lateral sway across the track that makes them harder to aim for.
     /// Added at runtime by the TrackGenerator. The bob stays small so the
-    /// orb's trigger collider keeps overlapping the ship's flight line; the
-    /// sway is what actually moves the orb off it. Both axes are the TRACK's
+    /// orb keeps overlapping the ship's flight line; the sway is what
+    /// actually moves the orb off it — <see cref="SwayOffset"/> reports it, so
+    /// the analytic pickup test follows the orb the player sees. Both axes are the TRACK's
     /// at the spawn pose (its up and its right), not the world's, so an orb
     /// on a loop or under a tube bobs away from the road and sways across it.
     /// </summary>
@@ -25,6 +26,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         Vector3 swayDirection;
         Vector3 spinAxis;
         float phase;
+
+        /// <summary>Metres the orb is swayed across the track right now, right positive (the track's right at the spawn pose).</summary>
+        public float SwayOffset { get; private set; }
 
         /// <summary>Tier setup from the TrackGenerator: how far and how fast the orb sways across the track.</summary>
         public void Configure(float amplitude, float frequency)
@@ -48,6 +52,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             float bob = Mathf.Sin((Time.time + phase) * bobFrequency * 2f * Mathf.PI) * bobAmplitude;
             float sway = Mathf.Sin((Time.time + phase) * swayFrequency * 2f * Mathf.PI) * swayAmplitude;
+            SwayOffset = sway;
             transform.position = basePosition + bobDirection * bob + swayDirection * sway;
             transform.Rotate(spinAxis, spinDegreesPerSecond * Time.deltaTime, Space.World);
         }

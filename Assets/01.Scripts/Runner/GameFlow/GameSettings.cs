@@ -23,6 +23,78 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Open the pre-run point-allocation screen (TuningScreen) instead of flying straight on the Store's bought upgrades. Off in the shipping flow: the Store between missions owns the ship's stats, and the runner is entered mid-mission from the city with no pause for a setup panel. On, the screen applies the store levels on top of its points.")]
         public bool useTuningScreen = false;
 
+        // --------------------------------------------------------- simulation
+        [TitleGroup("Simulation")]
+        [Tooltip("Substeps per physics tick (0.02 s) of the ship's track-space body. More = the same rules integrated in finer slices; 1 is enough for today's scripted rules, the grip and slide forces want 2+.")]
+        [PropertyRange(1, 8)]
+        public int simSubsteps = 2;
+
+        [TitleGroup("Simulation")]
+        [Tooltip("Seconds the ship may sit at a standstill with the throttle released before the run is lost as Stalled. Braking to a stop is allowed; staying there is not.")]
+        [PropertyRange(0f, 10f), SuffixLabel("s", true)]
+        public float stallGraceSeconds = 2f;
+
+        // ------------------------------------------------------ fall + respawn
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("An open edge (the outer side of a flat sweep): how far past it the ship may hang, and for how long, before it falls. Counter-steering back inside the time saves it — this is what keeps a dash or a slide over the edge from being an instant death.")]
+        [PropertyRange(0f, 10f), SuffixLabel("m", true)]
+        public float edgeOverhang = 1f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("Seconds the ship must stay past the overhang before it falls.")]
+        [PropertyRange(0f, 2f), SuffixLabel("s", true)]
+        public float edgeGraceSeconds = 0.25f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("Gravity of the off-track fall.")]
+        [PropertyRange(0f, 200f), SuffixLabel("m/s²", true)]
+        public float fallGravity = 30f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("How fast the falling ship rolls over the edge it left by (visual).")]
+        [PropertyRange(0f, 720f), SuffixLabel("°/s", true)]
+        public float fallTumbleDegreesPerSecond = 120f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("Seconds the ship falls before it is put back on the track. The countdown keeps running the whole time — lost time is the penalty.")]
+        [PropertyRange(0.1f, 5f), SuffixLabel("s", true)]
+        public float fallDurationSeconds = 1.5f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("Seconds the chase camera keeps following the falling ship before it plants itself and just watches (the rig's cinematic shot).")]
+        [PropertyRange(0f, 5f), SuffixLabel("s", true)]
+        public float fallCameraFollowSeconds = 0.5f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("Glitch-effect burst strength as the ship goes over the edge.")]
+        [PropertyRange(0f, 1f)]
+        public float fallGlitchStrength = 0.8f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("Seconds the respawned ship waits on the track — at a standstill, blinking, uncontrollable and untouchable, with the patrol frozen — before it relaunches.")]
+        [PropertyRange(0f, 10f), SuffixLabel("s", true)]
+        public float respawnWaitSeconds = 3f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("Blinks per second between the ship's own look and the ghost material during the wait.")]
+        [PropertyRange(1f, 30f), SuffixLabel("Hz", true)]
+        public float respawnBlinkRate = 8f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("Share of the speed the ship fell with that is lost when it relaunches.")]
+        [PropertyRange(0f, 1f)]
+        public float respawnSpeedPenalty = 0.15f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("Feature-free road required AHEAD of a respawn spot: no loop, tube, ramp or flat sweep may start within it. The ship comes back at the first such spot past where it fell. Keep it under the track's level lead (200 m), or a respawn after a sweep next to a feature skips the whole feature.")]
+        [PropertyRange(0f, 1000f), SuffixLabel("m", true)]
+        public float respawnClearance = 150f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("The least head start over the patrol the ship relaunches with: a patrol closer than this when the wait ends is dropped back to it.")]
+        [PropertyRange(0f, 1000f), SuffixLabel("m", true)]
+        public float respawnMinPatrolGap = 150f;
+
         // ---------------------------------------------------------------- win
         [TitleGroup("Win condition")]
         [Tooltip("Light Speed — the speed that wins the run, in km/h.")]
@@ -93,6 +165,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [TitleGroup("Track features")]
         [Tooltip("Camera shake when the ship slams a track edge or a ramp's side. Empty = no shake.")]
         public Cameras.CameraShakeSettings wallHitShake;
+
+        [TitleGroup("Track features")]
+        [Tooltip("Camera shake when the ship starts sliding on a flat sweep taken too fast. Empty = no shake.")]
+        public Cameras.CameraShakeSettings slideShake;
 
         [TitleGroup("Track features")]
         [Tooltip("Sparkles sprayed at the touchdown point when the ship lands (after a jump or a loop fall). 0 = no sparkles.")]

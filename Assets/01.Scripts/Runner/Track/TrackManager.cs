@@ -34,6 +34,59 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [SerializeField, Min(0.5f)] float halfWidth = 6f;
 
         readonly List<TrackSection> sections = new(); // sorted by StartDistance
+        readonly List<FlatSweep> flatSweeps = new(); // in the order they were laid, so sorted by Start
+        readonly List<OpenStretch> openStretches = new(); // likewise
+
+        // Half the step the curvature is measured over: long enough to read
+        // through AutoSmooth's knot-to-knot ripple, short next to any sweep.
+        const float CurvatureHalfStep = 5f;
+
+        /// <summary>
+        /// A run of STRAIGHT, level road the generator authored with no wall
+        /// on either side: steer (or dash) too close to the edge and the body
+        /// drops off. Grip is not an issue on a straight, so unlike a
+        /// <see cref="FlatSweep"/> it only answers <see cref="IsEdgeOpen"/>.
+        /// The generator grows <see cref="End"/> segment by segment.
+        /// </summary>
+        public sealed class OpenStretch
+        {
+            public float Start { get; }
+            public float End { get; set; }
+
+            public OpenStretch(float start, float end)
+            {
+                Start = start;
+                End = end;
+            }
+
+            public bool Contains(float distance) => distance >= Start && distance < End;
+        }
+
+        /// <summary>
+        /// A sweep the generator authored FLAT (unbanked): the one kind of road
+        /// where a body's grip is tested and the OUTER edge has no wall. One
+        /// object answers both <see cref="FlatSweepAt"/> (the physics) and
+        /// <see cref="IsEdgeOpen"/> (the physics AND the decorator's missing
+        /// barrier), so what the player sees is what lets a ship slide off.
+        /// The generator grows <see cref="End"/> knot by knot while the sweep
+        /// is still being laid — always ahead of anything stamped or ridden.
+        /// </summary>
+        public sealed class FlatSweep
+        {
+            public float Start { get; }
+            public float End { get; set; }
+            /// <summary>The outside of the turn: −1 left (a right-hand sweep), +1 right.</summary>
+            public int OuterSide { get; }
+
+            public FlatSweep(float start, float end, int outerSide)
+            {
+                Start = start;
+                End = end;
+                OuterSide = outerSide < 0 ? -1 : 1;
+            }
+
+            public bool Contains(float distance) => distance >= Start && distance < End;
+        }
 
         public SplineContainer Spline => spline;
 
@@ -71,6 +124,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             if (spline != null) spline.Spline.Clear();
             sections.Clear();
+            flatSweeps.Clear();
+            openStretches.Clear();
         }
 
         /// <summary>Appends an auto-smoothed knot at a world position (knots are never removed during a run).</summary>
@@ -206,6 +261,117 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 offset += s.InsertedLength;
             }
             GetPose(DistanceToT(distance - offset), lateral, out position, out rotation);
+        }
+
+        // ------------------------------------------------------ body queries
+        // What a track-space physics body (TrackBody) asks of the track. All
+        // of them go through GetPoseAtDistance, so they read a section's own
+        // shape inside one like everything else that thinks in distance.
+
+        /// <summary>The centre-line frame at a track distance: position and the forward / up / right axes.</summary>
+        public void GetFrameAtDistance(float distance, out Vector3 position, out Vector3 forward, out Vector3 up, out Vector3 right)
+        {
+            GetPoseAtDistance(distance, 0f, out position, out Quaternion rotation);
+            forward = rotation * Vector3.forward;
+            up = rotation * Vector3.up;
+            right = rotation * Vector3.right;
+        }
+
+        /// <summary>
+        /// Signed turn rate of the centre line in 1/m, positive to the RIGHT:
+        /// the change of the forward vector over a short step, projected on
+        /// the track's right — so a loop's pitch and the road's grade read as
+        /// zero and only the turn a ship must corner through counts. The
+        /// centripetal demand at speed v is v² × this.
+        /// </summary>
+        public float GetCurvatureAtDistance(float distance)
+        {
+            float from = Mathf.Max(0f, distance - CurvatureHalfStep);
+            float to = Mathf.Min(Length, distance + CurvatureHalfStep);
+            if (to - from < 0.01f) return 0f;
+
+            GetPoseAtDistance(from, 0f, out _, out Quaternion before);
+            GetPoseAtDistance(to, 0f, out _, out Quaternion after);
+            GetPoseAtDistance(distance, 0f, out _, out Quaternion here);
+            Vector3 turn = after * Vector3.forward - before * Vector3.forward;
+            return Vector3.Dot(turn, here * Vector3.right) / (to - from);
+        }
+
+        /// <summary>
+        /// Roll of the road about its forward axis against the level, in
+        /// degrees, RIGHT EDGE UP positive — the generator's own bank
+        /// convention, so a right-hand sweep banks negative. 0 where the
+        /// forward is vertical (inside a loop) and level has no meaning.
+        /// </summary>
+        public float GetBankAtDistance(float distance)
+        {
+            GetFrameAtDistance(distance, out _, out Vector3 forward, out _, out Vector3 right);
+            Vector3 levelRight = Vector3.Cross(Vector3.up, forward);
+            if (levelRight.sqrMagnitude < 1e-4f) return 0f;
+            return Vector3.SignedAngle(levelRight.normalized, right, forward);
+        }
+
+        /// <summary>
+        /// Registers a flat sweep (see <see cref="FlatSweep"/>) the moment the
+        /// generator starts laying it; the returned object's End is pushed out
+        /// as the sweep's knots land.
+        /// </summary>
+        public FlatSweep AddFlatSweep(float startDistance, float endDistance, int outerSide)
+        {
+            var sweep = new FlatSweep(startDistance, Mathf.Max(startDistance, endDistance), outerSide);
+            flatSweeps.Add(sweep);
+            return sweep;
+        }
+
+        /// <summary>The flat sweep covering a distance, or null — everywhere else the road holds a body whatever its speed. Never inside a section (a loop, a tube).</summary>
+        public FlatSweep FlatSweepAt(float distance)
+        {
+            if (flatSweeps.Count == 0) return null;
+            // Newest first: the ship rides near the end of the list far more often than its start.
+            for (int i = flatSweeps.Count - 1; i >= 0; i--)
+            {
+                var sweep = flatSweeps[i];
+                if (distance >= sweep.End) return null; // sorted: every earlier one ends sooner still
+                if (sweep.Contains(distance)) return SectionAt(distance) == null ? sweep : null;
+            }
+            return null;
+        }
+
+        /// <summary>The first flat sweep that covers <paramref name="distance"/> or starts within <paramref name="ahead"/> metres of it, or null — what a respawn spot must keep clear of.</summary>
+        public FlatSweep FlatSweepWithin(float distance, float ahead)
+        {
+            foreach (var sweep in flatSweeps)
+                if (sweep.End > distance && sweep.Start - distance < ahead) return sweep;
+            return null;
+        }
+
+        /// <summary>Registers an open straight (see <see cref="OpenStretch"/>); the generator pushes its End out while the run lasts.</summary>
+        public OpenStretch AddOpenStretch(float startDistance, float endDistance)
+        {
+            var stretch = new OpenStretch(startDistance, Mathf.Max(startDistance, endDistance));
+            openStretches.Add(stretch);
+            return stretch;
+        }
+
+        /// <summary>
+        /// True where the road has no wall on that side (−1 left, +1 right):
+        /// the OUTER side of a flat sweep, and BOTH sides of an open straight.
+        /// The inside of a curve, banked sweeps, ramp corridors and landing
+        /// zones, tubes and loops are always walled.
+        /// </summary>
+        public bool IsEdgeOpen(float distance, int side)
+        {
+            FlatSweep sweep = FlatSweepAt(distance);
+            if (sweep != null && sweep.OuterSide == (side < 0 ? -1 : 1)) return true;
+
+            // Newest first, sorted: see FlatSweepAt.
+            for (int i = openStretches.Count - 1; i >= 0; i--)
+            {
+                var stretch = openStretches[i];
+                if (distance >= stretch.End) return false;
+                if (stretch.Contains(distance)) return SectionAt(distance) == null;
+            }
+            return false;
         }
     }
 }

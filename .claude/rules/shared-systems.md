@@ -136,7 +136,9 @@ Hand-place collectibles as root objects, or under the city prefab's `AdditionalI
 placeholder cube in the mesh slot).
 
 The runner streams money through the `TrackGenerator`'s "Collectibles" toggle group — see
-`runner-track.md`; `CreateCollectible` builds a gold cylinder coin under a root with the long box
-trigger (or instantiates the prefab), `Configure`s it as Money, `SetValue`s the roll and adds it to
-`spawned` for culling. `RaceHud` answers `MoneyChanged` with a gold `+$N` floating text. **The city
+`runner-track.md`; `CreateCollectible` builds a gold cylinder coin (or instantiates the prefab), `Configure`s it
+as Money, `SetValue`s the roll, gives it its track-space spot (`PlaceOnTrack` — on the track a
+coin is collected by the ship's swept `PickupRegistry` query calling `Collectible.Collect()`, not
+by its trigger; the city keeps the trigger path, and both end in the same once-only `Collect`)
+and adds it to `spawned` for culling. `RaceHud` answers `MoneyChanged` with a gold `+$N` floating text. **The city
 spawns no money yet** — it only hosts the manager and the HUD.

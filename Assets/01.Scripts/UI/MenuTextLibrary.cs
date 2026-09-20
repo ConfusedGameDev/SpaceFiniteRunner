@@ -115,7 +115,16 @@ namespace ConfusedGameDev.FiniteRunner.UI
         MaxBank, BankPerTurn, BankStep, LevelLead,
         LoopDrift, LoopCarry, LoopExitYaw, LoopTurns,
         JumpLandingClearance,
-        MissionAccomplished
+        MissionAccomplished,
+        // Physics-based runner: ship speed / handling, track edges, fall and respawn, patrol driver.
+        CruiseSpeed, Thrust, BrakePower, CoastDrag,
+        KeyThrottleRamp, GripBase, GripPerSpeed, SlideThreshold,
+        SlideSpeedLoss, UnbankedSweeps, OpenStraights, DebugTabFall,
+        EdgeOverhang, EdgeGrace, FallGravity, FallDuration,
+        FallCameraFollow, RespawnWait, RespawnBlinkRate, RespawnSpeedPenalty,
+        RespawnClearance, RespawnPatrolGap, StallGrace, DebugTabPatrolDriver,
+        PatrolCatchLateral, PatrolSustainedCatch, PatrolCurveLookahead, PatrolOrbLookahead,
+        PatrolOrbSeek, PatrolOrbBoost, PatrolRampLookahead
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -971,6 +980,39 @@ namespace ConfusedGameDev.FiniteRunner.UI
             _ => "ENGLISH"
         };
 
+        [Header("Debug — physics-based runner")]
+        [SerializeField] LocalizedString cruiseSpeed = new("CRUISE SPEED", "VELOCIDAD DE CRUCERO", "巡航速度", "VITESSE DE CROISIÈRE");
+        [SerializeField] LocalizedString thrust = new("THRUST", "EMPUJE", "推力", "POUSSÉE");
+        [SerializeField] LocalizedString brakePower = new("BRAKE POWER", "POTENCIA DE FRENO", "ブレーキ力", "PUISSANCE DE FREIN");
+        [SerializeField] LocalizedString coastDrag = new("COAST DRAG", "RESISTENCIA SIN GAS", "惰性抵抗", "TRAÎNÉE EN ROUE LIBRE");
+        [SerializeField] LocalizedString keyThrottleRamp = new("KEY THROTTLE RAMP", "RAMPA DE GAS (TECLAS)", "キー入力の立ち上がり", "RAMPE DES GAZ (TOUCHES)");
+        [SerializeField] LocalizedString gripBase = new("GRIP", "AGARRE", "グリップ", "ADHÉRENCE");
+        [SerializeField] LocalizedString gripPerSpeed = new("GRIP PER SPEED", "AGARRE POR VELOCIDAD", "速度あたりのグリップ", "ADHÉRENCE PAR VITESSE");
+        [SerializeField] LocalizedString slideThreshold = new("SLIDE THRESHOLD", "UMBRAL DE DERRAPE", "スライドしきい値", "SEUIL DE GLISSADE");
+        [SerializeField] LocalizedString slideSpeedLoss = new("SLIDE SPEED LOSS", "PÉRDIDA AL DERRAPAR", "スライド時の減速", "PERTE EN GLISSADE");
+        [SerializeField] LocalizedString unbankedSweeps = new("FLAT CURVES %", "CURVAS PLANAS %", "フラットカーブ %", "VIRAGES PLATS %");
+        [SerializeField] LocalizedString openStraights = new("OPEN STRAIGHTS %", "RECTAS ABIERTAS %", "壁なし直線 %", "LIGNES DROITES OUVERTES %");
+        [SerializeField] LocalizedString debugTabFall = new("FALL & RESPAWN", "CAÍDA Y REAPARICIÓN", "落下とリスポーン", "CHUTE ET RETOUR");
+        [SerializeField] LocalizedString edgeOverhang = new("EDGE OVERHANG", "MARGEN DEL BORDE", "縁のはみ出し", "DÉBORD DU BORD");
+        [SerializeField] LocalizedString edgeGrace = new("EDGE GRACE TIME", "TIEMPO DE GRACIA", "縁の猶予時間", "DÉLAI DE GRÂCE");
+        [SerializeField] LocalizedString fallGravity = new("FALL GRAVITY", "GRAVEDAD DE CAÍDA", "落下重力", "GRAVITÉ DE CHUTE");
+        [SerializeField] LocalizedString fallDuration = new("FALL TIME", "TIEMPO DE CAÍDA", "落下時間", "DURÉE DE CHUTE");
+        [SerializeField] LocalizedString fallCameraFollow = new("CAMERA FOLLOW TIME", "SEGUIMIENTO DE CÁMARA", "カメラ追従時間", "SUIVI CAMÉRA");
+        [SerializeField] LocalizedString respawnWait = new("RESPAWN WAIT", "ESPERA DE REAPARICIÓN", "リスポーン待機", "ATTENTE DE RETOUR");
+        [SerializeField] LocalizedString respawnBlinkRate = new("BLINK RATE", "PARPADEO", "点滅速度", "CLIGNOTEMENT");
+        [SerializeField] LocalizedString respawnSpeedPenalty = new("RESPAWN SPEED PENALTY", "PENALIZACIÓN DE VELOCIDAD", "リスポーン速度ペナルティ", "PÉNALITÉ DE VITESSE");
+        [SerializeField] LocalizedString respawnClearance = new("RESPAWN CLEARANCE", "DESPEJE DE REAPARICIÓN", "リスポーン前方の余裕", "DÉGAGEMENT DE RETOUR");
+        [SerializeField] LocalizedString respawnPatrolGap = new("RESPAWN PATROL GAP", "VENTAJA SOBRE LA PATRULLA", "リスポーン時のパトロール差", "AVANCE SUR LA PATROUILLE");
+        [SerializeField] LocalizedString stallGrace = new("STALL GRACE", "GRACIA AL DETENERSE", "停止の猶予", "DÉLAI DE CALAGE");
+        [SerializeField] LocalizedString debugTabPatrolDriver = new("PATROL DRIVER", "PILOTO DE PATRULLA", "パトロールドライバー", "PILOTE DE PATROUILLE");
+        [SerializeField] LocalizedString patrolCatchLateral = new("CATCH WIDTH", "ANCHO DE CAPTURA", "捕捉幅", "LARGEUR DE CAPTURE");
+        [SerializeField] LocalizedString patrolSustainedCatch = new("TAIL CATCH TIME", "TIEMPO DE CAPTURA EN COLA", "追尾捕捉時間", "TEMPS DE CAPTURE EN FILE");
+        [SerializeField] LocalizedString patrolCurveLookahead = new("CURVE LOOKAHEAD", "ANTICIPACIÓN DE CURVAS", "カーブ先読み", "ANTICIPATION VIRAGES");
+        [SerializeField] LocalizedString patrolOrbLookahead = new("ORB LOOKAHEAD", "ANTICIPACIÓN DE ORBES", "オーブ先読み", "ANTICIPATION ORBES");
+        [SerializeField] LocalizedString patrolOrbSeek = new("ORB SEEKING", "BÚSQUEDA DE ORBES", "オーブ追尾", "RECHERCHE D'ORBES");
+        [SerializeField] LocalizedString patrolOrbBoost = new("ORB BOOST SHARE", "PARTE DEL ORBE", "オーブブースト分配", "PART DU BOOST D'ORBE");
+        [SerializeField] LocalizedString patrolRampLookahead = new("RAMP LOOKAHEAD", "ANTICIPACIÓN DE RAMPAS", "ランプ先読み", "ANTICIPATION RAMPES");
+
         LocalizedString Entry(MenuTextId id) => id switch
         {
             MenuTextId.Start => start,
@@ -1336,6 +1378,37 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DeleteProgress => deleteProgress,
             MenuTextId.DeleteProgressQuestion => deleteProgressQuestion,
             MenuTextId.DeleteProgressWarning => deleteProgressWarning,
+            MenuTextId.CruiseSpeed => cruiseSpeed,
+            MenuTextId.Thrust => thrust,
+            MenuTextId.BrakePower => brakePower,
+            MenuTextId.CoastDrag => coastDrag,
+            MenuTextId.KeyThrottleRamp => keyThrottleRamp,
+            MenuTextId.GripBase => gripBase,
+            MenuTextId.GripPerSpeed => gripPerSpeed,
+            MenuTextId.SlideThreshold => slideThreshold,
+            MenuTextId.SlideSpeedLoss => slideSpeedLoss,
+            MenuTextId.UnbankedSweeps => unbankedSweeps,
+            MenuTextId.OpenStraights => openStraights,
+            MenuTextId.DebugTabFall => debugTabFall,
+            MenuTextId.EdgeOverhang => edgeOverhang,
+            MenuTextId.EdgeGrace => edgeGrace,
+            MenuTextId.FallGravity => fallGravity,
+            MenuTextId.FallDuration => fallDuration,
+            MenuTextId.FallCameraFollow => fallCameraFollow,
+            MenuTextId.RespawnWait => respawnWait,
+            MenuTextId.RespawnBlinkRate => respawnBlinkRate,
+            MenuTextId.RespawnSpeedPenalty => respawnSpeedPenalty,
+            MenuTextId.RespawnClearance => respawnClearance,
+            MenuTextId.RespawnPatrolGap => respawnPatrolGap,
+            MenuTextId.StallGrace => stallGrace,
+            MenuTextId.DebugTabPatrolDriver => debugTabPatrolDriver,
+            MenuTextId.PatrolCatchLateral => patrolCatchLateral,
+            MenuTextId.PatrolSustainedCatch => patrolSustainedCatch,
+            MenuTextId.PatrolCurveLookahead => patrolCurveLookahead,
+            MenuTextId.PatrolOrbLookahead => patrolOrbLookahead,
+            MenuTextId.PatrolOrbSeek => patrolOrbSeek,
+            MenuTextId.PatrolOrbBoost => patrolOrbBoost,
+            MenuTextId.PatrolRampLookahead => patrolRampLookahead,
             _ => start
         };
     }

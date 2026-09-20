@@ -66,7 +66,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         // Safety net when no material asset is assigned: a runtime URP Unlit
         // set up for alpha blending. The asset is authoritative — runtime
         // surface-type switching in URP is fragile, so keep the .mat assigned.
-        static Material BuildFallbackMaterial()
+        internal static Material BuildFallbackMaterial()
         {
             var shader = Shader.Find("Universal Render Pipeline/Unlit");
             var material = new Material(shader);
@@ -92,7 +92,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             track.GetPoseAtDistance(motor.DistanceTravelled, 0f, out Vector3 position, out Quaternion rotation);
             frame.SetPositionAndRotation(position, rotation);
 
-            if (motor.State == ShipState.Falling)
+            if (motor.State == ShipState.Falling || motor.State == ShipState.OffTrack || motor.State == ShipState.Respawning)
             {
                 // Distance is parked at the loop's exit during the fall; ghosts
                 // hanging there while the ship drops would read as a bug.

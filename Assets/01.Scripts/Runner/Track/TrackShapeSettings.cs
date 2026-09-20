@@ -36,6 +36,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// the road <see cref="levelLeadDistance"/> plus however many knots the
     /// current bank needs to unwind before every feature spot, and never
     /// starts a sweep that could not finish and unwind in time.
+    ///
+    /// <b>A banked sweep always holds the ship; danger is authored by the
+    /// sweeps left FLAT</b> (<see cref="unbankedSweepChance"/>): a flat sweep
+    /// gets no bank, tests the ship's grip against its speed and has no wall
+    /// on its outer edge (<see cref="TrackManager.FlatSweep"/>). Straight
+    /// runs may lose BOTH walls (<see cref="openStraightChance"/>,
+    /// <see cref="TrackManager.OpenStretch"/>) — never next to a feature, a
+    /// landing zone or a banked stretch.
     /// </summary>
     [CreateAssetMenu(fileName = "FiniteRunner_TrackShape", menuName = "FiniteRunner/Track Shape Settings")]
     public class TrackShapeSettings : ScriptableObject
@@ -88,6 +96,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Once the heading has wandered this far from the start direction, the next sweep always heads back, so the road ahead never doubles over the road behind.")]
         [PropertyRange(0f, 180f), SuffixLabel("°", true)]
         public float maxHeadingDrift = 150f;
+
+        [TitleGroup("Turns")]
+        [Tooltip("Chance a sweep is authored FLAT instead of banked: no bank, the ship's grip is tested against its speed (too fast and it slides outward), and the OUTER edge has no wall. Banked sweeps always hold. 0 = every sweep is banked and safe (and no random draw, so a seed reproduces the all-banked layout). Regenerate to see it.")]
+        [PropertyRange(0f, 1f)]
+        public float unbankedSweepChance = 0.3f;
+
+        [TitleGroup("Turns")]
+        [Tooltip("Chance a straight run of road has NO walls on either side: drift or dash too close to the edge and the ship drops off. Rolled once per straight run; only level road well clear of features, landing zones and banked sweeps can be open. 0 = every straight is walled (and no random draw). Regenerate to see it.")]
+        [PropertyRange(0f, 1f)]
+        public float openStraightChance = 0.5f;
 
         [ToggleGroup("bankEnabled", "Banking")]
         [Tooltip("Roll the road into its sweeps. Off = the road stays level through every turn.")]

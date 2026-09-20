@@ -1,4 +1,5 @@
 using ConfusedGameDev.FiniteRunner.GameFlow;
+using ConfusedGameDev.FiniteRunner.Simulation;
 using ConfusedGameDev.FiniteRunner.UI;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -27,12 +28,18 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
     /// per-kind logic, which is why a scene without one is an error, not a
     /// silent pickup. Every collider on it is forced to a trigger, and one is
     /// added when there is none, so a bare object with a mesh child works.
+    /// <b>On the runner's track the trigger is not what collects it</b>: the
+    /// generator gives it a track-space spot (<see cref="PlaceOnTrack"/>), it
+    /// sits in the <see cref="PickupRegistry"/>, and the ship's body finds it
+    /// by sweeping the distance it covered (<see cref="Collect"/>) — a
+    /// trigger is tunnelled at speed. The city keeps the trigger path; both
+    /// end in the same guarded <see cref="Collect"/>.
     /// Hand-place it as a root object or under the city prefab's
     /// <c>AdditionalItems</c> socket (which survives rebakes); GameObject →
     /// Police Escape → Collectible drops a ready one; the runner's
     /// TrackGenerator streams money ones between the orbs.
     /// </summary>
-    public class Collectible : MonoBehaviour, IRunConsumable
+    public class Collectible : MonoBehaviour, IRunConsumable, ITrackPickup
     {
         /// <summary>The mesh's local axis the spin turns around. Order is the save format — append only.</summary>
         public enum SpinAxis { X = 0, Y = 1, Z = 2 }
@@ -90,6 +97,39 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
         float phase;
         bool collected;
         int value = -1; // rolled in Awake for Money unless SetValue came first
+
+        // Track-space spot on the runner's track (never set in the city).
+        bool placed;
+        float trackDistance, trackLateral, trackHeight;
+        Vector3 trackHalfExtents;
+
+        public float TrackDistance => trackDistance;
+        public float TrackLateral => trackLateral;
+        public float TrackHeight => trackHeight;
+        public Vector3 TrackHalfExtents => trackHalfExtents;
+        public bool Available => placed && !collected;
+
+        /// <summary>
+        /// The runner's generator: where this pickup is in track space and how
+        /// big its pickup volume is (half extents: x across, y up, z along).
+        /// In play it goes into the <see cref="PickupRegistry"/>.
+        /// </summary>
+        public void PlaceOnTrack(float distance, float lateral, float height, Vector3 halfExtents)
+        {
+            trackDistance = distance;
+            trackLateral = lateral;
+            trackHeight = height;
+            trackHalfExtents = halfExtents;
+            placed = true;
+            if (Application.isPlaying && isActiveAndEnabled) PickupRegistry.Register(this);
+        }
+
+        void OnEnable()
+        {
+            if (placed && Application.isPlaying) PickupRegistry.Register(this);
+        }
+
+        void OnDisable() => PickupRegistry.Unregister(this);
 
         public string Id => string.IsNullOrEmpty(id) ? "" : id.Trim();
         public CollectibleKind Kind => kind;
@@ -164,7 +204,13 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
 
         void OnTriggerEnter(Collider other)
         {
-            if (collected || !IsCollector(other)) return;
+            if (IsCollector(other)) Collect();
+        }
+
+        /// <summary>The player took it — from the city's trigger or the runner's swept query. Once only.</summary>
+        public void Collect()
+        {
+            if (collected) return;
             collected = true;
 
             // Loud when the scene has no manager: nothing would record this.

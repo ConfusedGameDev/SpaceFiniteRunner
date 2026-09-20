@@ -31,6 +31,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float catchDistance = 10f;
         public float warnDistance = 130f;
 
+        // Handling, catch and driver knobs. -1 = never captured: leave the
+        // definition's value alone (an asset saved before these keys existed
+        // would otherwise stamp a made-up default over the authored one).
+        public float lateralSpeed = -1f;
+        public float handlingResponse = -1f;
+        public float gripBase = -1f;
+        public float gripPerSpeed = -1f;
+        public float brakeDecel = -1f;
+        public float catchLateral = -1f;
+        public float sustainedCatchSeconds = -1f;
+        public float curveLookaheadSeconds = -1f;
+        public float orbLookaheadSeconds = -1f;
+        public float orbSeekWeight = -1f;
+        public float orbBoostShare = -1f;
+        public float rampLookaheadSeconds = -1f;
+
         static PatrolDebugSettings cached;
 
         /// <summary>
@@ -64,6 +80,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             catchDistance = definition.catchDistance;
             warnDistance = definition.warnDistance;
 
+            lateralSpeed = definition.lateralSpeed;
+            handlingResponse = definition.handlingResponse;
+            gripBase = definition.gripBase;
+            gripPerSpeed = definition.gripPerSpeed;
+            brakeDecel = definition.brakeDecel;
+            catchLateral = definition.catchLateral;
+            sustainedCatchSeconds = definition.sustainedCatchSeconds;
+            curveLookaheadSeconds = definition.curveLookaheadSeconds;
+            orbLookaheadSeconds = definition.orbLookaheadSeconds;
+            orbSeekWeight = definition.orbSeekWeight;
+            orbBoostShare = definition.orbBoostShare;
+            rampLookaheadSeconds = definition.rampLookaheadSeconds;
+
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
 #endif
@@ -85,6 +114,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             definition.startGap = startGap;
             definition.catchDistance = catchDistance;
             definition.warnDistance = warnDistance;
+
+            if (lateralSpeed >= 0f) definition.lateralSpeed = lateralSpeed;
+            if (handlingResponse >= 0f) definition.handlingResponse = handlingResponse;
+            if (gripBase >= 0f) definition.gripBase = gripBase;
+            if (gripPerSpeed >= 0f) definition.gripPerSpeed = gripPerSpeed;
+            if (brakeDecel >= 0f) definition.brakeDecel = brakeDecel;
+            if (catchLateral >= 0f) definition.catchLateral = catchLateral;
+            if (sustainedCatchSeconds >= 0f) definition.sustainedCatchSeconds = sustainedCatchSeconds;
+            if (curveLookaheadSeconds >= 0f) definition.curveLookaheadSeconds = curveLookaheadSeconds;
+            if (orbLookaheadSeconds >= 0f) definition.orbLookaheadSeconds = orbLookaheadSeconds;
+            if (orbSeekWeight >= 0f) definition.orbSeekWeight = orbSeekWeight;
+            if (orbBoostShare >= 0f) definition.orbBoostShare = orbBoostShare;
+            if (rampLookaheadSeconds >= 0f) definition.rampLookaheadSeconds = rampLookaheadSeconds;
         }
 
         /// <summary>

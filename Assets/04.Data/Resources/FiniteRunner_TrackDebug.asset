@@ -28,3 +28,15 @@ MonoBehaviour:
   - name: Brake
     probability: 32.349445
     multiplier: 1.6000001
+  elevationEnabled: 1
+  elevationBand: 60
+  maxGrade: 6
+  maxGradeStepPerKnot: 3
+  baselinePull: 0.5
+  bankEnabled: 1
+  maxBankAngle: 78
+  bankPerDegreeOfTurn: 4
+  maxBankStepPerKnot: 45
+  levelLeadDistance: 200
+  unbankedSweepChance: 1
+  openStraightChance: 1

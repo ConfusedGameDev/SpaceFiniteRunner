@@ -19,9 +19,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
     /// <summary>
     /// Every rebindable gameplay action. Append-only: the names are the save
-    /// format, and the enum order is the order the CONTROLS screen lists
-    /// them in. Axis inputs are two directional actions (steer left / steer
-    /// right, accelerate / brake), each bound to one key and one pad control.
+    /// format and the values index the defaults table. The CONTROLS screen
+    /// lists them grouped by <see cref="BindingSection"/>, in enum order
+    /// inside each group (<see cref="ControlBindings.Actions"/>), so an
+    /// action appended later still lands under its own header. Axis inputs
+    /// are two directional actions (steer left / steer right, accelerate /
+    /// brake), each bound to one key and one pad control.
     /// </summary>
     public enum GameAction
     {
@@ -29,7 +32,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CarSteerLeft, CarSteerRight, CarAccelerate, CarBrake, CarHandbrake, CarRespawn,
         CityMap, RadioPrevious, RadioNext,
         CameraCycle, CameraLookBack,
-        CameraPanLeft, CameraPanRight, CameraPanUp, CameraPanDown
+        CameraPanLeft, CameraPanRight, CameraPanUp, CameraPanDown,
+        ShipAccelerate, ShipBrake
     }
 
     /// <summary>
@@ -89,8 +93,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             }
         }
 
-        // No default collides inside any context: Ship {A D N M}, Car {A D W
-        // S Space R M 5 6}, General {Tab RShift arrows} — and the pads likewise.
+        // No default collides inside any context: Ship {A D N M W S}, Car {A D
+        // W S Space R M 5 6}, General {Tab RShift arrows} — and the pads
+        // likewise. INDEXED BY THE ENUM VALUE: rows stay in enum order.
         static readonly Default[] Defaults =
         {
             new(GameAction.ShipSteerLeft, BindingSection.Ship, Key.A, PadControl.LeftStickLeft),
@@ -111,7 +116,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             new(GameAction.CameraPanLeft, BindingSection.General, Key.LeftArrow, PadControl.RightStickLeft),
             new(GameAction.CameraPanRight, BindingSection.General, Key.RightArrow, PadControl.RightStickRight),
             new(GameAction.CameraPanUp, BindingSection.General, Key.UpArrow, PadControl.RightStickUp),
-            new(GameAction.CameraPanDown, BindingSection.General, Key.DownArrow, PadControl.RightStickDown)
+            new(GameAction.CameraPanDown, BindingSection.General, Key.DownArrow, PadControl.RightStickDown),
+            new(GameAction.ShipAccelerate, BindingSection.Ship, Key.W, PadControl.RightTrigger),
+            new(GameAction.ShipBrake, BindingSection.Ship, Key.S, PadControl.LeftTrigger)
         };
 
         // Confirm (Enter / numpad Enter), Back (Esc / Backspace), the
@@ -132,15 +139,18 @@ namespace ConfusedGameDev.FiniteRunner.UI
         };
 
         static readonly int ActionCount = Enum.GetValues(typeof(GameAction)).Length;
+        static readonly int SectionCount = Enum.GetValues(typeof(BindingSection)).Length;
         static Binding[] bindings;
         static bool loaded;
 
-        /// <summary>Every action, in screen order.</summary>
+        /// <summary>Every action, in screen order: grouped by section, enum order inside each.</summary>
         public static IEnumerable<GameAction> Actions
         {
             get
             {
-                for (int i = 0; i < ActionCount; i++) yield return (GameAction)i;
+                for (int s = 0; s < SectionCount; s++)
+                    for (int i = 0; i < ActionCount; i++)
+                        if ((int)Defaults[i].section == s) yield return (GameAction)i;
             }
         }
 

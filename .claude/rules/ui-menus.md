@@ -44,8 +44,11 @@ paths:
 `ControlBindings.cs`, `PadControls.cs`, `BindingCapture.cs`, `ControlGlyphSet.cs`, `BindingRow.cs`,
 `ControlsScreen.cs`.
 
-**The ONE action → control table gameplay polls through.** `GameAction` (append-only, screen
-order; axes are two directional actions — ShipSteerLeft/Right, CarAccelerate/CarBrake) each holds
+**The ONE action → control table gameplay polls through.** `GameAction` (append-only — the
+values index the `Defaults` table, whose rows stay in enum order; `ControlBindings.Actions` is the
+screen order: grouped by `BindingSection`, enum order inside each, so a late append like
+ShipAccelerate/ShipBrake still lists under SHIP; axes are two directional actions —
+ShipSteerLeft/Right, CarAccelerate/CarBrake) each holds
 one `Key` and one `PadControl` — an enum whose entries are all `ButtonControl`s: triggers, stick
 press, d-pad, Start/Select and the four half-axes of each stick, so a stick push captures like a
 button.
