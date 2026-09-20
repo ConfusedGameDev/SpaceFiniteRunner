@@ -13,21 +13,21 @@ MonoBehaviour:
   m_Name: FiniteRunner_TrackDebug
   m_EditorClassIdentifier: 
   applyOnLoad: 1
-  trackWidth: 120
-  straightness: 60
+  trackWidth: 74.4
+  straightness: 55
   entries:
   - name: Green
-    probability: 50.16999
-    multiplier: 5.699997
+    probability: 20.171656
+    multiplier: 4.8999977
   - name: Blue
-    probability: 14.803075
+    probability: 5.951814
     multiplier: 2.5
   - name: Purple
-    probability: 2.6774833
+    probability: 1.0765253
     multiplier: 10
   - name: Brake
-    probability: 32.349445
-    multiplier: 1.6000001
+    probability: 72.8
+    multiplier: 9.800001
   elevationEnabled: 1
   elevationBand: 60
   maxGrade: 6
