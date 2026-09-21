@@ -30,7 +30,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         [TitleGroup("World")]
         [Tooltip("Layers the ship rides, lands on and hits. Default + ShipGround flies over any ordinary level as it is; a level that shares its physics scene with colliders the ship must never touch (the runner during the city handoff) narrows this to ShipGround alone.")]
-        public LayerMask groundLayers = (1 << 0) | ShipLayers.GroundMask;
+        public LayerMask groundLayers = (1 << 0) | ShipLayers.GroundMask | ShipLayers.SurfaceMask;
 
         [TitleGroup("World")]
         [Tooltip("Take pickups (needs a ShipPickupSweeper on the ship).")]

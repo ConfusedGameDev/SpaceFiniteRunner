@@ -7,6 +7,9 @@ paths:
   - "**/TrackColliderBuilder.cs"
   - "**/TrackGuide.cs"
   - "**/TrackGuideValidator.cs"
+  - "**/ShipMotor.Physics.cs"
+  - "**/PhysicsRunnerSceneBuilder.cs"
+  - "**/FiniteRunner_Physics.unity"
   - "**/ShipAcceptance.unity"
   - "**/HoverShip.prefab"
 ---
@@ -33,10 +36,12 @@ milestone plan and the decisions behind it live in the memory note `standalone-s
   `BodyControls` moved here with their `.meta`s and **kept their namespaces** — assets and
   callers never changed.
 
-## Layers (`ShipLayers`, fixed slots 6–9)
+## Layers (`ShipLayers`, fixed slots 6–10)
 
-`Ship` (hulls) / `ShipGround` / `ShipPickup` / `ShipVolume`. **What the ship rides is
-`ShipSettings.groundLayers`** — Default + ShipGround out of the box, so the prefab flies over any
+`Ship` (hulls) / `ShipGround` / `ShipPickup` / `ShipVolume` / `ShipSurface` (10: a surface the
+ship RIDES but its hull never hits — the hover probes see it, the wall sweep and `KeepClear` do
+not; for geometry that passes through itself, the runner's loops). **What the ship rides is
+`ShipSettings.groundLayers`** — Default + ShipGround + ShipSurface out of the box, so the prefab flies over any
 ordinary level as it is (the user's `shipCityTest` uses EVP's demo city, all on Default). A level
 that shares its physics scene with colliders the ship must never touch (the runner during the
 city handoff) narrows the mask to `ShipGround` alone. The slots are constants,
@@ -65,6 +70,12 @@ Light Speed, a 60 m ramp is under two ticks, a loop wants 10⁴ m/s² of centrip
 - **Surface re-seat**: five rays along −up (centre, ±`probeHalfExtents`); the plane through the
   four outer hits is the new up, the centre hit + ride height the new position, the heading is
   carried across by projection. **The up is never smoothed** — a lagging up misses a loop.
+  **The fitted plane is only believed while it agrees (within `FitTolerance`, 25°) with a surface
+  that was actually hit**; otherwise the averaged hit normals are the up. Probes straddling a STEP
+  (the side of a ramp: one on the slope, one on the road metres below) fit a plane that is no
+  surface at all, rolled 60° and more — against that up the slope stopped being floor, became a
+  wall met square-on, and a ship clipping a ramp's edge at 1400 m/s stood still within a tick
+  (1 ramp pass in ~45 on the runner's track, always hands-off on the centre line).
   Ride height is `ShipDefinition.hoverHeight` (physical here; `ShipSettings.visualLift` is the
   cosmetic extra).
 - **Letting go**: no centre hit for `coyoteMeters`, or a crest beyond `magnetStrength` (0 =
@@ -265,6 +276,80 @@ untouched and still runs the runner** until the swap scene (M7).
   a ray is dropped onto the colliders, which must lie exactly the sink below it. Per ship state +
   a ramp bucket. Over MCP: play `FiniteRunner_Test`, add builder + guide + validator on a runtime
   GameObject (`Bind`), set `motor.Autopilot = true`, read `Report`.
+
+## The physics runner (M7): `ShipMotor` physics mode, scene `FiniteRunner_Physics`
+
+**The plan's wide consumer retarget was replaced by one seam.** With a `HoverShip` on the SAME
+GameObject, `ShipMotor` (`Runner/Ship/ShipMotor.Physics.cs`, a partial) stops simulating and
+becomes what the runner sees of the standalone ship: every tick it mirrors the ship's guide
+coordinates into its own `TrackBody` (`TrackBody.Mirror` — distance, lateral, height, speed;
+`BeginTick` first so the render still blends) and its state, forwards the ship's events, and
+passes commands down (`Launch` from the track's start pose, `SetDefinition`, `AddSpeedImpulse`,
+`Paused`, `Autopilot`). **GameManager, TrackGenerator (streaming + `LoopReachable`), the HUD,
+`DashGhostTrail` and the track-space `PolicePatrol` all run unchanged** — the patrol chases the
+mirrored body, so a physics patrol (M8) is now optional. It is also the agreed end state: the
+motor stays on the ship as the runner's face of it (and the marker `DialogueTrigger` looks for).
+With no `HoverShip` beside it the motor is exactly the track-space ship it was.
+
+- `HoverShip` is `[DefaultExecutionOrder(-10)]` so the motor mirrors THIS tick; the motor switches
+  the ship's `LaunchOnStart` off. `ShipMotor.Is(IShip)` answers "is that my ship" (a pickup taken
+  in physics mode names the HoverShip) — `GameManager` / `ShipAudio` use it.
+- `ConfigureDash` → `RunnerShipSettingsSync.Ensure(gameObject, settings, hover.Settings)`: the run
+  rules (dash, stall, fall / respawn timings, trails) are pushed into the ship's OWN settings
+  clone live; `groundLayers` is forced to `ShipGround | ShipSurface` (the city may share the
+  physics scene during the handoff). **Sink = lift**: `TrackColliderBuilder.SurfaceSink` and
+  `ShipSettings.visualLift` are both set to the definition's hover height, so the ROOT rides the
+  flight line (pads, camera, patrol pose unmoved) and the model hovers where it always did.
+- The runner's rules over the physical flight: **loop gate** (verdict at the mouth,
+  `LoopEntered`; a fail lets go at `FirstTopLocal` and plays the track-space drop onto the exit
+  through `HoverBody.MoveOutOfPlay` with the body in `ShipState.Falling` — which `HoverBody`,
+  `ShipRecovery` and the pickup sweep all treat as out of play — distance parked at the exit so
+  the patrol gains the fall), **ramp boost** on take-off, **tube return**
+  (`HoverShip.SteerOverride` over `TubeSection.ReturnProgress`: the stick alone is replaced).
+  State is mapped: Grounded → Looping inside a loop section / OnTube on a tube.
+- `LaunchPhysics` calls `TrackColliderBuilder.BuildNow()` first: a restart has just cleared the
+  old track's colliders, and a ship seated on nothing took off for half a second.
+- **Loops are SURFACE-ONLY.** A loop with little lateral drift passes through itself (one rolled
+  drift −17 m, carry 166 m): in track space nothing collided; with colliders the descending ship
+  met the ascending half HEAD-ON at 1650 m/s and stopped dead. Chunks containing a `LoopSection`
+  go on `ShipLayers.Surface` (layer 10) and carry no walls: the hover probes ride them
+  (`HoverBody.Probe` takes the nearest FLOOR and looks through anything else), the hull sweep and
+  `KeepClear` use `WallMask` = ground minus Surface. What holds the ship on the ring is
+  `HoverBody.HoldInLane`: at each full projection a closed lane edge the body has crossed puts it
+  back and ends its sideways motion like a wall (open edges are left alone; `TrackGuide` reports
+  a full tube's edges as open so the seam under the pipe is never fenced).
+- **The ship fell at every loop's exit, and it was the TRACK's bug**: the loop's exit knot was
+  appended in world space while knots live in the spline container's space, so the pose function
+  jumped by the `Track` object's position (22.3 m) at every loop's end — see `runner-track.md`
+  (`TrackManager.WorldToKnotSpace`). A physical ship is the first thing that could notice.
+  Finding it: a probe that samples `GetPoseAtDistance` either side of `EndDistance` — a constant
+  step length whatever the loop's drift / carry / yaw pointed straight at a transform.
+- **A ramp's wedge is as wide as the ramp's RULE** (`HalfWidth − entryMargin`), not its picture:
+  that is the line the track-space ship is committed inside of and held outside of. At the
+  picture's width the hull sphere was turned away 5 m earlier and most offset ramps blocked the
+  road's centre line. The flank runs along the road, so by itself it costs nothing: the runner's
+  side hit (`sideHitSpeedLoss`, `WallHit`) is the motor's rule, once per ramp
+  (`UpdateRampSideHit`).
+- **The nose only meets what it could not climb** (`HoverBody.HitWall`): a sphere touching the
+  edge where a slope meets its own flank reports a normal between the two — too tilted to be
+  floor, facing back only because the slope rises. Flattened and normalised it read as a square
+  hit, again every substep (a guide lock swings the heading straight back), and a ship clipping a
+  ramp's corner at 1000 m/s stopped dead. The normal is now judged in the plane of travel, where
+  that edge is just the slope; sideways it still blocks.
+- **A physical ship dies where the streamer lags; the track-space one never noticed.** Colliders
+  only reach `SettledDistance`, which the generator keeps `aheadDistance` (1600 m in the scene)
+  past the ship's RENDERED distance. Real play cannot outrun it (`maximumDeltaTime` 0.33 s ×
+  2500 m/s = 830 m a frame at worst) — but an MCP soak at `timeScale` 4 does, every time a
+  RunCommand compile hitches the editor: "took off: no ground under the probes" on plain road with
+  `settled` a few dozen metres ahead is that, not a collider bug. **Soak at 2×.**
+- Verified hands-off at 2× (autopilot, auto-restart harness): every loop entered is exited within
+  2 m of the line up to 2100 m/s, a forced slow entry fails at the top, drops and lands on the
+  exit with the speed loss, tubes return, ramps jump, 141 ramp passes with no stop, both lose
+  paths, the win flow through to the panel, restart. `FiniteRunner_Test` still runs track-space.
+- Scene: `Tools → FiniteRunner → Ship → Create Physics Runner Scene` re-copies
+  `FiniteRunner_Test` to `FiniteRunner_Physics` and hand-places `HoverShip` + `ShipRecovery` +
+  `ShipPickupSweeper` on the Ship object and `TrackColliderBuilder` + `TrackGuide` on the Track
+  object. The test scene is never touched. Settings: `04.Data/Ship/Runner_ShipSettings.asset`.
 
 ## Contracts: `IShip`, `IRunnerShip`, `ShipRegistry`
 

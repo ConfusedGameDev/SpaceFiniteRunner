@@ -92,6 +92,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>Ramp wedges built since the last clear — a debug readout.</summary>
         public int RampsBuilt { get; private set; }
 
+        /// <summary>Builds everything that is settled, now — for the frame a run (re)starts, so the ship is launched onto road that exists.</summary>
+        public void BuildNow()
+        {
+            if (track != null && generator != null) BuildUpTo(generator.SettledDistance);
+        }
+
         /// <summary>Track distance the colliders reach.</summary>
         public float BuiltDistance => built;
         public float SurfaceSink { get => surfaceSink; set => surfaceSink = Mathf.Max(0f, value); }
@@ -221,12 +227,19 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     triangles.Add(l0); triangles.Add(r1); triangles.Add(r0);
                 }
 
-            if (wallHeight > 0f)
+            // A loop's two halves cross in space when it barely drifts sideways (in track space nothing collided). Its
+            // chunks are SURFACE-ONLY — ridden by the hover probes, invisible to the hull sweep — and carry no walls:
+            // the guide's lane keeps the ship on the ring (HoverBody.HoldInLane).
+            bool loop = false;
+            for (int r = 0; r <= rows && !loop; r++)
+                loop = track.SectionAt(Mathf.Lerp(from, to, r / (float)rows)) is LoopSection;
+
+            if (wallHeight > 0f && !loop)
             {
                 AddWall(from, to, rows, -1);
                 AddWall(from, to, rows, 1);
             }
-            return Emit($"TrackCollider_{from:00000}", to);
+            return Emit($"TrackCollider_{from:00000}", to, loop ? ShipLayers.Surface : ShipLayers.Ground);
         }
 
         // A wall stands on a lane edge, along the road's up there, facing the lane — wherever the track says that edge is closed.
@@ -261,11 +274,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             track.SectionAt(distance) is TubeSection tube && tube.IsUnboundedAt(distance - tube.StartDistance);
 
         // -------------------------------------------------------------- ramps
-        // The ramp's slope, as wide as the ramp, rising from the road to the lip along the track's up.
+        // The ramp's slope, rising from the road to the lip along the track's up — as wide as the ramp's RULE, not its
+        // picture: in track space a ship is on the ramp once its CENTRE is entryMargin inside the edge and is held out at
+        // that same line otherwise, so the wedge ends there. At the picture's width a hull (a 2.5 m sphere) was turned
+        // away 5 m earlier than the track-space ship, and the centre line of the road was blocked by most offset ramps.
         Chunk BuildRamp(JumpRamp ramp)
         {
             vertices.Clear();
             triangles.Clear();
+            float halfWidth = Mathf.Max(1f, ramp.HalfWidth - ramp.Definition.entryMargin);
             int rows = Mathf.Max(2, Mathf.CeilToInt(ramp.Length / sampleSpacing));
             for (int r = 0; r <= rows; r++)
             {
@@ -273,7 +290,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 float height = r == rows ? ramp.Definition.LipHeight : ramp.HeightAt(d);
                 for (int c = 0; c <= 1; c++)
                 {
-                    float lateral = ramp.Lateral + (c == 0 ? -ramp.HalfWidth : ramp.HalfWidth);
+                    float lateral = ramp.Lateral + (c == 0 ? -halfWidth : halfWidth);
                     track.GetPoseAtDistance(d, lateral, out Vector3 position, out Quaternion rotation);
                     vertices.Add(position + rotation * Vector3.up * (height - surfaceSink));
                 }
@@ -294,7 +311,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 float d = Mathf.Lerp(ramp.StartDistance, ramp.EndDistance, r / (float)rows);
                 for (int c = 0; c <= 1; c++)
                 {
-                    float lateral = ramp.Lateral + (c == 0 ? -ramp.HalfWidth : ramp.HalfWidth);
+                    float lateral = ramp.Lateral + (c == 0 ? -halfWidth : halfWidth);
                     track.GetPoseAtDistance(d, lateral, out Vector3 position, out Quaternion rotation);
                     vertices.Add(position - rotation * Vector3.up * surfaceSink); // the foot, on the road surface
                 }
@@ -309,11 +326,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 triangles.Add(rb0); triangles.Add(rt0); triangles.Add(rt1);
                 triangles.Add(rb0); triangles.Add(rt1); triangles.Add(rb1);
             }
-            return Emit($"RampCollider_{ramp.StartDistance:00000}", ramp.EndDistance);
+            return Emit($"RampCollider_{ramp.StartDistance:00000}", ramp.EndDistance, ShipLayers.Ground);
         }
 
         // ------------------------------------------------------------- output
-        Chunk Emit(string label, float end)
+        Chunk Emit(string label, float end, int layer)
         {
             var mesh = new Mesh { name = label };
             if (vertices.Count > 65000) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -321,7 +338,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
 
-            var go = new GameObject(label) { layer = ShipLayers.Ground };
+            var go = new GameObject(label) { layer = layer };
             go.transform.SetParent(transform, false);
             go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity); // vertices are world-space
             go.AddComponent<MeshCollider>().sharedMesh = mesh;

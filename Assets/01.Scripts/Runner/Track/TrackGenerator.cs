@@ -845,7 +845,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         void ContinueFromLoopExit(LoopSection loop)
         {
             loop.GetExitPose(0f, out Vector3 exitPosition, out Quaternion exitRotation);
-            Vector3 exitForward = loop.ExitForward;
+            track.WorldToKnotSpace(ref exitPosition, ref exitRotation); // the loop stands in the world; knots (and this builder) live in the container's space
+            Vector3 exitForward = exitRotation * Vector3.forward;
             float bridgeChord = Mathf.Max(Vector3.Distance((Vector3)endPosition, exitPosition), 1f);
 
             float before = track.SplineLength;

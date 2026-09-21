@@ -44,7 +44,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             ShipSettings settings = ship.Settings;
             if (ship.Paused || settings == null || !settings.pickupsEnabled) return;
             ShipState state = ship.State;
-            if (state == ShipState.OffTrack || state == ShipState.Respawning) return; // out of play takes nothing
+            if (state == ShipState.OffTrack || state == ShipState.Respawning || state == ShipState.Falling) return; // out of play takes nothing
 
             IReadOnlyList<Pose> path = ship.Body.Path;
             if (path.Count == 0) return;

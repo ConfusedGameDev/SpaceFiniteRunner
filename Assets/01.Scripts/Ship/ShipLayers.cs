@@ -25,21 +25,31 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public const int Pickup = 8;
         /// <summary>Rule volumes the swept query reads: kill volumes, magnet volumes.</summary>
         public const int Volume = 9;
+        /// <summary>
+        /// A surface the ship RIDES but its hull never hits: the hover probes see it, the wall sweep does not.
+        /// For geometry that passes through itself — the runner's loops, whose two halves cross in space when
+        /// they barely drift sideways: in track space nothing collided, with colliders the descending ship met
+        /// the ascending half as a head-on wall.
+        /// </summary>
+        public const int Surface = 10;
 
         public const string ShipName = "Ship";
         public const string GroundName = "ShipGround";
         public const string PickupName = "ShipPickup";
         public const string VolumeName = "ShipVolume";
+        public const string SurfaceName = "ShipSurface";
 
         public const int GroundMask = 1 << Ground;
         public const int PickupMask = 1 << Pickup;
         public const int VolumeMask = 1 << Volume;
+        public const int SurfaceMask = 1 << Surface;
 
         /// <summary>True when the project's layer table carries the four names in their slots — false means the installer was never run.</summary>
         public static bool Installed =>
             LayerMask.LayerToName(Ship) == ShipName &&
             LayerMask.LayerToName(Ground) == GroundName &&
             LayerMask.LayerToName(Pickup) == PickupName &&
-            LayerMask.LayerToName(Volume) == VolumeName;
+            LayerMask.LayerToName(Volume) == VolumeName &&
+            LayerMask.LayerToName(Surface) == SurfaceName;
     }
 }

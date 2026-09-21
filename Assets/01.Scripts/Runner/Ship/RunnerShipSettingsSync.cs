@@ -57,6 +57,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Settings.barrelRollTrailSpan = source.barrelRollTrailSpan;
             Settings.barrelRollTrailColor = source.barrelRollTrailColor;
             Settings.barrelRollTrailMaterial = source.barrelRollTrailMaterial;
+            // Falling off and coming back: the FALL & RESPAWN debug page edits these on the asset, live.
+            Settings.fallGravity = source.fallGravity;
+            Settings.fallTumbleDegreesPerSecond = source.fallTumbleDegreesPerSecond;
+            Settings.fallDurationSeconds = source.fallDurationSeconds;
+            Settings.respawnWaitSeconds = source.respawnWaitSeconds;
+            Settings.respawnSpeedPenalty = source.respawnSpeedPenalty;
+            Settings.respawnClearance = source.respawnClearance;
         }
 
         void OnDestroy()

@@ -25,7 +25,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             bool ok = Name(layers, ShipLayers.Ship, ShipLayers.ShipName)
                     & Name(layers, ShipLayers.Ground, ShipLayers.GroundName)
                     & Name(layers, ShipLayers.Pickup, ShipLayers.PickupName)
-                    & Name(layers, ShipLayers.Volume, ShipLayers.VolumeName);
+                    & Name(layers, ShipLayers.Volume, ShipLayers.VolumeName)
+                    & Name(layers, ShipLayers.Surface, ShipLayers.SurfaceName);
             tagManager.ApplyModifiedProperties();
             if (!ok) return;
 
@@ -41,8 +42,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             AssetDatabase.SaveAssetIfDirty(tagManager.targetObject);
             foreach (Object physics in AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/DynamicsManager.asset"))
                 AssetDatabase.SaveAssetIfDirty(physics);
-            Debug.Log($"ShipLayersInstaller: layers {ShipLayers.Ship}–{ShipLayers.Volume} = " +
-                      $"{ShipLayers.ShipName} / {ShipLayers.GroundName} / {ShipLayers.PickupName} / {ShipLayers.VolumeName}.");
+            Debug.Log($"ShipLayersInstaller: layers {ShipLayers.Ship}–{ShipLayers.Surface} = " +
+                      $"{ShipLayers.ShipName} / {ShipLayers.GroundName} / {ShipLayers.PickupName} / {ShipLayers.VolumeName} / {ShipLayers.SurfaceName}.");
         }
 
         static bool Name(SerializedProperty layers, int slot, string name)

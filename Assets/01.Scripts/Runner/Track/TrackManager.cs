@@ -165,6 +165,22 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         /// <summary>
+        /// A WORLD pose brought into the space the knots are laid in — the
+        /// spline container's own. The builder walks in that space from its
+        /// origin, but anything it reads back off a pose query (a loop's exit)
+        /// is world: appended as it stands, the rest of the track was shifted
+        /// by the container's position at every loop (22 m in the test scene —
+        /// a pop nobody saw in track space, a missing road for a physical ship).
+        /// </summary>
+        public void WorldToKnotSpace(ref Vector3 position, ref Quaternion rotation)
+        {
+            if (spline == null) return;
+            Transform space = spline.transform;
+            position = space.InverseTransformPoint(position);
+            rotation = Quaternion.Inverse(space.rotation) * rotation;
+        }
+
+        /// <summary>
         /// Registers a section at its start distance. Must happen before
         /// anything is placed beyond that distance — an insert shifts every
         /// distance past it by its length.

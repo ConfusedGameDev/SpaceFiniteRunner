@@ -83,6 +83,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         const float ThrottleDeadzone = 0.01f;
         const float ShoveEpsilon = 0.05f;
         const float Skin = 0.05f;
+        const float FitTolerance = 0.9063f; // cos 25°: how far the probes' plane may stand from every surface they hit
         const float DriftGain = 0.7f;
         const float MaxYawTrim = 0.06f; // ~3.4°
         const float SlimHull = 0.6f;
@@ -291,7 +292,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Substeps = 0;
             LateralBlocked = false;
             if (Settings == null || dt <= 0f) return;
-            if (State == ShipState.OffTrack || State == ShipState.Respawning) return;
+            if (State == ShipState.OffTrack || State == ShipState.Respawning || State == ShipState.Falling) return; // out of play: the owner carries it
 
             wallHitCooldown -= dt;
             float reach = (Mathf.Max(ForwardSpeed, Mathf.Abs(VerticalVelocity)) + Mathf.Abs(TotalLateralVelocity)) * dt;
@@ -481,10 +482,43 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (!Guide.TryProject(Position, ref guideHint, out GuideSample sample)) { guideHint = float.NaN; guideHasLast = false; return; }
             if (new Vector2(sample.lateral, sample.height).magnitude > Guide.CaptureRange) { guideHint = float.NaN; guideHasLast = false; return; }
             TrimAgainstDrift(sample);
+            HoldInLane(ref sample);
             Guided = sample;
             guideTangent = sample.forward;
             guideSinceProjection = 0f;
             HasGuideSample = true;
+        }
+
+        /// <summary>
+        /// Where the level has a guide, its lane is a fence even without a
+        /// wall to hit: a closed edge the body has crossed puts it back on the
+        /// lane and ends its sideways motion, exactly as a wall would. It is
+        /// what holds a ship on a loop's ring, whose colliders are
+        /// surface-only. An OPEN edge is left alone — past it is a real drop.
+        /// </summary>
+        void HoldInLane(ref GuideSample sample)
+        {
+            if (State == ShipState.Airborne) return;
+            float margin = Mathf.Min(Settings.hullRadius, (sample.bandMax - sample.bandMin) * 0.25f);
+            float over = 0f;
+            if (sample.lateral > sample.bandMax - margin && !sample.openRight) over = sample.lateral - (sample.bandMax - margin);
+            else if (sample.lateral < sample.bandMin + margin && !sample.openLeft) over = sample.lateral - (sample.bandMin + margin);
+            if (Mathf.Approximately(over, 0f) || Mathf.Abs(over) > 20f) return; // far outside: not a graze, the ship is simply somewhere else
+
+            Position -= sample.right * over;
+            sample.lateral -= over;
+            if (TotalLateralVelocity * over > 0f)
+            {
+                bool slam = Mathf.Abs(ShoveVelocity) > ShoveEpsilon;
+                float speed = Mathf.Abs(TotalLateralVelocity);
+                LateralBlocked = true;
+                StopLateralMotion();
+                if (slam && wallHitCooldown <= 0f)
+                {
+                    wallHitCooldown = Settings.wallHitCooldownSeconds;
+                    WallHit?.Invoke(speed);
+                }
+            }
         }
 
         /// <summary>
@@ -601,6 +635,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// saturates silently — the runner's rule). Nose into it: the heading
         /// swings onto the wall and the speed keeps only its share along it,
         /// so a graze costs almost nothing and a square hit stops the ship.
+        /// The nose only meets what it could not CLIMB: a sphere touching the
+        /// edge where a slope meets its own side wall reports a normal between
+        /// the two — too tilted to be floor, and facing back only because the
+        /// slope rises. Read as a wall that was a square hit, again every
+        /// substep (a guide lock swings the heading straight back): a ship
+        /// clipping the corner of a ramp at 1000 m/s stopped dead. So the
+        /// normal is judged in the plane of travel, where that edge is just
+        /// the slope; sideways it still blocks like the wall it is.
         /// </summary>
         void HitWall(Vector3 normal)
         {
@@ -624,7 +666,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (ReverseSpeed > 0f && Vector3.Dot(heading, flat) > 0.02f) ReverseSpeed = 0f;
 
             float into = -Vector3.Dot(heading, flat);
-            if (ReverseSpeed <= 0f && into > 0.02f)
+            Vector3 inTravelPlane = normal - side * Vector3.Dot(normal, side);
+            bool climbable = State != ShipState.Airborne && inTravelPlane.sqrMagnitude > 1e-4f && IsFloor(inTravelPlane, up, Settings.climbAngle);
+            if (ReverseSpeed <= 0f && into > 0.02f && !climbable)
             {
                 Vector3 along = heading + flat * into; // heading with its into-wall part removed
                 float keep = along.magnitude;
@@ -674,7 +718,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                     _ => travel,
                 };
                 Queries++;
-                if (!Physics.Raycast(Position, direction, out RaycastHit hit, radius, Settings.groundLayers, QueryTriggerInteraction.Ignore)) continue;
+                if (!Physics.Raycast(Position, direction, out RaycastHit hit, radius, WallMask, QueryTriggerInteraction.Ignore)) continue;
                 if (IsFloor(hit.normal, up, State == ShipState.Airborne ? Settings.maxLandAngle : Settings.climbAngle)) continue;
                 Position += hit.normal * (radius - hit.distance) * Mathf.Max(0f, -Vector3.Dot(direction, hit.normal));
                 HitWall(hit.normal);
@@ -687,7 +731,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Queries++;
             overlapped = false;
             int count = Physics.SphereCastNonAlloc(Position, radius, direction, Hits, distance + Skin,
-                                                   Settings.groundLayers, QueryTriggerInteraction.Ignore);
+                                                   WallMask, QueryTriggerInteraction.Ignore);
             int nearest = -1;
             for (int i = 0; i < count; i++)
             {
@@ -708,6 +752,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// the point, the plane through the four outer probes the up (their
         /// own hit normals when fewer than four land). No surface for the
         /// coyote distance, or a crest the magnet cannot hold, is a take-off.
+        /// The plane is only believed while it agrees with a surface that was
+        /// actually hit: probes that straddle a STEP — the side of a ramp,
+        /// one on the slope and one on the road metres below — fit a plane
+        /// that is no surface at all, rolled 60° and more. Against that up
+        /// the slope stopped being floor and became a wall met square-on,
+        /// and a ship clipping a ramp's edge at 1400 m/s stood still within a
+        /// tick. Past <see cref="FitTolerance"/> the averaged hit normals are
+        /// the up instead.
         /// </summary>
         void FollowSurface(float stepLength)
         {
@@ -732,20 +784,20 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             }
             airGap = 0f;
 
-            Vector3 normal;
+            Vector3 normal = mid.normal;
+            if (f) normal += front.normal;
+            if (b) normal += back.normal;
+            if (l) normal += left.normal;
+            if (r) normal += rightHit.normal;
+            normal.Normalize();
             if (f && b && l && r)
             {
-                normal = Vector3.Cross(front.point - back.point, rightHit.point - left.point).normalized;
-                if (Vector3.Dot(normal, up) < 0f) normal = -normal;
-            }
-            else
-            {
-                normal = mid.normal;
-                if (f) normal += front.normal;
-                if (b) normal += back.normal;
-                if (l) normal += left.normal;
-                if (r) normal += rightHit.normal;
-                normal.Normalize();
+                Vector3 fit = Vector3.Cross(front.point - back.point, rightHit.point - left.point).normalized;
+                if (Vector3.Dot(fit, up) < 0f) fit = -fit;
+                float agrees = Mathf.Max(Vector3.Dot(fit, mid.normal),
+                               Mathf.Max(Mathf.Max(Vector3.Dot(fit, front.normal), Vector3.Dot(fit, back.normal)),
+                                         Mathf.Max(Vector3.Dot(fit, left.normal), Vector3.Dot(fit, rightHit.normal))));
+                if (agrees >= FitTolerance) normal = fit;
             }
 
             // World-gravity mode: a surface too steep to stand on only holds under centripetal load (the inside of a loop).
@@ -801,12 +853,29 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (carried.sqrMagnitude > 1e-8f) Forward = carried.normalized;
         }
 
-        /// <summary>One hover ray along −up. A hit that is not floor (a wall's top edge) does not count.</summary>
+        /// <summary>What the hull can hit: everything it rides EXCEPT surface-only geometry (<see cref="ShipLayers.Surface"/>).</summary>
+        int WallMask => Settings.groundLayers & ~ShipLayers.SurfaceMask;
+
+        /// <summary>
+        /// One hover ray along −up: the nearest FLOOR under it. A hit that is
+        /// not floor (a wall's top edge, another stretch of road passing
+        /// through at an angle) is looked through, not stopped at — where a
+        /// loop's two halves cross, the ship's own road is the one facing it.
+        /// </summary>
         bool Probe(Vector3 origin, Vector3 up, float length, out RaycastHit hit)
         {
             Queries++;
-            return Physics.Raycast(origin, -up, out hit, length, Settings.groundLayers, QueryTriggerInteraction.Ignore)
-                   && IsFloor(hit.normal, up, Settings.climbAngle);
+            hit = default;
+            int count = Physics.RaycastNonAlloc(origin, -up, Hits, length, Settings.groundLayers, QueryTriggerInteraction.Ignore);
+            int nearest = -1;
+            for (int i = 0; i < count; i++)
+            {
+                if (!IsFloor(Hits[i].normal, up, Settings.climbAngle)) continue;
+                if (nearest < 0 || Hits[i].distance < Hits[nearest].distance) nearest = i;
+            }
+            if (nearest < 0) return false;
+            hit = Hits[nearest];
+            return true;
         }
 
         // ------------------------------------------------------------- flight

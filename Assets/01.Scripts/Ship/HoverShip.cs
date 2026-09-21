@@ -39,6 +39,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// pitch wobble) is on the <see cref="visual"/> child; the root is the
     /// physical pose.
     /// </summary>
+    [DefaultExecutionOrder(-10)] // ticks before whatever reads it the same step (the runner's motor mirrors it, recovery and pickups follow it)
     [RequireComponent(typeof(Rigidbody))]
     public sealed class HoverShip : MonoBehaviour, IShip, ICameraTarget
     {
@@ -103,6 +104,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// flies straight. Cleared by <see cref="Launch()"/>.
         /// </summary>
         public bool Autopilot { get; set; }
+
+        /// <summary>Launch by itself on Start. A game that launches the ship from its own start line switches this off in Awake.</summary>
+        public bool LaunchOnStart { get => launchOnStart; set => launchOnStart = value; }
+
+        /// <summary>When set, the stick alone is replaced (throttle and brake stay the player's) and dash requests are swallowed — a level taking the steering for a stretch, like the end of the runner's tubes.</summary>
+        public float? SteerOverride { get; set; }
 
         /// <summary>When set, these controls drive the ship instead of the player's input (an autopilot, a scripted test). Dash requests from the input are swallowed while it is.</summary>
         public BodyControls? ControlOverride { get; set; }
@@ -259,6 +266,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 throttle = throttleInput != null ? throttleInput.Throttle : 1f, // no throttle input = held
                 brake = throttleInput != null ? throttleInput.Brake : 0f,
             };
+            if (SteerOverride.HasValue && !ControlOverride.HasValue) controls.steer = Mathf.Clamp(SteerOverride.Value, -1f, 1f);
             body.HoldOnRoad = Autopilot;
             if (Autopilot)
                 controls = new BodyControls
@@ -341,7 +349,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             else meterWasFull = false;
 
             int request = dashInput?.ConsumeDashRequest() ?? 0;
-            if (ControlOverride.HasValue || Autopilot) request = 0; // an autopilot is hands-off
+            if (ControlOverride.HasValue || Autopilot || SteerOverride.HasValue) request = 0; // an autopilot is hands-off
             if (request != 0) TryDash(request);
         }
 

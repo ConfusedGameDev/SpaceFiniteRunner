@@ -86,6 +86,13 @@ Stretches of track distance laid over the flat spline with their own pose functi
   tangent is given in WORLD space and converted: **a `BezierKnot` stores tangents in the knot's
   local frame**, and a world tangent handed over as-is is rotated twice (a kink at every feature
   knot, ramps facing the doubled heading — the M3 bug).
+- **Knots live in the spline container's space, poses are world.** The builder walks from its own
+  origin (`endPosition = 0`) and never notices the container's transform — but anything it reads
+  BACK off a pose query is world and must go through `TrackManager.WorldToKnotSpace` before it
+  becomes a knot. The loop's exit knot did not: the `Track` object sits at (9.75, 8.7, −18.06) in
+  the test scene, so the whole track after EVERY loop was shifted by those 22.3 m — a one-frame
+  pop nobody saw in track space at 1000 m/s, and the road missing under a physical ship (found in
+  the M7 physics runner). `ContinueFromLoopExit` converts now.
 
 ## `TrackGenerator` (+ `Editor/TrackGeneratorEditor`)
 

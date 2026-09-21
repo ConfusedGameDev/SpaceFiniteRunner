@@ -145,6 +145,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
             Vector3 forward = rotation * Vector3.forward, up = rotation * Vector3.up, right = rotation * Vector3.right;
             track.GetLateralBand(distance, out float min, out float max);
+            bool unbounded = track.SectionAt(distance) is TubeSection pipe && pipe.IsUnboundedAt(distance - pipe.StartDistance);
             sample = new GuideSample
             {
                 distance = distance,
@@ -155,8 +156,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 curvature = CurvatureAt(distance),
                 bandMin = min,
                 bandMax = max,
-                openLeft = track.IsEdgeOpen(distance, -1),
-                openRight = track.IsEdgeOpen(distance, 1),
+                // Round a full tube there is no edge at all: the lane wraps, and nothing may fence the seam under the pipe.
+                openLeft = track.IsEdgeOpen(distance, -1) || unbounded,
+                openRight = track.IsEdgeOpen(distance, 1) || unbounded,
                 gripTested = track.FlatSweepAt(distance) != null,
             };
         }

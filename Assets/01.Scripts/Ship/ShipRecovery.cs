@@ -86,6 +86,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             {
                 case ShipState.OffTrack: StepFall(settings, dt); return;
                 case ShipState.Respawning: StepRespawnWait(settings, dt); return;
+                case ShipState.Falling: hasLastPosition = false; return; // a game's own scripted fall (the runner's failed loop): not ours to judge
             }
 
             Vector3 position = body.Position;

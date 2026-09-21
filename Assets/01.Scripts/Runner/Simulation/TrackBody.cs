@@ -255,6 +255,23 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
             prevHeight = Height;
         }
 
+        /// <summary>
+        /// Physics mode: the body is not stepped at all — a world-space ship
+        /// flies, and its place on the track is written in here every tick so
+        /// everything that reads a TrackBody (the patrol's chase, the
+        /// generator, the HUD) sees the ship where it really is. Call
+        /// <see cref="BeginTick"/> first, as for a step, and the render blends.
+        /// </summary>
+        public void Mirror(float distance, float lateral, float height, float forwardSpeed, float lateralVelocity)
+        {
+            Distance = distance;
+            Lateral = lateral;
+            Height = height;
+            ForwardSpeed = forwardSpeed;
+            LateralVelocity = lateralVelocity;
+            TotalLateralVelocity = lateralVelocity;
+        }
+
         /// <summary>After a teleport: nothing to interpolate from, the render sits on the current state.</summary>
         public void SnapInterpolation() => BeginTick();
 

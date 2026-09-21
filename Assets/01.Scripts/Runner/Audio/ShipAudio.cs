@@ -115,7 +115,7 @@ namespace ConfusedGameDev.FiniteRunner.Audio
 
         void OnPadCollected(SpeedPad pad, IShip collector)
         {
-            if (collector != (IShip)motor || sfx == null || pickups == null) return;
+            if (motor == null || !motor.Is(collector) || sfx == null || pickups == null) return;
 
             if (pad.SpeedDelta > 0f)
             {

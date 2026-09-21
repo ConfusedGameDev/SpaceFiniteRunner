@@ -74,7 +74,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// follows this root (the pose above the flight line, never the bobbing
     /// visual) and the view cycle is locked while airborne.
     /// </summary>
-    public class ShipMotor : MonoBehaviour, IRunnerShip, ICameraTarget, ICollector
+    public partial class ShipMotor : MonoBehaviour, IRunnerShip, ICameraTarget, ICollector
     {
         // Inline so the ship's sliders are reachable without leaving the scene —
         // in play mode this field holds the tuning screen's runtime clone, so
@@ -119,7 +119,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public event System.Action<float> Sliding;
 
         /// <summary>True while the ship is sliding on a flat sweep (and scrubbing speed).</summary>
-        public bool IsSliding => body != null && body.IsSliding;
+        public bool IsSliding => physicsShip != null ? physicsShip.IsSliding : body != null && body.IsSliding;
 
         /// <summary>Raised the step the ship leaves the track over an open edge (it is <see cref="ShipState.OffTrack"/> and falling).</summary>
         public event System.Action FellOff;
@@ -137,7 +137,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// Mission Complete sequence can never end in a slide or a fall.
         /// Cleared by <see cref="Launch"/>.
         /// </summary>
-        public bool Autopilot { get; set; }
+        public bool Autopilot
+        {
+            get => autopilot;
+            set { autopilot = value; if (physicsShip != null) physicsShip.Autopilot = value; }
+        }
 
         /// <summary>Raised on every <see cref="State"/> change, after the new state is set.</summary>
         public event System.Action<ShipState> StateChanged;
@@ -155,22 +159,26 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public event System.Action LoopFailed;
 
         /// <summary>While true the simulation is frozen (setup screen); the hover keeps running.</summary>
-        public bool Paused { get; set; }
+        public bool Paused
+        {
+            get => paused;
+            set { paused = value; if (physicsShip != null) physicsShip.Paused = value; }
+        }
 
         /// <summary>Dash power meter, 0..1. Starts each run empty.</summary>
-        public float DashMeter => dashMeter;
+        public float DashMeter => physicsShip != null ? physicsShip.DashMeter : dashMeter;
 
         /// <summary>True for the dash's window after the shove (the ghost trail's span; no new dash inside it). A wall ends it early.</summary>
-        public bool IsDashing => dashTimeLeft > 0f;
+        public bool IsDashing => physicsShip != null ? physicsShip.IsDashing : dashTimeLeft > 0f;
 
         /// <summary>Seconds the current (or last) dash burst was spread over: the dash duration on the ground, the barrel roll's length in the air.</summary>
-        public float DashBurstDuration => dashBurstDuration;
+        public float DashBurstDuration => physicsShip != null ? physicsShip.DashBurstDuration : dashBurstDuration;
 
         /// <summary>True while the visual is mid barrel roll (an airborne dash). Outlives the burst if a wall cut the dash short — the roll always completes.</summary>
-        public bool IsBarrelRolling => rollTimeLeft > 0f;
+        public bool IsBarrelRolling => physicsShip != null ? physicsShip.IsBarrelRolling : rollTimeLeft > 0f;
 
         /// <summary>Barrel-roll direction of the current roll: -1 left, +1 right, 0 when not rolling.</summary>
-        public int BarrelRollDirection => IsBarrelRolling ? rollDirection : 0;
+        public int BarrelRollDirection => physicsShip != null ? physicsShip.BarrelRollDirection : IsBarrelRolling ? rollDirection : 0;
 
         /// <summary>The banking/hovering model child — for visual-only consumers (ghost trail).</summary>
         public Transform Visual => visual;
@@ -188,13 +196,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public ShipState State => body != null ? body.State : ShipState.Grounded;
 
         /// <summary>Seconds since takeoff while airborne; the last flight's length otherwise.</summary>
-        public float AirTime => body != null ? body.AirTime : 0f;
+        public float AirTime => physicsShip != null ? physicsShip.AirTime : body != null ? body.AirTime : 0f;
 
         /// <summary>Height of the root above the flight line (ramp slope or arc), metres, as rendered this frame.</summary>
         public float AirHeight { get; private set; }
 
         /// <summary>The ramp the ship is committed to (riding its run-up), or null.</summary>
-        public JumpRamp CurrentRamp => body?.Ramp;
+        public JumpRamp CurrentRamp => physicsShip != null ? physicsRamp : body?.Ramp;
 
         /// <summary>The loop the ship is inside (or falling out of), or null.</summary>
         public LoopFeature CurrentLoop => loop;
@@ -305,17 +313,36 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 if (boost != 0f) AddSpeedImpulse(boost);
                 TookOff?.Invoke();
             };
+
+            BindPhysicsShip(); // a HoverShip on this object does the flying: see ShipMotor.Physics.cs
         }
 
-        // Whoever asks "which ship flies this scene" (ShipRegistry) gets this one.
-        void OnEnable() => ShipRegistry.Register(this);
-        void OnDisable() => ShipRegistry.Unregister(this);
+        // Whoever asks "which ship flies this scene" (ShipRegistry) gets this one — in physics mode the standalone ship answers for itself.
+        void OnEnable()
+        {
+            if (GetComponent<HoverShip>() == null) ShipRegistry.Register(this);
+            SubscribePhysics();
+        }
+
+        void OnDisable()
+        {
+            ShipRegistry.Unregister(this);
+            UnsubscribePhysics();
+        }
 
         // Launch in Start so a TrackGenerator's Awake can rebuild the spline first.
         void Start() => Launch();
 
         /// <summary>Swap the active definition (used by the tuning screen with a runtime clone).</summary>
-        public void SetDefinition(ShipDefinition newDefinition) => definition = newDefinition;
+        public void SetDefinition(ShipDefinition newDefinition)
+        {
+            definition = newDefinition;
+            if (physicsShip != null)
+            {
+                physicsShip.SetDefinition(newDefinition);
+                MatchSurfaceToShip();
+            }
+        }
 
         /// <summary>
         /// Hands the motor the dash tunables (GameManager pushes the shared
@@ -327,6 +354,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public void ConfigureDash(GameSettings settings)
         {
             dashSettings = settings;
+            ConfigurePhysics(settings);
             if (dashInput != null && settings != null)
             {
                 dashInput.DoubleTapSeconds = settings.dashDoubleTapSeconds;
@@ -338,6 +366,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public void Launch()
         {
             if (body == null) return;
+            if (physicsShip != null) { LaunchPhysics(); return; }
 
             dashMeter = 0f; // the meter charges from empty every run
             dashTimeLeft = 0f;
@@ -365,6 +394,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public void AddSpeedImpulse(float rawMagnitude)
         {
             if (HasStopped || body == null) return;
+            if (physicsShip != null) { physicsShip.AddSpeedImpulse(rawMagnitude); return; } // its PadImpulse comes back through the forward
             if (State == ShipState.OffTrack || State == ShipState.Respawning) return; // nothing touches a ship that is not on the track
             body.AddSpeedChange(definition.ScalePadEffect(rawMagnitude));
             PadImpulse?.Invoke(rawMagnitude);
@@ -372,6 +402,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void Update()
         {
+            if (physicsShip != null)
+            {
+                RenderPhysics(Mathf.Clamp01((Time.time - lastTickTime) / Mathf.Max(Time.fixedDeltaTime, 1e-5f)));
+                return;
+            }
+
             float dt = Time.deltaTime;
             bool running = !Paused && !HasStopped;
 
@@ -391,6 +427,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         void FixedUpdate()
         {
             if (Paused || HasStopped) return;
+            if (physicsShip != null)
+            {
+                TickPhysics(Time.fixedDeltaTime);
+                lastTickTime = Time.fixedTime;
+                return;
+            }
             Simulate(Time.fixedDeltaTime, dashSettings != null ? dashSettings.simSubsteps : 1);
             lastTickTime = Time.fixedTime;
         }
