@@ -125,6 +125,48 @@ Acceptance (all at cruise unless said): hands-off R = 490 S-curve within **0.03 
 assist 0.3 still needs steering; guide switched off mid-curve = **no position jump**; the
 corkscrew loop with a guide = **zero wall hits** at 300 / 1000 / 1806 m/s (free, it scrapes).
 
+## Falling off and coming back (`ShipRecovery`, `KillVolume`, `MagnetVolume`)
+
+`ShipRecovery` (on the prefab, `[DefaultExecutionOrder(10)]` so it runs after the ship's tick)
+decides a ship with no track to be "off" of is lost, then plays **the runner's fall and respawn,
+ported one-to-one**: `OffTrack` (the BODY stands still, this component flies plain ballistics +
+a cosmetic tumble through `HoverBody.MoveOutOfPlay`) → seated back on the road in `Respawning`
+for `respawnWaitSeconds` while `RespawnBlink` flickers it → relaunch at the speed it fell with ×
+(1 − `respawnSpeedPenalty`). Events `FellOff` / `RespawnStarted(teleport)` / `Respawned` go out
+through the ship (`HoverShip.Raise…`), so the game still listens to one voice. **Timers in the
+fixed tick, not coroutines** — `Paused` and a menu's timeScale freeze them.
+
+- **Lost means**: airborne with **no ground anywhere below** for `groundlessSeconds` (a jump
+  always has ground under it), airborne past `maxAirSeconds`, under `killHeight` (opt-in), or the
+  tick's path **crossed a `KillVolume`** — found by a SphereCast along last→current position on
+  the `ShipVolume` layer (+ an overlap test, a sweep is blind to what it starts inside), so a 5 m
+  curtain is caught at 36 m per tick. A trigger callback would be tunnelled. `BeginFall(reason)`
+  is public for a game's own hazards; `LastFallReason` says why.
+- **Where it comes back**: guided → `guide.FindRespawn(distance, respawnClearance)`, at or past
+  the fall point (time is lost, never distance). Free → the newest **breadcrumb** at least
+  `respawnBackMeters` back along its own trail; crumbs are dropped every `crumbSpacingMeters`
+  only while Grounded, not sliding and within `maxCrumbTilt` of upright (never halfway up a
+  loop), and the trail past the chosen one is discarded — it led to the fall. A free respawn is
+  therefore BEHIND the hazard: right for a pit, wrong for a curtain across the only road (the
+  ship flies into it again) — levels like that want a guide.
+- **A breadcrumb only says where the ship WAS — and a ship on its way off an edge was already
+  pointing at it** (the first version respawned the player aimed straight back at the pit). So a
+  free respawn is read off the colliders (`ShipRecovery.AimAtRoad`, no guide needed): **centre** —
+  walk left and right until the ground ends or a wall stands, move to the middle (a side with no
+  edge inside `respawnCentreSearchMeters` is open ground and pulls nothing); **heading** — a 2°
+  fan over ±90° around the direction the ship had been TRAVELLING (older crumb → chosen crumb,
+  not the crumb's facing), each ray walked along the ground for `respawnLookAheadMeters`; many
+  rays reach the full look-ahead on a road, so the answer is the MIDDLE of the clear wedge
+  nearest the travel direction, not its first ray. Centre → aim → centre again. A few thousand
+  raycasts once per respawn. Acceptance: 0.1 m off centre, 0° off the road.
+- `HoverBody.Reset` seats a `Respawning` body on the surface like a Grounded one.
+- **`KillVolume` / `MagnetVolume`** put themselves on the `ShipVolume` layer as triggers;
+  nothing collides with that layer, only ship queries see it. `MagnetVolume` overrides
+  `ShipSettings.magnetic` for the ship inside it (`HoverBody.MagneticOverride`, found by an
+  overlap each tick in `HoverShip`).
+- A stall never freezes the standalone ship (it is a report, cleared once it moves); the brake at
+  a standstill **reverses** (`reverseSpeed`, 0 = the runner's brake-only rule).
+
 ## Contracts: `IShip`, `IRunnerShip`, `ShipRegistry`
 
 - **`IShip`** is what the rest of the game reads off a ship, in world terms only (speed, state,

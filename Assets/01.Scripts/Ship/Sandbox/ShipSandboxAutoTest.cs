@@ -28,7 +28,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
         [SerializeField] bool logTakeOffs = true;
 
         readonly StringBuilder report = new();
-        int wallHits, takeOffs, landings, slides;
+        int wallHits, takeOffs, landings, slides, falls, respawns;
+        float fellAt, respawnedAt;
         int guidedTicks, flownTicks;
         float worstLateral, worstJump;
         Vector3 lastPosition;
@@ -55,6 +56,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             ship.TookOff += OnTookOff;
             ship.Landed += OnLanded;
             ship.Sliding += OnSliding;
+            ship.FellOff += OnFellOff;
+            ship.Respawned += OnRespawned;
         }
 
         void OnDisable()
@@ -64,7 +67,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             ship.TookOff -= OnTookOff;
             ship.Landed -= OnLanded;
             ship.Sliding -= OnSliding;
+            ship.FellOff -= OnFellOff;
+            ship.Respawned -= OnRespawned;
         }
+
+        void OnFellOff() { falls++; fellAt = Time.time; }
+        void OnRespawned() { respawns++; respawnedAt = Time.time; }
 
         void OnSliding(float excess) => slides++;
 
@@ -207,6 +215,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
 
             yield return Feel();
             yield return Guided();
+            yield return Recovery();
 
             Begin("End wall", ship.Definition.cruiseSpeed, throttle: 0f);
             yield return new WaitForSeconds(1.5f);
@@ -252,6 +261,62 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
                 yield return Feature("Flat sweep", speed, 2300f, "grip-tested flat sweep");
                 Line($"   slides {slides} ({(speed > cruise ? (slides > 0 ? "slid, as intended" : "DID NOT SLIDE") : (slides == 0 ? "held, as intended" : "SLID AT CRUISE"))}), worst offset {worstLateral:F1} m");
             }
+        }
+
+        /// <summary>Falling off the world and coming back, and a thin kill volume at Light Speed.</summary>
+        IEnumerator Recovery()
+        {
+            var recovery = ship.GetComponent<ShipRecovery>();
+            if (recovery == null) { Line("recovery: NO ShipRecovery ON THE SHIP"); yield break; }
+            ShipSettings settings = ship.Settings;
+            float cruise = ship.Definition.cruiseSpeed;
+
+            // Steer off the side of a deck with no walls, over a pit.
+            Begin("Open deck", cruise, throttle: 0f, steer: -1f);
+            float t0 = Time.time;
+            yield return new WaitUntil(() => falls > 0 || Time.time - t0 > 12f);
+            float speedAtFall = ship.CurrentSpeed;
+            ship.ControlOverride = new BodyControls(); // hands off from here: where it comes back is the recovery's doing
+            string reason = recovery.LastFallReason;
+            yield return new WaitUntil(() => respawns > 0 || Time.time - t0 > 25f);
+            float expectedWait = settings.fallDurationSeconds + settings.respawnWaitSeconds;
+            Line($"open deck, steered off the edge: {(falls > 0 ? "fell (" + reason + ")" : "NEVER FELL")}, " +
+                 $"{(respawns > 0 ? $"back after {respawnedAt - fellAt:F2} s (expected {expectedWait:F2})" : "NEVER RESPAWNED")}, " +
+                 $"relaunched at {ship.CurrentSpeed:F0} m/s (expected {speedAtFall * (1f - settings.respawnSpeedPenalty):F0}), state {ship.State}");
+            // A free respawn must be in the middle of the road and facing down it — not at the edge it fell off.
+            foreach (ShipSandboxCourse.Station station in course.Stations)
+            {
+                if (station.Name != "Open deck") continue;
+                Vector3 along = station.Rotation * Vector3.forward, across = station.Rotation * Vector3.right;
+                float offCentre = Vector3.Dot(ship.Body.Position - station.Position, across);
+                float offHeading = Vector3.Angle(Vector3.ProjectOnPlane(ship.Body.Forward, Vector3.up), along);
+                Line($"   respawned {offCentre:F1} m off the road's centre, heading {offHeading:F0}° off the road " +
+                     $"({(Mathf.Abs(offCentre) < 5f && offHeading < 15f ? "centred and facing the road" : "NOT CENTRED OR NOT FACING THE ROAD")})");
+            }
+
+            // A 5 m kill curtain across the road, at 36 m per tick.
+            Begin("Kill curtain", lightSpeed, throttle: 0f);
+            pinnedSpeed = lightSpeed;
+            t0 = Time.time;
+            yield return new WaitUntil(() => falls > 0 || travelled > 1100f || Time.time - t0 > 6f);
+            pinnedSpeed = -1f;
+            Line($"5 m kill curtain at {lightSpeed:F0} m/s: {(falls > 0 ? "caught (" + recovery.LastFallReason + ")" : "TUNNELLED THROUGH, NEVER CAUGHT")}");
+        }
+
+        /// <summary>Only the fall / respawn checks.</summary>
+        public void RunRecovery()
+        {
+            if (Running || ship == null || course == null) return;
+            StartCoroutine(RecoveryOnly());
+        }
+
+        IEnumerator RecoveryOnly()
+        {
+            Running = true;
+            report.Clear();
+            yield return Recovery();
+            ship.ControlOverride = null;
+            Running = false;
         }
 
         /// <summary>Only the guide checks.</summary>
@@ -308,7 +373,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             ship.ControlOverride = new BodyControls { throttle = 1f, brake = 1f };
             yield return new WaitForSeconds(ship.Settings.stallGraceSeconds + 1.5f);
             bool heldOk = !ship.HasStopped && ship.CurrentSpeed <= 0.01f;
-            ship.ControlOverride = new BodyControls { brake = 1f };
+            ship.ControlOverride = new BodyControls(); // hands off everything: the brake at a standstill would reverse, which is moving
             yield return new WaitForSeconds(ship.Settings.stallGraceSeconds + 0.5f);
             Line($"stall: brake + throttle held {(heldOk ? "did not stall" : "WRONGLY STALLED OR NEVER STOPPED")}, throttle released {(ship.HasStopped ? "stalled" : "DID NOT STALL")}");
         }
@@ -338,7 +403,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             }
             ship.Body.ForwardSpeed = speed;
             ship.ControlOverride = new BodyControls { throttle = throttle, steer = steer };
-            wallHits = takeOffs = landings = slides = 0;
+            wallHits = takeOffs = landings = slides = falls = respawns = 0;
             guidedTicks = flownTicks = 0;
             worstLateral = worstJump = 0f;
             lastPosition = ship.Body.Position;

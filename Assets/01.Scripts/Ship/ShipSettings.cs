@@ -147,6 +147,82 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [PropertyRange(0.25f, 10f), SuffixLabel("s", true)]
         public float stallGraceSeconds = 2f;
 
+        [TitleGroup("Recovery")]
+        [Tooltip("Falling off the world and coming back (needs a ShipRecovery on the ship). Off = a lost ship just keeps falling.")]
+        public bool recoveryEnabled = true;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Seconds in the air with NO ground anywhere below before the ship counts as lost. A jump always has ground under it.")]
+        [PropertyRange(0.1f, 5f), SuffixLabel("s", true)]
+        public float groundlessSeconds = 0.75f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Longest the ship may stay airborne at all, ground below or not.")]
+        [PropertyRange(1f, 60f), SuffixLabel("s", true)]
+        public float maxAirSeconds = 10f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Treat anything below the kill height as lost.")]
+        public bool useKillHeight;
+
+        [TitleGroup("Recovery")]
+        [SuffixLabel("m (world Y)", true), EnableIf(nameof(useKillHeight))]
+        public float killHeight = -200f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Gravity of the tumbling fall.")]
+        [PropertyRange(1f, 200f), SuffixLabel("m/s²", true)]
+        public float fallGravity = 30f;
+
+        [TitleGroup("Recovery")]
+        [PropertyRange(0f, 720f), SuffixLabel("°/s", true)]
+        public float fallTumbleDegreesPerSecond = 120f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("How long the fall is watched before the ship is put back.")]
+        [PropertyRange(0f, 5f), SuffixLabel("s", true)]
+        public float fallDurationSeconds = 1.5f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Blinking standstill before the relaunch.")]
+        [PropertyRange(0f, 10f), SuffixLabel("s", true)]
+        public float respawnWaitSeconds = 3f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Share of the speed it fell with that the relaunch loses.")]
+        [PropertyRange(0f, 1f)]
+        public float respawnSpeedPenalty = 0.15f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Guided respawn: plain road the guide must find ahead of the spot.")]
+        [PropertyRange(0f, 1000f), SuffixLabel("m", true)]
+        public float respawnClearance = 150f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Free respawn: how far back along its own trail the ship is put, so it is clear of what it fell off.")]
+        [PropertyRange(5f, 500f), SuffixLabel("m", true)]
+        public float respawnBackMeters = 60f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Free respawn: how far along each candidate heading the ship looks for road. It faces the way with the most road ahead, so it never relaunches at the edge it fell off.")]
+        [PropertyRange(50f, 2000f), SuffixLabel("m", true)]
+        public float respawnLookAheadMeters = 400f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Free respawn: how far to each side the road's edges are searched for, to put the ship in the middle of it. A side with no edge inside this range is open ground: the ship is not moved that way.")]
+        [PropertyRange(10f, 500f), SuffixLabel("m", true)]
+        public float respawnCentreSearchMeters = 150f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Free respawn: distance between the breadcrumbs the ship drops while safely grounded.")]
+        [PropertyRange(2f, 100f), SuffixLabel("m", true)]
+        public float crumbSpacingMeters = 15f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("Free respawn: a breadcrumb is only dropped while the ship is within this tilt of upright — never halfway up a loop.")]
+        [PropertyRange(5f, 90f), SuffixLabel("°", true)]
+        public float maxCrumbTilt = 35f;
+
         [TitleGroup("Reverse")]
         [Tooltip("At a standstill, holding the brake backs the ship up to this speed — the way out of a wall it has nosed into. 0 = no reverse (the runner's rule: the brake only stops).")]
         [PropertyRange(0f, 100f), SuffixLabel("m/s", true)]

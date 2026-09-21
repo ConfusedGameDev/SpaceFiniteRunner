@@ -137,6 +137,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public bool HasGuideSample { get; private set; }
         public GuideSample Guided { get; private set; }
 
+        /// <summary>A region's say over the magnetic hover (a <see cref="MagnetVolume"/> the owner found the body in); null = the settings' rule.</summary>
+        public bool? MagneticOverride;
+        bool Magnetic => MagneticOverride ?? Settings.magnetic;
+
         /// <summary>Refilled by the owner before every tick.</summary>
         public HoverParams Params;
         /// <summary>The owner's runtime clone; read live.</summary>
@@ -181,7 +185,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             HasGuideSample = false;
             Velocity = Forward * forwardSpeed;
             SetState(state);
-            if (state == ShipState.Grounded && Settings != null) FollowSurface(0f);
+            // Seated on the road it was put on — a respawning body waits there, it does not hang above it.
+            if ((state == ShipState.Grounded || state == ShipState.Respawning) && Settings != null)
+            {
+                FollowSurface(0f);
+                if (State != state) SetState(state); // nothing under it: it still waits rather than flies
+            }
             SnapInterpolation();
         }
 
@@ -196,6 +205,22 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             LateralVelocity = 0f;
             ShoveVelocity = 0f;
             TotalLateralVelocity = 0f;
+        }
+
+        /// <summary>
+        /// Moves a body that is out of play (<see cref="ShipState.OffTrack"/>):
+        /// the owner flies the fall, the body only carries the pose — and the
+        /// step from the last one, so the render still runs smoothly along it.
+        /// </summary>
+        public void MoveOutOfPlay(Vector3 position, Quaternion rotation)
+        {
+            var previous = new Pose(Position, Rotation);
+            Position = position;
+            Forward = rotation * Vector3.forward;
+            Up = rotation * Vector3.up;
+            path.Clear();
+            path.Add(previous);
+            path.Add(new Pose(Position, Rotation));
         }
 
         /// <summary>For the states the owner decides (a fall, a respawn wait).</summary>
@@ -383,7 +408,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 float outward = -Mathf.Sign(turnRate);
                 slip = outward * excess;
                 // World-gravity mode: a bank pulls the ship downhill.
-                if (!Settings.magnetic) slip += Vector3.Dot(Physics.gravity, Right);
+                if (!Magnetic) slip += Vector3.Dot(Physics.gravity, Right);
                 sliding = excess > 0f && outward * LateralVelocity > Params.slideThreshold;
             }
             if (sliding)
@@ -642,7 +667,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             }
 
             // World-gravity mode: a surface too steep to stand on only holds under centripetal load (the inside of a loop).
-            if (!Settings.magnetic && Vector3.Angle(normal, Vector3.up) > Settings.maxGroundAngle)
+            if (!Magnetic && Vector3.Angle(normal, Vector3.up) > Settings.maxGroundAngle)
             {
                 float bend = Vector3.Dot(normal - up, fwd); // < 0: concave, the surface rises to meet the ship
                 float load = stepLength > 1e-4f ? ForwardSpeed * ForwardSpeed * Mathf.Max(0f, -bend) / stepLength : 0f;

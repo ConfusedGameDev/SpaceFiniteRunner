@@ -195,6 +195,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             bool added = false;
             if (ship.GetComponent<BarrelRollTrail>() == null) { ship.AddComponent<BarrelRollTrail>(); added = true; }
             if (ship.GetComponent<RespawnBlink>() == null) { ship.AddComponent<RespawnBlink>(); added = true; }
+            if (ship.GetComponent<ShipRecovery>() == null) { ship.AddComponent<ShipRecovery>(); added = true; }
             return added;
         }
 

@@ -269,6 +269,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             Straight("Flat sweep exit", 600f, walls: true);
             EndGuide("Guide (grip tested)", assist: 1f, gripTested: true);
 
+            // ---- falling off: a deck with no walls over a kill volume, then a thin kill curtain across the road
+            Straight("Deck run-up", 400f, walls: true);
+            Mark("Open deck", back: 200f);
+            Vector3 deckStart = cursor;
+            Straight("Open deck", 1200f, walls: false);
+            Volume<KillVolume>("Pit under the deck", deckStart + Forward * 600f - Up * 60f, new Vector3(4000f, 5f, 2400f));
+            Straight("After deck", 600f, walls: true);
+
+            Mark("Kill curtain", back: 0f);
+            Straight("Curtain road", 1200f, walls: true);
+            Volume<KillVolume>("Kill curtain", cursor - Forward * 600f + Up * 10f, new Vector3(width, 40f, 5f));
+
             Straight("Run-out", 1200f, walls: true);
             Mark("End wall", back: 600f);
             Box("End wall", cursor + Up * 20f, new Vector3(width, 40f, 4f));
@@ -486,6 +498,19 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             go.transform.SetPositionAndRotation(centre, heading);
             go.transform.localScale = size;
             go.GetComponent<MeshRenderer>().sharedMaterial = SurfaceMaterial();
+        }
+
+        /// <summary>A rule volume (kill, magnet): a trigger box on the ship's volume layer, with no picture.</summary>
+        void Volume<T>(string label, Vector3 centre, Vector3 size) where T : Component
+        {
+            if (stationsOnly) return;
+            var go = Own(new GameObject(label) { layer = ShipLayers.Volume });
+            go.transform.SetParent(transform, false);
+            go.transform.SetPositionAndRotation(centre, heading);
+            var box = go.AddComponent<BoxCollider>();
+            box.size = size;
+            box.isTrigger = true;
+            go.AddComponent<T>();
         }
 
         Material SurfaceMaterial()

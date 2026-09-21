@@ -107,11 +107,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public event Action<ShipState> StateChanged;
         public event Action TookOff;
         public event Action Landed;
-#pragma warning disable CS0067 // raised by the recovery component once falls exist for a free ship
         public event Action FellOff;
         public event Action<Vector3> RespawnStarted;
         public event Action Respawned;
-#pragma warning restore CS0067
+
+        // The fall and the respawn are flown by ShipRecovery; the ship stays the one voice the game listens to.
+        public void RaiseFellOff() => FellOff?.Invoke();
+        public void RaiseRespawnStarted(Vector3 teleport) => RespawnStarted?.Invoke(teleport);
+        public void RaiseRespawned() => Respawned?.Invoke();
 
         // ------------------------------------------------------ ICameraTarget
         Transform ICameraTarget.Transform => transform;
@@ -233,6 +236,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             }
             FillParams();
             UpdateGuide(dt);
+            body.MagneticOverride = FindMagnetVolume();
 
             UpdateDash(dt); // before the body's tick, so a request fires on the tick it was consumed
 
@@ -271,6 +275,17 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 jumpStrength = definition.jumpStrength,
                 rideHeight = definition.hoverHeight,
             };
+        }
+
+        static readonly Collider[] Volumes = new Collider[4];
+
+        // A MagnetVolume the ship is inside of has the say over the hover rule; none = the settings'.
+        bool? FindMagnetVolume()
+        {
+            int count = Physics.OverlapSphereNonAlloc(body.Position, 0.5f, Volumes, ShipLayers.VolumeMask, QueryTriggerInteraction.Collide);
+            for (int i = 0; i < count; i++)
+                if (Volumes[i].TryGetComponent(out MagnetVolume volume)) return volume.Magnetic;
+            return null;
         }
 
         // Detecting the level's guide: nothing is wired — a guide in reach is
