@@ -284,6 +284,31 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 triangles.Add(l0); triangles.Add(l1); triangles.Add(r1);
                 triangles.Add(l0); triangles.Add(r1); triangles.Add(r0);
             }
+
+            // The wedge's flanks, facing OUT. Without them a ship that meets the ramp off-line rides half on the
+            // slope and half on the road (it took off and landed in the same tick and never jumped). With them the
+            // side of a ramp is what it always was in track space: a wall — a hit, a speed loss, and round you go.
+            int slopeVertices = vertices.Count;
+            for (int r = 0; r <= rows; r++)
+            {
+                float d = Mathf.Lerp(ramp.StartDistance, ramp.EndDistance, r / (float)rows);
+                for (int c = 0; c <= 1; c++)
+                {
+                    float lateral = ramp.Lateral + (c == 0 ? -ramp.HalfWidth : ramp.HalfWidth);
+                    track.GetPoseAtDistance(d, lateral, out Vector3 position, out Quaternion rotation);
+                    vertices.Add(position - rotation * Vector3.up * surfaceSink); // the foot, on the road surface
+                }
+            }
+            for (int r = 0; r < rows; r++)
+            {
+                // Left flank faces −right, right flank faces +right; tops are the slope's own edge vertices.
+                int lb0 = slopeVertices + r * 2, lb1 = lb0 + 2, lt0 = r * 2, lt1 = lt0 + 2;
+                triangles.Add(lb1); triangles.Add(lt1); triangles.Add(lt0);
+                triangles.Add(lb1); triangles.Add(lt0); triangles.Add(lb0);
+                int rb0 = lb0 + 1, rb1 = lb1 + 1, rt0 = lt0 + 1, rt1 = lt1 + 1;
+                triangles.Add(rb0); triangles.Add(rt0); triangles.Add(rt1);
+                triangles.Add(rb0); triangles.Add(rt1); triangles.Add(rb1);
+            }
             return Emit($"RampCollider_{ramp.StartDistance:00000}", ramp.EndDistance);
         }
 

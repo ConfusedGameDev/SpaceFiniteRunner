@@ -54,6 +54,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [Tooltip("Launch with the definition's initial impulse on Start. Off = a game launches it.")]
         [SerializeField] bool launchOnStart = true;
 
+        const float AutopilotReach = 10f; // metres off the lane's middle at which the autopilot steers at full lock
+
         ISteeringInput steering;
         IThrottleInput throttleInput;
         IDashInput dashInput;
@@ -92,6 +94,16 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public GuideSample GuideSample => body.Guided;
         /// <summary>A game's say over the camera's view cycle (a menu is open).</summary>
         public bool ViewCycleLocked { get; set; }
+        /// <summary>
+        /// The hands-off lockdown a game switches on when the run is decided
+        /// (the runner's post-win fly-on): throttle held, the stick replaced
+        /// by a pull to the middle of the guide's lane, dash requests
+        /// swallowed, and the road always holds — a win never ends in a slide
+        /// or a fall. With no guide in reach it just holds the throttle and
+        /// flies straight. Cleared by <see cref="Launch()"/>.
+        /// </summary>
+        public bool Autopilot { get; set; }
+
         /// <summary>When set, these controls drive the ship instead of the player's input (an autopilot, a scripted test). Dash requests from the input are swallowed while it is.</summary>
         public BodyControls? ControlOverride { get; set; }
         /// <summary>Cost of the last simulation tick, milliseconds — the number the substep budget is judged by.</summary>
@@ -201,6 +213,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             rollAngle = 0f;
             stallTimer = 0f;
             HasStopped = false;
+            Autopilot = false;
             bankAngle = 0f;
             dashInput?.ConsumeDashRequest(); // a press from before the launch is not a dash
             guideSearchTimer = 0f;           // a teleport: look for the level's guide at once
@@ -246,6 +259,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 throttle = throttleInput != null ? throttleInput.Throttle : 1f, // no throttle input = held
                 brake = throttleInput != null ? throttleInput.Brake : 0f,
             };
+            body.HoldOnRoad = Autopilot;
+            if (Autopilot)
+                controls = new BodyControls
+                {
+                    // Guided, the stick strafes: a pull to the middle of the lane. (The body's guide sample is last tick's — a tick stale is nothing here.)
+                    steer = body.HasGuideSample ? Mathf.Clamp(-body.Guided.lateral / AutopilotReach, -1f, 1f) : 0f,
+                    throttle = 1f,
+                };
             long started = System.Diagnostics.Stopwatch.GetTimestamp();
             body.Tick(dt, controls);
             LastTickMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
@@ -320,7 +341,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             else meterWasFull = false;
 
             int request = dashInput?.ConsumeDashRequest() ?? 0;
-            if (ControlOverride.HasValue) request = 0; // an autopilot is hands-off
+            if (ControlOverride.HasValue || Autopilot) request = 0; // an autopilot is hands-off
             if (request != 0) TryDash(request);
         }
 

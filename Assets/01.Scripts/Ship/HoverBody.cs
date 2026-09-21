@@ -83,6 +83,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         const float ThrottleDeadzone = 0.01f;
         const float ShoveEpsilon = 0.05f;
         const float Skin = 0.05f;
+        const float DriftGain = 0.7f;
+        const float MaxYawTrim = 0.06f; // ~3.4°
         const float SlimHull = 0.6f;
         const float ProbeLift = 1f;
         const float GroundSearch = 5000f;
@@ -98,6 +100,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float airScale = 1f;
         Vector3 airForward = Vector3.forward;
         float guideHint = float.NaN;
+        float guideSinceProjection = float.MaxValue; // metres flown since the last full projection
+        float guideAdvance;                          // signed metres along the line the last substep covered
+        Vector3 guideTangent = Vector3.forward;      // the line's tangent where the body is now
+        float guideYawTrim;                          // radians: the heading correction that cancels uncommanded sideways drift
+        float guideLastDistance, guideLastLateral;   // the last full projection, to measure that drift from
+        float guideCommandedLateral;                 // metres the ship was ASKED to move sideways since then
+        bool guideHasLast;
 
         // -------------------------------------------------------------- state
         public Vector3 Position { get; private set; }
@@ -136,6 +145,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>True while the last substep was guided; <see cref="Guided"/> is then where the body sits on the guide.</summary>
         public bool HasGuideSample { get; private set; }
         public GuideSample Guided { get; private set; }
+
+        /// <summary>The owner's hands-off lockdown (a won run flying on): the road always holds — no grip test, so no slide can carry the body off an open edge.</summary>
+        public bool HoldOnRoad;
 
         /// <summary>A region's say over the magnetic hover (a <see cref="MagnetVolume"/> the owner found the body in); null = the settings' rule.</summary>
         public bool? MagneticOverride;
@@ -182,6 +194,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             wallHitCooldown = 0f;
             airGap = 0f;
             guideHint = float.NaN; // a teleport: find the line again from scratch
+            guideSinceProjection = float.MaxValue;
+            guideAdvance = 0f;
+            guideYawTrim = 0f;
+            guideHasLast = false;
             HasGuideSample = false;
             Velocity = Forward * forwardSpeed;
             SetState(state);
@@ -404,7 +420,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (State != ShipState.Airborne)
             {
                 // A guided road that tests grip asks v²κ of it (the runner's flat sweep); the player's own turning asks v·yaw.
-                bool roadTurn = assist > 0f && Guided.gripTested;
+                bool roadTurn = assist > 0f && Guided.gripTested && !HoldOnRoad;
                 float turnRate = roadTurn ? ForwardSpeed * Guided.curvature * assist + yawRate : yawRate;
                 float demand = ForwardSpeed * Mathf.Abs(turnRate);
                 excess = Mathf.Max(0f, demand - grip);
@@ -436,14 +452,73 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         // -------------------------------------------------------------- guide
         /// <summary>Where the body sits on the guide this substep, if it has one in reach.</summary>
+        /// <remarks>
+        /// A full projection is the expensive part of a guided substep (on a
+        /// spline-backed track it is a handful of spline evaluations), and at
+        /// Light Speed there are ten substeps a tick. So it is only done every
+        /// <see cref="ShipSettings.guideRefreshMeters"/>; in between the body
+        /// knows where it is on the line well enough by dead reckoning — the
+        /// distance advances by what the last substep covered, and the line's
+        /// tangent turns by its curvature over that stretch.
+        /// </remarks>
         void ProjectOnGuide()
         {
+            bool had = HasGuideSample;
             HasGuideSample = false;
             if (Guide as UnityEngine.Object == null || GuideAssist <= 0f || !Settings.useGuide) return;
-            if (!Guide.TryProject(Position, ref guideHint, out GuideSample sample)) { guideHint = float.NaN; return; }
-            if (new Vector2(sample.lateral, sample.height).magnitude > Guide.CaptureRange) { guideHint = float.NaN; return; }
+
+            if (had && !float.IsNaN(guideHint) && guideSinceProjection < Settings.guideRefreshMeters)
+            {
+                GuideSample carried = Guided;
+                carried.distance += guideAdvance;
+                Guided = carried;
+                guideTangent = Quaternion.AngleAxis(carried.curvature * guideAdvance * Mathf.Rad2Deg, carried.up) * guideTangent;
+                guideSinceProjection += Mathf.Abs(guideAdvance);
+                HasGuideSample = true;
+                return;
+            }
+
+            if (!Guide.TryProject(Position, ref guideHint, out GuideSample sample)) { guideHint = float.NaN; guideHasLast = false; return; }
+            if (new Vector2(sample.lateral, sample.height).magnitude > Guide.CaptureRange) { guideHint = float.NaN; guideHasLast = false; return; }
+            TrimAgainstDrift(sample);
             Guided = sample;
+            guideTangent = sample.forward;
+            guideSinceProjection = 0f;
             HasGuideSample = true;
+        }
+
+        /// <summary>
+        /// In track space a ship's lateral only ever changed because it was
+        /// steered or shoved. A world-space ship locked to the line's heading
+        /// does not have that for free: at 2000 m/s a heading one degree off
+        /// — a stale tangent, a facet, the bulge of a curved pipe — is 35 m/s
+        /// of sideways drift, more than the stick can answer, and it walks
+        /// the ship round a tube until it loses the surface underneath. So
+        /// every full projection compares how far the ship moved across the
+        /// line with how far it was ASKED to, and leans the heading against
+        /// the difference. Full assist and attached only; a wrap round a full
+        /// tube (the lateral jumps a circumference) is simply skipped.
+        /// </summary>
+        void TrimAgainstDrift(in GuideSample sample)
+        {
+            bool locked = State != ShipState.Airborne && GuideAssist * Guide.Assist >= 0.999f;
+            if (locked && guideHasLast)
+            {
+                float along = sample.distance - guideLastDistance;
+                float across = sample.lateral - guideLastLateral;
+                if (Mathf.Abs(along) > 1f && Mathf.Abs(across) < 20f)
+                {
+                    float drift = across - guideCommandedLateral;
+                    // Flying the line backwards, the line's right is the ship's left.
+                    guideYawTrim = Mathf.Clamp(guideYawTrim - DriftGain * drift / along, -MaxYawTrim, MaxYawTrim);
+                }
+            }
+            else if (!locked) guideYawTrim = 0f;
+
+            guideLastDistance = sample.distance;
+            guideLastLateral = sample.lateral;
+            guideCommandedLateral = 0f;
+            guideHasLast = true;
         }
 
         /// <summary>
@@ -463,9 +538,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Vector3 up = airborne ? Vector3.up : Up;
             Vector3 heading = airborne ? airForward : Forward;
 
-            float direction = Vector3.Dot(heading, Guided.forward) >= 0f ? 1f : -1f;
-            Guide.SampleAt(Guided.distance + direction * 0.5f * ForwardSpeed * dt, out GuideSample ahead);
-            Vector3 target = Vector3.ProjectOnPlane(ahead.forward * direction, up);
+            float direction = Vector3.Dot(heading, guideTangent) >= 0f ? 1f : -1f;
+            guideAdvance = direction * ForwardSpeed * dt;
+            // Half a step ahead, by turning the known tangent through the line's curvature — no lookup.
+            Vector3 ahead = Quaternion.AngleAxis(Guided.curvature * guideAdvance * 0.5f * Mathf.Rad2Deg, Guided.up) * guideTangent;
+            Vector3 target = Vector3.ProjectOnPlane(ahead * direction, up);
+            if (guideYawTrim != 0f) target = Quaternion.AngleAxis(guideYawTrim * Mathf.Rad2Deg, up) * target;
+            guideCommandedLateral += direction * TotalLateralVelocity * dt;
             if (target.sqrMagnitude < 1e-6f) return;
             target.Normalize();
 

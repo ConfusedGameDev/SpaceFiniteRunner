@@ -114,6 +114,23 @@ road's up, so a line through a loop or along a banked wall guides there too) reg
   feel. The player's own yaw is scaled by (1 − assist) and the strafe share rises to 1. **The
   guide never moves the body**: it still rides whatever surface is under it, and walls stay
   physical.
+- **A full projection only every `guideRefreshMeters` (16 m).** On a spline-backed track a
+  projection is a handful of spline evaluations (~0.04 ms) and there are ten substeps a tick at
+  Light Speed — projecting every substep cost 1.27 ms a tick at 1680 m/s on the runner's track.
+  In between, the body dead-reckons: `Guided.distance` advances by what the last substep covered
+  and `guideTangent` is turned by the line's curvature over it. Costs accuracy on a curve with no
+  lateral pull (the hands-off R = 490 S-curve drifts 0.41 m instead of 0.03 m — inside the ±1 m
+  target). `Guided.lateral` / `height` are as old as the last refresh. 0 = every substep.
+- **A heading lock is not a lateral lock — `TrimAgainstDrift` makes it one.** In track space a
+  lateral only changed because the ship was steered or shoved; a world-space ship locked to the
+  line's heading does not get that free: at 2000 m/s a heading one degree off (a stale tangent,
+  a facet, the bulge of a curved pipe) is 35 m/s of sideways drift — more than the stick answers.
+  On the runner's tubes it walked the ship 174° round the pipe until it lost the surface. So each
+  full projection compares how far the ship moved ACROSS the line with how far it was ASKED to
+  (`guideCommandedLateral`, the integral of the body's lateral velocity — slides and dashes count
+  as asked) and leans the heading against the difference (`DriftGain` 0.7, clamped to ±3.4°).
+  Full assist and attached only; a wrap round a full tube is skipped. Result on the runner track:
+  ≤ 8° round any pipe and 0.1 m off centre on road, hands-off, up to 2000 m/s.
 - **The tangent is taken half a substep AHEAD (midpoint rule).** Stepping along the tangent at
   the start of each substep walks off the outside of every curve, millimetres at a time — metres
   over a sweep.
@@ -170,6 +187,15 @@ fixed tick, not coroutines** — `Paused` and a menu's timeScale freeze them.
 - A stall never freezes the standalone ship (it is a report, cleared once it moves); the brake at
   a standstill **reverses** (`reverseSpeed`, 0 = the runner's brake-only rule).
 
+## Autopilot (`HoverShip.Autopilot`, `HoverBody.HoldOnRoad`)
+
+The hands-off lockdown a game switches on when the run is decided (the runner's post-win
+fly-on): throttle held, the stick replaced by a pull to the guide lane's middle
+(`-lateral / AutopilotReach`), dash requests swallowed, and `HoldOnRoad` switches the grip test
+off — **a grip-tested flat sweep taken hands-off at cruise asks 4× the ship's grip and slides it
+off the open edge, which is the game working** (the M7 spike fell exactly there before this
+existed). Cleared by `Launch`. With no guide it just holds the throttle and flies straight.
+
 ## World-space pickups (`Ship/Pickups/`)
 
 - **`IShipPickup`** (`Available`, `PickUp(IShip)`) is a pickup in a level with no track to key it
@@ -214,6 +240,9 @@ untouched and still runs the runner** until the swap scene (M7).
   `surfaceSink` = the ship's hover height**, so a hovering ship rides the flight line exactly and
   pads, camera and patrol pose stay put. World-space vertices, single-sided, colliders only
   (`showMeshes` to look at them), layer `ShipGround`.
+- **A ramp's wedge has outward-facing flanks.** Without them a ship meeting an off-line ramp rode
+  half on the slope and half on the road (took off and landed in one tick, never jumped); with
+  them the side of a ramp is what it was in track space — a wall.
 - It **drives itself** off three public members added to `TrackGenerator` — `SettledDistance`
   (nothing past the settle margin is built: AutoSmooth still reshapes it), `CullDistance`
   (chunks go by their END: a loop is 630 m of track) and the `Regenerated` event — so the

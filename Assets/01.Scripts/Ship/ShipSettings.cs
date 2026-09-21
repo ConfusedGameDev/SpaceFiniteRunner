@@ -128,6 +128,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float guideHeadingResponse = 6f;
 
         [TitleGroup("Guide")]
+        [Tooltip("Metres flown between full projections onto the guide. In between, the ship's place on the line is advanced by what it flew and the line's tangent is turned by its curvature — no query at all. A projection is the expensive part of a guided substep (a spline-backed track costs ~0.04 ms each, ten substeps a tick at Light Speed); 0 = project every substep.")]
+        [PropertyRange(0f, 100f), SuffixLabel("m", true), EnableIf(nameof(useGuide))]
+        public float guideRefreshMeters = 16f;
+
+        [TitleGroup("Guide")]
         [Tooltip("How often a ship with no guide looks for one.")]
         [PropertyRange(0.1f, 5f), SuffixLabel("s", true), EnableIf(nameof(useGuide))]
         public float guideSearchSeconds = 0.5f;
