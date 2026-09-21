@@ -1,8 +1,11 @@
 ---
-description: Standalone physics ship — Ship assembly, HoverBody surface follower, HoverShip, ShipSettings, ship layers, sandbox scene + acceptance run
+description: Standalone physics ship — Ship assembly, IShip contracts, HoverBody surface follower, HoverShip, ShipSettings, ship layers, acceptance scene + run
 paths:
   - "Assets/01.Scripts/Ship/**"
-  - "**/ShipSandbox.unity"
+  - "**/IRunnerShip.cs"
+  - "**/RunnerShipSettingsSync.cs"
+  - "**/ShipAcceptance.unity"
+  - "**/HoverShip.prefab"
 ---
 
 # Standalone ship (`Assets/01.Scripts/Ship/`, assembly `…FiniteRunner.Ship`)
@@ -29,8 +32,11 @@ milestone plan and the decisions behind it live in the memory note `standalone-s
 
 ## Layers (`ShipLayers`, fixed slots 6–9)
 
-`Ship` (hulls) / `ShipGround` (everything a ship rides, lands on or hits) / `ShipPickup` /
-`ShipVolume`. A level opts geometry in **by layer and nothing else**. The slots are constants,
+`Ship` (hulls) / `ShipGround` / `ShipPickup` / `ShipVolume`. **What the ship rides is
+`ShipSettings.groundLayers`** — Default + ShipGround out of the box, so the prefab flies over any
+ordinary level as it is (the user's `shipCityTest` uses EVP's demo city, all on Default). A level
+that shares its physics scene with colliders the ship must never touch (the runner during the
+city handoff) narrows the mask to `ShipGround` alone. The slots are constants,
 not name lookups (prefabs serialize the index); `Tools → FiniteRunner → Ship → Install Ship
 Layers` names them and switches off every contact pair of the two query-only layers. Do not use
 the glitch installer's "first free slot from 31 down" — it walks into the unnamed 28 / 29 the
@@ -80,7 +86,48 @@ Light Speed, a 60 m ramp is under two ticks, a loop wants 10⁴ m/s² of centrip
 4. **The re-seat is a swept move that SLIDES** along a wall. Stopping it dead threw the height
    correction away, and the ship fell behind an unwinding bank until the probes lost the road.
 
+## Contracts: `IShip`, `IRunnerShip`, `ShipRegistry`
+
+- **`IShip`** is what the rest of the game reads off a ship, in world terms only (speed, state,
+  dash / roll, `Paused`, `HasStopped`, the feedback events, `Launch` / `AddSpeedImpulse` /
+  `SetDefinition`). **Both ships implement it** — `HoverShip` and the runner's `ShipMotor` — so a
+  consumer is written once. It is an interface and must stay one (see Assembly rules).
+- **`IRunnerShip : IShip`** (in Runner) adds what only a track can answer: `DistanceTravelled`,
+  `LateralOffset`, `AirHeight`, `Track`, `CurrentRamp`, `CurrentLoop`, `Autopilot`,
+  `LoopEntered` / `LoopFailed`. `ShipMotor` implements it natively; the standalone ship will
+  answer it through the runner's bridge, off the guide's projection.
+- **`ShipRegistry.Find(scene)`** is "which ship flies this scene" — ships register in
+  OnEnable / OnDisable, the list is cleared at boot (domain reload off), and lookups are
+  **scene-scoped** because the city→runner handoff keeps two scenes alive.
+  `FloatingTextSystem` uses it, so it works for either ship.
+- **Not done on purpose**: the rest of the runner's consumers (`RaceHud`, `ShipAudio`,
+  `ShakeOnPad`, `PadEffects`, `DashMeterUI`, `DashPromptController`, `LoopSlowMo`,
+  `SpeedPad.Collect`, the debug tabs, `GameManager`) still hold a `ShipMotor`. Their serialized
+  scene references cannot be an interface, so how each one finds its ship is decided with the
+  swap scene (M7), not speculatively.
+
+## Feel components (Ship assembly, on the prefab)
+
+`BarrelRollTrail` and `RespawnBlink` moved here from Runner and read any `IShip` +
+`ShipSettings` (Feel group: ghost material, blink rate, roll-trail knobs). **On the prefab they
+wire themselves to the `HoverShip` beside them in `Start`**; the runner's `GameManager` still
+adds them to its `ShipMotor` with `Init` / `Ensure` + `Configure`. `ShipGhostMaterial` is the
+shared translucent fallback (the dash ghosts delegate to it).
+
+**`RunnerShipSettingsSync`** (Runner) is how the runner's rules reach components that only
+speak `ShipSettings`: it owns ONE runtime `ShipSettings` per run and **re-pushes the
+`GameSettings` values into it every frame** (the FALL & RESPAWN debug page edits that asset
+live). `GameSettings` was not split and no asset was migrated.
+
 ## `HoverShip`
+
+Implements `IShip`. **Dash / barrel roll / stall are the motor's, ported one-to-one**: the meter
+recharges at the definition's rate, `TryDash(±1)` spends `ShipSettings.dashCost` and shoves the
+body by exactly the definition's dash distance (verified 20.70 m at 300 and at 1806 m/s); in the
+air the same shove rides under a 360° roll on its own clock; `HasStopped` latches after
+`stallGraceSeconds` at a standstill with the throttle released. A `ControlOverride` swallows the
+input's dash requests (an autopilot is hands-off); a ship with no throttle input holds full
+throttle, like the runner's.
 
 Identity over the body: input → `BodyControls` (or `ControlOverride`, the autopilot/test seam),
 params refilled from the definition every tick, `FixedUpdate` ticks, `Update` poses **the root
@@ -90,20 +137,26 @@ Awake**. The rigidbody is kinematic and never integrates. `ICameraTarget` is imp
 (`ViewCycleLocked` is the game's gate); `ShipCameraAttach` attaches the chase camera in levels
 with no game manager.
 
-## Sandbox (`Ship/Sandbox/`, scene `05.Scenes/ShipSandbox.unity`)
+## Acceptance scene (`Ship/Sandbox/`, scene `05.Scenes/ShipAcceptance.unity`)
 
-`Tools → FiniteRunner → Ship → Build Sandbox Scene` builds the scene **additively and closes
-it**, so the open scene and its unsaved changes are untouched. `ShipSandboxCourse` builds its
+**`ShipSandbox.unity` and `shipCityTest.unity` are the USER's hand-made playgrounds — never
+rebuild or edit them.** The scripted run has its own scene and its own reference assets
+(`04.Data/Ship/Acceptance_ShipDefinition` = the Fighter as accepted, `Acceptance_ShipSettings`),
+so tuning the game's ship never moves the goalposts and a test never touches the game's ship.
+
+`Tools → FiniteRunner → Ship → Build Acceptance Scene` builds it **additively and closes it**,
+so the open scene and its unsaved changes are untouched. `Update HoverShip Prefabs` adds
+whatever components the ship has gained to every prefab carrying a `HoverShip` (idempotent). `ShipSandboxCourse` builds its
 colliders at `Awake` through `SurfaceRibbonMesher` (single-sided ribbons, optional pipe curl,
 inward walls — also the future source of the runner's track colliders); nothing is saved as a
 mesh asset. `ShipDebugOverlay`: F1–F10 stations, 1/2/3 = 300 / cruise / Light Speed.
 
 **`ShipSandboxAutoTest` is the acceptance run** (`Run()`, or `RunOne(station, speed, metres)`):
 speed-model timings, every feature at 300 / cruise / Light Speed with the speed pinned, jump
-lengths, tick cost — `[ShipTest]` log lines. "Worst surface step" is the correction applied per
+lengths, dash carry, the barrel roll, the stall rule (`RunFeel()` alone), tick cost — `[ShipTest]` log lines. "Worst surface step" is the correction applied per
 substep (large beside a rolling bank far from its axis), not a residual error. A free ship on
 the corkscrew loop scrapes the wall twice — it has no guide to follow the drift; that is the
 guide spline's job, not a follower bug.
 
-Over MCP: set `EditorSceneManager.playModeStartScene` to the sandbox, enter play, call `Run()`,
+Over MCP: set `EditorSceneManager.playModeStartScene` to the acceptance scene, enter play, call `Run()`,
 poll `Report` — and **reset `playModeStartScene` to null afterwards**.

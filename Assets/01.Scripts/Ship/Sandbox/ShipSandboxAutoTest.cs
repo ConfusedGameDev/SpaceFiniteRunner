@@ -90,6 +90,22 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             StartCoroutine(One(station, speed, metres));
         }
 
+        /// <summary>Only the dash / barrel roll / stall checks.</summary>
+        public void RunFeel()
+        {
+            if (Running || ship == null || course == null) return;
+            StartCoroutine(FeelOnly());
+        }
+
+        IEnumerator FeelOnly()
+        {
+            Running = true;
+            report.Clear();
+            yield return Feel();
+            ship.ControlOverride = null;
+            Running = false;
+        }
+
         IEnumerator One(string station, float speed, float metres)
         {
             Running = true;
@@ -171,6 +187,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             pinnedSpeed = -1f;
             Line($"tube at 300 m/s, full right steer: reached {tubeTilt:F0}° round the pipe, state {ship.State}, worst surface error {worstError:F3} m");
 
+            yield return Feel();
+
             Begin("End wall", ship.Definition.cruiseSpeed, throttle: 0f);
             yield return new WaitForSeconds(1.5f);
             Line($"end wall at cruise: speed after {ship.CurrentSpeed:F0} m/s, wall hits {wallHits}");
@@ -179,6 +197,49 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             Line("---- done ----");
             ship.ControlOverride = null;
             Running = false;
+        }
+
+        /// <summary>What only the ship has: the dash's carry, the airborne barrel roll, the stall rule.</summary>
+        IEnumerator Feel()
+        {
+            // Ground dash: the shove must carry the definition's dash distance, whatever the substep count.
+            foreach (float speed in new[] { 300f, lightSpeed })
+            {
+                Begin("Start", speed, throttle: 0f);
+                pinnedSpeed = speed;
+                yield return new WaitForSeconds(0.2f);
+                Vector3 from = ship.Body.Position, side = ship.Body.Right;
+                bool dashed = ship.TryDash(1);
+                yield return new WaitForSeconds(1.5f);
+                float carried = Vector3.Dot(ship.Body.Position - from, side);
+                pinnedSpeed = -1f;
+                Line($"dash at {speed:F0} m/s: carried {carried:F2} m (definition {ship.Definition.dashDistance:F2}), {(dashed ? "fired" : "REFUSED")}, meter {ship.DashMeter:F2}");
+            }
+
+            // Airborne dash = barrel roll, and it must always finish.
+            int rolls = 0;
+            void CountRoll(int direction) => rolls++;
+            ship.BarrelRollStarted += CountRoll;
+            Begin("Ramp", 1000f, throttle: 0f);
+            int before = takeOffs;
+            float t0 = Time.time;
+            yield return new WaitUntil(() => takeOffs > before || Time.time - t0 > 4f);
+            bool rolled = ship.TryDash(-1);
+            bool sawRolling = ship.IsBarrelRolling;
+            yield return new WaitForSeconds(ship.Definition.barrelRollSeconds + 0.3f);
+            ship.BarrelRollStarted -= CountRoll;
+            float tilt = Quaternion.Angle(ship.Visual.localRotation, Quaternion.identity);
+            Line($"barrel roll off the ramp: {(rolled && sawRolling && rolls == 1 ? "rolled" : "DID NOT ROLL")}, " +
+                 $"{(ship.IsBarrelRolling ? "STILL ROLLING" : "finished")}, model tilt after {tilt:F0}°");
+
+            // Stall: braking to a stop with the throttle held is fine; releasing it for the grace is the end.
+            Begin("Start", 60f, throttle: 1f);
+            ship.ControlOverride = new BodyControls { throttle = 1f, brake = 1f };
+            yield return new WaitForSeconds(ship.Settings.stallGraceSeconds + 1.5f);
+            bool heldOk = !ship.HasStopped && ship.CurrentSpeed <= 0.01f;
+            ship.ControlOverride = new BodyControls { brake = 1f };
+            yield return new WaitForSeconds(ship.Settings.stallGraceSeconds + 0.5f);
+            Line($"stall: brake + throttle held {(heldOk ? "did not stall" : "WRONGLY STALLED OR NEVER STOPPED")}, throttle released {(ship.HasStopped ? "stalled" : "DID NOT STALL")}");
         }
 
         /// <summary>One pass over a feature: from its station, for <paramref name="metres"/> — just past its end, so the next feature never muddies the numbers.</summary>

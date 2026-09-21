@@ -74,7 +74,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// follows this root (the pose above the flight line, never the bobbing
     /// visual) and the view cycle is locked while airborne.
     /// </summary>
-    public class ShipMotor : MonoBehaviour, ICameraTarget, ICollector
+    public class ShipMotor : MonoBehaviour, IRunnerShip, ICameraTarget, ICollector
     {
         // Inline so the ship's sliders are reachable without leaving the scene —
         // in play mode this field holds the tuning screen's runtime clone, so
@@ -306,6 +306,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 TookOff?.Invoke();
             };
         }
+
+        // Whoever asks "which ship flies this scene" (ShipRegistry) gets this one.
+        void OnEnable() => ShipRegistry.Register(this);
+        void OnDisable() => ShipRegistry.Unregister(this);
 
         // Launch in Start so a TrackGenerator's Awake can rebuild the spline first.
         void Start() => Launch();

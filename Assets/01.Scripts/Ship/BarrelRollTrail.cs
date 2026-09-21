@@ -1,8 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-using ConfusedGameDev.FiniteRunner.GameFlow;
-using System.Collections.Generic;
 namespace ConfusedGameDev.FiniteRunner.Ship
 {
     /// <summary>
@@ -19,19 +17,29 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// <b>They also stream through an off-track fall</b>
     /// (<see cref="ShipState.OffTrack"/>): the tumbling ship draws its own
     /// way down, and the respawn teleport clears them like a launch does.
+    /// It reads any <see cref="IShip"/>: baked into the standalone prefab it
+    /// wires itself to the ship beside it in <c>Start</c>; a game that builds
+    /// its ship at runtime calls <see cref="Init"/> instead.
     /// </summary>
     public class BarrelRollTrail : MonoBehaviour
     {
-        ShipMotor motor;
-        GameSettings settings;
+        IShip motor;
+        ShipSettings settings;
         Material trailMaterial;
         bool ownsMaterial;
         TrailRenderer[] trails = new TrailRenderer[0];
         bool wasRolling;
 
-        public void Init(ShipMotor motor, GameSettings settings)
+        void Start()
         {
-           
+            // On the prefab nobody calls Init: the ship is the component beside this one.
+            if (motor != null) return;
+            if (TryGetComponent(out HoverShip ship) && ship.Settings != null) Init(ship, ship.Settings);
+        }
+
+        public void Init(IShip motor, ShipSettings settings)
+        {
+            if (this.motor != null || motor == null || settings == null) return;
             this.motor = motor;
             this.settings = settings;
 
@@ -63,7 +71,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void OnDestroy()
         {
-            if (motor != null)
+            if (motor as Object != null)
             {
                 motor.Launched -= ClearTrails;
                 motor.RespawnStarted -= OnRespawnStarted;
@@ -155,7 +163,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void Update()
         {
-            if (motor == null) return;
+            if (motor as Object == null) return;
             bool rolling = motor.IsBarrelRolling || motor.State == ShipState.OffTrack;
             if (rolling == wasRolling) return;
             wasRolling = rolling;

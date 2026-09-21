@@ -483,7 +483,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                     _ => heading,
                 };
                 Queries++;
-                if (!Physics.Raycast(Position, direction, out RaycastHit hit, radius, ShipLayers.GroundMask, QueryTriggerInteraction.Ignore)) continue;
+                if (!Physics.Raycast(Position, direction, out RaycastHit hit, radius, Settings.groundLayers, QueryTriggerInteraction.Ignore)) continue;
                 if (IsFloor(hit.normal, up, State == ShipState.Airborne ? Settings.maxLandAngle : Settings.climbAngle)) continue;
                 Position += hit.normal * (radius - hit.distance) * Mathf.Max(0f, -Vector3.Dot(direction, hit.normal));
                 HitWall(hit.normal);
@@ -496,7 +496,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Queries++;
             overlapped = false;
             int count = Physics.SphereCastNonAlloc(Position, radius, direction, Hits, distance + Skin,
-                                                   ShipLayers.GroundMask, QueryTriggerInteraction.Ignore);
+                                                   Settings.groundLayers, QueryTriggerInteraction.Ignore);
             int nearest = -1;
             for (int i = 0; i < count; i++)
             {
@@ -614,7 +614,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         bool Probe(Vector3 origin, Vector3 up, float length, out RaycastHit hit)
         {
             Queries++;
-            return Physics.Raycast(origin, -up, out hit, length, ShipLayers.GroundMask, QueryTriggerInteraction.Ignore)
+            return Physics.Raycast(origin, -up, out hit, length, Settings.groundLayers, QueryTriggerInteraction.Ignore)
                    && IsFloor(hit.normal, up, Settings.climbAngle);
         }
 
@@ -644,7 +644,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
             Queries++;
             airGravity = Settings.minAirGravity;
-            if (Physics.Raycast(Position, Vector3.down, out RaycastHit below, GroundSearch, ShipLayers.GroundMask, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(Position, Vector3.down, out RaycastHit below, GroundSearch, Settings.groundLayers, QueryTriggerInteraction.Ignore))
             {
                 float height = Mathf.Max(0f, below.distance - Params.rideHeight);
                 float solved = 2f * (height + VerticalVelocity * airSeconds) / (airSeconds * airSeconds);
@@ -678,7 +678,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             float reach = ProbeLift + Params.rideHeight + Mathf.Max(0f, -VerticalVelocity) * h;
             Queries++;
             if (!Physics.Raycast(Position + Vector3.up * ProbeLift, Vector3.down, out RaycastHit hit, reach,
-                                 ShipLayers.GroundMask, QueryTriggerInteraction.Ignore)) return;
+                                 Settings.groundLayers, QueryTriggerInteraction.Ignore)) return;
             if (!IsFloor(hit.normal, Vector3.up, Settings.maxLandAngle)) return;
             Vector3 velocity = airForward * (ForwardSpeed * airScale) + Vector3.up * VerticalVelocity;
             if (Vector3.Dot(velocity, hit.normal) >= 0f) return; // still rising away from it

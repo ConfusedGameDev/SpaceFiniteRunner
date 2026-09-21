@@ -7,26 +7,36 @@ using ConfusedGameDev.FiniteRunner.Simulation;
 namespace ConfusedGameDev.FiniteRunner.Ship
 {
     /// <summary>
-    /// The standalone ship: drop the prefab on any level whose surfaces sit on
-    /// the <see cref="ShipLayers.Ground"/> layer and it flies — no track, no
-    /// manager, no scene wiring. It is the ship's IDENTITY (what the camera,
-    /// HUD and game rules read) over a <see cref="HoverBody"/>, which does the
-    /// moving: this component reads the input, refills the body's feel from
-    /// its <see cref="ShipDefinition"/> every tick, ticks it in
-    /// <c>FixedUpdate</c> and poses the transform along the tick's substep
-    /// path in <c>Update</c> — the track-space ship's render rule, so nothing
-    /// that follows the transform ever sees the 36 m stride of a physics step.
-    /// The rigidbody is kinematic: it is there so the hull collider is a body
-    /// the world can sense, never to integrate the motion.
+    /// The standalone ship: drop the prefab on any level and it flies — no
+    /// track, no manager, no scene wiring. It is the ship's IDENTITY (what the
+    /// camera, HUD and game rules read, through <see cref="IShip"/>) over a
+    /// <see cref="HoverBody"/>, which does the moving: this component reads
+    /// the input, refills the body's feel from its <see cref="ShipDefinition"/>
+    /// every tick, ticks it in <c>FixedUpdate</c> and poses the transform
+    /// along the tick's substep path in <c>Update</c> — the track-space ship's
+    /// render rule, so nothing that follows the transform ever sees the 36 m
+    /// stride of a physics step. The rigidbody is kinematic: it is there so
+    /// the hull collider is a body the world can sense, never to integrate
+    /// the motion.
+    ///
+    /// What only the ship has lives here, ported one-to-one from the runner's
+    /// motor so both ships play the same: the <b>dash</b> (a meter that
+    /// recharges at the definition's rate; a request spends
+    /// <see cref="ShipSettings.dashCost"/> and shoves the body sideways by
+    /// exactly the definition's dash distance), its airborne form the
+    /// <b>barrel roll</b> (the same shove at air authority under a full 360°
+    /// of the model, on its own clock so a wall or a landing never leaves the
+    /// ship on its side) and the <b>stall</b> (a standstill with the throttle
+    /// released for the grace — braking to a stop alone is fine).
     ///
     /// Both assets run as runtime clones taken in <c>Awake</c> — a game may
     /// push its rules into them, and the debug menu edits them, without ever
-    /// touching the asset. Everything cosmetic (the bank into a turn, the
-    /// hover bob and pitch wobble) lives on the <see cref="visual"/> child,
-    /// ported as-is from the runner's motor; the root is the physical pose.
+    /// touching the asset. Everything cosmetic (bank, roll, hover bob and
+    /// pitch wobble) is on the <see cref="visual"/> child; the root is the
+    /// physical pose.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
-    public sealed class HoverShip : MonoBehaviour, ICameraTarget
+    public sealed class HoverShip : MonoBehaviour, IShip, ICameraTarget
     {
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
         ShipDefinition definition;
@@ -34,7 +44,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
         ShipSettings settings;
 
-        [Tooltip("The model child that banks, bobs and pitches. The root stays the physical pose.")]
+        [Tooltip("The model child that banks, rolls, bobs and pitches. The root stays the physical pose.")]
         [SerializeField, Required] Transform visual;
 
         [Tooltip("Launch with the definition's initial impulse on Start. Off = a game launches it.")]
@@ -42,10 +52,19 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         ISteeringInput steering;
         IThrottleInput throttleInput;
+        IDashInput dashInput;
         BoxCollider hull;
         readonly HoverBody body = new();
         float lastTickTime;
         float bankAngle;
+
+        float dashMeter = 1f;
+        float dashTimeLeft;
+        float dashBurstDuration;
+        bool meterWasFull = true;
+        float rollTimeLeft, rollDuration, rollAngle;
+        int rollDirection;
+        float stallTimer;
 
         public ShipDefinition Definition => definition;
         public ShipSettings Settings => settings;
@@ -55,21 +74,35 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public ShipState State => body.State;
         public float AirTime => body.AirTime;
         public bool IsSliding => body.IsSliding;
-        /// <summary>Freezes the simulation (menus, a game's countdown).</summary>
+        public bool HasStopped { get; private set; }
         public bool Paused { get; set; }
+        public float DashMeter => dashMeter;
+        public bool IsDashing => dashTimeLeft > 0f;
+        public float DashBurstDuration => dashBurstDuration;
+        public bool IsBarrelRolling => rollTimeLeft > 0f;
+        public int BarrelRollDirection => IsBarrelRolling ? rollDirection : 0;
         /// <summary>A game's say over the camera's view cycle (a menu is open).</summary>
         public bool ViewCycleLocked { get; set; }
-        /// <summary>When set, these controls drive the ship instead of the player's input (an autopilot, a scripted test).</summary>
+        /// <summary>When set, these controls drive the ship instead of the player's input (an autopilot, a scripted test). Dash requests from the input are swallowed while it is.</summary>
         public BodyControls? ControlOverride { get; set; }
         /// <summary>Cost of the last simulation tick, milliseconds — the number the substep budget is judged by.</summary>
         public double LastTickMilliseconds { get; private set; }
 
+        public event Action<float> PadImpulse;
+        public event Action<int> DashPerformed;
+        public event Action<int> BarrelRollStarted;
         public event Action Launched;
+        public event Action MeterFilled;
+        public event Action<float> WallHit;
+        public event Action<float> Sliding;
         public event Action<ShipState> StateChanged;
         public event Action TookOff;
         public event Action Landed;
-        public event Action<float> WallHit;
-        public event Action<float> Sliding;
+#pragma warning disable CS0067 // raised by the recovery component once falls exist for a free ship
+        public event Action FellOff;
+        public event Action<Vector3> RespawnStarted;
+        public event Action Respawned;
+#pragma warning restore CS0067
 
         // ------------------------------------------------------ ICameraTarget
         Transform ICameraTarget.Transform => transform;
@@ -88,6 +121,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             steering = GetComponent<ISteeringInput>();
             throttleInput = GetComponent<IThrottleInput>();
+            dashInput = GetComponent<IDashInput>();
             hull = GetComponent<BoxCollider>();
 
             var rb = GetComponent<Rigidbody>();
@@ -96,7 +130,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             rb.interpolation = RigidbodyInterpolation.None; // the ship interpolates itself, along the substep path
 
             // Play never touches the assets.
-            if (definition != null) SetDefinition(Instantiate(definition), definition.name);
+            if (definition != null)
+            {
+                string source = definition.name;
+                definition = Instantiate(definition);
+                definition.name = source + " (run)";
+            }
             if (settings != null)
             {
                 string source = settings.name;
@@ -108,6 +147,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void OnEnable()
         {
+            ShipRegistry.Register(this);
             body.StateChanged += OnStateChanged;
             body.TookOff += OnTookOff;
             body.Landed += OnLanded;
@@ -117,6 +157,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void OnDisable()
         {
+            ShipRegistry.Unregister(this);
             body.StateChanged -= OnStateChanged;
             body.TookOff -= OnTookOff;
             body.Landed -= OnLanded;
@@ -130,13 +171,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         }
 
         /// <summary>Swaps in a run's definition (a store / debug clone). The ship flies on it as given — it is the caller's clone.</summary>
-        public void SetDefinition(ShipDefinition runDefinition) => SetDefinition(runDefinition, null);
-
-        void SetDefinition(ShipDefinition runDefinition, string sourceName)
+        public void SetDefinition(ShipDefinition runDefinition)
         {
-            if (runDefinition == null) return;
-            definition = runDefinition;
-            if (sourceName != null) definition.name = sourceName + " (run)";
+            if (runDefinition != null) definition = runDefinition;
         }
 
         /// <summary>Starts a run from where the ship stands, facing where it faces, at the definition's initial impulse.</summary>
@@ -145,32 +182,61 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public void Launch(Vector3 position, Quaternion rotation)
         {
             if (definition == null || settings == null) return;
+            dashMeter = 1f;
+            meterWasFull = true;
+            dashTimeLeft = 0f;
+            rollTimeLeft = 0f;
+            rollAngle = 0f;
+            stallTimer = 0f;
+            HasStopped = false;
+            bankAngle = 0f;
+            dashInput?.ConsumeDashRequest(); // a press from before the launch is not a dash
+
             FillParams();
             body.Reset(position, rotation, definition.initialImpulse);
-            bankAngle = 0f;
             lastTickTime = Time.fixedTime;
             ApplyPose(1f);
             Launched?.Invoke();
         }
 
-        /// <summary>A pad, an orb, a boost: a speed change scaled by the ship's weight, blended in by the body.</summary>
-        public void AddSpeedImpulse(float rawMagnitude) => body.AddSpeedChange(definition.ScalePadEffect(rawMagnitude));
+        /// <summary>A pad, an orb, a boost: a speed change scaled by the ship's weight, blended in by the body. Ignored while the ship is out of play.</summary>
+        public void AddSpeedImpulse(float rawMagnitude)
+        {
+            if (State == ShipState.OffTrack || State == ShipState.Respawning) return;
+            body.AddSpeedChange(definition.ScalePadEffect(rawMagnitude));
+            PadImpulse?.Invoke(rawMagnitude);
+        }
 
+        // --------------------------------------------------------------- tick
         void FixedUpdate()
         {
-            if (Paused || definition == null || settings == null) return;
+            if (Paused || HasStopped || definition == null || settings == null) return;
+            float dt = Time.fixedDeltaTime;
+
+            // Rules read live off the clones, like every tunable.
             if (throttleInput != null) throttleInput.DigitalRampSeconds = definition.digitalThrottleRampSeconds;
+            if (dashInput != null)
+            {
+                dashInput.SinglePress = settings.dashSinglePress;
+                dashInput.DoubleTapSeconds = settings.dashDoubleTapSeconds;
+            }
             FillParams();
+
+            UpdateDash(dt); // before the body's tick, so a request fires on the tick it was consumed
+
             BodyControls controls = ControlOverride ?? new BodyControls
             {
                 steer = steering != null ? steering.SteerAxis : 0f,
-                throttle = throttleInput != null ? throttleInput.Throttle : 0f,
+                throttle = throttleInput != null ? throttleInput.Throttle : 1f, // no throttle input = held
                 brake = throttleInput != null ? throttleInput.Brake : 0f,
             };
             long started = System.Diagnostics.Stopwatch.GetTimestamp();
-            body.Tick(Time.fixedDeltaTime, controls);
+            body.Tick(dt, controls);
             LastTickMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             lastTickTime = Time.fixedTime;
+
+            dashTimeLeft = body.LateralBlocked ? 0f : dashTimeLeft - dt; // a wall ends the dash
+            UpdateStall(dt, controls.throttle);
         }
 
         void FillParams()
@@ -195,23 +261,100 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             };
         }
 
+        // Meter recharge and dash triggering.
+        void UpdateDash(float dt)
+        {
+            if (!settings.dashEnabled) return;
+
+            dashMeter = Mathf.MoveTowards(dashMeter, 1f, dt / Mathf.Max(definition.dashRechargeSeconds, 0.01f));
+            if (dashMeter >= 1f)
+            {
+                if (!meterWasFull)
+                {
+                    meterWasFull = true;
+                    MeterFilled?.Invoke();
+                }
+            }
+            else meterWasFull = false;
+
+            int request = dashInput?.ConsumeDashRequest() ?? 0;
+            if (ControlOverride.HasValue) request = 0; // an autopilot is hands-off
+            if (request != 0) TryDash(request);
+        }
+
+        /// <summary>
+        /// A dash to the left (−1) or right (+1), if the meter affords it and
+        /// no dash window is open. On the ground it is a sideways shove the
+        /// lateral drag stops after exactly the definition's dash distance; in
+        /// the air the same shove (at air authority) rides under a barrel
+        /// roll and the window lasts the roll.
+        /// </summary>
+        public bool TryDash(int direction)
+        {
+            if (direction == 0 || !settings.dashEnabled || IsDashing || dashMeter < settings.dashCost) return false;
+            if (State == ShipState.OffTrack || State == ShipState.Respawning) return false;
+            direction = direction > 0 ? 1 : -1;
+            dashMeter -= settings.dashCost;
+
+            bool airborne = State == ShipState.Airborne;
+            dashBurstDuration = Mathf.Max(airborne ? definition.barrelRollSeconds : definition.dashDuration, 0.01f);
+            dashTimeLeft = dashBurstDuration;
+            body.AddLateralImpulse(direction * definition.DashImpulse);
+            DashPerformed?.Invoke(direction);
+
+            if (airborne && !IsBarrelRolling)
+            {
+                rollDuration = dashBurstDuration;
+                rollTimeLeft = rollDuration;
+                rollDirection = direction;
+                BarrelRollStarted?.Invoke(direction);
+            }
+            return true;
+        }
+
+        // A standstill is not the end by itself — the brake can stop the ship
+        // and the throttle pulls it away again. Stalling out is sitting at 0
+        // with the throttle released for the whole grace.
+        void UpdateStall(float dt, float throttle)
+        {
+            bool stalled = body.ForwardSpeed <= 0.01f && throttle <= 0.01f && State != ShipState.Airborne;
+            stallTimer = stalled ? stallTimer + dt : 0f;
+            if (stallTimer >= settings.stallGraceSeconds) HasStopped = true;
+        }
+
+        // ------------------------------------------------------------- render
         void Update()
         {
             if (definition == null || settings == null) return;
             float dt = Time.deltaTime;
+            bool running = !Paused && !HasStopped;
+
+            if (running) UpdateRoll(dt); // visual only, so it turns at the frame rate, not the tick's
 
             // Between two ticks the pose runs along the last tick's substep
-            // path; with no fresh tick (paused) it rests at the end of it.
+            // path; with no fresh tick (paused, stopped) it rests at the end of it.
             float alpha = Mathf.Clamp01((Time.time - lastTickTime) / Mathf.Max(Time.fixedDeltaTime, 1e-5f));
             ApplyPose(alpha);
-            if (!Paused) UpdateBank(dt);
-            ApplyHover();
+            if (running) UpdateBank(dt);
+            ApplyHover(); // runs even after the run ends, so the ship keeps floating
         }
 
         void ApplyPose(float alpha)
         {
             Pose pose = body.PoseAt(alpha);
             transform.SetPositionAndRotation(pose.position, pose.rotation);
+        }
+
+        // The barrel roll's own clock: 0 → 360° in the dash direction with a
+        // smooth ease at both ends, so it blends out of and back into the bank
+        // underneath it.
+        void UpdateRoll(float dt)
+        {
+            if (rollTimeLeft <= 0f) { rollAngle = 0f; return; }
+            rollTimeLeft -= dt;
+            float progress = 1f - Mathf.Clamp01(rollTimeLeft / Mathf.Max(rollDuration, 0.01f));
+            rollAngle = -rollDirection * 360f * Mathf.SmoothStep(0f, 1f, progress);
+            if (rollTimeLeft <= 0f) rollAngle = 0f; // a full turn is where it started
         }
 
         // Bank into the push: roll with the lateral demand the body applied
@@ -225,7 +368,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         // Visual-only float: organic bob and pitch wobble on the model. The
         // hover HEIGHT is physical here (the root rides it), so the model only
-        // adds the settings' cosmetic lift.
+        // adds the settings' cosmetic lift. The barrel roll rides on top of
+        // the bank: one full turn, back to exactly the bank it would have had.
         void ApplyHover()
         {
             if (visual == null) return;
@@ -233,7 +377,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             float bob = (Mathf.PerlinNoise(t, 0.37f) - 0.5f) * 2f * definition.bobAmplitude;
             float pitch = (Mathf.PerlinNoise(0.71f, t * 0.8f) - 0.5f) * 2f * definition.hoverPitchDegrees;
             visual.localPosition = new Vector3(0f, settings.visualLift + bob, 0f);
-            visual.localRotation = Quaternion.Euler(pitch, 0f, bankAngle);
+            visual.localRotation = Quaternion.Euler(pitch, 0f, bankAngle + rollAngle);
         }
 
         void OnStateChanged(ShipState next) => StateChanged?.Invoke(next);

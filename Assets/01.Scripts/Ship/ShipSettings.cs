@@ -28,6 +28,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [PropertyRange(1, 48)]
         public int maxSubsteps = 24;
 
+        [TitleGroup("World")]
+        [Tooltip("Layers the ship rides, lands on and hits. Default + ShipGround flies over any ordinary level as it is; a level that shares its physics scene with colliders the ship must never touch (the runner during the city handoff) narrows this to ShipGround alone.")]
+        public LayerMask groundLayers = (1 << 0) | ShipLayers.GroundMask;
+
         [TitleGroup("Surface")]
         [Tooltip("How far below the ride height the probes still find ground. Inside it the ship is held to the surface; past it (for the coyote distance) it lets go.")]
         [PropertyRange(0.5f, 20f), SuffixLabel("m", true)]
@@ -100,6 +104,59 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [Tooltip("Steepest surface, from the ship's up, it can land on. Anything steeper met in the air is a wall.")]
         [PropertyRange(5f, 85f), SuffixLabel("°", true)]
         public float maxLandAngle = 60f;
+
+        [TitleGroup("Dash")]
+        [Tooltip("Master switch for the lateral dash and its airborne barrel roll.")]
+        public bool dashEnabled = true;
+
+        [TitleGroup("Dash")]
+        [Tooltip("Share of the meter one dash spends. The recharge time is the ship definition's.")]
+        [PropertyRange(0.05f, 1f)]
+        public float dashCost = 0.5f;
+
+        [TitleGroup("Dash")]
+        [Tooltip("One press is the whole dash gesture (the player's own CONTROLS toggle can also switch this on).")]
+        public bool dashSinglePress = false;
+
+        [TitleGroup("Dash")]
+        [Tooltip("Window for the second tap of a double-tap dash.")]
+        [PropertyRange(0.1f, 0.6f), SuffixLabel("s", true), DisableIf(nameof(dashSinglePress))]
+        public float dashDoubleTapSeconds = 0.3f;
+
+        [TitleGroup("Stall")]
+        [Tooltip("Seconds at a standstill with the throttle released before the ship counts as stopped. Braking to a stop alone never stalls it.")]
+        [PropertyRange(0.25f, 10f), SuffixLabel("s", true)]
+        public float stallGraceSeconds = 2f;
+
+        [TitleGroup("Feel")]
+        [Tooltip("Material of the dash ghosts and of the respawn blink. Empty = a runtime translucent fallback.")]
+        public Material ghostMaterial;
+
+        [TitleGroup("Feel")]
+        [Tooltip("Blinks per second while the ship waits to relaunch after a fall.")]
+        [PropertyRange(1f, 20f), SuffixLabel("Hz", true)]
+        public float respawnBlinkRate = 8f;
+
+        [TitleGroup("Feel")]
+        [Tooltip("How long a wingtip ribbon of the barrel roll lives.")]
+        [PropertyRange(0.05f, 3f), SuffixLabel("s", true)]
+        public float barrelRollTrailSeconds = 0.6f;
+
+        [TitleGroup("Feel")]
+        [PropertyRange(0.05f, 5f), SuffixLabel("m", true)]
+        public float barrelRollTrailWidth = 0.9f;
+
+        [TitleGroup("Feel")]
+        [Tooltip("Where the ribbons leave the wing, as a share of the model's half width.")]
+        [PropertyRange(0.2f, 2f)]
+        public float barrelRollTrailSpan = 1f;
+
+        [TitleGroup("Feel")]
+        public Color barrelRollTrailColor = new(0.45f, 0.9f, 1f, 0.9f);
+
+        [TitleGroup("Feel")]
+        [Tooltip("Must be URP Particles/Unlit, additive — the plain Unlit ignores the trail's gradient. Empty = a runtime fallback.")]
+        public Material barrelRollTrailMaterial;
 
         [TitleGroup("Free steering")]
         [Tooltip("Fastest the ship can turn with no guide spline, at low speed.")]

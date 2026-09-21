@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 92d00321f140f4545855d55b87de91b0, type: 3}
-  m_Name: Fighter_ShipDefinition
-  m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.ShipDefinition
-  displayName: Fighter
-  description: First feel-test ship. Throttle holds it at cruise; only orbs push past it.
-  initialImpulse: 0
+  m_Name: Acceptance_ShipDefinition
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Ship::ConfusedGameDev.FiniteRunner.Ship.ShipDefinition
+  displayName: Acceptance reference
+  description: 
+  initialImpulse: 249
   cruiseSpeed: 1000
   thrust: 60
   brakeDecel: 284

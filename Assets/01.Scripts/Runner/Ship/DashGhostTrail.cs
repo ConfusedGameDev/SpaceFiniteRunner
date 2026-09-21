@@ -63,23 +63,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (frame != null) Destroy(frame.gameObject); // takes the pooled ghosts (and their materials) with it
         }
 
-        // Safety net when no material asset is assigned: a runtime URP Unlit
-        // set up for alpha blending. The asset is authoritative — runtime
-        // surface-type switching in URP is fragile, so keep the .mat assigned.
-        internal static Material BuildFallbackMaterial()
-        {
-            var shader = Shader.Find("Universal Render Pipeline/Unlit");
-            var material = new Material(shader);
-            material.SetFloat("_Surface", 1f); // transparent
-            material.SetFloat("_Blend", 0f);   // alpha
-            material.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
-            material.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
-            material.SetInt("_ZWrite", 0);
-            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            material.renderQueue = (int)RenderQueue.Transparent;
-            material.SetColor("_BaseColor", new Color(0.6f, 0.95f, 1f, 0.45f));
-            return material;
-        }
+        // Safety net when no material asset is assigned — the look is shared with the respawn blink.
+        internal static Material BuildFallbackMaterial() => ShipGhostMaterial.BuildFallback();
 
         // LateUpdate: the motor has applied this frame's pose, so a snapshot
         // taken here is the ship as drawn, and the frame is already at the

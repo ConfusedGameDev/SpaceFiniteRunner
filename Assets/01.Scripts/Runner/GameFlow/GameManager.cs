@@ -159,8 +159,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // contract lives there); the knobs are on the settings asset.
                 LoopSlowMo.Ensure(motor).Configure(settings);
 
+                // The ship's own components live below the runner and speak
+                // ShipSettings: the sync hands them the run rules, live.
+                ShipSettings shipSettings = RunnerShipSettingsSync.Ensure(motor.gameObject, settings).Settings;
+
                 // The respawn blink rides the ship the same way.
-                RespawnBlink.Ensure(motor).Configure(settings);
+                RespawnBlink.Ensure(motor).Configure(shipSettings);
 
                 // The ship's own sounds (engine loop, pickup, jump) ride the
                 // ship the same way, reading the settings live; off = no
@@ -178,7 +182,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // The airborne dash's wingtip ribbons — same lifetime as the ghosts.
                     var rollTrail = motor.GetComponent<BarrelRollTrail>();
                     if (rollTrail == null) rollTrail = motor.gameObject.AddComponent<BarrelRollTrail>();
-                    rollTrail.Init(motor, settings);
+                    rollTrail.Init(motor, shipSettings);
                     dashPrompt = DashPromptController.Spawn(motor, settings);
                 }
             }

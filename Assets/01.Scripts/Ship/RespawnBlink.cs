@@ -1,25 +1,25 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-using ConfusedGameDev.FiniteRunner.GameFlow;
 namespace ConfusedGameDev.FiniteRunner.Ship
 {
     /// <summary>
     /// The respawn blink: while the ship waits on the track after a fall
     /// (<see cref="ShipState.Respawning"/>) its model flickers between its
     /// own materials and the dash's ghost material at
-    /// <see cref="GameSettings.respawnBlinkRate"/>, the classic "you can't be
+    /// <see cref="ShipSettings.respawnBlinkRate"/>, the classic "you can't be
     /// touched yet" read. It SWAPS the renderers' materials — a
     /// MaterialPropertyBlock tint is ignored by the ship shader (and
     /// unreliable under the SRP Batcher) — and always hands the ship's own
-    /// back: when the wait ends, on a restart, and on disable. Added to the
-    /// ship by the GameManager (<see cref="Ensure"/>), reading the settings
-    /// live like <see cref="LoopSlowMo"/>.
+    /// back: when the wait ends, on a restart, and on disable. It reads any
+    /// <see cref="IShip"/> and the settings live: baked into the standalone
+    /// prefab it wires itself to the ship beside it in <c>Start</c>; the
+    /// runner's GameManager adds it to its ship with <see cref="Ensure"/>.
     /// </summary>
     public class RespawnBlink : MonoBehaviour
     {
-        ShipMotor motor;
-        GameSettings settings;
+        IShip motor;
+        ShipSettings settings;
         Material ghostMaterial;
         bool ownsGhostMaterial;
 
@@ -29,25 +29,35 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         bool blinking;
         bool showingGhost;
 
-        public static RespawnBlink Ensure(ShipMotor motor)
+        public static RespawnBlink Ensure(IShip motor)
         {
-            var blink = motor.GetComponent<RespawnBlink>();
-            if (blink == null) blink = motor.gameObject.AddComponent<RespawnBlink>();
+            GameObject host = motor.transform.gameObject;
+            var blink = host.GetComponent<RespawnBlink>();
+            if (blink == null) blink = host.AddComponent<RespawnBlink>();
             blink.motor = motor;
             return blink;
         }
 
-        public void Configure(GameSettings settings)
+        void Start()
+        {
+            // On the prefab nobody calls Ensure / Configure: the ship is the component beside this one.
+            if (motor != null) return;
+            if (!TryGetComponent(out HoverShip ship) || ship.Settings == null) return;
+            motor = ship;
+            Configure(ship.Settings);
+        }
+
+        public void Configure(ShipSettings settings)
         {
             this.settings = settings;
             if (ownsGhostMaterial && ghostMaterial != null) Destroy(ghostMaterial);
-            ownsGhostMaterial = settings == null || settings.dashGhostMaterial == null;
-            ghostMaterial = ownsGhostMaterial ? DashGhostTrail.BuildFallbackMaterial() : settings.dashGhostMaterial;
+            ownsGhostMaterial = settings == null || settings.ghostMaterial == null;
+            ghostMaterial = ownsGhostMaterial ? ShipGhostMaterial.BuildFallback() : settings.ghostMaterial;
         }
 
         void Update()
         {
-            if (motor == null || settings == null) return;
+            if (motor as Object == null || settings == null) return;
 
             bool shouldBlink = motor.State == ShipState.Respawning;
             if (shouldBlink && !blinking) Begin();

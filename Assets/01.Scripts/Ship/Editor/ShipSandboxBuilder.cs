@@ -9,27 +9,31 @@ using ConfusedGameDev.FiniteRunner.Ship.Sandbox;
 namespace ConfusedGameDev.FiniteRunner.EditorTools
 {
     /// <summary>
-    /// Builds <c>Assets/05.Scenes/ShipSandbox.unity</c>, the standalone ship's
-    /// test scene, from nothing: the course (<see cref="ShipSandboxCourse"/>,
+    /// Builds <c>Assets/05.Scenes/ShipAcceptance.unity</c>, the standalone
+    /// ship's ACCEPTANCE scene, from nothing: the course (<see cref="ShipSandboxCourse"/>,
     /// which makes its own geometry at play), a ship wired exactly the way the
     /// prefab will be, the chase camera's rig and the debug overlay — all
     /// hand-placed at edit time under the project's scene headers, so nothing
     /// is spawned as a system at runtime. The scene is built ADDITIVELY and
     /// closed again, so whatever scene is open (and its unsaved changes) is
-    /// left alone. Re-running rebuilds the scene from scratch; the
-    /// <see cref="ShipSettings"/> asset it creates on first run is kept.
+    /// left alone. Re-running rebuilds the scene from scratch, so it is not a
+    /// scene to author in (<c>ShipSandbox</c> is the hand-made playground and
+    /// is never touched). The run is judged against REFERENCE numbers, so the
+    /// scene flies on its own definition and settings assets
+    /// (<c>04.Data/Ship/Acceptance_*</c>, created once and kept) — tuning the
+    /// game's ship never moves the goalposts, and a test never edits the game's ship.
     /// </summary>
     public static class ShipSandboxBuilder
     {
-        const string ScenePath = "Assets/05.Scenes/ShipSandbox.unity";
-        const string SettingsPath = "Assets/04.Data/Ship/HoverShip_Settings.asset";
-        const string DefinitionPath = "Assets/04.Data/FiniteRunner/Fighter_ShipDefinition.asset";
+        const string ScenePath = "Assets/05.Scenes/ShipAcceptance.unity";
+        const string SettingsPath = "Assets/04.Data/Ship/Acceptance_ShipSettings.asset";
+        const string DefinitionPath = "Assets/04.Data/Ship/Acceptance_ShipDefinition.asset";
         const string CameraSettingsPath = "Assets/04.Data/FiniteRunner/Fighter_CameraSettings.asset";
         const string ModelPath = "Assets/99.Test/Diego/3DModels/nabucodonosor.fbx";
         const float ModelScale = 0.57f;
         static readonly Vector3 HullSize = new(5.02f, 4.61f, 12.3f);
 
-        [MenuItem("Tools/FiniteRunner/Ship/Build Sandbox Scene")]
+        [MenuItem("Tools/FiniteRunner/Ship/Build Acceptance Scene")]
         public static void Build()
         {
             if (!ShipLayers.Installed)
@@ -38,13 +42,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 return;
             }
 
-            var definition = AssetDatabase.LoadAssetAtPath<ShipDefinition>(DefinitionPath);
             var cameraSettings = AssetDatabase.LoadAssetAtPath<OrbitCameraSettings>(CameraSettingsPath);
-            if (definition == null)
-            {
-                Debug.LogError($"ShipSandboxBuilder: no ship definition at {DefinitionPath}.");
-                return;
-            }
+            ShipDefinition definition = LoadOrCreateDefinition();
             ShipSettings settings = LoadOrCreateSettings();
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
@@ -139,11 +138,84 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             shipFields.FindProperty("visual").objectReferenceValue = visual.transform;
             shipFields.ApplyModifiedPropertiesWithoutUndo();
 
+            EnsureFeelComponents(root);
+
             var attach = root.AddComponent<ShipCameraAttach>();
             var attachFields = new SerializedObject(attach);
             attachFields.FindProperty("cameraSettings").objectReferenceValue = cameraSettings;
             attachFields.ApplyModifiedPropertiesWithoutUndo();
             return ship;
+        }
+
+        /// <summary>The reference ship the acceptance numbers are written against: the Fighter as it stood when the standalone ship was accepted.</summary>
+        static ShipDefinition LoadOrCreateDefinition()
+        {
+            var definition = AssetDatabase.LoadAssetAtPath<ShipDefinition>(DefinitionPath);
+            if (definition != null) return definition;
+            if (!AssetDatabase.IsValidFolder("Assets/04.Data/Ship")) AssetDatabase.CreateFolder("Assets/04.Data", "Ship");
+            definition = ScriptableObject.CreateInstance<ShipDefinition>();
+            definition.displayName = "Acceptance reference";
+            definition.initialImpulse = 249f;
+            definition.cruiseSpeed = 1000f;
+            definition.thrust = 60f;
+            definition.brakeDecel = 284f;
+            definition.coastDrag = 20f;
+            definition.passiveDeceleration = 6f;
+            definition.acceleration = 113f;
+            definition.lateralSpeed = 58.3f;
+            definition.handlingResponse = 17.4f;
+            definition.gripBase = 50f;
+            definition.gripPerSpeed = 0.5f;
+            definition.slideThreshold = 4f;
+            definition.slideSpeedLoss = 0.1f;
+            definition.dashDistance = 20.7f;
+            definition.dashDuration = 0.214f;
+            definition.dashRechargeSeconds = 1.8f;
+            definition.barrelRollSeconds = 0.5f;
+            definition.weight = 0.57f;
+            definition.jumpStrength = 1f;
+            definition.hoverHeight = 3.5f;
+            definition.maxBankAngle = 60.7f;
+            definition.bankResponse = 7f;
+            AssetDatabase.CreateAsset(definition, DefinitionPath);
+            AssetDatabase.SaveAssetIfDirty(definition);
+            return definition;
+        }
+
+        /// <summary>The ship-side feel components every standalone ship carries; they wire themselves to the HoverShip beside them in Start.</summary>
+        static bool EnsureFeelComponents(GameObject ship)
+        {
+            bool added = false;
+            if (ship.GetComponent<BarrelRollTrail>() == null) { ship.AddComponent<BarrelRollTrail>(); added = true; }
+            if (ship.GetComponent<RespawnBlink>() == null) { ship.AddComponent<RespawnBlink>(); added = true; }
+            return added;
+        }
+
+        /// <summary>Brings every HoverShip prefab in the project up to date with the components the ship has gained since it was made. Idempotent; touches nothing else on the prefab.</summary>
+        [MenuItem("Tools/FiniteRunner/Ship/Update HoverShip Prefabs")]
+        public static void UpdatePrefabs()
+        {
+            int updated = 0;
+            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/03.Prefabs" }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (asset == null || asset.GetComponent<HoverShip>() == null) continue;
+
+                GameObject contents = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    if (!EnsureFeelComponents(contents)) continue;
+                    PrefabUtility.SaveAsPrefabAsset(contents, path);
+                    updated++;
+                    Debug.Log($"ShipSandboxBuilder: updated {path}.");
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(contents);
+                }
+            }
+            Debug.Log($"ShipSandboxBuilder: {updated} HoverShip prefab(s) updated.");
         }
 
         static ShipSettings LoadOrCreateSettings()

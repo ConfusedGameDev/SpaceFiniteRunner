@@ -37,7 +37,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Tooltip("Character size for texts that don't specify one.")]
         [SerializeField, Min(0.05f)] float defaultCharacterSize = 2f;
 
-        ShipMotor ship;
+        IShip ship;
 
         void Awake()
         {
@@ -56,9 +56,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         /// <summary>Same, with an explicit lead distance and character size.</summary>
         public void DisplayText(string text, Color color, float duration, float leadMeters, float characterSize)
         {
-            if (ship == null) ship = FindFirstObjectByType<ShipMotor>();
+            // Whichever ship flies this scene — the track-space motor or the standalone ship.
+            if (ship as Object == null) ship = ShipRegistry.Find(gameObject.scene);
 
-            Vector3 position = ship != null
+            Vector3 position = ship as Object != null
                 ? ship.transform.position + ship.transform.forward * leadMeters + Vector3.up * heightOffset
                 : Vector3.up * heightOffset;
 
