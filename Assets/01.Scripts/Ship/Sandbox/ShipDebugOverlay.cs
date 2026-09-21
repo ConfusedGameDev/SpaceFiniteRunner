@@ -24,7 +24,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
 
         static readonly Key[] StationKeys =
         {
-            Key.F1, Key.F2, Key.F3, Key.F4, Key.F5, Key.F6, Key.F7, Key.F8, Key.F9, Key.F10,
+            Key.F1, Key.F2, Key.F3, Key.F4, Key.F5, Key.F6, Key.F7, Key.F8, Key.F9, Key.F10, Key.F11, Key.F12,
         };
 
         void OnEnable()
@@ -79,6 +79,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
                 $"substeps {body.Substeps}   queries {body.Queries}   air {body.AirTime:F2} s\n" +
                 $"surface error {body.SurfaceError:F3} m   (recent worst {worstError:F3})\n" +
                 $"up tilt {Vector3.Angle(body.Up, Vector3.up):F1}°   lateral {body.TotalLateralVelocity:F1} m/s   wall hits {wallHits}\n" +
+                (ship.Guide != null
+                    ? $"GUIDED  d {ship.GuideSample.distance:F0} m   lateral {ship.GuideSample.lateral:F1} m   curvature 1/{(Mathf.Abs(ship.GuideSample.curvature) > 1e-5f ? 1f / Mathf.Abs(ship.GuideSample.curvature) : 0f):F0} m\n"
+                    : "free flight (no guide in reach)\n") +
                 "1 / 2 / 3 = 300 / cruise / light speed, 0 = stop";
             if (course != null)
                 for (int i = 0; i < course.Stations.Count && i < StationKeys.Length; i++)

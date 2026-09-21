@@ -97,6 +97,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float airGravity;
         float airScale = 1f;
         Vector3 airForward = Vector3.forward;
+        float guideHint = float.NaN;
 
         // -------------------------------------------------------------- state
         public Vector3 Position { get; private set; }
@@ -111,6 +112,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>The scalar speed the speed model owns, m/s: along the surface while attached, along the ground track in flight.</summary>
         public float ForwardSpeed { get; set; }
+        /// <summary>Speed the body is backing up at, m/s (0 while it flies forward). Only ever non-zero at a forward standstill.</summary>
+        public float ReverseSpeed { get; private set; }
         public float LateralVelocity { get; private set; }
         public float ShoveVelocity { get; private set; }
         public float TotalLateralVelocity { get; private set; }
@@ -125,6 +128,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public ShipState State { get; private set; } = ShipState.Grounded;
         /// <summary>1 on the ground, the flight's reduced authority in the air.</summary>
         public float ControlFactor => State == ShipState.Airborne && Settings != null ? Settings.airControlFactor : 1f;
+
+        /// <summary>The guide the owner found in reach, or null for free flight.</summary>
+        public IShipGuide Guide;
+        /// <summary>The ship's own share of the guide's assist, 0..1.</summary>
+        public float GuideAssist = 1f;
+        /// <summary>True while the last substep was guided; <see cref="Guided"/> is then where the body sits on the guide.</summary>
+        public bool HasGuideSample { get; private set; }
+        public GuideSample Guided { get; private set; }
 
         /// <summary>Refilled by the owner before every tick.</summary>
         public HoverParams Params;
@@ -158,6 +169,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Forward = rotation * Vector3.forward;
             ForwardSpeed = forwardSpeed;
             LateralVelocity = ShoveVelocity = TotalLateralVelocity = VerticalVelocity = 0f;
+            ReverseSpeed = 0f;
             PendingSpeedChange = 0f;
             BankDemand = 0f;
             IsSliding = false;
@@ -165,6 +177,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             AirTime = 0f;
             wallHitCooldown = 0f;
             airGap = 0f;
+            guideHint = float.NaN; // a teleport: find the line again from scratch
+            HasGuideSample = false;
             Velocity = Forward * forwardSpeed;
             SetState(state);
             if (state == ShipState.Grounded && Settings != null) FollowSurface(0f);
@@ -251,6 +265,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         void Substep(float h, in BodyControls controls)
         {
             StepSpeed(h, controls);
+            StepReverse(h, controls);
+            ProjectOnGuide();
             StepSteering(h, controls);
 
             Vector3 from = Position;
@@ -266,7 +282,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             }
             else
             {
-                delta = Forward * (ForwardSpeed * h) + Right * (TotalLateralVelocity * h);
+                delta = Forward * ((ForwardSpeed - ReverseSpeed) * h) + Right * (TotalLateralVelocity * h);
             }
 
             float stepLength = delta.magnitude;
@@ -309,6 +325,21 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             ForwardSpeed = Mathf.Max(0f, ForwardSpeed - Params.brakeDecel * Mathf.Clamp01(controls.brake) * dt);
         }
 
+        /// <summary>
+        /// The way out of a wall: at a forward standstill on the ground, the
+        /// brake backs the body up. It is its own small speed so the forward
+        /// model stays the runner's, untouched (there the brake only stops);
+        /// the throttle, or letting go, ends it at the brake's rate.
+        /// </summary>
+        void StepReverse(float dt, in BodyControls controls)
+        {
+            bool backing = Settings.reverseSpeed > 0f && State != ShipState.Airborne && ForwardSpeed <= 0.01f
+                           && controls.brake > 0.1f && controls.throttle <= ThrottleDeadzone;
+            float target = backing ? Settings.reverseSpeed * Mathf.Clamp01(controls.brake) : 0f;
+            float rate = backing ? Settings.reverseAcceleration : Mathf.Max(Params.brakeDecel, Settings.reverseAcceleration);
+            ReverseSpeed = Mathf.MoveTowards(ReverseSpeed, target, rate * dt);
+        }
+
         // ----------------------------------------------------------- steering
         /// <summary>
         /// Free steering: with no spline to supply a heading the stick TURNS
@@ -325,10 +356,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             float steer = Mathf.Clamp(controls.steer, -1f, 1f);
             float speed = Mathf.Max(ForwardSpeed, 1f);
             float grip = Params.gripBase + Params.gripPerSpeed * ForwardSpeed;
+            float assist = HasGuideSample ? Mathf.Clamp01(GuideAssist * Guide.Assist) : 0f;
 
-            // Turn.
+            // Turn — the share of it the guide has not taken over.
             float maxYaw = Settings.maxYawRate * Mathf.Deg2Rad;
-            float yawRate = steer * control * Mathf.Min(maxYaw, Settings.turnAuthority * grip / speed);
+            float yawRate = steer * control * (1f - assist) * Mathf.Min(maxYaw, Settings.turnAuthority * grip / speed);
             if (!Mathf.Approximately(yawRate, 0f))
             {
                 Quaternion turn = Quaternion.AngleAxis(yawRate * Mathf.Rad2Deg * dt, State == ShipState.Airborne ? Vector3.up : Up);
@@ -336,14 +368,19 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 else Forward = (turn * Forward).normalized;
             }
 
+            FollowGuideHeading(assist, dt);
+
             // What the turn asks of the grip; the excess pushes the ship to the outside of it.
             float slip = 0f, excess = 0f;
             bool sliding = false;
             if (State != ShipState.Airborne)
             {
-                float demand = ForwardSpeed * Mathf.Abs(yawRate);
+                // A guided road that tests grip asks v²κ of it (the runner's flat sweep); the player's own turning asks v·yaw.
+                bool roadTurn = assist > 0f && Guided.gripTested;
+                float turnRate = roadTurn ? ForwardSpeed * Guided.curvature * assist + yawRate : yawRate;
+                float demand = ForwardSpeed * Mathf.Abs(turnRate);
                 excess = Mathf.Max(0f, demand - grip);
-                float outward = -Mathf.Sign(yawRate);
+                float outward = -Mathf.Sign(turnRate);
                 slip = outward * excess;
                 // World-gravity mode: a bank pulls the ship downhill.
                 if (!Settings.magnetic) slip += Vector3.Dot(Physics.gravity, Right);
@@ -360,12 +397,55 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             float drag = Mathf.Max(Params.handlingResponse, 0.01f);
             float fullSteerSpeed = Mathf.Max(Params.lateralSpeed, 0.01f);
             float steerForce = fullSteerSpeed * drag;
-            float drive = steer * steerForce * control * Settings.freeStrafeShare;
+            // Guided, the stick strafes like the runner's; free, it mostly turns.
+            float drive = steer * steerForce * control * Mathf.Lerp(Settings.freeStrafeShare, 1f, assist);
             LateralVelocity = (LateralVelocity + (drive + slip) * dt) / (1f + drag * dt);
             ShoveVelocity /= 1f + drag * dt;
             if (Mathf.Abs(ShoveVelocity) < ShoveEpsilon) ShoveVelocity = 0f;
             TotalLateralVelocity = LateralVelocity + ShoveVelocity;
             BankDemand = steer * control + slip / steerForce + ShoveVelocity / fullSteerSpeed;
+        }
+
+        // -------------------------------------------------------------- guide
+        /// <summary>Where the body sits on the guide this substep, if it has one in reach.</summary>
+        void ProjectOnGuide()
+        {
+            HasGuideSample = false;
+            if (Guide as UnityEngine.Object == null || GuideAssist <= 0f || !Settings.useGuide) return;
+            if (!Guide.TryProject(Position, ref guideHint, out GuideSample sample)) { guideHint = float.NaN; return; }
+            if (new Vector2(sample.lateral, sample.height).magnitude > Guide.CaptureRange) { guideHint = float.NaN; return; }
+            Guided = sample;
+            HasGuideSample = true;
+        }
+
+        /// <summary>
+        /// The guide's help: the heading is eased onto the line — locked to it
+        /// at full assist, where the road supplies the heading exactly as the
+        /// runner's spline did. The tangent is taken half a step AHEAD
+        /// (midpoint rule): stepping along the tangent at the start of each
+        /// substep would walk off the outside of every curve, a few
+        /// millimetres at a time. A ship flying the line backwards is helped
+        /// backwards. The guide never moves the body: it still rides whatever
+        /// surface is under it.
+        /// </summary>
+        void FollowGuideHeading(float assist, float dt)
+        {
+            if (assist <= 0f) return;
+            bool airborne = State == ShipState.Airborne;
+            Vector3 up = airborne ? Vector3.up : Up;
+            Vector3 heading = airborne ? airForward : Forward;
+
+            float direction = Vector3.Dot(heading, Guided.forward) >= 0f ? 1f : -1f;
+            Guide.SampleAt(Guided.distance + direction * 0.5f * ForwardSpeed * dt, out GuideSample ahead);
+            Vector3 target = Vector3.ProjectOnPlane(ahead.forward * direction, up);
+            if (target.sqrMagnitude < 1e-6f) return;
+            target.Normalize();
+
+            Vector3 eased = assist >= 0.999f
+                ? target
+                : Vector3.Slerp(heading, target, 1f - Mathf.Exp(-Settings.guideHeadingResponse * assist * dt)).normalized;
+            if (airborne) airForward = eased;
+            else Forward = eased;
         }
 
         // -------------------------------------------------------------- walls
@@ -433,8 +513,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 StopLateralMotion();
             }
 
+            // Backed into it: the reverse just ends.
+            if (ReverseSpeed > 0f && Vector3.Dot(heading, flat) > 0.02f) ReverseSpeed = 0f;
+
             float into = -Vector3.Dot(heading, flat);
-            if (into > 0.02f)
+            if (ReverseSpeed <= 0f && into > 0.02f)
             {
                 Vector3 along = heading + flat * into; // heading with its into-wall part removed
                 float keep = along.magnitude;
@@ -474,13 +557,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
             for (int i = 0; i < 5; i++)
             {
+                Vector3 travel = ReverseSpeed > 0f ? -heading : heading; // the fan faces the way the body is going
                 Vector3 direction = i switch
                 {
                     0 => side,
                     1 => -side,
-                    2 => (heading + side).normalized,
-                    3 => (heading - side).normalized,
-                    _ => heading,
+                    2 => (travel + side).normalized,
+                    3 => (travel - side).normalized,
+                    _ => travel,
                 };
                 Queries++;
                 if (!Physics.Raycast(Position, direction, out RaycastHit hit, radius, Settings.groundLayers, QueryTriggerInteraction.Ignore)) continue;

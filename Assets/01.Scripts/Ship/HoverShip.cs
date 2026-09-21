@@ -27,7 +27,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// <b>barrel roll</b> (the same shove at air authority under a full 360°
     /// of the model, on its own clock so a wall or a landing never leaves the
     /// ship on its side) and the <b>stall</b> (a standstill with the throttle
-    /// released for the grace — braking to a stop alone is fine).
+    /// released for the grace — braking to a stop alone is fine). Unlike the
+    /// runner's motor, a stall never freezes this ship: <see cref="HasStopped"/>
+    /// is a REPORT a game may end its run on (and pause the ship itself); in a
+    /// level with no such game the ship simply flies on, and the report clears
+    /// the moment it moves again.
     ///
     /// Both assets run as runtime clones taken in <c>Awake</c> — a game may
     /// push its rules into them, and the debug menu edits them, without ever
@@ -65,6 +69,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float rollTimeLeft, rollDuration, rollAngle;
         int rollDirection;
         float stallTimer;
+        float guideSearchTimer;
 
         public ShipDefinition Definition => definition;
         public ShipSettings Settings => settings;
@@ -81,6 +86,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float DashBurstDuration => dashBurstDuration;
         public bool IsBarrelRolling => rollTimeLeft > 0f;
         public int BarrelRollDirection => IsBarrelRolling ? rollDirection : 0;
+        /// <summary>The guide spline the ship is currently helped by, or null in free flight.</summary>
+        public IShipGuide Guide => body.HasGuideSample ? body.Guide : null;
+        /// <summary>Where the ship sits on its guide — only meaningful while <see cref="Guide"/> is not null.</summary>
+        public GuideSample GuideSample => body.Guided;
         /// <summary>A game's say over the camera's view cycle (a menu is open).</summary>
         public bool ViewCycleLocked { get; set; }
         /// <summary>When set, these controls drive the ship instead of the player's input (an autopilot, a scripted test). Dash requests from the input are swallowed while it is.</summary>
@@ -191,6 +200,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             HasStopped = false;
             bankAngle = 0f;
             dashInput?.ConsumeDashRequest(); // a press from before the launch is not a dash
+            guideSearchTimer = 0f;           // a teleport: look for the level's guide at once
+            body.Guide = null;
 
             FillParams();
             body.Reset(position, rotation, definition.initialImpulse);
@@ -210,7 +221,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         // --------------------------------------------------------------- tick
         void FixedUpdate()
         {
-            if (Paused || HasStopped || definition == null || settings == null) return;
+            if (Paused || definition == null || settings == null) return;
             float dt = Time.fixedDeltaTime;
 
             // Rules read live off the clones, like every tunable.
@@ -221,6 +232,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 dashInput.DoubleTapSeconds = settings.dashDoubleTapSeconds;
             }
             FillParams();
+            UpdateGuide(dt);
 
             UpdateDash(dt); // before the body's tick, so a request fires on the tick it was consumed
 
@@ -259,6 +271,21 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 jumpStrength = definition.jumpStrength,
                 rideHeight = definition.hoverHeight,
             };
+        }
+
+        // Detecting the level's guide: nothing is wired — a guide in reach is
+        // found through the registry, on a timer (the search walks the whole
+        // line), and only while the ship has none. No guide = free flight.
+        void UpdateGuide(float dt)
+        {
+            body.GuideAssist = settings.useGuide ? settings.guideAssist : 0f;
+            if (!settings.useGuide) { body.Guide = null; return; }
+            if (body.Guide as UnityEngine.Object != null && body.HasGuideSample) return;
+
+            guideSearchTimer -= dt;
+            if (guideSearchTimer > 0f) return;
+            guideSearchTimer = settings.guideSearchSeconds;
+            body.Guide = ShipGuideRegistry.FindInReach(gameObject.scene, body.Position, out _);
         }
 
         // Meter recharge and dash triggering.
@@ -314,12 +341,16 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         // A standstill is not the end by itself — the brake can stop the ship
         // and the throttle pulls it away again. Stalling out is sitting at 0
-        // with the throttle released for the whole grace.
+        // with the throttle released for the whole grace. It is only reported:
+        // a ship that froze on it could never leave a level with no game to
+        // restart it (it sat dead in the city the first time it stopped).
         void UpdateStall(float dt, float throttle)
         {
-            bool stalled = body.ForwardSpeed <= 0.01f && throttle <= 0.01f && State != ShipState.Airborne;
+            bool still = body.ForwardSpeed <= 0.01f && body.ReverseSpeed <= 0.01f;
+            bool stalled = still && throttle <= 0.01f && State != ShipState.Airborne;
             stallTimer = stalled ? stallTimer + dt : 0f;
             if (stallTimer >= settings.stallGraceSeconds) HasStopped = true;
+            else if (!still) HasStopped = false;
         }
 
         // ------------------------------------------------------------- render
@@ -327,7 +358,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             if (definition == null || settings == null) return;
             float dt = Time.deltaTime;
-            bool running = !Paused && !HasStopped;
+            bool running = !Paused;
 
             if (running) UpdateRoll(dt); // visual only, so it turns at the frame rate, not the tick's
 

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
+using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Splines;
 
 namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
 {
@@ -12,14 +14,27 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
     /// acceleration and brake numbers, with a wall slalom on it), a run of
     /// separate 19 m tiles (seams must never read as walls), a 60 m / 20°
     /// ramp, a gap, a crest, an R = 100 corkscrew loop, an 80° banked sweep,
-    /// an R = 60 pipe ridden on its outside, and a dead-end wall.
+    /// an R = 60 pipe ridden on its outside — all of that with NO guide — then
+    /// the guided stretch (an R = 490 S-curve and a second corkscrew loop under
+    /// a full-assist <see cref="SplineGuide"/>, and a gentle flat sweep under a
+    /// grip-testing one), and a dead-end wall.
     ///
     /// The geometry is built at <c>Awake</c> (level geometry, like the
     /// runner's streamed track — nothing is saved into the scene or the repo)
     /// by a turtle that walks the course and hands cross-sections to
     /// <see cref="SurfaceRibbonMesher"/>; every section also leaves a
     /// <see cref="Station"/> the debug overlay can teleport the ship to.
+    ///
+    /// <b>It can also be generated in the editor</b> (the Generate button),
+    /// two ways. As a <i>preview</i> (the default) the objects are never
+    /// saved: they are there to look at, they follow the sliders as you drag
+    /// them, and play regenerates the very same course. With
+    /// <see cref="keepGenerated"/> on, the generated objects are ordinary
+    /// scene objects instead — move a wall, delete the ramp, reshape a guide's
+    /// spline — and play flies them exactly as they stand: Awake only walks
+    /// the course to find its stations and builds nothing.
     /// </summary>
+    [ExecuteAlways] // only so an editor preview can clean up after itself; the course itself is built in play
     public sealed class ShipSandboxCourse : MonoBehaviour
     {
         /// <summary>A named spot on the course, a little before a feature, facing along it.</summary>
@@ -46,6 +61,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
         [Tooltip("Optional. Left empty the course paints itself with a generated 10 m checker, so speed is readable.")]
         [SerializeField] Material surfaceMaterial;
 
+        [TitleGroup("Editor")]
+        [Tooltip("Off = Generate makes a PREVIEW: never saved, follows the sliders, and play regenerates the same course. On = the generated objects are saved with the scene and play flies them as they stand, hand edits included — Generate again only when you want to throw those edits away.")]
+        [SerializeField] bool keepGenerated;
+
         [TitleGroup("Features")]
         [PropertyRange(30f, 400f), SuffixLabel("m", true)]
         [SerializeField] float loopRadius = 100f;
@@ -64,6 +83,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
 
         readonly List<Station> stations = new();
         readonly List<RibbonFrame> frames = new();
+        readonly List<RibbonFrame> guideFrames = new();
+        bool recordingGuide;
+        bool stationsOnly; // walking the course for its stations: nothing is created
         Material runtimeMaterial;
         Texture2D runtimeTexture;
         Vector3 cursor;
@@ -72,13 +94,119 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
         public IReadOnlyList<Station> Stations => stations;
         float HalfWidth => width * 0.5f;
 
-        void Awake() => Build();
+        void Awake()
+        {
+            if (!Application.isPlaying) return;
+            // Kept geometry is flown as it stands in the scene; only the stations are worked out again.
+            stationsOnly = keepGenerated && transform.childCount > 0;
+            if (!stationsOnly) ClearGenerated();
+            Build();
+            stationsOnly = false;
+        }
 
         void OnDestroy()
         {
-            if (runtimeMaterial != null) Destroy(runtimeMaterial);
-            if (runtimeTexture != null) Destroy(runtimeTexture);
+            Kill(runtimeMaterial);
+            Kill(runtimeTexture);
         }
+
+        /// <summary>Builds the course in the editor — a preview, or the real scene objects when <see cref="keepGenerated"/> is on.</summary>
+        [TitleGroup("Editor"), Button(ButtonSizes.Large), DisableInPlayMode]
+        public void Generate()
+        {
+            ClearGenerated();
+            stationsOnly = false;
+            Build();
+        }
+
+        [TitleGroup("Editor"), Button, DisableInPlayMode]
+        public void Clear() => ClearGenerated();
+
+        void ClearGenerated()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                GameObject child = transform.GetChild(i).gameObject;
+                var filter = child.GetComponent<MeshFilter>();
+                // Ribbon meshes are ours (no asset behind them); a cube's mesh is Unity's and stays.
+                if (filter != null && child.GetComponent<MeshCollider>() != null) Kill(filter.sharedMesh);
+                Kill(child);
+            }
+            Kill(runtimeMaterial);
+            Kill(runtimeTexture);
+            runtimeMaterial = null;
+            runtimeTexture = null;
+            stations.Clear();
+        }
+
+        static void Kill(Object target)
+        {
+            if (target == null) return;
+            if (Application.isPlaying) Destroy(target);
+            else DestroyImmediate(target);
+        }
+
+        /// <summary>A preview object must never reach the scene file; a kept one is an ordinary scene object.</summary>
+        T Own<T>(T target) where T : Object
+        {
+            if (!Application.isPlaying && !keepGenerated) target.hideFlags = HideFlags.DontSave;
+            return target;
+        }
+
+#if UNITY_EDITOR
+        // Preview objects are DontSave, and Unity does not destroy those when a
+        // scene unloads — left alone they would sit in play mode as a second,
+        // invisible-to-the-hierarchy copy of every collider. So a preview is
+        // taken down whenever this component goes (play starts, the scene
+        // closes, scripts reload) and put back when it returns in edit mode.
+        string PreviewKey => "ShipSandboxCourse.preview." + gameObject.scene.path + "/" + name;
+
+        void OnEnable()
+        {
+            // Always subscribed: coming back from play, this runs while Unity still says
+            // it is playing, and EnteredEditMode is the first moment a rebuild is safe.
+            UnityEditor.EditorApplication.playModeStateChanged += OnPlayModeChanged;
+            UnityEditor.EditorApplication.delayCall += RestorePreview; // a script reload or a reopened scene
+        }
+
+        void OnDisable()
+        {
+            UnityEditor.EditorApplication.playModeStateChanged -= OnPlayModeChanged;
+            if (!Application.isPlaying) TakeDownPreview();
+        }
+
+        void OnPlayModeChanged(UnityEditor.PlayModeStateChange change)
+        {
+            if (change == UnityEditor.PlayModeStateChange.ExitingEditMode) TakeDownPreview();
+            else if (change == UnityEditor.PlayModeStateChange.EnteredEditMode) RestorePreview();
+        }
+
+        // The note is only spent once the preview is really back.
+        void RestorePreview()
+        {
+            if (this == null || keepGenerated || Application.isPlaying || UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (!UnityEditor.SessionState.GetBool(PreviewKey, false)) return;
+            UnityEditor.SessionState.SetBool(PreviewKey, false);
+            Generate();
+        }
+
+        void TakeDownPreview()
+        {
+            if (keepGenerated || transform.childCount == 0) return;
+            UnityEditor.SessionState.SetBool(PreviewKey, true);
+            ClearGenerated();
+        }
+
+        // A preview follows the sliders. Kept geometry never does — it may carry hand edits.
+        void OnValidate()
+        {
+            if (Application.isPlaying || keepGenerated || transform.childCount == 0) return;
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (this != null && !Application.isPlaying && !keepGenerated && transform.childCount > 0) Generate();
+            };
+        }
+#endif
 
         void Build()
         {
@@ -120,6 +248,28 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             Tube(1500f, tubeRadius, 300f);
             Straight("Final straight", 1500f, walls: true);
 
+            // ---- the guided stretch: the same kinds of road, with a line to follow
+            Straight("Guide run-up", 600f, walls: true);
+            BeginGuide();
+            Mark("Guided S-curve", back: 0f);
+            Straight("Guided lead-in", 400f, walls: true);
+            Sweep(490f, 60f, 0f, "Guided S right");
+            Sweep(490f, -60f, 0f, "Guided S left");
+            Straight("Guided S exit", 600f, walls: true);
+            Mark("Guided loop", back: 400f);
+            Loop(loopRadius, loopLateralDrift, 200f, "Guided loop");
+            Straight("After guided loop", 800f, walls: true);
+            EndGuide("Guide (full assist)", assist: 1f, gripTested: false);
+
+            Straight("Between guides", 400f, walls: true);
+            BeginGuide();
+            Mark("Flat sweep", back: 0f);
+            Straight("Flat sweep lead-in", 400f, walls: true);
+            Sweep(2500f, 40f, 0f, "Flat sweep");
+            Straight("Flat sweep exit", 600f, walls: true);
+            EndGuide("Guide (grip tested)", assist: 1f, gripTested: true);
+
+            Straight("Run-out", 1200f, walls: true);
             Mark("End wall", back: 600f);
             Box("End wall", cursor + Up * 20f, new Vector3(width, 40f, 4f));
         }
@@ -191,11 +341,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             Emit(label, 1, walls: true);
         }
 
-        /// <summary>A level turn to the right, banked into it: the bank eases in and out so both ends meet flat road.</summary>
-        void Sweep(float radius, float degrees, float bank)
+        /// <summary>A level turn (positive degrees = right), banked into it: the bank eases in and out so both ends meet flat road.</summary>
+        void Sweep(float radius, float degrees, float bank, string label = "Banked sweep")
         {
             frames.Clear();
-            float arc = radius * degrees * Mathf.Deg2Rad;
+            float side = Mathf.Sign(degrees);
+            float arc = radius * Mathf.Abs(degrees) * Mathf.Deg2Rad;
             int steps = Mathf.Max(2, Mathf.CeilToInt(arc / 8f));
             float ds = arc / steps;
             frames.Add(Frame(cursor, heading, HalfWidth));
@@ -205,14 +356,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
                 cursor += Forward * ds;
                 float u = i / (float)steps;
                 float ease = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(Mathf.Min(u, 1f - u) * 4f));
-                // A right turn drops the right edge.
-                frames.Add(Frame(cursor, heading * Quaternion.Euler(0f, 0f, -bank * ease), HalfWidth));
+                // A turn drops its inside edge.
+                frames.Add(Frame(cursor, heading * Quaternion.Euler(0f, 0f, -bank * ease * side), HalfWidth));
             }
-            Emit("Banked sweep", 1, walls: true);
+            Emit(label, 1, walls: true);
         }
 
         /// <summary>A helix standing on the entry pose: once round, drifting sideways and carrying forward so the exit clears the entry.</summary>
-        void Loop(float radius, float drift, float carry)
+        void Loop(float radius, float drift, float carry, string label = "Loop")
         {
             frames.Clear();
             Vector3 origin = cursor, f = Forward, r = Right, up = Up;
@@ -239,7 +390,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
                 frames.Add(new RibbonFrame { position = p, right = across, up = inward, halfWidth = HalfWidth });
             }
             cursor = Point(1f);
-            Emit("Loop", 1, walls: true);
+            Emit(label, 1, walls: true);
         }
 
         /// <summary>The road curls into a pipe the ship rides the OUTSIDE of, its top staying on the flight line, and uncurls again.</summary>
@@ -269,11 +420,55 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             }
         }
 
+        // ------------------------------------------------------------- guides
+        void BeginGuide()
+        {
+            guideFrames.Clear();
+            recordingGuide = true;
+        }
+
+        /// <summary>
+        /// Draws a real <see cref="SplineContainer"/> down the middle of
+        /// everything emitted since <see cref="BeginGuide"/> — one knot every
+        /// ~20 m carrying the road's up in its rotation — and puts a
+        /// <see cref="SplineGuide"/> on it: exactly what a level designer would
+        /// author by hand, so the acceptance run exercises the real path.
+        /// </summary>
+        void EndGuide(string label, float assist, bool gripTested)
+        {
+            recordingGuide = false;
+            if (stationsOnly) return;
+            var go = Own(new GameObject(label));
+            go.transform.SetParent(transform, false);
+            go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            var container = go.AddComponent<SplineContainer>();
+            Spline spline = container.Spline;
+            spline.Clear();
+
+            Vector3 last = Vector3.positiveInfinity;
+            for (int i = 0; i < guideFrames.Count; i++)
+            {
+                RibbonFrame frame = guideFrames[i];
+                bool end = i == guideFrames.Count - 1;
+                if (!end && Vector3.Distance(frame.position, last) < 20f) continue;
+                last = frame.position;
+                Vector3 forward = Vector3.Cross(frame.right, frame.up);
+                spline.Add(new BezierKnot((float3)frame.position, float3.zero, float3.zero, Quaternion.LookRotation(forward, frame.up)),
+                           TangentMode.AutoSmooth);
+            }
+
+            var guide = go.AddComponent<SplineGuide>();
+            guide.Configure(assist, captureRange: width, halfWidth: HalfWidth, gripTested: gripTested);
+            guide.Rebuild();
+        }
+
         // ------------------------------------------------------------ output
         void Emit(string label, int crossSegments, bool walls)
         {
-            Mesh mesh = SurfaceRibbonMesher.Build(frames, crossSegments, walls ? wallHeight : 0f, walls, walls, label);
-            var go = new GameObject(label) { layer = ShipLayers.Ground };
+            if (recordingGuide) guideFrames.AddRange(frames);
+            if (stationsOnly) return;
+            Mesh mesh = Own(SurfaceRibbonMesher.Build(frames, crossSegments, walls ? wallHeight : 0f, walls, walls, label));
+            var go = Own(new GameObject(label) { layer = ShipLayers.Ground });
             go.transform.SetParent(transform, false);
             go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
@@ -283,7 +478,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
 
         void Box(string label, Vector3 centre, Vector3 size)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            if (stationsOnly) return;
+            var go = Own(GameObject.CreatePrimitive(PrimitiveType.Cube));
             go.name = label;
             go.layer = ShipLayers.Ground;
             go.transform.SetParent(transform, false);
@@ -302,10 +498,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             var light = new Color(0.22f, 0.25f, 0.32f);
             texture.SetPixels(new[] { dark, light, light, dark });
             texture.Apply();
-            runtimeTexture = texture;
+            runtimeTexture = Own(texture);
 
             Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-            runtimeMaterial = new Material(shader != null ? shader : Shader.Find("Sprites/Default")) { name = "Sandbox checker" };
+            runtimeMaterial = Own(new Material(shader != null ? shader : Shader.Find("Sprites/Default")) { name = "Sandbox checker" });
             runtimeMaterial.mainTexture = texture;
             runtimeMaterial.mainTextureScale = new Vector2(1f / 20f, 1f / 20f); // UVs are metres: a 10 m checker
             return runtimeMaterial;

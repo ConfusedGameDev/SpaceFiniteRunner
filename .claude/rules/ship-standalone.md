@@ -86,6 +86,45 @@ Light Speed, a 60 m ramp is under two ticks, a loop wants 10⁴ m/s² of centrip
 4. **The re-seat is a swept move that SLIDES** along a wall. Stopping it dead threw the height
    correction away, and the ship fell behind an unwinding bank until the probes lost the road.
 
+## The optional guide spline (`Ship/Guide/`)
+
+A level MAY have a line that helps ships along it; a ship with none in reach is fully free.
+**Nothing is wired**: `SplineGuide` (beside any `SplineContainer`; the knots' rotations carry the
+road's up, so a line through a loop or along a banked wall guides there too) registers in
+`ShipGuideRegistry`, and `HoverShip.UpdateGuide` looks for one in reach — on a timer
+(`guideSearchSeconds`, the search walks the whole line), only while it has none, at once after a
+`Launch` teleport, and **only in its own scene**.
+
+- **`IShipGuide`**: `TryProject(world, ref hint, out GuideSample)` (distance / lateral / height,
+  the line's frame, signed curvature + = right, lane band, open edges, `gripTested`),
+  `SampleAt(distance)`, `FindRespawn`, `Assist`, `CaptureRange`, `Scene`. The runner's
+  `TrackGuide` (M6) will be a second implementation over `TrackManager`.
+- **`SplineGuide` bakes the spline once** into an arc-length table (`sampleSpacing` 2 m) and
+  every query runs on the table. A projection is a nearest-segment search in a **window around
+  the last answer** (`searchWindow`) — cheap enough to ask every substep, and the only way the
+  two passes of a line that crosses itself (a loop) are told apart. NaN hint = whole-line
+  search. A point past an OPEN end is not "on the guide" (`EndSlack`), or a ship would stay
+  locked to the last tangent for ever. Call `Rebuild()` after editing the spline at runtime.
+- **What the assist does** (`HoverBody.FollowGuideHeading`, assist = ship's `guideAssist` ×
+  the guide's `Assist`): the heading is eased onto the line (`guideHeadingResponse`), **locked
+  to it at full assist** — the road supplies the heading and the stick strafes, the runner's
+  feel. The player's own yaw is scaled by (1 − assist) and the strafe share rises to 1. **The
+  guide never moves the body**: it still rides whatever surface is under it, and walls stay
+  physical.
+- **The tangent is taken half a substep AHEAD (midpoint rule).** Stepping along the tangent at
+  the start of each substep walks off the outside of every curve, millimetres at a time — metres
+  over a sweep.
+- A ship flying the line backwards is helped backwards (the tangent is flipped to its heading).
+- **`gripTested`** makes the guide's road the runner's flat sweep: the demand becomes v²κ, the
+  excess over the ship's grip pushes it outward, and only slip faster than `slideThreshold`
+  counts as a slide (at the reference numbers an R = 2500 sweep holds at cruise, drifts ~3 m at
+  1.4×, slides at 1.6×).
+- Track coordinates for consumers: `HoverShip.Guide` / `GuideSample` (null = free flight).
+
+Acceptance (all at cruise unless said): hands-off R = 490 S-curve within **0.03 m** of the line;
+assist 0.3 still needs steering; guide switched off mid-curve = **no position jump**; the
+corkscrew loop with a guide = **zero wall hits** at 300 / 1000 / 1806 m/s (free, it scrapes).
+
 ## Contracts: `IShip`, `IRunnerShip`, `ShipRegistry`
 
 - **`IShip`** is what the rest of the game reads off a ship, in world terms only (speed, state,
@@ -150,6 +189,21 @@ whatever components the ship has gained to every prefab carrying a `HoverShip` (
 colliders at `Awake` through `SurfaceRibbonMesher` (single-sided ribbons, optional pipe curl,
 inward walls — also the future source of the runner's track colliders); nothing is saved as a
 mesh asset. `ShipDebugOverlay`: F1–F10 stations, 1/2/3 = 300 / cruise / Light Speed.
+
+**The course can be generated in the editor** (`ShipSandboxCourse`, Editor group: **Generate**
+/ **Clear**), two ways, switched by `keepGenerated`:
+
+- **Preview (off, default)** — objects, meshes and the checker material are `HideFlags.DontSave`:
+  never written to the scene, they follow the sliders (`OnValidate` regenerates), and play builds
+  the very same course. **Unity does not destroy DontSave objects when a scene unloads**, so a
+  preview left up would sit in play mode as a second, hierarchy-less copy of every collider: the
+  component is `[ExecuteAlways]` only to take the preview down on `ExitingEditMode` / `OnDisable`
+  and put it back on `EnteredEditMode` (a `SessionState` note; `OnEnable` is too early — coming
+  back from play it still reads as playing). `Awake` does nothing in edit mode.
+- **Kept (on)** — ordinary scene objects, saved with the scene: move a wall, delete the ramp,
+  reshape a guide's spline. Play flies them **as they stand**; `Awake` only walks the course to
+  rebuild its stations (`stationsOnly`) and creates nothing. Generate again throws the hand
+  edits away. The meshes have no asset behind them, so they are embedded in the scene file.
 
 **`ShipSandboxAutoTest` is the acceptance run** (`Run()`, or `RunOne(station, speed, metres)`):
 speed-model timings, every feature at 300 / cruise / Light Speed with the speed pinned, jump

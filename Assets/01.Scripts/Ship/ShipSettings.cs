@@ -105,6 +105,25 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [PropertyRange(5f, 85f), SuffixLabel("°", true)]
         public float maxLandAngle = 60f;
 
+        [TitleGroup("Guide")]
+        [Tooltip("Take the help of a guide spline when the level has one in reach. Off = always free flight.")]
+        public bool useGuide = true;
+
+        [TitleGroup("Guide")]
+        [Tooltip("The ship's own share of a guide's assist (multiplied with the guide's). 1 on a full-assist guide = the heading is the line's and the stick strafes, the runner's feel; lower keeps turning in the player's hands and only leans the heading toward the line.")]
+        [PropertyRange(0f, 1f), EnableIf(nameof(useGuide))]
+        public float guideAssist = 1f;
+
+        [TitleGroup("Guide")]
+        [Tooltip("How fast a partial assist eases the heading onto the line, 1/s (scaled by the assist). Full assist locks it.")]
+        [PropertyRange(0.5f, 30f), EnableIf(nameof(useGuide))]
+        public float guideHeadingResponse = 6f;
+
+        [TitleGroup("Guide")]
+        [Tooltip("How often a ship with no guide looks for one.")]
+        [PropertyRange(0.1f, 5f), SuffixLabel("s", true), EnableIf(nameof(useGuide))]
+        public float guideSearchSeconds = 0.5f;
+
         [TitleGroup("Dash")]
         [Tooltip("Master switch for the lateral dash and its airborne barrel roll.")]
         public bool dashEnabled = true;
@@ -124,9 +143,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float dashDoubleTapSeconds = 0.3f;
 
         [TitleGroup("Stall")]
-        [Tooltip("Seconds at a standstill with the throttle released before the ship counts as stopped. Braking to a stop alone never stalls it.")]
+        [Tooltip("Seconds at a standstill with the throttle released before the ship reports itself stopped. Braking to a stop alone never stalls it. The report is only a signal (a game may end its run on it): the ship itself keeps flying.")]
         [PropertyRange(0.25f, 10f), SuffixLabel("s", true)]
         public float stallGraceSeconds = 2f;
+
+        [TitleGroup("Reverse")]
+        [Tooltip("At a standstill, holding the brake backs the ship up to this speed — the way out of a wall it has nosed into. 0 = no reverse (the runner's rule: the brake only stops).")]
+        [PropertyRange(0f, 100f), SuffixLabel("m/s", true)]
+        public float reverseSpeed = 25f;
+
+        [TitleGroup("Reverse")]
+        [PropertyRange(1f, 200f), SuffixLabel("m/s per s", true)]
+        public float reverseAcceleration = 40f;
 
         [TitleGroup("Feel")]
         [Tooltip("Material of the dash ghosts and of the respawn blink. Empty = a runtime translucent fallback.")]

@@ -28,7 +28,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
         [SerializeField] bool logTakeOffs = true;
 
         readonly StringBuilder report = new();
-        int wallHits, takeOffs, landings;
+        int wallHits, takeOffs, landings, slides;
+        int guidedTicks, flownTicks;
+        float worstLateral, worstJump;
+        Vector3 lastPosition;
         Vector3 takeOffPoint;
         float lastJump;
         float worstError, worstTick, maxTilt, travelled;
@@ -51,6 +54,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             ship.WallHit += OnWallHit;
             ship.TookOff += OnTookOff;
             ship.Landed += OnLanded;
+            ship.Sliding += OnSliding;
         }
 
         void OnDisable()
@@ -59,7 +63,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             ship.WallHit -= OnWallHit;
             ship.TookOff -= OnTookOff;
             ship.Landed -= OnLanded;
+            ship.Sliding -= OnSliding;
         }
+
+        void OnSliding(float excess) => slides++;
 
         void OnWallHit(float speed) => wallHits++;
         void OnTookOff()
@@ -122,6 +129,17 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             // A feature pass is flown at ONE speed: coast drag and wall scrapes are put back every tick (the scrapes are still counted).
             if (pinnedSpeed >= 0f) ship.Body.ForwardSpeed = pinnedSpeed;
             travelled += ship.CurrentSpeed * Time.fixedDeltaTime;
+
+            flownTicks++;
+            if (ship.Guide != null)
+            {
+                guidedTicks++;
+                worstLateral = Mathf.Max(worstLateral, Mathf.Abs(ship.GuideSample.lateral));
+            }
+            // A teleport or a pop shows as a tick that moved further than the speed allows.
+            float moved = Vector3.Distance(ship.Body.Position, lastPosition);
+            if (flownTicks > 1) worstJump = Mathf.Max(worstJump, moved - ship.CurrentSpeed * Time.fixedDeltaTime);
+            lastPosition = ship.Body.Position;
             // The first ticks pay for JIT and collider cooking; the budget is judged on the rest.
             if (++tickCount > 50)
             {
@@ -188,6 +206,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             Line($"tube at 300 m/s, full right steer: reached {tubeTilt:F0}° round the pipe, state {ship.State}, worst surface error {worstError:F3} m");
 
             yield return Feel();
+            yield return Guided();
 
             Begin("End wall", ship.Definition.cruiseSpeed, throttle: 0f);
             yield return new WaitForSeconds(1.5f);
@@ -195,6 +214,58 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
 
             Line($"tick cost: average {tickTotal / Mathf.Max(1, tickCount - 50):F3} ms, worst {worstTick:F3} ms");
             Line("---- done ----");
+            ship.ControlOverride = null;
+            Running = false;
+        }
+
+        /// <summary>The optional guide spline: hands-off following, partial assist, losing the guide mid-run, the corkscrew loop, and the grip test.</summary>
+        IEnumerator Guided()
+        {
+            float cruise = ship.Definition.cruiseSpeed;
+
+            yield return Feature("Guided S-curve", cruise, 1950f, "guided S-curve, hands off, full assist");
+            Line($"   guided {100f * guidedTicks / Mathf.Max(1, flownTicks):F0}% of the way, worst offset from the line {worstLateral:F2} m");
+
+            ship.Settings.guideAssist = 0.3f;
+            yield return Feature("Guided S-curve", cruise, 1950f, "guided S-curve, hands off, assist 0.3");
+            Line($"   worst offset from the line {worstLateral:F1} m ({(wallHits > 0 || worstLateral > 5f ? "needs steering, as intended" : "HELD BY ITSELF")})");
+            ship.Settings.guideAssist = 1f;
+
+            // Losing the guide mid-curve must be a change of rules, never a pop.
+            Begin("Guided S-curve", cruise, throttle: 0f);
+            pinnedSpeed = cruise;
+            float t0 = Time.time;
+            while (travelled < 1950f && Time.time - t0 < 20f)
+            {
+                if (travelled > 650f) ship.Settings.useGuide = false;
+                yield return new WaitForFixedUpdate();
+            }
+            pinnedSpeed = -1f;
+            ship.Settings.useGuide = true;
+            Line($"guide switched off mid-curve: worst position jump {worstJump:F3} m, ends {ship.State}, free after it ({(ship.Guide == null ? "yes" : "NO")})");
+
+            foreach (float speed in new[] { 300f, cruise, lightSpeed })
+                yield return Feature("Guided loop", speed, 1300f, "guided corkscrew loop", wantTilt: 150f);
+
+            foreach (float speed in new[] { cruise, cruise * 1.6f }) // 1.6×: the slip must outrun the slide threshold, not just exist
+            {
+                yield return Feature("Flat sweep", speed, 2300f, "grip-tested flat sweep");
+                Line($"   slides {slides} ({(speed > cruise ? (slides > 0 ? "slid, as intended" : "DID NOT SLIDE") : (slides == 0 ? "held, as intended" : "SLID AT CRUISE"))}), worst offset {worstLateral:F1} m");
+            }
+        }
+
+        /// <summary>Only the guide checks.</summary>
+        public void RunGuided()
+        {
+            if (Running || ship == null || course == null) return;
+            StartCoroutine(GuidedOnly());
+        }
+
+        IEnumerator GuidedOnly()
+        {
+            Running = true;
+            report.Clear();
+            yield return Guided();
             ship.ControlOverride = null;
             Running = false;
         }
@@ -267,7 +338,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             }
             ship.Body.ForwardSpeed = speed;
             ship.ControlOverride = new BodyControls { throttle = throttle, steer = steer };
-            wallHits = takeOffs = landings = 0;
+            wallHits = takeOffs = landings = slides = 0;
+            guidedTicks = flownTicks = 0;
+            worstLateral = worstJump = 0f;
+            lastPosition = ship.Body.Position;
             worstError = 0f;
             travelled = 0f;
             maxTilt = 0f;

@@ -42,6 +42,13 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 return;
             }
 
+            // The scene is rebuilt by saving over its file, which Unity refuses while it is open.
+            if (SceneManager.GetSceneByPath(ScenePath).isLoaded)
+            {
+                Debug.LogWarning($"ShipSandboxBuilder: {ScenePath} is open — open another scene and re-run. (The course and its guides are generated at play from code, so the scene only needs rebuilding when what is PLACED in it changes.)");
+                return;
+            }
+
             var cameraSettings = AssetDatabase.LoadAssetAtPath<OrbitCameraSettings>(CameraSettingsPath);
             ShipDefinition definition = LoadOrCreateDefinition();
             ShipSettings settings = LoadOrCreateSettings();
