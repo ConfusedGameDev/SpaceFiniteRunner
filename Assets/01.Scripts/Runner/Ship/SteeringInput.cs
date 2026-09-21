@@ -16,13 +16,16 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
     /// <summary>
     /// Platform-agnostic dash trigger. The motor only ever consumes the
-    /// latched request; how a "double tap" is produced (bumpers, keys, a VR
-    /// gesture later) stays an input-side detail.
+    /// latched request; how it is produced (a double tap or a single press
+    /// of the bumpers or keys, a VR gesture later) stays an input-side detail.
     /// </summary>
     public interface IDashInput
     {
         /// <summary>Max seconds between two taps that still count as a double tap.</summary>
         float DoubleTapSeconds { get; set; }
+
+        /// <summary>The run's rule: one press is the whole gesture. A run rule (GameSettings), pushed in by the motor every tick so the asset stays live.</summary>
+        bool SinglePress { get; set; }
 
         /// <summary>-1 dash left, +1 dash right, 0 none. Latched; clears on read.</summary>
         int ConsumeDashRequest();
@@ -51,7 +54,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// the CONTROLS screen) and touch (hold left/right half of the screen).
     /// Also detects the dash double taps (the bound dash controls: N/M, LB/RB
     /// by default) and latches them until the motor consumes the request, so
-    /// a tap landing between the motor's reads is never lost.
+    /// a tap landing between the motor's reads is never lost. One press is
+    /// the whole gesture while EITHER the run's <see cref="SinglePress"/>
+    /// rule (GameSettings.dashSinglePress) or the player's
+    /// <see cref="UserSettings.DashSinglePress"/> (the CONTROLS page's
+    /// toggle, read live) is on.
     /// It is the throttle too (<see cref="IThrottleInput"/>: W / right trigger
     /// accelerates, S / left trigger brakes by default): the triggers are read
     /// analog, a key eases to full over <see cref="DigitalRampSeconds"/>, and
@@ -65,6 +72,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         public float SteerAxis { get; private set; }
         public float DoubleTapSeconds { get; set; } = 0.3f;
+        public bool SinglePress { get; set; }
         public float Throttle { get; private set; }
         public float Brake { get; private set; }
         public float DigitalRampSeconds { get; set; } = 0.15f;
@@ -98,7 +106,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void RegisterTap(ref float lastTap, int direction)
         {
-            if (Time.time - lastTap <= DoubleTapSeconds)
+            if (SinglePress || UserSettings.DashSinglePress || Time.time - lastTap <= DoubleTapSeconds)
             {
                 pendingDash = direction;
                 lastTap = float.NegativeInfinity; // a triple tap is not two doubles

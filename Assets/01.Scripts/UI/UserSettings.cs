@@ -4,8 +4,9 @@ using UnityEngine.Audio;
 namespace ConfusedGameDev.FiniteRunner.UI
 {
     /// <summary>
-    /// Player preferences — the three volumes, the subtitle flag, the language
-    /// and the three retro-filter dials of the VIDEO page. These are
+    /// Player preferences — the three volumes, the subtitle flag, the language,
+    /// the three retro-filter dials of the VIDEO page and the single-press
+    /// dash flag of the CONTROLS page. These are
     /// deliberately NOT on <see cref="GameSettings"/>: that asset is balance
     /// data shipped with the build and shared by the whole project, while these
     /// belong to whoever is sitting at the machine. They live in PlayerPrefs,
@@ -48,12 +49,14 @@ namespace ConfusedGameDev.FiniteRunner.UI
         const string PsxFilterKey = "settings.filter.psx";
         const string VhsFilterKey = "settings.filter.vhs";
         const string CrtFilterKey = "settings.filter.crt";
+        const string DashSinglePressKey = "settings.dash.singlePress";
 
         const float MasterDefault = 0.8f;
         const float MusicDefault = 0.7f;
         const float SfxDefault = 0.8f;
         const bool SubtitlesDefault = true;
         const float FilterDefault = 1f;
+        const bool DashSinglePressDefault = false;
 
         /// <summary>
         /// Raised whenever the subtitle preference changes. Nothing consumes it
@@ -74,6 +77,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         static float psxFilter = FilterDefault;
         static float vhsFilter = FilterDefault;
         static float crtFilter = FilterDefault;
+        static bool dashSinglePress = DashSinglePressDefault;
         static bool loaded;
         static bool warnedAboutMixer;
 
@@ -161,6 +165,27 @@ namespace ConfusedGameDev.FiniteRunner.UI
             set => ApplyFilter(ref crtFilter, CrtFilterKey, value);
         }
 
+        /// <summary>
+        /// The runner's dash on ONE press of a dash control instead of the
+        /// double tap — the toggle on the CONTROLS page. Off by default (the
+        /// double tap is the designed input: a bumper brushed by accident
+        /// costs no meter). Polled by the ship's input and the dash hint, like
+        /// the filter dials, so flipping it in the pause menu applies on
+        /// resume — which is why there is no change event.
+        /// </summary>
+        public static bool DashSinglePress
+        {
+            get { EnsureLoaded(); return dashSinglePress; }
+            set
+            {
+                EnsureLoaded();
+                if (dashSinglePress == value) return;
+                dashSinglePress = value;
+                PlayerPrefs.SetInt(DashSinglePressKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
+
         /// <summary>The mixer these preferences drive; null until a mixer asset is assigned on the MenuTheme.</summary>
         public static AudioMixer Mixer { get { EnsureLoaded(); return mixer; } }
 
@@ -220,6 +245,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             psxFilter = ReadVolume(PsxFilterKey, FilterDefault);
             vhsFilter = ReadVolume(VhsFilterKey, FilterDefault);
             crtFilter = ReadVolume(CrtFilterKey, FilterDefault);
+            dashSinglePress = PlayerPrefs.GetInt(DashSinglePressKey, DashSinglePressDefault ? 1 : 0) != 0;
 
             PushAll();
         }

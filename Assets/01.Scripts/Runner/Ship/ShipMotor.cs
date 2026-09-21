@@ -324,7 +324,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             dashSettings = settings;
             if (dashInput != null && settings != null)
+            {
                 dashInput.DoubleTapSeconds = settings.dashDoubleTapSeconds;
+                dashInput.SinglePress = settings.dashSinglePress;
+            }
         }
 
         /// <summary>Resets the run to the track start and applies the initial impulse.</summary>
@@ -395,6 +398,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             prevFallDistance = fallDistance;
             prevOffPosition = offPosition;
             if (throttleInput != null) throttleInput.DigitalRampSeconds = definition.digitalThrottleRampSeconds;
+            if (dashInput != null && dashSettings != null) dashInput.SinglePress = dashSettings.dashSinglePress; // read live, like every GameSettings rule
             body.Params = new BodyParams
             {
                 impulseBlendRate = definition.acceleration,

@@ -292,7 +292,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on
         // ShipDefinition — this section only holds the run-level rules.
         [ToggleGroup("dashEnabled", "Lateral dash")]
-        [Tooltip("Enable the double-tap lateral dash (bumpers on pad, N/M on keyboard) with its power meter, ghosts and prompts.")]
+        [Tooltip("Enable the lateral dash (bumpers on pad, N/M on keyboard — a double tap, or one press with the player's SINGLE-PRESS DASH setting on) with its power meter, ghosts and prompts.")]
         public bool dashEnabled = true;
 
         [ToggleGroup("dashEnabled")]
@@ -301,8 +301,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float dashCost = 0.5f;
 
         [ToggleGroup("dashEnabled")]
-        [Tooltip("Max seconds between two taps of the same bumper/key that still count as a double tap.")]
+        [Tooltip("ON = one press of a dash control dashes. OFF = the double tap — and the player can still opt into the single press with the SINGLE-PRESS DASH toggle on the CONTROLS page. Read live, so it can be flipped during play.")]
+        public bool dashSinglePress = false;
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("Max seconds between two taps of the same bumper/key that still count as a double tap. Unused while the dash is single-press (the toggle above, or the player's own setting).")]
         [PropertyRange(0.1f, 0.6f), SuffixLabel("s", true)]
+        [DisableIf(nameof(dashSinglePress))]
         public float dashDoubleTapSeconds = 0.3f;
 
         [ToggleGroup("dashEnabled")]
@@ -369,6 +374,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [ToggleGroup("dashEnabled")]
         [Tooltip("Caption of the pulsing on-screen hint between the bumper glyphs / key labels.")]
         public string dashHintText = "DOUBLE-TAP TO DASH";
+
+        [ToggleGroup("dashEnabled")]
+        [Tooltip("The same caption while the dash is single-press (Dash Single Press above, or the player's SINGLE-PRESS DASH setting on the CONTROLS page).")]
+        public string dashHintTextSinglePress = "PRESS TO DASH";
 
         // ------------------------------------------------------- floating text
         [TitleGroup("Floating text offsets")]

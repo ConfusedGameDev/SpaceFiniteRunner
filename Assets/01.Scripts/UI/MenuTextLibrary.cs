@@ -124,7 +124,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         FallCameraFollow, RespawnWait, RespawnBlinkRate, RespawnSpeedPenalty,
         RespawnClearance, RespawnPatrolGap, StallGrace, DebugTabPatrolDriver,
         PatrolCatchLateral, PatrolSustainedCatch, PatrolCurveLookahead, PatrolOrbLookahead,
-        PatrolOrbSeek, PatrolOrbBoost, PatrolRampLookahead
+        PatrolOrbSeek, PatrolOrbBoost, PatrolRampLookahead,
+        DashSinglePress
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -789,7 +790,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString actionDashRight = new("DASH RIGHT", "IMPULSO DERECHA", "右ダッシュ", "DASH À DROITE");
         [TitleGroup("Controls")]
-        [SerializeField] LocalizedString actionAccelerate = new("ACCELERATE", "ACELERAR", "アクセル", "ACCÉLÉRER");
+        [Tooltip("The CONTROLS page's toggle: ON = one press of a dash control dashes, OFF = the double tap.")]
+        [SerializeField] LocalizedString dashSinglePress = new("SINGLE-PRESS DASH", "DASH DE UN TOQUE", "ワンプッシュダッシュ", "DASH EN UN APPUI");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionAccelerate =new("ACCELERATE", "ACELERAR", "アクセル", "ACCÉLÉRER");
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString actionBrake = new("BRAKE / REVERSE", "FRENO / MARCHA ATRÁS", "ブレーキ / バック", "FREIN / MARCHE ARRIÈRE");
         [TitleGroup("Controls")]
@@ -1409,6 +1413,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.PatrolOrbSeek => patrolOrbSeek,
             MenuTextId.PatrolOrbBoost => patrolOrbBoost,
             MenuTextId.PatrolRampLookahead => patrolRampLookahead,
+            MenuTextId.DashSinglePress => dashSinglePress,
             _ => start
         };
     }

@@ -9,7 +9,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
     /// The CONTROLS page under SETTINGS, shared by the main menu and the pause
     /// menu (the <see cref="LogScreenFactory"/> recipe: compact rows, section
     /// headers, a scrolling viewport). One <see cref="BindingRow"/> per
-    /// <see cref="GameAction"/> under SHIP / CAR / GENERAL headers, RESTORE
+    /// <see cref="GameAction"/> under SHIP / CAR / GENERAL headers (SHIP
+    /// closes with the SINGLE-PRESS DASH toggle —
+    /// <see cref="UserSettings.DashSinglePress"/> — since how the dash
+    /// controls fire belongs beside what they are bound to), RESTORE
     /// DEFAULTS at the bottom, and a notice line under the list for the
     /// swap message. Left/Right pick the device column for the whole page,
     /// Confirm arms a <see cref="BindingCapture"/> for the focused row.
@@ -40,6 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         MenuTheme theme;
         MenuScreen screen;
         readonly List<BindingRow> rows = new();
+        MenuToggle dashSinglePress;
         Text notice;
         float noticeUntil;
 
@@ -86,6 +90,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
                 var actionSection = ControlBindings.SectionOf(action);
                 if (section != actionSection)
                 {
+                    if (section == BindingSection.Ship) AddDashToggle();
                     section = actionSection;
                     screen.AddRow<StatHeaderRow>(SectionLabel(actionSection));
                 }
@@ -94,10 +99,13 @@ namespace ConfusedGameDev.FiniteRunner.UI
                 row.Configure(action, this);
                 rows.Add(row);
             }
+            if (section == BindingSection.Ship) AddDashToggle(); // SHIP listed last
 
             screen.AddRow<MenuRow>(MenuTextId.RestoreDefaults).Activated += () =>
             {
                 ControlBindings.ResetDefaults();
+                UserSettings.DashSinglePress = false;
+                RefreshDashToggle();
                 Notice(MenuTextLibrary.Load().Get(MenuTextId.DefaultsRestored));
             };
 
@@ -108,12 +116,28 @@ namespace ConfusedGameDev.FiniteRunner.UI
             SetColumn(column);
         }
 
+        void AddDashToggle()
+        {
+            dashSinglePress = screen.AddRow<MenuToggle>(MenuTextId.DashSinglePress);
+            RefreshDashToggle();
+        }
+
+        // Configure is the toggle's only silent setter — re-run it whenever
+        // the stored flag may have moved under the row (defaults restored, or
+        // the other menu's copy of this page flipped it).
+        void RefreshDashToggle()
+        {
+            if (dashSinglePress != null)
+                dashSinglePress.Configure(UserSettings.DashSinglePress, v => UserSettings.DashSinglePress = v);
+        }
+
         void OnEnable()
         {
             // Open on the device the player last touched — the column they
             // most likely came to change.
             SetColumn(InputPromptBinder.Device == PromptDevice.Gamepad ? 1 : 0);
             Refresh();
+            RefreshDashToggle();
             ControlBindings.Changed += Refresh;
             UserSettings.LanguageChanged += OnLanguageChanged;
         }

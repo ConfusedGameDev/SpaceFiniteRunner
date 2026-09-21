@@ -363,6 +363,16 @@ over `ShipDefinition.digitalThrottleRampSeconds` (the motor pushes it in each ti
 clone stays live); the further-down of key and trigger wins. **Touch has no throttle control**: a
 touch-only device holds throttle 1 / brake 0. A ship with no `IThrottleInput` holds full throttle.
 
+The component is the `IDashInput` as well: a press of `ShipDashLeft` / `ShipDashRight` (N/M,
+LB/RB) inside `GameSettings.dashDoubleTapSeconds` of the last one latches a dash request until the
+motor consumes it. **ONE press is the whole gesture while either switch is on**:
+`GameSettings.dashSinglePress` (the designer's, in the Lateral dash group; the motor pushes it into
+`IDashInput.SinglePress` every tick, so the inspector flips it live) or the player's
+`UserSettings.DashSinglePress` (the SINGLE-PRESS DASH toggle on the CONTROLS page, PlayerPrefs, off
+by default, read on every press) — so with the asset's off, the player can still opt in; the motor's gates (meter cost, no dash inside the dash window, autopilot) are untouched,
+so a press it refuses is simply lost. `DashPromptController` swaps its caption with the same OR
+(`GameSettings.dashHintText` / `dashHintTextSinglePress`). No taps are collected at `timeScale` 0.
+
 Gamepad South also restarts on the result screen (`RaceHud`) and launches from the tuning screen,
 with a 0.3 s grace period so one press can't do both. Start is reserved for the pause menu.
 

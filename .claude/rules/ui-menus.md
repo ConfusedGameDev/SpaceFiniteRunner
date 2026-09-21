@@ -112,6 +112,12 @@ RESTORE DEFAULTS last. One `BindingRow` per action (label, key cap slot, pad gly
 underline on the page-wide column). Left/Right picks the column; Confirm arms a `BindingCapture`
 for that device and the slots give way to PRESS A KEY… / PRESS A BUTTON….
 
+**SHIP closes with a `MenuToggle`, SINGLE-PRESS DASH** (`MenuTextId.DashSinglePress` →
+`UserSettings.DashSinglePress`, see `runner-ship.md`): how the dash controls fire sits beside what
+they are bound to, and the scrolling page has room the fixed-reach SETTINGS page does not. The flag
+is polled and has no change event, so the row re-`Configure`s itself in `OnEnable` (the other
+menu's copy of the page may have flipped it); RESTORE DEFAULTS turns it back off.
+
 **The host calls `ControlsScreen.CaptureTick()` before its navigator every frame the page is
 current and stops for the frame when it returns true** — listening, or the `InputGrace` after a
 capture/cancel. So the press being bound never steps, confirms or backs out (Esc / B / Start cancel

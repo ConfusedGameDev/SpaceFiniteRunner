@@ -14,7 +14,9 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// then a pulsing bottom-screen hint appears showing the LIVE dash
     /// binding (<see cref="ControlBindings"/>): the pad glyphs while a pad
     /// is connected, bracketed key names otherwise, swapped live like the
-    /// main menu's attract prompt and re-read on every rebind. The first dash hides the hint; a meter left
+    /// main menu's attract prompt and re-read on every rebind. The caption
+    /// follows the gesture live (DOUBLE-TAP / PRESS): GameSettings'
+    /// dashSinglePress or the player's <see cref="UserSettings.DashSinglePress"/>. The first dash hides the hint; a meter left
     /// full for too long brings the hint back. It never speaks: the RPG box
     /// is for story beats, not tutorials. Spawned by GameManager, built from
     /// code on its own overlay canvas.
@@ -38,6 +40,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         Image rightGlyph;
         Text leftKey;
         Text rightKey;
+        Text caption;
+        bool captionSinglePress;
 
         bool firstFillSeen;
         bool hintVisible;
@@ -79,6 +83,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             hintGroup = null;
             leftGlyph = rightGlyph = null;
             leftKey = rightKey = null;
+            caption = null;
         }
 
         static void Kill(Object o)
@@ -137,9 +142,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             leftKey = MenuScreen.MakeText("KeyL", rect, new Vector2(-300f, 0f), new Vector2(240f, 48f),
                                           string.Empty, 30, theme.TextPrimary, theme.BodyFont, TextAnchor.MiddleCenter);
 
-            MenuScreen.MakeText("Caption", rect, Vector2.zero, new Vector2(480f, 48f),
-                                settings != null ? settings.dashHintText : "DASH", 30, theme.TextPrimary, theme.BodyFont,
-                                TextAnchor.MiddleCenter);
+            caption = MenuScreen.MakeText("Caption", rect, Vector2.zero, new Vector2(480f, 48f),
+                                          string.Empty, 30, theme.TextPrimary, theme.BodyFont,
+                                          TextAnchor.MiddleCenter);
+            RefreshCaption();
 
             rightGlyph = MenuScreen.MakeImage("GlyphR", rect, new Vector2(300f, 0f), new Vector2(48f, 48f),
                                               null, Color.white);
@@ -165,6 +171,19 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             leftKey.text = $"[{ControlGlyphSet.Label(ControlBindings.KeyFor(GameAction.ShipDashLeft))}]";
             rightKey.text = $"[{ControlGlyphSet.Label(ControlBindings.KeyFor(GameAction.ShipDashRight))}]";
             RefreshDevice();
+        }
+
+        // Same rule as SteeringInput: the run's toggle OR the player's.
+        bool SinglePress => (settings != null && settings.dashSinglePress) || UserSettings.DashSinglePress;
+
+        // Either side can flip mid-run (the inspector, the pause menu) and
+        // neither has a change event — both are polled — so Update re-checks.
+        void RefreshCaption()
+        {
+            if (caption == null) return;
+            captionSinglePress = SinglePress;
+            caption.text = settings == null ? "DASH"
+                         : captionSinglePress ? settings.dashHintTextSinglePress : settings.dashHintText;
         }
 
         // Presence-based like the attract prompt: the moment a pad connects
@@ -219,6 +238,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             else fullUnusedTimer = 0f;
 
             RefreshDevice();
+            if (captionSinglePress != SinglePress) RefreshCaption();
 
             // Same pulse as the attract screen's PRESS START; invisible while
             // the sim is paused (tuning screen, pause menu, run over).
