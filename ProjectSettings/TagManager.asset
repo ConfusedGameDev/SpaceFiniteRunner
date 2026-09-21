@@ -11,10 +11,10 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
-  - 
-  - 
+  - Ship
+  - ShipGround
+  - ShipPickup
+  - ShipVolume
   - 
   - 
   - 

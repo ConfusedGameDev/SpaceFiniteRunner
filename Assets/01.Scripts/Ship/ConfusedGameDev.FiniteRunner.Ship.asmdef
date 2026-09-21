@@ -1,0 +1,20 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.Ship",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.Ship",
+    "references": [
+        "ConfusedGameDev.FiniteRunner.UI",
+        "ConfusedGameDev.FiniteRunner.Cameras",
+        "Unity.InputSystem",
+        "Unity.Splines",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

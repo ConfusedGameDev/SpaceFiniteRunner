@@ -9,6 +9,7 @@
         "ConfusedGameDev.FiniteRunner.Haptics",
         "ConfusedGameDev.FiniteRunner.FX",
         "ConfusedGameDev.FiniteRunner.Cameras",
+        "ConfusedGameDev.FiniteRunner.Ship",
         "Unity.InputSystem",
         "UnityEngine.UI",
         "Unity.Splines",

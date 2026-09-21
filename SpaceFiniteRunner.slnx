@@ -1,4 +1,5 @@
 ﻿<Solution>
+  <Project Path="ConfusedGameDev.FiniteRunner.Ship.csproj" />
   <Project Path="EVP5.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Runner.Editor.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.PoliceEscape.csproj" />
@@ -17,6 +18,7 @@
   <Project Path="ConfusedGameDev.FiniteRunner.Campaign.csproj" />
   <Project Path="Sirenix.OdinInspector.Modules.UnityMathematics.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.Haptics.csproj" />
+  <Project Path="ConfusedGameDev.FiniteRunner.Ship.Editor.csproj" />
   <Project Path="ConfusedGameDev.FiniteRunner.SaveData.Editor.csproj" />
   <Project Path="Assembly-CSharp-firstpass.csproj" />
 </Solution>

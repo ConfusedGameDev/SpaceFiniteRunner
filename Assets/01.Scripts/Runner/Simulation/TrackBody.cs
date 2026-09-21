@@ -6,19 +6,6 @@ using ConfusedGameDev.FiniteRunner.Track;
 using ConfusedGameDev.FiniteRunner.Track.Features;
 namespace ConfusedGameDev.FiniteRunner.Simulation
 {
-    /// <summary>What a driver (the player's input, the patrol's AI) asks of a <see cref="TrackBody"/> for one step.</summary>
-    public struct BodyControls
-    {
-        /// <summary>-1 (full left) .. +1 (full right).</summary>
-        public float steer;
-
-        /// <summary>0 (released) .. 1 (full throttle).</summary>
-        public float throttle;
-
-        /// <summary>0 (released) .. 1 (full brake).</summary>
-        public float brake;
-    }
-
     /// <summary>
     /// The feel numbers a <see cref="TrackBody"/> steps with. A plain struct
     /// the driver refills from its definition before every tick, so the body

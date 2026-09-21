@@ -1,0 +1,20 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.Ship.Editor",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.EditorTools",
+    "references": [
+        "ConfusedGameDev.FiniteRunner.Ship",
+        "ConfusedGameDev.FiniteRunner.Cameras",
+        "ConfusedGameDev.FiniteRunner.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

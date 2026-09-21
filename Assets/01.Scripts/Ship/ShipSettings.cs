@@ -1,0 +1,119 @@
+using Sirenix.OdinInspector;
+using UnityEngine;
+
+namespace ConfusedGameDev.FiniteRunner.Ship
+{
+    /// <summary>
+    /// How the standalone ship reads and rides the WORLD — everything the
+    /// track-space ship never needed because the spline answered it. The
+    /// ship's own feel (speed, handling, dash, hover, bank) stays on
+    /// <see cref="ShipDefinition"/>, untouched, so the store and the debug
+    /// persistence keep working; this asset only holds the physics of a body
+    /// that knows its level through PhysX queries: how finely a tick is
+    /// substepped, how the hover probes attach to and let go of a surface,
+    /// what counts as a wall, how a flight is shaped, and how free steering
+    /// turns. Play runs on a runtime clone (<see cref="HoverShip"/> takes it
+    /// in Awake), so a run rule pushed in by a game never reaches the asset.
+    /// </summary>
+    [CreateAssetMenu(fileName = "ShipSettings", menuName = "FiniteRunner/Ship Settings")]
+    public class ShipSettings : ScriptableObject
+    {
+        [TitleGroup("Simulation")]
+        [Tooltip("Longest distance one substep may cover. A tick is split so no step is longer: 4 m = 5 substeps at cruise (1000 m/s), 10 at Light Speed. Smaller follows tight geometry (a loop, a ramp) more exactly and costs more queries.")]
+        [PropertyRange(1f, 12f), SuffixLabel("m", true)]
+        public float maxStepMeters = 4f;
+
+        [TitleGroup("Simulation")]
+        [Tooltip("Hard cap on substeps per tick, whatever the speed.")]
+        [PropertyRange(1, 48)]
+        public int maxSubsteps = 24;
+
+        [TitleGroup("Surface")]
+        [Tooltip("How far below the ride height the probes still find ground. Inside it the ship is held to the surface; past it (for the coyote distance) it lets go.")]
+        [PropertyRange(0.5f, 20f), SuffixLabel("m", true)]
+        public float attachRange = 6f;
+
+        [TitleGroup("Surface")]
+        [Tooltip("Half spacing of the side probes (x) and the nose / tail probes (y), around the centre probe. The plane through them is the ship's up.")]
+        public Vector2 probeHalfExtents = new(2f, 5f);
+
+        [TitleGroup("Surface")]
+        [Tooltip("Distance the ship keeps flying straight after the probes lose the ground before it counts as a take-off. Bridges seams and small gaps.")]
+        [PropertyRange(0f, 40f), SuffixLabel("m", true)]
+        public float coyoteMeters = 8f;
+
+        [TitleGroup("Surface")]
+        [Tooltip("Extra cosmetic lift of the model above the physical ride height (which is the ship definition's hover height).")]
+        [PropertyRange(-5f, 5f), SuffixLabel("m", true)]
+        public float visualLift = 0f;
+
+        [TitleGroup("Surface")]
+        [Tooltip("Magnetic hover: the ship holds to whatever surface is under its probes, at any angle — loops, tubes and steep banks are plain geometry. Off = world gravity rules: only surfaces within the ground angle hold, anything steeper needs centripetal load, and a bank pulls the ship downhill.")]
+        public bool magnetic = true;
+
+        [TitleGroup("Surface")]
+        [Tooltip("Centripetal pull the magnet can supply over a CREST, m/s². The ship lets go when speed² × curvature exceeds it. 0 = unlimited (never launches off a crest).")]
+        [PropertyRange(0f, 50000f), SuffixLabel("m/s²", true)]
+        public float magnetStrength = 0f;
+
+        [TitleGroup("Surface")]
+        [Tooltip("World-gravity mode only: steepest surface, from level, that holds the ship on its own.")]
+        [PropertyRange(0f, 90f), SuffixLabel("°", true), HideIf(nameof(magnetic))]
+        public float maxGroundAngle = 50f;
+
+        [TitleGroup("Walls")]
+        [Tooltip("Radius of the hull sweep that finds walls and obstacles, centred on the ship. Must stay below the hover height or it scrapes the floor.")]
+        [PropertyRange(0.25f, 5f), SuffixLabel("m", true)]
+        public float hullRadius = 2f;
+
+        [TitleGroup("Walls")]
+        [Tooltip("A surface tilted up to this far from the ship's up is floor (a ramp, a bank) and is climbed; steeper is a wall.")]
+        [PropertyRange(5f, 85f), SuffixLabel("°", true)]
+        public float climbAngle = 45f;
+
+        [TitleGroup("Walls")]
+        [Tooltip("Seconds before another wall hit can cost speed / fire feedback.")]
+        [PropertyRange(0f, 2f), SuffixLabel("s", true)]
+        public float wallHitCooldownSeconds = 0.5f;
+
+        [TitleGroup("Flight")]
+        [Tooltip("Metres of air per m/s of take-off speed. A flight's gravity is solved so it lands this far on, at the speed it left with — real 9.81 at 1000 m/s would be a 65 km jump.")]
+        [PropertyRange(0f, 2f)]
+        public float airDistancePerSpeed = 0.6f;
+
+        [TitleGroup("Flight")]
+        [Tooltip("Shortest and longest flight, metres, before the ship's jump strength.")]
+        [MinMaxSlider(10f, 2000f, true)]
+        public Vector2 airDistanceRange = new(80f, 600f);
+
+        [TitleGroup("Flight")]
+        [Tooltip("Steering and dash authority while airborne, 0..1.")]
+        [PropertyRange(0f, 1f)]
+        public float airControlFactor = 0.5f;
+
+        [TitleGroup("Flight")]
+        [Tooltip("Gentlest gravity a flight may get, and the gravity of a fall with no ground found below.")]
+        [PropertyRange(1f, 200f), SuffixLabel("m/s²", true)]
+        public float minAirGravity = 30f;
+
+        [TitleGroup("Flight")]
+        [Tooltip("Steepest surface, from the ship's up, it can land on. Anything steeper met in the air is a wall.")]
+        [PropertyRange(5f, 85f), SuffixLabel("°", true)]
+        public float maxLandAngle = 60f;
+
+        [TitleGroup("Free steering")]
+        [Tooltip("Fastest the ship can turn with no guide spline, at low speed.")]
+        [PropertyRange(5f, 360f), SuffixLabel("°/s", true)]
+        public float maxYawRate = 90f;
+
+        [TitleGroup("Free steering")]
+        [Tooltip("Share of the ship's grip a full-lock turn may ask for. At speed the turn rate is grip ÷ speed: 1 = exactly what holds, above 1 = full lock slides (brake first).")]
+        [PropertyRange(0.1f, 3f)]
+        public float turnAuthority = 1f;
+
+        [TitleGroup("Free steering")]
+        [Tooltip("Share of the definition's lateral (strafe) speed that steering also gets with no guide. 0 = pure turning, 1 = the runner's full strafe on top of the turn.")]
+        [PropertyRange(0f, 1f)]
+        public float freeStrafeShare = 0.35f;
+    }
+}
