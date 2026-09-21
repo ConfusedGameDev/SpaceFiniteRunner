@@ -4,6 +4,9 @@ paths:
   - "Assets/01.Scripts/Ship/**"
   - "**/IRunnerShip.cs"
   - "**/RunnerShipSettingsSync.cs"
+  - "**/TrackColliderBuilder.cs"
+  - "**/TrackGuide.cs"
+  - "**/TrackGuideValidator.cs"
   - "**/ShipAcceptance.unity"
   - "**/HoverShip.prefab"
 ---
@@ -194,6 +197,45 @@ fixed tick, not coroutines** — `Paused` and a menu's timeScale freeze them.
 
 Acceptance: 100 of 100 three-metre orbs, 50 m apart, at 1806 m/s; 0 of the ground orbs taken
 while jumping over them; 5 of 5 of the same orbs from the ground.
+
+## The runner's track, made physical (`Runner/Track/`, M6 — not wired into a scene yet)
+
+The track was mathematics with a mesh veneer (no floor, clamp-walls, analytic ramps / loops /
+tubes). Two components give the standalone ship something to fly; **the track-space ship is
+untouched and still runs the runner** until the swap scene (M7).
+
+- **`TrackColliderBuilder`** streams collision chunks (`chunkLength` 120 m) by sampling
+  `TrackManager.GetPoseAtDistance` across `GetLateralBand` — **never a special case per
+  feature**: a loop, a curled tube and a banked sweep all come out of the one pose function the
+  old ship rides, so the two cannot disagree about where the road is. Columns: `flatColumns` (4 —
+  a road whose bank is changing is a twisted strip and ONE quad folds it on a diagonal) or, where
+  a tube is curled, band ÷ `curledQuadWidth`. Walls only where `IsEdgeOpen` is false and the tube
+  is not unbounded; a `JumpRamp` gets a wedge of its own. **The surface is sunk by
+  `surfaceSink` = the ship's hover height**, so a hovering ship rides the flight line exactly and
+  pads, camera and patrol pose stay put. World-space vertices, single-sided, colliders only
+  (`showMeshes` to look at them), layer `ShipGround`.
+- It **drives itself** off three public members added to `TrackGenerator` — `SettledDistance`
+  (nothing past the settle margin is built: AutoSmooth still reshapes it), `CullDistance`
+  (chunks go by their END: a loop is 630 m of track) and the `Regenerated` event — so the
+  generator's streaming code is unchanged and the builder can even be added at runtime.
+- **`TrackGuide : IShipGuide`** is the world→track projection the track never had, **with no
+  inverse built**: a few Newton steps in (distance, lateral) at once on the forward
+  `GetPoseAtDistance` (which already routes loops and tubes), from the last answer — that is what
+  keeps it on the right pass of a loop. No hint = a coarse scan of the newest `acquireScanMeters`.
+  Round a curled tube the lateral is seeded from the angle about the pipe's axis (a Newton step
+  from the top of the pipe stalls on the far side). `FindRespawn` is the motor's
+  `FindRespawnDistance`, verbatim.
+- **Cost is spline evaluations** (~13 µs each in the editor): the loop stops the moment a lookup
+  lands on the point and reuses that lookup; off a tube the centre frame is derived from it (no
+  second evaluation); curvature is cached per 5 m on settled road. ≈ 0.04 ms per projection with
+  a ship's 4 m hints — per SUBSTEP that is ~0.4 ms a tick at Light Speed per body; if it shows in
+  the profiler at M7/M8, project every other substep.
+- **`TrackGuideValidator`** proves both against the ship that is known right: each frame the
+  track-space ship's world position goes through the guide (hinted 15 m behind the truth — it
+  runs per FRAME, a hundred metres apart at speed) and is compared with its own coordinates, and
+  a ray is dropped onto the colliders, which must lie exactly the sink below it. Per ship state +
+  a ramp bucket. Over MCP: play `FiniteRunner_Test`, add builder + guide + validator on a runtime
+  GameObject (`Bind`), set `motor.Autopilot = true`, read `Report`.
 
 ## Contracts: `IShip`, `IRunnerShip`, `ShipRegistry`
 

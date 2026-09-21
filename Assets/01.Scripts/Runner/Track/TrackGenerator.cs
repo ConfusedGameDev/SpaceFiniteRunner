@@ -354,6 +354,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (randomize || endless) Generate();
         }
 
+        /// <summary>Track distance that is finished — nothing past it may be built on: AutoSmooth still reshapes the trailing curves when the next knot lands.</summary>
+        public float SettledDistance => track != null ? Mathf.Max(0f, track.Length - (endless ? SettleMargin : 0f)) : 0f;
+
+        /// <summary>Everything that ENDS before this distance is behind the ship and may go.</summary>
+        public float CullDistance => endless && ship != null ? ship.DistanceTravelled - behindDistance : float.NegativeInfinity;
+
+        /// <summary>The track was thrown away and is being rebuilt: whatever was built along it (the streamed colliders) must go too.</summary>
+        public event System.Action Regenerated;
+
         void Update()
         {
             if (!endless || ship == null || track == null) return;
@@ -406,6 +415,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             ClearChildren(padsParent);
             ClearChildren(markersParent);
             if (decorator != null) decorator.Clear();
+            Regenerated?.Invoke();
 
             // The spline is only ever touched through the TrackManager (this
             // also drops last run's inserted sections).
