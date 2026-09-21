@@ -15,7 +15,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// taken (it disappears); a brake pad stays painted on the road but only
     /// bites once.
     /// </summary>
-    public class SpeedPad : MonoBehaviour, ITrackPickup
+    public class SpeedPad : MonoBehaviour, ITrackPickup, IShipPickup
     {
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -36,7 +36,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         OrbHover hover; // a swaying orb's lateral moves with it
 
         /// <summary>Raised whenever any pad or orb is collected by a ship. Static so listeners (GameManager story messages) need no per-pad wiring.</summary>
-        public static event System.Action<SpeedPad, ShipMotor> Collected;
+        public static event System.Action<SpeedPad, IShip> Collected;
 
         public PadDefinition Definition => definition;
 
@@ -95,8 +95,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (Application.isPlaying && isActiveAndEnabled) PickupRegistry.Register(this);
         }
 
+        // The standalone ship's swept query finds the pad by its collider; taking it is the same act.
+        void IShipPickup.PickUp(IShip ship) => Collect(ship);
+
         /// <summary>A ship went through it: apply the speed change, tell the listeners, use an orb up.</summary>
-        public void Collect(ShipMotor motor)
+        public void Collect(IShip motor)
         {
             if (!Available || motor == null) return;
             taken = true;

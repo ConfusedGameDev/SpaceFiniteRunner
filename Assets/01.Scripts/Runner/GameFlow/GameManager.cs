@@ -579,9 +579,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         // Story beat: hype line every time the rare orb tier is grabbed.
-        void OnPadCollected(SpeedPad pad, ShipMotor collector)
+        void OnPadCollected(SpeedPad pad, IShip collector)
         {
-            if (collector != motor || RunOver) return;
+            if (collector != (IShip)motor || RunOver) return;
             PlayerStats.RecordPad(pad.SpeedDelta > 0f); // positive = power-up, negative = slow-down
             if (!string.IsNullOrEmpty(settings.messageOrbTierName) && pad.TierName == settings.messageOrbTierName)
                 RpgMessageSystem.Instance.ShowMessage(

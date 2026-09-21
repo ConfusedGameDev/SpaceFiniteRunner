@@ -113,9 +113,9 @@ namespace ConfusedGameDev.FiniteRunner.Audio
 
         // ------------------------------------------------------------ one-shots
 
-        void OnPadCollected(SpeedPad pad, ShipMotor collector)
+        void OnPadCollected(SpeedPad pad, IShip collector)
         {
-            if (collector != motor || sfx == null || pickups == null) return;
+            if (collector != (IShip)motor || sfx == null || pickups == null) return;
 
             if (pad.SpeedDelta > 0f)
             {

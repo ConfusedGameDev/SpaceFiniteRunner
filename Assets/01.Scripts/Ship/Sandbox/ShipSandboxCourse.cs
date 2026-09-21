@@ -224,6 +224,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             Straight("Ramp run-up", 300f, walls: true);
             Mark("Ramp", back: 250f);
             Ramp(60f, 20f, HalfWidth * 0.5f);
+            // Orbs on the road UNDER the flight: a jump must clear them, a ship on the ground must take them. They come back, so every pass finds them.
+            for (int i = 0; i < 5; i++)
+                Orb("Jump orb " + i, cursor + Forward * (150f + i * 100f) + Up * 3.5f, 0f, respawnSeconds: 2f);
+            Mark("Landing orbs", back: -100f);
             Straight("Landing", 1000f, walls: true);
 
             Mark("Gap", back: 200f);
@@ -280,6 +284,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             Mark("Kill curtain", back: 0f);
             Straight("Curtain road", 1200f, walls: true);
             Volume<KillVolume>("Kill curtain", cursor - Forward * 600f + Up * 10f, new Vector3(width, 40f, 5f));
+
+            // ---- pickups: a hundred orbs, 50 m apart, to be taken at 36 m per tick
+            Mark("Orb line", back: 0f);
+            for (int i = 0; i < 100; i++)
+                Orb("Orb " + i, cursor + Forward * (300f + i * 50f) + Up * 3.5f, 10f, respawnSeconds: 5f); // they come back, so the run can be repeated in one session
+            Straight("Orb line", 5600f, walls: true);
 
             Straight("Run-out", 1200f, walls: true);
             Mark("End wall", back: 600f);
@@ -498,6 +508,21 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             go.transform.SetPositionAndRotation(centre, heading);
             go.transform.localScale = size;
             go.GetComponent<MeshRenderer>().sharedMaterial = SurfaceMaterial();
+        }
+
+        /// <summary>A boost orb: a 3 m ball with a trigger collider on the pickup layer — exactly what a level designer would place by hand.</summary>
+        void Orb(string label, Vector3 centre, float speedDelta, float respawnSeconds = 0f)
+        {
+            if (stationsOnly) return;
+            var go = Own(GameObject.CreatePrimitive(PrimitiveType.Sphere));
+            go.name = label;
+            go.layer = ShipLayers.Pickup;
+            go.transform.SetParent(transform, false);
+            go.transform.SetPositionAndRotation(centre, heading);
+            go.transform.localScale = Vector3.one * 3f;
+            go.GetComponent<Collider>().isTrigger = true;
+            go.GetComponent<MeshRenderer>().sharedMaterial = SurfaceMaterial();
+            go.AddComponent<ShipBoostPickup>().Configure(speedDelta, consumed: true, respawnSeconds);
         }
 
         /// <summary>A rule volume (kill, magnet): a trigger box on the ship's volume layer, with no picture.</summary>

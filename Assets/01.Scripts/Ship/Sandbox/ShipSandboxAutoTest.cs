@@ -28,7 +28,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
         [SerializeField] bool logTakeOffs = true;
 
         readonly StringBuilder report = new();
-        int wallHits, takeOffs, landings, slides, falls, respawns;
+        int wallHits, takeOffs, landings, slides, falls, respawns, orbsTaken, jumpOrbsTaken, padImpulses;
         float fellAt, respawnedAt;
         int guidedTicks, flownTicks;
         float worstLateral, worstJump;
@@ -58,6 +58,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             ship.Sliding += OnSliding;
             ship.FellOff += OnFellOff;
             ship.Respawned += OnRespawned;
+            ship.PadImpulse += OnPadImpulse;
+            ShipBoostPickup.Taken += OnOrbTaken; // static: paired in OnDisable — domain reload is off
         }
 
         void OnDisable()
@@ -69,6 +71,16 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             ship.Sliding -= OnSliding;
             ship.FellOff -= OnFellOff;
             ship.Respawned -= OnRespawned;
+            ship.PadImpulse -= OnPadImpulse;
+            ShipBoostPickup.Taken -= OnOrbTaken;
+        }
+
+        void OnPadImpulse(float raw) => padImpulses++;
+        void OnOrbTaken(ShipBoostPickup orb, IShip by)
+        {
+            if (by != (IShip)ship) return;
+            if (orb.name.StartsWith("Jump orb")) jumpOrbsTaken++;
+            else orbsTaken++;
         }
 
         void OnFellOff() { falls++; fellAt = Time.time; }
@@ -216,6 +228,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             yield return Feel();
             yield return Guided();
             yield return Recovery();
+            yield return Pickups();
 
             Begin("End wall", ship.Definition.cruiseSpeed, throttle: 0f);
             yield return new WaitForSeconds(1.5f);
@@ -301,6 +314,52 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             yield return new WaitUntil(() => falls > 0 || travelled > 1100f || Time.time - t0 > 6f);
             pinnedSpeed = -1f;
             Line($"5 m kill curtain at {lightSpeed:F0} m/s: {(falls > 0 ? "caught (" + recovery.LastFallReason + ")" : "TUNNELLED THROUGH, NEVER CAUGHT")}");
+        }
+
+        /// <summary>World-space pickups: nothing missed at Light Speed, a jump clears what lies under it, the same orbs are taken from the ground.</summary>
+        IEnumerator Pickups()
+        {
+            if (ship.GetComponent<ShipPickupSweeper>() == null) { Line("pickups: NO ShipPickupSweeper ON THE SHIP"); yield break; }
+
+            // 100 orbs of 3 m, 50 m apart, at 36 m per tick.
+            Begin("Orb line", lightSpeed, throttle: 0f);
+            pinnedSpeed = lightSpeed;
+            float t0 = Time.time;
+            while (travelled < 5500f && Time.time - t0 < 20f) yield return new WaitForFixedUpdate();
+            pinnedSpeed = -1f;
+            Line($"orb line at {lightSpeed:F0} m/s: took {orbsTaken} of 100 ({(orbsTaken == 100 ? "none missed" : "MISSED SOME")}), {padImpulses} speed impulses reached the ship");
+
+            // Over the ramp: the orbs on the road under the arc must be flown OVER.
+            Begin("Ramp", ship.Definition.cruiseSpeed, throttle: 0f);
+            int before = landings;
+            t0 = Time.time;
+            yield return new WaitUntil(() => landings > before || Time.time - t0 > 6f);
+            Line($"jump over the ground orbs: took {jumpOrbsTaken} of them in the air ({(jumpOrbsTaken == 0 ? "cleared them" : "TOOK ORBS IT FLEW OVER")})");
+
+            // The same orbs, from the ground.
+            yield return new WaitForSeconds(2.5f); // any a landing took come back
+            Begin("Landing orbs", 300f, throttle: 0f);
+            pinnedSpeed = 300f;
+            t0 = Time.time;
+            while (travelled < 520f && Time.time - t0 < 10f) yield return new WaitForFixedUpdate();
+            pinnedSpeed = -1f;
+            Line($"the same orbs from the ground: took {jumpOrbsTaken} of 5 ({(jumpOrbsTaken == 5 ? "all" : "MISSED SOME")})");
+        }
+
+        /// <summary>Only the pickup checks.</summary>
+        public void RunPickups()
+        {
+            if (Running || ship == null || course == null) return;
+            StartCoroutine(PickupsOnly());
+        }
+
+        IEnumerator PickupsOnly()
+        {
+            Running = true;
+            report.Clear();
+            yield return Pickups();
+            ship.ControlOverride = null;
+            Running = false;
         }
 
         /// <summary>Only the fall / respawn checks.</summary>
@@ -404,6 +463,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             ship.Body.ForwardSpeed = speed;
             ship.ControlOverride = new BodyControls { throttle = throttle, steer = steer };
             wallHits = takeOffs = landings = slides = falls = respawns = 0;
+            orbsTaken = jumpOrbsTaken = padImpulses = 0;
             guidedTicks = flownTicks = 0;
             worstLateral = worstJump = 0f;
             lastPosition = ship.Body.Position;

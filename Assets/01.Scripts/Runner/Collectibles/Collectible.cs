@@ -1,4 +1,5 @@
 using ConfusedGameDev.FiniteRunner.GameFlow;
+using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Simulation;
 using ConfusedGameDev.FiniteRunner.UI;
 using Sirenix.OdinInspector;
@@ -39,7 +40,7 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
     /// Police Escape → Collectible drops a ready one; the runner's
     /// TrackGenerator streams money ones between the orbs.
     /// </summary>
-    public class Collectible : MonoBehaviour, IRunConsumable, ITrackPickup
+    public class Collectible : MonoBehaviour, IRunConsumable, ITrackPickup, IShipPickup
     {
         /// <summary>The mesh's local axis the spin turns around. Order is the save format — append only.</summary>
         public enum SpinAxis { X = 0, Y = 1, Z = 2 }
@@ -207,7 +208,11 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
             if (IsCollector(other)) Collect();
         }
 
-        /// <summary>The player took it — from the city's trigger or the runner's swept query. Once only.</summary>
+        // The standalone ship's swept query: found by this coin's own collider, in any level, track or not.
+        bool IShipPickup.Available => !collected;
+        void IShipPickup.PickUp(IShip ship) => Collect();
+
+        /// <summary>The player took it — from the city's trigger, the runner's swept query or the standalone ship's. Once only.</summary>
         public void Collect()
         {
             if (collected) return;

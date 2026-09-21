@@ -240,6 +240,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         }
 
         // ----------------------------------------------------- interpolation
+        /// <summary>The poses the last tick went through, substep by substep — what a swept query (pickups) tests, so it follows a loop instead of cutting its chord.</summary>
+        public IReadOnlyList<Pose> Path => path;
+
         /// <summary>After a teleport: nothing to interpolate from.</summary>
         public void SnapInterpolation()
         {

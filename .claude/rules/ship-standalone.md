@@ -167,6 +167,34 @@ fixed tick, not coroutines** — `Paused` and a menu's timeScale freeze them.
 - A stall never freezes the standalone ship (it is a report, cleared once it moves); the brake at
   a standstill **reverses** (`reverseSpeed`, 0 = the runner's brake-only rule).
 
+## World-space pickups (`Ship/Pickups/`)
+
+- **`IShipPickup`** (`Available`, `PickUp(IShip)`) is a pickup in a level with no track to key it
+  on. The ship finds it; the pickup decides what being taken means.
+- **`ShipPickupSweeper`** (on the prefab, `[DefaultExecutionOrder(5)]`) BoxCasts the hull's
+  cross-section (the BoxCollider's width × height, 0.5 m deep) along **the tick's substep path**
+  (`HoverBody.Path`) — so the box follows a loop instead of cutting its chord, and what is tested
+  is the whole distance covered, not where the ship stands at the end of the step. + an overlap
+  box at the end pose (a cast is blind to what it starts inside). Pickups are found by their own
+  COLLIDER (any shape, trigger or not) on `ShipSettings.pickupLayers` (Default + ShipPickup), via
+  `GetComponentInParent<IShipPickup>()`; each is taken once per tick. A jump clears the pickups
+  under it because the path really is up there. Nothing is taken while OffTrack / Respawning.
+- **`ShipBoostPickup`** is the any-level orb / pad: `speedDelta` through
+  `IShip.AddSpeedImpulse` (so weight, blend and every `PadImpulse` listener come free),
+  `consumed` (+ optional `respawnSeconds`) or a painted pad that re-arms after `rearmSeconds`;
+  static `Taken` event.
+- **The runner's `SpeedPad` and `Collectible` implement it beside `ITrackPickup`** — both ships
+  take them. `SpeedPad.Collect` and the static `SpeedPad.Collected` now carry an `IShip`
+  (`GameManager` / `ShipAudio` compare against `(IShip)motor`). The analytic `PickupRegistry`
+  stays: the track-space ship and the patrol's orb planning still use it.
+- NOT done: the `ICollector` bridge for a standalone ship (the city's trigger coins look for
+  `ICollector`; the sweeper already takes any `Collectible` through `IShipPickup`, so it has not
+  been needed) and putting the runner's pads on the `ShipPickup` layer — both belong to the
+  runner swap (M7).
+
+Acceptance: 100 of 100 three-metre orbs, 50 m apart, at 1806 m/s; 0 of the ground orbs taken
+while jumping over them; 5 of 5 of the same orbs from the ground.
+
 ## Contracts: `IShip`, `IRunnerShip`, `ShipRegistry`
 
 - **`IShip`** is what the rest of the game reads off a ship, in world terms only (speed, state,
