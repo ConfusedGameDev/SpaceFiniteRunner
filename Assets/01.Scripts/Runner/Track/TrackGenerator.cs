@@ -157,6 +157,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [MinMaxSlider(100f, 5000f, true), SuffixLabel("m", true)]
         [SerializeField] Vector2 featureSpacing = new(600f, 1200f);
 
+        [TitleGroup("Core Settings")]
+        [Tooltip("The three ramps the track ends in. Its definition is a JumpDefinition of its own (entry margin 0, so the whole ramp counts); left empty, Resources/FiniteRunner_EndRamp is loaded, else built-in defaults. Width and lateral come from the track width and the GameSettings gaps, never from the definition's width fraction; there is no boost and no arc. Probability and spacing are unused.")]
+        [SerializeField] FeatureSpawnEntry endRamp = new() { name = "End", color = new Color(0.2f, 1f, 0.85f) };
+
         [SerializeField] TrackManager track;
 
         [Tooltip("Source of powerUpSpeedBoost, the base boost the orb tiers multiply. Auto-found at runtime if left empty.")]
@@ -165,7 +169,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Ship the streamer keeps track generated ahead of. Auto-found at runtime if left empty.")]
         [SerializeField] ShipMotor ship;
 
-        [Tooltip("Keep generating track ahead of the ship for as long as the run lasts (time is the limit, not distance).")]
+        [Tooltip("Stream the track ahead of the ship instead of building it all at once. In play the streamed track is still FINITE: it stops at the run's track length (RunnerLevelDefinition / GameSettings) in a straight run-up and three end ramps.")]
         [SerializeField] bool endless = true;
 
         [Tooltip("Generate a new random layout when the scene loads and on restart. Off + a non-zero seed = the same endless layout every run.")]
@@ -242,6 +246,43 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Tint of the code-built coin (a recolored instance of the boost material).")]
         [SerializeField] Color collectibleColor = new(1f, 0.8f, 0.2f);
 
+        // -------------------------------------------------------- Laser gates
+        [ToggleGroup("spawnLasers", "Laser gates")]
+        [Tooltip("Stream laser gates along the track: emitter pairs firing a beam across part of the road that burns the hull of a ship flying through it. On a cursor of their own — never on or near a ramp, its landing zone, a loop, a tube or the final run-up (flat sweeps and open edges are the two toggles below). Play mode only.")]
+        [SerializeField] bool spawnLasers = true;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("The emitter pair (PF_LaserSystem): LaserA and LaserB, each with a ShootPoint child, carrying a LaserBeam. One instance per beam — three for the triple gate.")]
+        [SerializeField] GameObject laserPrefab;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("Beam size, variant weights, rotor speed and the look. Cloned at play, so the asset is never edited by a run.")]
+        [InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        [SerializeField] LaserGateDefinition laserDefinition;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("Metres of track between one gate and the next (min, max), before the keep-outs push one further on.")]
+        [MinMaxSlider(100f, 5000f, true), SuffixLabel("m", true)]
+        [SerializeField] Vector2 laserSpacing = new(600f, 1200f);
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("No gate before this distance, so the launch is clean.")]
+        [PropertyRange(0f, 5000f), SuffixLabel("m", true)]
+        [SerializeField] float laserStartDistance = 1500f;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("Clear road kept between a gate and every feature (ramp + its longest landing, loop, tube), flat sweep and the final run-up, either side. Must stay under the settle margin (two segments), which is what guarantees no feature is decided behind an already placed gate.")]
+        [PropertyRange(0f, 500f), SuffixLabel("m", true)]
+        [SerializeField] float laserClearance = 150f;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("Gates may stand on a FLAT sweep (no bank, the outer wall gone, grip tested). Off = the clearance is kept round every flat sweep too — on a track authored with mostly flat sweeps that leaves few spots.")]
+        [SerializeField] bool lasersOnFlatSweeps = true;
+
+        [ToggleGroup("spawnLasers")]
+        [Tooltip("Gates may stand where the road has no wall (an open straight, the outer edge of a flat sweep). Off = walled road only.")]
+        [SerializeField] bool lasersOnOpenEdges = true;
+
         [Header("Features")]
         [Tooltip("Material of the code-built ramp slab and rails; each entry gets a recolored instance. Empty = the boost material.")]
         [SerializeField] Material featureMaterial;
@@ -268,6 +309,34 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public PadSpawnEntry[] SpawnTable => spawnTable;
         public FeatureSpawnEntry[] FeatureTable => featureTable;
         public Vector2 FeatureSpacing { get => featureSpacing; set => featureSpacing = new Vector2(Mathf.Max(100f, value.x), Mathf.Max(Mathf.Max(100f, value.x), value.y)); }
+
+        /// <summary>Debug multiplier on the laser gates' density (the debug menu's LASER DENSITY row): 0 = none, 1 = the authored spacing, 2 = twice as many. Affects streaming immediately.</summary>
+        public float LaserDensity { get; set; } = 1f;
+
+        /// <summary>The laser definition in force: the runtime clone in play. Null when none is wired.</summary>
+        public LaserGateDefinition LaserDefinition => laserRuntime;
+
+        /// <summary>Resources path of the end ramps' definition, used when the scene wires none.</summary>
+        public const string EndRampResourcePath = "FiniteRunner_EndRamp";
+
+        /// <summary>Debug override of the run's track length, metres (the debug menu's TRACK LENGTH row). Below 0 = none. Takes effect on the next Generate.</summary>
+        public float TrackLengthOverride { get; set; } = -1f;
+
+        /// <summary>The track length this run was generated for, metres; 0 on an endless track.</summary>
+        public float TargetLength => targetLength;
+
+        /// <summary>True when this run's track ends (play mode with a track length); an edit-mode preview and a scene with no GameManager stay endless.</summary>
+        public bool IsFinite => targetLength > 0f;
+
+        /// <summary>
+        /// Where the road stops: the BUILT end once the last knot is down, the
+        /// authored target until then (they differ by what the last segments
+        /// could not split exactly), +infinity on an endless track.
+        /// </summary>
+        public float EndDistance =>
+            track != null && track.HasEnd ? track.EndDistance
+            : IsFinite ? targetLength
+            : float.PositiveInfinity;
 
         /// <summary>
         /// The shape knobs in force: the runtime clone in play, the asset in
@@ -334,9 +403,23 @@ namespace ConfusedGameDev.FiniteRunner.Track
         float featureCursor;
         readonly List<(FeatureSpawnEntry entry, float distance)> pendingRamps = new(); // decided at their knot, waiting for the run-up to settle
         float straightUntil;   // track distance up to which the road is held straight, level and flat: a ramp's landing zone
+        float targetLength;    // the run's authored track length, 0 = endless
+        float endZoneTarget;   // where the final run-up should begin (targetLength - the run-up)
+        float endRunUp;        // length of that run-up
+        float endTarget;       // where the road should stop: the BUILT run-up start + the run-up
+        bool inEndZone;        // the run-up's first knot is down: everything from here on is collinear
+        bool trackComplete;    // the last knot is down: nothing more is ever appended
+        JumpDefinition endRampFallback; // built-in end ramp numbers, when neither the scene nor Resources has a definition
+
+        /// <summary>What the knot <see cref="AddSegment"/> just laid landed on.</summary>
+        enum SpotKind { None, Feature, EndZoneStart, End }
         readonly List<(float distance, GameObject go)> spawned = new();
         readonly List<(float start, float end)> claims = new(); // feature footprints pads keep off
         readonly List<float> padDistances = new();               // where pads landed — coins keep off them
+        readonly List<(float start, float end)> laserKeepOuts = new(); // every feature's ground + what lies ahead of it (a ramp's landing), and the end zone
+        Unity.Mathematics.Random laserRng; // the gates' own stream: the road and pad layout of a seed does not depend on them
+        float laserCursor;
+        LaserGateDefinition laserRuntime;
         Dictionary<PadSpawnEntry, Material> entryMaterials;
         Dictionary<FeatureSpawnEntry, Material> featureMaterials;
         Material collectibleMaterial;
@@ -355,7 +438,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         /// <summary>Track distance that is finished — nothing past it may be built on: AutoSmooth still reshapes the trailing curves when the next knot lands.</summary>
-        public float SettledDistance => track != null ? Mathf.Max(0f, track.Length - (endless ? SettleMargin : 0f)) : 0f;
+        public float SettledDistance => track != null ? Mathf.Max(0f, track.Length - (endless && !trackComplete ? SettleMargin : 0f)) : 0f;
 
         /// <summary>Everything that ENDS before this distance is behind the ship and may go.</summary>
         public float CullDistance => endless && ship != null ? ship.DistanceTravelled - behindDistance : float.NegativeInfinity;
@@ -409,9 +492,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 ? new Unity.Mathematics.Random((uint)System.Environment.TickCount)
                 : new Unity.Mathematics.Random((uint)seed);
 
+            // Seeded off the layout stream's STATE, not a draw from it.
+            laserRng = new Unity.Mathematics.Random(math.hash(new uint2(rng.state, 0x1A5E12u)) | 1u);
+            if (laserRuntime != null && laserRuntime != laserDefinition) DestroyObject(laserRuntime); // last run's clone
+            laserRuntime = laserDefinition != null && Application.isPlaying ? Instantiate(laserDefinition) : laserDefinition;
+
             spawned.Clear();
             claims.Clear();
             padDistances.Clear();
+            laserKeepOuts.Clear();
             ClearChildren(padsParent);
             ClearChildren(markersParent);
             if (decorator != null) decorator.Clear();
@@ -447,8 +536,29 @@ namespace ConfusedGameDev.FiniteRunner.Track
             padCursor = rng.NextFloat(120f, 200f);
             collectibleCursor = rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
             featureCursor = rng.NextFloat(featureSpacing.x, featureSpacing.y);
+            laserCursor = laserStartDistance + laserRng.NextFloat(0f, laserSpacing.x);
             pendingRamps.Clear();
             straightUntil = 0f;
+
+            // The run's length is PULLED (the GameManager resolves its level
+            // on demand — this Awake may run before its own), in play only:
+            // an edit-mode preview stays a plain endless stretch.
+            targetLength = 0f;
+            inEndZone = false;
+            trackComplete = false;
+            if (Application.isPlaying && endless)
+            {
+                if (TrackLengthOverride > 0f) targetLength = TrackLengthOverride;
+                else if (gameManager != null) targetLength = gameManager.TrackLengthMeters;
+            }
+            // (Only asked of the manager in a finite play run: the getter
+            // resolves the run's data, which an edit-mode preview must not.)
+            endRunUp = IsFinite && gameManager != null ? gameManager.EndRunUpMeters : 1200f;
+            // Never a run-up that eats the whole track.
+            endRunUp = Mathf.Min(endRunUp, targetLength * 0.5f);
+            endZoneTarget = targetLength - endRunUp;
+            endTarget = targetLength;
+            PrepareEndRamp();
 
             if (endless)
             {
@@ -458,12 +568,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 for (int i = 0; i < segments; i++)
                 {
-                    bool spot = AddSegment();
+                    SpotKind spot = AddSegment();
                     track.Recalculate(); // the level rule and the feature spots read the spline end
                     GrowFlatSweep();
-                    if (spot) DecideFeature();
+                    if (spot == SpotKind.Feature) DecideFeature();
                 }
                 SpawnPendingRamps(track.Length - 150f);
+                PlaceLasersUpTo(track.Length - 150f);
                 PlacePadsUpTo(track.Length - 150f);
                 PlaceCollectiblesUpTo(track.Length - 150f);
                 PlaceMarkers();
@@ -480,16 +591,24 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// </summary>
         void StreamTo(float target)
         {
-            while (track.Length - SettleMargin < target)
+            while (!trackComplete && track.Length - SettleMargin < target)
             {
-                bool spot = AddSegment();
+                SpotKind spot = AddSegment();
                 track.Recalculate();
                 GrowFlatSweep();
-                if (spot) DecideFeature();
+                switch (spot)
+                {
+                    case SpotKind.Feature: DecideFeature(); break;
+                    case SpotKind.EndZoneStart: BeginEndZone(); break;
+                    case SpotKind.End: FinishTrack(); break;
+                }
             }
 
-            float settled = track.Length - SettleMargin;
+            // A finished track has no trailing margin: nothing lands after the
+            // last knot, so the run-up and the end are stamped at once.
+            float settled = trackComplete ? track.Length : track.Length - SettleMargin;
             SpawnPendingRamps(settled); // first: a ramp's footprint is already claimed, so the pads keep off it
+            PlaceLasersUpTo(settled);   // before the pads: a gate claims its ground, so pads and coins keep off it
             PlacePadsUpTo(settled);
             PlaceCollectiblesUpTo(settled); // after the pads: coins keep off where they landed
             if (decorator != null) decorator.DecorateUpTo(settled);
@@ -502,13 +621,48 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// a closer spot is pushed out), the bank is zero and the knot carries
         /// explicit tangents so its pose is fixed whatever lands next — the
         /// feature is then decided at this knot (<see cref="DecideFeature"/>).
+        /// A FINITE track has two more spots, landed on the same way: where
+        /// its final run-up begins, and — every knot after that one being
+        /// collinear, so chords are arc length — where the road stops.
         /// </summary>
-        bool AddSegment()
+        SpotKind AddSegment()
         {
             var shape = Shape;
 
+            // No feature spot is left that the final run-up would swallow.
+            if (IsFinite && !inEndZone && featureCursor >= endZoneTarget - segmentLength.y)
+                featureCursor = float.MaxValue;
+
             float remaining = featureCursor - track.Length;
-            bool landOnSpot = featureTable != null && featureTable.Length > 0 && remaining <= segmentLength.y;
+            SpotKind spotKind = featureTable != null && featureTable.Length > 0 && remaining <= segmentLength.y
+                ? SpotKind.Feature
+                : SpotKind.None;
+
+            // The end spots: the nearer of the feature spot and the end spot
+            // is the one this knot may land on (the feature cursor is already
+            // out of the way when they are close).
+            bool splitToEnd = false;
+            if (IsFinite)
+            {
+                float toEnd = (inEndZone ? endTarget : endZoneTarget) - track.Length;
+                if (spotKind == SpotKind.None || toEnd <= remaining)
+                {
+                    if (toEnd <= segmentLength.y)
+                    {
+                        spotKind = inEndZone ? SpotKind.End : SpotKind.EndZoneStart;
+                        remaining = toEnd;
+                    }
+                    else if (toEnd < segmentLength.x + segmentLength.y)
+                    {
+                        // Too far for one segment, too near for two full ones:
+                        // split the rest evenly instead of pushing the spot out.
+                        spotKind = SpotKind.None;
+                        remaining = toEnd;
+                        splitToEnd = true;
+                    }
+                }
+            }
+            bool landOnSpot = spotKind != SpotKind.None;
 
             // Turns are SWEEPS, not a per-knot wobble: a sweep holds one
             // direction at one rate for as many knots as its arc needs (that
@@ -522,7 +676,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // longest jump the ship can make has landed — no sweep, no bank,
             // no grade change, so a jump always comes down on the road it
             // left, never on a wall or round a corner.
-            bool holdStraight = track.Length < straightUntil;
+            // The final run-up is the same thing all the way to the end.
+            bool holdStraight = track.Length < straightUntil || inEndZone;
             if (turnKnotsLeft == 0)
             {
                 float roll = rng.NextFloat(0f, 1f);
@@ -639,8 +794,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float grade = math.radians(pitch);
             float3 direction = new float3(math.sin(yaw) * math.cos(grade), math.sin(grade), math.cos(yaw) * math.cos(grade));
             float chord = landOnSpot
-                ? Mathf.Max(remaining, segmentLength.x)
+                ? Mathf.Max(remaining, spotKind == SpotKind.Feature ? segmentLength.x : segmentLength.x * 0.5f)
                 : rng.NextFloat(segmentLength.x, segmentLength.y);
+            if (splitToEnd) chord = remaining * 0.5f;
             if (landOnSpot) bank = 0f; // the level rule has unwound it already; a feature's entry is level, full stop
             endPosition += direction * chord;
             // The knot carries heading, grade and bank: AutoSmooth keeps the
@@ -650,7 +806,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (bank != 0f) rotation = math.mul(quaternion.AxisAngle(direction, math.radians(bank)), rotation);
             if (landOnSpot) track.AppendKnot(endPosition, rotation, direction * (chord / 3f)); // pinned: the feature's entry pose
             else track.AppendKnot(endPosition, rotation);
-            return landOnSpot;
+            return spotKind;
         }
 
         // The knot just laid closed another stretch of a flat sweep: its
@@ -674,8 +830,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float end = track.Length;
             if (track.SectionAt(end) is TubeSection) return true;
             float unwind = Mathf.Ceil(Mathf.Abs(bank) / Mathf.Max(shape.maxBankStepPerKnot, 0.01f)) * segmentLength.y;
-            return featureCursor - end <= shape.levelLeadDistance + unwind;
+            return NextLevelSpot - end <= shape.levelLeadDistance + unwind;
         }
+
+        /// <summary>
+        /// The next spot the road must arrive level at: the next feature, or
+        /// the start of a finite track's final run-up when that comes first —
+        /// so the bank is unwound and no sweep is cut short going into it.
+        /// </summary>
+        float NextLevelSpot => IsFinite && !inEndZone ? Mathf.Min(featureCursor, endZoneTarget) : featureCursor;
 
         /// <summary>
         /// A sweep may only start when its shortest possible run PLUS the full
@@ -695,7 +858,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 ? Mathf.Ceil(shape.maxBankAngle / Mathf.Max(shape.maxBankStepPerKnot, 0.01f))
                 : 0f;
             float needed = (sweepKnots + unwindKnots) * segmentLength.y + shape.levelLeadDistance;
-            return featureCursor - end > needed;
+            return NextLevelSpot - end > needed;
         }
 
         /// <summary>
@@ -779,7 +942,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             TrackSection section = entry.Runtime.CreateSection(track, spot, ref rng);
             float footprint = section != null ? section.Length : entry.Runtime.FootprintLength;
-            if (entry.Runtime.ClaimsFootprint) claims.Add((spot, spot + footprint));
 
             // A ramp only lands where the road stays straight, level and flat
             // for the LONGEST jump this ship can make — the definition's cap ×
@@ -788,12 +950,24 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // builder reserves it (straightUntil) rather than checking it, and
             // the next feature keeps off the whole zone.
             float exclusion = entry.Runtime.ExclusionAhead;
-            if (entry.Runtime is JumpDefinition jump)
+            var jump = entry.Runtime as JumpDefinition;
+            if (jump != null) exclusion = jump.MaxAirDistance(JumpStrength) + jump.landingClearance;
+
+            // Nothing may reach into a finite track's final run-up: not a
+            // loop, not a tube, not the longest landing off a ramp. The spot
+            // is skipped (the section, if any, was never registered) and a
+            // later, shorter draw may still fit.
+            if (IsFinite && spot + footprint + exclusion > endZoneTarget)
             {
-                float longestJump = jump.MaxAirDistance(JumpStrength);
-                exclusion = longestJump + jump.landingClearance;
-                straightUntil = spot + jump.length + exclusion;
+                featureCursor = spot + rng.NextFloat(featureSpacing.x, featureSpacing.y);
+                return;
             }
+
+            if (entry.Runtime.ClaimsFootprint) claims.Add((spot, spot + footprint));
+            // Laser gates keep off EVERY feature — a tube too, which claims
+            // nothing — and off what lies ahead of it (a ramp's longest landing).
+            laserKeepOuts.Add((spot, spot + footprint + exclusion));
+            if (jump != null) straightUntil = spot + jump.length + exclusion;
 
             if (section is LoopSection loop)
             {
@@ -863,6 +1037,101 @@ namespace ConfusedGameDev.FiniteRunner.Track
             straightKnots = 0;
         }
 
+        // ---------------------------------------------------------- track end
+
+        /// <summary>
+        /// The knot that landed on the final run-up's start: from here to the
+        /// end every knot is collinear (straight, the grade held, no bank, both
+        /// walls up), nothing is placed (one claim over the whole zone keeps
+        /// pads and coins off, the feature cursor is parked) and the end spot
+        /// is measured off the BUILT start — inside the zone a chord is arc
+        /// length, so the road stops exactly one run-up on.
+        /// </summary>
+        void BeginEndZone()
+        {
+            inEndZone = true;
+            float start = track.Length;
+            track.SetEndZone(start);
+            endTarget = start + endRunUp;
+            claims.Add((start, endTarget + 1000f));
+            laserKeepOuts.Add((start, float.PositiveInfinity));
+            featureCursor = float.MaxValue;
+        }
+
+        /// <summary>The last knot is down: the road stops here, for good, in three ramps.</summary>
+        void FinishTrack()
+        {
+            trackComplete = true;
+            track.SetEnd(track.Length);
+            CreateEndRamps();
+        }
+
+        // The end ramps' definition: the scene's, else the Resources asset,
+        // else built-in numbers — cloned in play like every feature definition.
+        void PrepareEndRamp()
+        {
+            if (endRamp == null) endRamp = new FeatureSpawnEntry { name = "End", color = new Color(0.2f, 1f, 0.85f) };
+            if (Application.isPlaying && endRamp.Runtime != null && endRamp.Runtime != endRamp.definition)
+                Destroy(endRamp.Runtime); // last run's clone
+            endRamp.Runtime = null;
+            if (!IsFinite) return;
+
+            TrackFeatureDefinition source = endRamp.definition;
+            if (!(source is JumpDefinition)) source = Resources.Load<JumpDefinition>(EndRampResourcePath);
+            if (source == null)
+            {
+                if (endRampFallback == null)
+                {
+                    endRampFallback = ScriptableObject.CreateInstance<JumpDefinition>();
+                    endRampFallback.hideFlags = HideFlags.HideAndDontSave;
+                    endRampFallback.displayName = "End";
+                    endRampFallback.length = 120f;
+                    endRampFallback.rampAngle = 15f;
+                    endRampFallback.entryMargin = 0f;
+                    endRampFallback.sideHitSpeedLoss = 0.05f;
+                }
+                source = endRampFallback;
+            }
+            endRamp.Runtime = Instantiate(source);
+        }
+
+        /// <summary>
+        /// The three ramps the track ends in, side by side, their lips ON the
+        /// end of the road: equal widths filling the track between the
+        /// GameSettings gaps (one between each pair — the drops a ship that
+        /// misses goes through — and one at each wall, 0 by default). The
+        /// outer ramps reach a little past the wall so a ship pressed against
+        /// it is on the ramp, never on a float's rounding. No boost and no
+        /// arc: the lip is where the body leaves the track.
+        /// </summary>
+        void CreateEndRamps()
+        {
+            if (!(endRamp?.Runtime is JumpDefinition def)) return;
+
+            float gap = gameManager != null ? gameManager.EndRampGapMeters : 10f;
+            float sideGap = gameManager != null ? gameManager.EndRampSideGapMeters : 0f;
+            float width = Mathf.Max(2f, (track.HalfWidth * 2f - 2f * gap - 2f * sideGap) / 3f);
+            float start = track.EndDistance - def.length;
+
+            for (int i = -1; i <= 1; i++)
+            {
+                float lateral = i * (width + gap);
+                float half = width * 0.5f;
+                // Flush against the wall: reach a little past it.
+                if (i != 0 && sideGap <= 0f)
+                {
+                    half += 0.25f;
+                    lateral += i * 0.25f;
+                }
+                BuildRamp(start, lateral, half, endRamp, def, 0f, isEndRamp: true);
+            }
+
+            // The gaps read as drops: a marker strip at the foot of each.
+            if (decorator != null)
+                foreach (float side in new[] { -1f, 1f })
+                    decorator.StampEndMarker(start, side * (width + gap) * 0.5f, gap, def.length);
+        }
+
         /// <summary>Decided ramps land once the spline under their run-up is settled (AutoSmooth reshapes the last two segments as knots land).</summary>
         void SpawnPendingRamps(float limit)
         {
@@ -906,6 +1175,113 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 }
                 padCursor += rng.NextFloat(padSpacing.x, padSpacing.y);
             }
+        }
+
+        // ------------------------------------------------------- laser gates
+
+        /// <summary>
+        /// Laser gates on a cursor of their own, drawn from their own rng (so
+        /// a seed's road and pads are the same with or without them). A gate
+        /// is rolled first — variant and beam length decide how much track it
+        /// takes — then tested against the keep-outs and pushed on if it does
+        /// not fit. Placed before the pads, claiming its ground, so no pad or
+        /// coin sits in a beam. Play mode only: the beams are runtime objects.
+        /// </summary>
+        void PlaceLasersUpTo(float limit)
+        {
+            if (!Application.isPlaying || !spawnLasers || laserPrefab == null || laserRuntime == null) return;
+            if (LaserDensity <= 0f || laserRuntime.TotalWeight <= 0f) return;
+
+            while (laserCursor < limit)
+            {
+                LaserGateVariant variant = laserRuntime.PickVariant(laserRng.NextFloat());
+                track.GetLateralBand(laserCursor, out float bandMin, out float bandMax);
+                float length = (bandMax - bandMin) * laserRng.NextFloat(laserRuntime.CoverageMin, laserRuntime.CoverageMax);
+                // Only the rotor has depth: its blade sweeps a disc of road.
+                float halfDepth = laserRuntime.beamRadius + (variant == LaserGateVariant.Rotor ? length * 0.5f : 0f);
+
+                float blockedUntil = LaserBlockedUntil(laserCursor, halfDepth);
+                if (float.IsPositiveInfinity(blockedUntil)) { laserCursor = float.MaxValue; return; } // the end zone: no more gates, ever
+                if (blockedUntil >= 0f) { laserCursor = Mathf.Max(blockedUntil, laserCursor + 10f); continue; }
+
+                CreateLaserGate(laserCursor, variant, length, halfDepth, bandMin, bandMax);
+                laserCursor += laserRng.NextFloat(laserSpacing.x, laserSpacing.y) / LaserDensity;
+            }
+        }
+
+        /// <summary>
+        /// Where a gate at <paramref name="distance"/> could go instead, or -1
+        /// when the spot is free: clear of every feature and what lies ahead
+        /// of it (a ramp's landing zone), of any section, of the final run-up
+        /// (+infinity — nothing fits after it) and, when the two toggles say
+        /// so, of flat sweeps and open edges.
+        /// Every one of those is registered while its knot is still inside the
+        /// settle margin, and the clearance is shorter than the margin, so
+        /// nothing is ever decided behind a gate that already stands.
+        /// </summary>
+        float LaserBlockedUntil(float distance, float halfDepth)
+        {
+            float reach = halfDepth + laserClearance;
+            float start = distance - reach, end = distance + reach;
+
+            foreach (var keepOut in laserKeepOuts)
+                if (end > keepOut.start && start < keepOut.end)
+                    return float.IsPositiveInfinity(keepOut.end) ? keepOut.end : keepOut.end + reach;
+
+            if (!lasersOnFlatSweeps)
+            {
+                TrackManager.FlatSweep sweep = track.FlatSweepWithin(start, end - start);
+                if (sweep != null) return sweep.End + reach;
+            }
+
+            // A loop or a tube is a keep-out already (belt and braces); an open edge is not.
+            for (float d = start; d <= end; d += 25f)
+                if (track.SectionAt(d) != null
+                    || (!lasersOnOpenEdges && (track.IsEdgeOpen(d, -1) || track.IsEdgeOpen(d, 1))))
+                    return d + reach + 25f;
+            return -1f;
+        }
+
+        /// <summary>
+        /// One gate: a root on the track pose at the flight line's middle, a
+        /// laser prefab instance per beam under it, and the <see cref="LaserGate"/>
+        /// that owns the beams' track-space segments. The beam's lateral is
+        /// rolled so the whole beam (and the emitters' bulk) stays in the lane.
+        /// </summary>
+        void CreateLaserGate(float distance, LaserGateVariant variant, float length, float halfDepth, float bandMin, float bandMax)
+        {
+            float halfAcross = variant == LaserGateVariant.Vertical ? laserRuntime.beamRadius : length * 0.5f;
+            float margin = halfAcross + 2f * laserRuntime.emitterScale; // the emitter is ~2 m long at scale 1
+            float lo = bandMin + margin, hi = bandMax - margin;
+            float lateral = hi > lo ? laserRng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f;
+            float rotorSpeed = laserRng.NextFloat(laserRuntime.RotorSpeedMin, laserRuntime.RotorSpeedMax) * (laserRng.NextBool() ? 1f : -1f);
+            float rotorPhase = laserRng.NextFloat(0f, 360f);
+            bool wavy = laserRuntime.wavy && laserRng.NextFloat() < laserRuntime.waveChance; // no draw while the wave is off
+
+            track.GetPoseAtDistance(distance, 0f, out Vector3 pos, out Quaternion rot);
+            var root = new GameObject($"LaserGate_{variant}_{distance:00000}");
+            root.transform.SetParent(padsParent, false);
+            root.transform.SetPositionAndRotation(pos, rot);
+
+            int beamCount = variant == LaserGateVariant.Triple ? 3 : 1;
+            var visuals = new List<LaserBeam>(beamCount);
+            for (int i = 0; i < beamCount; i++)
+            {
+                GameObject instance = Instantiate(laserPrefab, root.transform);
+                instance.name = $"Beam_{i}";
+                instance.transform.localPosition = Vector3.zero; // the emitters are posed in world space by the beam
+                instance.transform.localRotation = Quaternion.identity;
+                var beam = instance.GetComponent<LaserBeam>();
+                if (beam == null) beam = instance.AddComponent<LaserBeam>();
+                beam.Configure(laserRuntime, wavy);
+                visuals.Add(beam);
+            }
+
+            var gate = root.AddComponent<LaserGate>();
+            gate.Configure(laserRuntime, variant, distance, lateral, length, rotorSpeed, rotorPhase, visuals, wavy);
+
+            spawned.Add((distance + halfDepth, root)); // keyed on its END, like everything that spans track
+            claims.Add((distance - halfDepth, distance + halfDepth));
         }
 
         /// <summary>
@@ -959,6 +1335,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (claims[i].end < minDistance) claims.RemoveAt(i);
             for (int i = padDistances.Count - 1; i >= 0; i--)
                 if (padDistances[i] < minDistance) padDistances.RemoveAt(i);
+            for (int i = laserKeepOuts.Count - 1; i >= 0; i--)
+                if (laserKeepOuts[i].end < minDistance) laserKeepOuts.RemoveAt(i);
             if (decorator != null) decorator.CullBefore(minDistance);
         }
 
@@ -1171,9 +1549,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float rampHalf = track.HalfWidth * Mathf.Clamp01(def.widthFraction);
             float maxLat = Mathf.Max(0f, track.HalfWidth - rampHalf - 2f);
             float lateral = rng.NextFloat(-maxLat, maxLat);
+            float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost : 15f;
+            BuildRamp(distance, lateral, rampHalf, entry, def, baseBoost * entry.multiplier, isEndRamp: false);
+        }
+
+        // One ramp at a given lateral: the JumpRamp record and its picture.
+        void BuildRamp(float distance, float lateral, float rampHalf, FeatureSpawnEntry entry, JumpDefinition def, float boost, bool isEndRamp)
+        {
             track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
 
-            var go = new GameObject($"{entry.name}{def.displayName}Ramp_{distance:00000}");
+            var go = new GameObject($"{entry.name}{def.displayName}Ramp_{distance:00000}_{lateral:0}");
             go.transform.SetParent(padsParent, false);
             go.transform.SetPositionAndRotation(pos, rot);
 
@@ -1221,9 +1606,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
 
             var ramp = go.AddComponent<JumpRamp>();
-            float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost : 15f;
-            ramp.Configure(def, distance, lateral, rampHalf, baseBoost * entry.multiplier);
-            spawned.Add((distance, go));
+            ramp.Configure(def, distance, lateral, rampHalf, boost, isEndRamp);
+            // An end ramp is keyed on its END for the cull: it must outlive
+            // the ship's and the patrol's whole run-up.
+            spawned.Add((isEndRamp ? distance + def.length : distance, go));
         }
 
         /// <summary>

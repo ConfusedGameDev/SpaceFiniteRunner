@@ -113,6 +113,24 @@ road's up, so a line through a loop or along a banked wall guides there too) reg
   the line's frame, signed curvature + = right, lane band, open edges, `gripTested`),
   `SampleAt(distance)`, `FindRespawn`, `Assist`, `CaptureRange`, `Scene`. The runner's
   `TrackGuide` (M6) will be a second implementation over `TrackManager`.
+- **A ship stays on the PASS it is on** (`SplineGuide.NearestDownhill`): with a hint the search walks
+  downhill from the last answer's segment to the local nearest point — the other pass of a hairpin lies
+  across a rise in the distance and is never reached — and the window's nearest point replaces it only
+  when it is at least twice as close and the ship is more than `switchMeters` (8) from its own. The
+  nearest point in a window flipped between the two passes of the user's city hairpin (31 m apart)
+  EVERY substep, and a heading locked to the line flipped 180° with it — "the ship fighting which way
+  the spline goes". NaN hint = the whole line.
+- **The lane fence is the guide's to switch on** (`GuideSample.fenced`): `HoldInLane` only puts a body
+  back inside a closed edge where the guide says so — `TrackGuide` always (the loops), `SplineGuide` by
+  `fenceLane` (off). In a city it teleported the ship up to 20 m sideways through a building.
+- **`guideRefreshMeters` defaults to 0** (project every substep; `Runner_ShipSettings` keeps 16 — a
+  spline-backed track is what dead reckoning was for). On a line with 77° knots the tangent turned by
+  one curvature sample over 16 m overshot by a right angle; the turn is now clamped to 11° a substep
+  (`MaxDeadReckonTurn`) as well. A settings asset saved before the field existed reads the default —
+  but a LOADED asset keeps its old in-memory value until the editor restarts (Unity carries live
+  objects' fields across recompiles), which is why `HoverShip_Settings` got the field written.
+- **No drift trim against a wall** (`wallSinceProjection`): sideways motion a wall caused since the
+  last projection is not drift to lean against — the trim was leaning the ship INTO building fronts.
 - **`SplineGuide` bakes the spline once** into an arc-length table (`sampleSpacing` 2 m) and
   every query runs on the table. A projection is a nearest-segment search in a **window around
   the last answer** (`searchWindow`) — cheap enough to ask every substep, and the only way the
@@ -174,7 +192,13 @@ fixed tick, not coroutines** — `Paused` and a menu's timeScale freeze them.
   curtain is caught at 36 m per tick. A trigger callback would be tunnelled. `BeginFall(reason)`
   is public for a game's own hazards; `LastFallReason` says why.
 - **Where it comes back**: guided → `guide.FindRespawn(distance, respawnClearance)`, at or past
-  the fall point (time is lost, never distance). Free → the newest **breadcrumb** at least
+  the fall point (time is lost, never distance). **The distance is REMEMBERED** (`lastGuide` is
+  decided on the ground; `lastGuideDistance` keeps counting in the air while that line is still in
+  reach — a game streams its world off that number, the runner culls road and colliders 300 m
+  behind it, so coming back short of it is coming back onto nothing), never
+  re-projected from where the ship was declared lost: that is most of a second of flight later,
+  hundreds of metres from the line, and an unhinted projection from out there came back past the
+  runner's last built collider — no road under the respawn, and it fell again, and again. Free → the newest **breadcrumb** at least
   `respawnBackMeters` back along its own trail; crumbs are dropped every `crumbSpacingMeters`
   only while Grounded, not sliding and within `maxCrumbTilt` of upright (never halfway up a
   loop), and the trail past the chosen one is discarded — it led to the fall. A free respawn is
@@ -195,6 +219,8 @@ fixed tick, not coroutines** — `Paused` and a menu's timeScale freeze them.
   nothing collides with that layer, only ship queries see it. `MagnetVolume` overrides
   `ShipSettings.magnetic` for the ship inside it (`HoverBody.MagneticOverride`, found by an
   overlap each tick in `HoverShip`).
+- **Only a ship in play can stall** (`State == Grounded`): one waiting out its respawn stands still
+  by rule, and a player who let go of the throttle for those seconds lost the run to it.
 - A stall never freezes the standalone ship (it is a report, cleared once it moves); the brake at
   a standstill **reverses** (`reverseSpeed`, 0 = the runner's brake-only rule).
 
@@ -206,6 +232,11 @@ fly-on): throttle held, the stick replaced by a pull to the guide lane's middle
 off — **a grip-tested flat sweep taken hands-off at cruise asks 4× the ship's grip and slides it
 off the open edge, which is the game working** (the M7 spike fell exactly there before this
 existed). Cleared by `Launch`. With no guide it just holds the throttle and flies straight.
+**It always flies FULL assist** (`HoverBody.EffectiveAssist`: `HoldOnRoad` → 1 where there is a
+line): its one control is a strafe to the lane's middle, and at partial assist the stick YAWS — on a
+level tuned to `TrackGuide.assist` 0.18 the pull became a swerve that grew until the ship left the
+road, every run. A soak harness that flies on the autopilot says nothing about how a partial-assist
+level FEELS by hand.
 
 ## World-space pickups (`Ship/Pickups/`)
 
@@ -307,6 +338,10 @@ With no `HoverShip` beside it the motor is exactly the track-space ship it was.
   the patrol gains the fall), **ramp boost** on take-off, **tube return**
   (`HoverShip.SteerOverride` over `TubeSection.ReturnProgress`: the stick alone is replaced).
   State is mapped: Grounded → Looping inside a loop section / OnTube on a tube.
+- **`RespawnStarted` re-mirrors the distance at once** (`ForwardRespawnStarted` projects the new
+  pose): the respawn rule can put the ship kilometres on (it skips sections, sweeps and ramps),
+  it then stands out of play with its guide sample frozen for the whole wait, and the generator
+  streams road — and the colliders under it — off the motor's distance.
 - `LaunchPhysics` calls `TrackColliderBuilder.BuildNow()` first: a restart has just cleared the
   old track's colliders, and a ship seated on nothing took off for half a second.
 - **Loops are SURFACE-ONLY.** A loop with little lateral drift passes through itself (one rolled
@@ -346,10 +381,42 @@ With no `HoverShip` beside it the motor is exactly the track-space ship it was.
   2 m of the line up to 2100 m/s, a forced slow entry fails at the top, drops and lands on the
   exit with the speed loss, tubes return, ramps jump, 141 ramp passes with no stop, both lose
   paths, the win flow through to the panel, restart. `FiniteRunner_Test` still runs track-space.
+- **The finite track's ending, in physics mode** (merged from `feature/newEndingFiniteRunner`; the track-space
+  rules are in `runner-ship.md`). The end is the MOTOR's, as in track space: `NearTrackEnd` (the end minus what a
+  tick and a guide refresh can hide) + `PastTheRoad` (airborne, or past the end plane) → `BeginPhysicsEnd`: the
+  motor's own world flight (`offPosition` / `offVelocity`, `StepFall` — `TerminalFall`, or `Escape` once the
+  listener calls `BeginEscape`) starts from the physical ship's pose and velocity and carries it through
+  `MoveOutOfPlay`; the ship is put in `Falling` (NOT `OffTrack`) so `ShipRecovery` never respawns a ship with
+  nowhere to come back to, the motor's body in `OffTrack` (what `BeginEscape` and the GameManager read).
+  `tookRamp` = on an end ramp last tick, or over an end ramp's lane above half its lip. **A take-off near the end
+  is swallowed** (`OnPhysicsTookOff`): no boost, no `TookOff`, no jump counted. Flown at 1×: the middle ramp hands-off = `tookRamp`, escape, won; the gap
+  between two ramps = terminal tumbling fall, lost, a life taken, never a respawn; lasers → hull → lives → GAME OVER.
+- **Laser gates are track-space things** (analytic, no collider): the body that swept the registry for them is
+  not stepped in physics mode, so `SweepLaserGates` asks `PickupRegistry.Sweep` over the distance each tick
+  covered and runs the gate's own `Touches`. Pads, orbs and coins are NOT taken there — they have colliders.
+  `IsTouchingWall` (the hull's wall scrape) reads `HoverBody.LateralBlocked`. `RespawnBlink` lives in the Ship
+  assembly and cannot see `ShipHealth`: the hull hands it `AlsoBlinkWhile`.
+- `TrackColliderBuilder` builds a finished track's last, PARTIAL chunk (whole chunks only until `HasEnd`);
+  `TrackGenerator.SettledDistance` drops the settle margin once the track is complete; `TrackGuide.FindRespawn`
+  carries the motor's two end clauses (end ramps are not ground to clear; never past `EndZoneStart`).
+- The scene builder **keeps hand tuning**: the five wired components' values are read out of the old
+  `FiniteRunner_Physics` (EditorJsonUtility) and written onto the fresh copy before the references are re-wired.
 - Scene: `Tools → FiniteRunner → Ship → Create Physics Runner Scene` re-copies
   `FiniteRunner_Test` to `FiniteRunner_Physics` and hand-places `HoverShip` + `ShipRecovery` +
   `ShipPickupSweeper` on the Ship object and `TrackColliderBuilder` + `TrackGuide` on the Track
   object. The test scene is never touched. Settings: `04.Data/Ship/Runner_ShipSettings.asset`.
+
+## The ship rig as prefabs (`03.Prefabs/Ship/`, `Tools → FiniteRunner → Ship → Build Ship System Prefabs`)
+
+- **`ShipSpeedHud.prefab`** — a screen-space canvas (1920×1080 scaled, sort order 20) carrying
+  `Ship/UI/ShipSpeedHud`: the runner's tachometer wedge (`SpeedGauge`, now in the UI assembly so both
+  assemblies draw the same one), the km/h number on its baseline and a KM/H caption, built in code at
+  Start. Reads the wired `HoverShip`, else **whichever ship flies its scene** through `ShipRegistry`,
+  asked every 0.25 s until one appears. Full scale `fullScaleKmh` (6500 ≈ Light Speed).
+- **`ShipSystem.prefab`** — an empty root with the user's `Runner/HoverShip.prefab` and the HUD
+  NESTED under it (edits to either reach the rig), the HUD wired to that ship. A level takes the rig, the
+  ship alone, or the HUD alone. The builder creates what is missing and never overwrites: delete a
+  prefab to have it built again. No camera in the rig — `ShipCameraAttach` on the ship does that.
 
 ## Contracts: `IShip`, `IRunnerShip`, `ShipRegistry`
 

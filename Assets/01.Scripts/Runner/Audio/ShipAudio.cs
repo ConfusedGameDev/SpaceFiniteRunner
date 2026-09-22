@@ -135,6 +135,22 @@ namespace ConfusedGameDev.FiniteRunner.Audio
             }
         }
 
+        /// <summary>The ship's explosion at 0 hull — called by the GameManager, which owns that moment.</summary>
+        public void PlayExplosion()
+        {
+            if (sfx == null || sfx.explosionClip == null || pickups == null) return;
+            pickups.pitch = 1f;
+            pickups.PlayOneShot(sfx.explosionClip, sfx.explosionVolume);
+        }
+
+        /// <summary>The ship flew through a laser beam — called by the GameManager, only for a hit that landed.</summary>
+        public void PlayLaserHit()
+        {
+            if (sfx == null || sfx.laserHitClip == null || pickups == null) return;
+            pickups.pitch = 1f;
+            pickups.PlayOneShot(sfx.laserHitClip, sfx.laserHitVolume);
+        }
+
         void OnTookOff()
         {
             if (sfx == null || sfx.jumpClip == null || jumps == null) return;

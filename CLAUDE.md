@@ -25,14 +25,33 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 
 ## Runner game design
 
-- **Objective**: escape the police before time runs out or you get caught.
-- **Win**: every mandatory objective of the run's `RunnerLevelDefinition` is met (today one
-  Reach Speed objective, whose target IS the HUD's "Light Speed"). The win latches the frame it
-  is met (nothing can be lost after, the clock stops), the ship flies on until it is back on the
-  track, the glitch ramps to max, then the Mission Complete panel opens.
-- **Lose**: the countdown hits 0, the patrol catches you, or the ship stalls out (sits at a
-  standstill with the throttle released for the stall grace — braking to a stop alone is fine).
-  Ends on the `GameOverScreen` retry panel with a localized reason.
+- **Objective**: reach Light Speed, then escape off the end of the track, before time runs out
+  or you get caught.
+- **The track is finite**: a fixed length per level (`RunnerLevelDefinition.trackLengthMeters`,
+  0 = `GameSettings.trackLengthMeters`), ending in a straight walled run-up and **three ramps
+  side by side over a void**, with gaps between them. The HUD shows the distance left.
+- **Win** = BOTH halves: every mandatory objective of the run's `RunnerLevelDefinition` is met
+  (today one Reach Speed objective, whose target IS the HUD's "Light Speed" — reaching it ONCE
+  latches it, the HUD line turns done) AND the ship leaves the track by one of the end ramps.
+  Until the lip everything stays live: countdown, patrol, stall. At the lip the win latches, the
+  ship flies on off the ramp (it never lands), MISSION ACCOMPLISHED slams in, the glitch ramps
+  to max, then the Mission Complete panel opens.
+- **Lose**: the countdown hits 0, the patrol catches you, the ship stalls out (sits at a
+  standstill with the throttle released for the stall grace — braking to a stop alone is fine),
+  or it reaches the end of the track without the win — an objective still open (ramp or not), or
+  through a gap between the ramps — and drops into the void — or the **hull reaches 0 and the ship
+  explodes**. EVERY loss slams a MISSION FAILED banner in (the win banner's animation), then the
+  `GameOverScreen` retry panel: MISSION FAILED, the localized reason, RETRY? YES / NO (NO = main
+  menu).
+- **Hull and lives** (`GameSettings.hullEnabled`): the HUD's life bar sits under the speed wedge
+  with a ×N lives count at its right end. Brake pads, hard wall hits (a dash slam, a ramp's side),
+  plain wall contact, laser beams and falling off the track take hull points; every hit blinks the ship
+  invulnerable for a moment.
+  **Every failed run costs a life** — a fresh set (`startingLives`) each time the runner is
+  entered, kept across retries. The run that takes the last one is **GAME OVER**: the banner says
+  so, the panel has no retry (PRESS ANY BUTTON → the Store), and the mission is forfeited — the
+  wallet goes back to what it was when the mission started and the city clear is dropped, so
+  START MISSION replays the city. Cleared missions and bought upgrades are kept.
 - Neither ending speaks an RPG line and neither prints HUD result text.
 - **Speed** is the whole game: one launch impulse, then the throttle (W / RT) holds the ship up
   to its cruise speed and the brake (S / LT) slows it. Only boost orbs (small, 0.3, must be aimed
@@ -41,7 +60,8 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 - **The patrol** drives the same physics as the ship: it rubber-bands to the ship's speed and
   takes a share (`boostShare`) of every boost the ship collects, steers for the ship, goes after
   boost orbs of its own (which it uses up), rounds ramps or jumps them, brakes for flat sweeps,
-  and can fall off — a fall just drops a fresh one in behind you. It catches by being on your
+  and can fall off — a fall just drops a fresh one in behind you, except at the END of the
+  track, which takes every patrol that reaches it for good. It catches by being on your
   tail AND close across the track (or on your tail for long enough), so a last-moment dodge
   works. Outrun it far enough and a fresh one cuts in behind you at a new, higher floor —
   coasting can never shake it.
@@ -53,7 +73,11 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   stopped — falling costs time, not the run.
 - **Track features**: ramps/jumps (1), vertical loops (2), cylinder sections (3). Multi-path is
   the one feature not yet built.
-- Time is the limit, not distance. The track is endless and streamed.
+- **Laser gates**: emitter pairs firing a beam across 20–30 % of the road — single horizontal,
+  single vertical, three stacked, or a flat spinning rotor — steered round, never jumped. A beam
+  costs a fall's worth of hull with a heavy rumble. Never on or near a ramp, its landing, a loop,
+  a tube or the final run-up.
+- Time AND distance are the limits. The track is streamed ahead of the ship but finite.
 - Story beats are RPG dialogue lines on purple-orb pickups and patrol taunts only.
 
 ## Repo map

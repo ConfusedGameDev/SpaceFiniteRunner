@@ -1,5 +1,7 @@
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.SaveData;
+
 namespace ConfusedGameDev.FiniteRunner.Campaign
 {
     /// <summary>
@@ -24,11 +26,15 @@ namespace ConfusedGameDev.FiniteRunner.Campaign
         /// <summary>True while a mission is live.</summary>
         public static bool Active => Current != null;
 
+        /// <summary>The wallet (<c>PlayerStats.Balance</c>) as the mission began — after the Store's purchases, before the city. What the runner's GAME OVER rolls it back to.</summary>
+        public static long WalletAtStart { get; private set; }
+
         /// <summary>Starts a mission session; the caller loads the world's scene next.</summary>
         public static void Begin(MissionDefinition mission, bool replay)
         {
             Current = mission;
             IsReplay = replay && mission != null;
+            WalletAtStart = PlayerStats.Balance;
         }
 
         /// <summary>Ends the session — the main menu calls this on entry.</summary>
@@ -36,6 +42,7 @@ namespace ConfusedGameDev.FiniteRunner.Campaign
         {
             Current = null;
             IsReplay = false;
+            WalletAtStart = 0;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

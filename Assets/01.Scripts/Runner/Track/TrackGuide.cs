@@ -119,12 +119,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 TrackManager.FlatSweep sweep = track.FlatSweepWithin(d, clearance);
                 if (sweep != null) d = sweep.End;
 
+                // The end ramps are not ground to clear: past them is the void.
                 foreach (JumpRamp ramp in JumpRamp.Active)
-                    if (ramp != null && ramp.EndDistance > d && ramp.StartDistance - d < clearance) d = ramp.EndDistance;
+                    if (ramp != null && !ramp.IsEndRamp && ramp.EndDistance > d && ramp.StartDistance - d < clearance) d = ramp.EndDistance;
 
                 if (Mathf.Approximately(d, before)) break;
             }
-            return Mathf.Min(d, Mathf.Max(from, track.Length - 1f));
+            d = Mathf.Min(d, Mathf.Max(from, track.Length - 1f));
+            // A finite track's final run-up is the last place to come back on: never further down than its start.
+            if (track.EndZoneStart >= 0f) d = Mathf.Min(d, Mathf.Max(from, track.EndZoneStart));
+            return d;
         }
 
         /// <summary>
@@ -160,6 +164,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 openLeft = track.IsEdgeOpen(distance, -1) || unbounded,
                 openRight = track.IsEdgeOpen(distance, 1) || unbounded,
                 gripTested = track.FlatSweepAt(distance) != null,
+                fenced = true, // the loops' surface-only ring: the lane is all that holds the ship on it
             };
         }
 

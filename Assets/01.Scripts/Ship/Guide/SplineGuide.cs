@@ -47,6 +47,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [Tooltip("Both edges are open: past the lane is a fall.")]
         [SerializeField] bool openEdges;
 
+        [Tooltip("Put a ship found past a closed lane edge back on the lane (the runner's loops need it — their surface cannot be hit). Off for a level whose walls are colliders: a ship there is stopped by the wall it meets, never moved across a building.")]
+        [SerializeField] bool fenceLane;
+
         [TitleGroup("Baking")]
         [Tooltip("Distance between baked samples. Smaller follows tight geometry (a loop) more exactly.")]
         [PropertyRange(0.5f, 20f), SuffixLabel("m", true)]
@@ -56,6 +59,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [Tooltip("How far around its last answer a projection looks, each way.")]
         [PropertyRange(20f, 1000f), SuffixLabel("m", true)]
         [SerializeField] float searchWindow = 150f;
+
+        [Tooltip("A ship that was on the line stays on the PASS it was on: from the last answer the search walks DOWNHILL to the nearest point of that pass, and the whole window is only asked when the ship has left it. The nearest point in a window flipped between the two passes of a hairpin every substep — and a heading locked to the line flipped 180° with it. The other pass wins only when it is at least twice as close and the ship is more than this far from its own.")]
+        [Min(0f)]
+        [SerializeField] float switchMeters = 8f;
 
         struct Baked
         {
@@ -135,15 +142,72 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             int count = samples.Length;
             if (count < 2) return false;
 
+            // The pass the ship was on first: the local nearest point, reached downhill from the last answer. The
+            // window's nearest point replaces it only when it is CLEARLY the ship's pass now.
+            int best = -1;
+            float bestT = 0f;
+            if (!float.IsNaN(hint))
+            {
+                best = NearestDownhill(worldPosition, hint, out bestT, out float localSqr);
+                if (best >= 0 && localSqr > switchMeters * switchMeters)
+                {
+                    int other = Nearest(worldPosition, hint, searchWindow, out float otherT, out float otherSqr);
+                    if (other >= 0 && otherSqr * 4f < localSqr) { best = other; bestT = otherT; }
+                }
+            }
+            if (best < 0) best = Nearest(worldPosition, hint, searchWindow, out bestT, out _);
+            if (best < 0) return false;
+
+            Fill(best, bestT, out sample);
+            Vector3 offset = worldPosition - sample.position;
+            // Beside the line the offset has no part along it; one that does means the point is past an open end.
+            if (!closed && Mathf.Abs(Vector3.Dot(offset, sample.forward)) > EndSlack) return false;
+            sample.lateral = Vector3.Dot(offset, sample.right);
+            sample.height = Vector3.Dot(offset, sample.up);
+            hint = sample.distance;
+            return true;
+        }
+
+        // The nearest point of the PASS a hint is on: from the hint's segment, step to whichever neighbour is
+        // nearer until neither is — the other pass of a hairpin lies across a rise in the distance and is never reached.
+        int NearestDownhill(Vector3 worldPosition, float hint, out float bestT, out float bestSqr)
+        {
+            int count = samples.Length, last = count - 2;
+            int i = Mathf.Clamp(IndexAt(hint), 0, last);
+            bestSqr = SegmentSqr(worldPosition, i, out bestT);
+            for (int guard = 0; guard < count; guard++)
+            {
+                int next = -1;
+                float nextSqr = bestSqr, nextT = bestT;
+                if (i > 0) { float sqr = SegmentSqr(worldPosition, i - 1, out float t); if (sqr < nextSqr) { next = i - 1; nextSqr = sqr; nextT = t; } }
+                if (i < last) { float sqr = SegmentSqr(worldPosition, i + 1, out float t); if (sqr < nextSqr) { next = i + 1; nextSqr = sqr; nextT = t; } }
+                if (next < 0) break;
+                i = next; bestSqr = nextSqr; bestT = nextT;
+            }
+            return i;
+        }
+
+        float SegmentSqr(Vector3 worldPosition, int i, out float t)
+        {
+            Vector3 a = samples[i].position, ab = samples[i + 1].position - a;
+            float lengthSqr = ab.sqrMagnitude;
+            t = lengthSqr > 1e-10f ? Mathf.Clamp01(Vector3.Dot(worldPosition - a, ab) / lengthSqr) : 0f;
+            return (a + ab * t - worldPosition).sqrMagnitude;
+        }
+
+        // The nearest segment to a point within a window of line either side of a hint (NaN = the whole line).
+        int Nearest(Vector3 worldPosition, float hint, float window, out float bestT, out float bestSqr)
+        {
+            int count = samples.Length;
             int from = 0, to = count - 2;
             if (!float.IsNaN(hint))
             {
-                from = Mathf.Max(0, IndexAt(hint - searchWindow));
-                to = Mathf.Min(count - 2, IndexAt(hint + searchWindow));
+                from = Mathf.Max(0, IndexAt(hint - window));
+                to = Mathf.Min(count - 2, IndexAt(hint + window));
             }
-
             int best = -1;
-            float bestT = 0f, bestSqr = float.MaxValue;
+            bestT = 0f;
+            bestSqr = float.MaxValue;
             for (int i = from; i <= to; i++)
             {
                 Vector3 a = samples[i].position, ab = samples[i + 1].position - a;
@@ -155,16 +219,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 best = i;
                 bestT = t;
             }
-            if (best < 0) return false;
-
-            Fill(best, bestT, out sample);
-            Vector3 offset = worldPosition - sample.position;
-            // Beside the line the offset has no part along it; one that does means the point is past an open end.
-            if (!closed && Mathf.Abs(Vector3.Dot(offset, sample.forward)) > EndSlack) return false;
-            sample.lateral = Vector3.Dot(offset, sample.right);
-            sample.height = Vector3.Dot(offset, sample.up);
-            hint = sample.distance;
-            return true;
+            return best;
         }
 
         public void SampleAt(float distance, out GuideSample sample)
@@ -199,6 +254,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 openLeft = openEdges,
                 openRight = openEdges,
                 gripTested = gripTested,
+                fenced = fenceLane,
             };
         }
 

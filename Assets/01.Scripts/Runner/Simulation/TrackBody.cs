@@ -155,6 +155,16 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
         /// <summary>True when the last step's lateral move was stopped or taken over (the edge, a ramp's side, a tube's return): a dash burst ends there.</summary>
         public bool LateralBlocked { get; private set; }
 
+        /// <summary>
+        /// True when the last step PUSHED the body into a wall — a closed edge
+        /// of the lane or a ramp's side — whether by steering, a slide or a
+        /// dash. Resting against the wall without pressing on it is not
+        /// contact; an open edge, a full tube and a tube's return never are.
+        /// The quiet sibling of <see cref="WallHit"/>: no cooldown, no event —
+        /// the owner polls it (the ship's hull damage).
+        /// </summary>
+        public bool IsTouchingWall { get; private set; }
+
         // ------------------------------------------------------------ events
         /// <summary>Raised on every <see cref="State"/> change, after the new state is set.</summary>
         public event System.Action<ShipState> StateChanged;
@@ -168,12 +178,28 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
         public event System.Action<int> LeftTrack;
         /// <summary>Raised for every pickup the body touched over the distance a step covered (<see cref="PickupRegistry"/>). The owner decides what taking it means.</summary>
         public event System.Action<ITrackPickup> PickedUp;
+
+        /// <summary>Where the stretch the last pickup sweep covered began (it ends at <see cref="Distance"/>) — for a pickup whose own shape needs a finer test than the registry's box (a laser gate's beams).</summary>
+        public float SweepFrom { get; private set; }
         /// <summary>Raised on the step a slide begins (see <see cref="IsSliding"/>). Argument: the lateral acceleration beyond the grip, m/s².</summary>
         public event System.Action<float> Sliding;
+        /// <summary>
+        /// Raised on the step the body runs out of road at the end of a finite
+        /// track (<see cref="TrackManager.EndDistance"/>), already
+        /// <see cref="ShipState.OffTrack"/> — the owner flies it from here.
+        /// Argument: true when it left by the lip of an end ramp (it carries
+        /// the slope's height and climb), false when it ran off the road
+        /// beside them. No <see cref="TookOff"/>, no flight, no landing: there
+        /// is nothing to land on. <see cref="HoldOnTrack"/> does not stop it.
+        /// </summary>
+        public event System.Action<bool> ReachedEnd;
 
-        // Jump state.
-        JumpRamp blockingRamp;  // beside a ramp: its edge is a wall this step
-        int blockSide;          // which side of the blocking ramp the body is on (+1 right)
+        // Jump state. Beside a ramp its edge is a wall — and between two
+        // ramps standing side by side (a track's end) BOTH are, so the walls
+        // are a lateral window rebuilt every scan, not one remembered ramp.
+        float rampWallMin = float.NegativeInfinity; // the body may not go left of this...
+        float rampWallMax = float.PositiveInfinity; // ...or right of this
+        float rampWallMinLoss, rampWallMaxLoss;     // the speed fraction hitting each costs
         JumpDefinition airDefinition; // the jump in flight (control authority)
         float airGravity;       // this flight's gravity, m/s² — see TakeOff
 
@@ -210,7 +236,7 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
             LateralBlocked = false;
             wallHitCooldown = 0f;
             Ramp = null;
-            blockingRamp = null;
+            ClearRampWalls();
             airDefinition = null;
             returnLocked = false;
             AirTime = 0f;
@@ -295,6 +321,17 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
             float from = Distance;
             if (State != ShipState.Falling) Distance += ForwardSpeed * dt;
             StepJump(dt);
+            if (State == ShipState.OffTrack) return; // left by the lip of an end ramp
+            // The end of a finite track: whatever is not on an end ramp runs
+            // out of road here. An end ramp's lip is the same distance and
+            // StepJump has normally taken it already — but the two are
+            // computed apart, so a body still committed to one by a float's
+            // rounding leaves BY THE RAMP, never beside it.
+            if (track.HasEnd && Distance >= track.EndDistance)
+            {
+                LeaveEnd(Ramp != null && Ramp.IsEndRamp ? Ramp : null);
+                return;
+            }
             StepTubeState();
             if (State != ShipState.Falling) SweepPickups(from);
         }
@@ -305,6 +342,7 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
         // lane. Round a full tube laterals compare modulo its circumference.
         void SweepPickups(float from)
         {
+            SweepFrom = from;
             if (PickedUp == null || PickupRegistry.All.Count == 0) return;
             float wrap = track.SectionAt(Distance) is TubeSection { Unbounded: true } tube ? tube.Circumference : 0f;
             touched.Clear();
@@ -349,6 +387,7 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
         void StepLateral(float dt, in BodyControls controls)
         {
             LateralBlocked = false;
+            IsTouchingWall = false;
 
             // The lane at this distance: ±half width on the road, the arc round
             // the pipe on a tube (its edge behaves exactly like the road's).
@@ -447,8 +486,11 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
             edgeTimer = 0f;
 
             // The clamp is what guarantees a dash can never leave a walled track.
-            Lateral = Mathf.Clamp(Lateral + (LateralVelocity + dashVelocity) * dt, bandMin, bandMax);
+            float unclamped = Lateral + (LateralVelocity + dashVelocity) * dt;
+            Lateral = Mathf.Clamp(unclamped, bandMin, bandMax);
             bool hitEdge = Lateral <= bandMin || Lateral >= bandMax;
+            // Pressed INTO the wall, not merely resting on it.
+            IsTouchingWall = unclamped < bandMin || unclamped > bandMax;
 
             // Committed to a ramp: the side rails hold the body on the slope.
             if (Ramp != null)
@@ -456,24 +498,22 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
                 float rail = Mathf.Max(0f, Ramp.HalfWidth - Ramp.Definition.entryMargin);
                 Lateral = Mathf.Clamp(Lateral, Ramp.Lateral - rail, Ramp.Lateral + rail);
             }
-            // Beside a ramp: its edge is a wall. Crossing into it is a side hit —
-            // the body is held outside and loses a slice of speed (WallHit is
-            // the shared feedback path with the dash slam).
-            else if (blockingRamp != null && State == ShipState.Grounded && blockingRamp.Spans(Distance))
+            // Beside a ramp: its edge is a wall (the last scan's window).
+            // Crossing into it is a side hit — the body is held outside and
+            // loses a slice of speed (WallHit is the shared feedback path
+            // with the dash slam).
+            else if (State == ShipState.Grounded && (Lateral < rampWallMin || Lateral > rampWallMax))
             {
-                float edge = blockingRamp.Lateral + blockSide * Mathf.Max(0f, blockingRamp.HalfWidth - blockingRamp.Definition.entryMargin);
-                bool intoWall = blockSide > 0 ? Lateral < edge : Lateral > edge;
-                if (intoWall)
+                bool leftWall = Lateral < rampWallMin;
+                Lateral = leftWall ? rampWallMin : rampWallMax;
+                IsTouchingWall = true;
+                if (wallHitCooldown <= 0f)
                 {
-                    Lateral = edge;
-                    if (wallHitCooldown <= 0f)
-                    {
-                        ForwardSpeed *= 1f - Mathf.Clamp01(blockingRamp.Definition.sideHitSpeedLoss);
-                        WallHit?.Invoke(Mathf.Abs(LateralVelocity + dashVelocity));
-                        wallHitCooldown = Params.wallHitCooldownSeconds;
-                    }
-                    StopLateral();
+                    ForwardSpeed *= 1f - Mathf.Clamp01(leftWall ? rampWallMinLoss : rampWallMaxLoss);
+                    WallHit?.Invoke(Mathf.Abs(LateralVelocity + dashVelocity));
+                    wallHitCooldown = Params.wallHitCooldownSeconds;
                 }
+                StopLateral();
             }
 
             if (hitEdge)
@@ -495,6 +535,36 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
             IsSliding = false;
             SetState(ShipState.OffTrack);
             LeftTrack?.Invoke(side);
+        }
+
+        // The end of the road. Off the lip of an end ramp the body keeps the
+        // slope's height (run on past the lip by whatever the step overshot)
+        // and its climb; off the road beside the ramps it leaves level. Either
+        // way it stands still from here and its owner flies it.
+        void LeaveEnd(JumpRamp ramp)
+        {
+            if (ramp != null)
+            {
+                JumpDefinition def = ramp.Definition;
+                Height = def.LipHeight + def.Slope * Mathf.Max(0f, Distance - ramp.EndDistance);
+                VerticalVelocity = def.Slope * ForwardSpeed;
+                PitchDegrees = -def.rampAngle;
+            }
+            Ramp = null;
+            ClearRampWalls();
+            airDefinition = null;
+            edgeTimer = 0f;
+            IsSliding = false;
+            SetState(ShipState.OffTrack);
+            ReachedEnd?.Invoke(ramp != null);
+        }
+
+        void ClearRampWalls()
+        {
+            rampWallMin = float.NegativeInfinity;
+            rampWallMax = float.PositiveInfinity;
+            rampWallMinLoss = 0f;
+            rampWallMaxLoss = 0f;
         }
 
         void StopLateral()
@@ -573,7 +643,7 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
             Height = 0f;
             VerticalVelocity = 0f;
             PitchDegrees = 0f;
-            blockingRamp = null;
+            ClearRampWalls();
             foreach (var candidate in JumpRamp.Active)
             {
                 if (candidate == null || candidate.Definition == null || !candidate.Spans(d)) continue;
@@ -582,11 +652,23 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
                 if (Mathf.Abs(rel) <= inner)
                 {
                     Ramp = candidate; // committed: no abort window at these speeds
+                    ClearRampWalls();
                     RideRamp(d);
                     break;
                 }
-                blockingRamp = candidate;
-                blockSide = rel >= 0f ? 1 : -1;
+                // Beside it: its near edge closes the window on that side.
+                // Every ramp at this distance counts, so a gap between two
+                // is walled on both sides.
+                if (rel >= 0f)
+                {
+                    float edge = candidate.Lateral + inner;
+                    if (edge > rampWallMin) { rampWallMin = edge; rampWallMinLoss = candidate.Definition.sideHitSpeedLoss; }
+                }
+                else
+                {
+                    float edge = candidate.Lateral - inner;
+                    if (edge < rampWallMax) { rampWallMax = edge; rampWallMaxLoss = candidate.Definition.sideHitSpeedLoss; }
+                }
             }
         }
 
@@ -599,6 +681,13 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
 
         void TakeOff()
         {
+            // An end ramp's lip is the end of the road: no arc to solve.
+            if (Ramp.IsEndRamp)
+            {
+                LeaveEnd(Ramp);
+                return;
+            }
+
             JumpDefinition def = Ramp.Definition;
             airDefinition = def;
             // The body leaves the lip with the velocity it was riding the
@@ -619,7 +708,7 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
             AirTime = 0f;
             float boost = Ramp.Boost * Params.jumpStrength;
             Ramp = null;
-            blockingRamp = null;
+            ClearRampWalls();
 
             SetState(ShipState.Airborne);
             TookOff?.Invoke(boost);

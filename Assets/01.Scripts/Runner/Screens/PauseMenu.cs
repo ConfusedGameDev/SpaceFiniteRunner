@@ -191,7 +191,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // The city map is a full-screen takeover with its own toggle; the
             // two must never stack, or Esc would unfreeze the game underneath it.
             if (DebugMenuHooks.FullScreenTakeoverOpen != null && DebugMenuHooks.FullScreenTakeoverOpen()) return false;
-            if (motor != null) return !motor.Paused && (gameManager == null || (!gameManager.RunOver && !gameManager.HasWon));
+            if (motor != null) return !motor.Paused && (gameManager == null || (!gameManager.RunOver && !gameManager.IsEnding)); // no pause under either ending's banner
             return Time.timeScale > 0f;
         }
 

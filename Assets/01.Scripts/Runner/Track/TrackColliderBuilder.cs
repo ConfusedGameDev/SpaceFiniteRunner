@@ -160,6 +160,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 chunks.Add(BuildRoad(built, built + chunkLength));
                 built += chunkLength;
             }
+            // A finite track ends where it ends, not on a chunk boundary: once the end is settled the remainder is one last,
+            // shorter chunk — the run-up to the end ramps stood on nothing without it.
+            if (track.HasEnd && limit >= track.EndDistance && built < track.EndDistance - 0.01f)
+            {
+                chunks.Add(BuildRoad(built, track.EndDistance));
+                built = track.EndDistance;
+            }
 
             foreach (JumpRamp ramp in JumpRamp.Active)
                 if (ramp != null && ramp.Definition != null && !ramps.ContainsKey(ramp) && ramp.EndDistance <= limit)

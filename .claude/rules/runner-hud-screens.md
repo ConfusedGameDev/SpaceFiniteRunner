@@ -17,14 +17,31 @@ paths:
 
 The runner's scene-wired HUD on the `RaceHUD` canvas object.
 
-- **Speed is a `SpeedGauge`** wedge built in code at the top-left (`gauge*` knobs in the
+- **Speed is a `SpeedGauge`** (in the UI assembly since the standalone ship's HUD draws the same wedge) built in code at the top-left (`gauge*` knobs in the
   "Speed gauge" group): 20 segments growing taller to the right, each coloured by its **own**
   Light Speed fraction on the blue → green → hot `SpeedColor` ramp, lit from the left up to
   `speed / LightSpeed`. Full = the win.
 - The scene's km/h number is re-seated at the wedge's right end by code at `Start` (smaller font,
   baseline on the wedge's), then KM/H, the LIGHT SPEED target line, and one code-built line per
   extra objective under it (`JUMP 1/3  ×2`).
-- The countdown bar sits at the bottom, showing `GameManager.TimeRemaining`.
+- **The life bar** (`BuildLifeBar`, only while `GameManager.HullEnabled`) is a second
+  `SpeedGauge` right under the wedge — the wedge's width in `lifeSegments` flat cells — with the
+  `×N` lives count (`GameManager.LivesLeft`, the goal line's font: it carries the × glyph) at its
+  right end. The KM/H caption (`unitText`, else found by name `KmhLabel`) and the goal line are
+  pushed down by the bar's row, before the objective lines are stacked off the goal line. One
+  colour for the whole bar (full → mid → low by `ShipHealth.Fraction`), cells rounded UP, a drop
+  between frames = white flash + scale punch, a blink under `lifeLowFraction`; the count punches
+  when a life goes. Knobs are the "Life bar" header.
+- **Reached once is reached**: the LIGHT SPEED line turns `winColor` the frame
+  `GameManager.LightSpeedReached` latches and stays so while the ship still has to make an end ramp.
+- **The distance left is NOT a HUD line** — it reads on top of the `ChaseMinimap` track map (see
+  `runner-ship.md`). The old `END  12.4 KM` line and its "too slow to make it" red tint are gone;
+  `MenuTextId.HudDistanceToEnd` is left in the (append-only) enum, unused.
+- **The countdown is a plain `MM:SS`** (`GameManager.TimeRemaining`, whole seconds rounded up, the
+  string rebuilt once a second): the scene's timer text re-seated by `SeatTimer` at `Start` —
+  bottom centre (`timerBottomMargin`), the speed number's font size (`gaugeNumberFontSize`),
+  ALWAYS `timerColor` yellow, no low-time tint. There is no bar/slider any more. Unfinished
+  objective lines use `lineColor` (white, the old `timeColor`).
 - Every booster hit spawns a floating "+N" at the ship (`FloatingWorldText`, spawned here);
   `MoneyChanged` is answered with a gold `+$N` floating text.
 - **The HUD owns no retry and prints no result text.** Its old result/prompt texts and the R
@@ -46,15 +63,26 @@ The shared death screen, on the themed menu framework, driven by two callbacks s
 decides what an answer means. It lives here rather than in either game's UI folder because
 **both scenes show it** and `PoliceEscape` references `Runner`, never the reverse.
 
-Two layouts:
+Three layouts:
 
 - **Bare question** `Show(onRetry, onGiveUp)` — GAME OVER / RETRY? / YES / NO. The city chase
   raises this once the completion glitch has filled and held (YES is `LevelManager.RestartLevel`
   **in place** — no scene load, see `city-level-flow.md`; NO to the main menu).
-- **Retry panel** `Show(MenuTextId? reasonId, …)` — GAME OVER, a localized reason line in the
-  accent colour where the question sat, then RETRY / EXIT TO MAIN MENU. The runner raises this the
-  frame the run is lost; RETRY is `GameManager.Restart` **in place**, EXIT is
-  `LoadingScreen.LoadMainMenu`.
+- **Retry panel** `Show(MenuTextId? reasonId, …, MenuTextId titleId = GameOver)` — the title
+  plate (the runner passes `MissionFailed`), a localized reason line in the accent colour, the
+  RETRY? question, then YES / NO. The title is lifted a label's height (`MenuScreen.SetTitle(id,
+  lift)`) so both lines fit between it and the rows. The runner raises it from `EndRun`, once the
+  MISSION FAILED banner has torn away (`GameManager.FinishFail`); YES is `GameManager.Restart`
+  **in place**, NO is `LoadingScreen.LoadMainMenu`. Reasons: `LoseCaught`, `LoseTimeOut`,
+  `LoseStalled`, `LoseMissedRamp` (end reached with the objectives met, not on a ramp),
+  `LoseTooSlow` (end reached with Light Speed open) / `LoseObjectivesIncomplete` (another
+  objective open).
+
+- **Final** `ShowFinal(reasonId, onContinue)` — the runner's last life lost: the GAME OVER plate,
+  the reason, a breathing PRESS ANY BUTTON line; **no rows, no prompt strip, no retry**. After the
+  input grace `MenuNavigator.AnyPressed()` (any key, mouse button or pad button — the attract
+  screen's poll, promoted to the UI assembly) runs `onContinue`. The mission is already forfeited
+  when it opens (`runner-ship.md`); the runner's `onContinue` loads the Store.
 
 **There is no Back out** — the screen demands an answer, so Esc/B do nothing on it. It freezes
 scaled time, which also keeps the pause menu and the city map from stacking over it. Because both
@@ -63,11 +91,16 @@ callback.
 
 ## `MissionAccomplishedBanner` (`Runner/Screens/`)
 
-The win's exclamation mark, and the ONE text the win prints before the debrief: MISSION
+The endings' exclamation mark, and the ONE text an ending prints before its panel. MISSION
 ACCOMPLISHED (`MenuTextId.MissionAccomplished`, four languages) slams onto the upper third of the
-screen over the planted fly-past shot. `GameManager.FinishWin` raises it (`Show(settings)`) the
-frame the ship is back on the track, calls `Dismiss(ramp + hold)` where the glitch ramp starts,
-and `KillBanner()`s whatever is left in `EndRun` (before the panel) and in `Restart`.
+screen over the planted fly-past shot: `GameManager.FinishWin` raises it (`Show(settings)`) the
+step the ship leaves an end ramp with the win, calls `Dismiss(ramp + hold)` where the glitch ramp
+starts, and `KillBanner()`s whatever is left in `EndRun` (before the panel) and in `Restart`.
+**MISSION FAILED is the same banner**: `Show(settings, MenuTextId.MissionFailed, colour, colour)`
+with `GameSettings.failBannerColor` for the letters and the underline, raised by
+`GameManager.FinishFail` on EVERY loss, held `failBannerHoldSeconds`, torn away over
+`failBannerDismissSeconds`, then `EndRun` opens the retry panel. The letter timings are the
+`winBanner*` knobs for both.
 
 - Its own `ScreenSpaceOverlay` canvas at sorting order 22 — above the HUD (10), messages (15)
   and pause (20), below the debrief/game over (25). No raycaster; it is a picture.

@@ -121,6 +121,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [PropertyRange(0.1f, 5f)]
         public float weight = 1f;
 
+        [TitleGroup("Hull")]
+        [Tooltip("Hull points: what the HUD's life bar is full at. Walls and brake pads take points off (the amounts are run rules on GameSettings' Hull and lives group); at 0 the ship explodes.")]
+        [PropertyRange(10f, 500f)]
+        public float maxHull = 100f;
+
         [TitleGroup("Jumps")]
         [Tooltip("Scales a ramp takeoff: the boost at the lip AND the arc's length and height. 1 = the JumpDefinition as authored; the Store's Jump Strength upgrade multiplies this on the run's clone.")]
         [PropertyRange(0.5f, 3f)]

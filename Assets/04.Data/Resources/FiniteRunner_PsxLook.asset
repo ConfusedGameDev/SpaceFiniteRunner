@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FiniteRunner_PsxLook
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.PsxLookSettings
   material: {fileID: 2100000, guid: 222d40646937da648b83c60d9bc08a7c, type: 2}
-  intensity: 1
+  intensity: 0.79999995
   targetHeight: 244
   colorBits: 3
   dither: 1

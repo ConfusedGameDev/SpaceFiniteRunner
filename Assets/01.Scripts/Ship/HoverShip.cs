@@ -391,7 +391,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         void UpdateStall(float dt, float throttle)
         {
             bool still = body.ForwardSpeed <= 0.01f && body.ReverseSpeed <= 0.01f;
-            bool stalled = still && throttle <= 0.01f && State != ShipState.Airborne;
+            // Only a ship in play can stall: one waiting out its respawn stands still by rule, and a player who let go of
+            // the throttle for those seconds lost the run to it.
+            bool stalled = still && throttle <= 0.01f && State == ShipState.Grounded;
             stallTimer = stalled ? stallTimer + dt : 0f;
             if (stallTimer >= settings.stallGraceSeconds) HasStopped = true;
             else if (!still) HasStopped = false;

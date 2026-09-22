@@ -125,7 +125,14 @@ namespace ConfusedGameDev.FiniteRunner.UI
         RespawnClearance, RespawnPatrolGap, StallGrace, DebugTabPatrolDriver,
         PatrolCatchLateral, PatrolSustainedCatch, PatrolCurveLookahead, PatrolOrbLookahead,
         PatrolOrbSeek, PatrolOrbBoost, PatrolRampLookahead,
-        DashSinglePress
+        DashSinglePress,
+        // The finite track's ending: the fail banner / panel title, the end-of-track lose reasons, the HUD's distance line, the debug row.
+        MissionFailed, LoseMissedRamp, LoseTooSlow, LoseObjectivesIncomplete,
+        HudDistanceToEnd, TrackLength,
+        // Hull and lives: the lose reason of a ship blown up, and the final GAME OVER's prompt (no retry — any button leads to the Store).
+        LoseDestroyed, PressAnyButton,
+        // Laser gates: the debug menu's density row.
+        LaserDensity
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -675,6 +682,27 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString loseTimeOut = new("TIME RAN OUT", "SE ACABÓ EL TIEMPO", "時間切れ", "TEMPS ÉCOULÉ");
         [TitleGroup("Game over")]
         [SerializeField] LocalizedString loseStalled = new("OUT OF SPEED", "SIN VELOCIDAD", "速度切れ", "PLUS DE VITESSE");
+        [TitleGroup("Game over")]
+        [Tooltip("The banner that slams onto the screen on every lost run, and the title of the retry panel that follows it.")]
+        [SerializeField] LocalizedString missionFailed = new("MISSION FAILED", "MISIÓN FALLIDA", "ミッション失敗", "MISSION ÉCHOUÉE");
+        [TitleGroup("Game over")]
+        [Tooltip("Lose reason: the ship reached the end of the track with every objective met but not on one of the end ramps.")]
+        [SerializeField] LocalizedString loseMissedRamp = new("MISSED THE ESCAPE RAMP", "RAMPA DE ESCAPE FALLADA", "脱出ランプを逃した", "RAMPE D'ÉVASION MANQUÉE");
+        [TitleGroup("Game over")]
+        [Tooltip("Lose reason: the ship reached the end of the track without having reached Light Speed.")]
+        [SerializeField] LocalizedString loseTooSlow = new("LIGHT SPEED NOT REACHED", "VELOCIDAD LUZ NO ALCANZADA", "ライトスピード未達", "VITESSE LUMIÈRE NON ATTEINTE");
+        [TitleGroup("Game over")]
+        [Tooltip("Lose reason: the ship reached the end of the track with an objective other than Light Speed still open.")]
+        [SerializeField] LocalizedString loseObjectivesIncomplete = new("OBJECTIVES INCOMPLETE", "OBJETIVOS INCOMPLETOS", "目標未達成", "OBJECTIFS INCOMPLETS");
+        [TitleGroup("Game over")]
+        [Tooltip("The runner HUD's distance-to-the-end line. {0} = kilometres left.")]
+        [SerializeField] LocalizedString hudDistanceToEnd = new("END  {0} KM", "FIN  {0} KM", "ゴールまで  {0} KM", "FIN  {0} KM");
+        [TitleGroup("Game over")]
+        [Tooltip("Lose reason: the ship's hull reached 0 and it exploded.")]
+        [SerializeField] LocalizedString loseDestroyed = new("SHIP DESTROYED", "NAVE DESTRUIDA", "機体大破", "VAISSEAU DÉTRUIT");
+        [TitleGroup("Game over")]
+        [Tooltip("The final GAME OVER's only prompt (the last life is gone, there is no retry): any key or button leads back to the Store.")]
+        [SerializeField] LocalizedString pressAnyButton = new("PRESS ANY BUTTON", "PULSA CUALQUIER BOTÓN", "ボタンを押してください", "APPUYEZ SUR UN BOUTON");
 
         // The Store: section titles, the model row, the purchase rows and the
         // upgrade categories. Category labels are kept short on purpose — the
@@ -996,6 +1024,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString slideSpeedLoss = new("SLIDE SPEED LOSS", "PÉRDIDA AL DERRAPAR", "スライド時の減速", "PERTE EN GLISSADE");
         [SerializeField] LocalizedString unbankedSweeps = new("FLAT CURVES %", "CURVAS PLANAS %", "フラットカーブ %", "VIRAGES PLATS %");
         [SerializeField] LocalizedString openStraights = new("OPEN STRAIGHTS %", "RECTAS ABIERTAS %", "壁なし直線 %", "LIGNES DROITES OUVERTES %");
+        [SerializeField] LocalizedString laserDensity = new("LASER DENSITY", "DENSIDAD DE LÁSERES", "レーザー密度", "DENSITÉ DES LASERS");
+        [SerializeField] LocalizedString trackLength = new("TRACK LENGTH", "LONGITUD DE PISTA", "コース長", "LONGUEUR DE PISTE");
         [SerializeField] LocalizedString debugTabFall = new("FALL & RESPAWN", "CAÍDA Y REAPARICIÓN", "落下とリスポーン", "CHUTE ET RETOUR");
         [SerializeField] LocalizedString edgeOverhang = new("EDGE OVERHANG", "MARGEN DEL BORDE", "縁のはみ出し", "DÉBORD DU BORD");
         [SerializeField] LocalizedString edgeGrace = new("EDGE GRACE TIME", "TIEMPO DE GRACIA", "縁の猶予時間", "DÉLAI DE GRÂCE");
@@ -1414,6 +1444,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.PatrolOrbBoost => patrolOrbBoost,
             MenuTextId.PatrolRampLookahead => patrolRampLookahead,
             MenuTextId.DashSinglePress => dashSinglePress,
+            MenuTextId.MissionFailed => missionFailed,
+            MenuTextId.LoseMissedRamp => loseMissedRamp,
+            MenuTextId.LoseTooSlow => loseTooSlow,
+            MenuTextId.LoseObjectivesIncomplete => loseObjectivesIncomplete,
+            MenuTextId.HudDistanceToEnd => hudDistanceToEnd,
+            MenuTextId.TrackLength => trackLength,
+            MenuTextId.LoseDestroyed => loseDestroyed,
+            MenuTextId.PressAnyButton => pressAnyButton,
+            MenuTextId.LaserDensity => laserDensity,
             _ => start
         };
     }

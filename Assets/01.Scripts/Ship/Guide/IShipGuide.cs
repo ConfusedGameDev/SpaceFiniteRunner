@@ -26,6 +26,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public bool openLeft, openRight;
         /// <summary>The road does not hold the ship by itself here: taken too fast it slides outward (the runner's flat sweeps).</summary>
         public bool gripTested;
+        /// <summary>
+        /// The lane's closed edges are enforced by the GUIDE: a body found past one is put back on the lane (the
+        /// runner's loops, whose surface the hull cannot hit). A level whose walls are colliders leaves this off —
+        /// a ship there is put back by the wall it meets, never teleported across a building.
+        /// </summary>
+        public bool fenced;
     }
 
     /// <summary>

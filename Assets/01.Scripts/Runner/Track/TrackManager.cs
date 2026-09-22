@@ -101,6 +101,27 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         public IReadOnlyList<TrackSection> Sections => sections;
 
+        // --------------------------------------------------------- track end
+        // A finite track ends in a void: the generator marks where its final
+        // run-up begins and, once the last knot is down, where the road stops.
+        // Both are TRACK distances read off the built spline (never the
+        // authored target), and both are dropped by ClearKnots.
+
+        /// <summary>True once the last knot of a finite track is down: the road stops at <see cref="EndDistance"/>.</summary>
+        public bool HasEnd => EndDistance >= 0f;
+
+        /// <summary>Track distance where the road stops, or -1 while the track is still growing (or endless).</summary>
+        public float EndDistance { get; private set; } = -1f;
+
+        /// <summary>Track distance where the final run-up begins (straight, level, walled, nothing on it), or -1 before the generator has reached it.</summary>
+        public float EndZoneStart { get; private set; } = -1f;
+
+        /// <summary>Marks the start of the final run-up. The generator's, at the knot that landed on it.</summary>
+        public void SetEndZone(float startDistance) => EndZoneStart = startDistance;
+
+        /// <summary>Marks the end of the road. The generator's, right after the last knot.</summary>
+        public void SetEnd(float distance) => EndDistance = distance;
+
         /// <summary>
         /// Sets the playable lane from a full track width in meters. Driven by
         /// the TrackGenerator's Core Settings so the gameplay clamp, the pad
@@ -126,6 +147,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             sections.Clear();
             flatSweeps.Clear();
             openStretches.Clear();
+            EndDistance = -1f;
+            EndZoneStart = -1f;
         }
 
         /// <summary>Appends an auto-smoothed knot at a world position (knots are never removed during a run).</summary>
@@ -277,6 +300,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 offset += s.InsertedLength;
             }
             GetPose(DistanceToT(distance - offset), lateral, out position, out rotation);
+
+            // Past the end of a finite track there is no spline to clamp to:
+            // the pose runs on along the last knot's line, so a body that
+            // overshoots the end by a step (and the camera behind it) never
+            // freezes on the last knot.
+            if (HasEnd && distance > EndDistance)
+                position += rotation * Vector3.forward * (distance - EndDistance);
         }
 
         // ------------------------------------------------------ body queries

@@ -206,6 +206,27 @@ namespace ConfusedGameDev.FiniteRunner.SaveData
             PlayerProfileStore.Save();
         }
 
+        /// <summary>
+        /// The mission lost for good — the runner's GAME OVER, its last life
+        /// gone. The wallet goes back to <paramref name="walletAtStart"/>
+        /// (what it held when the mission began: whatever was picked up
+        /// since is taken off the earnings, never booked as spending) and the
+        /// city clear waiting in <c>lastLevel</c> is dropped, its id struck
+        /// from the level ledger — so the Store's START MISSION plays the
+        /// city again. Mission records are untouched: a first attempt never
+        /// latched one, and a replay keeps the clear it already had. Saves at
+        /// once — quitting on the GAME OVER screen must not dodge it.
+        /// </summary>
+        public static void ForfeitMission(long walletAtStart)
+        {
+            var p = P;
+            p.global.moneyEarned = p.global.moneySpent + System.Math.Max(0L, walletAtStart);
+            if (!string.IsNullOrEmpty(p.lastLevel.levelId)) p.completedLevelIds.Remove(p.lastLevel.levelId);
+            p.lastLevel = new PlayerProfile.LastLevelStats();
+            PlayerProfileStore.MarkDirty();
+            PlayerProfileStore.Save();
+        }
+
         // The rank letter's order (D < C < B < A < S); an unknown or empty letter sorts below D.
         static int RankValue(string letter) =>
             !string.IsNullOrEmpty(letter) && System.Enum.TryParse(letter, out Rank rank) ? (int)rank : -1;

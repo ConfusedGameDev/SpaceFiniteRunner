@@ -97,6 +97,13 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+Assets/02.Art/02.Materials/FiniteRunner/SpeedLines.mat
+Assets/04.Data/InfiniteCity/TestCarConfig.asset
+Assets/04.Data/InfiniteCity/TestPursuitSettings.asset
+Assets/04.Data/Resources/FiniteRunner_CrtScreen.asset
+Assets/04.Data/Resources/FiniteRunner_PsxLook.asset
+Assets/04.Data/Resources/FiniteRunner_TrackDebug.asset
+Assets/04.Data/Resources/FiniteRunner_VhsTape.asset
 BuildSteamDeck/FiniteRunner.x86_64
 BuildSteamDeck/FiniteRunner_BackUpThisFolder_ButDontShipItWithYourGame/lib_burst_generated/lib_burst_generated.txt
 BuildSteamDeck/FiniteRunner_Data/app.info

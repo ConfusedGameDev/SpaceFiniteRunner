@@ -86,6 +86,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         const float FitTolerance = 0.9063f; // cos 25°: how far the probes' plane may stand from every surface they hit
         const float DriftGain = 0.7f;
         const float MaxYawTrim = 0.06f; // ~3.4°
+        const float MaxDeadReckonTurn = 0.2f; // ~11° per substep
         const float SlimHull = 0.6f;
         const float ProbeLift = 1f;
         const float GroundSearch = 5000f;
@@ -108,6 +109,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float guideLastDistance, guideLastLateral;   // the last full projection, to measure that drift from
         float guideCommandedLateral;                 // metres the ship was ASKED to move sideways since then
         bool guideHasLast;
+        bool wallSinceProjection;                    // a wall moved the body since the last projection: that is not drift
 
         // -------------------------------------------------------------- state
         public Vector3 Position { get; private set; }
@@ -149,6 +151,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>The owner's hands-off lockdown (a won run flying on): the road always holds — no grip test, so no slide can carry the body off an open edge.</summary>
         public bool HoldOnRoad;
+
+        /// <summary>
+        /// How much of the guide's help the body is flying with: the ship's share x the guide's own. A hands-off
+        /// lockdown (<see cref="HoldOnRoad"/>) always flies FULL assist where there is a line to follow - its one
+        /// control is a strafe to the lane's middle, and at partial assist the stick yaws instead: the pull became a
+        /// swerve that grew until the ship left the road (found with a level tuned to assist 0.18).
+        /// </summary>
+        float EffectiveAssist => !HasGuideSample ? 0f : HoldOnRoad ? 1f : Mathf.Clamp01(GuideAssist * Guide.Assist);
 
         /// <summary>A region's say over the magnetic hover (a <see cref="MagnetVolume"/> the owner found the body in); null = the settings' rule.</summary>
         public bool? MagneticOverride;
@@ -401,7 +411,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             float steer = Mathf.Clamp(controls.steer, -1f, 1f);
             float speed = Mathf.Max(ForwardSpeed, 1f);
             float grip = Params.gripBase + Params.gripPerSpeed * ForwardSpeed;
-            float assist = HasGuideSample ? Mathf.Clamp01(GuideAssist * Guide.Assist) : 0f;
+            float assist = EffectiveAssist;
 
             // Turn — the share of it the guide has not taken over.
             float maxYaw = Settings.maxYawRate * Mathf.Deg2Rad;
@@ -473,7 +483,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 GuideSample carried = Guided;
                 carried.distance += guideAdvance;
                 Guided = carried;
-                guideTangent = Quaternion.AngleAxis(carried.curvature * guideAdvance * Mathf.Rad2Deg, carried.up) * guideTangent;
+                // A curvature sampled at one point stands for the whole stretch: bounded, so the spike at a sharp knot
+                // cannot swing the tangent through a right angle before the next projection corrects it.
+                float turn = Mathf.Clamp(carried.curvature * guideAdvance, -MaxDeadReckonTurn, MaxDeadReckonTurn);
+                guideTangent = Quaternion.AngleAxis(turn * Mathf.Rad2Deg, carried.up) * guideTangent;
                 guideSinceProjection += Mathf.Abs(guideAdvance);
                 HasGuideSample = true;
                 return;
@@ -498,7 +511,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         void HoldInLane(ref GuideSample sample)
         {
-            if (State == ShipState.Airborne) return;
+            if (State == ShipState.Airborne || !sample.fenced) return;
             float margin = Mathf.Min(Settings.hullRadius, (sample.bandMax - sample.bandMin) * 0.25f);
             float over = 0f;
             if (sample.lateral > sample.bandMax - margin && !sample.openRight) over = sample.lateral - (sample.bandMax - margin);
@@ -535,8 +548,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         void TrimAgainstDrift(in GuideSample sample)
         {
-            bool locked = State != ShipState.Airborne && GuideAssist * Guide.Assist >= 0.999f;
-            if (locked && guideHasLast)
+            bool locked = State != ShipState.Airborne && EffectiveAssist >= 0.999f;
+            // Pushed by a wall since the last projection, the sideways motion was the wall's doing: trimming the heading
+            // against it leans the ship INTO the wall (a city's building fronts had it grinding along them).
+            if (locked && guideHasLast && !wallSinceProjection)
             {
                 float along = sample.distance - guideLastDistance;
                 float across = sample.lateral - guideLastLateral;
@@ -553,6 +568,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             guideLastLateral = sample.lateral;
             guideCommandedLateral = 0f;
             guideHasLast = true;
+            wallSinceProjection = false;
         }
 
         /// <summary>
@@ -654,6 +670,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Vector3 heading = State == ShipState.Airborne ? airForward : Forward;
             Vector3 side = Vector3.Cross(up, heading).normalized;
             float hitSpeed = 0f;
+            wallSinceProjection = true;
 
             if (TotalLateralVelocity * Vector3.Dot(flat, side) < 0f)
             {

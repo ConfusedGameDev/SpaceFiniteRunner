@@ -57,6 +57,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         Quaternion fallRotation;
         Vector3 tumbleAxis;
         bool hasLastPosition;
+        IShipGuide lastGuide;        // the guide the ship was last ON, and how far along it —
+        float lastGuideDistance;     // where it left the road, which is not where it was declared lost
 
         /// <summary>Why the ship last fell — a debug readout.</summary>
         public string LastFallReason { get; private set; } = "";
@@ -73,6 +75,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             odometer = lastCrumbAt = 0f;
             groundlessTimer = 0f;
             hasLastPosition = false;
+            lastGuide = null;
         }
 
         void FixedUpdate()
@@ -88,6 +91,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 case ShipState.Respawning: StepRespawnWait(settings, dt); return;
                 case ShipState.Falling: hasLastPosition = false; return; // a game's own scripted fall (the runner's failed loop): not ours to judge
             }
+
+            // On the ground the ship either rides a guide or it does not; in the air the last answer stands — but the
+            // DISTANCE keeps counting while the line is still in reach: a game streams its world off that number (the
+            // runner culls road and colliders 300 m behind it), so coming back short of it is coming back onto nothing.
+            if (body.State == ShipState.Grounded) lastGuide = body.HasGuideSample ? body.Guide : null;
+            if (body.HasGuideSample && ReferenceEquals(body.Guide, lastGuide)) lastGuideDistance = body.Guided.distance;
 
             Vector3 position = body.Position;
             if (hasLastPosition)
@@ -314,14 +323,24 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             ShipSettings settings = ship.Settings;
             float ride = ship.Definition != null ? ship.Definition.hoverHeight : 0f;
 
-            // Guided: the guide knows the road — at or past the fall point, never back.
-            IShipGuide guide = ship.Body.Guide;
+            // Guided: the guide knows the road — at or past the point the ship LEFT it, never back. That point is
+            // remembered, not re-projected: a ship is declared lost after flying on for most of a second, by then
+            // hundreds of metres from the line, and an unhinted projection from out there lands anywhere — on the
+            // runner it came back past the last built collider, with no road under the respawn, and fell again, and again.
+            IShipGuide guide = lastGuide as Object != null ? lastGuide : ship.Body.Guide;
             if (guide as Object != null)
             {
-                float hint = float.NaN;
-                if (guide.TryProject(fallOrigin, ref hint, out GuideSample at))
+                float from = lastGuideDistance;
+                bool known = lastGuide as Object != null;
+                if (!known)
                 {
-                    guide.SampleAt(guide.FindRespawn(at.distance, settings.respawnClearance), out GuideSample spot);
+                    float hint = float.NaN;
+                    known = guide.TryProject(fallOrigin, ref hint, out GuideSample at);
+                    from = at.distance;
+                }
+                if (known)
+                {
+                    guide.SampleAt(guide.FindRespawn(from, settings.respawnClearance), out GuideSample spot);
                     position = spot.position + spot.up * ride;
                     rotation = Quaternion.LookRotation(spot.forward, spot.up);
                     return;

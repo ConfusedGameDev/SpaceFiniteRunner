@@ -38,6 +38,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                   .Configure(0f, 100f, 5f, generator.Straightness, "0",
                              v => { generator.Straightness = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
 
+            // The finite track's length, metres: 0 = the level's own (or the
+            // GameSettings fallback). Needs the reload, like the width.
+            screen.AddRow<DebugSliderRow>(MenuTextId.TrackLength)
+                  .Configure(0f, 100000f, 1000f, Mathf.Max(0f, generator.TrackLengthOverride), "0",
+                             v => { generator.TrackLengthOverride = v > 0f ? v : -1f; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+
             // The road's elevation walk (TrackShapeSettings clone). Max grade 0
             // is the flat track; all of these need the reload the tab offers.
             var shape = generator.Shape;
@@ -76,6 +82,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             screen.AddRow<DebugSliderRow>(MenuTextId.OpenStraights)
                   .Configure(0f, 100f, 5f, shape.openStraightChance * 100f, "0",
                              v => { generator.Shape.openStraightChance = v / 100f; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+
+            // Laser gates: a multiplier on the authored spacing (0 = none).
+            // Live — it only changes the gates still to be streamed.
+            screen.AddRow<DebugSliderRow>(MenuTextId.LaserDensity)
+                  .Configure(0f, 5f, 0.25f, generator.LaserDensity, "0.00",
+                             v => { generator.LaserDensity = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
 
             // One color-tinted percentage slider per spawn entry. Adjusting one
             // rebalances the others live, so the on-screen table always adds

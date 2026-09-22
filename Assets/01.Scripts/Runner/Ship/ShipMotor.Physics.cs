@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 using ConfusedGameDev.FiniteRunner.GameFlow;
@@ -37,6 +38,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         bool paused, autopilot;
         bool physicsDropping;         // the failed loop's drop, flown here
         float physicsDropSpeed;       // the speed the ship comes out of the drop with
+        bool physicsLeftEnd;          // off the end of a finite track: the motor's own world flight carries the ship from here
+        float physicsSweepFrom;       // the track distance the last tick ended on: where this tick's analytic sweep starts
+        readonly List<ITrackPickup> physicsTouched = new();
 
         /// <summary>True when a <see cref="HoverShip"/> on this object does the flying.</summary>
         public bool IsPhysics => physicsShip != null;
@@ -96,13 +100,31 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         void ForwardWallHit(float speed) => WallHit?.Invoke(speed);
         void ForwardSliding(float excess) => Sliding?.Invoke(excess);
         void ForwardFellOff() => FellOff?.Invoke();
-        void ForwardRespawnStarted(Vector3 teleport) => RespawnStarted?.Invoke(teleport);
+        // The ship has just been put back on the road, possibly kilometres on (the respawn rule skips sections, sweeps and
+        // ramps), and it stands there out of play — its guide sample frozen — for the whole wait. The runner must hear
+        // where it is NOW: the generator streams road, and the colliders under it, off this distance, and a ship
+        // relaunched before they exist has nothing to stand on.
+        void ForwardRespawnStarted(Vector3 teleport)
+        {
+            float hint = float.NaN;
+            if (physicsGuide != null && physicsGuide.TryProject(physicsShip.Body.Position, ref hint, out GuideSample at))
+            {
+                body.Mirror(at.distance, at.lateral, 0f, 0f, 0f);
+                body.SnapInterpolation();
+            }
+            RespawnStarted?.Invoke(teleport);
+        }
         void ForwardRespawned() => Respawned?.Invoke();
         void ForwardLanded() => Landed?.Invoke();
 
         // The takeoff boost rides the pad path, exactly as on the track-space ship: "+N", shake and rumble come free.
         void OnPhysicsTookOff()
         {
+            // Off the lip of an END ramp, or off the end of the road between them, is not a jump: no boost, no TookOff,
+            // no jump counted — the track-space rule. It is the end of the track.
+            // (Said nothing here: the motor's own tick, later this same step, sees the ship past the road and ends the run.)
+            if (NearTrackEnd(body.Distance)) return;
+
             JumpRamp ramp = RampAt(body.Distance, 40f);
             if (ramp != null && !physicsDropping)
             {
@@ -142,6 +164,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Autopilot = false;
             ClearLoop();
             physicsDropping = false;
+            physicsLeftEnd = false;
+            physicsSweepFrom = 0f;
+            offMode = OffTrackMode.Fall;
             physicsRamp = null;
             physicsSideHitRamp = null;
             MatchSurfaceToShip();
@@ -166,6 +191,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             body.BeginTick();
 
             if (physicsDropping) { StepPhysicsDrop(dt); return; }
+            if (physicsLeftEnd) { StepPhysicsEnd(dt); return; }
 
             float distance = body.Distance, lateral = body.Lateral, height = 0f;
             if (physicsShip.Guide != null)
@@ -178,7 +204,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             MirrorInto(distance, lateral, height);
             HasStopped = physicsShip.HasStopped;
 
+            if (NearTrackEnd(distance) && PastTheRoad() && hover.State != ShipState.OffTrack && hover.State != ShipState.Respawning) { BeginPhysicsEnd(); return; }
+
             physicsRamp = hover.State == ShipState.Grounded && height > 0.25f ? RampAt(distance, 0f) : null;
+            SweepLaserGates(hover, distance, lateral, height);
             UpdateRampSideHit(hover, distance, lateral);
             UpdatePhysicsLoop(distance);
             UpdateTubeReturn(distance, lateral);
@@ -205,6 +234,90 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 if (ramp != null && ramp.Definition != null && distance >= ramp.StartDistance - slack && distance <= ramp.EndDistance + slack)
                     return ramp;
             return null;
+        }
+
+        // ------------------------------------------------------- the track's end
+        // A finite track stops: the ship leaves it for good, by the lip of an end ramp (the way out — the GameManager
+        // turns that into the escape) or off the bare end of the road (lost). Where the ship IS on the track is only
+        // as fresh as the guide's last projection, so "at the end" reaches back by what a tick and a refresh can hide.
+        bool NearTrackEnd(float distance)
+        {
+            if (track == null || !track.HasEnd || physicsLeftEnd) return false;
+            float slack = physicsShip.Body.ForwardSpeed * Time.fixedDeltaTime + physicsShip.Settings.guideRefreshMeters + 1f;
+            return distance >= track.EndDistance - slack;
+        }
+
+        // Near the end by the numbers is not yet off it: the road (and the ramps' lips) end exactly AT the end, so the
+        // ship has left when nothing of the track is under it any more.
+        bool PastTheRoad()
+        {
+            HoverBody hover = physicsShip.Body;
+            if (hover.State == ShipState.Airborne) return true;
+            track.GetPoseAtDistance(track.EndDistance, 0f, out Vector3 end, out Quaternion rotation);
+            return Vector3.Dot(hover.Position - end, rotation * Vector3.forward) >= 0f;
+        }
+
+        // The track-space flight, started from the physical ship's own pose and velocity: the motor flies it (StepFall —
+        // a terminal fall, or the escape once the listener calls BeginEscape) and carries the standalone ship along out
+        // of play. Falling, not OffTrack, on the ship: its recovery must never respawn a ship that has nowhere to come back to.
+        void BeginPhysicsEnd()
+        {
+            HoverBody hover = physicsShip.Body;
+            bool tookRamp = (physicsRamp != null && physicsRamp.IsEndRamp) || EndRampUnder(hover);
+            physicsLeftEnd = true;
+            physicsShip.SteerOverride = null;
+
+            offMode = OffTrackMode.TerminalFall;
+            offSide = body.Lateral >= 0f ? 1 : -1;
+            offTimer = 0f;
+            speedAtFall = hover.ForwardSpeed;
+            offVelocity = hover.Velocity;
+            offRotation = hover.Rotation;
+            offPosition = prevOffPosition = hover.Position;
+
+            hover.StopLateralMotion();
+            hover.SetState(ShipState.Falling);
+            body.Mirror(track.EndDistance, body.Lateral, 0f, hover.ForwardSpeed, 0f);
+            body.SetState(ShipState.OffTrack);
+            ReachedTrackEnd?.Invoke(tookRamp);
+        }
+
+        // Left by a lip: the ship is over (or just past) an end ramp's lane and above the road by more than a hover.
+        bool EndRampUnder(HoverBody hover)
+        {
+            foreach (JumpRamp ramp in JumpRamp.Active)
+            {
+                if (ramp == null || !ramp.IsEndRamp || ramp.Definition == null) continue;
+                if (Mathf.Abs(body.Lateral - ramp.Lateral) > ramp.HalfWidth) continue;
+                track.GetPoseAtDistance(track.EndDistance, body.Lateral, out Vector3 road, out Quaternion rotation);
+                float above = Vector3.Dot(hover.Position - road, rotation * Vector3.up);
+                if (above > ramp.Definition.LipHeight * 0.5f) return true;
+            }
+            return false;
+        }
+
+        void StepPhysicsEnd(float dt)
+        {
+            StepFall(dt);
+            physicsShip.Body.MoveOutOfPlay(offPosition, offRotation);
+        }
+
+        // ------------------------------------------------------------ laser gates
+        // A gate is a track-space thing (an analytic pickup with a finer test of its own, no collider): the body that
+        // swept the registry for it is not stepped in physics mode, so the motor asks over the distance this tick covered.
+        // Pads, orbs and coins are NOT taken here — they have colliders and the standalone ship's own sweep takes them.
+        void SweepLaserGates(HoverBody hover, float distance, float lateral, float height)
+        {
+            float from = physicsSweepFrom;
+            physicsSweepFrom = distance;
+            if (hover.State != ShipState.Grounded && hover.State != ShipState.Airborne) return;
+            if (distance <= from || distance - from > 400f) return; // a teleport (launch, respawn) is not a sweep
+
+            physicsTouched.Clear();
+            PickupRegistry.Sweep(from, distance, lateral, height, pickupReach.x, pickupReach.y, 0f, physicsTouched);
+            foreach (ITrackPickup pickup in physicsTouched)
+                if (pickup is LaserGate gate && gate.Touches(from, distance, lateral, height, pickupReach))
+                    gate.RaiseHit(this);
         }
 
         // Beside a ramp its edge is a wall, and meeting it is the runner's side hit: a slice of speed and the wall-hit

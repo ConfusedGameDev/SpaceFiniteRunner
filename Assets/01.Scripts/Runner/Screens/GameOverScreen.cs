@@ -13,7 +13,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     /// raises once the glitch has filled and held; and the retry panel with
     /// a REASON line (GAME OVER — CAUGHT BY THE PATROL — RETRY / EXIT TO
     /// MAIN MENU), which the runner raises the frame the run ends — no
-    /// parting line, no HUD text, the panel itself says why. It lives next
+    /// parting line, no HUD text, the panel itself says why. A third,
+    /// <see cref="ShowFinal"/>, is the runner's last life lost: GAME OVER, the
+    /// reason, PRESS ANY BUTTON — no retry, nothing to choose. It lives next
     /// to the PauseMenu rather than in either game's UI folder because both
     /// scenes show the same screen.
     /// Retry replays, the other answer returns to the main menu; there is no Back out — the
@@ -43,32 +45,55 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         System.Action onRetry;
         System.Action onGiveUp;
         MenuTextId? reasonId; // the lose reason under the title; null = the bare RETRY? question
+        MenuTextId titleId = MenuTextId.GameOver;
         float openedTime;
         bool decided;
+        bool final; // the no-retry layout: PRESS ANY BUTTON runs onGiveUp
+        Text anyButtonPrompt; // the final layout's breathing line
+        const float PromptPulseSpeed = 4f; // rad/s, unscaled
 
         /// <summary>Puts the bare RETRY? question up and freezes the game under it. The chosen callback runs with time already unfrozen.</summary>
         public static GameOverScreen Show(System.Action onRetry, System.Action onGiveUp)
             => Show(null, onRetry, onGiveUp);
 
         /// <summary>
-        /// The retry panel: GAME OVER, the localized <paramref name="reasonId"/>
-        /// line saying why the run ended, then RETRY / EXIT TO MAIN MENU. Null
-        /// reason = the bare question layout.
+        /// The retry panel with a reason: the <paramref name="titleId"/> plate
+        /// (the runner's is MISSION FAILED), the localized
+        /// <paramref name="reasonId"/> line saying why the run ended, then
+        /// RETRY? — YES / NO, where NO is <paramref name="onGiveUp"/>. Null
+        /// reason = the bare question layout under the same title.
         /// </summary>
-        public static GameOverScreen Show(MenuTextId? reasonId, System.Action onRetry, System.Action onGiveUp)
+        public static GameOverScreen Show(MenuTextId? reasonId, System.Action onRetry, System.Action onGiveUp,
+                                          MenuTextId titleId = MenuTextId.GameOver)
+            => Open(reasonId, onRetry, onGiveUp, titleId, final: false);
+
+        static GameOverScreen Open(MenuTextId? reasonId, System.Action onRetry, System.Action onGiveUp,
+                                   MenuTextId titleId, bool final)
         {
             var over = FindFirstObjectByType<GameOverScreen>(FindObjectsInactive.Include);
             if (over == null) over = new GameObject("GameOverScreen").AddComponent<GameOverScreen>();
             over.enabled = true;
             over.decided = false;
             over.reasonId = reasonId;
+            over.titleId = titleId;
             over.onRetry = onRetry;
             over.onGiveUp = onGiveUp;
+            over.final = final;
             over.theme = MenuTheme.Load();
             over.nav = new MenuNavigator(over.theme);
             over.Build();
             return over;
         }
+
+        /// <summary>
+        /// The FINAL game over — the runner's last life lost: the GAME OVER
+        /// plate, the localized <paramref name="reasonId"/> line and PRESS ANY
+        /// BUTTON. No RETRY?, no rows, nothing to choose: after the input
+        /// grace any key or button runs <paramref name="onContinue"/> (the
+        /// runner's leads back to the Store).
+        /// </summary>
+        public static GameOverScreen ShowFinal(MenuTextId? reasonId, System.Action onContinue)
+            => Open(reasonId, onRetry: null, onGiveUp: onContinue, MenuTextId.GameOver, final: true);
 
         // A scene-placed (prefab) instance idles until Show(): without a theme
         // its Update would throw, so it disarms itself here.
@@ -119,27 +144,49 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             dimColor.a = 0.85f;
             dim.color = dimColor;
 
-            if (reasonId.HasValue)
+            anyButtonPrompt = null;
+            if (final)
             {
-                // The reason takes the question's slot; the rows name the
-                // answers outright, so no RETRY? line is needed above them.
+                // The retry panel's plate and reason, and where RETRY? and its
+                // answers stood, one breathing line: there is nothing to choose.
+                const float ReasonLift = 60f;
+                screen = MenuScreen.Create("FinalPanel", panelRect, theme, 0f, 0f);
+                screen.SetTitle(titleId, ReasonLift);
+                if (reasonId.HasValue)
+                    screen.AddLabel("Reason", new Vector2(0f, 66f + ReasonLift), new Vector2(1100f, 60f),
+                                    reasonId.Value, 36, theme.Accent, theme.BodyFont,
+                                    TextAnchor.MiddleCenter, theme.TitleLead);
+                anyButtonPrompt = screen.AddLabel("AnyButton", new Vector2(0f, 0f), new Vector2(1100f, 60f),
+                                                  MenuTextId.PressAnyButton, 36, theme.TextPrimary, theme.BodyFont,
+                                                  TextAnchor.MiddleCenter, theme.TitleLead);
+            }
+            else if (reasonId.HasValue)
+            {
+                // The confirm layout with one more line: the title plate is
+                // lifted a label's height so the reason (accent) fits between
+                // it and the RETRY? question, then YES / NO.
+                const float ReasonLift = 60f;
                 screen = MenuScreen.Create("RetryPanel", panelRect, theme, 0f, 0f);
-                screen.SetTitle(MenuTextId.GameOver);
-                screen.AddLabel("Reason", new Vector2(0f, 66f), new Vector2(900f, 60f),
+                screen.SetTitle(titleId, ReasonLift);
+                screen.AddLabel("Reason", new Vector2(0f, 66f + ReasonLift), new Vector2(1100f, 60f),
                                 reasonId.Value, 36, theme.Accent, theme.BodyFont,
                                 TextAnchor.MiddleCenter, theme.TitleLead);
-                screen.AddRow<MenuRow>(MenuTextId.Retry).Activated += () => Decide(onRetry);
-                screen.AddRow<MenuRow>(MenuTextId.ExitToMenu).Activated += () => Decide(onGiveUp);
+                screen.AddLabel("Question", new Vector2(0f, 66f), new Vector2(900f, 60f),
+                                MenuTextId.RetryPrompt, 36, theme.TextPrimary, theme.BodyFont,
+                                TextAnchor.MiddleCenter, theme.TitleLead);
+                screen.AddRow<MenuRow>(MenuTextId.Yes).Activated += () => Decide(onRetry);
+                screen.AddRow<MenuRow>(MenuTextId.No).Activated += () => Decide(onGiveUp);
             }
             else
                 screen = MenuScreenFactory.BuildConfirm(panelRect, theme,
-                                                        MenuTextId.GameOver, MenuTextId.RetryPrompt,
+                                                        titleId, MenuTextId.RetryPrompt,
                                                         () => Decide(onRetry), () => Decide(onGiveUp));
             screen.SetFocus(0); // retrying is the expected answer, not the dangerous one — focus starts on it
 
-            PromptStrip.Create(panelRect, theme, 56f)
-                       .SetHints((PromptAction.Navigate, MenuTextId.HintMove),
-                                 (PromptAction.Confirm, MenuTextId.HintSelect));
+            if (!final)
+                PromptStrip.Create(panelRect, theme, 56f)
+                           .SetHints((PromptAction.Navigate, MenuTextId.HintMove),
+                                     (PromptAction.Confirm, MenuTextId.HintSelect));
 
             MenuScreenFactory.EnsureEventSystem(); // the city scene has none; mouse clicks need one
             IsOpen = true;
@@ -152,7 +199,20 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         void Update()
         {
             if (decided) return;
+            if (final && anyButtonPrompt != null)
+            {
+                Color c = anyButtonPrompt.color;
+                c.a = Mathf.Lerp(0.35f, 1f, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * PromptPulseSpeed));
+                anyButtonPrompt.color = c;
+            }
+
             if (Time.unscaledTime - openedTime < theme.InputGrace) return;
+
+            if (final)
+            {
+                if (MenuNavigator.AnyPressed()) Decide(onGiveUp);
+                return;
+            }
 
             int vertical = nav.StepVertical(Time.unscaledDeltaTime);
             if (vertical != 0)

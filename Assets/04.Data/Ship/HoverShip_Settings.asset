@@ -14,6 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Ship::ConfusedGameDev.FiniteRunner.Ship.ShipSettings
   maxStepMeters: 4
   maxSubsteps: 24
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 1153
+  pickupsEnabled: 1
+  pickupLayers:
+    serializedVersion: 2
+    m_Bits: 257
   attachRange: 6
   probeHalfExtents: {x: 2, y: 5}
   coyoteMeters: 8
@@ -29,6 +36,41 @@ MonoBehaviour:
   airControlFactor: 0.5
   minAirGravity: 30
   maxLandAngle: 60
+  useGuide: 1
+  guideAssist: 1
+  guideHeadingResponse: 6
+  guideRefreshMeters: 0
+  guideSearchSeconds: 0.5
+  dashEnabled: 1
+  dashCost: 0.5
+  dashSinglePress: 0
+  dashDoubleTapSeconds: 0.3
+  stallGraceSeconds: 2
+  recoveryEnabled: 1
+  groundlessSeconds: 0.75
+  maxAirSeconds: 10
+  useKillHeight: 0
+  killHeight: -200
+  fallGravity: 30
+  fallTumbleDegreesPerSecond: 120
+  fallDurationSeconds: 1.5
+  respawnWaitSeconds: 3
+  respawnSpeedPenalty: 0.15
+  respawnClearance: 150
+  respawnBackMeters: 60
+  respawnLookAheadMeters: 400
+  respawnCentreSearchMeters: 150
+  crumbSpacingMeters: 15
+  maxCrumbTilt: 35
+  reverseSpeed: 25
+  reverseAcceleration: 40
+  ghostMaterial: {fileID: 0}
+  respawnBlinkRate: 8
+  barrelRollTrailSeconds: 0.6
+  barrelRollTrailWidth: 0.9
+  barrelRollTrailSpan: 1
+  barrelRollTrailColor: {r: 0.45, g: 0.9, b: 1, a: 0.9}
+  barrelRollTrailMaterial: {fileID: 0}
   maxYawRate: 90
   turnAuthority: 1
   freeStrafeShare: 0.35

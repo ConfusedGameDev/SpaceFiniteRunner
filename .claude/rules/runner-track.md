@@ -94,12 +94,57 @@ Stretches of track distance laid over the flat spline with their own pose functi
   pop nobody saw in track space at 1000 m/s, and the road missing under a physical ship (found in
   the M7 physics runner). `ContinueFromLoopExit` converts now.
 
+### Track end (`HasEnd`, `EndDistance`, `EndZoneStart`)
+
+A finite track's two marks, both TRACK distances read off the built spline (never the authored
+target), set by the generator (`SetEndZone` at the knot that opens the final run-up, `SetEnd`
+right after the last knot) and dropped by `ClearKnots`; −1 = not there yet. Past `EndDistance`
+`GetPoseAtDistance` runs on along the last knot's line instead of freezing on it (a body
+overshoots the end by up to a step). The band and `IsEdgeOpen` say nothing special there — a body
+leaves at the end by `TrackBody`'s own rule (`runner-ship.md`), not by an open edge.
+
 ## `TrackGenerator` (+ `Editor/TrackGeneratorEditor`)
 
-Procedural builder **and** endless streamer. With `endless` on (default) it builds an initial
+Procedural builder **and** streamer. With `endless` on (default) it builds an initial
 stretch in `Awake`, then each `Update` keeps `aheadDistance` of finished track ahead of the ship
 (appending knots, placing pads, decorating) and culls spawned objects more than
-`behindDistance` behind.
+`behindDistance` behind. **In play the streamed track is FINITE** (below); an edit-mode preview
+and a scene with no `GameManager` stay endless.
+
+### The finite track (`IsFinite`, `EndDistance`, `TargetLength`)
+
+- `Generate` PULLS the run's length: `TrackLengthOverride` (the debug row, −1 = none) else
+  `gameManager.TrackLengthMeters` — play mode only. `endZoneTarget = length − EndRunUpMeters`.
+- **The last knot cannot be placed at an authored distance** (a chord is only arc length where
+  the knots are collinear, and loops insert distance), so the END ZONE START is a pinned
+  pseudo-spot — `AddSegment` returns a `SpotKind` (`None / Feature / EndZoneStart / End`) and
+  lands on it with the same explicit-tangent knot a feature gets — and every knot after it is
+  collinear (`inEndZone` → `holdStraight`: no sweep, no bank, the grade held, never an open
+  stretch, so both walls are up). Inside the zone a chord IS arc length, so `BeginEndZone` measures
+  `endTarget = builtStart + runUp` and the road stops exactly one run-up on. The authoritative
+  end is `track.EndDistance = track.Length` after the final knot; the authored length is a target.
+- Too far for one segment and too near for two, the rest is split evenly instead of pushing the
+  spot out; an end spot may land on a half-minimum segment (collinear, so harmless).
+- `NextLevelSpot` = min(`featureCursor`, `endZoneTarget`) drives `LevelRequired` and `TurnFits`:
+  the bank is unwound and no sweep starts that cannot finish before the zone.
+- **Nothing reaches into the zone**: `DecideFeature` skips a spot whose footprint + exclusion
+  (a loop, a 3–7 km tube, the longest landing off a ramp) would pass `endZoneTarget` — before the
+  claim, `straightUntil` or `AddSection`, so nothing was registered — a feature cursor that the
+  zone would swallow is parked, and one claim over the whole zone keeps pads and coins off.
+- `FinishTrack` sets the end, flags `trackComplete` (the `StreamTo` loop never appends again and
+  `settled` becomes `track.Length` — no trailing margin after the last knot, so the run-up and the
+  ramps are stamped at once; the end knot exists when the ship is still ≥ `aheadDistance` +
+  `SettleMargin` out) and calls `CreateEndRamps`.
+- **`CreateEndRamps`**: three `JumpRamp`s (`IsEndRamp`) side by side, lips ON the end of the
+  road, equal widths `(trackWidth − 2·gap − 2·sideGap) / 3` at laterals 0 and ±(width + gap)
+  (`GameSettings.endRampGapMeters` / `endRampSideGapMeters`), boost 0, the outer two reaching
+  0.5 m past a flush wall; a `TrackDecorator.StampEndMarker` strip marks each gap as a drop. They
+  are keyed on their END for the cull. Their definition is `endRamp.definition`, else
+  `Resources/FiniteRunner_EndRamp` (a `JumpDefinition`: `entryMargin` 0, length 120, 15°, side hit
+  0.05 — width fraction and arc knobs unused), else built-in numbers; cloned in play.
+  `BuildRamp` is the one ramp builder, shared with `CreateJump`.
+- Debug: CORE SETTINGS → TRACK LENGTH (0 = the level's own), persisted as
+  `TrackDebugSettings.trackLength` with the −1 "never captured" rule.
 
 **Invariants:**
 
@@ -110,7 +155,8 @@ stretch in `Awake`, then each `Update` keeps `aheadDistance` of finished track a
   motor dropped to Grounded mid-loop. `ShipMotor` also keeps its own `loopSection` /
   `loopDefinition` from the gate, so the state never depends on the feature object surviving.
 - Nothing is placed on the trailing `SettleMargin` (two segments): AutoSmooth reshapes those
-  curves when the next knot lands.
+  curves when the next knot lands. (A finished finite track has no margin: nothing lands after
+  its last knot.)
 - `RegenerateForRun()` fully rebuilds — endless restarts must, since the stretch behind the
   start was culled.
 - `seed == 0` means non-repeatable.
@@ -228,10 +274,63 @@ distance within a pad length of a pad (`padDistances`, pruned with the cull).
 `collectibleTriggerSize`) is the coin's pickup volume for the swept query — there is no trigger
 box to pad out for speed any more.
 
+### Laser gates (`Track/Features/LaserGate*.cs`, `LaserBeam.cs`)
+
+The third thing to dodge. A gate is an emitter pair (`03.Prefabs/Runner/PF_LaserSystem`: `LaserA` /
+`LaserB`, each with a `ShootPoint` child whose forward is the firing direction) with a beam between
+the two shoot points. **A beam never spans the track** — `LaserGateDefinition.coverageBand`
+(20–30 % of the lane) — because the ship only leaves the ground at ramps: the way past is round.
+Four variants by weight (`PickVariant`): `Horizontal` (one beam on the flight line), `Vertical`
+(road → `verticalHeight`), `Triple` (three horizontal beams `tripleSpacing` apart, one above
+another — the upper two catch a ship in the air) and `Rotor` (a horizontal beam on the flight line
+turning about the track's UP, `rotorSpeedBand`, direction a coin toss).
+
+- **Not a `TrackFeatureDefinition`.** Gates stream on a cursor of their own (`PlaceLasersUpTo`,
+  the generator's "Laser gates" toggle group: prefab, definition drawn inline and cloned in play,
+  `laserSpacing` 600–1200 m, `laserStartDistance`, `laserClearance`), BEFORE the pads in
+  `StreamTo`, claiming their ground so no pad or coin sits in a beam, keyed on their END for the
+  cull. **They draw from their own `laserRng`** (seeded off the layout stream's state, not a draw
+  from it), so a seed's road and pads do not depend on the gates. Play mode only.
+- **Keep-outs** (`LaserBlockedUntil`): `laserKeepOuts` gets `(spot, spot + footprint + exclusion)`
+  from `DecideFeature` for EVERY feature — a tube too, which claims nothing, and a ramp's longest
+  landing — and `(start, ∞)` from `BeginEndZone` (+infinity parks the cursor for good); the
+  `laserClearance` (150 m) is kept either side. It works because all of those are registered at
+  a knot still inside the settle margin and **the clearance is shorter than the margin**, so
+  nothing is ever decided behind a gate that already stands — keep it that way. Flat sweeps and
+  open edges are allowed by default (`lasersOnFlatSweeps` / `lasersOnOpenEdges`): the shipped
+  TrackShape asset authors 100 % of both, and excluding them left almost no gates.
+- **Detection is two-phase.** `LaserGate` is an `ITrackPickup` whose volume is the box round all
+  its beams (the rotor's swept disc), so the body's swept query finds it at any speed; the ship
+  then asks `gate.Touches(body.SweepFrom, body.Distance, lateral, height, pickupReach)` — the
+  closest approach of the stretch just flown to each beam SEGMENT in gate-local track space
+  (x lateral, y height, z along), in a space squashed by the ship's reach + `beamRadius`. One
+  test for all four variants. The rotor's angle is a pure function of `Time.time`, shared by the
+  picture and the test, so a pause freezes both. A gate is never used up; `RehitSeconds` makes one
+  pass one hit. `LaserGate.Hit` (static) is the player's event; the patrol's body finds gates and
+  ignores them (`PolicePatrol.OnPickedUp` only knows `SpeedPad`).
+- **`LaserBeam` is the picture only**, authored ON the prefab with its four references
+  (`Tools → FiniteRunner → Install Laser Gate Assets` adds and wires it by name, and creates
+  `LaserBeam_Mat` + `04.Data/FiniteRunner/LaserGate_Definition.asset`, never overwriting). Every
+  frame the gate hands it two world muzzles: each emitter is turned until its shoot point looks
+  down the beam, rolled about that line (`emitterSpinDegPerSec` — the barrel is the models' local
+  Z; B rolls the other way) and slid until the shoot point is ON the muzzle. **Posed about the
+  shoot point, never the emitter's pivot** (the two models have different pivots). The beam is two
+  code-built `LineRenderer`s (glow + core) on one shared additive URP Particles/Unlit material
+  tinted by vertex colour — no MPB, no per-instance material.
+- **The wave** (`LaserGateDefinition` "Wave" toggle group: `waveChance`, `waveAmplitude`,
+  `waveLength`, `waveSpeed`, `waveTaper`; rolled per gate off `laserRng`, no draw while off): a
+  TRIANGLE wave running A → B. `LaserBeam.BuildWave` puts a vertex on each muzzle and one ON every
+  corner of the wave and nowhere else (corner k at `s = (k/2 + shift) × wavelength`, even = crest),
+  so the corners stay sharp however it slides — never resample it at a fixed step. It swings
+  along the track's up (across the track on the vertical gate), and `LaserGate.WaveReach` grows
+  what burns by the amplitude on that same axis, so the picture never lies.
+- Debug: CORE SETTINGS → LASER DENSITY (a multiplier on the spacing, 0 = none, live),
+  `TrackDebugSettings.laserDensity` with the −1 "never captured" rule.
+
 ### Analytic pickups (`Simulation/PickupRegistry.cs`)
 
 `ITrackPickup` (distance, live lateral, height above the flight line, half extents, `Available`)
-is implemented by `SpeedPad` and `Collectible`. The generator calls `PlaceOnTrack(distance,
+is implemented by `SpeedPad`, `Collectible` and `LaserGate` (whose box is only the broad phase — see Laser gates). The generator calls `PlaceOnTrack(distance,
 lateral, height, halfExtents)` on each as it spawns them (an orb = a ball of its size, a flat pad
 = its slab, the air lane = `AirLaneHeight`); they register in play while enabled and drop out on
 disable/destroy (cull, consume). The registry is static and cleared on boot (domain reload off).
@@ -341,6 +440,7 @@ low marker strip (`openEdgeMarkerSize`, `openEdgeMaterial`). Code-built boxes lo
 
 Stamps road-kit meshes (road surface, side barriers) along the spline, streaming-style:
 `DecorateUpTo(distance)` advances an internal stamp cursor, `CullBefore(distance)` drops pieces
-behind the ship. There is no goal gantry — there is no end goal.
+behind the ship. There is no goal gantry: the end of a finite track is its three end ramps, and
+`StampEndMarker` (open-edge material, keyed on its far end) marks the gaps between them.
 
 MPB tints are unreliable with the SRP Batcher — hence the material-override fields.

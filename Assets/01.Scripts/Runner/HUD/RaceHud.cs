@@ -7,6 +7,7 @@ using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
+using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.HUD
 {
     /// <summary>
@@ -15,8 +16,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// of Light Speed, built here in code at the top-left) with the scene's
     /// km/h number re-seated at its right end at Start — smaller font, its
     /// baseline on the wedge's — heating up as you approach Light Speed and
-    /// pulsing on pad hits, the Light Speed goal, a countdown
-    /// bar (time is the limit, not distance), and
+    /// pulsing on pad hits, the Light Speed goal, the countdown as a plain
+    /// yellow MM:SS at the bottom centre (the scene's timer text re-seated
+    /// at Start, sized like the speed number — no bar; the distance left is
+    /// the <see cref="ChaseMinimap"/>'s), and
     /// floating "+boost" text spawned at the ship on every booster hit (and a
     /// gold "+$N" on every money pickup, off the CollectibleManager), plus
     /// one code-built line per runner objective / challenge under the goal
@@ -34,8 +37,6 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [SerializeField] Text targetText;
         [FormerlySerializedAs("distanceText")]
         [SerializeField] Text timeText;
-        [FormerlySerializedAs("distanceFill")]
-        [SerializeField] Image timeFill;
 
         [Header("Speed colors")]
         [Tooltip("Far below Light Speed.")]
@@ -48,12 +49,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Header("Status colors")]
         [FormerlySerializedAs("perfectColor")]
         [SerializeField] Color winColor = new(0.48f, 0.83f, 0.32f);
-        [SerializeField] Color failColor = new(1f, 0.3f, 0.25f);
+        [Tooltip("Objective / challenge lines not yet done.")]
+        [FormerlySerializedAs("timeColor")]
+        [SerializeField] Color lineColor = Color.white;
 
         [Header("Countdown")]
-        [Tooltip("The timer text tints with the fail color below this many seconds.")]
-        [SerializeField, Min(0f)] float lowTimeWarning = 10f;
-        [SerializeField] Color timeColor = Color.white;
+        [Tooltip("The MM:SS readout's colour — always, it never tints.")]
+        [SerializeField] Color timerColor = new(1f, 0.9f, 0.2f);
+        [Tooltip("Gap between the bottom of the screen and the timer's baseline, px at 1920×1080. Its font size is the speed number's.")]
+        [SerializeField, Range(0f, 300f)] float timerBottomMargin = 40f;
 
         [Header("Pad pulse")]
         [SerializeField, Min(1f)] float pulseScale = 1.3f;
@@ -77,6 +81,34 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Tooltip("Gap between the wedge and the number.")]
         [SerializeField, Range(0f, 100f)] float gaugeNumberGap = 24f;
 
+        [Header("Life bar")]
+        [Tooltip("The KM/H caption under the wedge — pushed down with the goal lines to make room for the life bar. Empty = found by name (KmhLabel) beside the speed text.")]
+        [SerializeField] Text unitText;
+        [Tooltip("Cells of the hull bar under the speed wedge. A cell stays lit while any of its share of the hull is left.")]
+        [SerializeField, Range(1, 30)] int lifeSegments = 6;
+        [Tooltip("Height of the bar, px at 1920×1080. Its width is the wedge's.")]
+        [SerializeField, Range(4f, 80f)] float lifeBarHeight = 22f;
+        [Tooltip("Gap between cells.")]
+        [SerializeField, Range(0f, 30f)] float lifeSegmentGap = 6f;
+        [Tooltip("Gap between the wedge and the bar, and between the bar and the KM/H caption.")]
+        [SerializeField, Range(0f, 60f)] float lifeBarGap = 12f;
+        [Tooltip("Alpha of the cells already lost.")]
+        [SerializeField, Range(0f, 1f)] float lifeEmptyAlpha = 0.2f;
+        [SerializeField] Color lifeFullColor = new(0.48f, 0.83f, 0.32f);
+        [SerializeField] Color lifeMidColor = new(1f, 0.85f, 0.3f);
+        [SerializeField] Color lifeLowColor = new(1f, 0.25f, 0.2f);
+        [Tooltip("Hull fraction under which the bar blinks.")]
+        [SerializeField, Range(0f, 1f)] float lifeLowFraction = 0.34f;
+        [Tooltip("Blinks per second while low.")]
+        [SerializeField, Range(0.5f, 10f)] float lifeLowBlinkHz = 3f;
+        [Tooltip("Scale the bar (and the lives count, when a life is lost) jumps to on a hit.")]
+        [SerializeField, Min(1f)] float lifeHitPunch = 1.25f;
+        [Tooltip("Font size of the ×N lives count at the bar's right end.")]
+        [SerializeField, Range(12, 120)] int livesFontSize = 40;
+        [Tooltip("Gap between the bar and the lives count.")]
+        [SerializeField, Range(0f, 100f)] float livesGap = 18f;
+        [SerializeField] Color livesColor = Color.white;
+
         [Header("Boost floating text")]
         [SerializeField] bool spawnBoostText = true;
         [SerializeField] Color boostTextColor = new(0.48f, 1f, 0.4f);
@@ -91,11 +123,25 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         readonly List<(RunnerObjective step, bool challenge, int index, Text text)> objectiveLines = new();
 
         SpeedGauge gauge;
+        Color targetColor;      // the goal line's authored colour, before the done tint
+        int shownSeconds = -1;  // what the timer text currently reads, so it is rebuilt once a second
+
+        // The hull bar under the wedge and the ×N beside it; null while the hull is off.
+        SpeedGauge lifeBar;
+        Text livesText;
+        float lastLife = 1f;   // last frame's hull fraction: a drop is a hit
+        float lifeFlash;       // 1 → 0 white flash after a hit
+        float lifePunch = 1f;  // the bar's scale, decaying to 1
+        float livesPunch = 1f; // the count's scale, decaying to 1
+        int shownLives = -1;   // what the count currently reads
 
         void Start()
         {
             BuildGauge();
+            BuildLifeBar();
+            SeatTimer();
             if (gameManager == null || targetText == null || gameManager.Level == null) return;
+            targetColor = targetText.color;
             RunnerLevelDefinition level = gameManager.Level;
             int slot = 0;
             for (int i = 0; i < level.Count; i++)
@@ -134,6 +180,111 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             speedText.alignment = TextAnchor.LowerLeft; // baseline on the wedge's baseline
         }
 
+        // The hull bar takes a row of its own right under the wedge — the
+        // wedge's width in flat cells, the ×N lives count at its right end —
+        // and everything that stood there (the KM/H caption, the goal line
+        // and so the objective lines stacked off it) moves down by that row.
+        // Built only while the hull is on (GameSettings.hullEnabled).
+        void BuildLifeBar()
+        {
+            if (gauge == null || gameManager == null || !gameManager.HullEnabled || gameManager.ShipHealth == null) return;
+
+            var gaugeRect = (RectTransform)gauge.transform;
+            int cells = Mathf.Max(1, lifeSegments);
+            Vector2 topLeft = gaugeRect.anchoredPosition - new Vector2(0f, gauge.Height + lifeBarGap);
+            lifeBar = SpeedGauge.Build((RectTransform)gaugeRect.parent, topLeft, new SpeedGauge.Layout
+            {
+                segments = cells,
+                segmentWidth = (gauge.Width - (cells - 1) * lifeSegmentGap) / cells,
+                gap = lifeSegmentGap,
+                minHeight = lifeBarHeight,
+                maxHeight = lifeBarHeight,
+                emptyAlpha = lifeEmptyAlpha,
+            });
+            lifeBar.name = "LifeBar";
+
+            var go = new GameObject("Lives", typeof(RectTransform));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(gaugeRect.parent, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 0.5f); // centred on the bar, punching from its own middle
+            rect.anchoredPosition = topLeft + new Vector2(lifeBar.Width + livesGap, -lifeBarHeight * 0.5f);
+            rect.sizeDelta = new Vector2(200f, lifeBarHeight);
+            livesText = go.AddComponent<Text>();
+            // The goal line's font: it is the one known to carry the × glyph (the challenge lines print it).
+            livesText.font = targetText != null ? targetText.font : speedText.font;
+            livesText.fontSize = livesFontSize;
+            livesText.alignment = TextAnchor.MiddleLeft;
+            livesText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            livesText.verticalOverflow = VerticalWrapMode.Overflow;
+            livesText.color = livesColor;
+            livesText.raycastTarget = false;
+
+            Vector2 push = new(0f, lifeBarHeight + lifeBarGap);
+            if (unitText == null)
+            {
+                Transform found = gaugeRect.parent.Find("KmhLabel");
+                if (found != null) unitText = found.GetComponent<Text>();
+            }
+            if (unitText != null) unitText.rectTransform.anchoredPosition -= push;
+            if (targetText != null) targetText.rectTransform.anchoredPosition -= push;
+        }
+
+        void UpdateLifeBar()
+        {
+            if (lifeBar == null) return;
+
+            float life = gameManager.ShipHealth.Fraction;
+            if (life < lastLife - 1e-4f)
+            {
+                lifeFlash = 1f;
+                lifePunch = lifeHitPunch;
+            }
+            lastLife = life;
+            lifeFlash = Mathf.MoveTowards(lifeFlash, 0f, pulseDecay * Time.deltaTime);
+            lifePunch = Mathf.MoveTowards(lifePunch, 1f, pulseDecay * Time.deltaTime);
+            lifeBar.transform.localScale = Vector3.one * lifePunch;
+
+            // One colour for the whole bar — how hurt the ship is, not a scale.
+            Color color = life > 0.5f
+                ? Color.Lerp(lifeMidColor, lifeFullColor, (life - 0.5f) / 0.5f)
+                : Color.Lerp(lifeLowColor, lifeMidColor, life / 0.5f);
+            if (life > 0f && life <= lifeLowFraction && Mathf.Repeat(Time.time * lifeLowBlinkHz, 1f) > 0.5f)
+                color *= 0.45f;
+            color = Color.Lerp(color, Color.white, lifeFlash);
+            color.a = 1f;
+
+            // A cell stays lit while any of its share is left: round UP to cells.
+            int cells = Mathf.Max(1, lifeSegments);
+            float shown = Mathf.Ceil(life * cells - 1e-4f) / cells;
+            lifeBar.SetFill(shown, _ => color);
+
+            int lives = gameManager.LivesLeft;
+            if (lives != shownLives)
+            {
+                if (shownLives >= 0) livesPunch = lifeHitPunch * 1.2f;
+                shownLives = lives;
+                livesText.text = $"×{lives}";
+            }
+            livesPunch = Mathf.MoveTowards(livesPunch, 1f, pulseDecay * Time.deltaTime);
+            livesText.rectTransform.localScale = Vector3.one * livesPunch;
+        }
+
+        // The countdown is the scene's timer text, re-seated by code like the
+        // speed number: bottom centre, the speed number's size, always yellow.
+        void SeatTimer()
+        {
+            if (timeText == null) return;
+            RectTransform rect = timeText.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(0f, timerBottomMargin);
+            timeText.fontSize = gaugeNumberFontSize;
+            timeText.alignment = TextAnchor.LowerCenter;
+            timeText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            timeText.verticalOverflow = VerticalWrapMode.Overflow;
+            timeText.color = timerColor;
+        }
+
         // A smaller sibling of the goal text, stacked under it — cloned from
         // its font and anchors so the scene wiring stays untouched.
         Text MakeObjectiveLine(int slot)
@@ -155,7 +306,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             text.alignment = targetText.alignment;
             text.horizontalOverflow = targetText.horizontalOverflow;
             text.verticalOverflow = targetText.verticalOverflow;
-            text.color = timeColor;
+            text.color = lineColor;
             text.raycastTarget = false;
             return text;
         }
@@ -215,8 +366,16 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 gauge.SetFill(lightSpeed > 0f ? Mathf.Clamp01(kmh / lightSpeed) : 0f,
                               fraction => SpeedColor(fraction * lightSpeed, lightSpeed));
 
+            UpdateLifeBar();
+
             if (targetText != null && lightSpeed > 0f)
+            {
                 targetText.text = $"LIGHT SPEED  {lightSpeed:0} KM/H";
+                // Reached once is reached: the goal line stays done while the
+                // ship still has to make it to an end ramp.
+                if (gameManager != null && gameManager.Level != null)
+                    targetText.color = gameManager.LightSpeedReached ? winColor : targetColor;
+            }
 
             foreach (var line in objectiveLines)
             {
@@ -226,7 +385,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 if (progress.Length > 0) label += "  " + progress;
                 if (line.step is RunnerOptionalChallenge challenge) label += $"  \u00d7{challenge.multiplier}";
                 line.text.text = label;
-                line.text.color = done ? winColor : timeColor;
+                line.text.color = done ? winColor : lineColor;
             }
 
             UpdateCountdown();
@@ -234,16 +393,14 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void UpdateCountdown()
         {
-            if (gameManager == null) return;
+            if (gameManager == null || timeText == null) return;
 
-            float remaining = gameManager.TimeRemaining;
-            if (timeText != null)
-            {
-                timeText.text = $"{remaining:0.0} S";
-                timeText.color = remaining <= lowTimeWarning ? failColor : timeColor;
-            }
-            if (timeFill != null)
-                timeFill.fillAmount = gameManager.TimeLimit > 0f ? remaining / gameManager.TimeLimit : 0f;
+            // Whole seconds, rounded up so 00:00 is the moment the clock runs out.
+            int seconds = Mathf.CeilToInt(Mathf.Max(0f, gameManager.TimeRemaining));
+            if (seconds == shownSeconds) return;
+            shownSeconds = seconds;
+            timeText.text = $"{seconds / 60:00}:{seconds % 60:00}";
+            timeText.color = timerColor;
         }
 
         // The readout heats up as speed climbs toward Light Speed: blue when

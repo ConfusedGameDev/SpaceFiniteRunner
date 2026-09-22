@@ -5,7 +5,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 {
     /// <summary>
     /// The respawn blink: while the ship waits on the track after a fall
-    /// (<see cref="ShipState.Respawning"/>) its model flickers between its
+    /// (<see cref="ShipState.Respawning"/>) — and through the invulnerability
+    /// after a hull hit (<see cref="AlsoBlinkWhile"/>) — its model flickers between its
     /// own materials and the dash's ghost material at
     /// <see cref="ShipSettings.respawnBlinkRate"/>, the classic "you can't be
     /// touched yet" read. It SWAPS the renderers' materials — a
@@ -20,6 +21,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     {
         IShip motor;
         ShipSettings settings;
+
+        /// <summary>
+        /// A game's own "can't be touched yet": the blink also runs while this answers true. The runner's hull sets
+        /// it to its invulnerability after a hit — a type this assembly cannot see, hence a question and not a field.
+        /// </summary>
+        public System.Func<bool> AlsoBlinkWhile { get; set; }
         Material ghostMaterial;
         bool ownsGhostMaterial;
 
@@ -59,7 +66,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             if (motor as Object == null || settings == null) return;
 
-            bool shouldBlink = motor.State == ShipState.Respawning;
+            // The same "can't be touched" read covers the blink after a hull hit.
+            bool shouldBlink = motor.State == ShipState.Respawning || (AlsoBlinkWhile != null && AlsoBlinkWhile());
             if (shouldBlink && !blinking) Begin();
             else if (!shouldBlink && blinking) End();
             if (!blinking) return;

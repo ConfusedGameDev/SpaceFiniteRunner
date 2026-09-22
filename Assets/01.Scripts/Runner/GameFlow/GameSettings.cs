@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -102,9 +103,38 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float lightSpeedKmh = 6500f;
 
         [TitleGroup("Win condition")]
-        [Tooltip("Seconds to reach Light Speed before the chase is lost.")]
+        [Tooltip("Seconds to reach Light Speed AND leave the track by one of its end ramps before the chase is lost.")]
         [PropertyRange(10f, 300f), SuffixLabel("s", true)]
         public float timeLimitSeconds = 60f;
+
+        // ---------------------------------------------------------- track end
+        // The track is finite: it ends in three ramps side by side over a
+        // void. The run is won by leaving one of them with every objective
+        // met; anything else that reaches the end falls.
+        [TitleGroup("Track end")]
+        [Tooltip("Track length, metres, for a level that does not author its own (RunnerLevelDefinition.trackLengthMeters = 0). At the defaults a cruise-only run covers 15 km in the time limit and a run reaching Light Speed near the end of the clock about 40 km.")]
+        [PropertyRange(5000f, 100000f), SuffixLabel("m", true)]
+        public float trackLengthMeters = 40000f;
+
+        [TitleGroup("Track end")]
+        [Tooltip("Length of the final run-up to the end ramps, metres: dead straight, level, unbanked, walled, with no pads, coins or features on it. It is also where a late fall respawns, so keep it well above the respawn clearance.")]
+        [PropertyRange(600f, 3000f), SuffixLabel("m", true)]
+        public float endRunUpMeters = 1200f;
+
+        [TitleGroup("Track end")]
+        [Tooltip("Gap between two end ramps, metres: the drop a ship that misses the ramps goes through. Wider = easier to miss.")]
+        [PropertyRange(4f, 40f), SuffixLabel("m", true)]
+        public float endRampGapMeters = 10f;
+
+        [TitleGroup("Track end")]
+        [Tooltip("Gap between an outer end ramp and the wall, metres. 0 = the outer ramps stand flush against the walls.")]
+        [PropertyRange(0f, 20f), SuffixLabel("m", true)]
+        public float endRampSideGapMeters = 0f;
+
+        [TitleGroup("Track end")]
+        [Tooltip("Gravity on the winning ship once it has left an end ramp, m/s². 0 = it flies on dead straight along the ramp's line.")]
+        [PropertyRange(0f, 60f), SuffixLabel("m/s²", true)]
+        public float winEscapeGravity = 0f;
 
         // ------------------------------------------------------------- patrol
         // The chase tunables (speeds, rubber band, distances) moved to the
@@ -115,7 +145,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool patrolEnabled = true;
 
         [ToggleGroup("patrolEnabled")]
-        [Tooltip("Gap that puts the patrol icon at the very bottom of the chase minimap.")]
+        [Tooltip("Gap beyond which the patrol is off the track map; at this gap its icon hangs a full chase span (ChaseMinimapSettings.chaseSpan) under the ship.")]
         [PropertyRange(50f, 2000f), SuffixLabel("m", true)]
         public float minimapRangeMeters = 400f;
 
@@ -245,10 +275,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float loopSlowMoBlendOut = 0.35f;
 
         // ---------------------------------------------------- mission complete
-        // Once the objectives are met the ship keeps flying until it is back on
-        // the track (a jump, loop or tube finishes first), then the camera
-        // plants for the fly-past, the glitch ramps to max, holds, and the
-        // Mission Complete panel opens.
+        // The win latches as the ship leaves an end ramp with every objective
+        // met: it flies on, the camera plants for the fly-past, the glitch
+        // ramps to max, holds, and the Mission Complete panel opens.
         [TitleGroup("Mission complete")]
         [Tooltip("Real seconds the camera holds a planted trackside shot, watching the escaping ship fly on out of it, before the glitch ramps and the debrief opens. The player cannot move the camera for it. 0 = straight from the chase view into the glitch.")]
         [PropertyRange(0f, 5f), SuffixLabel("s", true)]
@@ -287,6 +316,107 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [TitleGroup("Mission complete")]
         [Tooltip("Camera shake on the frame the banner's last letter lands. Empty = no shake.")]
         public Cameras.CameraShakeSettings winBannerShake;
+
+        // ------------------------------------------------------ mission failed
+        // Every loss slams the MISSION FAILED banner in (the win banner's own
+        // letter timings) before the retry panel opens.
+        [TitleGroup("Mission failed")]
+        [Tooltip("Real seconds the MISSION FAILED banner stays up before the retry panel opens. A fall off the end of the track plays out under it.")]
+        [PropertyRange(0f, 5f), SuffixLabel("s", true)]
+        public float failBannerHoldSeconds = 2f;
+
+        [TitleGroup("Mission failed")]
+        [Tooltip("Real seconds the MISSION FAILED banner takes to tear away before the retry panel opens.")]
+        [PropertyRange(0.25f, 2f), SuffixLabel("s", true)]
+        public float failBannerDismissSeconds = 0.5f;
+
+        [TitleGroup("Mission failed")]
+        [Tooltip("Colour of the MISSION FAILED banner's letters and underline.")]
+        public Color failBannerColor = new(1f, 0.22f, 0.25f, 1f);
+
+        // ----------------------------------------------------- hull and lives
+        // The ship's hull points live on ShipDefinition (maxHull) — this
+        // section holds the run-level rules: what hurts, how much, how many
+        // failed runs a mission forgives, and the explosion.
+        [ToggleGroup("hullEnabled", "Hull and lives")]
+        [Tooltip("Walls and brake pads damage the ship's hull (the HUD's life bar); at 0 it explodes and the run fails. Every failed run costs a life, and the last one lost is GAME OVER: no retry, back to the Store, the mission forfeited. Off = no damage, no bar, no lives — every loss retries for free.")]
+        public bool hullEnabled = true;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Runs a mission forgives: every failed run (destroyed, caught, out of time, stalled, off the end) takes one, and losing the last is GAME OVER. A fresh set every time the runner is entered.")]
+        [PropertyRange(1, 9)]
+        public int startingLives = 3;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Hull points a brake pad takes.")]
+        [PropertyRange(0f, 200f)]
+        public float brakePadDamage = 20f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Hull points a hard wall hit takes: a dash slammed into the track's edge, or a ramp hit from the side.")]
+        [PropertyRange(0f, 200f)]
+        public float wallSlamDamage = 25f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Hull points steering (or sliding) into a wall takes. Still pressed against it when the invulnerability ends, it takes them again.")]
+        [PropertyRange(0f, 200f)]
+        public float wallScrapeDamage = 10f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Hull points falling off the track takes, the moment the ship goes over an open edge — on top of the time the fall costs. It ignores the invulnerability blink; taking the last points, the ship blows up in the fall.")]
+        [PropertyRange(0f, 200f)]
+        public float fallDamage = 30f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Hull points flying through a laser beam takes — a fall's worth by default. The invulnerability blink shields it like any other hit.")]
+        [PropertyRange(0f, 200f)]
+        public float laserDamage = 30f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Camera shake on a laser hit, on top of the heavy rumble. Empty = no shake.")]
+        public Cameras.CameraShakeSettings laserHitShake;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Seconds the ship blinks and takes no damage after a hit.")]
+        [PropertyRange(0f, 5f), SuffixLabel("s", true)]
+        public float hitInvulnerabilitySeconds = 1f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Camera shake on a wall scrape (the dash slam keeps Wall Hit Shake). Empty = no shake.")]
+        public Cameras.CameraShakeSettings scrapeShake;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Glitch-effect burst strength on any hull hit.")]
+        [PropertyRange(0f, 1f)]
+        public float hullHitGlitchStrength = 0.35f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Sprites of the ship's explosion — one is picked per fireball puff. Empty = no fireball (the ship still vanishes).")]
+        public List<Texture2D> explosionTextures = new();
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Size of the explosion's fireball.")]
+        [PropertyRange(1f, 60f), SuffixLabel("m", true)]
+        public float explosionScale = 14f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Seconds the fireball lives.")]
+        [PropertyRange(0.2f, 5f), SuffixLabel("s", true)]
+        public float explosionLifetime = 1.4f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Puffs in the fireball.")]
+        [PropertyRange(1, 80)]
+        public int explosionParticles = 24;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Camera shake as the ship explodes. Empty = no shake.")]
+        public Cameras.CameraShakeSettings explosionShake;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Glitch-effect burst strength as the ship explodes.")]
+        [PropertyRange(0f, 1f)]
+        public float explosionGlitchStrength = 1f;
 
         // --------------------------------------------------------------- dash
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on

@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: FiniteRunner_TrackDebug
   m_EditorClassIdentifier: 
   applyOnLoad: 1
-  trackWidth: 74.4
+  trackWidth: 120
   straightness: 55
   entries:
   - name: Green
-    probability: 20.171656
-    multiplier: 4.8999977
+    probability: 50.16999
+    multiplier: 2.0000002
   - name: Blue
     probability: 5.951814
     multiplier: 2.5
@@ -40,3 +40,4 @@ MonoBehaviour:
   levelLeadDistance: 200
   unbankedSweepChance: 1
   openStraightChance: 1
+  trackLength: -1

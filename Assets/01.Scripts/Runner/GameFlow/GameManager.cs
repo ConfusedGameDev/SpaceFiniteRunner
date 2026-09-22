@@ -15,6 +15,7 @@ using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Store;
 using ConfusedGameDev.FiniteRunner.Track;
+using ConfusedGameDev.FiniteRunner.Track.Features;
 using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
@@ -69,15 +70,30 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         SpeedLines speedLines;             // null when the speed lines are off on GameSettings
         RunnerMusic music;                 // null when the music is off on GameSettings
 
-        /// <summary>How a run ended — typed, so the save record never has to match a result label.</summary>
-        enum RunOutcome { Escaped, Caught, Stalled, TimedOut }
+        /// <summary>
+        /// How a run ended — typed, so the save record never has to match a
+        /// result label. Never serialized. MissedRamp = reached the end of the
+        /// track with every objective met but not on an end ramp; TooSlow =
+        /// reached it with an objective still open, ramp or not; Destroyed =
+        /// the hull reached 0 and the ship blew up.
+        /// </summary>
+        enum RunOutcome { Escaped, Caught, Stalled, TimedOut, MissedRamp, TooSlow, Destroyed }
 
         bool runCounted; // this run's "escape attempted" has been recorded
 
-        // The win wind-down: objectives met, ship still flying until it is back
-        // on the track, then the glitch ramps to max and the panel opens.
+        // Hull and lives. The lives are this SCENE's: the runner is entered
+        // once per mission and retried in place, so Awake deals a fresh set
+        // and Restart never touches them.
+        ShipHealth shipHealth;
+        bool isGameOver;           // the failed run in progress took the last life
+        long walletAtMissionStart; // what a GAME OVER rolls the wallet back to
+
+        // The win wind-down: the ship has left an end ramp with every
+        // objective met and flies on; the glitch ramps to max and the panel opens.
         Coroutine winRoutine;
-        MissionAccomplishedBanner banner; // the MISSION ACCOMPLISHED slam over the fly-past; killed before the panel
+        // The loss wind-down: MISSION FAILED slams in, then the retry panel.
+        Coroutine failRoutine;
+        MissionAccomplishedBanner banner; // the MISSION ACCOMPLISHED / MISSION FAILED slam; killed before the panel
         float glitchFadeBeforeWin = -1f; // the GlitchController's fade rate to restore; < 0 = nothing remembered
 
         // The run's objective state: latched per entry (speed bleeds after the
@@ -112,12 +128,80 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool IsChallengeDone(int index) => index >= 0 && index < challengeDone.Length && challengeDone[index];
         public float TimeLimit => settings.timeLimitSeconds;
         public float TimeRemaining { get; private set; }
+        /// <summary>
+        /// Latched the frame every mandatory objective is met (reaching Light
+        /// Speed ONCE is enough). It is only half the win: the ship must still
+        /// leave the track by an end ramp, and until it does the countdown,
+        /// the patrol and the stall are all still live.
+        /// </summary>
+        public bool ObjectivesMet { get; private set; }
+        /// <summary>True once the run's Light Speed goal is latched — the HUD's done state. A level whose objectives hold no Reach Speed never sets it (its Light Speed is only a gauge reference).</summary>
+        public bool LightSpeedReached
+        {
+            get
+            {
+                if (level == null || level.Count == 0) return ObjectivesMet;
+                for (int i = 0; i < level.Count; i++)
+                    if (level.objectives[i] != null && level.objectives[i].type == RunnerObjectiveType.ReachSpeed)
+                        return IsObjectiveDone(i);
+                return false;
+            }
+        }
+        /// <summary>Latched the step the ship leaves an end ramp with <see cref="ObjectivesMet"/>: nothing can be lost any more.</summary>
         public bool HasWon { get; private set; }
+        /// <summary>True while an ending is playing out — the win's fly-past or the MISSION FAILED banner — before <see cref="RunOver"/>. No pause, no story lines.</summary>
+        public bool IsEnding => HasWon || failRoutine != null;
         /// <summary>True from the frame the run ended until <see cref="Restart"/>.</summary>
         public bool RunOver { get; private set; }
 
-        void Awake()
+        /// <summary>True while walls and brake pads damage the ship and failed runs cost lives (<see cref="GameSettings.hullEnabled"/>).</summary>
+        public bool HullEnabled => settings != null && settings.hullEnabled;
+        /// <summary>The ship's hull, for the HUD's life bar. Null without a ship.</summary>
+        public ShipHealth ShipHealth => shipHealth;
+        /// <summary>Failed runs this mission still forgives — the HUD's ×N. Every failed run takes one; the run that takes the last is GAME OVER. Survives <see cref="Restart"/>.</summary>
+        public int LivesLeft { get; private set; }
+
+        /// <summary>
+        /// Length of this run's track, metres: the level's own, else the
+        /// settings' fallback. PULLED by the <see cref="TrackGenerator"/>, which
+        /// builds its first stretch in its own Awake — possibly before this
+        /// manager's — so it resolves the run's data first.
+        /// </summary>
+        public float TrackLengthMeters
         {
+            get
+            {
+                ResolveRunData();
+                return level.trackLengthMeters > 0f ? level.trackLengthMeters : settings.trackLengthMeters;
+            }
+        }
+
+        /// <summary>Length of the straight, featureless run-up to the end ramps, metres.</summary>
+        public float EndRunUpMeters { get { ResolveRunData(); return settings.endRunUpMeters; } }
+        /// <summary>Gap between two end ramps, metres.</summary>
+        public float EndRampGapMeters { get { ResolveRunData(); return settings.endRampGapMeters; } }
+        /// <summary>Gap between an outer end ramp and the wall, metres.</summary>
+        public float EndRampSideGapMeters { get { ResolveRunData(); return settings.endRampSideGapMeters; } }
+
+        /// <summary>Metres of track left ahead of the ship, 0 once it is past the end. The end is the generator's: the built one once the last knot is down, the authored target until then.</summary>
+        public float DistanceRemaining =>
+            generator != null && motor != null ? Mathf.Max(0f, generator.EndDistance - motor.DistanceTravelled) : 0f;
+
+        /// <summary>True when this run's track ends (the HUD's distance line is only drawn then).</summary>
+        public bool HasTrackEnd => generator != null && generator.IsFinite;
+
+        bool runDataResolved;
+
+        /// <summary>
+        /// Settles which settings and level this run plays on. Idempotent, and
+        /// safe before Awake: both are serialized references and the campaign
+        /// session is static.
+        /// </summary>
+        void ResolveRunData()
+        {
+            if (runDataResolved) return;
+            runDataResolved = true;
+
             // Never run without balance data: a throwaway instance keeps the
             // scene playable (on defaults) instead of throwing every frame.
             if (settings == null)
@@ -134,11 +218,17 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 Debug.LogError($"{nameof(GameManager)} has no {nameof(RunnerLevelDefinition)} asset assigned — falling back to the default run.", this);
                 level = RunnerLevelDefinition.CreateDefault();
             }
+        }
+
+        void Awake()
+        {
+            ResolveRunData();
             ResetObjectives();
 
             TimeRemaining = settings.timeLimitSeconds;
             if (motor != null) motor.PadImpulse += OnPadImpulse;
             SpeedPad.Collected += OnPadCollected;
+            LaserGate.Hit += OnLaserHit;
 
             if (motor != null)
             {
@@ -146,6 +236,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.WallHit += OnWallHit;
                 motor.Sliding += OnSliding;
                 motor.FellOff += OnFellOff;
+                motor.ReachedTrackEnd += OnReachedTrackEnd;
                 motor.RespawnStarted += OnRespawnStarted;
                 motor.Respawned += OnRespawned;
                 motor.DashPerformed += OnDashPerformed;
@@ -206,6 +297,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 }
             }
 
+            // The hull rides the ship like the blink (which it drives through
+            // the invulnerability after a hit) — after the run definition is
+            // set, so the bar fills to the clone's maxHull. Always added: it
+            // gates itself on GameSettings.hullEnabled, read live.
+            LivesLeft = settings.startingLives;
+            // What a GAME OVER hands back: the wallet as the mission began
+            // (before the city), or as this scene opened in direct play.
+            walletAtMissionStart = MissionSession.Active ? MissionSession.WalletAtStart : PlayerStats.Balance;
+            if (motor != null)
+            {
+                shipHealth = ShipHealth.Ensure(motor);
+                shipHealth.Configure(settings, this);
+                shipHealth.Damaged += OnHullDamaged;
+                shipHealth.Destroyed += OnShipDestroyed;
+            }
+
             // Above the pause menu's canvas and holding timeScale at 0, so the
             // scene boots to the attract screen with nothing running behind it.
             if (mainMenuOnBoot) MainMenuController.Spawn(motor, tuningScreen);
@@ -222,7 +329,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol.Redeployed += OnPatrolRedeployed;
                 patrol.Warned += OnPatrolWarned;
                 patrol.ProximityRumble = settings.patrolProximityRumble;
-                ChaseMinimap.Spawn(motor, patrol, settings.minimapRangeMeters, patrol.Definition.warnDistance);
             }
             else
             {
@@ -231,6 +337,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 if (patrol != null) patrol.gameObject.SetActive(false);
                 patrol = null;
             }
+
+            // The track map shows the run's progress with or without a chase;
+            // the patrol is only its second marker.
+            if (motor != null)
+                ChaseMinimap.Spawn(motor, patrol, this, settings.minimapRangeMeters,
+                                   patrol != null ? patrol.Definition.warnDistance : 0f);
 
             // The chase camera: the shared Cinemachine rig, attached to the ship
             // root with the ship's own settings asset (Far framing, target-up
@@ -307,32 +419,31 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 PlayerStats.SampleShipSpeed(motor.CurrentSpeed * 3.6f);
             }
 
-            // The win latches the moment every objective is met — but the run
-            // does not end yet: the ship flies on until it is back on the
-            // track, then FinishWin glitches out and raises the panel. From
-            // here on nothing can be lost and the clock stands still.
-            if (!HasWon && EvaluateObjectives(motor.CurrentSpeed * 3.6f))
-            {
-                HasWon = true;
-                motor.Autopilot = true; // nothing can go wrong from here: edges closed, grip untested, steered home
-                winRoutine = StartCoroutine(FinishWin());
-            }
-            if (HasWon)
+            // An ending is playing out (the win's fly-past, the MISSION FAILED
+            // banner): nothing is judged any more and the clock stands still.
+            if (IsEnding)
             {
                 UpdateLoops();
                 return;
             }
 
+            // The objectives latch the moment they are all met — Light Speed
+            // reached once is reached — but that is only half the win: the
+            // ship still has to leave the track by one of its end ramps
+            // (OnReachedTrackEnd), and until then everything below is live.
+            // Evaluated every frame either way, so a challenge can still latch.
+            if (EvaluateObjectives(motor.CurrentSpeed * 3.6f)) ObjectivesMet = true;
+
             if (patrol != null && patrol.HasCaught)
             {
                 HapticsSystem.Instance.Pulse(1f, 0.7f, 1.5f); // long busted rumble
-                EndRun(RunOutcome.Caught);
+                BeginFail(RunOutcome.Caught);
                 return;
             }
 
             if (motor.HasStopped)
             {
-                EndRun(RunOutcome.Stalled);
+                BeginFail(RunOutcome.Stalled);
                 return;
             }
 
@@ -343,7 +454,134 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             TimeRemaining = Mathf.Max(0f, TimeRemaining - Time.deltaTime);
             if (TimeRemaining <= 0f)
-                EndRun(RunOutcome.TimedOut);
+                BeginFail(RunOutcome.TimedOut);
+        }
+
+        /// <summary>
+        /// The ship ran out of road (it is already off the track and
+        /// dropping). With every objective met AND an end ramp under it, that
+        /// is the win: the drop becomes the escape flight and the wind-down
+        /// starts. Anything else is a loss the fall itself plays out —
+        /// objectives still open is TooSlow whether or not a ramp was taken,
+        /// the ramps missed is MissedRamp. Raised from the simulation tick, so
+        /// the objectives are read once more first: a goal met on this very
+        /// step counts.
+        /// </summary>
+        void OnReachedTrackEnd(bool tookRamp)
+        {
+            if (RunOver || IsEnding) return;
+            if (EvaluateObjectives(motor.CurrentSpeed * 3.6f)) ObjectivesMet = true;
+
+            if (tookRamp && ObjectivesMet)
+            {
+                HasWon = true; // from here on nothing can be lost
+                motor.BeginEscape();
+                HapticsSystem.Instance.Pulse(0.7f, 0.9f, 0.6f);
+                winRoutine = StartCoroutine(FinishWin());
+                return;
+            }
+
+            HapticsSystem.Instance.Pulse(1f, 0.5f, 0.8f);
+            if (GlitchController.Instance != null)
+                GlitchController.Instance.Pulse(settings.fallGlitchStrength);
+            BeginFail(ObjectivesMet ? RunOutcome.MissedRamp : RunOutcome.TooSlow);
+        }
+
+        // Every loss goes through the MISSION FAILED wind-down, once.
+        // Every failed run costs a life, whatever ended it; the one that takes
+        // the last is GAME OVER (no retry — see ShowGameOver).
+        void BeginFail(RunOutcome outcome)
+        {
+            if (RunOver || IsEnding) return;
+            if (HullEnabled)
+            {
+                LivesLeft = Mathf.Max(0, LivesLeft - 1);
+                isGameOver = LivesLeft == 0;
+            }
+            failRoutine = StartCoroutine(FinishFail(outcome));
+        }
+
+        void OnShipDestroyed() => BeginFail(RunOutcome.Destroyed);
+
+        // Any hull hit: a scrape gets its own light feedback; a hard hit (brake
+        // pad, dash slam, ramp side) already has the pad's / OnWallHit's.
+        void OnHullDamaged(float amount, bool hard)
+        {
+            if (GlitchController.Instance != null)
+                GlitchController.Instance.Pulse(settings.hullHitGlitchStrength);
+            if (hard) return;
+            HapticsSystem.Instance.Pulse(0.5f, 0.3f, 0.15f);
+            CameraShake.Shake(settings.scrapeShake);
+        }
+
+        // 0 hull: the fireball where the ship was, and the ship gone. The sim
+        // is already frozen (FinishFail), so nothing moves out from under it.
+        void ExplodeShip()
+        {
+            Vector3 origin = motor.Visual != null ? motor.Visual.position : motor.transform.position;
+            if (settings.explosionTextures != null && settings.explosionTextures.Count > 0)
+                ExplosionVfx.SpawnFireball(origin, settings.explosionTextures, settings.explosionScale,
+                                           settings.explosionLifetime, settings.explosionParticles);
+            if (shipHealth != null) shipHealth.SetShipVisible(false);
+
+            HapticsSystem.Instance.Pulse(1f, 1f, 0.8f);
+            CameraShake.Shake(settings.explosionShake);
+            if (GlitchController.Instance != null)
+                GlitchController.Instance.Pulse(settings.explosionGlitchStrength);
+            var shipAudio = motor.GetComponent<ShipAudio>();
+            if (shipAudio != null) shipAudio.PlayExplosion();
+        }
+
+        /// <summary>
+        /// The loss's wind-down, on unscaled time: MISSION FAILED slams in (the
+        /// win banner's own animation, in the fail colour), holds
+        /// <c>failBannerHoldSeconds</c>, tears away over
+        /// <c>failBannerDismissSeconds</c>, then the run ends and the retry
+        /// panel opens. A loss ON the track (caught, stalled, out of time)
+        /// freezes the simulation at once; a loss off the END of it keeps the
+        /// simulation running under the banner, from a planted camera, so the
+        /// ship's fall — and the patrol's, right behind it — plays out.
+        /// </summary>
+        IEnumerator FinishFail(RunOutcome outcome)
+        {
+            bool offTheEnd = outcome == RunOutcome.MissedRamp || outcome == RunOutcome.TooSlow;
+
+            RpgMessageSystem.Instance.ClearMessages();
+            if (music != null) music.FadeOut(); // at the asset's fade-out time, under the banner
+
+            bool planted = false;
+            if (!offTheEnd)
+            {
+                motor.Paused = true; // freeze the sim; the hover keeps the ship floating
+                if (outcome == RunOutcome.Destroyed) ExplodeShip();
+            }
+            else if (cameraRig != null)
+            {
+                // A loop or fall shot may still be armed; this one replaces it.
+                loopCinematic = false;
+                loopCinematicHoldLeft = -1f;
+                fallCameraLeft = -1f;
+                cameraRig.SetCinematic(true);
+                planted = cameraRig.Cinematic;
+                if (planted) cameraRig.hasPlayerControl = false;
+            }
+
+            // The last life lost says so: GAME OVER, not MISSION FAILED.
+            banner = MissionAccomplishedBanner.Show(settings, isGameOver ? MenuTextId.GameOver : MenuTextId.MissionFailed,
+                                                    settings.failBannerColor, settings.failBannerColor);
+            if (settings.failBannerHoldSeconds > 0f)
+                yield return new WaitForSecondsRealtime(settings.failBannerHoldSeconds);
+            float dismiss = Mathf.Max(0.01f, settings.failBannerDismissSeconds);
+            if (banner != null) banner.Dismiss(dismiss);
+            yield return new WaitForSecondsRealtime(dismiss);
+
+            failRoutine = null;
+            if (planted && cameraRig != null)
+            {
+                cameraRig.SetCinematic(false);
+                cameraRig.hasPlayerControl = true;
+            }
+            EndRun(outcome);
         }
 
         void EndRun(RunOutcome outcome)
@@ -351,13 +589,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             RunOver = true;
             motor.Paused = true; // freeze the sim; the hover keeps the ship floating
 
-            // A loss fades the music under the panel at the asset's fade-out
-            // time; a win already booked its fade with the glitch in FinishWin.
-            if (!HasWon && music != null) music.FadeOut();
+            // The music is already fading: a win booked it with the glitch in
+            // FinishWin, a loss with the banner in FinishFail.
 
             // The record: an escape completed (and how long it took — the
-            // timer only ran while flying, so this is launch-to-light-speed),
-            // or a failed one; the patrol catching up is the runner's arrest.
+            // timer only ran while flying and stops at the win, so this is
+            // launch to the end ramp's lip), or a failed one; the patrol
+            // catching up is the runner's arrest.
             PlayerStats.RecordRunEnded(outcome == RunOutcome.Escaped, settings.timeLimitSeconds - TimeRemaining);
             if (outcome == RunOutcome.Caught) PlayerStats.RecordArrest();
             PlayerProfileStore.SaveIfDirty();
@@ -373,11 +611,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         /// <summary>
-        /// The win's wind-down, on unscaled time: wait for the ship to be
-        /// back on the track surface (a jump, a loop, a loop fall or a tube
-        /// plays out first — and a ramp it is already committed to is taken,
-        /// not frozen on), plant the camera and let the ship fly on out of
-        /// the shot for <c>winCameraHoldSeconds</c>, ramp the glitch from
+        /// The win's wind-down, on unscaled time, started the step the ship
+        /// leaves an end ramp (it is already in its escape flight, off the
+        /// track for good): plant the camera at the lip and let the ship fly
+        /// on out of the shot for <c>winCameraHoldSeconds</c>, ramp the glitch from
         /// wherever it is to max over
         /// <c>winGlitchRampSeconds</c>, hold it <c>winGlitchHoldSeconds</c>,
         /// then end the run — which opens the panel behind the full glitch,
@@ -387,9 +624,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         IEnumerator FinishWin()
         {
-            while (motor != null && (motor.State != ShipState.Grounded || motor.CurrentRamp != null))
-                yield return null;
-
             // The exclamation mark: MISSION ACCOMPLISHED slams in letter by
             // letter over the shot below, holds through the fly-past, and is
             // torn apart with the picture once the glitch starts to ramp.
@@ -409,6 +643,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // disarm it so it cannot cut back out from under this one.
                 loopCinematic = false;
                 loopCinematicHoldLeft = -1f;
+                fallCameraLeft = -1f;
                 cameraRig.SetCinematic(true); // a no-op if that loop shot is already live
                 // The shot can refuse — the camera asset's Cinematic toggle kills
                 // it per vehicle. Without a planted camera there is nothing to
@@ -479,11 +714,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         /// <summary>
-        /// The retry panel on the shared screen: GAME OVER, the reason this
-        /// run ended, then RETRY (runs the track again, in place — no load)
-        /// and EXIT TO MAIN MENU (under the loading curtain). It is the same
-        /// screen the city chase raises, so both games answer death the same
-        /// way; the city's has no reason line.
+        /// The retry panel on the shared screen, raised once the MISSION
+        /// FAILED banner has torn away: MISSION FAILED, the reason this run
+        /// ended, then RETRY? — YES runs the track again, in place (no load),
+        /// NO goes to the main menu under the loading curtain. It is the same
+        /// screen the city chase raises; the city's has no reason line and
+        /// keeps its GAME OVER title.
         /// </summary>
         void ShowGameOver(RunOutcome outcome)
         {
@@ -491,9 +727,46 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             {
                 RunOutcome.Caught => MenuTextId.LoseCaught,
                 RunOutcome.TimedOut => MenuTextId.LoseTimeOut,
+                RunOutcome.MissedRamp => MenuTextId.LoseMissedRamp,
+                // The speed goal is the one the HUD is about; any other goal
+                // left open gets the general line.
+                RunOutcome.TooSlow => SpeedGoalOpen ? MenuTextId.LoseTooSlow : MenuTextId.LoseObjectivesIncomplete,
+                RunOutcome.Destroyed => MenuTextId.LoseDestroyed,
                 _ => MenuTextId.LoseStalled
             };
-            GameOverScreen.Show(reason, onRetry: Restart, onGiveUp: LoadingScreen.LoadMainMenu);
+
+            // The last life lost: no retry. The mission is forfeited HERE, not
+            // on the button — quitting on the screen must not dodge it: the
+            // wallet goes back to what it was when the mission began and the
+            // city clear is dropped, so the Store's START MISSION replays the
+            // city. Any button then leads back to the Store.
+            if (isGameOver)
+            {
+                PlayerStats.ForfeitMission(walletAtMissionStart);
+                GameOverScreen.ShowFinal(reason, onContinue: () =>
+                {
+                    MissionSession.Clear();
+                    LoadingScreen.Load(StoreSettings.SceneName);
+                });
+                return;
+            }
+
+            GameOverScreen.Show(reason, onRetry: Restart, onGiveUp: LoadingScreen.LoadMainMenu,
+                                titleId: MenuTextId.MissionFailed);
+        }
+
+        // True when what kept the run from its objectives is Light Speed itself.
+        bool SpeedGoalOpen
+        {
+            get
+            {
+                if (level == null || level.Count == 0) return true;
+                for (int i = 0; i < level.Count; i++)
+                    if (level.objectives[i] != null && level.objectives[i].type == RunnerObjectiveType.ReachSpeed
+                        && !IsObjectiveDone(i))
+                        return true;
+                return false;
+            }
         }
 
         /// <summary>
@@ -581,7 +854,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // Story beat: hype line every time the rare orb tier is grabbed.
         void OnPadCollected(SpeedPad pad, IShip collector)
         {
-            if (motor == null || !motor.Is(collector) || RunOver) return;
+            if (motor == null || !motor.Is(collector) || RunOver || IsEnding) return;
             PlayerStats.RecordPad(pad.SpeedDelta > 0f); // positive = power-up, negative = slow-down
             if (!string.IsNullOrEmpty(settings.messageOrbTierName) && pad.TierName == settings.messageOrbTierName)
                 RpgMessageSystem.Instance.ShowMessage(
@@ -593,7 +866,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // and the rumble already show it cutting in).
         void OnPatrolRedeployed(int patrolNumber)
         {
-            if (RunOver || !settings.showPatrolAlert) return;
+            if (RunOver || IsEnding || !settings.showPatrolAlert) return;
             RpgMessageSystem.Instance.ShowMessage(
                 "PATROL", string.Format(settings.patrolInboundMessage, patrolNumber),
                 settings.messageHoldSeconds, settings.patrolMessageColor);
@@ -603,7 +876,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // and never queued behind a line already up (a stale gap would lie).
         void OnPatrolWarned(float gap)
         {
-            if (RunOver || !settings.showPatrolWarnings || RpgMessageSystem.Instance.IsBusy) return;
+            if (RunOver || IsEnding || !settings.showPatrolWarnings || RpgMessageSystem.Instance.IsBusy) return;
             RpgMessageSystem.Instance.ShowMessage(
                 "PATROL", string.Format(settings.patrolWarningMessage, Mathf.RoundToInt(gap)),
                 settings.messageHoldSeconds, settings.patrolMessageColor);
@@ -780,6 +1053,23 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 GlitchController.Instance.Pulse(settings.dashWallGlitchStrength);
         }
 
+        // Through a laser beam: a fall's worth of hull (ShipHealth — the blink
+        // shields it, and then nothing plays) and the heaviest rumble short
+        // of the explosion's. The hull's own Damaged handler adds the glitch.
+        void OnLaserHit(LaserGate gate, ShipMotor hitMotor)
+        {
+            if (hitMotor != motor || IsEnding || RunOver) return;
+            bool hullOn = settings.hullEnabled && shipHealth != null;
+            if (hullOn && !shipHealth.ApplyLaserHit()) return;
+
+            HapticsSystem.Instance.Pulse(1f, 0.7f, 0.8f);
+            CameraShake.Shake(settings.laserHitShake);
+            var shipAudio = motor.GetComponent<ShipAudio>();
+            if (shipAudio != null) shipAudio.PlayLaserHit();
+            if (!hullOn && GlitchController.Instance != null)
+                GlitchController.Instance.Pulse(settings.hullHitGlitchStrength);
+        }
+
         void OnDestroy()
         {
             if (motor != null)
@@ -788,6 +1078,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.WallHit -= OnWallHit;
                 motor.Sliding -= OnSliding;
                 motor.FellOff -= OnFellOff;
+                motor.ReachedTrackEnd -= OnReachedTrackEnd;
                 motor.RespawnStarted -= OnRespawnStarted;
                 motor.Respawned -= OnRespawned;
                 motor.DashPerformed -= OnDashPerformed;
@@ -803,6 +1094,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol.Warned -= OnPatrolWarned;
             }
             SpeedPad.Collected -= OnPadCollected;
+            LaserGate.Hit -= OnLaserHit;
+            if (shipHealth != null)
+            {
+                shipHealth.Damaged -= OnHullDamaged;
+                shipHealth.Destroyed -= OnShipDestroyed;
+            }
         }
 
         /// <summary>Resets the run; rebuilds the track (endless runs must — the stretch behind the start was culled).</summary>
@@ -818,6 +1115,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // A retry from the panel: the wind-down is over, but a RETRY pressed
             // while a glitch is still decaying must start on a clean picture.
             if (winRoutine != null) { StopCoroutine(winRoutine); winRoutine = null; }
+            if (failRoutine != null) { StopCoroutine(failRoutine); failRoutine = null; }
             KillBanner(); // a retry mid-beat must not leave the word over the new run
             RestoreGlitchFade();
             if (GlitchController.Instance != null) GlitchController.Instance.SetBaseIntensity(0f);
@@ -832,11 +1130,24 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 cameraRig.hasPlayerControl = true;
             }
 
+            bool wasWon = HasWon;
             RunOver = false;
             HasWon = false;
+            ObjectivesMet = false;
             runCounted = false;
             TimeRemaining = settings.timeLimitSeconds;
             ResetObjectives();
+            // A fresh hull and the ship back on screen; the LIVES are the
+            // mission's and carry over. A retry after a WIN is another go at a
+            // mission already paid: a new set, and the payout is now part of
+            // what a GAME OVER hands back.
+            if (wasWon)
+            {
+                LivesLeft = settings.startingLives;
+                walletAtMissionStart = PlayerStats.Balance;
+            }
+            isGameOver = false;
+            if (shipHealth != null) shipHealth.ResetForRun();
             // This run's money counter goes back to $0; what was picked up is
             // already banked in the profile.
             CollectibleManager collectibles = CollectibleManager.Instance;

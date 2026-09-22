@@ -129,6 +129,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Scene the panel's NEXT MISSION loads (through the loading curtain).")]
         public string nextSceneName = "CarTest";
 
+        [TitleGroup("Level")]
+        [Tooltip("Length of this run's track, metres: the three end ramps stand at about this distance (the generator lands the last knot as close as its segments allow). 0 = GameSettings.trackLengthMeters.")]
+        [PropertyRange(0f, 100000f), SuffixLabel("m", true)]
+        public float trackLengthMeters = 0f;
+
         [TitleGroup("Mission complete")]
         [Tooltip("Clip looping in the panel's video holder. Empty = the holder shows a dead NO SIGNAL screen.")]
         public VideoClip completeVideo;

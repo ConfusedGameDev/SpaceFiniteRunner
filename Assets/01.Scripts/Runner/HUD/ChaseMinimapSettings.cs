@@ -4,7 +4,8 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.HUD
 {
     /// <summary>
-    /// Look of the right-edge chase gauge. All minimap look tunables live on
+    /// Look of the right-edge track map (ship climbing the track, the patrol
+    /// hanging under it on the zoomed <see cref="chaseSpan"/> scale). All minimap look tunables live on
     /// this asset — add new knobs here, not on the ChaseMinimap component.
     /// Field defaults mirror the original hardcoded values, so a missing
     /// asset degrades to the classic look.
@@ -25,6 +26,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [PropertyRange(8f, 64f)] public float shipIconSize = 24f;
         [PropertyRange(8f, 64f)] public float policeIconSize = 20f;
         [PropertyRange(10, 64)] public int fontSize = 28;
+        [Tooltip("Pixels under the ship that stand for the full minimap range (GameSettings.minimapRangeMeters) — the patrol's zoomed gap scale. At track scale the gap would be a pixel or two.")]
+        [PropertyRange(20f, 300f)] public float chaseSpan = 120f;
 
         [TitleGroup("Behaviour")]
         [Tooltip("Seconds between red/blue flips — same cadence as the patrol light bar.")]

@@ -29,3 +29,7 @@ MonoBehaviour:
   dashVolume: 0.8
   barrelRollClip: {fileID: 8300000, guid: 617e603137ae0154a8a4c461727d5b7f, type: 3}
   barrelRollVolume: 0.8
+  explosionClip: {fileID: 0}
+  explosionVolume: 1
+  laserHitClip: {fileID: 8300000, guid: d436ac17ba607df4c8ec6136afd46e45, type: 3}
+  laserHitVolume: 1
