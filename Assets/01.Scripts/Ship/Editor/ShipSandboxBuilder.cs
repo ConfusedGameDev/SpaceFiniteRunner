@@ -197,6 +197,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             if (ship.GetComponent<RespawnBlink>() == null) { ship.AddComponent<RespawnBlink>(); added = true; }
             if (ship.GetComponent<ShipRecovery>() == null) { ship.AddComponent<ShipRecovery>(); added = true; }
             if (ship.GetComponent<ShipPickupSweeper>() == null) { ship.AddComponent<ShipPickupSweeper>(); added = true; }
+            if (ship.GetComponent<ShipDashGhosts>() == null) { ship.AddComponent<ShipDashGhosts>(); added = true; }
             return added;
         }
 

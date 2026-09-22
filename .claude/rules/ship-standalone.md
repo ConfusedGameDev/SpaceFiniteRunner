@@ -446,6 +446,16 @@ wire themselves to the `HoverShip` beside them in `Start`**; the runner's `GameM
 adds them to its `ShipMotor` with `Init` / `Ensure` + `Configure`. `ShipGhostMaterial` is the
 shared translucent fallback (the dash ghosts delegate to it).
 
+**`ShipDashGhosts`** (on the prefab) is the dash's onion-skin trail for a ship with no track. The
+runner's `DashGhostTrail` seats its ghost frame on the track line at lateral 0 so the ghosts ride with
+the ship and only the sideways gap is frozen; with no line the frame is the ship's own pose and each
+ghost holds the ship's SIDEWAYS TRAVEL at its snapshot (the integral of `TotalLateralVelocity`, shove
+included), sitting at (its own − now) across the frame. Ground ghosts every `dashDistance /
+dashGhostCount` metres of travel, the barrel roll's on a time spread; knobs `dashGhostLifetime` /
+`dashGhostStartAlpha` / `dashGhostDriftMeters` in the Feel group (the runner's sync pushes them).
+Verified: the first ghost stays where the dash began while the ship pulls its full carry across, ≤ 2 m
+creep over a life. A ship spun by a crash swings its ghosts round with it — the frame is the ship's.
+
 **`RunnerShipSettingsSync`** (Runner) is how the runner's rules reach components that only
 speak `ShipSettings`: it owns ONE runtime `ShipSettings` per run and **re-pushes the
 `GameSettings` values into it every frame** (the FALL & RESPAWN debug page edits that asset

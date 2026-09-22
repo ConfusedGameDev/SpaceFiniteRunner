@@ -250,6 +250,21 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public Material ghostMaterial;
 
         [TitleGroup("Feel")]
+        [Tooltip("How long a dash ghost lives.")]
+        [PropertyRange(0.05f, 2f), SuffixLabel("s", true)]
+        public float dashGhostLifetime = 0.35f;
+
+        [TitleGroup("Feel")]
+        [Tooltip("A dash ghost's alpha when dropped; it fades to zero from there.")]
+        [PropertyRange(0f, 1f)]
+        public float dashGhostStartAlpha = 0.45f;
+
+        [TitleGroup("Feel")]
+        [Tooltip("How far a ghost slides back behind the ship over its life. 0 = a pure staircase.")]
+        [PropertyRange(0f, 30f), SuffixLabel("m", true)]
+        public float dashGhostDriftMeters = 0f;
+
+        [TitleGroup("Feel")]
         [Tooltip("Blinks per second while the ship waits to relaunch after a fall.")]
         [PropertyRange(1f, 20f), SuffixLabel("Hz", true)]
         public float respawnBlinkRate = 8f;

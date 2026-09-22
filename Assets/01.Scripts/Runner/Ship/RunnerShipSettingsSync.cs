@@ -51,6 +51,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Settings.stallGraceSeconds = source.stallGraceSeconds;
             Settings.wallHitCooldownSeconds = source.dashWallHitCooldownSeconds;
             Settings.ghostMaterial = source.dashGhostMaterial;
+            Settings.dashGhostLifetime = source.dashGhostLifetime;
+            Settings.dashGhostStartAlpha = source.dashGhostStartAlpha;
+            Settings.dashGhostDriftMeters = source.dashGhostDriftMeters;
             Settings.respawnBlinkRate = source.respawnBlinkRate;
             Settings.barrelRollTrailSeconds = source.barrelRollTrailSeconds;
             Settings.barrelRollTrailWidth = source.barrelRollTrailWidth;
