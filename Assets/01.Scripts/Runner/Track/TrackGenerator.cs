@@ -1745,7 +1745,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
 
             pad.name = $"{entry.name}{def.displayName}Pad_{distance:00000}";
-            var speedPad = pad.AddComponent<SpeedPad>();
+            // The prefabs carry a SpeedPad of their own (so they work dropped into any level); a second one would take twice.
+            var speedPad = pad.GetComponent<SpeedPad>();
+            if (speedPad == null) speedPad = pad.AddComponent<SpeedPad>();
             // Its pickup volume, in track space: an orb is a ball of its own
             // size, a flat pad the whole slab (and as tall as the ship, so a
             // grounded ship always reads as on it). The air lane lifts both.

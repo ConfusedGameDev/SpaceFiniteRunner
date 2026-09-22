@@ -53,7 +53,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public float TrackLateral => trackLateral + (hover != null ? hover.SwayOffset : 0f);
         public float TrackHeight => trackHeight;
         public Vector3 TrackHalfExtents => trackHalfExtents;
-        public bool Available => placed && !taken && definition != null;
+        // A pad is there to be taken whether or not a track placed it: dropped into any level by hand it has its
+        // collider for the standalone ship's sweep; only the analytic registry (the track-space patrol) needs the spot.
+        public bool Available => !taken && definition != null;
 
         /// <summary>A floating orb that speeds a ship up — what the patrol goes after.</summary>
         public bool IsBoostOrb => definition != null && definition.floatingOrb && SpeedDelta > 0f;
