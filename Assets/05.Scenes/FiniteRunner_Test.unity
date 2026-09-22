@@ -3426,6 +3426,9 @@ GameObject:
   - component: {fileID: 1092581446}
   - component: {fileID: 1092581445}
   - component: {fileID: 1092581447}
+  - component: {fileID: 1092581450}
+  - component: {fileID: 1092581449}
+  - component: {fileID: 1092581448}
   m_Layer: 0
   m_Name: Ship
   m_TagString: Untagged
@@ -3538,6 +3541,46 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d222238d62d6d44909782968e5352e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Ship.DashGhostTrail
+--- !u!114 &1092581448
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1092581441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50804aa76b3e3544ebf0ce0dabc09f5b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Ship::ConfusedGameDev.FiniteRunner.Ship.ShipPickupSweeper
+--- !u!114 &1092581449
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1092581441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ec85f9de8d780a4ebd636cadd7401e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Ship::ConfusedGameDev.FiniteRunner.Ship.ShipRecovery
+--- !u!114 &1092581450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1092581441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5fc1fc672232a540904b346d9975db1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Ship::ConfusedGameDev.FiniteRunner.Ship.HoverShip
+  definition: {fileID: 11400000, guid: 408f48fcd34734649aeb7a97c35ffb43, type: 2}
+  settings: {fileID: 11400000, guid: 57d64fda05521a1479ede5f857430e55, type: 2}
+  visual: {fileID: 978908467}
+  launchOnStart: 0
 --- !u!1 &1099183894
 GameObject:
   m_ObjectHideFlags: 0
@@ -4687,6 +4730,8 @@ GameObject:
   - component: {fileID: 1402584888}
   - component: {fileID: 1402584891}
   - component: {fileID: 1402584892}
+  - component: {fileID: 1402584894}
+  - component: {fileID: 1402584893}
   m_Layer: 0
   m_Name: Track
   m_TagString: Untagged
@@ -5032,6 +5077,43 @@ MonoBehaviour:
   openEdgeMarkerSize: {x: 1.5, y: 0.6}
   openEdgeMaterial: {fileID: 0}
   tubeStripWidth: 25
+--- !u!114 &1402584893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1402584887}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31b830759aab269448ef48ad279fbf7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.TrackGuide
+  track: {fileID: 1402584888}
+  assist: 0.18
+  captureRange: 400
+  acquireScanMeters: 4000
+--- !u!114 &1402584894
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1402584887}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95253fa43b6b58743b740400e6a8d7ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.TrackColliderBuilder
+  track: {fileID: 1402584888}
+  generator: {fileID: 1402584891}
+  surfaceSink: 3.5
+  wallHeight: 14
+  chunkLength: 120
+  sampleSpacing: 4
+  flatColumns: 4
+  curledQuadWidth: 10
+  showMeshes: 0
 --- !u!1001 &1498004090
 PrefabInstance:
   m_ObjectHideFlags: 0

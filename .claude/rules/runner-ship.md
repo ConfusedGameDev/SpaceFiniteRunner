@@ -18,6 +18,17 @@ paths:
 
 ## `ShipMotor`
 
+**Since the M9 cutover the motor no longer simulates the runner's ship: `FiniteRunner_Test`
+carries a `HoverShip` on the Ship object, which puts the motor in PHYSICS MODE**
+(`ShipMotor.Physics.cs`, documented in `ship-standalone.md`): the standalone ship flies the
+streamed track colliders, the motor mirrors its guide coordinates into its `TrackBody` every tick
+and adds the runner's rules (loop gate and drop, ramp boost and side hit, tube return, the track's
+end, laser gates), and everything below that reads the motor — `GameManager`, the HUD, the patrol,
+the ghost trail — is unchanged. `TrackBody` stays: the patrol drives one and the motor mirrors
+into one. **The track-space simulation described in the rest of this section is what the motor
+does WITHOUT a `HoverShip` beside it** — take the component off and the scene flies the old way.
+It is kept as that fallback and as the patrol's model; retiring it is a separate cleanup.
+
 The simulation. Applies the launch impulse, the throttle speed model (below), queued pad
 impulses (blended in at the ship's `acceleration` rate) and lateral steering clamped to
 `TrackManager.HalfWidth`. Tracks `DistanceTravelled` and remaps it to spline t each frame. Exposes a `PadImpulse` event and a `Paused` flag (used by the tuning

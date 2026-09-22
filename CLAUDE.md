@@ -83,8 +83,11 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 ## Repo map
 
 All game code is in **`Assets/01.Scripts/`**, namespace root `ConfusedGameDev.FiniteRunner`,
-split into asmdefs: `Runner`, `PoliceEscape`, `UI`, `FX`, `Cheats`, `Debugging`, `Haptics`,
-`Rendering`, `Cameras`, `SaveData`, `Campaign`, plus `Runner/Editor` and `PoliceEscape/Editor`.
+split into asmdefs: `Runner`, `PoliceEscape`, `Ship`, `UI`, `FX`, `Cheats`, `Debugging`, `Haptics`,
+`Rendering`, `Cameras`, `SaveData`, `Campaign`, plus `Runner/Editor`, `Ship/Editor` and
+`PoliceEscape/Editor`. `Ship` (`Assets/01.Scripts/Ship/`) is the standalone hover ship — a prefab
+that flies any collider surface, with an optional guide spline; `Runner` references it and puts the
+runner's rules on top. See `ship-standalone.md`.
 
 | Path | Holds |
 |---|---|
@@ -132,8 +135,13 @@ These hold everywhere. Break one and something else quietly stops working.
 - **Every scene trip goes through `LoadingScreen`** — except the city→runner completion
   handoff, which is its own additive transition.
 - Speeds are stored in **m/s**; UI converts with `* 3.6f`.
-- The runner is **spline-based, not physics-based**. The ship is kinematic; at Light Speed it
-  covers ~36 m per physics step, so detection is analytic, never a moving trigger volume.
+- **The ship is a kinematic, cast-based surface follower, never a dynamic rigidbody.** At Light
+  Speed it covers ~36 m per physics step, so every tick is split into ≤ 4 m substeps, the world is
+  read through PhysX QUERIES (sphere casts, probe rays, box casts along the substep path), and
+  nothing is ever detected by a moving trigger volume. The runner's track is colliders streamed
+  from the same pose function the old track-space ship rode (`TrackColliderBuilder`) plus a guide
+  (`TrackGuide`); `ShipMotor` in physics mode mirrors the ship back into track coordinates for
+  everything that reads them. Laser gates stay analytic (no colliders).
 - **Distance from the track start is the authoritative coordinate**, not spline `t`.
 
 ## Conventions
@@ -167,7 +175,8 @@ Loaded automatically by path. Listed here so you know what exists.
 | Rule | Covers |
 |---|---|
 | `runner-track.md` | `TrackManager`, sections, `TrackGenerator` streaming, features, pads/orbs, decorator |
-| `runner-ship.md` | `ShipMotor` sim + jumps/loops/tubes, `GameManager`, `PolicePatrol`, tuning |
+| `runner-ship.md` | `ShipMotor` (physics mode + the legacy track-space sim), `GameManager`, `PolicePatrol`, tuning |
+| `ship-standalone.md` | The `Ship` assembly: `HoverBody`, guides, recovery, pickups, prefab rig, the physics runner |
 | `runner-hud-screens.md` | `RaceHud`, `GameOverScreen`, `MissionCompleteScreen` |
 | `runner-store.md` | Store scene, upgrade definitions, appliers |
 | `campaign.md` | Mission catalog, `MissionSession`, frontier/unlock rules, MISSIONS map, Coming Soon, build-settings registrar |

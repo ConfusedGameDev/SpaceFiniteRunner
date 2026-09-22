@@ -107,11 +107,11 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 return;
             }
 
-            Tuning.Clear(); // nothing to carry over: the scene keeps whatever its components already hold
+            CaptureTuning(); // the copy is where the tuning was done: it comes across to the real scene
             WireShip(motor, LoadOrCreateSettings());
             WireTrack(track, generator);
             EditorSceneManager.MarkSceneDirty(scene);
-            Debug.Log($"PhysicsRunnerSceneBuilder: {scene.name} now flies the physics ship. Not saved — check it, then save.", motor);
+            Debug.Log($"PhysicsRunnerSceneBuilder: {scene.name} now flies the physics ship (tuning carried over from {ScenePath}). Not saved — check it, then save.", motor);
         }
 
         // The HoverShip goes on the SAME object as the motor: that is what puts the motor in physics mode.
