@@ -8,9 +8,9 @@ using ConfusedGameDev.FiniteRunner.Track.Features;
 namespace ConfusedGameDev.FiniteRunner.Ship
 {
     /// <summary>
-    /// <b>Physics mode.</b> With a <see cref="HoverShip"/> on the same object
-    /// the motor stops simulating and becomes what the runner SEES of the
-    /// standalone ship: every tick it reads where that ship is on the track
+    /// <b>The runner's rules over the standalone ship.</b> The <see cref="HoverShip"/>
+    /// on the same object (required) does the flying; the motor is what the
+    /// runner SEES of it: every tick it reads where that ship is on the track
     /// (the <see cref="TrackGuide"/>'s projection of its world pose) and
     /// mirrors it into its own <see cref="TrackBody"/> — distance, lateral,
     /// height, speed, state — and it forwards the ship's events and commands.
@@ -27,7 +27,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// lip, and the <b>tube return</b> (steering taken over the last stretch
     /// of a pipe so the road never unrolls under a ship hanging off its side).
     /// The flight itself — hover, walls, jumps, falls, pickups — is the
-    /// standalone ship's.
+    /// standalone ship's. (Until the M9 cutover the motor was the runner's
+    /// whole track-space simulation; that code is gone, the <see cref="TrackBody"/>
+    /// it drove lives on as the patrol's model and as the mirror here.)
     /// </summary>
     public partial class ShipMotor
     {

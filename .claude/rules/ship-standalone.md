@@ -401,6 +401,11 @@ With no `HoverShip` beside it the motor is exactly the track-space ship it was.
   carries the motor's two end clauses (end ramps are not ground to clear; never past `EndZoneStart`).
 - The scene builder **keeps hand tuning**: the five wired components' values are read out of the old
   `FiniteRunner_Physics` (EditorJsonUtility) and written onto the fresh copy before the references are re-wired.
+- **M9 cleanup: `ShipMotor` requires the `HoverShip` and has no simulation of its own any more**
+  (818 → 380 lines): the contract (events, properties, `ICameraTarget`, the `ICollector` marker), the
+  mirrored `TrackBody`, the loop / drop / end-of-track state and `StepFall` (escape + terminal fall)
+  for the rules in `ShipMotor.Physics.cs`. `TrackBody` keeps its full step for the patrol. The
+  `FiniteRunner_Physics` copy was deleted (`Create Physics Runner Scene` rebuilds a scratch copy).
 - **M9 cutover (2026-09-22): `FiniteRunner_Test` itself now carries the physics setup**, wired by
   `Tools → FiniteRunner → Ship → Wire Physics Ship Into Open Scene` (in place — the campaign catalog
   and the city's level definitions load the scene by NAME, so it could not be swapped), the tuning
