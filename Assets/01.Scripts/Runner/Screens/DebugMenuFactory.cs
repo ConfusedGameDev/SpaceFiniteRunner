@@ -25,69 +25,60 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         public static MenuScreen BuildCoreSettingsTab(RectTransform parent, MenuTheme theme,
                                                       TrackGenerator generator, TrackDebugSettings saved,
                                                       System.Action reloadScene, System.Action onChanged,
-                                                      int tabIndex, int tabCount)
+                                                      List<System.Action> refreshers, int tabIndex, int tabCount)
         {
             var screen = MenuScreen.Create("Debug_CoreSettings", parent, theme, 0f, ContentTop);
             screen.SetRowMetrics(RowHeight, RowSpacing);
             DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabCore, tabIndex, tabCount);
 
-            screen.AddRow<DebugSliderRow>(MenuTextId.TrackWidth)
-                  .Configure(10f, 120f, 5f, generator.TrackWidth, "0",
-                             v => { generator.TrackWidth = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
-            screen.AddRow<DebugSliderRow>(MenuTextId.Straightness)
-                  .Configure(0f, 100f, 5f, generator.Straightness, "0",
-                             v => { generator.Straightness = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            // Every row reads the generator at call time (never a captured
+            // value): the menu is built in the GameManager's Awake, which can
+            // run before the generator's own Awake stamps the saved debug
+            // values on — the refreshers re-read on every open (AddTrackStat).
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.TrackWidth,
+                         10f, 120f, 5f, "0", g => g.TrackWidth, (g, v) => g.TrackWidth = v);
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.Straightness,
+                         0f, 100f, 5f, "0", g => g.Straightness, (g, v) => g.Straightness = v);
 
             // The finite track's length, metres: 0 = the level's own (or the
             // GameSettings fallback). Needs the reload, like the width.
-            screen.AddRow<DebugSliderRow>(MenuTextId.TrackLength)
-                  .Configure(0f, 100000f, 1000f, Mathf.Max(0f, generator.TrackLengthOverride), "0",
-                             v => { generator.TrackLengthOverride = v > 0f ? v : -1f; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.TrackLength,
+                         0f, 100000f, 1000f, "0", g => Mathf.Max(0f, g.TrackLengthOverride),
+                         (g, v) => g.TrackLengthOverride = v > 0f ? v : -1f);
 
-            // The road's elevation walk (TrackShapeSettings clone). Max grade 0
-            // is the flat track; all of these need the reload the tab offers.
-            var shape = generator.Shape;
-            screen.AddRow<DebugSliderRow>(MenuTextId.ElevationBand)
-                  .Configure(0f, 300f, 10f, shape.elevationBand, "0",
-                             v => { generator.Shape.elevationBand = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
-            screen.AddRow<DebugSliderRow>(MenuTextId.MaxGrade)
-                  .Configure(0f, 20f, 1f, shape.maxGrade, "0",
-                             v => { generator.Shape.maxGrade = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
-            screen.AddRow<DebugSliderRow>(MenuTextId.GradeStep)
-                  .Configure(0f, 10f, 0.5f, shape.maxGradeStepPerKnot, "0.0",
-                             v => { generator.Shape.maxGradeStepPerKnot = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
-            screen.AddRow<DebugSliderRow>(MenuTextId.BaselinePull)
-                  .Configure(0f, 1f, 0.05f, shape.baselinePull, "0.00",
-                             v => { generator.Shape.baselinePull = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            // The road's elevation walk (TrackShapeSettings clone — read live,
+            // Generate swaps in a fresh clone). Max grade 0 is the flat track;
+            // all of these need the reload the tab offers.
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.ElevationBand,
+                         0f, 300f, 10f, "0", g => g.Shape.elevationBand, (g, v) => g.Shape.elevationBand = v);
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.MaxGrade,
+                         0f, 20f, 1f, "0", g => g.Shape.maxGrade, (g, v) => g.Shape.maxGrade = v);
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.GradeStep,
+                         0f, 10f, 0.5f, "0.0", g => g.Shape.maxGradeStepPerKnot, (g, v) => g.Shape.maxGradeStepPerKnot = v);
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.BaselinePull,
+                         0f, 1f, 0.05f, "0.00", g => g.Shape.baselinePull, (g, v) => g.Shape.baselinePull = v);
 
             // Banking into turns (turns come from STRAIGHTNESS above). Max bank 0 = level road.
-            screen.AddRow<DebugSliderRow>(MenuTextId.MaxBank)
-                  .Configure(0f, 89f, 1f, shape.maxBankAngle, "0",
-                             v => { generator.Shape.maxBankAngle = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
-            screen.AddRow<DebugSliderRow>(MenuTextId.BankPerTurn)
-                  .Configure(0f, 10f, 0.5f, shape.bankPerDegreeOfTurn, "0.0",
-                             v => { generator.Shape.bankPerDegreeOfTurn = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
-            screen.AddRow<DebugSliderRow>(MenuTextId.BankStep)
-                  .Configure(0f, 90f, 5f, shape.maxBankStepPerKnot, "0",
-                             v => { generator.Shape.maxBankStepPerKnot = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
-            screen.AddRow<DebugSliderRow>(MenuTextId.LevelLead)
-                  .Configure(0f, 3000f, 50f, shape.levelLeadDistance, "0",
-                             v => { generator.Shape.levelLeadDistance = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.MaxBank,
+                         0f, 89f, 1f, "0", g => g.Shape.maxBankAngle, (g, v) => g.Shape.maxBankAngle = v);
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.BankPerTurn,
+                         0f, 10f, 0.5f, "0.0", g => g.Shape.bankPerDegreeOfTurn, (g, v) => g.Shape.bankPerDegreeOfTurn = v);
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.BankStep,
+                         0f, 90f, 5f, "0", g => g.Shape.maxBankStepPerKnot, (g, v) => g.Shape.maxBankStepPerKnot = v);
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.LevelLead,
+                         0f, 3000f, 50f, "0", g => g.Shape.levelLeadDistance, (g, v) => g.Shape.levelLeadDistance = v);
 
             // Where the road can kill: the share of sweeps laid flat (grip
             // tested, outer wall gone) and of straight runs with no walls.
-            screen.AddRow<DebugSliderRow>(MenuTextId.UnbankedSweeps)
-                  .Configure(0f, 100f, 5f, shape.unbankedSweepChance * 100f, "0",
-                             v => { generator.Shape.unbankedSweepChance = v / 100f; saved.CaptureFrom(generator); onChanged?.Invoke(); });
-            screen.AddRow<DebugSliderRow>(MenuTextId.OpenStraights)
-                  .Configure(0f, 100f, 5f, shape.openStraightChance * 100f, "0",
-                             v => { generator.Shape.openStraightChance = v / 100f; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.UnbankedSweeps,
+                         0f, 100f, 5f, "0", g => g.Shape.unbankedSweepChance * 100f, (g, v) => g.Shape.unbankedSweepChance = v / 100f);
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.OpenStraights,
+                         0f, 100f, 5f, "0", g => g.Shape.openStraightChance * 100f, (g, v) => g.Shape.openStraightChance = v / 100f);
 
             // Laser gates: a multiplier on the authored spacing (0 = none).
             // Live — it only changes the gates still to be streamed.
-            screen.AddRow<DebugSliderRow>(MenuTextId.LaserDensity)
-                  .Configure(0f, 5f, 0.25f, generator.LaserDensity, "0.00",
-                             v => { generator.LaserDensity = v; saved.CaptureFrom(generator); onChanged?.Invoke(); });
+            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.LaserDensity,
+                         0f, 5f, 0.25f, "0.00", g => g.LaserDensity, (g, v) => g.LaserDensity = v);
 
             // One color-tinted percentage slider per spawn entry. Adjusting one
             // rebalances the others live, so the on-screen table always adds
@@ -109,6 +100,11 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                     });
                     row.SetLabelTint(entry.color);
                     probabilityRows.Add(row);
+                    refreshers?.Add(() =>
+                    {
+                        var live = generator.SpawnTable;
+                        if (live != null && index < live.Length) row.SetWithoutNotify(live[index].probability);
+                    });
                 }
             }
 
@@ -124,7 +120,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         /// </summary>
         public static MenuScreen BuildMultipliersTab(RectTransform parent, MenuTheme theme,
                                                      TrackGenerator generator, TrackDebugSettings saved,
-                                                     System.Action onChanged, int tabIndex, int tabCount)
+                                                     System.Action onChanged, List<System.Action> refreshers,
+                                                     int tabIndex, int tabCount)
         {
             var screen = MenuScreen.Create("Debug_Multipliers", parent, theme, 0f, ContentTop);
             screen.SetRowMetrics(RowHeight, RowSpacing);
@@ -133,9 +130,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             var table = generator.SpawnTable;
             if (table != null)
             {
-                foreach (var entry in table)
+                for (int i = 0; i < table.Length; i++)
                 {
-                    var captured = entry;
+                    int index = i;
+                    var captured = table[i];
                     var row = screen.AddRow<DebugSliderRow>($"{captured.name.ToUpperInvariant()} ×");
                     row.Configure(0.1f, 10f, 0.1f, Mathf.Clamp(captured.multiplier, 0.1f, 10f), "0.0", v =>
                     {
@@ -144,6 +142,14 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                         onChanged?.Invoke();
                     });
                     row.SetLabelTint(captured.color);
+                    // Same rule as the Core tab: re-read on open, the saved
+                    // values may land after the menu was built.
+                    refreshers?.Add(() =>
+                    {
+                        var live = generator.SpawnTable;
+                        if (live != null && index < live.Length)
+                            row.SetWithoutNotify(Mathf.Clamp(live[index].multiplier, 0.1f, 10f));
+                    });
                 }
             }
 
@@ -511,6 +517,26 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         // One localized slider row bound to a ShipDefinition stat. The lambdas
         // read motor.Definition at call time (never a captured reference), so
         // they always hit whichever clone is currently driving the ship.
+        // One localized slider row bound to a TrackGenerator knob. Reads the
+        // generator at call time and re-reads on every menu open: the menu is
+        // built in the GameManager's Awake, which may run before the
+        // generator's Awake has applied the saved TrackDebugSettings.
+        static void AddTrackStat(MenuScreen screen, TrackGenerator generator, TrackDebugSettings saved,
+                                 System.Action onChanged, List<System.Action> refreshers, MenuTextId label,
+                                 float min, float max, float step, string format,
+                                 System.Func<TrackGenerator, float> get,
+                                 System.Action<TrackGenerator, float> set)
+        {
+            var row = screen.AddRow<DebugSliderRow>(label);
+            row.Configure(min, max, step, get(generator), format, v =>
+            {
+                set(generator, v);
+                saved.CaptureFrom(generator);
+                onChanged?.Invoke();
+            });
+            refreshers?.Add(() => row.SetWithoutNotify(get(generator)));
+        }
+
         static void AddShipStat(MenuScreen screen, ShipMotor motor, ShipDebugSettings saved,
                                 System.Action onChanged, List<System.Action> refreshers, MenuTextId label,
                                 float min, float max, float step, string format,

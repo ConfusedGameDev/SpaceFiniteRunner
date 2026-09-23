@@ -223,8 +223,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             confirmReloadScreen.HideImmediate();
             logScreen?.HideImmediate();
             debugMenu?.HideAllImmediate();
-            // The ship sliders were built before the tuning screen swapped in
-            // its runtime clone — re-read the live values on every open.
+            // Every debug slider was built in the GameManager's Awake, before
+            // the tuning clone, the generator's Awake and the saved debug
+            // values landed — re-read the live values on every open.
             foreach (var refresh in debugRefreshers) refresh();
             refreshLog?.Invoke(); // the vehicle list grows between pauses: rebuild the rows from the profile
             current = pauseScreen;
@@ -517,9 +518,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             {
                 debugSettings = TrackDebugSettings.Load();
                 debugMenu.AddTab(DebugMenuFactory.BuildCoreSettingsTab(
-                    panelRect, theme, generator, debugSettings, ReloadScene, changed, tab++, tabCount));
+                    panelRect, theme, generator, debugSettings, ReloadScene, changed, debugRefreshers, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildMultipliersTab(
-                    panelRect, theme, generator, debugSettings, changed, tab++, tabCount));
+                    panelRect, theme, generator, debugSettings, changed, debugRefreshers, tab++, tabCount));
                 featureDebugSettings = Track.Features.FeatureDebugSettings.Load();
                 debugMenu.AddTab(DebugMenuFactory.BuildFeaturesTab(
                     panelRect, theme, generator, featureDebugSettings, changed, debugRefreshers, tab++, tabCount));
