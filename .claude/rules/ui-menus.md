@@ -203,8 +203,10 @@ developer pages in `Scripts/UI/DebugMenu.cs`: each tab is a normal compact-row `
 - **Patrol** (only when the GameManager's patrol is initialized) edits the patrol's live
   `PatrolDefinition` clone.
 
-Slider rows re-read the live values every time the menu opens, because the tuning clone lands after
-the menu is built.
+Every slider row re-reads its live value every time the menu opens (the `debugRefreshers` list the
+tab builders fill): the menu is built in the GameManager's Awake, before the tuning clone, the
+generator's own Awake and the saved debug assets have landed, so a row configured at build time
+would show the authored value over the applied one. A new slider row registers a refresher.
 
 **Persistence**: track changes → `TrackDebugSettings` (`Data/Resources/FiniteRunner_TrackDebug.asset`),
 ship → `ShipDebugSettings` (`Data/Resources/FiniteRunner_ShipDebug.asset`, applied on top of the

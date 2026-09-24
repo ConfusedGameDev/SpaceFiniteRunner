@@ -5063,20 +5063,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.TrackDecorator
   track: {fileID: 1402584888}
   decorParent: {fileID: 1907718398}
-  roadPrefab: {fileID: 919132149155446097, guid: 58d1ae75fe75f4e40974a15be5b871d2, type: 3}
-  roadScale: {x: 40, y: 10, z: 60}
+  roadPrefab: {fileID: 2326664019824217164, guid: fd70bf65576488f4ba20273062cb4537, type: 3}
+  roadScale: {x: 0.40342915, y: 0.543183, z: 0.543183}
   roadSpacing: 19
   roadYaw: 90
-  roadMaterialOverride: {fileID: 2100000, guid: 2c0e4ab812f8f4ee7aa77d83aea2cf4d, type: 2}
-  roadYOffset: -1.2
+  roadMaterialOverride: {fileID: 2100000, guid: 091e24f2f1fe5af4e8f337fe7592e0c2, type: 2}
+  roadYOffset: -1
   barrierPrefab: {fileID: 919132149155446097, guid: e3ba0439ebb6246a5b0b3d1682c8a554, type: 3}
   barrierScale: {x: 20, y: 25, z: 60}
+  barrierMaterialOverride: {fileID: 2100000, guid: 8c105df17ef01754a8c959cb19486bbf, type: 2}
   barrierLateral: 0
   oneSidedBarrierPrefab: {fileID: 0}
   placeholderWallSize: {x: 2, y: 12}
+  placeholderWallMaterial: {fileID: 2100000, guid: 04ea326902e63c14fa72e5f5e1515522, type: 2}
   openEdgeMarkerSize: {x: 1.5, y: 0.6}
-  openEdgeMaterial: {fileID: 0}
+  openEdgeMaterial: {fileID: 2100000, guid: 127e19fb397b4c34382d47986e7f9922, type: 2}
   tubeStripWidth: 25
+  tubeRoadPrefab: {fileID: 919132149155446097, guid: 58d1ae75fe75f4e40974a15be5b871d2, type: 3}
+  tubeRoadScale: {x: 40, y: 10, z: 60}
+  tubeMaterialOverride: {fileID: 2100000, guid: 38ea9ed7e7d02c943b6036dbad36d556, type: 2}
 --- !u!114 &1402584893
 MonoBehaviour:
   m_ObjectHideFlags: 0

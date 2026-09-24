@@ -45,6 +45,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Header("Side barriers")]
         [SerializeField] GameObject barrierPrefab;
         [SerializeField] Vector3 barrierScale = new(4f, 25f, 20f);
+        [Tooltip("Material for the barrier pieces (full-width and one-sided) and the placeholder wall. Empty = the road override. The NeonRoad shader reads the piece's MESH extents, so a kit piece with a different mesh needs its own material.")]
+        [SerializeField] Material barrierMaterialOverride;
         [Tooltip("Lateral distance of the barrier strip from the track center.")]
         [SerializeField] float barrierLateral = 30.5f;
 
@@ -53,14 +55,22 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [SerializeField] GameObject oneSidedBarrierPrefab;
         [Tooltip("Placeholder wall: thickness and height, metres.")]
         [SerializeField] Vector2 placeholderWallSize = new(2f, 12f);
+        [Tooltip("Material of the placeholder wall (a unit cube: local Y is its height). Empty = the barrier material, then the road override.")]
+        [SerializeField] Material placeholderWallMaterial;
         [Tooltip("Marker strip along an open edge: width and height, metres. 0 width = none.")]
         [SerializeField] Vector2 openEdgeMarkerSize = new(1.5f, 0.6f);
         [Tooltip("Material of the open-edge marker (a hot emissive reads best). Empty = the road material.")]
         [SerializeField] Material openEdgeMaterial;
 
         [Header("Tubes")]
-        [Tooltip("Target width of one road strip round a tube section, metres of arc. The band is cut into equal strips no wider than this, each an ordinary road piece scaled to the strip.")]
+        [Tooltip("Target width of one road strip round a tube section, metres of arc. The band is cut into equal strips no wider than this, each a tube road piece scaled to the strip.")]
         [SerializeField, Min(2f)] float tubeStripWidth = 25f;
+        [Tooltip("The piece a tube strip is made of. Empty = the road piece. A profiled slab (banked shoulders) makes a ribbed pipe: give tubes a flat piece.")]
+        [SerializeField] GameObject tubeRoadPrefab;
+        [Tooltip("Scale of the tube piece at the reference width, same axes as the road scale. Only read when a tube piece is set.")]
+        [SerializeField] Vector3 tubeRoadScale = new(40f, 10f, 60f);
+        [Tooltip("Material of the tube strips. Empty = the road override. The NeonRoad shader is per-mesh, so a different tube piece needs its own material.")]
+        [SerializeField] Material tubeMaterialOverride;
 
         // The road/barrier scales and the barrier lateral above are authored
         // for this track width; SetTrackWidth stretches them proportionally.
@@ -78,6 +88,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// afterwards — the generator regenerates, so everything restamps.
         /// </summary>
         public void SetTrackWidth(float width) => widthScale = Mathf.Max(0.05f, width / ReferenceTrackWidth);
+
+        Material BarrierMaterial => barrierMaterialOverride != null ? barrierMaterialOverride : roadMaterialOverride;
 
         // The kit tiles are yawed to align with the track, so which local axis
         // spans the road width depends on that yaw: near ±90 it is Z, else X.
@@ -161,7 +173,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     {
                         var b = Stamp(d, oneSidedBarrierPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
                                       rot * Quaternion.Euler(0f, roadYaw + (openSide < 0 ? 180f : 0f), 0f), ScaleAcrossWidth(barrierScale));
-                        if (roadMaterialOverride != null) OverrideMaterials(b, roadMaterialOverride);
+                        if (BarrierMaterial != null) OverrideMaterials(b, BarrierMaterial);
                     }
                     else StampPlaceholderWall(d, -openSide);
                 }
@@ -170,7 +182,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     // Full-width piece (e.g. road-straight-barrier): one centered stamp.
                     var b = Stamp(d, barrierPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
                                   rot * Quaternion.Euler(0f, roadYaw, 0f), ScaleAcrossWidth(barrierScale));
-                    if (roadMaterialOverride != null) OverrideMaterials(b, roadMaterialOverride);
+                    if (BarrierMaterial != null) OverrideMaterials(b, BarrierMaterial);
                 }
                 else
                 {
@@ -180,7 +192,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                         track.GetPoseAtDistance(d, -lateral, out Vector3 lp, out Quaternion lr);
                         var bl = Stamp(d, barrierPrefab, lp + lr * new Vector3(0f, roadYOffset, 0f),
                                        lr * Quaternion.Euler(0f, roadYaw, 0f), barrierScale);
-                        if (roadMaterialOverride != null) OverrideMaterials(bl, roadMaterialOverride);
+                        if (BarrierMaterial != null) OverrideMaterials(bl, BarrierMaterial);
                     }
 
                     if (!openRight)
@@ -188,7 +200,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                         track.GetPoseAtDistance(d, lateral, out Vector3 rp, out Quaternion rr);
                         var br = Stamp(d, barrierPrefab, rp + rr * new Vector3(0f, roadYOffset, 0f),
                                        rr * Quaternion.Euler(0f, roadYaw + 180f, 0f), barrierScale);
-                        if (roadMaterialOverride != null) OverrideMaterials(br, roadMaterialOverride);
+                        if (BarrierMaterial != null) OverrideMaterials(br, BarrierMaterial);
                     }
                 }
             }
@@ -203,7 +215,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float lateral = side * (track.HalfWidth + thickness * 0.5f);
             track.GetPoseAtDistance(d, lateral, out Vector3 pos, out Quaternion rot);
             StampBox(d, pos + rot * new Vector3(0f, roadYOffset + height * 0.5f, 0f), rot,
-                     new Vector3(thickness, height, roadSpacing), roadMaterialOverride);
+                     new Vector3(thickness, height, roadSpacing),
+                     placeholderWallMaterial != null ? placeholderWallMaterial : BarrierMaterial);
         }
 
         // A low strip along the open edge, so the missing wall reads as a
@@ -268,16 +281,18 @@ namespace ConfusedGameDev.FiniteRunner.Track
             int strips = Mathf.Max(1, Mathf.CeilToInt(bandWidth / Mathf.Max(2f, tubeStripWidth)));
             float stripWidth = bandWidth / strips;
 
-            if (roadPrefab != null)
+            GameObject prefab = tubeRoadPrefab != null ? tubeRoadPrefab : roadPrefab;
+            Material material = tubeMaterialOverride != null ? tubeMaterialOverride : roadMaterialOverride;
+            if (prefab != null)
             {
-                Vector3 scale = ScaleAcrossWidth(roadScale, stripWidth / ReferenceTrackWidth);
+                Vector3 scale = ScaleAcrossWidth(tubeRoadPrefab != null ? tubeRoadScale : roadScale, stripWidth / ReferenceTrackWidth);
                 for (int i = 0; i < strips; i++)
                 {
                     float lateral = min + (i + 0.5f) * stripWidth;
                     track.GetPoseAtDistance(d, lateral, out Vector3 pos, out Quaternion rot);
-                    var piece = Stamp(d, roadPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
+                    var piece = Stamp(d, prefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
                                       rot * Quaternion.Euler(0f, roadYaw, 0f), scale);
-                    if (roadMaterialOverride != null) OverrideMaterials(piece, roadMaterialOverride);
+                    if (material != null) OverrideMaterials(piece, material);
                 }
             }
 

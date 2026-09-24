@@ -444,3 +444,30 @@ behind the ship. There is no goal gantry: the end of a finite track is its three
 `StampEndMarker` (open-edge material, keyed on its far end) marks the gaps between them.
 
 MPB tints are unreliable with the SRP Batcher — hence the material-override fields.
+
+**The road kit and its neon look** (the test scene): the road stamp is
+`03.Prefabs/FiniteRunner/RoadSlab.prefab`, a wrapper round
+`02.Art/01.Models/FiniteRunner/OriginalModels/road-straight_v1.fbx` — a road PROFILE: a 110 m flat
+centre with banked shoulders rising ~10 m to either side (mesh X is the width, mesh Z its 99 m
+length, FBX cm). The wrapper's child is yawed 90° so the width lands on the wrapper's Z (the
+decorator's width axis at `roadYaw` 90), rolled 1.7° to level a modelling tilt, and lifted so the
+flat centre sits at y 0; `roadScale` (0.403, 0.543, 0.543) puts the flat centre exactly on the 60 m
+reference lane (the shoulders bank up OUTSIDE the barrier walls) and 40 m along the track, height in
+step with the width. **Tubes keep a flat piece**: `tubeRoadPrefab` / `tubeRoadScale` /
+`tubeMaterialOverride` (the old unit `road-straight` at (40, 10, 60)) — a profiled strip would make a
+ribbed pipe. Every piece is drawn by `02.Art/04.Shaders/FiniteRunner/NeonRoad.shader`: unlit black
+asphalt with an HDR orange edge line on the crease where the shoulder starts (its halo spills both
+ways), a dimmer orange line along the top of the bank (`_OuterOffset` / `_OuterStrength`) so the
+slope reads against the sky, and blue lane lines — **procedural in mesh space**: the lateral
+coordinate is `(positionOS.axis − _MeshCenter) / _MeshHalfWidth` with `_LateralAxis` picking X or
+Z, so the material carries the MESH's extents and a kit piece with a different mesh needs its own
+material. Nothing varies along the track on purpose (stamps overlap on bends; only a lateral-only
+pattern is seamless). Vertical faces can be confined to a light strip under `_WallTop`
+(`_WallStrip`), so a wall is a dark face with a neon top line, not an orange plank. Five materials
+in `02.Materials/FiniteRunner/`: `NeonRoad_Mat` (the slab: axis X, half width 55.23 = the crease) →
+`roadMaterialOverride`; `NeonBarrier_Mat` (the unit channel: axis Z, half 0.5, strip under y 0.08) →
+`barrierMaterialOverride`; `NeonEdge_Mat` (all orange, coordinate-free) → `openEdgeMaterial` for the
+low marker strips and end markers; `NeonWall_Mat` (all orange, strip under y 0.5) →
+`placeholderWallMaterial`; `NeonTube_Mat` (plain asphalt, a faint blue seam per strip, no lanes) →
+`tubeMaterialOverride`. The glow is the scene volume profile's **Bloom** (threshold 1, intensity
+0.45), added for this — the URP asset is HDR.
