@@ -208,5 +208,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("How far sideways the shove is sized to throw the ship — into the wall on a walled stretch, off the road on an open edge. The shove itself deals no damage; whatever it puts you into does.")]
         [PropertyRange(0f, 40f), SuffixLabel("m", true)]
         public float shoveMeters = 10f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How many rear rams the cruiser soaks up. The pool never kills it — it sets how hard the tug of war pushes: a full pool is full strength, one point left is a pushover. It refills on every fresh patrol.")]
+        [PropertyRange(1, 10), SuffixLabel("hits", true)]
+        public int damagePoolMax = 3;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How far BEHIND the cruiser the ship's nose counts as rear contact. Only reachable once the patrol is ahead of you — brake past it or let it overshoot.")]
+        [PropertyRange(0f, 30f), SuffixLabel("m", true)]
+        public float ramContactDistance = 8f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How close across the track a rear ram has to line up. Tight on purpose: ramming is an aimed move, not a side-swipe.")]
+        [PropertyRange(0f, 20f), SuffixLabel("m", true)]
+        public float ramContactLateral = 6f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How much faster than the cruiser the ship has to be arriving for a ram to register. Below it the contact is a harmless nudge — drifting into its bumper is not an attack.")]
+        [PropertyRange(0f, 100f), SuffixLabel("m/s closing", true)]
+        public float ramClosingSpeedThreshold = 15f;
     }
 }

@@ -48,6 +48,7 @@ MonoBehaviour:
   duelTimeBlendSeconds: 0.15
   duelAssistStrength: 0.5
   duelBarColor: {r: 1, g: 0.32, b: 0.28, a: 1}
+  ramSpeedCost: 0.08
   showPatrolAlert: 0
   showPatrolWarnings: 0
   patrolProximityRumble: 1

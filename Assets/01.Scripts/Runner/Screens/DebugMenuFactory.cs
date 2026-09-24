@@ -517,6 +517,14 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                           0f, 200f, 5f, "0", d => d.standoffDistance, (d, v) => d.standoffDistance = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelKillGap,
                           0f, 1500f, 25f, "0", d => d.killTeleportGap, (d, v) => d.killTeleportGap = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelDamagePool,
+                          1f, 10f, 1f, "0", d => d.damagePoolMax, (d, v) => d.damagePoolMax = Mathf.RoundToInt(v));
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelRamDistance,
+                          0f, 30f, 0.5f, "0.0", d => d.ramContactDistance, (d, v) => d.ramContactDistance = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelRamLateral,
+                          0f, 20f, 0.5f, "0.0", d => d.ramContactLateral, (d, v) => d.ramContactLateral = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelRamClosing,
+                          0f, 100f, 1f, "0", d => d.ramClosingSpeedThreshold, (d, v) => d.ramClosingSpeedThreshold = v);
 
             // The clock and the assist live on GameSettings, which the run
             // reads LIVE and never clones — so these two edit the asset itself,
@@ -533,6 +541,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                            0.2f, 3f, 0.05f, "0.00", r => r.finisherWindowSeconds, (r, v) => r.finisherWindowSeconds = v);
                 AddRunStat(screen, runRules, refreshers, MenuTextId.DuelHitStop,
                            0f, 0.5f, 0.01f, "0.00", r => r.duelHitStopSeconds, (r, v) => r.duelHitStopSeconds = v);
+                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelRamCost,
+                           0f, 0.5f, 0.01f, "0.00", r => r.ramSpeedCost, (r, v) => r.ramSpeedCost = v);
             }
             screen.SetViewport(9);
             return screen;

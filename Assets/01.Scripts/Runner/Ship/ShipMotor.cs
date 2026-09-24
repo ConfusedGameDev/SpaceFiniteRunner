@@ -364,6 +364,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         }
 
         /// <summary>
+        /// The rear ram's price: a share of the forward speed, gone at once.
+        /// Hitting the patrol from behind costs SPEED and never hull (the run's
+        /// currency is speed, so that is what the aggressive option is priced
+        /// in) — which also keeps it out of the blink the hull's damage grants.
+        /// </summary>
+        public void ApplyImpactSpeedLoss(float share)
+        {
+            if (HasStopped || physicsShip == null) return;
+            physicsShip.ApplyImpactSpeedLoss(share);
+        }
+
+        /// <summary>
         /// The win: the flight off the end ramp stops being a fall. The ship
         /// flies on along the line it left the lip with — upright, no tumble,
         /// under <see cref="GameSettings.winEscapeGravity"/> (0 = dead

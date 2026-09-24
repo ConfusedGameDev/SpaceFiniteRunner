@@ -262,6 +262,20 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Launched?.Invoke();
         }
 
+        /// <summary>
+        /// A solid knock from ahead — the runner's rear ram into the patrol.
+        /// Takes <paramref name="share"/> of the forward speed AT ONCE, the
+        /// same way a wall hit does (<see cref="HoverBody"/> keeps a fraction
+        /// of the speed on impact): an impact has to read as a jolt, and a
+        /// blended <see cref="AddSpeedImpulse"/> would read as a brake pad.
+        /// No weight scaling and no hull — the price is speed, nothing else.
+        /// </summary>
+        public void ApplyImpactSpeedLoss(float share)
+        {
+            if (share <= 0f || State == ShipState.OffTrack || State == ShipState.Respawning) return;
+            body.ForwardSpeed *= Mathf.Max(0f, 1f - share);
+        }
+
         /// <summary>A pad, an orb, a boost: a speed change scaled by the ship's weight, blended in by the body. Ignored while the ship is out of play.</summary>
         public void AddSpeedImpulse(float rawMagnitude)
         {

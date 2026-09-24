@@ -195,6 +195,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float duelHitStopSeconds = 0.12f;
 
         [ToggleGroup("patrolEnabled")]
+        [Tooltip("What a rear ram costs the SHIP, as a share of its current forward speed — so the price scales with how fast you arrive. Speed is the run's currency, which is why the aggressive option is priced in it and not in hull.")]
+        [PropertyRange(0f, 0.5f), SuffixLabel("x speed", true), EnableIf("patrolDuelEnabled")]
+        public float ramSpeedCost = 0.08f;
+
+        [ToggleGroup("patrolEnabled")]
         [Tooltip("Size of the fireball a killed patrol leaves, as a multiple of the ship's own explosion. It reuses the same textures.")]
         [PropertyRange(0.1f, 3f), SuffixLabel("x ship blast", true), EnableIf("patrolDuelEnabled")]
         public float patrolExplosionScale = 0.8f;

@@ -414,8 +414,9 @@ minimap range, redeploy) stay on `GameSettings`.
   is untouched.
 - **The attack run** (`PatrolEncounter`, on `GameSettings.patrolDuelEnabled`) — M0 of the patrol
   duel. An explicit state machine the patrol owns and ticks per substep
-  (`Cruising → Committing → Alongside → BreakingOff → Cooldown`; `TugOfWar`/`Finisher` are
-  declared but unbuilt). On a cadence (`commitIntervalSeconds`, 12 s, counted from the END of the
+  (`Cruising → Committing → Alongside → TugOfWar → Finisher → BreakingOff → Cooldown`; the two
+  middle states are M1's mash contest and M2's kill prompt — this paragraph describes M0's spine
+  and `PatrolDuelPRD.md` §5.2/§5.3 the rest, until M6 writes them up here). On a cadence (`commitIntervalSeconds`, 12 s, counted from the END of the
   last run) and once the gap is inside `commitFromDistance` (450 m), the patrol **overdrives** to
   `attackRunOverdrive` × the ship's speed — bypassing the `onTail` clamp, because forcing the
   flank is the point — and steers for `shipLateral ± flankOffsetMeters` instead of the ship's own
@@ -434,14 +435,43 @@ minimap range, redeploy) stay on `GameSettings`.
   of ship travel. Aborts on the ship getting behind it, out-steering `alongsideLateral` for
   `abortGraceSeconds`, the ground going bad, the ship leaving the road, or a loss wind-down
   (`GameManager.BeginFail` → `AbortEncounter`).
+- **Rear ramming and the damage pool** — M3 of the duel. **The patrol ahead of the ship is an
+  obstacle and a target.** The old absolute "never through the ship" clamp is now a LANE rule:
+  bodies overlapping within `SideBySideLateral` (5 m) are held `MinLaneGap` (1 m) clear on
+  whichever side they are already on, and a cruiser out on a flank is not blocked at all. That is
+  load-bearing — the absolute clamp made the gap impossible to drive negative, which silently
+  killed both D23's "brake behind it" abort and every rear ram. Braking while it holds a flank now
+  sails it past you; the `onTail` cap (one-sided, so a negative gap passes it) then has it
+  re-match the ship's speed instead of running off up the track, `PatrolDriver` steers it back into
+  your lane, and more than the redeploy distance AHEAD recycles it (`raiseFloor: false` — letting
+  one run ahead is not outrunning it). **The ram is analytic** (`RamCheck`, still no collider):
+  behind the cruiser within `ramContactDistance` (8 m), inside `ramContactLateral` (6 m) across,
+  and ARRIVING at more than `ramClosingSpeedThreshold` (15 m/s) of closing speed — drifting into
+  its bumper is a nudge and costs nobody anything. Coming out of contact is what re-arms it, so one
+  approach is one ram (otherwise the lane clamp shunts the cruiser along and the closing speed
+  never drops). It costs the SHIP `GameSettings.ramSpeedCost` (8 %) of its forward speed at once
+  (`ShipMotor.ApplyImpactSpeedLoss` → `HoverShip` → `body.ForwardSpeed *=`, the wall hit's own
+  pattern) and **never hull** — speed is the run's currency, so that is what the aggressive option
+  is priced in, and it also stays out of the hull's blink. It takes one point off `damagePool`
+  (`damagePoolMax`, 3), which **never kills**: it scales `tugPatrolForce` (floored at
+  `PatrolEncounter.MinPushScale` 0.15, so an emptied pool leaves a trivial contest rather than one
+  that resolves itself), so softening a cruiser up is preparation for the exchange, not a second
+  way to win it. A fresh cruiser always arrives with a full pool (`RefillDamagePool` in `Launch`
+  and `Redeploy`); an abort never refills one. Feedback: `SparkleVfx` off its back in
+  `duelBarColor`, rumble, `wallHitShake`, and the cruiser lurching forward nose-up with its light
+  bar out for `RamKickSeconds` (visual only — the body is untouched). **Not done:** a laser gate
+  still ignores the patrol (`LaserGate.Hit` passes a `ShipMotor`); R4.6 wants one to burn it, but
+  the PRD never says what that should cost a car with no hull.
 - **Catch** (`UpdateCatch`, `HasCaught` polled by `GameManager`): inside `catchDistance` the
-  patrol stops gaining (its target is capped to the ship's speed, and it is never let closer
-  than 1 m) and works on the sideways gap. With the duel ON the catch is **tail time only** —
-  `sustainedCatchSeconds` (7) inside the catch distance — and it is **suspended for the whole
-  duel cycle**, the run and the back-off after it, so an exchange can never auto-arrest you; it
-  only punishes a patrol tailing you while NOT committing. With the duel OFF the old proximity
-  catch returns alongside it: also within `alongsideLateral` (18 m, the renamed `catchLateral`)
-  across the track is an immediate arrest.
+  patrol stops gaining (its target is capped to the ship's speed, and the lane rule above keeps
+  the two bodies a metre apart) and works on the sideways gap. With the duel ON the catch is
+  **tail time only** — `sustainedCatchSeconds` (7) inside the catch distance — and it is
+  **suspended for the whole duel cycle**, the run and the back-off after it, so an exchange can
+  never auto-arrest you; it only punishes a patrol tailing you while NOT committing. A cruiser
+  AHEAD of the ship accrues no tail time at all (a negative gap resets the timer): it is an
+  obstacle, and arresting the player for driving up behind one would punish the ram. With the duel
+  OFF the old proximity catch returns alongside it: also within `alongsideLateral` (18 m, the
+  renamed `catchLateral`) across the track is an immediate arrest.
 - **`Hold`** (`SetHold`) stops it moving and catching while the ship is off the track or waiting
   to relaunch — separate from `motor.Paused` because the clock keeps running. Releasing it drops
   a patrol closer than the given gap back to that gap and suppresses the taunt for it.

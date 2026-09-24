@@ -40,3 +40,7 @@ MonoBehaviour:
   shoveMeters: 10
   tugPatrolForce: 0.15
   tugPressValue: 0.08
+  damagePoolMax: 3
+  ramContactDistance: 8
+  ramContactLateral: 6
+  ramClosingSpeedThreshold: 15

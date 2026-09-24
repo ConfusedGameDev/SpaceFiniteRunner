@@ -52,12 +52,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public readonly int Presses;
         /// <summary>How long the kill prompt stays open (GameSettings.finisherWindowSeconds).</summary>
         public readonly float FinisherWindowSeconds;
+        /// <summary>What the cruiser's remaining damage pool leaves of its push: 1 at full, less for every rear ram it has taken.</summary>
+        public readonly float PushScale;
 
         public PatrolEncounterContext(float gap, float across, float shipLateral, float shipDistance,
                                       PatrolDefinition def, TrackManager track, TrackGenerator generator,
                                       bool shipSteady, float unscaledDt, float assistStrength, int presses,
-                                      float finisherWindowSeconds)
+                                      float finisherWindowSeconds, float pushScale)
         {
+            PushScale = pushScale;
             UnscaledDt = unscaledDt;
             AssistStrength = assistStrength;
             Presses = presses;
@@ -331,7 +334,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // the look of the thing; if the bar rode the same clock the
                     // slow-mo would hand the player three times as long to
                     // mash, which is a mechanical refund, not perception.
-                    tug += def.tugPatrolForce * ctx.UnscaledDt;
+                    // The push is what the damage pool has left of it: this is
+                    // the ONLY thing rear ramming buys, and it is bought before
+                    // the contest, not during it.
+                    tug += def.tugPatrolForce * Mathf.Max(MinPushScale, ctx.PushScale) * ctx.UnscaledDt;
                     if (ctx.Presses > 0) tug -= def.tugPressValue * ctx.Presses;
                     tug = Mathf.Clamp01(tug);
 
@@ -427,6 +433,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         bool ClearToContinue(in PatrolEncounterContext ctx) =>
             GroundClear(ctx, Mathf.Min(ctx.Def.encounterAbortMeters, ctx.Def.encounterLookaheadMeters));
+
+        // A weakened cruiser pushes weaker. Floored well above zero on
+        // purpose: an emptied pool must leave a contest that is trivial, not
+        // one that resolves itself while the player watches — the mash still
+        // has to be the thing that wins it.
+        const float MinPushScale = 0.15f;
 
         /// <summary>
         /// The soft assist (added to the player's steering, never a takeover).

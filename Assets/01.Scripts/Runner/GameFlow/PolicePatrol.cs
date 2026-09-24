@@ -40,6 +40,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// It never commits on a ramp, its landing, a loop, a tube or the final
     /// run-up, and braking behind it or out-steering the flank aborts it.
     ///
+    /// <b>Ahead of the ship</b> it is an obstacle and a target: outside a run
+    /// it is allowed to overshoot (brake and it sails past), it drops back to
+    /// the ship's own speed rather than running away, and a fast, lined-up
+    /// arrival from behind is a <b>rear ram</b> — analytic, like everything else
+    /// here, since it still has no collider. A ram costs the SHIP speed and
+    /// takes a point off the cruiser's damage pool, which is how hard it pushes
+    /// in the tug of war. The pool never kills it: softening one up is
+    /// preparation for the exchange, not a second way to win it.
+    ///
     /// <b>Catch</b>: tailing the ship inside the catch distance for
     /// <see cref="PatrolDefinition.sustainedCatchSeconds"/> is an arrest — the
     /// punishment for refusing to engage, SUSPENDED for the whole of an attack
@@ -83,6 +92,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float unscaledStep;   // real seconds per substep, for the bar
         int pendingPresses;   // mash presses drained this tick, spent on the first substep
         float killHideLeft;   // seconds the cruiser stays invisible across a kill's teleport
+        int damagePool;       // rear rams this cruiser has left in it; scales its push, never kills it
+        float ramCooldown;    // seconds before the same contact can count as a second ram
+        float ramKickLeft;    // seconds of the rammed lurch still to play on the visual
+        bool ramArmed = true; // a ram needs a fresh approach: leaving contact re-arms it
         float lastTickTime = float.NegativeInfinity; // Time.fixedTime of the last tick, for the render's blend
         float tailTimer;      // seconds spent inside the catch distance
         float shownBank;
@@ -97,6 +110,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         // Half width / half height of the cruiser's pickup volume, metres.
         static readonly Vector2 PickupReach = new(2.5f, 2.3f);
+
+        // The two bodies' shared road. Inside this much lateral overlap they
+        // are in one lane and may not occupy the same metre of it; outside it
+        // they are side by side and either may pass the other.
+        const float SideBySideLateral = 5f;
+        const float MinLaneGap = 1f;
 
         /// <summary>Metres from the track start (negative behind the start line), as RENDERED this frame.</summary>
         public float DistanceTravelled { get; private set; }
@@ -121,6 +140,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float Tug => encounter.Tug;
 
         /// <summary>
+        /// Rear rams this cruiser has left in it. It never dies of them — the
+        /// pool is how hard it pushes in the tug of war, so softening one up
+        /// before the exchange is preparation, not a second way to kill it.
+        /// A fresh cruiser always arrives with a full pool.
+        /// </summary>
+        public int DamagePool => damagePool;
+
+        /// <summary>What the pool leaves of the push: 1 at full, 0 when it is spent.</summary>
+        float PushScale => runtimeDef == null || runtimeDef.damagePoolMax <= 0
+            ? 1f
+            : Mathf.Clamp01(damagePool / (float)runtimeDef.damagePoolMax);
+
+        /// <summary>
         /// One line of why the duel is doing what it is doing, for the on-screen
         /// readout: the state, the gap, and — when no run is happening — the two
         /// things that gate one. Both of those are invisible when they work,
@@ -129,7 +161,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public string EncounterDebug()
         {
             if (runtimeDef == null) return "duel: no definition";
-            string line = $"{encounter.State} gap {SimGap:0} across {AcrossToShip():0}";
+            string line = $"{encounter.State} gap {SimGap:0} across {AcrossToShip():0} pool {damagePool}/{runtimeDef.damagePoolMax}";
             if (encounter.InTugOfWar) return $"{line} tug {encounter.Tug:0.00} side {encounter.Side}";
             if (encounter.State == PatrolEncounterState.Cruising)
                 return $"{line} | commit in {encounter.CommitIn(runtimeDef):0.0}s | ground {(encounter.GroundWasClear ? "CLEAR" : "BLOCKED")}";
@@ -311,6 +343,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             warnCooldown = 0f;
             warned = false;
             PatrolNumber = 1;
+            RefillDamagePool();
             encounter.Reset();
             ApplyPose(1f);
         }
@@ -448,6 +481,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (target == null || track == null || runtimeDef == null || body == null) return;
 
+            if (ramKickLeft > 0f) ramKickLeft = Mathf.Max(0f, ramKickLeft - Time.deltaTime);
             Blink(Time.deltaTime);
 
             // The mash is sampled every FRAME and drained by the fixed tick,
@@ -541,7 +575,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                                      ShipSteady, unscaledStep,
                                                      rules != null ? rules.duelAssistStrength : 0f,
                                                      pendingPresses,
-                                                     rules != null ? rules.finisherWindowSeconds : 1f);
+                                                     rules != null ? rules.finisherWindowSeconds : 1f,
+                                                     PushScale);
                 pendingPresses = 0;
                 encounter.Tick(dt, ctx, out intent);
             }
@@ -552,6 +587,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // On the ship's tail it stops gaining: it matches the ship and
             // works on the sideways gap instead of driving through it. A
             // committed run is exempt — forcing the flank is the whole point.
+            // The same cap is what holds a cruiser that has OVERSHOT: the test
+            // is one-sided, so a negative gap passes it and the cruiser
+            // re-matches the ship's speed instead of running off up the track.
             bool onTail = !shipLeft && gap <= runtimeDef.catchDistance;
             if (onTail && !encounter.Engaged) desired = Mathf.Min(desired, target.CurrentSpeed);
             // Above 1 the run's overdrive is a FLOOR (it must out-drive the
@@ -595,8 +633,26 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (body.State == ShipState.OffTrack) return; // it fell: OnLeftTrack has already redeployed it (or the end took it)
             if (shipLeft) return; // nothing left to judge against
 
-            // Never through the ship: the tail is as close as it gets.
-            if (SimGap < 1f) body.Distance = target.Body.Distance - 1f;
+            // Never THROUGH the ship — but the block is LATERAL, not absolute.
+            // Two bodies cannot share one piece of road, so a cruiser
+            // overlapping the ship's lane is held a metre clear on whichever
+            // side of it it is already on. A cruiser out on a FLANK is not
+            // blocked at all, and that is the whole point: braking while it
+            // holds a flank sails it past you, which is the only way to get
+            // behind it — and the only way to ram it. An absolute clamp (what
+            // this was) quietly made both that and the "brake behind it" abort
+            // impossible, since the gap could never go negative.
+            // With the duel off the patrol always steers for the ship's own
+            // lane, so the lateral test is always true and this is exactly the
+            // old chase.
+            float lanedGap = SimGap;
+            if (Mathf.Abs(AcrossToShip()) < SideBySideLateral)
+            {
+                if (lanedGap >= 0f && lanedGap < MinLaneGap) body.Distance = target.Body.Distance - MinLaneGap;
+                else if (lanedGap < 0f && lanedGap > -MinLaneGap) body.Distance = target.Body.Distance + MinLaneGap;
+            }
+
+            RamCheck(dt, rules);
 
             // The shove: a sideways slam AWAY from the patrol, sized in metres
             // of travel the way the ship's own dash is. It deals no damage of
@@ -606,6 +662,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (intent.Shove && encounter.Side != 0) Shove(encounter.Side);
 
             if (redeployDistance > 0f && SimGap > redeployDistance) Redeploy(raiseFloor: true);
+            // The mirror image: a cruiser left this far AHEAD is out of the
+            // chase just as surely as one left behind, so a fresh one takes
+            // over — without raising the floor, because letting it run ahead is
+            // not outrunning it.
+            if (redeployDistance > 0f && -SimGap > redeployDistance) Redeploy(raiseFloor: false);
 
             UpdateCatch(dt);
             if (!HasCaught) WarnIfClose(dt);
@@ -630,6 +691,84 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                         && target.State != ShipState.Respawning
                         && target.State != ShipState.Falling;
 
+        /// <summary>
+        /// The rear ram, detected the only way anything is detected in this
+        /// game at Light Speed: <b>analytically, in track space</b>. The patrol
+        /// still has no collider and nothing here is a trigger — the test is
+        /// "the ship is behind the cruiser, within reach of its bumper, lined
+        /// up across the track, and ARRIVING fast".
+        ///
+        /// That last clause is what makes it a move rather than an accident:
+        /// drifting into the back of a cruiser you happen to be sharing a lane
+        /// with is a nudge and costs nobody anything. It is only reachable
+        /// while the patrol is ahead — you braked past it, or it overshot — and
+        /// never during the exchange, where you are beside it, not behind it.
+        ///
+        /// The price is the ship's SPEED and never its hull, and what it buys
+        /// is a point off the cruiser's pool, which is how hard the next tug of
+        /// war pushes. Preparation, not a second kill path.
+        /// </summary>
+        void RamCheck(float dt, GameSettings rules)
+        {
+            ramCooldown -= dt;
+            if (!duelEnabled || runtimeDef == null) { ramArmed = true; return; }
+
+            float behind = -SimGap; // how far the ship's nose is short of the cruiser
+            bool inContact = behind > 0f && behind <= runtimeDef.ramContactDistance
+                          && Mathf.Abs(AcrossToShip()) <= runtimeDef.ramContactLateral;
+            // Coming out of contact is what re-arms it, so one approach is one
+            // ram. Otherwise leaning on the cruiser's bumper would empty the
+            // whole pool without ever lining a second hit up: the lane clamp
+            // shunts it along ahead of you, and the closing speed never drops.
+            if (!inContact) { ramArmed = true; return; }
+
+            if (!ramArmed || ramCooldown > 0f || damagePool <= 0) return;
+            if (encounter.InExchange || !ShipSteady) return;
+            if (target.CurrentSpeed - body.ForwardSpeed < runtimeDef.ramClosingSpeedThreshold) return;
+
+            ramArmed = false;
+            TakeRam(rules);
+        }
+
+        // One point off the pool, and every channel the player has says so: the
+        // speed they paid for it, a spark off the cruiser's back, the rumble,
+        // the camera, and the cruiser itself lurching with its light bar out.
+        void TakeRam(GameSettings rules)
+        {
+            damagePool--;
+            ramCooldown = RamCooldownSeconds;
+            ramKickLeft = RamKickSeconds;
+
+            if (rules != null) target.ApplyImpactSpeedLoss(rules.ramSpeedCost);
+
+            // Sparks off the cruiser's BACK, where the two actually met — a
+            // couple of metres behind its centre, lifted to bumper height.
+            track.GetPoseAtDistance(body.Distance, body.Lateral, out Vector3 pose, out Quaternion rotation);
+            pose += rotation * (Vector3.up * (body.Height + 1.5f) + Vector3.back * 2.5f);
+            SparkleVfx.SpawnBurst(pose, rotation * Vector3.up,
+                                  rules != null ? rules.duelBarColor : Color.white, 6f, 24);
+
+            HapticsSystem.Instance.Pulse(0.9f, 0.6f, 0.25f);
+            if (rules != null) CameraShake.Shake(rules.wallHitShake);
+        }
+
+        // Belt and braces behind the re-arm latch: a body that wobbles across
+        // the contact edge inside this must not score twice.
+        const float RamCooldownSeconds = 0.6f;
+
+        // How long the rammed cruiser lurches for. Scaled time on purpose — a
+        // hit landed during an exchange's slow motion should stretch with it.
+        const float RamKickSeconds = 0.45f;
+
+        /// <summary>A fresh cruiser arrives undamaged; rear rams never carry over from the last one.</summary>
+        void RefillDamagePool()
+        {
+            damagePool = runtimeDef != null ? Mathf.Max(1, runtimeDef.damagePoolMax) : 1;
+            ramCooldown = 0f;
+            ramKickLeft = 0f;
+            ramArmed = true;
+        }
+
         // The slam itself. Sized in METRES of sideways travel, converted the
         // way the ship's own dash impulse is (distance x lateral drag), so the
         // number on the asset is the distance it actually moves the ship. It
@@ -652,7 +791,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void UpdateCatch(float dt)
         {
             if (encounter.SuspendsArrest) return;
-            if (SimGap > runtimeDef.catchDistance) { tailTimer = 0f; return; }
+            // A cruiser AHEAD of the ship is not tailing it, whatever the gap
+            // reads: it is an obstacle and a target, and arresting the player
+            // for driving up behind one would punish exactly the move the ram
+            // is for.
+            if (SimGap < 0f || SimGap > runtimeDef.catchDistance) { tailTimer = 0f; return; }
             tailTimer += dt;
 
             if (tailTimer >= runtimeDef.sustainedCatchSeconds) { HasCaught = true; return; }
@@ -680,7 +823,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             warnCooldown = 0f;
             warned = false;
             PatrolNumber++;
-            encounter.Reset(); // a teleport is not an attack run
+            RefillDamagePool(); // a fresh cruiser: the last one's dents do not carry over
+            encounter.Reset();  // a teleport is not an attack run
             ApplyPose(1f);
 
             HapticsSystem.Instance.Pulse(0.6f, 0.4f, 0.4f);
@@ -748,17 +892,31 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (visual != null)
             {
                 float bob = (Mathf.PerlinNoise(Time.time * 1.3f, 0.53f) - 0.5f) * 0.8f;
-                visual.localPosition = new Vector3(0f, 2f + bob, 0f);
+                // A rear ram lurches the cruiser: knocked forward, nose up,
+                // settling back over the kick. The body's own motion is
+                // untouched — this is the reaction the PLAYER needs to see, and
+                // faking it on the visual keeps the sim honest.
+                float kick = ramKickLeft > 0f ? ramKickLeft / RamKickSeconds : 0f;
+                visual.localPosition = new Vector3(0f, 2f + bob, kick * 1.4f);
                 float dt = Time.deltaTime;
                 float bank = -Mathf.Clamp(body.BankDemand, -1.25f, 1.25f) * 25f;
                 shownBank = dt > 0f ? Mathf.Lerp(shownBank, bank, 1f - Mathf.Exp(-6f * dt)) : bank;
-                visual.localRotation = Quaternion.Euler(body.PitchDegrees, 0f, shownBank);
+                visual.localRotation = Quaternion.Euler(body.PitchDegrees - kick * 16f, 0f, shownBank);
             }
         }
 
         void Blink(float dt)
         {
             blinkTimer += dt;
+            // Rammed: the light bar goes dark for the lurch. The cheapest
+            // possible "that hurt" — and it reads from directly behind, which is
+            // the one angle a rear ram is ever seen from.
+            if (ramKickLeft > 0f)
+            {
+                if (redLight != null) redLight.SetActive(false);
+                if (blueLight != null) blueLight.SetActive(false);
+                return;
+            }
             if (blinkTimer < 0.25f) return;
             blinkTimer = 0f;
             blinkState = !blinkState;

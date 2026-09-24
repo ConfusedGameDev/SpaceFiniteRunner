@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Draft. All design decisions settled in the grill session on 2026-09-24. Nothing implemented. Open numbers are listed in §13. |
-| **Branch** | Not yet created. |
+| **Status** | In progress. All design decisions settled in the grill session on 2026-09-24. **M0–M3 landed**; M4–M6 outstanding. Open numbers are listed in §13. |
+| **Branch** | `feature/finitePatrolUpdate`. |
 | **Scope** | Runner game only (`FiniteRunner_Test`, campaign runner levels). The city chase is untouched, and so are `Campaign` and `SaveData`. |
 | **Related** | `SpaceShipUpdatePRD.md` (the M9 physics cutover this builds on), `.claude/rules/runner-ship.md`, `.claude/rules/runner-hud-screens.md`, `.claude/rules/ui-menus.md` |
 
@@ -444,10 +444,10 @@ Found while speccing; fix when touching these files.
 
 | # | Scope | Done when |
 |---|---|---|
-| **M0** | Attack run: the encounter state machine, overdrive commit, forbidden ground (R1.5), abort and cooldown (R1.6), arrival re-tune (R1.7), arrest suspension and fuse (R10.1-R10.3). **No QTE** — the patrol parks alongside, waits, then shoves via R2.5. | The patrol reliably finds you, commits visibly, parks on a flank, shoves you into a wall or off an edge, breaks off, and comes back. It never commits on a ramp, loop, tube or the run-up. You can shake it by braking or out-steering. |
-| **M1** | The tug of war: bar model (R2.2), unscaled-time integration (R2.3), slow-mo clocks (§5.8), soft assist (R2.6), fixed button and prompt (§5.9), win/lose resolution (R2.4, R2.5), HUD bar (R2.8), rumble (R2.9). | You can win or lose the bar. Winning does nothing yet. Losing shoves you. The countdown still costs full time. Mashing is no easier for the slow-mo. |
-| **M2** | The finisher: dash gate (R3.1), prompt (R3.2), pass-through and explosion (R3.3), wrong side (R3.4), expiry (R3.5), recycle teleport (R3.6), meter drain (R3.7), hit-stop (R8.4). | Winning the bar and pressing the right shoulder kills the patrol spectacularly and a fresh one arrives behind you. The teleport is never visible. Your dash meter is empty. |
-| **M3** | Rear ramming: analytic contact (R4.1), speed cost (R4.2), damage pool (R4.3, R4.4), the patrol-as-obstacle behaviour (R4.6). | Braking past the patrol and ramming it costs you speed, takes a point, and visibly weakens its push in the next exchange. |
+| **M0** ✅ | Attack run: the encounter state machine, overdrive commit, forbidden ground (R1.5), abort and cooldown (R1.6), arrival re-tune (R1.7), arrest suspension and fuse (R10.1-R10.3). **No QTE** — the patrol parks alongside, waits, then shoves via R2.5. | The patrol reliably finds you, commits visibly, parks on a flank, shoves you into a wall or off an edge, breaks off, and comes back. It never commits on a ramp, loop, tube or the run-up. You can shake it by braking or out-steering. |
+| **M1** ✅ | The tug of war: bar model (R2.2), unscaled-time integration (R2.3), slow-mo clocks (§5.8), soft assist (R2.6), fixed button and prompt (§5.9), win/lose resolution (R2.4, R2.5), HUD bar (R2.8), rumble (R2.9). | You can win or lose the bar. Winning does nothing yet. Losing shoves you. The countdown still costs full time. Mashing is no easier for the slow-mo. |
+| **M2** ✅ | The finisher: dash gate (R3.1), prompt (R3.2), pass-through and explosion (R3.3), wrong side (R3.4), expiry (R3.5), recycle teleport (R3.6), meter drain (R3.7), hit-stop (R8.4). | Winning the bar and pressing the right shoulder kills the patrol spectacularly and a fresh one arrives behind you. The teleport is never visible. Your dash meter is empty. |
+| **M3** ✅ | Rear ramming: analytic contact (R4.1), speed cost (R4.2), damage pool (R4.3, R4.4), the patrol-as-obstacle behaviour (R4.6). | Braking past the patrol and ramming it costs you speed, takes a point, and visibly weakens its push in the next exchange. |
 | **M4** | The armed window: ship armed state (R5.1), blue/purple arming (R5.2), mash skip (R5.3), visual tell (R5.4). | Grabbing a blue or purple orb while hunted takes you straight to the finisher prompt. |
 | **M5** | Escalation and balance: tier scaling (R7.1), the cap (R7.2), a full tuning pass on OQ1, OQ3–OQ7. | A long run gets genuinely harder, the bar is always winnable from centre with a full pool, and killing is worth it but never free. |
 | **M6** | Polish and docs: RPG queue (R5.8/D26), reserved bindings (R9.3), `MenuTextId` entries in four languages (R9.6), debug menu rows and the sentinel rule (§6.4), audio, minimap, §11 documentation, §7.5 stale-doc fixes. | Nothing in §7 is outstanding and the rules files describe what the code does. |
