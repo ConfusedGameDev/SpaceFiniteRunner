@@ -21,7 +21,13 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
     /// pure function of scaled time, shared by the picture and the test, so a
     /// pause freezes both. A gate is never used up; what a hit MEANS is the
     /// listener's business (<see cref="Hit"/> — the GameManager burns the hull).
-    /// The patrol's body finds gates too and ignores them.
+    /// <b>The patrol's body finds gates too, and a beam KILLS it</b> — it tests
+    /// the same <see cref="Touches"/> and handles its own death, deliberately
+    /// WITHOUT <see cref="RaiseHit"/>, since that event is the ship's and the
+    /// GameManager answers it by burning the player's hull. Gates are also not
+    /// registered as feature keep-outs, so a patrol attack run may happen at
+    /// one: steering the duel so the cruiser's flank lands on a beam is how the
+    /// player aims the road at it.
     /// </summary>
     public class LaserGate : MonoBehaviour, ITrackPickup
     {

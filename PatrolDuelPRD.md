@@ -92,6 +92,7 @@ shove you off the road, and you can break it and buy yourself a gap — at a pri
 | D30 | Assist, settled | **Soft assist, not `SteerOverride`**: guidance keeps you off the edges and centred in the lane, but your steering still adds to it. Hands never fully leave the ship. This also sidesteps the dash-swallowing collision in §7.1, because it never sets the override flag. |
 | D31 | Clocks | **The world slows to 30 %. The run countdown keeps running at full rate. The bar runs on unscaled time.** Slow-mo buys *perception*, not mechanical advantage, and the exchange still costs real mission time — which makes declining an attack run (D23) a genuine option when the clock is short. |
 | D32 | Bar presentation | **Horizontal bar, low and small, centred**, with the patrol's colour pushing from its actual side and the mash glyph at the end you are pushing toward. Kept small so the road stays in peripheral vision, with push direction reinforced through the **existing rumble channel** rather than bar size. |
+| D34 | Lasers kill the patrol | A laser beam **destroys the cruiser outright** — the same explosion and recycle as the finisher's kill, but it charges the player nothing: no dash meter (they never spent one) and **no raised floor**, because a cruiser that drives into a gate by itself is a hazard death like a fall, and falls have never escalated. **This REVERSES R1.5 for laser gates specifically**: a gate must NOT be forbidden ground, or the kill would be unreachable during an exchange. Ramps, landings, loops, tubes and the run-up stay forbidden. It is skill-based rather than random because the driver steers for the ship's own lateral — a patrol not in a run copies the player's dodge, so the only way it eats a beam is the flank offset during a run, which the player aims by positioning themselves a beam's width clear. |
 | D33 | Slow-mo through the finisher | Slow-mo **and** assist **continue through the finisher prompt** and release on the connect, with a **hit-stop on the explosion** as the transition back to full speed. One continuous authored beat: contest, prompt, kill, snap back at Light Speed with a fresh gap. The cost is that D16's wrong-side punishment is softened by the assist; accepted. |
 
 ## 5. Functional requirements
@@ -116,7 +117,9 @@ shove you off the road, and you can break it and buy yourself a gap — at a pri
   (`PatrolDriver.cs:54-57`).
 - **R1.5** **Forbidden ground.** An encounter may not be committed to, and an in-progress one must
   break off, when the track within `encounterLookaheadMeters` contains a ramp, a ramp landing, a
-  loop, a `TubeSection`, a laser gate, or the final run-up. This is the same predicate the laser
+  loop, a `TubeSection`, or the final run-up. **Laser gates are deliberately NOT forbidden ground**
+  (D34): a beam kills the cruiser, and steering the exchange onto one is the player's move —
+  forbidding gates would make that unreachable. This is the same predicate the laser
   gate placer uses; factor it into one shared helper rather than duplicating the rule.
 - **R1.6** **Abort.** Any of these returns the patrol to `Cooldown` with no shove and no kill: the
   ship gets fully behind it (D6), the ship out-steers the flank beyond `alongsideLateral` for
@@ -212,8 +215,9 @@ shove you off the road, and you can break it and buy yourself a gap — at a pri
   `Finisher`.
 - **R4.6** **The patrol ahead is an obstacle** (D6): while it is ahead it occupies its lateral lane,
   it brakes to re-match the ship's speed rather than resetting far ahead, and it remains subject to
-  its own hazards — it can hit a laser gate or slide off a flat sweep, which triggers the existing
-  `OnLeftTrack` → `Redeploy(raiseFloor: false)` path (`PolicePatrol.cs:266`).
+  its own hazards — it can slide off a flat sweep, which triggers the existing
+  `OnLeftTrack` → `Redeploy(raiseFloor: false)` path (`PolicePatrol.cs:266`), and **a laser beam
+  destroys it outright** (D34).
 
 ### 5.5 The armed window (D10, D19)
 
@@ -447,7 +451,7 @@ Found while speccing; fix when touching these files.
 | **M0** ✅ | Attack run: the encounter state machine, overdrive commit, forbidden ground (R1.5), abort and cooldown (R1.6), arrival re-tune (R1.7), arrest suspension and fuse (R10.1-R10.3). **No QTE** — the patrol parks alongside, waits, then shoves via R2.5. | The patrol reliably finds you, commits visibly, parks on a flank, shoves you into a wall or off an edge, breaks off, and comes back. It never commits on a ramp, loop, tube or the run-up. You can shake it by braking or out-steering. |
 | **M1** ✅ | The tug of war: bar model (R2.2), unscaled-time integration (R2.3), slow-mo clocks (§5.8), soft assist (R2.6), fixed button and prompt (§5.9), win/lose resolution (R2.4, R2.5), HUD bar (R2.8), rumble (R2.9). | You can win or lose the bar. Winning does nothing yet. Losing shoves you. The countdown still costs full time. Mashing is no easier for the slow-mo. |
 | **M2** ✅ | The finisher: dash gate (R3.1), prompt (R3.2), pass-through and explosion (R3.3), wrong side (R3.4), expiry (R3.5), recycle teleport (R3.6), meter drain (R3.7), hit-stop (R8.4). | Winning the bar and pressing the right shoulder kills the patrol spectacularly and a fresh one arrives behind you. The teleport is never visible. Your dash meter is empty. |
-| **M3** ✅ | Rear ramming: analytic contact (R4.1), speed cost (R4.2), damage pool (R4.3, R4.4), the patrol-as-obstacle behaviour (R4.6). | Braking past the patrol and ramming it costs you speed, takes a point, and visibly weakens its push in the next exchange. |
+| **M3** ✅ | Rear ramming: analytic contact (R4.1), laser kill (D34), speed cost (R4.2), damage pool (R4.3, R4.4), the patrol-as-obstacle behaviour (R4.6). | Braking past the patrol and ramming it costs you speed, takes a point, and visibly weakens its push in the next exchange. |
 | **M4** | The armed window: ship armed state (R5.1), blue/purple arming (R5.2), mash skip (R5.3), visual tell (R5.4). | Grabbing a blue or purple orb while hunted takes you straight to the finisher prompt. |
 | **M5** | Escalation and balance: tier scaling (R7.1), the cap (R7.2), a full tuning pass on OQ1, OQ3–OQ7. | A long run gets genuinely harder, the bar is always winnable from centre with a full pool, and killing is worth it but never free. |
 | **M6** | Polish and docs: RPG queue (R5.8/D26), reserved bindings (R9.3), `MenuTextId` entries in four languages (R9.6), debug menu rows and the sentinel rule (§6.4), audio, minimap, §11 documentation, §7.5 stale-doc fixes. | Nothing in §7 is outstanding and the rules files describe what the code does. |

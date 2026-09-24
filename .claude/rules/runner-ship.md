@@ -489,9 +489,20 @@ minimap range, redeploy) stay on `GameSettings`.
   way to win it. A fresh cruiser always arrives with a full pool (`RefillDamagePool` in `Launch`
   and `Redeploy`); an abort never refills one. Feedback: `SparkleVfx` off its back in
   `duelBarColor`, rumble, `wallHitShake`, and the cruiser lurching forward nose-up with its light
-  bar out for `RamKickSeconds` (visual only — the body is untouched). **Not done:** a laser gate
-  still ignores the patrol (`LaserGate.Hit` passes a `ShipMotor`); R4.6 wants one to burn it, but
-  the PRD never says what that should cost a car with no hull.
+  bar out for `RamKickSeconds` (visual only — the body is untouched).
+- **A laser beam DESTROYS the cruiser** (D34). The patrol's body already swept the registry and
+  found gates; `OnPickedUp` now runs the ship's own `LaserGate.Touches` over the stretch the substep
+  covered and flags `laserKillPending`, consumed by `ConsumeLaserKill` **after** `body.Step` (the
+  kill teleports the body and the sweep is still walking its list). It deliberately does NOT call
+  `RaiseHit`: that event is the SHIP's and `GameManager.OnLaserHit` answers it by burning the
+  player's hull. The death is `Kill(spendsDashMeter: false, raiseFloor: false)` — the finisher's
+  explosion, recycle and hit-stop, but it charges the player nothing, because a cruiser driving into
+  a gate by itself is a hazard death like a fall. **Laser gates are deliberately not feature
+  keep-outs**, so `IsEncounterGroundClear` permits a run at one: that is what makes the kill
+  reachable, and it is aimed rather than random because `PatrolDriver` steers for the ship's own
+  lateral — outside a run the cruiser copies the player's dodge, so only the run's
+  `flankOffsetMeters` can put it on a beam the player is clear of. Gated on `duelEnabled`, so the
+  duel-off contract ("the old chase exactly") still holds.
 - **Catch** (`UpdateCatch`, `HasCaught` polled by `GameManager`): inside `catchDistance` the
   patrol stops gaining (its target is capped to the ship's speed, and the lane rule above keeps
   the two bodies a metre apart) and works on the sideways gap. With the duel ON the catch is

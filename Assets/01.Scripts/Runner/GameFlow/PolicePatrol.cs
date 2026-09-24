@@ -7,6 +7,7 @@ using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Simulation;
 using ConfusedGameDev.FiniteRunner.Track;
+using ConfusedGameDev.FiniteRunner.Track.Features;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>
@@ -96,6 +97,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float ramCooldown;    // seconds before the same contact can count as a second ram
         float ramKickLeft;    // seconds of the rammed lurch still to play on the visual
         bool ramArmed = true; // a ram needs a fresh approach: leaving contact re-arms it
+        bool laserKillPending; // a beam caught it: acted on after the body's step, not inside the sweep
         float lastTickTime = float.NegativeInfinity; // Time.fixedTime of the last tick, for the render's blend
         float tailTimer;      // seconds spent inside the catch distance
         float shownBank;
@@ -382,10 +384,30 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // used up (it disappears) and a share of its boost is speed above the
         // rubber band's target, which then bleeds back at the catch-up accel.
         // Brake pads and coins are the player's alone.
+        //
+        // A LASER GATE is the exception that is not a pickup at all: a beam
+        // KILLS the cruiser outright. It is the one hazard on the track the
+        // player can aim it at — the flank it holds is measured off the ship's
+        // own lateral, so lining yourself up a beam's width away puts the
+        // cruiser through it — and it is the patrol's own hazard too, since the
+        // driver does not steer round gates. The test is the ship's exact one
+        // (<see cref="LaserGate.Touches"/> over the stretch this step covered),
+        // because a gate has no collider either.
         void OnPickedUp(ITrackPickup pickup)
         {
             if (pickup is SpeedPad pad && pad.IsBoostOrb)
+            {
                 body.ForwardSpeed += pad.Take() * runtimeDef.orbBoostShare;
+                return;
+            }
+
+            // Never RaiseHit: that event is the SHIP's, and the GameManager
+            // answers it by burning the player's hull.
+            if (duelEnabled && !laserKillPending && pickup is LaserGate gate
+                && (body.State == ShipState.Grounded || body.State == ShipState.Airborne)
+                && body.Distance > body.SweepFrom && body.Distance - body.SweepFrom <= 400f
+                && gate.Touches(body.SweepFrom, body.Distance, body.Lateral, body.Height, PickupReach))
+                laserKillPending = true; // acted on once the body's step is finished, never mid-sweep
         }
 
         /// <summary>
@@ -396,7 +418,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void OnShipDashed(int direction)
         {
             if (!duelEnabled || IsGone || HasCaught) return;
-            if (encounter.ReportDash(direction)) Kill();
+            if (encounter.ReportDash(direction)) Kill(spendsDashMeter: true, raiseFloor: true);
         }
 
         /// <summary>
@@ -405,10 +427,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// patrol. There is only ever ONE cruiser — the "destroyed" one is this
         /// one, hidden across its own teleport so the replacement reads as a
         /// fresh car arriving rather than the same one blinking backwards.
-        /// The kill costs the player the WHOLE dash meter, so the next patrol's
-        /// approach is faced without an evasive move.
+        /// <paramref name="spendsDashMeter"/> is the finisher's own price (the
+        /// kill IS a dash, so it costs the whole meter and the next patrol's
+        /// approach is faced without an evasive move) — a cruiser killed by the
+        /// ROAD never charges the player for it. <paramref name="raiseFloor"/>
+        /// is the escalation: earned kills make the next patrol faster, hazard
+        /// deaths do not, exactly as a patrol's fall does not.
         /// </summary>
-        void Kill()
+        void Kill(bool spendsDashMeter, bool raiseFloor)
         {
             GameSettings rules = target.DashSettings;
             Vector3 origin = visual != null ? visual.position : transform.position;
@@ -420,7 +446,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             HapticsSystem.Instance.Pulse(1f, 1f, 0.5f);
             CameraShake.Shake(rules != null ? rules.explosionShake : default);
             if (rules != null) DuelSlowMo.RequestHitStop(rules.duelHitStopSeconds);
-            target.DrainDashMeter();
+            if (spendsDashMeter) target.DrainDashMeter();
             target.SteerAssist = 0f;
             target.DashLocked = false;
 
@@ -430,7 +456,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (visual != null) visual.gameObject.SetActive(false);
 
             float gap = runtimeDef.killTeleportGap > 0f ? runtimeDef.killTeleportGap : redeployGap;
-            Redeploy(raiseFloor: true, gapOverride: gap);
+            Redeploy(raiseFloor, gapOverride: gap);
+        }
+
+        /// <summary>
+        /// A beam took it. Consumed after the body's step rather than inside the
+        /// pickup sweep that found it, because the kill teleports the body and
+        /// the sweep is still walking its list. The same explosion as the
+        /// finisher's — it has to read as a kill — but it charges the player
+        /// nothing: no dash meter (they never spent one) and no raised floor,
+        /// since the cruiser driving into a gate by itself is as much a hazard
+        /// death as falling off, and that has never escalated either.
+        /// </summary>
+        bool ConsumeLaserKill()
+        {
+            if (!laserKillPending) return false;
+            laserKillPending = false;
+            if (IsGone || HasCaught) return false;
+            Kill(spendsDashMeter: false, raiseFloor: false);
+            return true;
         }
 
         // Long enough to cover the fireball and the reposition; the replacement
@@ -647,6 +691,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             };
             body.Step(dt, controls);
             if (body.State == ShipState.OffTrack) return; // it fell: OnLeftTrack has already redeployed it (or the end took it)
+            if (ConsumeLaserKill()) return;               // a beam took it: it is already hundreds of metres back
             if (shipLeft) return; // nothing left to judge against
 
             // Never THROUGH the ship — but the block is LATERAL, not absolute.
@@ -783,6 +828,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             ramCooldown = 0f;
             ramKickLeft = 0f;
             ramArmed = true;
+            laserKillPending = false;
         }
 
         // The slam itself. Sized in METRES of sideways travel, converted the
