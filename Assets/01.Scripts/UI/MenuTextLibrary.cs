@@ -141,7 +141,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DuelMashPrompt, DuelFinisherPrompt,
         DuelAbortMeters, DuelStandoff, DuelKillGap, DuelFinisherWindow, DuelHitStop,
         // Rear ramming and the damage pool.
-        DuelDamagePool, DuelRamDistance, DuelRamLateral, DuelRamClosing, DuelRamCost
+        DuelDamagePool, DuelRamDistance, DuelRamLateral, DuelRamClosing, DuelRamCost,
+        DuelStationAccel
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1061,6 +1062,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString duelKillGap = new("KILL RESPAWN GAP", "REAPARICIÓN TRAS MUERTE", "撃破後の復帰距離", "ÉCART APRÈS DESTRUCTION");
         [SerializeField] LocalizedString duelFinisherWindow = new("FINISHER WINDOW", "VENTANA DE REMATE", "とどめの猶予", "FENÊTRE D'ACHÈVEMENT");
         [SerializeField] LocalizedString duelHitStop = new("HIT STOP", "PARÓN DE IMPACTO", "ヒットストップ", "ARRÊT SUR IMPACT");
+        [SerializeField] LocalizedString duelStationAccel = new("DUEL ACCEL", "ACELERACIÓN EN DUELO", "決闘中の加速", "ACCÉLÉRATION EN DUEL");
         [SerializeField] LocalizedString duelDamagePool = new("PATROL HITS", "GOLPES DE PATRULLA", "パトロールの耐久", "COUPS DE PATROUILLE");
         [SerializeField] LocalizedString duelRamDistance = new("RAM REACH", "ALCANCE DE EMBESTIDA", "追突の間合い", "PORTÉE DU CHOC");
         [SerializeField] LocalizedString duelRamLateral = new("RAM WIDTH", "ANCHO DE EMBESTIDA", "追突の横幅", "LARGEUR DU CHOC");
@@ -1524,6 +1526,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DuelRamLateral => duelRamLateral,
             MenuTextId.DuelRamClosing => duelRamClosing,
             MenuTextId.DuelRamCost => duelRamCost,
+            MenuTextId.DuelStationAccel => duelStationAccel,
             _ => start
         };
     }

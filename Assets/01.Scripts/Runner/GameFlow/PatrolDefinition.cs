@@ -210,6 +210,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float shoveMeters = 10f;
 
         [TitleGroup("Duel")]
+        [Tooltip("How fast the cruiser can change speed DURING a run, overriding the chase's catch-up accel. The cruise rate is deliberately sluggish so boosts buy breathing room, " +
+                 "but holding a flank means ±10 m/s corrections inside a second — at the cruise rate it answers three seconds late and sails straight past you. 0 = use the chase rate.")]
+        [PropertyRange(0f, 300f), SuffixLabel("m/s per s", true)]
+        public float stationAccel = 60f;
+
+        [TitleGroup("Duel")]
         [Tooltip("How many rear rams the cruiser soaks up. The pool never kills it — it sets how hard the tug of war pushes: a full pool is full strength, one point left is a pushover. It refills on every fresh patrol.")]
         [PropertyRange(1, 10), SuffixLabel("hits", true)]
         public int damagePoolMax = 3;

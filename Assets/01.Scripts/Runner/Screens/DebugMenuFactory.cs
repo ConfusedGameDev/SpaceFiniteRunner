@@ -517,6 +517,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                           0f, 200f, 5f, "0", d => d.standoffDistance, (d, v) => d.standoffDistance = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelKillGap,
                           0f, 1500f, 25f, "0", d => d.killTeleportGap, (d, v) => d.killTeleportGap = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelStationAccel,
+                          0f, 300f, 5f, "0", d => d.stationAccel, (d, v) => d.stationAccel = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelDamagePool,
                           1f, 10f, 1f, "0", d => d.damagePoolMax, (d, v) => d.damagePoolMax = Mathf.RoundToInt(v));
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelRamDistance,

@@ -66,6 +66,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float encounterAbortMeters = -1f;
         public float standoffDistance = -1f;
         public float killTeleportGap = -1f;
+        public float stationAccel = -1f;
         public float damagePoolMax = -1f;
         public float ramContactDistance = -1f;
         public float ramContactLateral = -1f;
@@ -133,6 +134,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             encounterAbortMeters = definition.encounterAbortMeters;
             standoffDistance = definition.standoffDistance;
             killTeleportGap = definition.killTeleportGap;
+            stationAccel = definition.stationAccel;
             damagePoolMax = definition.damagePoolMax;
             ramContactDistance = definition.ramContactDistance;
             ramContactLateral = definition.ramContactLateral;
@@ -189,6 +191,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (encounterAbortMeters >= 0f) definition.encounterAbortMeters = encounterAbortMeters;
             if (standoffDistance >= 0f) definition.standoffDistance = standoffDistance;
             if (killTeleportGap >= 0f) definition.killTeleportGap = killTeleportGap;
+            if (stationAccel >= 0f) definition.stationAccel = stationAccel;
             if (damagePoolMax >= 0f) definition.damagePoolMax = Mathf.RoundToInt(damagePoolMax);
             if (ramContactDistance >= 0f) definition.ramContactDistance = ramContactDistance;
             if (ramContactLateral >= 0f) definition.ramContactLateral = ramContactLateral;

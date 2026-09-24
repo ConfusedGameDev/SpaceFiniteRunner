@@ -592,10 +592,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // re-matches the ship's speed instead of running off up the track.
             bool onTail = !shipLeft && gap <= runtimeDef.catchDistance;
             if (onTail && !encounter.Engaged) desired = Mathf.Min(desired, target.CurrentSpeed);
-            // Above 1 the run's overdrive is a FLOOR (it must out-drive the
-            // ship to reach the flank); below 1 the back-off is a CAP (it must
-            // drop behind, whatever the band would otherwise ask for).
-            if (intent.SpeedMultiplier > 1f)
+            // A committed run OWNS the speed: station keeping has to be able to
+            // ask for slower as well as faster, and the redeploy floor (which
+            // sits above the ship's speed) would otherwise drive the cruiser
+            // straight past the flank it is holding.
+            if (intent.SpeedIsAbsolute)
+                desired = target.CurrentSpeed * intent.SpeedMultiplier;
+            // Otherwise: above 1 the multiplier is a FLOOR, below 1 a CAP (the
+            // standoff and the back-off, which only ever need to push one way).
+            else if (intent.SpeedMultiplier > 1f)
                 desired = Mathf.Max(desired, target.CurrentSpeed * intent.SpeedMultiplier);
             else if (intent.SpeedMultiplier < 1f)
                 desired = Mathf.Min(desired, target.CurrentSpeed * intent.SpeedMultiplier);
@@ -609,14 +614,24 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // The rubber band IS the body's speed model: cruise = the target,
             // thrust and over-cruise bleed = the catch-up accel, so the speed
             // moves toward the target at that rate either way.
+            // A run needs far more speed authority than the chase does. The
+            // cruise band's `catchUpAccel` is deliberately sluggish (that is
+            // what makes a boost buy breathing room), but station keeping asks
+            // for ±10 m/s corrections inside a second — at the band's rate the
+            // cruiser answers three seconds late and sails past the flank
+            // before it starts slowing. So a committed run gets its own rate.
+            float speedAuthority = encounter.Engaged && runtimeDef.stationAccel > 0f
+                ? runtimeDef.stationAccel
+                : runtimeDef.catchUpAccel;
+
             body.Params = new BodyParams
             {
                 impulseBlendRate = 1000f,
                 cruiseSpeed = desired,
-                thrust = runtimeDef.catchUpAccel,
+                thrust = speedAuthority,
                 brakeDecel = runtimeDef.brakeDecel,
                 coastDrag = 0f,
-                passiveDeceleration = runtimeDef.catchUpAccel,
+                passiveDeceleration = speedAuthority,
                 lateralSpeed = runtimeDef.lateralSpeed,
                 handlingResponse = runtimeDef.handlingResponse,
                 gripBase = runtimeDef.gripBase,

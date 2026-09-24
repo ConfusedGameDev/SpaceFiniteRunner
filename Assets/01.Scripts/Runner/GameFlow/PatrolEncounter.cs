@@ -17,11 +17,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         Cruising,
         /// <summary>Overdriving past the ship's speed to force the flank. The burst IS the telegraph.</summary>
         Committing,
-        /// <summary>Holding the flank it picked, working up to the shove.</summary>
+        /// <summary>Holding the flank it picked — level with the ship, not faster — and working up to the shove.</summary>
         Alongside,
-        /// <summary>The mash contest (not built yet).</summary>
+        /// <summary>The mash contest.</summary>
         TugOfWar,
-        /// <summary>The kill prompt (not built yet).</summary>
+        /// <summary>The kill prompt.</summary>
         Finisher,
         /// <summary>Disengaging: no overdrive, no flank, the ordinary driver back in charge.</summary>
         BreakingOff,
@@ -82,9 +82,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>
         /// The ship's speed, times this, as the rubber band's target. Above 1
         /// it is a FLOOR (the attack run's overdrive); below 1 it is a CAP
-        /// (backing off after one); exactly 1 leaves the band alone.
+        /// (backing off after one); exactly 1 leaves the band alone. With
+        /// <see cref="SpeedIsAbsolute"/> it is none of those — it is the
+        /// target outright.
         /// </summary>
         public float SpeedMultiplier;
+        /// <summary>
+        /// The run OWNS the speed: the target is the ship's speed times the
+        /// multiplier, floor and cap both ignored. Station keeping needs this —
+        /// as a floor it could only ever speed the cruiser up, and the rubber
+        /// band's floor (raised above the ship's speed on every redeploy) would
+        /// drive it straight past the flank it is trying to hold.
+        /// </summary>
+        public bool SpeedIsAbsolute;
         /// <summary>The lateral the driver should steer for instead of the ship's, or null for the ordinary line.</summary>
         public float? LineOverride;
         /// <summary>Set for exactly one substep: slam the ship sideways now.</summary>
@@ -103,7 +113,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// (<see cref="PatrolDefinition.commitIntervalSeconds"/>) rather than as
     /// an emergent property of the chase: it waits out the interval, checks
     /// the road ahead is ground worth duelling on, then OVERDRIVES past the
-    /// ship's speed to force its way onto a flank. It picks the side that
+    /// ship's speed to force its way onto a flank — and once it is there it
+    /// HOLDS STATION, steering its speed at level with the ship rather than
+    /// staying faster than it, because a cruiser that keeps overdriving simply
+    /// drives past the flank it just won. It picks the side that
     /// leaves the ship between it and an open edge, so the shove throws the
     /// ship off the road; on a walled stretch the same shove pins it into the
     /// wall instead. Either way the damage is the road's, not the patrol's —
@@ -277,14 +290,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                         Enter(PatrolEncounterState.BreakingOff);
                         break;
                     }
+                    // Absolute, not a floor: the burst IS the telegraph, so it
+                    // has to be the same readable 15 % every time and not
+                    // whatever the redeploy floor has grown to.
                     intent.SpeedMultiplier = def.attackRunOverdrive;
+                    intent.SpeedIsAbsolute = true;
                     intent.LineOverride = FlankLine(ctx, Side);
                     if (ctx.Gap <= def.alongsideDistance && Mathf.Abs(ctx.Across) <= def.alongsideLateral)
                         Enter(PatrolEncounterState.Alongside);
                     break;
 
                 case PatrolEncounterState.Alongside:
-                    if (!ctx.ShipSteady || !ClearToContinue(ctx) || ctx.Gap < 0f)
+                    if (!ctx.ShipSteady || !ClearToContinue(ctx) || ShipGotPast(ctx))
                     {
                         Enter(PatrolEncounterState.BreakingOff);
                         break;
@@ -298,8 +315,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                         Enter(PatrolEncounterState.BreakingOff);
                         break;
                     }
-                    // It has to keep up to stay level, so the overdrive stays on.
-                    intent.SpeedMultiplier = def.attackRunOverdrive;
+                    // Level with the ship, not faster than it — the wind-up is
+                    // a cruiser pacing you, which is what makes the shove read.
+                    intent.SpeedMultiplier = StationSpeed(ctx);
+                    intent.SpeedIsAbsolute = true;
                     intent.LineOverride = FlankLine(ctx, Side);
                     // The flank hold is the wind-up; then the contest opens.
                     if (stateTimer >= def.alongsideHoldSeconds)
@@ -314,7 +333,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // Breaking the geometry still ends it, and still for free:
                     // the bar is the contest, but the road is the stake, and
                     // getting off the flank is a legitimate answer to both.
-                    if (!ctx.ShipSteady || !ClearToContinue(ctx) || ctx.Gap < 0f)
+                    if (!ctx.ShipSteady || !ClearToContinue(ctx) || ShipGotPast(ctx))
                     {
                         Enter(PatrolEncounterState.BreakingOff);
                         break;
@@ -326,7 +345,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                         break;
                     }
 
-                    intent.SpeedMultiplier = def.attackRunOverdrive;
+                    intent.SpeedMultiplier = StationSpeed(ctx);
+                    intent.SpeedIsAbsolute = true;
                     intent.LineOverride = FlankLine(ctx, Side);
                     intent.SteerAssist = Assist(ctx);
 
@@ -365,7 +385,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // kill. Only the clock ends it — the geometry checks are
                     // gone on purpose, because a window this short should not
                     // be snatched away by a ramp coming into view.
-                    intent.SpeedMultiplier = def.attackRunOverdrive;
+                    intent.SpeedMultiplier = StationSpeed(ctx);
+                    intent.SpeedIsAbsolute = true;
                     intent.LineOverride = FlankLine(ctx, Side);
                     intent.SteerAssist = Assist(ctx);
                     if (stateTimer >= ctx.FinisherWindowSeconds)
@@ -433,6 +454,36 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         bool ClearToContinue(in PatrolEncounterContext ctx) =>
             GroundClear(ctx, Mathf.Min(ctx.Def.encounterAbortMeters, ctx.Def.encounterLookaheadMeters));
+
+        /// <summary>
+        /// The ship has got fully past it — D23's cheap escape, earned by
+        /// braking. A metre of jitter is NOT that: station keeping oscillates
+        /// around level by design, so the test is a whole alongside window
+        /// ahead rather than merely a negative gap. Judging it on the sign of
+        /// the gap aborted every single run the instant the cruiser drew level.
+        /// </summary>
+        static bool ShipGotPast(in PatrolEncounterContext ctx) =>
+            ctx.Gap < -Mathf.Max(ctx.Def.alongsideDistance, 1f);
+
+        // Station keeping: the speed that holds the cruiser LEVEL with the
+        // ship. A run used to ask for `attackRunOverdrive` the whole way
+        // through, which is a permanent "faster than the ship" — it only ever
+        // looked like holding a flank because a positional clamp pinned the
+        // cruiser a metre off the ship's nose. Without that crutch a blanket
+        // overdrive simply drives past and the run aborts, so the run steers
+        // its speed AT the station instead: proportional to how far off level
+        // it is, the overdrive as the ceiling, a matching back-off as the
+        // floor. The station is level (gap 0), so the error IS the gap.
+        const float StationBackOff = 0.12f;
+
+        static float StationSpeed(in PatrolEncounterContext ctx)
+        {
+            float window = Mathf.Max(ctx.Def.alongsideDistance, 1f);
+            float t = Mathf.Clamp(ctx.Gap / window, -1f, 1f); // + behind station, - ahead of it
+            return t >= 0f
+                ? 1f + t * Mathf.Max(0f, ctx.Def.attackRunOverdrive - 1f)
+                : 1f + t * StationBackOff;
+        }
 
         // A weakened cruiser pushes weaker. Floored well above zero on
         // purpose: an emptied pool must leave a contest that is trivial, not

@@ -435,6 +435,22 @@ minimap range, redeploy) stay on `GameSettings`.
   of ship travel. Aborts on the ship getting behind it, out-steering `alongsideLateral` for
   `abortGraceSeconds`, the ground going bad, the ship leaving the road, or a loss wind-down
   (`GameManager.BeginFail` → `AbortEncounter`).
+- **Station keeping** is what holds a run together. Every engaged state used to ask for
+  `attackRunOverdrive` — a permanent "faster than the ship" — which only ever looked like holding a
+  flank because the absolute distance clamp pinned the cruiser a metre off the ship's nose. It now
+  steers its speed AT the station (level, gap 0): `PatrolEncounter.StationSpeed` is proportional to
+  the gap over an `alongsideDistance` window, the overdrive as the ceiling and `StationBackOff`
+  (12 %) as the floor, and it is flagged `SpeedIsAbsolute` so the run OWNS the speed — as a floor it
+  could only ever speed the cruiser up, and the redeploy floor (above the ship's speed) would drive
+  it straight past. `Committing` is absolute too, so the telegraph burst is the same readable 15 %
+  whatever the floor has grown to. A run also gets its own speed authority
+  (`PatrolDefinition.stationAccel`, 60 m/s², applied whenever `encounter.Engaged`): the cruise
+  band's `catchUpAccel` (3.33 on the asset) is deliberately sluggish so boosts buy breathing room,
+  but station keeping asks for ±10 m/s inside a second and at the band's rate the cruiser answers
+  three seconds late. The sweep's grip cap still wins over all of it. **And the abort is
+  `ShipGotPast` — the gap a whole alongside window NEGATIVE, not merely negative**: station keeping
+  oscillates around level by design, so the sign of the gap aborted every run the instant the
+  cruiser drew level.
 - **Rear ramming and the damage pool** — M3 of the duel. **The patrol ahead of the ship is an
   obstacle and a target.** The old absolute "never through the ship" clamp is now a LANE rule:
   bodies overlapping within `SideBySideLateral` (5 m) are held `MinLaneGap` (1 m) clear on
