@@ -122,6 +122,26 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// owner is responsible for clearing it.
         /// </summary>
         public float SteerAssist { get; set; }
+
+        /// <summary>
+        /// Refuses every dash while set — an explicit, named gate, deliberately
+        /// NOT one of the three override flags above: those also take the
+        /// steering, and whoever locks the dash usually still wants the player
+        /// flying. Set by the patrol duel, which takes the dash away for the
+        /// tug of war and hands it straight back as the finisher.
+        /// </summary>
+        public bool DashLocked { get; set; }
+
+        /// <summary>
+        /// Empties the dash meter outright, rather than charging one dash's
+        /// worth. The duel's kill costs the whole meter, so a fresh patrol
+        /// arrives while the ship still has no evasive move.
+        /// </summary>
+        public void DrainDashMeter()
+        {
+            dashMeter = 0f;
+            meterWasFull = false;
+        }
         /// <summary>Cost of the last simulation tick, milliseconds — the number the substep budget is judged by.</summary>
         public double LastTickMilliseconds { get; private set; }
 
@@ -378,6 +398,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public bool TryDash(int direction)
         {
             if (direction == 0 || !settings.dashEnabled || IsDashing || dashMeter < settings.dashCost) return false;
+            if (DashLocked) return false;
             if (State == ShipState.OffTrack || State == ShipState.Respawning) return false;
             direction = direction > 0 ? 1 : -1;
             dashMeter -= settings.dashCost;

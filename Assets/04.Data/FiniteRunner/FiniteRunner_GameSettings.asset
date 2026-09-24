@@ -41,6 +41,9 @@ MonoBehaviour:
   patrolRedeploySpeedFactor: 1.15
   patrolDuelEnabled: 1
   duelTimeScale: 0.3
+  finisherWindowSeconds: 1
+  duelHitStopSeconds: 0.12
+  patrolExplosionScale: 0.8
   duelDebugReadout: 1
   duelTimeBlendSeconds: 0.15
   duelAssistStrength: 0.5

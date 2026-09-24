@@ -51,6 +51,13 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         Image glyphImage;
         Text glyphLabel;
         Text readout;
+
+        CanvasGroup finisherGroup;
+        Image finisherGlyph;
+        Text finisherKey;
+        Text finisherCaption;
+        RectTransform finisherRect;
+        int finisherShownSide;
         RectTransform glyphRect;
 
         int shownSide;        // the side the layout is currently mirrored for
@@ -123,6 +130,34 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                                 MenuTextLibrary.Load().Get(MenuTextId.DuelMashPrompt), 20,
                                 theme.TextPrimary, theme.BodyFont, TextAnchor.MiddleCenter);
 
+            // The kill prompt: the SAME shoulder the patrol is on. It reads
+            // the player's real dash bindings, so someone who rebound the dash
+            // is shown the buttons they actually have, and it re-reads them
+            // live when they change.
+            var fin = new GameObject("Finisher", typeof(RectTransform));
+            finisherRect = (RectTransform)fin.transform;
+            finisherRect.SetParent(transform, false);
+            finisherRect.anchorMin = finisherRect.anchorMax = new Vector2(0.5f, 0f);
+            finisherRect.pivot = new Vector2(0.5f, 0.5f);
+            finisherRect.anchoredPosition = new Vector2(0f, BarBottom + 8f);
+            finisherRect.sizeDelta = new Vector2(760f, 80f);
+            finisherGroup = fin.AddComponent<CanvasGroup>();
+            finisherGroup.alpha = 0f;
+
+            finisherCaption = MenuScreen.MakeText("FinisherCaption", finisherRect, new Vector2(0f, 34f),
+                                                  new Vector2(760f, 30f),
+                                                  MenuTextLibrary.Load().Get(MenuTextId.DuelFinisherPrompt), 26,
+                                                  theme.TextPrimary, theme.BodyFont, TextAnchor.MiddleCenter);
+            finisherGlyph = MenuScreen.MakeImage("FinisherGlyph", finisherRect, Vector2.zero,
+                                                 new Vector2(64f, 64f), null, Color.white);
+            finisherGlyph.preserveAspect = true;
+            finisherKey = MenuScreen.MakeText("FinisherKey", finisherRect, Vector2.zero, new Vector2(260f, 64f),
+                                              string.Empty, 34, theme.TextPrimary, theme.BodyFont,
+                                              TextAnchor.MiddleCenter);
+            finisherShownSide = 0;
+            ControlBindings.Changed -= RefreshFinisherBinding; // Build can run again — never subscribe twice
+            ControlBindings.Changed += RefreshFinisherBinding;
+
             // Diagnostic line, off by default. Parented to the CANVAS rather
             // than the bar holder, so it survives the bar being hidden — the
             // whole reason it exists is to explain a contest that never opened.
@@ -144,6 +179,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             bool debug = settings.duelDebugReadout && !motor.Paused;
             if (readout.enabled != debug) readout.enabled = debug;
             if (debug) readout.text = patrol.EncounterDebug();
+
+            UpdateFinisher();
 
             bool visible = patrol.InTugOfWar && !motor.Paused && settings.patrolDuelEnabled;
             group.alpha = visible ? 1f : 0f;
@@ -168,6 +205,49 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
             Rumble(share);
         }
+
+        // The kill prompt lives and dies with the Finisher state. It pulses,
+        // because it is a window rather than a readout.
+        void UpdateFinisher()
+        {
+            bool show = patrol.EncounterState == PatrolEncounterState.Finisher
+                        && !motor.Paused && settings.patrolDuelEnabled;
+            if (!show)
+            {
+                if (finisherGroup.alpha != 0f) finisherGroup.alpha = 0f;
+                finisherShownSide = 0;
+                return;
+            }
+            if (patrol.EncounterSide != finisherShownSide)
+            {
+                finisherShownSide = patrol.EncounterSide;
+                RefreshFinisherBinding();
+            }
+            // Unscaled: the prompt is the one thing in the exchange that must
+            // not slow down with the world.
+            finisherGroup.alpha = 0.7f + 0.3f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 12f));
+        }
+
+        // The dash binding for the side the patrol is on — the player's own,
+        // through ControlBindings, rendered from the glyph set.
+        void RefreshFinisherBinding()
+        {
+            if (finisherGlyph == null) return;
+            int side = finisherShownSide != 0 ? finisherShownSide : 1;
+            GameAction action = side > 0 ? GameAction.ShipDashRight : GameAction.ShipDashLeft;
+            bool pad = DuelMashInput.UsingGamepad;
+            PadControl control = ControlBindings.PadFor(action);
+            Key key = ControlBindings.KeyFor(action);
+            Sprite sprite = pad && glyphs != null ? glyphs.For(control) : null;
+
+            finisherGlyph.sprite = sprite;
+            finisherGlyph.enabled = sprite != null;
+            finisherKey.text = sprite != null ? string.Empty
+                             : pad ? ControlGlyphSet.Label(control) : ControlGlyphSet.Label(key);
+            finisherKey.enabled = sprite == null;
+        }
+
+        void OnDestroy() => ControlBindings.Changed -= RefreshFinisherBinding;
 
         // Lay the bar out for a patrol on the given side: the fill enters from
         // that side and the glyph sits at the far end — the direction the

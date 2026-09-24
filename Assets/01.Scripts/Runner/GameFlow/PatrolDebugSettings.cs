@@ -63,6 +63,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float attackRunCooldownSeconds = -1f;
         public float encounterLookaheadMeters = -1f;
         public float shoveMeters = -1f;
+        public float encounterAbortMeters = -1f;
+        public float standoffDistance = -1f;
+        public float killTeleportGap = -1f;
 
         static PatrolDebugSettings cached;
 
@@ -123,6 +126,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             attackRunCooldownSeconds = definition.attackRunCooldownSeconds;
             encounterLookaheadMeters = definition.encounterLookaheadMeters;
             shoveMeters = definition.shoveMeters;
+            encounterAbortMeters = definition.encounterAbortMeters;
+            standoffDistance = definition.standoffDistance;
+            killTeleportGap = definition.killTeleportGap;
 
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
@@ -172,6 +178,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (attackRunCooldownSeconds >= 0f) definition.attackRunCooldownSeconds = attackRunCooldownSeconds;
             if (encounterLookaheadMeters >= 0f) definition.encounterLookaheadMeters = encounterLookaheadMeters;
             if (shoveMeters >= 0f) definition.shoveMeters = shoveMeters;
+            if (encounterAbortMeters >= 0f) definition.encounterAbortMeters = encounterAbortMeters;
+            if (standoffDistance >= 0f) definition.standoffDistance = standoffDistance;
+            if (killTeleportGap >= 0f) definition.killTeleportGap = killTeleportGap;
         }
 
         /// <summary>

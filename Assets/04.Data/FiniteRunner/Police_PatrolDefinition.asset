@@ -36,6 +36,7 @@ MonoBehaviour:
   encounterLookaheadMeters: 220
   encounterAbortMeters: 70
   standoffDistance: 45
+  killTeleportGap: 0
   shoveMeters: 10
   tugPatrolForce: 0.15
   tugPressValue: 0.08

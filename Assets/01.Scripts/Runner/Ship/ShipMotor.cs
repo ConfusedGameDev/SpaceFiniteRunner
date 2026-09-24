@@ -162,6 +162,22 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             set { if (physicsShip != null) physicsShip.SteerAssist = value; }
         }
 
+        /// <summary>
+        /// While set the ship refuses every dash. The duel's tug of war holds
+        /// this, and drops it for the finisher — which IS a dash.
+        /// </summary>
+        public bool DashLocked
+        {
+            get => physicsShip != null && physicsShip.DashLocked;
+            set { if (physicsShip != null) physicsShip.DashLocked = value; }
+        }
+
+        /// <summary>Empties the dash meter — the duel's kill costs all of it, not one dash's worth.</summary>
+        public void DrainDashMeter()
+        {
+            if (physicsShip != null) physicsShip.DrainDashMeter();
+        }
+
         /// <summary>Dash power meter, 0..1. Starts each run full (HoverShip.Launch).</summary>
         public float DashMeter => physicsShip != null ? physicsShip.DashMeter : 0f;
 

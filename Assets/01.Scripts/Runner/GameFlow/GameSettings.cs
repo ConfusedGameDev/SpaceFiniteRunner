@@ -185,6 +185,21 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float duelAssistStrength = 0.5f;
 
         [ToggleGroup("patrolEnabled")]
+        [Tooltip("How long the kill prompt stays open after you win the bar. Generous on purpose: missing it costs nothing but the kill.")]
+        [PropertyRange(0.2f, 3f), SuffixLabel("s", true), EnableIf("patrolDuelEnabled")]
+        public float finisherWindowSeconds = 1f;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("The deeper dip the world takes on the kill's connect, before it snaps back to full speed. The transition out of the exchange, not an effect in itself.")]
+        [PropertyRange(0f, 0.5f), SuffixLabel("s", true), EnableIf("patrolDuelEnabled")]
+        public float duelHitStopSeconds = 0.12f;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("Size of the fireball a killed patrol leaves, as a multiple of the ship's own explosion. It reuses the same textures.")]
+        [PropertyRange(0.1f, 3f), SuffixLabel("x ship blast", true), EnableIf("patrolDuelEnabled")]
+        public float patrolExplosionScale = 0.8f;
+
+        [ToggleGroup("patrolEnabled")]
         [Tooltip("Print the attack run's state, gap and gates on screen. Both things that stop a run starting — the cadence and the clear-road test — are invisible when they work, so this is the only way to tell 'it decided not to' from 'it is broken'.")]
         [EnableIf("patrolDuelEnabled")]
         public bool duelDebugReadout = false;

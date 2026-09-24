@@ -138,7 +138,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DuelCommitTimeout, DuelAlongsideDistance, DuelFlankOffset, DuelAlongsideHold,
         DuelAbortGrace, DuelBreakOff, DuelBackOffSpeed, DuelCooldown, DuelLookahead,
         DuelShoveMeters, DuelTugForce, DuelTugPress, DuelTimeScale, DuelAssist,
-        DuelMashPrompt
+        DuelMashPrompt, DuelFinisherPrompt,
+        DuelAbortMeters, DuelStandoff, DuelKillGap, DuelFinisherWindow, DuelHitStop
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1052,6 +1053,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString duelTimeScale = new("DUEL TIME SCALE", "TIEMPO EN DUELO", "決闘中の時間", "TEMPS EN DUEL");
         [SerializeField] LocalizedString duelAssist = new("DUEL STEER ASSIST", "AYUDA DE DIRECCIÓN", "決闘時の操舵補助", "ASSISTANCE DE DIRECTION");
         [SerializeField] LocalizedString duelMashPrompt = new("MASH", "APORREA", "連打", "MARTELEZ");
+        [SerializeField] LocalizedString duelFinisherPrompt = new("TAKE THEM OUT", "ACÁBALOS", "とどめを刺せ", "ACHEVEZ-LES");
+        [SerializeField] LocalizedString duelAbortMeters = new("ABORT LOOKAHEAD", "MARGEN DE ABORTO", "中断の先読み", "ANTICIPATION D'ABANDON");
+        [SerializeField] LocalizedString duelStandoff = new("STANDOFF", "DISTANCIA DE ESPERA", "待機距離", "DISTANCE D'ATTENTE");
+        [SerializeField] LocalizedString duelKillGap = new("KILL RESPAWN GAP", "REAPARICIÓN TRAS MUERTE", "撃破後の復帰距離", "ÉCART APRÈS DESTRUCTION");
+        [SerializeField] LocalizedString duelFinisherWindow = new("FINISHER WINDOW", "VENTANA DE REMATE", "とどめの猶予", "FENÊTRE D'ACHÈVEMENT");
+        [SerializeField] LocalizedString duelHitStop = new("HIT STOP", "PARÓN DE IMPACTO", "ヒットストップ", "ARRÊT SUR IMPACT");
         [SerializeField] LocalizedString trackLength = new("TRACK LENGTH", "LONGITUD DE PISTA", "コース長", "LONGUEUR DE PISTE");
         [SerializeField] LocalizedString debugTabFall = new("FALL & RESPAWN", "CAÍDA Y REAPARICIÓN", "落下とリスポーン", "CHUTE ET RETOUR");
         [SerializeField] LocalizedString edgeOverhang = new("EDGE OVERHANG", "MARGEN DEL BORDE", "縁のはみ出し", "DÉBORD DU BORD");
@@ -1499,6 +1506,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DuelTimeScale => duelTimeScale,
             MenuTextId.DuelAssist => duelAssist,
             MenuTextId.DuelMashPrompt => duelMashPrompt,
+            MenuTextId.DuelFinisherPrompt => duelFinisherPrompt,
+            MenuTextId.DuelAbortMeters => duelAbortMeters,
+            MenuTextId.DuelStandoff => duelStandoff,
+            MenuTextId.DuelKillGap => duelKillGap,
+            MenuTextId.DuelFinisherWindow => duelFinisherWindow,
+            MenuTextId.DuelHitStop => duelHitStop,
             _ => start
         };
     }

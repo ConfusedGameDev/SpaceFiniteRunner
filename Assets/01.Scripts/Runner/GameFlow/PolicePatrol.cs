@@ -1,6 +1,8 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.Cameras;
+using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Simulation;
@@ -80,6 +82,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         bool duelEnabled = true;
         float unscaledStep;   // real seconds per substep, for the bar
         int pendingPresses;   // mash presses drained this tick, spent on the first substep
+        float killHideLeft;   // seconds the cruiser stays invisible across a kill's teleport
         float lastTickTime = float.NegativeInfinity; // Time.fixedTime of the last tick, for the render's blend
         float tailTimer;      // seconds spent inside the catch distance
         float shownBank;
@@ -165,6 +168,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         public bool IsGone { get; private set; }
 
+        /// <summary>
+        /// True while the cruiser must not be drawn ANYWHERE — off the end of
+        /// the track, or hidden across a kill's teleport. The minimap reads
+        /// this rather than <see cref="IsGone"/> so a kill's reposition is
+        /// invisible on the map as well as in the world.
+        /// </summary>
+        public bool HiddenFromMap => IsGone || killHideLeft > 0f;
+
         // The end fall, flown in world space like the ship's.
         Vector3 offPosition, prevOffPosition, offVelocity;
         Quaternion offRotation;
@@ -234,9 +245,17 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         public void Init(ShipMotor target)
         {
-            if (this.target != null) this.target.PadImpulse -= OnShipImpulse;
+            if (this.target != null)
+            {
+                this.target.PadImpulse -= OnShipImpulse;
+                this.target.DashPerformed -= OnShipDashed;
+            }
             this.target = target;
-            if (target != null) target.PadImpulse += OnShipImpulse;
+            if (target != null)
+            {
+                target.PadImpulse += OnShipImpulse;
+                target.DashPerformed += OnShipDashed; // the finisher IS a dash
+            }
             track = FindFirstObjectByType<TrackManager>();
             generator = FindFirstObjectByType<TrackGenerator>();
 
@@ -286,6 +305,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             Hold = false;
             IsGone = false;
             goneTimer = 0f;
+            killHideLeft = 0f;
             if (visual != null && !visual.gameObject.activeSelf) visual.gameObject.SetActive(true);
             tailTimer = 0f;
             warnCooldown = 0f;
@@ -300,7 +320,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (target != null)
             {
                 target.PadImpulse -= OnShipImpulse;
+                target.DashPerformed -= OnShipDashed;
                 target.SteerAssist = 0f; // never leave the ship being steered by a patrol that is gone
+                target.DashLocked = false;
             }
         }
 
@@ -332,6 +354,55 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (pickup is SpeedPad pad && pad.IsBoostOrb)
                 body.ForwardSpeed += pad.Take() * runtimeDef.orbBoostShare;
         }
+
+        /// <summary>
+        /// The ship dashed. During the finisher's window a dash INTO the patrol
+        /// is the kill; any other dash is an ordinary dash that simply spends
+        /// the window. Everything outside the window is none of our business.
+        /// </summary>
+        void OnShipDashed(int direction)
+        {
+            if (!duelEnabled || IsGone || HasCaught) return;
+            if (encounter.ReportDash(direction)) Kill();
+        }
+
+        /// <summary>
+        /// The kill: a fireball where the cruiser was, the world held for a
+        /// beat, and the same object recycled in behind the ship as the next
+        /// patrol. There is only ever ONE cruiser — the "destroyed" one is this
+        /// one, hidden across its own teleport so the replacement reads as a
+        /// fresh car arriving rather than the same one blinking backwards.
+        /// The kill costs the player the WHOLE dash meter, so the next patrol's
+        /// approach is faced without an evasive move.
+        /// </summary>
+        void Kill()
+        {
+            GameSettings rules = target.DashSettings;
+            Vector3 origin = visual != null ? visual.position : transform.position;
+            if (rules != null && rules.explosionTextures != null && rules.explosionTextures.Count > 0)
+                ExplosionVfx.SpawnFireball(origin, rules.explosionTextures,
+                                           rules.explosionScale * rules.patrolExplosionScale,
+                                           rules.explosionLifetime, rules.explosionParticles);
+
+            HapticsSystem.Instance.Pulse(1f, 1f, 0.5f);
+            CameraShake.Shake(rules != null ? rules.explosionShake : default);
+            if (rules != null) DuelSlowMo.RequestHitStop(rules.duelHitStopSeconds);
+            target.DrainDashMeter();
+            target.SteerAssist = 0f;
+            target.DashLocked = false;
+
+            // Hidden for the reposition, and off the minimap with it, so the
+            // teleport is never seen from either direction.
+            killHideLeft = KillHideSeconds;
+            if (visual != null) visual.gameObject.SetActive(false);
+
+            float gap = runtimeDef.killTeleportGap > 0f ? runtimeDef.killTeleportGap : redeployGap;
+            Redeploy(raiseFloor: true, gapOverride: gap);
+        }
+
+        // Long enough to cover the fireball and the reposition; the replacement
+        // is hundreds of metres back by the time it shows again.
+        const float KillHideSeconds = 0.35f;
 
         // Over an open edge (a mistimed ramp, a slide the driver misjudged):
         // this cruiser is gone and a fresh one drops in behind the ship. The
@@ -382,6 +453,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // The mash is sampled every FRAME and drained by the fixed tick,
             // so a fast press between two ticks is never dropped.
             DuelMashInput.Poll();
+
+            // A killed cruiser stays invisible until its replacement is in
+            // place. Unscaled, because the kill's hit-stop is slowing the world
+            // and the hide must not stretch with it.
+            if (killHideLeft > 0f)
+            {
+                killHideLeft -= Time.unscaledDeltaTime;
+                if (killHideLeft <= 0f && visual != null && !IsGone) visual.gameObject.SetActive(true);
+            }
+
+            // The contest holds the dash; the finisher hands it straight back.
+            target.DashLocked = duelEnabled && encounter.LocksDash;
 
             // The assist is written by the fixed tick, which stops running on
             // a catch, a hold or a pause — so the release is owned here, where
@@ -457,7 +540,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                                      target.Body.Distance, runtimeDef, track, generator,
                                                      ShipSteady, unscaledStep,
                                                      rules != null ? rules.duelAssistStrength : 0f,
-                                                     pendingPresses);
+                                                     pendingPresses,
+                                                     rules != null ? rules.finisherWindowSeconds : 1f);
                 pendingPresses = 0;
                 encounter.Tick(dt, ctx, out intent);
             }
@@ -585,13 +669,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// open the gap again. When the old one merely fell off the track the
         /// floor is left alone.
         /// </summary>
-        void Redeploy(bool raiseFloor)
+        void Redeploy(bool raiseFloor, float gapOverride = 0f)
         {
             float speed = raiseFloor
                 ? Mathf.Max(minSpeed, target.CurrentSpeed * redeploySpeedFactor)
                 : Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.rubberBand);
             if (raiseFloor) minSpeed = speed;
-            body.Reset(target.Body.Distance - redeployGap, speed);
+            body.Reset(target.Body.Distance - (gapOverride > 0f ? gapOverride : redeployGap), speed);
             tailTimer = 0f;
             warnCooldown = 0f;
             warned = false;

@@ -190,8 +190,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 endText.text = !finite ? "" : remaining >= 1000f ? $"{remaining / 1000f:0.0} KM" : $"{remaining:0} M";
             }
 
-            // No patrol, or one the end of the track took: off the map altogether.
-            if (patrol == null || patrol.IsGone)
+            // No patrol, one the end of the track took, or one mid-kill: off
+            // the map altogether. The kill's teleport must not be visible here
+            // either, or the map gives away that it is the same car.
+            if (patrol == null || patrol.HiddenFromMap)
             {
                 if (policeIcon.gameObject.activeSelf) policeIcon.gameObject.SetActive(false);
                 if (shownGap != -2)

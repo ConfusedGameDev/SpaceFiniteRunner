@@ -50,14 +50,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public readonly float AssistStrength;
         /// <summary>Mash presses counted since the last substep.</summary>
         public readonly int Presses;
+        /// <summary>How long the kill prompt stays open (GameSettings.finisherWindowSeconds).</summary>
+        public readonly float FinisherWindowSeconds;
 
         public PatrolEncounterContext(float gap, float across, float shipLateral, float shipDistance,
                                       PatrolDefinition def, TrackManager track, TrackGenerator generator,
-                                      bool shipSteady, float unscaledDt, float assistStrength, int presses)
+                                      bool shipSteady, float unscaledDt, float assistStrength, int presses,
+                                      float finisherWindowSeconds)
         {
             UnscaledDt = unscaledDt;
             AssistStrength = assistStrength;
             Presses = presses;
+            FinisherWindowSeconds = finisherWindowSeconds;
             Gap = gap;
             Across = across;
             ShipLateral = shipLateral;
@@ -189,6 +193,31 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             groundTestedFor = -1f;
         }
 
+        /// <summary>
+        /// The contest takes the dash away — it is not an escape from the bar —
+        /// and the finisher hands it straight back, because the finisher IS a
+        /// dash. Nothing else in the cycle touches it.
+        /// </summary>
+        public bool LocksDash => State == PatrolEncounterState.TugOfWar;
+
+        /// <summary>
+        /// The ship just dashed, in the given direction (-1 left, +1 right).
+        /// Returns true when that was the kill: the finisher was open and the
+        /// dash went INTO the patrol. A dash the wrong way is an ordinary dash
+        /// with ordinary consequences, and it ends the window either way —
+        /// there is one swing, not a retry.
+        /// </summary>
+        public bool ReportDash(int direction)
+        {
+            if (State != PatrolEncounterState.Finisher || direction == 0) return false;
+            bool killed = direction == Side;
+            // Either way the window is spent. On a kill the recycle resets the
+            // whole encounter a moment later anyway; this just makes sure a
+            // miss cannot leave the prompt hanging.
+            Enter(PatrolEncounterState.BreakingOff);
+            return killed;
+        }
+
         /// <summary>Ends a run in progress without a shove; the cooldown still applies.</summary>
         public void Abort()
         {
@@ -316,10 +345,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     }
                     else if (tug <= 0f)
                     {
-                        // The player wins. M2 turns this into the finisher
-                        // prompt; for now the patrol simply lets go.
-                        Enter(PatrolEncounterState.BreakingOff);
+                        // The player wins: the kill window opens. Slow-mo and
+                        // assist carry straight through it (D33) so contest,
+                        // prompt and kill read as one authored beat rather
+                        // than three events.
+                        Enter(PatrolEncounterState.Finisher);
                     }
+                    break;
+
+                case PatrolEncounterState.Finisher:
+                    // Missable, and missing it costs nothing: you won the
+                    // contest, you keep your hull, you just do not get the
+                    // kill. Only the clock ends it — the geometry checks are
+                    // gone on purpose, because a window this short should not
+                    // be snatched away by a ramp coming into view.
+                    intent.SpeedMultiplier = def.attackRunOverdrive;
+                    intent.LineOverride = FlankLine(ctx, Side);
+                    intent.SteerAssist = Assist(ctx);
+                    if (stateTimer >= ctx.FinisherWindowSeconds)
+                        Enter(PatrolEncounterState.BreakingOff);
                     break;
 
                 // Backing off is ACTIVE: the patrol drives below the ship's

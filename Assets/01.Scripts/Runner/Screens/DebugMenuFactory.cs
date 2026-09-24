@@ -511,6 +511,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                           0f, 1f, 0.01f, "0.00", d => d.tugPatrolForce, (d, v) => d.tugPatrolForce = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelTugPress,
                           0.01f, 0.5f, 0.01f, "0.00", d => d.tugPressValue, (d, v) => d.tugPressValue = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelAbortMeters,
+                          20f, 400f, 5f, "0", d => d.encounterAbortMeters, (d, v) => d.encounterAbortMeters = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelStandoff,
+                          0f, 200f, 5f, "0", d => d.standoffDistance, (d, v) => d.standoffDistance = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelKillGap,
+                          0f, 1500f, 25f, "0", d => d.killTeleportGap, (d, v) => d.killTeleportGap = v);
 
             // The clock and the assist live on GameSettings, which the run
             // reads LIVE and never clones — so these two edit the asset itself,
@@ -523,6 +529,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                            0.1f, 1f, 0.05f, "0.00", r => r.duelTimeScale, (r, v) => r.duelTimeScale = v);
                 AddRunStat(screen, runRules, refreshers, MenuTextId.DuelAssist,
                            0f, 1f, 0.05f, "0.00", r => r.duelAssistStrength, (r, v) => r.duelAssistStrength = v);
+                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelFinisherWindow,
+                           0.2f, 3f, 0.05f, "0.00", r => r.finisherWindowSeconds, (r, v) => r.finisherWindowSeconds = v);
+                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelHitStop,
+                           0f, 0.5f, 0.01f, "0.00", r => r.duelHitStopSeconds, (r, v) => r.duelHitStopSeconds = v);
             }
             screen.SetViewport(9);
             return screen;

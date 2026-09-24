@@ -185,6 +185,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float encounterAbortMeters = 70f;
 
         [TitleGroup("Duel")]
+        [Tooltip("How far behind the ship the replacement appears after a kill. Inside the minimap's range, so the player watches the next one come rather than being surprised by it. 0 = use the ordinary redeploy gap.")]
+        [PropertyRange(0f, 1500f), SuffixLabel("m", true)]
+        public float killTeleportGap = 0f;
+
+        [TitleGroup("Duel")]
         [Tooltip("How close the patrol may sit while NOT attacking. Inside this it eases off to the back-off speed instead of driving into you — without it a raised floor parks the cruiser inside the ship between runs.")]
         [PropertyRange(0f, 200f), SuffixLabel("m", true)]
         public float standoffDistance = 45f;

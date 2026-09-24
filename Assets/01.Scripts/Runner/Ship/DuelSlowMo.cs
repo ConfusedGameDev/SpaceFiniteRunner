@@ -43,6 +43,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>0..1 how deep into the duel's slow motion the clock is.</summary>
         public static float Blend { get; private set; }
 
+        static float hitStopLeft;
+
+        /// <summary>
+        /// A brief deeper dip — the kill's connect. It is the TRANSITION back
+        /// to full speed, not an effect of its own: the exchange ends on the
+        /// same frame, so the clock punches down and then releases all the way
+        /// out, which is what makes the snap back to Light Speed land.
+        /// Unscaled, so the dip does not stretch itself.
+        /// </summary>
+        public static void RequestHitStop(float seconds) =>
+            hitStopLeft = Mathf.Max(hitStopLeft, seconds);
+
         /// <summary>Add the component to a ship that has none yet — the GameManager.Awake hook.</summary>
         public static DuelSlowMo Ensure(ShipMotor motor) =>
             motor.GetComponent<DuelSlowMo>() ?? motor.gameObject.AddComponent<DuelSlowMo>();
@@ -64,13 +76,19 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             if (settings == null || !settings.patrolDuelEnabled || motor == null || patrol == null)
             {
+                hitStopLeft = 0f;
                 Drop();
                 Publish();
                 return;
             }
 
+            if (hitStopLeft > 0f) hitStopLeft -= Time.unscaledDeltaTime;
+
             // A paused sim (a menu, the run over) is never an exchange.
-            bool inExchange = !motor.Paused && patrol.InExchange;
+            // The hit-stop holds the window open past the end of the exchange,
+            // which is the point: the kill ends the contest and the dip is what
+            // carries the player out of it.
+            bool inExchange = !motor.Paused && (patrol.InExchange || hitStopLeft > 0f);
 
             // Someone else took the clock — a menu, or the loop's own slow-mo
             // got there first. It is theirs now.
@@ -104,6 +122,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             }
 
             float resting = Mathf.Clamp(settings.duelTimeScale, 0.05f, 1f);
+            // The dip goes UNDER the exchange's own scale and ignores the
+            // blend, so the connect is felt as a hit rather than a fade.
+            if (hitStopLeft > 0f) resting = Mathf.Clamp(resting * 0.25f, 0.02f, 1f);
             Apply(Mathf.Lerp(1f, resting, Mathf.SmoothStep(0f, 1f, blend)));
             Publish();
         }
