@@ -39,6 +39,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public readonly float ShipLateral;
         /// <summary>The ship's forward speed, m/s: the overdrive's closing rate is relative to it, so reachability scales with it.</summary>
         public readonly float ShipSpeed;
+        /// <summary>The cruiser's own forward speed, m/s. Without it the approach cannot know how much speed it has to shed, and overshoots.</summary>
+        public readonly float PatrolSpeed;
         /// <summary>Where the SHIP is: the ground test reads ahead of it, never behind, because the streamer culls behind.</summary>
         public readonly float ShipDistance;
         public readonly PatrolDefinition Def;
@@ -60,9 +62,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public PatrolEncounterContext(float gap, float across, float shipLateral, float shipDistance,
                                       PatrolDefinition def, TrackManager track, TrackGenerator generator,
                                       bool shipSteady, float unscaledDt, float assistStrength, int presses,
-                                      float finisherWindowSeconds, float pushScale, float shipSpeed)
+                                      float finisherWindowSeconds, float pushScale, float shipSpeed,
+                                      float patrolSpeed)
         {
             ShipSpeed = shipSpeed;
+            PatrolSpeed = patrolSpeed;
             PushScale = pushScale;
             UnscaledDt = unscaledDt;
             AssistStrength = assistStrength;
@@ -294,9 +298,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // on the tail and beyond it), ABSOLUTE so the redeploy floor cannot
             // overrule it, and — the part that actually matters — flagged for
             // the patrol to give it real deceleration authority.
-            if (!Engaged && ctx.Gap < def.standoffDistance)
+            // The trigger has to allow for BRAKING DISTANCE, not just the
+            // standoff: a cruiser closing at +150 m/s needs ~190 m to shed it,
+            // and 45 m of standoff cannot absorb that however hard it brakes.
+            if (!Engaged && ctx.Gap - def.standoffDistance <= BrakingDistance(ctx))
             {
-                intent.SpeedMultiplier = Standoff(ctx);
+                intent.SpeedMultiplier = ApproachSpeed(ctx, def.standoffDistance);
                 intent.SpeedIsAbsolute = true;
                 intent.HighAuthority = true;
             }
@@ -327,17 +334,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                         Enter(PatrolEncounterState.BreakingOff);
                         break;
                     }
-                    // A FLOOR, never an absolute target. This was briefly
-                    // absolute "so the telegraph reads the same every time" and
-                    // it broke the approach outright: a redeployed cruiser is
-                    // already running ABOVE the ship on its raised floor, which
-                    // per the chase's design is the thing that closes the gap —
-                    // capping it at 1.15x the ship made committing a SLOWDOWN,
-                    // so runs timed out having closed nothing and the break-off
-                    // then threw the gap wider than it started. Measured: it
-                    // committed at 439 m and was back at 692 m, three times
-                    // running, and never once reached the flank.
-                    intent.SpeedMultiplier = def.attackRunOverdrive;
+                    // One continuous approach, all the way to the flank: the
+                    // overdrive is its speed LIMIT, not a flat target, and it
+                    // eases off over the last few metres so the cruiser arrives
+                    // level instead of sailing past. The whole run shares the
+                    // profile, so there is no handover for an overshoot to hide
+                    // in. (The approach from further out is the cruise band's
+                    // job — `commitFromDistance` is 70 m for that reason.)
+                    intent.SpeedMultiplier = ApproachSpeed(ctx, FlankStationMeters);
+                    intent.SpeedIsAbsolute = true;
                     intent.HighAuthority = true;
                     intent.LineOverride = FlankLine(ctx, Side);
                     if (ctx.Gap <= def.alongsideDistance && Mathf.Abs(ctx.Across) <= def.alongsideLateral)
@@ -361,7 +366,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     }
                     // Level with the ship, not faster than it — the wind-up is
                     // a cruiser pacing you, which is what makes the shove read.
-                    intent.SpeedMultiplier = StationSpeed(ctx);
+                    intent.SpeedMultiplier = ApproachSpeed(ctx, FlankStationMeters);
                     intent.SpeedIsAbsolute = true;
                     intent.HighAuthority = true;
                     intent.LineOverride = FlankLine(ctx, Side);
@@ -390,7 +395,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                         break;
                     }
 
-                    intent.SpeedMultiplier = StationSpeed(ctx);
+                    intent.SpeedMultiplier = ApproachSpeed(ctx, FlankStationMeters);
                     intent.SpeedIsAbsolute = true;
                     intent.HighAuthority = true;
                     intent.LineOverride = FlankLine(ctx, Side);
@@ -431,7 +436,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // kill. Only the clock ends it — the geometry checks are
                     // gone on purpose, because a window this short should not
                     // be snatched away by a ramp coming into view.
-                    intent.SpeedMultiplier = StationSpeed(ctx);
+                    intent.SpeedMultiplier = ApproachSpeed(ctx, FlankStationMeters);
                     intent.SpeedIsAbsolute = true;
                     intent.HighAuthority = true;
                     intent.LineOverride = FlankLine(ctx, Side);
@@ -457,9 +462,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 case PatrolEncounterState.Cooldown:
                     // Once it is a standoff behind the ship the standoff itself
                     // takes over — this only has to get it back there.
-                    intent.SpeedMultiplier = ctx.Gap < def.standoffDistance
-                        ? Mathf.Min(def.breakOffSpeedFactor, Standoff(ctx))
-                        : def.breakOffSpeedFactor;
+                    intent.SpeedMultiplier = Mathf.Min(def.breakOffSpeedFactor,
+                                                       ApproachSpeed(ctx, def.standoffDistance));
                     intent.SpeedIsAbsolute = true;
                     intent.HighAuthority = true;
                     if (stateTimer >= def.attackRunCooldownSeconds) Enter(PatrolEncounterState.Cruising);
@@ -579,28 +583,57 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // floor. The station is level (gap 0), so the error IS the gap.
         const float StationBackOff = 0.12f;
 
+        // Where the cruiser sits while it works the flank: a few metres BEHIND
+        // the ship, never level and never past it. Level reads fine on screen
+        // (the flank offset is what separates them) and this way the profile's
+        // own slack cannot put the cruiser in front.
+        const float FlankStationMeters = 3f;
+
+        // How much of the available deceleration the approach plans on using.
+        // Under 1 because the body's speed only SLEWS toward the command at
+        // that same rate, so a profile planned at full authority arrives late.
+        const float ApproachSafety = 0.75f;
+
+        static float Authority(in PatrolEncounterContext ctx) =>
+            Mathf.Max(1f, ctx.Def.stationAccel > 0f ? ctx.Def.stationAccel : ctx.Def.catchUpAccel);
+
         /// <summary>
-        /// Holding the standoff: the ship's own speed out at
-        /// <see cref="PatrolDefinition.standoffDistance"/>, falling to
-        /// <see cref="PatrolDefinition.breakOffSpeedFactor"/> on the tail and
-        /// staying there for a cruiser that has slipped in FRONT of the ship —
-        /// which is how one recovers from having overshot. Never above 1: the
-        /// standoff only ever says "no closer", and what closes the gap is the
-        /// rubber band outside it and the attack run's overdrive inside it.
+        /// How much road the cruiser needs to shed its CURRENT closing speed.
+        /// The standoff's trigger has to allow for this: a cruiser arriving at
+        /// +150 m/s needs ~190 m to stop gaining, and 45 m of standoff cannot
+        /// absorb that however hard it brakes.
         /// </summary>
-        static float Standoff(in PatrolEncounterContext ctx)
+        static float BrakingDistance(in PatrolEncounterContext ctx)
         {
-            float t = Mathf.Clamp01(ctx.Gap / Mathf.Max(ctx.Def.standoffDistance, 1f));
-            return Mathf.Lerp(ctx.Def.breakOffSpeedFactor, 1f, t);
+            float closing = Mathf.Max(0f, ctx.PatrolSpeed - ctx.ShipSpeed);
+            return closing * closing / (2f * Authority(ctx) * ApproachSafety);
         }
 
-        static float StationSpeed(in PatrolEncounterContext ctx)
+        /// <summary>
+        /// The speed that closes the gap to <paramref name="station"/> and
+        /// ARRIVES THERE, at any speed — the overdrive is its limit, not a flat
+        /// target, and it eases off over the last stretch.
+        ///
+        /// This replaced proportional control on position, which cannot do the
+        /// job however it is tuned: it asks for full closing speed right up to
+        /// the station and only then starts shedding it, which costs
+        /// closing² / 2a metres. That is 4 m at cruise — invisible, and why a
+        /// speed-clamped soak passed — but 68 m at 600 m/s and 188 m at Light
+        /// Speed, and after a redeploy's 1.25x floor over 500 m. THAT is the
+        /// cruiser sailing past the player instead of pacing them.
+        ///
+        /// Behind the station it closes, ahead of it it drops back, and the ship
+        /// braking hard is the one thing that can still put the cruiser in front
+        /// — which is exactly D6's overshoot, and the way into a rear ram.
+        /// </summary>
+        static float ApproachSpeed(in PatrolEncounterContext ctx, float station)
         {
-            float window = Mathf.Max(ctx.Def.alongsideDistance, 1f);
-            float t = Mathf.Clamp(ctx.Gap / window, -1f, 1f); // + behind station, - ahead of it
-            return t >= 0f
-                ? 1f + t * Mathf.Max(0f, ctx.Def.attackRunOverdrive - 1f)
-                : 1f + t * StationBackOff;
+            float toGo = ctx.Gap - station;                 // + still behind it, - past it
+            // The fastest approach that can still come to rest in what is left.
+            float able = Mathf.Sqrt(2f * Authority(ctx) * ApproachSafety * Mathf.Abs(toGo));
+            float cap = ctx.ShipSpeed * Mathf.Max(0f, ctx.Def.attackRunOverdrive - 1f);
+            float closing = Mathf.Sign(toGo) * Mathf.Min(able, cap);
+            return 1f + closing / Mathf.Max(ctx.ShipSpeed, 1f);
         }
 
         // A weakened cruiser pushes weaker. Floored well above zero on

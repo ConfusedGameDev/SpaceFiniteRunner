@@ -634,7 +634,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                                      rules != null ? rules.duelAssistStrength : 0f,
                                                      pendingPresses,
                                                      rules != null ? rules.finisherWindowSeconds : 1f,
-                                                     PushScale, target.CurrentSpeed);
+                                                     PushScale, target.CurrentSpeed, body.ForwardSpeed);
                 pendingPresses = 0;
                 encounter.Tick(dt, ctx, out intent);
             }
@@ -672,6 +672,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // The rubber band IS the body's speed model: cruise = the target,
             // thrust and over-cruise bleed = the catch-up accel, so the speed
             // moves toward the target at that rate either way.
+            // "The encounter owns the speed" has to mean the ACTUAL speed, not
+            // just the target. Boost share and the cruiser's own orb pickups add
+            // straight to ForwardSpeed, and the body treats an impulse as the
+            // one thing allowed to sit ABOVE the cruise target — so at speed,
+            // where the ship is collecting orbs constantly, the cruiser arrived
+            // on the flank 230 m/s faster than the ship and sailed past whatever
+            // the approach asked for. While a run or the standoff owns the
+            // speed, excess is taken off at once: it is holding a position, and
+            // it has no use for a boost it cannot spend.
+            if (intent.SpeedIsAbsolute && body.ForwardSpeed > desired)
+                body.ForwardSpeed = desired;
+
             // Whenever the encounter OWNS the speed it owns the rate too. The
             // cruise band's `catchUpAccel` is deliberately sluggish (that is
             // what makes a boost buy breathing room), but every position the
