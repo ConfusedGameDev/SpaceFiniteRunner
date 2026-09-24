@@ -15,6 +15,7 @@ MonoBehaviour:
   levelName: Level 1
   nextSceneName: FiniteRunner_Test
   mode: 0
+  spawnPointId: 
   speakerName: OPERATOR
   messageHoldSeconds: 4
   completionPages:
@@ -85,7 +86,7 @@ MonoBehaviour:
     legacyBriefing: 
     accent: {r: 0, g: 0, b: 0, a: 0}
     reward: 0
-    hasCinema: 1
+    hasCinema: 0
     cinemaClip: {fileID: 32900000, guid: 4fd6ee9492f5f894c9f4512f081154c1, type: 3}
     cinemaFormat: RearMirror
     cinemaSeconds: 4.2
@@ -148,7 +149,7 @@ MonoBehaviour:
     legacyBriefing: 
     accent: {r: 0.45, g: 0.9, b: 1, a: 1}
     reward: 0
-    hasCinema: 1
+    hasCinema: 0
     cinemaClip: {fileID: 0}
     cinemaFormat: FullScreen
     cinemaSeconds: 5
@@ -178,7 +179,7 @@ MonoBehaviour:
     legacyBriefing: 
     accent: {r: 0.34901965, g: 1, b: 0.5226403, a: 1}
     reward: 250
-    hasCinema: 1
+    hasCinema: 0
     cinemaClip: {fileID: 32900000, guid: 4fd6ee9492f5f894c9f4512f081154c1, type: 3}
     cinemaFormat: SquareLeft
     cinemaSeconds: 4.2
