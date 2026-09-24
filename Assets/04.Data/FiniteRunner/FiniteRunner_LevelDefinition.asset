@@ -30,7 +30,7 @@ MonoBehaviour:
     multiplier: 2
   objectives:
   - type: 0
-    targetSpeedKmh: 1590
+    targetSpeedKmh: 3423
     jumpCount: 3
     reward: 500
     accent: {r: 0, g: 0, b: 0, a: 0}
