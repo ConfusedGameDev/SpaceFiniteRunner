@@ -614,13 +614,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // The rubber band IS the body's speed model: cruise = the target,
             // thrust and over-cruise bleed = the catch-up accel, so the speed
             // moves toward the target at that rate either way.
-            // A run needs far more speed authority than the chase does. The
+            // Whenever the encounter OWNS the speed it owns the rate too. The
             // cruise band's `catchUpAccel` is deliberately sluggish (that is
-            // what makes a boost buy breathing room), but station keeping asks
-            // for ±10 m/s corrections inside a second — at the band's rate the
-            // cruiser answers three seconds late and sails past the flank
-            // before it starts slowing. So a committed run gets its own rate.
-            float speedAuthority = encounter.Engaged && runtimeDef.stationAccel > 0f
+            // what makes a boost buy breathing room), but every position the
+            // encounter holds — the standoff, the flank, the back-off — asks for
+            // tens of m/s inside a second, and at 3.33 m/s² the cruiser answers
+            // ten seconds late. That is not a soft feel, it is the difference
+            // between holding a distance and driving straight through it.
+            float speedAuthority = intent.SpeedIsAbsolute && runtimeDef.stationAccel > 0f
                 ? runtimeDef.stationAccel
                 : runtimeDef.catchUpAccel;
 

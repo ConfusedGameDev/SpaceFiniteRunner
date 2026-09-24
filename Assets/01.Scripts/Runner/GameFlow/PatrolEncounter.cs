@@ -257,14 +257,27 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // not 12 s on top of the 8 s break.
             commitTimer += dt;
 
-            // Standoff: a patrol that is not attacking holds its distance.
-            // The rubber band's floor is raised on every redeploy and sits
-            // ABOVE the ship's speed, so without this it closes to the "never
-            // through the ship" clamp and rides along inside the cruiser —
-            // which is both ugly and the permanent tailgating the duel exists
-            // to replace. Applied below, so an actual run overrides it.
-            if (!Engaged && ctx.Gap > 0f && ctx.Gap < def.standoffDistance)
-                intent.SpeedMultiplier = def.breakOffSpeedFactor;
+            // Standoff: a patrol that is not attacking HOLDS ITS DISTANCE.
+            // This has to be a position controller, not a wish. It used to be
+            // one flat "0.85x the ship" target that the cruise band could only
+            // reach at its own 3.33 m/s²: from a 1.25x redeploy that is a
+            // fourteen-second deceleration, and the standoff is barely a second
+            // and a half wide at those closing speeds — so the cruiser sailed
+            // straight past the ship still doing +24 m/s, every single time.
+            // The old absolute distance clamp hid it by pinning the cruiser a
+            // metre off the nose; without one it was the chase quietly DYING,
+            // because Cruising can only commit to a run from BEHIND (Gap > 0),
+            // so a cruiser that gets in front never attacks again.
+            //
+            // So: proportional (full speed at the standoff, the back-off factor
+            // on the tail and beyond it), ABSOLUTE so the redeploy floor cannot
+            // overrule it, and — the part that actually matters — flagged for
+            // the patrol to give it real deceleration authority.
+            if (!Engaged && ctx.Gap < def.standoffDistance)
+            {
+                intent.SpeedMultiplier = Standoff(ctx);
+                intent.SpeedIsAbsolute = true;
+            }
 
             switch (State)
             {
@@ -398,12 +411,21 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // sit on the bumper for ten seconds bleeding off its overdrive,
                 // which is the permanent tailgating the duel exists to replace.
                 case PatrolEncounterState.BreakingOff:
+                    // Absolute, like the standoff and for the same reason: the
+                    // cruiser leaves an exchange with the ship's speed on it,
+                    // and a cap it cannot decelerate to is not a back-off.
                     intent.SpeedMultiplier = def.breakOffSpeedFactor;
+                    intent.SpeedIsAbsolute = true;
                     if (stateTimer >= def.breakOffSeconds) Enter(PatrolEncounterState.Cooldown);
                     break;
 
                 case PatrolEncounterState.Cooldown:
-                    intent.SpeedMultiplier = def.breakOffSpeedFactor;
+                    // Once it is a standoff behind the ship the standoff itself
+                    // takes over — this only has to get it back there.
+                    intent.SpeedMultiplier = ctx.Gap < def.standoffDistance
+                        ? Mathf.Min(def.breakOffSpeedFactor, Standoff(ctx))
+                        : def.breakOffSpeedFactor;
+                    intent.SpeedIsAbsolute = true;
                     if (stateTimer >= def.attackRunCooldownSeconds) Enter(PatrolEncounterState.Cruising);
                     break;
             }
@@ -475,6 +497,21 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // it is, the overdrive as the ceiling, a matching back-off as the
         // floor. The station is level (gap 0), so the error IS the gap.
         const float StationBackOff = 0.12f;
+
+        /// <summary>
+        /// Holding the standoff: the ship's own speed out at
+        /// <see cref="PatrolDefinition.standoffDistance"/>, falling to
+        /// <see cref="PatrolDefinition.breakOffSpeedFactor"/> on the tail and
+        /// staying there for a cruiser that has slipped in FRONT of the ship —
+        /// which is how one recovers from having overshot. Never above 1: the
+        /// standoff only ever says "no closer", and what closes the gap is the
+        /// rubber band outside it and the attack run's overdrive inside it.
+        /// </summary>
+        static float Standoff(in PatrolEncounterContext ctx)
+        {
+            float t = Mathf.Clamp01(ctx.Gap / Mathf.Max(ctx.Def.standoffDistance, 1f));
+            return Mathf.Lerp(ctx.Def.breakOffSpeedFactor, 1f, t);
+        }
 
         static float StationSpeed(in PatrolEncounterContext ctx)
         {

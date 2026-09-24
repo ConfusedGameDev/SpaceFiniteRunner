@@ -435,6 +435,18 @@ minimap range, redeploy) stay on `GameSettings`.
   of ship travel. Aborts on the ship getting behind it, out-steering `alongsideLateral` for
   `abortGraceSeconds`, the ground going bad, the ship leaving the road, or a loss wind-down
   (`GameManager.BeginFail` → `AbortEncounter`).
+- **The standoff is a position controller, not a wish** — and it is the whole reason the chase
+  works at all. It used to set one flat `breakOffSpeedFactor` target that the cruise band could
+  only approach at `catchUpAccel` (3.33 m/s² on the asset): from a 1.25× redeploy that is a
+  **fourteen-second deceleration**, and 45 m of standoff at those closing speeds is **1.5 s wide**,
+  so the cruiser sailed straight past the ship still doing +24 m/s. The absolute distance clamp hid
+  it completely; the moment that clamp became lateral it was the chase DYING, because `Cruising`
+  can only commit from behind (`Gap > 0`) — a cruiser that gets in front never attacks again.
+  `PatrolEncounter.Standoff` is now proportional (the ship's own speed out at `standoffDistance`,
+  `breakOffSpeedFactor` on the tail and beyond it, so an overshoot recovers), never above 1 (the
+  standoff only ever says "no closer"), and `SpeedIsAbsolute`. `Cooldown` hands over to it once it
+  is a standoff behind. **Any new "hold this distance" behaviour must carry its own authority** —
+  see the next bullet.
 - **Station keeping** is what holds a run together. Every engaged state used to ask for
   `attackRunOverdrive` — a permanent "faster than the ship" — which only ever looked like holding a
   flank because the absolute distance clamp pinned the cruiser a metre off the ship's nose. It now
@@ -444,10 +456,12 @@ minimap range, redeploy) stay on `GameSettings`.
   could only ever speed the cruiser up, and the redeploy floor (above the ship's speed) would drive
   it straight past. `Committing` is absolute too, so the telegraph burst is the same readable 15 %
   whatever the floor has grown to. A run also gets its own speed authority
-  (`PatrolDefinition.stationAccel`, 60 m/s², applied whenever `encounter.Engaged`): the cruise
-  band's `catchUpAccel` (3.33 on the asset) is deliberately sluggish so boosts buy breathing room,
-  but station keeping asks for ±10 m/s inside a second and at the band's rate the cruiser answers
-  three seconds late. The sweep's grip cap still wins over all of it. **And the abort is
+  (`PatrolDefinition.stationAccel`, 60 m/s², applied **whenever `intent.SpeedIsAbsolute`** — the one
+  rule being that if the encounter owns the speed it owns the RATE too): the cruise band's
+  `catchUpAccel` (3.33 on the asset) is deliberately sluggish so boosts buy breathing room, but
+  every position the encounter holds asks for tens of m/s inside a second, and at the band's rate
+  the cruiser answers ten seconds late — which is not a soft feel, it is the difference between
+  holding a distance and driving straight through it. The sweep's grip cap still wins over all of it. **And the abort is
   `ShipGotPast` — the gap a whole alongside window NEGATIVE, not merely negative**: station keeping
   oscillates around level by design, so the sign of the gap aborted every run the instant the
   cruiser drew level.
