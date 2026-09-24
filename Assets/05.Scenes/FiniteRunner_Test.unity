@@ -786,7 +786,7 @@ Light:
   serializedVersion: 13
   m_Type: 1
   m_Color: {r: 1, g: 0.9785366, b: 0.92, a: 1}
-  m_Intensity: 2.53
+  m_Intensity: 0.24
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -6076,7 +6076,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.SpeedLines
   linesMaterial: {fileID: 2100000, guid: 947115ad6b8341738625b354beb26538, type: 2}
   settings: {fileID: 11400000, guid: 121749c11ebf4e41969b1188e0e39b3c, type: 2}
-  intensityScale: 1
+  intensityScale: 0.045
   preview: 0
   previewIntensity: 1
 --- !u!1 &1780000000
