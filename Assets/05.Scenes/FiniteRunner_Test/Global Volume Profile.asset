@@ -80,7 +80,7 @@ MonoBehaviour:
   active: 1
   intensity:
     m_OverrideState: 1
-    m_Value: 0.461
+    m_Value: -0.13
   xMultiplier:
     m_OverrideState: 1
     m_Value: 1
@@ -107,7 +107,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.ScreenSpaceReflectionVolumeSettings
   active: 1
   mode:
-    m_OverrideState: 0
+    m_OverrideState: 1
     m_Value: 1
   reflectionStrength:
     m_OverrideState: 0
@@ -190,10 +190,10 @@ MonoBehaviour:
     m_Value: 0
   intensity:
     m_OverrideState: 1
-    m_Value: 0.743
+    m_Value: 0.652
   response:
     m_OverrideState: 1
-    m_Value: 0.8
+    m_Value: 0.462
   texture:
     m_OverrideState: 0
     m_Value: {fileID: 0}
@@ -238,10 +238,10 @@ MonoBehaviour:
     m_Value: 1
   intensity:
     m_OverrideState: 1
-    m_Value: 0.45
+    m_Value: 0.71
   scatter:
     m_OverrideState: 1
-    m_Value: 0.55
+    m_Value: 0.487
   clamp:
     m_OverrideState: 1
     m_Value: 65472
@@ -282,4 +282,4 @@ MonoBehaviour:
   active: 1
   intensity:
     m_OverrideState: 1
-    m_Value: 0.428
+    m_Value: 0.259
