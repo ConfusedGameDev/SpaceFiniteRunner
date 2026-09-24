@@ -164,6 +164,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(1f, 3f), SuffixLabel("x ship speed", true), EnableIf("patrolRedeploys")]
         public float patrolRedeploySpeedFactor = 1.25f;
 
+        [ToggleGroup("patrolEnabled"), Title("Duel")]
+        [Tooltip("The patrol hunts you: it commits to an attack run, pulls onto a flank and shoves you into the wall or off the edge, then breaks off. " +
+                 "Off returns the old chase exactly, proximity arrest included. The run's tunables live on the PatrolDefinition asset.")]
+        public bool patrolDuelEnabled = true;
+
         [ToggleGroup("patrolEnabled"), Title("Alerts")]
         [Tooltip("Announce every fresh patrol with the 'Patrol inbound' story line (RPG dialogue box). Off by default — the minimap and the rumble already show it arriving.")]
         public bool showPatrolAlert = false;

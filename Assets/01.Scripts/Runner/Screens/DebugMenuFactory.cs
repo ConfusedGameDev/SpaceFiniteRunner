@@ -453,9 +453,59 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolWarnDistance,
                           0f, 500f, 10f, "0", d => d.warnDistance, (d, v) => d.warnDistance = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolCatchLateral,
-                          0f, 60f, 1f, "0", d => d.catchLateral, (d, v) => d.catchLateral = v);
+                          0f, 60f, 1f, "0", d => d.alongsideLateral, (d, v) => d.alongsideLateral = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.PatrolSustainedCatch,
-                          0f, 10f, 0.25f, "0.00", d => d.sustainedCatchSeconds, (d, v) => d.sustainedCatchSeconds = v);
+                          0f, 20f, 0.25f, "0.00", d => d.sustainedCatchSeconds, (d, v) => d.sustainedCatchSeconds = v);
+            screen.SetViewport(9);
+            return screen;
+        }
+
+        /// <summary>
+        /// Patrol duel tab: the attack run — how hard the patrol overdrives to
+        /// reach you, how often it tries, how long it holds the flank before
+        /// it shoves, and how easily you can break it off. Same clone / capture
+        /// rules as the other patrol tabs; everything applies instantly, and a
+        /// run in progress picks the new numbers up on its next substep.
+        ///
+        /// ATTACK INTERVAL is the one that decides how much of a run is spent
+        /// duelling; CLEAR ROAD AHEAD is how much clean track the patrol
+        /// insists on before it will start (it never duels on a ramp, its
+        /// landing, a loop, a tube or the final run-up).
+        /// </summary>
+        public static MenuScreen BuildDuelTab(RectTransform parent, MenuTheme theme, PolicePatrol patrol,
+                                              PatrolDebugSettings saved, System.Action onChanged,
+                                              List<System.Action> refreshers, int tabIndex, int tabCount)
+        {
+            var screen = MenuScreen.Create("Debug_Duel", parent, theme, 0f, ContentTop);
+            screen.SetRowMetrics(RowHeight, RowSpacing);
+            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabDuel, tabIndex, tabCount);
+
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelOverdrive,
+                          1f, 2f, 0.01f, "0.00", d => d.attackRunOverdrive, (d, v) => d.attackRunOverdrive = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelCommitFrom,
+                          50f, 1500f, 25f, "0", d => d.commitFromDistance, (d, v) => d.commitFromDistance = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelCommitInterval,
+                          2f, 60f, 0.5f, "0.0", d => d.commitIntervalSeconds, (d, v) => d.commitIntervalSeconds = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelCommitTimeout,
+                          2f, 60f, 0.5f, "0.0", d => d.commitTimeoutSeconds, (d, v) => d.commitTimeoutSeconds = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelAlongsideDistance,
+                          0f, 60f, 1f, "0", d => d.alongsideDistance, (d, v) => d.alongsideDistance = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelFlankOffset,
+                          0f, 30f, 0.5f, "0.0", d => d.flankOffsetMeters, (d, v) => d.flankOffsetMeters = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelAlongsideHold,
+                          0f, 5f, 0.1f, "0.0", d => d.alongsideHoldSeconds, (d, v) => d.alongsideHoldSeconds = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelAbortGrace,
+                          0f, 3f, 0.05f, "0.00", d => d.abortGraceSeconds, (d, v) => d.abortGraceSeconds = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelBreakOff,
+                          0f, 5f, 0.1f, "0.0", d => d.breakOffSeconds, (d, v) => d.breakOffSeconds = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelBackOffSpeed,
+                          0.5f, 1f, 0.01f, "0.00", d => d.breakOffSpeedFactor, (d, v) => d.breakOffSpeedFactor = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelCooldown,
+                          0f, 60f, 0.5f, "0.0", d => d.attackRunCooldownSeconds, (d, v) => d.attackRunCooldownSeconds = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelLookahead,
+                          50f, 1000f, 25f, "0", d => d.encounterLookaheadMeters, (d, v) => d.encounterLookaheadMeters = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelShoveMeters,
+                          0f, 40f, 0.5f, "0.0", d => d.shoveMeters, (d, v) => d.shoveMeters = v);
             screen.SetViewport(9);
             return screen;
         }

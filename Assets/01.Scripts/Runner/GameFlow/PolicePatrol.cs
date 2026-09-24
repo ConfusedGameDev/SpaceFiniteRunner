@@ -11,8 +11,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// The police patrol chasing the ship down the track. Rubber-band chase:
     /// its target speed is the ship's current speed times a factor, floored
     /// by a minimum that starts at the launch speed and slowly ramps up — so
-    /// it speeds up with the player but never drops below that threshold,
-    /// and without boost orbs it always closes in.
+    /// it speeds up with the player but never drops below that threshold.
+    /// The band alone is deliberately conservative and does NOT close the gap
+    /// (the shipped asset targets BELOW the ship's speed); what closes it is
+    /// the attack run's overdrive, and the raised floor a redeploy brings.
     ///
     /// <b>It drives the same <see cref="TrackBody"/> the ship does</b>, through
     /// a <see cref="PatrolDriver"/> that outputs steer / throttle / brake: the
@@ -29,12 +31,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// <see cref="DistanceTravelled"/> / <see cref="GapToShip"/> are the
     /// rendered values (minimap) and the catch is judged on the ticks' own.
     ///
-    /// <b>Catch</b>: inside the catch distance the patrol stops gaining and
-    /// sits on the ship's tail; it catches when it is also within
-    /// <see cref="PatrolDefinition.catchLateral"/> across the track, or after
-    /// <see cref="PatrolDefinition.sustainedCatchSeconds"/> there — a
-    /// last-moment dodge works, dodging forever does not (GameManager polls
-    /// <see cref="HasCaught"/>).
+    /// <b>The attack run</b> (<see cref="PatrolEncounter"/>, on
+    /// <see cref="GameSettings.patrolDuelEnabled"/>): on a cadence the patrol
+    /// overdrives past the ship's speed, pulls onto a flank and shoves the
+    /// ship into the wall or off an open edge, then breaks off and cools down.
+    /// It never commits on a ramp, its landing, a loop, a tube or the final
+    /// run-up, and braking behind it or out-steering the flank aborts it.
+    ///
+    /// <b>Catch</b>: tailing the ship inside the catch distance for
+    /// <see cref="PatrolDefinition.sustainedCatchSeconds"/> is an arrest — the
+    /// punishment for refusing to engage, SUSPENDED for the whole of an attack
+    /// run (which parks the patrol inside that distance by design). With the
+    /// duel off the old proximity catch comes back as well: also inside
+    /// <see cref="PatrolDefinition.alongsideLateral"/> across the track is an
+    /// immediate arrest. The GameManager polls <see cref="HasCaught"/>.
     /// The chase is never allowed to go stale: outrun the patrol past the
     /// redeploy distance and a fresh one cuts in just behind the ship, already
     /// faster than it, so the only way to shake it is to boost again.
@@ -64,7 +74,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         float minSpeed;       // current floor: baseSpeed + accumulated ramp
         TrackBody body;       // the same track-space body the ship rides
+        TrackGenerator generator; // for the attack run's forbidden-ground test
         readonly PatrolDriver driver = new();
+        readonly PatrolEncounter encounter = new();
+        bool duelEnabled = true;
         float lastTickTime = float.NegativeInfinity; // Time.fixedTime of the last tick, for the render's blend
         float tailTimer;      // seconds spent inside the catch distance
         float shownBank;
@@ -86,6 +99,30 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         /// <summary>The track-space body the patrol drives; null until <see cref="Init"/>.</summary>
         public TrackBody Body => body;
+
+        /// <summary>Where the patrol is in its attack run — for the debug overlay and the HUD.</summary>
+        public PatrolEncounterState EncounterState => encounter.State;
+
+        /// <summary>Which side of the ship a run is being made from: -1 left, +1 right, 0 when idle.</summary>
+        public int EncounterSide => encounter.Side;
+
+        /// <summary>
+        /// The whole duel, on or off. Off restores the old chase exactly,
+        /// proximity arrest included — the GameManager wires this from
+        /// <see cref="GameSettings.patrolDuelEnabled"/>.
+        /// </summary>
+        public bool DuelEnabled
+        {
+            get => duelEnabled;
+            set { duelEnabled = value; if (!value) encounter.Reset(); }
+        }
+
+        /// <summary>
+        /// Drops an attack run in progress without a shove. The run's own
+        /// aborts cover the ship's doing; this is for the run ENDING out from
+        /// under it (a loss wind-down), where nothing else would notice.
+        /// </summary>
+        public void AbortEncounter() => encounter.Abort();
 
         /// <summary>The gap on the simulation's own state — what the catch and the driver judge by.</summary>
         float SimGap => target != null && target.Body != null && body != null ? target.Body.Distance - body.Distance : float.MaxValue;
@@ -142,6 +179,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (Hold == hold) return;
             Hold = hold;
+            encounter.Reset(); // held or released, no run survives it
             if (hold || target == null) return;
 
             if (body != null && SimGap < minGapOnRelease)
@@ -153,6 +191,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             tailTimer = 0f;
             warnCooldown = 0f;
             warned = GapToShip <= (runtimeDef != null ? runtimeDef.warnDistance : 0f); // no taunt for a gap the respawn made
+            encounter.Reset(); // the respawn moved the ship out from under any run
         }
 
         /// <summary>Proximity rumble that grows as the patrol closes in (GameSettings.patrolProximityRumble).</summary>
@@ -170,6 +209,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             this.target = target;
             if (target != null) target.PadImpulse += OnShipImpulse;
             track = FindFirstObjectByType<TrackManager>();
+            generator = FindFirstObjectByType<TrackGenerator>();
 
             if (definition == null)
             {
@@ -222,6 +262,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             warnCooldown = 0f;
             warned = false;
             PatrolNumber = 1;
+            encounter.Reset();
             ApplyPose(1f);
         }
 
@@ -276,6 +317,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             IsGone = true;
             goneTimer = 0f;
+            encounter.Reset();
             offSide = body.Lateral >= 0f ? 1 : -1;
             offVelocity = rotation * new Vector3(body.TotalLateralVelocity, body.VerticalVelocity, body.ForwardSpeed);
             offRotation = rotation;
@@ -356,12 +398,36 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             bool shipLeft = target.HasLeftTrackEnd;
 
             float gap = SimGap;
-            bool onTail = !shipLeft && gap <= runtimeDef.catchDistance;
-            // On the ship's tail it stops gaining: it matches the ship and
-            // works on the sideways gap instead of driving through it.
-            if (onTail) desired = Mathf.Min(desired, target.CurrentSpeed);
 
-            BodyControls controls = driver.Drive(body, target.Body, track, runtimeDef, gap, out float speedCap);
+            // The attack run, if the duel is on. It reads the ship and the
+            // road and answers with an overdrive, a flank to steer for and —
+            // for one substep — the shove.
+            var intent = new PatrolEncounterIntent { SpeedMultiplier = 1f };
+            if (duelEnabled && !shipLeft)
+            {
+                var ctx = new PatrolEncounterContext(gap, AcrossToShip(), target.Body.Lateral,
+                                                     target.Body.Distance, runtimeDef, track, generator,
+                                                     ShipSteady);
+                encounter.Tick(dt, ctx, out intent);
+            }
+
+            // On the ship's tail it stops gaining: it matches the ship and
+            // works on the sideways gap instead of driving through it. A
+            // committed run is exempt — forcing the flank is the whole point.
+            bool onTail = !shipLeft && gap <= runtimeDef.catchDistance;
+            if (onTail && !encounter.Engaged) desired = Mathf.Min(desired, target.CurrentSpeed);
+            // Above 1 the run's overdrive is a FLOOR (it must out-drive the
+            // ship to reach the flank); below 1 the back-off is a CAP (it must
+            // drop behind, whatever the band would otherwise ask for).
+            if (intent.SpeedMultiplier > 1f)
+                desired = Mathf.Max(desired, target.CurrentSpeed * intent.SpeedMultiplier);
+            else if (intent.SpeedMultiplier < 1f)
+                desired = Mathf.Min(desired, target.CurrentSpeed * intent.SpeedMultiplier);
+
+            BodyControls controls = driver.Drive(body, target.Body, track, runtimeDef, gap, out float speedCap,
+                                                 intent.LineOverride);
+            // The sweep's grip limit still wins: an attack run does not get to
+            // slide off a flat curve the driver just braked for.
             desired = Mathf.Min(desired, speedCap);
 
             // The rubber band IS the body's speed model: cruise = the target,
@@ -394,25 +460,67 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // Never through the ship: the tail is as close as it gets.
             if (SimGap < 1f) body.Distance = target.Body.Distance - 1f;
 
+            // The shove: a sideways slam AWAY from the patrol, sized in metres
+            // of travel the way the ship's own dash is. It deals no damage of
+            // its own — it feeds the ship's shove channel, so a wall reads it
+            // as a slam (hull) and an open edge simply has nothing to catch
+            // the ship (hull, plus the fall's lost time).
+            if (intent.Shove && encounter.Side != 0) Shove(encounter.Side);
+
             if (redeployDistance > 0f && SimGap > redeployDistance) Redeploy(raiseFloor: true);
 
             UpdateCatch(dt);
             if (!HasCaught) WarnIfClose(dt);
         }
 
-        // Inside the catch distance: caught when also close enough across the
-        // track, or after long enough there whatever the sideways gap.
-        void UpdateCatch(float dt)
+        /// <summary>
+        /// How far the patrol sits to the side of the ship: ship lateral minus
+        /// its own, so POSITIVE means the patrol is to the ship's left. Round a
+        /// full tube the two can be whole turns apart, so it is the nearest
+        /// equivalent that counts — there is no "far side" of a pipe.
+        /// </summary>
+        float AcrossToShip()
         {
-            if (SimGap > runtimeDef.catchDistance) { tailTimer = 0f; return; }
-            tailTimer += dt;
-
             float across = target.Body.Lateral - body.Lateral;
             if (track.SectionAt(body.Distance) is TubeSection { Unbounded: true } tube)
                 across = Mathf.Repeat(across + tube.Circumference * 0.5f, tube.Circumference) - tube.Circumference * 0.5f;
+            return across;
+        }
 
-            if (Mathf.Abs(across) <= runtimeDef.catchLateral || tailTimer >= runtimeDef.sustainedCatchSeconds)
-                HasCaught = true;
+        /// <summary>The ship is on the road and driveable — nothing to attack otherwise.</summary>
+        bool ShipSteady => target.State != ShipState.OffTrack
+                        && target.State != ShipState.Respawning
+                        && target.State != ShipState.Falling;
+
+        // The slam itself. Sized in METRES of sideways travel, converted the
+        // way the ship's own dash impulse is (distance x lateral drag), so the
+        // number on the asset is the distance it actually moves the ship. It
+        // pushes AWAY from the patrol: a patrol on the right (+1) throws the
+        // ship left.
+        void Shove(int side)
+        {
+            float drag = target.Definition != null ? target.Definition.handlingResponse : 8f;
+            target.AddLateralShove(-side * runtimeDef.shoveMeters * drag);
+            HapticsSystem.Instance.Pulse(1f, 0.8f, 0.5f);
+        }
+
+        // Tailing the ship inside the catch distance for long enough is an
+        // arrest: the punishment for refusing to engage. It is SUSPENDED for
+        // the whole of an attack run — a run parks the patrol inside that
+        // distance by design, so without this every exchange would arrest the
+        // player before it could resolve. The timer is held, not cleared, so
+        // a run cannot be used to launder a long tail.
+        // With the duel off the old proximity catch comes back with it.
+        void UpdateCatch(float dt)
+        {
+            if (encounter.SuspendsArrest) return;
+            if (SimGap > runtimeDef.catchDistance) { tailTimer = 0f; return; }
+            tailTimer += dt;
+
+            if (tailTimer >= runtimeDef.sustainedCatchSeconds) { HasCaught = true; return; }
+            if (duelEnabled) return;
+
+            if (Mathf.Abs(AcrossToShip()) <= runtimeDef.alongsideLateral) HasCaught = true;
         }
 
         /// <summary>
@@ -434,6 +542,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             warnCooldown = 0f;
             warned = false;
             PatrolNumber++;
+            encounter.Reset(); // a teleport is not an attack run
             ApplyPose(1f);
 
             HapticsSystem.Instance.Pulse(0.6f, 0.4f, 0.4f);

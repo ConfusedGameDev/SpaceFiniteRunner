@@ -416,7 +416,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         readonly List<(float distance, GameObject go)> spawned = new();
         readonly List<(float start, float end)> claims = new(); // feature footprints pads keep off
         readonly List<float> padDistances = new();               // where pads landed — coins keep off them
-        readonly List<(float start, float end)> laserKeepOuts = new(); // every feature's ground + what lies ahead of it (a ramp's landing), and the end zone
+        readonly List<(float start, float end)> featureKeepOuts = new(); // every feature's ground + what lies ahead of it (a ramp's landing), and the end zone
         Unity.Mathematics.Random laserRng; // the gates' own stream: the road and pad layout of a seed does not depend on them
         float laserCursor;
         LaserGateDefinition laserRuntime;
@@ -500,7 +500,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             spawned.Clear();
             claims.Clear();
             padDistances.Clear();
-            laserKeepOuts.Clear();
+            featureKeepOuts.Clear();
             ClearChildren(padsParent);
             ClearChildren(markersParent);
             if (decorator != null) decorator.Clear();
@@ -966,7 +966,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (entry.Runtime.ClaimsFootprint) claims.Add((spot, spot + footprint));
             // Laser gates keep off EVERY feature — a tube too, which claims
             // nothing — and off what lies ahead of it (a ramp's longest landing).
-            laserKeepOuts.Add((spot, spot + footprint + exclusion));
+            featureKeepOuts.Add((spot, spot + footprint + exclusion));
             if (jump != null) straightUntil = spot + jump.length + exclusion;
 
             if (section is LoopSection loop)
@@ -1054,7 +1054,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             track.SetEndZone(start);
             endTarget = start + endRunUp;
             claims.Add((start, endTarget + 1000f));
-            laserKeepOuts.Add((start, float.PositiveInfinity));
+            featureKeepOuts.Add((start, float.PositiveInfinity));
             featureCursor = float.MaxValue;
         }
 
@@ -1177,6 +1177,24 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
         }
 
+        /// <summary>
+        /// True when nothing claimed sits anywhere in [<paramref name="from"/>,
+        /// <paramref name="to"/>]: no feature footprint, no ramp landing zone
+        /// and not the final run-up. The same <see cref="featureKeepOuts"/>
+        /// list the laser placer tests against (<see cref="LaserBlockedUntil"/>),
+        /// exposed as a plain predicate for anything that needs the rule
+        /// rather than the next free spot — the patrol's attack run holds off
+        /// on exactly this ground.
+        /// Entries behind the streamer's cull line are gone, so ask about
+        /// ground at or ahead of the ship.
+        /// </summary>
+        public bool IsGroundClear(float from, float to)
+        {
+            foreach (var keepOut in featureKeepOuts)
+                if (to > keepOut.start && from < keepOut.end) return false;
+            return true;
+        }
+
         // ------------------------------------------------------- laser gates
 
         /// <summary>
@@ -1224,7 +1242,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float reach = halfDepth + laserClearance;
             float start = distance - reach, end = distance + reach;
 
-            foreach (var keepOut in laserKeepOuts)
+            foreach (var keepOut in featureKeepOuts)
                 if (end > keepOut.start && start < keepOut.end)
                     return float.IsPositiveInfinity(keepOut.end) ? keepOut.end : keepOut.end + reach;
 
@@ -1335,8 +1353,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (claims[i].end < minDistance) claims.RemoveAt(i);
             for (int i = padDistances.Count - 1; i >= 0; i--)
                 if (padDistances[i] < minDistance) padDistances.RemoveAt(i);
-            for (int i = laserKeepOuts.Count - 1; i >= 0; i--)
-                if (laserKeepOuts[i].end < minDistance) laserKeepOuts.RemoveAt(i);
+            for (int i = featureKeepOuts.Count - 1; i >= 0; i--)
+                if (featureKeepOuts[i].end < minDistance) featureKeepOuts.RemoveAt(i);
             if (decorator != null) decorator.CullBefore(minDistance);
         }
 

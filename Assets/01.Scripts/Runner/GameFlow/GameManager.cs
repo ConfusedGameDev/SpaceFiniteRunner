@@ -329,6 +329,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol.Redeployed += OnPatrolRedeployed;
                 patrol.Warned += OnPatrolWarned;
                 patrol.ProximityRumble = settings.patrolProximityRumble;
+                patrol.DuelEnabled = settings.patrolDuelEnabled;
             }
             else
             {
@@ -493,6 +494,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void BeginFail(RunOutcome outcome)
         {
             if (RunOver || IsEnding) return;
+            // The run is over: no attack run gets to finish under the banner.
+            if (patrol != null) patrol.AbortEncounter();
             if (HullEnabled)
             {
                 LivesLeft = Mathf.Max(0, LivesLeft - 1);

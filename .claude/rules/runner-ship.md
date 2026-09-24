@@ -412,11 +412,36 @@ minimap range, redeploy) stay on `GameSettings`.
   patrol that fraction of the ship's actual gain (after weight) in the same frame. A +100 km/h orb
   is +70 km/h for the patrol, so boosts stop buying the gap. Brakes are never shared and the floor
   is untouched.
+- **The attack run** (`PatrolEncounter`, on `GameSettings.patrolDuelEnabled`) — M0 of the patrol
+  duel. An explicit state machine the patrol owns and ticks per substep
+  (`Cruising → Committing → Alongside → BreakingOff → Cooldown`; `TugOfWar`/`Finisher` are
+  declared but unbuilt). On a cadence (`commitIntervalSeconds`, 12 s, counted from the END of the
+  last run) and once the gap is inside `commitFromDistance` (450 m), the patrol **overdrives** to
+  `attackRunOverdrive` × the ship's speed — bypassing the `onTail` clamp, because forcing the
+  flank is the point — and steers for `shipLateral ± flankOffsetMeters` instead of the ship's own
+  line (`PatrolDriver.Drive`'s `lineOverride`, which also switches orb seeking off). Alongside, it
+  holds `alongsideHoldSeconds` and then **shoves**: a lateral impulse through
+  `ShipMotor.AddLateralShove` → `HoverBody.AddLateralImpulse`, which feeds `ShoveVelocity`, the
+  channel a wall reads to tell a slam from steering — so a walled stretch costs `wallSlamDamage`
+  and an open edge is a fall, with **no new damage source**. It picks the side that leaves the
+  ship between it and an open edge, so the shove throws the ship off rather than into a wall.
+  It then **backs off actively** (`breakOffSpeedFactor` 0.85 as a speed CAP) through `BreakingOff`
+  and `Cooldown`, because its `catchUpAccel` bleed alone would leave it glued to the bumper.
+  **Forbidden ground**: it never commits, and breaks off if it is already running, when the road
+  within `encounterLookaheadMeters` ahead of the SHIP holds a ramp, a ramp landing, a loop, a tube
+  or the final run-up — `TrackHazards.IsEncounterGroundClear`, over the same
+  `TrackGenerator.featureKeepOuts` list the laser placer tests (`IsGroundClear`), cached per 25 m
+  of ship travel. Aborts on the ship getting behind it, out-steering `alongsideLateral` for
+  `abortGraceSeconds`, the ground going bad, the ship leaving the road, or a loss wind-down
+  (`GameManager.BeginFail` → `AbortEncounter`).
 - **Catch** (`UpdateCatch`, `HasCaught` polled by `GameManager`): inside `catchDistance` the
   patrol stops gaining (its target is capped to the ship's speed, and it is never let closer
-  than 1 m) and works on the sideways gap; it catches when ALSO within `catchLateral` (18 m)
-  across the track, or after `sustainedCatchSeconds` (1.5) inside the catch distance whatever
-  the sideways gap — a last-moment dodge works, dodging forever does not.
+  than 1 m) and works on the sideways gap. With the duel ON the catch is **tail time only** —
+  `sustainedCatchSeconds` (7) inside the catch distance — and it is **suspended for the whole
+  duel cycle**, the run and the back-off after it, so an exchange can never auto-arrest you; it
+  only punishes a patrol tailing you while NOT committing. With the duel OFF the old proximity
+  catch returns alongside it: also within `alongsideLateral` (18 m, the renamed `catchLateral`)
+  across the track is an immediate arrest.
 - **`Hold`** (`SetHold`) stops it moving and catching while the ship is off the track or waiting
   to relaunch — separate from `motor.Paused` because the clock keeps running. Releasing it drops
   a patrol closer than the given gap back to that gap and suppresses the taunt for it.

@@ -324,6 +324,20 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         }
 
         /// <summary>
+        /// A sideways slam from outside the ship — the patrol's shove. Feeds
+        /// the same <c>ShoveVelocity</c> channel a dash does, which is the
+        /// whole point: a wall reads that channel to tell a slam from ordinary
+        /// steering, so the shove produces a real wall hit on a walled stretch
+        /// and a fall over an open edge without any new damage source.
+        /// Positive is to the right, in m/s of lateral velocity.
+        /// </summary>
+        public void AddLateralShove(float velocity)
+        {
+            if (HasStopped || physicsShip == null || physicsShip.Body == null) return;
+            physicsShip.Body.AddLateralImpulse(velocity);
+        }
+
+        /// <summary>
         /// The win: the flight off the end ramp stops being a fall. The ship
         /// flies on along the line it left the lip with — upright, no tumble,
         /// under <see cref="GameSettings.winEscapeGravity"/> (0 = dead

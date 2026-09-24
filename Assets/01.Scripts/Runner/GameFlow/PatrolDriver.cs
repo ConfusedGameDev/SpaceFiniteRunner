@@ -42,9 +42,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// One tick of driving. <paramref name="speedCap"/> comes back as the
         /// most the patrol should be doing right now (a flat sweep's safe
         /// speed), or <see cref="float.MaxValue"/> when nothing limits it.
+        ///
+        /// <paramref name="lineOverride"/> replaces the ship's lateral as the
+        /// line to drive — an attack run steers for a FLANK, not the ship's
+        /// own lane. It also switches orb seeking off: a committed patrol does
+        /// not break off for a pickup. Everything else still applies, so the
+        /// patrol keeps itself off the open edge it is pushing the ship toward.
         /// </summary>
         public BodyControls Drive(TrackBody body, TrackBody ship, TrackManager track, PatrolDefinition def,
-                                  float gap, out float speedCap)
+                                  float gap, out float speedCap, float? lineOverride = null)
         {
             float d = body.Distance;
             float speed = Mathf.Max(body.ForwardSpeed, 1f);
@@ -52,11 +58,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             // Round a full tube the ship's lateral may be whole turns away:
             // chase the nearest equivalent.
-            float line = ship.Lateral;
+            float line = lineOverride ?? ship.Lateral;
             if (track.SectionAt(d) is TubeSection { Unbounded: true } tube)
                 line += Mathf.Round((body.Lateral - line) / tube.Circumference) * tube.Circumference;
 
-            line = SeekOrb(body, def, d, speed, gap, line);
+            if (!lineOverride.HasValue) line = SeekOrb(body, def, d, speed, gap, line);
             line = PlanRamps(body, def, d, speed, bandMin, bandMax, line);
             line = KeepOffOpenEdges(track, d, speed, bandMin, bandMax, line);
 

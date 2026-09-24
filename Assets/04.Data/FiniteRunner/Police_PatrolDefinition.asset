@@ -20,3 +20,18 @@ MonoBehaviour:
   startGap: 548
   catchDistance: 10
   warnDistance: 130
+  alongsideLateral: 18
+  sustainedCatchSeconds: 7
+  attackRunOverdrive: 1.15
+  commitFromDistance: 450
+  commitIntervalSeconds: 12
+  commitTimeoutSeconds: 15
+  alongsideDistance: 12
+  flankOffsetMeters: 7
+  alongsideHoldSeconds: 1.2
+  abortGraceSeconds: 0.4
+  breakOffSpeedFactor: 0.85
+  breakOffSeconds: 1
+  attackRunCooldownSeconds: 8
+  encounterLookaheadMeters: 300
+  shoveMeters: 10

@@ -39,13 +39,30 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float gripBase = -1f;
         public float gripPerSpeed = -1f;
         public float brakeDecel = -1f;
-        public float catchLateral = -1f;
+        public float alongsideLateral = -1f;
         public float sustainedCatchSeconds = -1f;
         public float curveLookaheadSeconds = -1f;
         public float orbLookaheadSeconds = -1f;
         public float orbSeekWeight = -1f;
         public float orbBoostShare = -1f;
         public float rampLookaheadSeconds = -1f;
+
+        // The duel's knobs, same -1 sentinel: added long after the original
+        // eight, so an asset saved before them must not stamp a default over
+        // the authored definition.
+        public float attackRunOverdrive = -1f;
+        public float commitFromDistance = -1f;
+        public float commitIntervalSeconds = -1f;
+        public float commitTimeoutSeconds = -1f;
+        public float alongsideDistance = -1f;
+        public float flankOffsetMeters = -1f;
+        public float alongsideHoldSeconds = -1f;
+        public float abortGraceSeconds = -1f;
+        public float breakOffSpeedFactor = -1f;
+        public float breakOffSeconds = -1f;
+        public float attackRunCooldownSeconds = -1f;
+        public float encounterLookaheadMeters = -1f;
+        public float shoveMeters = -1f;
 
         static PatrolDebugSettings cached;
 
@@ -85,13 +102,27 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             gripBase = definition.gripBase;
             gripPerSpeed = definition.gripPerSpeed;
             brakeDecel = definition.brakeDecel;
-            catchLateral = definition.catchLateral;
+            alongsideLateral = definition.alongsideLateral;
             sustainedCatchSeconds = definition.sustainedCatchSeconds;
             curveLookaheadSeconds = definition.curveLookaheadSeconds;
             orbLookaheadSeconds = definition.orbLookaheadSeconds;
             orbSeekWeight = definition.orbSeekWeight;
             orbBoostShare = definition.orbBoostShare;
             rampLookaheadSeconds = definition.rampLookaheadSeconds;
+
+            attackRunOverdrive = definition.attackRunOverdrive;
+            commitFromDistance = definition.commitFromDistance;
+            commitIntervalSeconds = definition.commitIntervalSeconds;
+            commitTimeoutSeconds = definition.commitTimeoutSeconds;
+            alongsideDistance = definition.alongsideDistance;
+            flankOffsetMeters = definition.flankOffsetMeters;
+            alongsideHoldSeconds = definition.alongsideHoldSeconds;
+            abortGraceSeconds = definition.abortGraceSeconds;
+            breakOffSpeedFactor = definition.breakOffSpeedFactor;
+            breakOffSeconds = definition.breakOffSeconds;
+            attackRunCooldownSeconds = definition.attackRunCooldownSeconds;
+            encounterLookaheadMeters = definition.encounterLookaheadMeters;
+            shoveMeters = definition.shoveMeters;
 
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
@@ -120,13 +151,27 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (gripBase >= 0f) definition.gripBase = gripBase;
             if (gripPerSpeed >= 0f) definition.gripPerSpeed = gripPerSpeed;
             if (brakeDecel >= 0f) definition.brakeDecel = brakeDecel;
-            if (catchLateral >= 0f) definition.catchLateral = catchLateral;
+            if (alongsideLateral >= 0f) definition.alongsideLateral = alongsideLateral;
             if (sustainedCatchSeconds >= 0f) definition.sustainedCatchSeconds = sustainedCatchSeconds;
             if (curveLookaheadSeconds >= 0f) definition.curveLookaheadSeconds = curveLookaheadSeconds;
             if (orbLookaheadSeconds >= 0f) definition.orbLookaheadSeconds = orbLookaheadSeconds;
             if (orbSeekWeight >= 0f) definition.orbSeekWeight = orbSeekWeight;
             if (orbBoostShare >= 0f) definition.orbBoostShare = orbBoostShare;
             if (rampLookaheadSeconds >= 0f) definition.rampLookaheadSeconds = rampLookaheadSeconds;
+
+            if (attackRunOverdrive >= 0f) definition.attackRunOverdrive = attackRunOverdrive;
+            if (commitFromDistance >= 0f) definition.commitFromDistance = commitFromDistance;
+            if (commitIntervalSeconds >= 0f) definition.commitIntervalSeconds = commitIntervalSeconds;
+            if (commitTimeoutSeconds >= 0f) definition.commitTimeoutSeconds = commitTimeoutSeconds;
+            if (alongsideDistance >= 0f) definition.alongsideDistance = alongsideDistance;
+            if (flankOffsetMeters >= 0f) definition.flankOffsetMeters = flankOffsetMeters;
+            if (alongsideHoldSeconds >= 0f) definition.alongsideHoldSeconds = alongsideHoldSeconds;
+            if (abortGraceSeconds >= 0f) definition.abortGraceSeconds = abortGraceSeconds;
+            if (breakOffSpeedFactor >= 0f) definition.breakOffSpeedFactor = breakOffSpeedFactor;
+            if (breakOffSeconds >= 0f) definition.breakOffSeconds = breakOffSeconds;
+            if (attackRunCooldownSeconds >= 0f) definition.attackRunCooldownSeconds = attackRunCooldownSeconds;
+            if (encounterLookaheadMeters >= 0f) definition.encounterLookaheadMeters = encounterLookaheadMeters;
+            if (shoveMeters >= 0f) definition.shoveMeters = shoveMeters;
         }
 
         /// <summary>

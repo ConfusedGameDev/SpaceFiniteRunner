@@ -505,7 +505,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             GameSettings runRules = shipReady ? motor.DashSettings : null;
 
             int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0) + (runRules != null ? 1 : 0)
-                         + (patrolReady ? 2 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0) + (fog != null ? 1 : 0)
+                         + (patrolReady ? 3 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0) + (fog != null ? 1 : 0)
                          + (lines != null ? 1 : 0) + (vhs != null ? 1 : 0) + (psx != null ? 1 : 0)
                          + (crt != null ? 1 : 0);
             if (tabCount == 0) return;
@@ -546,6 +546,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 debugMenu.AddTab(DebugMenuFactory.BuildPatrolTab(
                     panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildPatrolDriverTab(
+                    panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                debugMenu.AddTab(DebugMenuFactory.BuildDuelTab(
                     panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
             }
 

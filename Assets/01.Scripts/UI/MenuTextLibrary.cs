@@ -132,7 +132,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // Hull and lives: the lose reason of a ship blown up, and the final GAME OVER's prompt (no retry — any button leads to the Store).
         LoseDestroyed, PressAnyButton,
         // Laser gates: the debug menu's density row.
-        LaserDensity
+        LaserDensity,
+        // The patrol duel: the attack run's debug tab and its rows.
+        DebugTabDuel, DuelOverdrive, DuelCommitFrom, DuelCommitInterval,
+        DuelCommitTimeout, DuelAlongsideDistance, DuelFlankOffset, DuelAlongsideHold,
+        DuelAbortGrace, DuelBreakOff, DuelBackOffSpeed, DuelCooldown, DuelLookahead,
+        DuelShoveMeters
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1025,6 +1030,22 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString unbankedSweeps = new("FLAT CURVES %", "CURVAS PLANAS %", "フラットカーブ %", "VIRAGES PLATS %");
         [SerializeField] LocalizedString openStraights = new("OPEN STRAIGHTS %", "RECTAS ABIERTAS %", "壁なし直線 %", "LIGNES DROITES OUVERTES %");
         [SerializeField] LocalizedString laserDensity = new("LASER DENSITY", "DENSIDAD DE LÁSERES", "レーザー密度", "DENSITÉ DES LASERS");
+
+        [TitleGroup("Patrol duel")]
+        [SerializeField] LocalizedString debugTabDuel = new("PATROL DUEL", "DUELO DE PATRULLA", "パトロール決闘", "DUEL DE PATROUILLE");
+        [SerializeField] LocalizedString duelOverdrive = new("ATTACK OVERDRIVE", "SOBREMARCHA DE ATAQUE", "攻撃オーバードライブ", "SURRÉGIME D'ATTAQUE");
+        [SerializeField] LocalizedString duelCommitFrom = new("COMMIT FROM", "ATACA DESDE", "攻撃開始距離", "ENGAGER DEPUIS");
+        [SerializeField] LocalizedString duelCommitInterval = new("ATTACK INTERVAL", "INTERVALO DE ATAQUE", "攻撃間隔", "INTERVALLE D'ATTAQUE");
+        [SerializeField] LocalizedString duelCommitTimeout = new("ATTACK TIMEOUT", "TIEMPO DE ATAQUE", "攻撃タイムアウト", "DÉLAI D'ATTAQUE");
+        [SerializeField] LocalizedString duelAlongsideDistance = new("ALONGSIDE GAP", "DISTANCIA AL COSTADO", "並走距離", "ÉCART DE FLANC");
+        [SerializeField] LocalizedString duelFlankOffset = new("FLANK OFFSET", "DESVÍO LATERAL", "側面オフセット", "DÉCALAGE DE FLANC");
+        [SerializeField] LocalizedString duelAlongsideHold = new("FLANK HOLD", "ESPERA AL COSTADO", "並走保持", "MAINTIEN DE FLANC");
+        [SerializeField] LocalizedString duelAbortGrace = new("ESCAPE GRACE", "MARGEN DE ESCAPE", "回避猶予", "DÉLAI D'ESQUIVE");
+        [SerializeField] LocalizedString duelBreakOff = new("BREAK OFF TIME", "TIEMPO DE RETIRADA", "離脱時間", "TEMPS DE RETRAIT");
+        [SerializeField] LocalizedString duelBackOffSpeed = new("BACK OFF SPEED", "VELOCIDAD DE RETIRADA", "離脱速度", "VITESSE DE RETRAIT");
+        [SerializeField] LocalizedString duelCooldown = new("ATTACK COOLDOWN", "ENFRIAMIENTO DE ATAQUE", "攻撃クールダウン", "RECHARGE D'ATTAQUE");
+        [SerializeField] LocalizedString duelLookahead = new("CLEAR ROAD AHEAD", "PISTA LIBRE DELANTE", "前方クリア距離", "ROUTE LIBRE DEVANT");
+        [SerializeField] LocalizedString duelShoveMeters = new("SHOVE DISTANCE", "DISTANCIA DE EMPUJE", "突き飛ばし距離", "DISTANCE DE POUSSÉE");
         [SerializeField] LocalizedString trackLength = new("TRACK LENGTH", "LONGITUD DE PISTA", "コース長", "LONGUEUR DE PISTE");
         [SerializeField] LocalizedString debugTabFall = new("FALL & RESPAWN", "CAÍDA Y REAPARICIÓN", "落下とリスポーン", "CHUTE ET RETOUR");
         [SerializeField] LocalizedString edgeOverhang = new("EDGE OVERHANG", "MARGEN DEL BORDE", "縁のはみ出し", "DÉBORD DU BORD");
@@ -1039,7 +1060,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString respawnPatrolGap = new("RESPAWN PATROL GAP", "VENTAJA SOBRE LA PATRULLA", "リスポーン時のパトロール差", "AVANCE SUR LA PATROUILLE");
         [SerializeField] LocalizedString stallGrace = new("STALL GRACE", "GRACIA AL DETENERSE", "停止の猶予", "DÉLAI DE CALAGE");
         [SerializeField] LocalizedString debugTabPatrolDriver = new("PATROL DRIVER", "PILOTO DE PATRULLA", "パトロールドライバー", "PILOTE DE PATROUILLE");
-        [SerializeField] LocalizedString patrolCatchLateral = new("CATCH WIDTH", "ANCHO DE CAPTURA", "捕捉幅", "LARGEUR DE CAPTURE");
+        [SerializeField] LocalizedString patrolCatchLateral = new("ALONGSIDE WIDTH", "ANCHO DE COSTADO", "並走幅", "LARGEUR DE FLANC");
         [SerializeField] LocalizedString patrolSustainedCatch = new("TAIL CATCH TIME", "TIEMPO DE CAPTURA EN COLA", "追尾捕捉時間", "TEMPS DE CAPTURE EN FILE");
         [SerializeField] LocalizedString patrolCurveLookahead = new("CURVE LOOKAHEAD", "ANTICIPACIÓN DE CURVAS", "カーブ先読み", "ANTICIPATION VIRAGES");
         [SerializeField] LocalizedString patrolOrbLookahead = new("ORB LOOKAHEAD", "ANTICIPACIÓN DE ORBES", "オーブ先読み", "ANTICIPATION ORBES");
@@ -1453,6 +1474,20 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.LoseDestroyed => loseDestroyed,
             MenuTextId.PressAnyButton => pressAnyButton,
             MenuTextId.LaserDensity => laserDensity,
+            MenuTextId.DebugTabDuel => debugTabDuel,
+            MenuTextId.DuelOverdrive => duelOverdrive,
+            MenuTextId.DuelCommitFrom => duelCommitFrom,
+            MenuTextId.DuelCommitInterval => duelCommitInterval,
+            MenuTextId.DuelCommitTimeout => duelCommitTimeout,
+            MenuTextId.DuelAlongsideDistance => duelAlongsideDistance,
+            MenuTextId.DuelFlankOffset => duelFlankOffset,
+            MenuTextId.DuelAlongsideHold => duelAlongsideHold,
+            MenuTextId.DuelAbortGrace => duelAbortGrace,
+            MenuTextId.DuelBreakOff => duelBreakOff,
+            MenuTextId.DuelBackOffSpeed => duelBackOffSpeed,
+            MenuTextId.DuelCooldown => duelCooldown,
+            MenuTextId.DuelLookahead => duelLookahead,
+            MenuTextId.DuelShoveMeters => duelShoveMeters,
             _ => start
         };
     }
