@@ -98,6 +98,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float ramKickLeft;    // seconds of the rammed lurch still to play on the visual
         bool ramArmed = true; // a ram needs a fresh approach: leaving contact re-arms it
         bool laserKillPending; // a beam caught it: acted on after the body's step, not inside the sweep
+        float laserCooldown;   // one pass is one beam kill: LaserGate's own rehit guard only covers the SHIP
         float lastTickTime = float.NegativeInfinity; // Time.fixedTime of the last tick, for the render's blend
         float tailTimer;      // seconds spent inside the catch distance
         float shownBank;
@@ -166,7 +167,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             string line = $"{encounter.State} gap {SimGap:0} across {AcrossToShip():0} pool {damagePool}/{runtimeDef.damagePoolMax}";
             if (encounter.InTugOfWar) return $"{line} tug {encounter.Tug:0.00} side {encounter.Side}";
             if (encounter.State == PatrolEncounterState.Cruising)
-                return $"{line} | commit in {encounter.CommitIn(runtimeDef):0.0}s | ground {(encounter.GroundWasClear ? "CLEAR" : "BLOCKED")}";
+                return $"{line} | commit in {encounter.CommitIn(runtimeDef):0.0}s | reach {encounter.ReachWas:0} | ground {(encounter.GroundWasClear ? "CLEAR" : "BLOCKED")}";
             return line;
         }
 
@@ -403,7 +404,17 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             // Never RaiseHit: that event is the SHIP's, and the GameManager
             // answers it by burning the player's hull.
-            if (duelEnabled && !laserKillPending && pickup is LaserGate gate
+            //
+            // And only while the cruiser is CLOSE. A beam killing it hundreds of
+            // metres back is not the player pushing it into anything — the
+            // driver does not steer round gates, so out there every gate on the
+            // road is a free death, off-screen, and the chase never develops.
+            // Measured before this gate existed: eight kills in one run, all at
+            // ~690 m behind the ship, the cruiser recycling into the next gate
+            // as fast as it could arrive. Inside the warn distance the player is
+            // there to have caused it and there to see it.
+            if (duelEnabled && !laserKillPending && laserCooldown <= 0f && pickup is LaserGate gate
+                && SimGap <= runtimeDef.warnDistance
                 && (body.State == ShipState.Grounded || body.State == ShipState.Airborne)
                 && body.Distance > body.SweepFrom && body.Distance - body.SweepFrom <= 400f
                 && gate.Touches(body.SweepFrom, body.Distance, body.Lateral, body.Height, PickupReach))
@@ -473,6 +484,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (!laserKillPending) return false;
             laserKillPending = false;
             if (IsGone || HasCaught) return false;
+            // LaserGate's own RehitSeconds guard is keyed on RaiseHit, which
+            // this path never calls, so the cruiser needs its own.
+            laserCooldown = LaserRehitSeconds;
             Kill(spendsDashMeter: false, raiseFloor: false);
             return true;
         }
@@ -620,7 +634,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                                      rules != null ? rules.duelAssistStrength : 0f,
                                                      pendingPresses,
                                                      rules != null ? rules.finisherWindowSeconds : 1f,
-                                                     PushScale);
+                                                     PushScale, target.CurrentSpeed);
                 pendingPresses = 0;
                 encounter.Tick(dt, ctx, out intent);
             }
@@ -665,7 +679,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // tens of m/s inside a second, and at 3.33 m/s² the cruiser answers
             // ten seconds late. That is not a soft feel, it is the difference
             // between holding a distance and driving straight through it.
-            float speedAuthority = intent.SpeedIsAbsolute && runtimeDef.stationAccel > 0f
+            float speedAuthority = intent.HighAuthority && runtimeDef.stationAccel > 0f
                 ? runtimeDef.stationAccel
                 : runtimeDef.catchUpAccel;
 
@@ -772,6 +786,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void RamCheck(float dt, GameSettings rules)
         {
             ramCooldown -= dt;
+            laserCooldown -= dt;
             if (!duelEnabled || runtimeDef == null) { ramArmed = true; return; }
 
             float behind = -SimGap; // how far the ship's nose is short of the cruiser
@@ -817,6 +832,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // the contact edge inside this must not score twice.
         const float RamCooldownSeconds = 0.6f;
 
+        // One pass through a gate is one kill, however many substeps of the
+        // sweep see the beam.
+        const float LaserRehitSeconds = 1f;
+
         // How long the rammed cruiser lurches for. Scaled time on purpose — a
         // hit landed during an exchange's slow motion should stretch with it.
         const float RamKickSeconds = 0.45f;
@@ -829,6 +848,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             ramKickLeft = 0f;
             ramArmed = true;
             laserKillPending = false;
+            laserCooldown = LaserRehitSeconds; // a fresh cruiser is not killed by the gate that took the last one
         }
 
         // The slam itself. Sized in METRES of sideways travel, converted the

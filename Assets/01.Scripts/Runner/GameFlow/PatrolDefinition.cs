@@ -125,9 +125,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float attackRunOverdrive = 1.15f;
 
         [TitleGroup("Duel")]
-        [Tooltip("The patrol only starts an attack run once the gap is inside this. Above it the ordinary rubber band does the work; below it the overdrive takes over.")]
-        [PropertyRange(50f, 1500f), SuffixLabel("m", true)]
-        public float commitFromDistance = 450f;
+        [Tooltip("The patrol only starts an attack run once the gap is inside this — keep it just above the standoff, and inside the warn distance. " +
+                 "The ordinary rubber band does the APPROACH; the overdrive only has to cover this last stretch. Large values make the run cross so much road " +
+                 "that a ramp or loop is almost certain to interrupt it, and the run aborts for nothing.")]
+        [PropertyRange(20f, 1500f), SuffixLabel("m", true)]
+        public float commitFromDistance = 70f;
 
         [TitleGroup("Duel")]
         [Tooltip("Minimum seconds between attack runs, counted from the END of the last one. The single number that decides how much of a run is spent duelling.")]

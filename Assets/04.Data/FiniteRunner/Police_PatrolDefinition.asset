@@ -23,7 +23,7 @@ MonoBehaviour:
   alongsideLateral: 18
   sustainedCatchSeconds: 7
   attackRunOverdrive: 1.15
-  commitFromDistance: 450
+  commitFromDistance: 70
   commitIntervalSeconds: 12
   commitTimeoutSeconds: 15
   alongsideDistance: 12

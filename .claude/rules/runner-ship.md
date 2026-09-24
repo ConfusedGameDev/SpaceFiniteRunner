@@ -447,6 +447,19 @@ minimap range, redeploy) stay on `GameSettings`.
   standoff only ever says "no closer"), and `SpeedIsAbsolute`. `Cooldown` hands over to it once it
   is a standoff behind. **Any new "hold this distance" behaviour must carry its own authority** —
   see the next bullet.
+- **A run only starts from a gap it can FINISH from, and that is a question of time, not metres.**
+  The overdrive closes `(attackRunOverdrive - 1) x shipSpeed` per second, so the reachable gap
+  scales with speed — `commitFromDistance` alone, being a fixed distance, cannot be right across a
+  10× speed range. `PatrolEncounter.CommitReach` is `min(commitFromDistance,
+  closing x commitTimeoutSeconds x 0.7)`, and the run's abort is **`Escaped`** — the gap it started
+  from plus `CommitEscapeSeconds` (2 s) of closing — never `commitFromDistance` itself, because a run
+  entered on its own abort line dies to a metre of jitter. `ReachWas` is on the debug readout beside
+  the cadence and the ground gate: all three gates are invisible when they refuse.
+  **`commitFromDistance` is authored at 70 m**, just above the standoff and well inside
+  `warnDistance`: the APPROACH belongs to the cruise band and the run is a short burst off the
+  standoff. At 450 m (the old value, larger than `warnDistance`, against D8) a run crossed ~1700 m
+  of road, and with features claiming ~400 m every 600–1200 m it was near-certain to meet forbidden
+  ground and abort for nothing.
 - **Station keeping** is what holds a run together. Every engaged state used to ask for
   `attackRunOverdrive` — a permanent "faster than the ship" — which only ever looked like holding a
   flank because the absolute distance clamp pinned the cruiser a metre off the ship's nose. It now
@@ -456,8 +469,11 @@ minimap range, redeploy) stay on `GameSettings`.
   could only ever speed the cruiser up, and the redeploy floor (above the ship's speed) would drive
   it straight past. `Committing` is absolute too, so the telegraph burst is the same readable 15 %
   whatever the floor has grown to. A run also gets its own speed authority
-  (`PatrolDefinition.stationAccel`, 60 m/s², applied **whenever `intent.SpeedIsAbsolute`** — the one
-  rule being that if the encounter owns the speed it owns the RATE too): the cruise band's
+  (`PatrolDefinition.stationAccel`, 60 m/s², applied whenever **`intent.HighAuthority`** — kept
+  separate from `SpeedIsAbsolute` because the two are different questions: `Committing` wants the
+  RATE but must stay a FLOOR, since the redeploy floor above it is what actually closes the gap.
+  Making the commit absolute capped the cruiser BELOW the speed it was already doing, so runs timed
+  out having closed nothing): the cruise band's
   `catchUpAccel` (3.33 on the asset) is deliberately sluggish so boosts buy breathing room, but
   every position the encounter holds asks for tens of m/s inside a second, and at the band's rate
   the cruiser answers ten seconds late — which is not a soft feel, it is the difference between
@@ -497,8 +513,12 @@ minimap range, redeploy) stay on `GameSettings`.
   `RaiseHit`: that event is the SHIP's and `GameManager.OnLaserHit` answers it by burning the
   player's hull. The death is `Kill(spendsDashMeter: false, raiseFloor: false)` — the finisher's
   explosion, recycle and hit-stop, but it charges the player nothing, because a cruiser driving into
-  a gate by itself is a hazard death like a fall. **Laser gates are deliberately not feature
-  keep-outs**, so `IsEncounterGroundClear` permits a run at one: that is what makes the kill
+  a gate by itself is a hazard death like a fall. **Only inside `warnDistance`**, with a
+  `LaserRehitSeconds` cooldown of its own (`LaserGate`'s own rehit guard is keyed on `RaiseHit`,
+  which this path never calls): the driver does not steer round gates, so without the range limit
+  every gate on the cruiser's long approach was a free off-screen death — measured at eight kills in
+  one run, all ~690 m behind the ship, recycling into the next gate as fast as it could arrive, which
+  kept the chase from ever developing. **Laser gates are deliberately not feature keep-outs**, so `IsEncounterGroundClear` permits a run at one: that is what makes the kill
   reachable, and it is aimed rather than random because `PatrolDriver` steers for the ship's own
   lateral — outside a run the cruiser copies the player's dodge, so only the run's
   `flankOffsetMeters` can put it on a beam the player is clear of. Gated on `duelEnabled`, so the

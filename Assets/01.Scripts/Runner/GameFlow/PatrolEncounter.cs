@@ -37,6 +37,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>Ship lateral minus patrol lateral, tube-wrapped — positive when the patrol is LEFT of the ship.</summary>
         public readonly float Across;
         public readonly float ShipLateral;
+        /// <summary>The ship's forward speed, m/s: the overdrive's closing rate is relative to it, so reachability scales with it.</summary>
+        public readonly float ShipSpeed;
         /// <summary>Where the SHIP is: the ground test reads ahead of it, never behind, because the streamer culls behind.</summary>
         public readonly float ShipDistance;
         public readonly PatrolDefinition Def;
@@ -58,8 +60,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public PatrolEncounterContext(float gap, float across, float shipLateral, float shipDistance,
                                       PatrolDefinition def, TrackManager track, TrackGenerator generator,
                                       bool shipSteady, float unscaledDt, float assistStrength, int presses,
-                                      float finisherWindowSeconds, float pushScale)
+                                      float finisherWindowSeconds, float pushScale, float shipSpeed)
         {
+            ShipSpeed = shipSpeed;
             PushScale = pushScale;
             UnscaledDt = unscaledDt;
             AssistStrength = assistStrength;
@@ -95,6 +98,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// drive it straight past the flank it is trying to hold.
         /// </summary>
         public bool SpeedIsAbsolute;
+        /// <summary>
+        /// The encounter is actively managing the speed, so it gets the run's
+        /// own acceleration rate (<see cref="PatrolDefinition.stationAccel"/>)
+        /// instead of the deliberately sluggish cruise band. Separate from
+        /// <see cref="SpeedIsAbsolute"/> because the two are different
+        /// questions: the attack run wants the RATE without the cap, since the
+        /// redeploy floor above it is what closes the gap.
+        /// </summary>
+        public bool HighAuthority;
         /// <summary>The lateral the driver should steer for instead of the ship's, or null for the ordinary line.</summary>
         public float? LineOverride;
         /// <summary>Set for exactly one substep: slam the ship sideways now.</summary>
@@ -151,6 +163,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>The last answer the forbidden-ground test gave — for the debug readout.</summary>
         public bool GroundWasClear => groundClear;
 
+        /// <summary>
+        /// The furthest gap the last tick judged a run FINISHABLE from, for the
+        /// debug readout. Worth showing: it is speed-dependent, and a gap
+        /// sitting just outside it looks identical to a patrol that has simply
+        /// decided not to attack.
+        /// </summary>
+        public float ReachWas { get; private set; }
+
         /// <summary>Seconds still to wait on the cadence before another run may start. For the debug readout.</summary>
         public float CommitIn(PatrolDefinition def) =>
             def == null ? 0f : Mathf.Max(0f, def.commitIntervalSeconds - commitTimer);
@@ -158,6 +178,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float stateTimer;      // seconds in the current state
         float commitTimer;     // seconds since the last run ended — the cadence
         float outsideTimer;    // seconds the ship has held outside the flank
+        float commitGap;       // the gap the current run started from, to tell escaping from jitter
 
         // The road test sweeps a few hundred metres, and it is asked every
         // substep. Its answer cannot change until the ship has moved, so it is
@@ -277,17 +298,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             {
                 intent.SpeedMultiplier = Standoff(ctx);
                 intent.SpeedIsAbsolute = true;
+                intent.HighAuthority = true;
             }
 
             switch (State)
             {
                 case PatrolEncounterState.Cruising:
+                    ReachWas = CommitReach(ctx);
                     if (commitTimer >= def.commitIntervalSeconds
-                        && ctx.Gap > 0f && ctx.Gap <= def.commitFromDistance
+                        && ctx.Gap > 0f && ctx.Gap <= ReachWas
                         && ctx.ShipSteady
                         && ClearToStart(ctx))
                     {
                         Side = PickSide(ctx);
+                        commitGap = ctx.Gap;
                         Enter(PatrolEncounterState.Committing);
                     }
                     break;
@@ -297,17 +321,24 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // pulls clear again, if the road stops allowing it, or if
                     // the burst simply never lands.
                     if (!ctx.ShipSteady || !ClearToContinue(ctx)
-                        || ctx.Gap > def.commitFromDistance
+                        || ctx.Gap > Escaped(ctx)
                         || stateTimer >= def.commitTimeoutSeconds)
                     {
                         Enter(PatrolEncounterState.BreakingOff);
                         break;
                     }
-                    // Absolute, not a floor: the burst IS the telegraph, so it
-                    // has to be the same readable 15 % every time and not
-                    // whatever the redeploy floor has grown to.
+                    // A FLOOR, never an absolute target. This was briefly
+                    // absolute "so the telegraph reads the same every time" and
+                    // it broke the approach outright: a redeployed cruiser is
+                    // already running ABOVE the ship on its raised floor, which
+                    // per the chase's design is the thing that closes the gap —
+                    // capping it at 1.15x the ship made committing a SLOWDOWN,
+                    // so runs timed out having closed nothing and the break-off
+                    // then threw the gap wider than it started. Measured: it
+                    // committed at 439 m and was back at 692 m, three times
+                    // running, and never once reached the flank.
                     intent.SpeedMultiplier = def.attackRunOverdrive;
-                    intent.SpeedIsAbsolute = true;
+                    intent.HighAuthority = true;
                     intent.LineOverride = FlankLine(ctx, Side);
                     if (ctx.Gap <= def.alongsideDistance && Mathf.Abs(ctx.Across) <= def.alongsideLateral)
                         Enter(PatrolEncounterState.Alongside);
@@ -332,6 +363,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // a cruiser pacing you, which is what makes the shove read.
                     intent.SpeedMultiplier = StationSpeed(ctx);
                     intent.SpeedIsAbsolute = true;
+                    intent.HighAuthority = true;
                     intent.LineOverride = FlankLine(ctx, Side);
                     // The flank hold is the wind-up; then the contest opens.
                     if (stateTimer >= def.alongsideHoldSeconds)
@@ -360,6 +392,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
                     intent.SpeedMultiplier = StationSpeed(ctx);
                     intent.SpeedIsAbsolute = true;
+                    intent.HighAuthority = true;
                     intent.LineOverride = FlankLine(ctx, Side);
                     intent.SteerAssist = Assist(ctx);
 
@@ -400,6 +433,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // be snatched away by a ramp coming into view.
                     intent.SpeedMultiplier = StationSpeed(ctx);
                     intent.SpeedIsAbsolute = true;
+                    intent.HighAuthority = true;
                     intent.LineOverride = FlankLine(ctx, Side);
                     intent.SteerAssist = Assist(ctx);
                     if (stateTimer >= ctx.FinisherWindowSeconds)
@@ -416,6 +450,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // and a cap it cannot decelerate to is not a back-off.
                     intent.SpeedMultiplier = def.breakOffSpeedFactor;
                     intent.SpeedIsAbsolute = true;
+                    intent.HighAuthority = true;
                     if (stateTimer >= def.breakOffSeconds) Enter(PatrolEncounterState.Cooldown);
                     break;
 
@@ -426,6 +461,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                         ? Mathf.Min(def.breakOffSpeedFactor, Standoff(ctx))
                         : def.breakOffSpeedFactor;
                     intent.SpeedIsAbsolute = true;
+                    intent.HighAuthority = true;
                     if (stateTimer >= def.attackRunCooldownSeconds) Enter(PatrolEncounterState.Cruising);
                     break;
             }
@@ -476,6 +512,51 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         bool ClearToContinue(in PatrolEncounterContext ctx) =>
             GroundClear(ctx, Mathf.Min(ctx.Def.encounterAbortMeters, ctx.Def.encounterLookaheadMeters));
+
+        // How much of the overdrive's burst is allowed to be spent purely on
+        // closing, leaving the rest for drawing level and the flank hold.
+        const float CommitReachSafety = 0.7f;
+
+        // How long the ship has to out-run the overdrive before the run gives
+        // up on it. Seconds rather than metres, because the overdrive's closing
+        // rate scales with speed and so must the distance that counts as away.
+        const float CommitEscapeSeconds = 2f;
+
+        /// <summary>
+        /// The gap at which a run in progress accepts the ship has got AWAY:
+        /// the gap it started from plus a couple of seconds of the overdrive's
+        /// own closing rate. It must never be the same number the run STARTED
+        /// at (this was <c>commitFromDistance</c>, for both): a run entered
+        /// exactly on its own abort line dies to a metre of jitter, which is
+        /// precisely what happened — measured committing at 121.0 m and
+        /// breaking off at 120.5 m with the road completely clear, every time.
+        /// </summary>
+        float Escaped(in PatrolEncounterContext ctx)
+        {
+            float closing = Mathf.Max(1f, ctx.ShipSpeed * (ctx.Def.attackRunOverdrive - 1f));
+            return Mathf.Max(ctx.Def.commitFromDistance, commitGap + closing * CommitEscapeSeconds);
+        }
+
+        /// <summary>
+        /// The furthest gap a run could actually be FINISHED from. The overdrive
+        /// closes <c>(attackRunOverdrive - 1) x shipSpeed</c> per second, so the
+        /// reachable gap scales with the ship's speed — which means
+        /// <see cref="PatrolDefinition.commitFromDistance"/>, being a fixed
+        /// number of METRES, cannot be right across this game's speed range. At
+        /// 150 m/s the burst closes 22 m/s, so its authored 450 m needs twenty
+        /// seconds of a fifteen-second timeout; at Light Speed the same 450 m
+        /// takes under a second. Measured before this existed: the patrol
+        /// committed at 400 m, closed honestly to 125 m, and timed out there
+        /// every time without ever reaching the flank. The authored distance
+        /// stays as the outer permission; this is the reality check under it.
+        /// </summary>
+        static float CommitReach(in PatrolEncounterContext ctx)
+        {
+            PatrolDefinition def = ctx.Def;
+            float closing = Mathf.Max(1f, ctx.ShipSpeed * (def.attackRunOverdrive - 1f));
+            return Mathf.Min(def.commitFromDistance,
+                             closing * def.commitTimeoutSeconds * CommitReachSafety);
+        }
 
         /// <summary>
         /// The ship has got fully past it — D23's cheap escape, earned by
