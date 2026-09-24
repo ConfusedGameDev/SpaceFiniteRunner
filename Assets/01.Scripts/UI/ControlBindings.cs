@@ -127,15 +127,24 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // run with gameplay frozen, so the two never meet. Nor is A: it is
         // the dialogue advance / cinema skip, read over live gameplay, so no
         // default sits on it — but a player who wants it there may bind it.
+        // X / gamepad X are the patrol duel's mash, read RAW over live
+        // gameplay (the fourth documented exception to "gameplay input goes
+        // through this table", after dialogue advance on A, the camera mouse
+        // and touch steering). They ARE reserved because, unlike the handbrake,
+        // the mash meets the runner: a ship or camera action bound here would
+        // fire on every press of a tug of war. Space was the obvious keyboard
+        // pick and is deliberately not used — it is the handbrake's default,
+        // and reserving it would knock that out for nothing.
         static readonly HashSet<Key> ReservedKeys = new()
         {
             Key.None, Key.Escape, Key.Enter, Key.NumpadEnter, Key.Backspace,
-            Key.LeftMeta, Key.RightMeta, Key.ContextMenu, Key.IMESelected
+            Key.LeftMeta, Key.RightMeta, Key.ContextMenu, Key.IMESelected,
+            Key.X
         };
 
         static readonly HashSet<PadControl> ReservedPads = new()
         {
-            PadControl.None, PadControl.Start
+            PadControl.None, PadControl.Start, PadControl.ButtonWest
         };
 
         static readonly int ActionCount = Enum.GetValues(typeof(GameAction)).Length;

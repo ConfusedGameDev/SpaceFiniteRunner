@@ -345,6 +345,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 ChaseMinimap.Spawn(motor, patrol, this, settings.minimapRangeMeters,
                                    patrol != null ? patrol.Definition.warnDistance : 0f);
 
+            // The duel: the tug-of-war bar, and the slow motion the exchange
+            // runs under. Both no-op without a patrol or with the duel off.
+            // The slow-mo rides the ship like the loop's does, so the two share
+            // one clock-ownership contract and settle against each other.
+            if (motor != null && patrol != null && settings.patrolDuelEnabled)
+            {
+                DuelSlowMo.Ensure(motor).Configure(settings, patrol);
+                DuelBarHud.Spawn(motor, patrol, settings);
+            }
+
             // The chase camera: the shared Cinemachine rig, attached to the ship
             // root with the ship's own settings asset (Far framing, target-up
             // roll binding). Without an asset the scene keeps its camera as is.
@@ -453,7 +463,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // Time only pressures the player while the ship is flying.
             if (motor.Paused) return;
 
-            TimeRemaining = Mathf.Max(0f, TimeRemaining - Time.deltaTime);
+            // The countdown rides the scaled clock like everything else, so a
+            // LOOP simply plays longer in real time and costs the same mission
+            // seconds. The DUEL is the one exception: its slow motion buys
+            // perception, not time, so the clock keeps full pace through an
+            // exchange — which is what makes declining one, by braking off the
+            // flank, a real choice when the countdown is short.
+            float countdownStep = DuelSlowMo.IsActive ? Time.unscaledDeltaTime : Time.deltaTime;
+            TimeRemaining = Mathf.Max(0f, TimeRemaining - countdownStep);
             if (TimeRemaining <= 0f)
                 BeginFail(RunOutcome.TimedOut);
         }

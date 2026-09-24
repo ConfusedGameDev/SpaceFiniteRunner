@@ -78,6 +78,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         readonly PatrolDriver driver = new();
         readonly PatrolEncounter encounter = new();
         bool duelEnabled = true;
+        float unscaledStep;   // real seconds per substep, for the bar
+        int pendingPresses;   // mash presses drained this tick, spent on the first substep
         float lastTickTime = float.NegativeInfinity; // Time.fixedTime of the last tick, for the render's blend
         float tailTimer;      // seconds spent inside the catch distance
         float shownBank;
@@ -105,6 +107,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         /// <summary>Which side of the ship a run is being made from: -1 left, +1 right, 0 when idle.</summary>
         public int EncounterSide => encounter.Side;
+
+        /// <summary>True while the tug-of-war bar is up and being fought over.</summary>
+        public bool InTugOfWar => encounter.InTugOfWar;
+
+        /// <summary>True while the exchange owns the world clock and the ship's steering.</summary>
+        public bool InExchange => encounter.InExchange;
+
+        /// <summary>The contest as the PATROL's progress: 0.5 at the start, 1 it wins, 0 you do.</summary>
+        public float Tug => encounter.Tug;
 
         /// <summary>
         /// The whole duel, on or off. Off restores the old chase exactly,
@@ -180,6 +191,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (Hold == hold) return;
             Hold = hold;
             encounter.Reset(); // held or released, no run survives it
+            DuelMashInput.Clear();
+            if (target != null) target.SteerAssist = 0f;
             if (hold || target == null) return;
 
             if (body != null && SimGap < minGapOnRelease)
@@ -268,7 +281,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         void OnDestroy()
         {
-            if (target != null) target.PadImpulse -= OnShipImpulse;
+            if (target != null)
+            {
+                target.PadImpulse -= OnShipImpulse;
+                target.SteerAssist = 0f; // never leave the ship being steered by a patrol that is gone
+            }
         }
 
         /// <summary>
@@ -346,6 +363,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             Blink(Time.deltaTime);
 
+            // The mash is sampled every FRAME and drained by the fixed tick,
+            // so a fast press between two ticks is never dropped.
+            DuelMashInput.Poll();
+
+            // The assist is written by the fixed tick, which stops running on
+            // a catch, a hold or a pause — so the release is owned here, where
+            // nothing can strand the ship being steered for it.
+            if (!encounter.InExchange && target.SteerAssist != 0f) target.SteerAssist = 0f;
+
             if (!HasCaught && !target.Paused && !Hold && !IsGone)
             {
                 // Proximity rumble that grows as the patrol closes in. The
@@ -381,6 +407,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             body.BeginTick();
             float h = dt / substeps;
+            // The bar is judged in REAL seconds, so the duel's slow motion
+            // cannot hand the player a longer window to mash in.
+            unscaledStep = Time.fixedUnscaledDeltaTime / substeps;
+            pendingPresses = encounter.InTugOfWar ? DuelMashInput.ConsumePresses() : 0;
             for (int i = 0; i < substeps && !HasCaught && !IsGone; i++) Step(h, rules);
             lastTickTime = Time.fixedTime;
         }
@@ -405,11 +435,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             var intent = new PatrolEncounterIntent { SpeedMultiplier = 1f };
             if (duelEnabled && !shipLeft)
             {
+                // The tick's presses are spent on the first substep only —
+                // splitting them would round most of them away.
                 var ctx = new PatrolEncounterContext(gap, AcrossToShip(), target.Body.Lateral,
                                                      target.Body.Distance, runtimeDef, track, generator,
-                                                     ShipSteady);
+                                                     ShipSteady, unscaledStep,
+                                                     rules != null ? rules.duelAssistStrength : 0f,
+                                                     pendingPresses);
+                pendingPresses = 0;
                 encounter.Tick(dt, ctx, out intent);
             }
+            // Soft assist: ADDED to the player's steering, never a takeover,
+            // so the dash (and M2's finisher, which is one) still fires.
+            target.SteerAssist = intent.SteerAssist;
 
             // On the ship's tail it stops gaining: it matches the ship and
             // works on the sideways gap instead of driving through it. A

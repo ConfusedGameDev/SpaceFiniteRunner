@@ -180,6 +180,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float encounterLookaheadMeters = 300f;
 
         [TitleGroup("Duel")]
+        [Tooltip("How fast the patrol drives the tug-of-war bar toward its own side, in bar widths per REAL second. 0.2 = centre to the edge in 2.5 s if you never press.")]
+        [PropertyRange(0f, 1f), SuffixLabel("bar / s", true)]
+        public float tugPatrolForce = 0.2f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How much of the bar one press wins back. 0.08 = about six presses to take it from the centre.")]
+        [PropertyRange(0.01f, 0.5f), SuffixLabel("bar / press", true)]
+        public float tugPressValue = 0.08f;
+
+        [TitleGroup("Duel")]
         [Tooltip("How far sideways the shove is sized to throw the ship — into the wall on a walled stretch, off the road on an open edge. The shove itself deals no damage; whatever it puts you into does.")]
         [PropertyRange(0f, 40f), SuffixLabel("m", true)]
         public float shoveMeters = 10f;

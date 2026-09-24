@@ -473,7 +473,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         /// landing, a loop, a tube or the final run-up).
         /// </summary>
         public static MenuScreen BuildDuelTab(RectTransform parent, MenuTheme theme, PolicePatrol patrol,
-                                              PatrolDebugSettings saved, System.Action onChanged,
+                                              PatrolDebugSettings saved, GameSettings runRules,
+                                              System.Action onChanged,
                                               List<System.Action> refreshers, int tabIndex, int tabCount)
         {
             var screen = MenuScreen.Create("Debug_Duel", parent, theme, 0f, ContentTop);
@@ -506,8 +507,43 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                           50f, 1000f, 25f, "0", d => d.encounterLookaheadMeters, (d, v) => d.encounterLookaheadMeters = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelShoveMeters,
                           0f, 40f, 0.5f, "0.0", d => d.shoveMeters, (d, v) => d.shoveMeters = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelTugForce,
+                          0f, 1f, 0.01f, "0.00", d => d.tugPatrolForce, (d, v) => d.tugPatrolForce = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelTugPress,
+                          0.01f, 0.5f, 0.01f, "0.00", d => d.tugPressValue, (d, v) => d.tugPressValue = v);
+
+            // The clock and the assist live on GameSettings, which the run
+            // reads LIVE and never clones — so these two edit the asset itself,
+            // the fall/respawn page's rule, not the patrol tabs'. They are the
+            // first two dials to reach for if an exchange feels detached:
+            // take the timescale UP before you add any more help.
+            if (runRules != null)
+            {
+                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelTimeScale,
+                           0.1f, 1f, 0.05f, "0.00", r => r.duelTimeScale, (r, v) => r.duelTimeScale = v);
+                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelAssist,
+                           0f, 1f, 0.05f, "0.00", r => r.duelAssistStrength, (r, v) => r.duelAssistStrength = v);
+            }
             screen.SetViewport(9);
             return screen;
+        }
+
+        // A GameSettings row: the asset is read live by the run, so the edit
+        // lands at once and is kept dirty for the menu's commit point.
+        static void AddRunStat(MenuScreen screen, GameSettings settings, List<System.Action> refreshers,
+                               MenuTextId label, float min, float max, float step, string format,
+                               System.Func<GameSettings, float> get, System.Action<GameSettings, float> set)
+        {
+            var row = screen.AddRow<DebugSliderRow>(label);
+            row.Configure(min, max, step, get(settings), format, v =>
+            {
+                set(settings, v);
+#if UNITY_EDITOR
+                if (settings != null && UnityEditor.EditorUtility.IsPersistent(settings))
+                    UnityEditor.EditorUtility.SetDirty(settings);
+#endif
+            });
+            refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
         }
 
         /// <summary>

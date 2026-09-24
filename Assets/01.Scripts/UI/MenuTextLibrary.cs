@@ -137,7 +137,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DebugTabDuel, DuelOverdrive, DuelCommitFrom, DuelCommitInterval,
         DuelCommitTimeout, DuelAlongsideDistance, DuelFlankOffset, DuelAlongsideHold,
         DuelAbortGrace, DuelBreakOff, DuelBackOffSpeed, DuelCooldown, DuelLookahead,
-        DuelShoveMeters
+        DuelShoveMeters, DuelTugForce, DuelTugPress, DuelTimeScale, DuelAssist,
+        DuelMashPrompt
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1046,6 +1047,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString duelCooldown = new("ATTACK COOLDOWN", "ENFRIAMIENTO DE ATAQUE", "攻撃クールダウン", "RECHARGE D'ATTAQUE");
         [SerializeField] LocalizedString duelLookahead = new("CLEAR ROAD AHEAD", "PISTA LIBRE DELANTE", "前方クリア距離", "ROUTE LIBRE DEVANT");
         [SerializeField] LocalizedString duelShoveMeters = new("SHOVE DISTANCE", "DISTANCIA DE EMPUJE", "突き飛ばし距離", "DISTANCE DE POUSSÉE");
+        [SerializeField] LocalizedString duelTugForce = new("PATROL PUSH", "EMPUJE DE PATRULLA", "パトロールの押し", "POUSSÉE DE PATROUILLE");
+        [SerializeField] LocalizedString duelTugPress = new("PRESS VALUE", "VALOR POR PULSACIÓN", "1回の押し戻し", "GAIN PAR APPUI");
+        [SerializeField] LocalizedString duelTimeScale = new("DUEL TIME SCALE", "TIEMPO EN DUELO", "決闘中の時間", "TEMPS EN DUEL");
+        [SerializeField] LocalizedString duelAssist = new("DUEL STEER ASSIST", "AYUDA DE DIRECCIÓN", "決闘時の操舵補助", "ASSISTANCE DE DIRECTION");
+        [SerializeField] LocalizedString duelMashPrompt = new("MASH", "APORREA", "連打", "MARTELEZ");
         [SerializeField] LocalizedString trackLength = new("TRACK LENGTH", "LONGITUD DE PISTA", "コース長", "LONGUEUR DE PISTE");
         [SerializeField] LocalizedString debugTabFall = new("FALL & RESPAWN", "CAÍDA Y REAPARICIÓN", "落下とリスポーン", "CHUTE ET RETOUR");
         [SerializeField] LocalizedString edgeOverhang = new("EDGE OVERHANG", "MARGEN DEL BORDE", "縁のはみ出し", "DÉBORD DU BORD");
@@ -1488,6 +1494,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DuelCooldown => duelCooldown,
             MenuTextId.DuelLookahead => duelLookahead,
             MenuTextId.DuelShoveMeters => duelShoveMeters,
+            MenuTextId.DuelTugForce => duelTugForce,
+            MenuTextId.DuelTugPress => duelTugPress,
+            MenuTextId.DuelTimeScale => duelTimeScale,
+            MenuTextId.DuelAssist => duelAssist,
+            MenuTextId.DuelMashPrompt => duelMashPrompt,
             _ => start
         };
     }

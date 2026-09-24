@@ -113,6 +113,15 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>When set, these controls drive the ship instead of the player's input (an autopilot, a scripted test). Dash requests from the input are swallowed while it is.</summary>
         public BodyControls? ControlOverride { get; set; }
+
+        /// <summary>
+        /// A steering contribution ADDED to the player's own, -1..1, set by
+        /// whoever is helping (the patrol duel's soft assist). Unlike the three
+        /// flags above it leaves the dash alone, so a helped ship can still
+        /// dash — which is the whole reason it exists. 0 = no help, and the
+        /// owner is responsible for clearing it.
+        /// </summary>
+        public float SteerAssist { get; set; }
         /// <summary>Cost of the last simulation tick, milliseconds — the number the substep budget is judged by.</summary>
         public double LastTickMilliseconds { get; private set; }
 
@@ -267,6 +276,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 brake = throttleInput != null ? throttleInput.Brake : 0f,
             };
             if (SteerOverride.HasValue && !ControlOverride.HasValue) controls.steer = Mathf.Clamp(SteerOverride.Value, -1f, 1f);
+            // Guidance that ADDS to the player's steering rather than
+            // replacing it. Deliberately not an override: the three override
+            // flags above all swallow the dash (see UpdateDash), and the
+            // patrol duel's finisher IS a dash. Hands never leave the ship.
+            if (SteerAssist != 0f && !ControlOverride.HasValue)
+                controls.steer = Mathf.Clamp(controls.steer + SteerAssist, -1f, 1f);
             body.HoldOnRoad = Autopilot;
             if (Autopilot)
                 controls = new BodyControls

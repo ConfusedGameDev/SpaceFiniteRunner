@@ -35,3 +35,5 @@ MonoBehaviour:
   attackRunCooldownSeconds: 8
   encounterLookaheadMeters: 300
   shoveMeters: 10
+  tugPatrolForce: 0.2
+  tugPressValue: 0.08

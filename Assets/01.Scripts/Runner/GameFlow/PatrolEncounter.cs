@@ -44,11 +44,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public readonly TrackGenerator Generator;
         /// <summary>The ship is on the road and driveable — not off it, falling or waiting to respawn.</summary>
         public readonly bool ShipSteady;
+        /// <summary>Real seconds this substep took — the bar is integrated against these, never the slowed clock.</summary>
+        public readonly float UnscaledDt;
+        /// <summary>Share of full steering authority the assist may use (GameSettings.duelAssistStrength).</summary>
+        public readonly float AssistStrength;
+        /// <summary>Mash presses counted since the last substep.</summary>
+        public readonly int Presses;
 
         public PatrolEncounterContext(float gap, float across, float shipLateral, float shipDistance,
                                       PatrolDefinition def, TrackManager track, TrackGenerator generator,
-                                      bool shipSteady)
+                                      bool shipSteady, float unscaledDt, float assistStrength, int presses)
         {
+            UnscaledDt = unscaledDt;
+            AssistStrength = assistStrength;
+            Presses = presses;
             Gap = gap;
             Across = across;
             ShipLateral = shipLateral;
@@ -73,6 +82,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float? LineOverride;
         /// <summary>Set for exactly one substep: slam the ship sideways now.</summary>
         public bool Shove;
+        /// <summary>Steering to ADD to the player's own, -1..1. 0 = hands off.</summary>
+        public float SteerAssist;
     }
 
     /// <summary>
@@ -104,6 +115,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>Which side of the ship the run is being made from: -1 left, +1 right, 0 when idle.</summary>
         public int Side { get; private set; }
 
+        /// <summary>
+        /// The contest, as the PATROL's progress: 0.5 at the start, 1 when it
+        /// has won and shoves, 0 when the player has. Only meaningful while
+        /// <see cref="InTugOfWar"/>.
+        /// </summary>
+        public float Tug => tug;
+
+        /// <summary>True while the bar is up and being fought over.</summary>
+        public bool InTugOfWar => State == PatrolEncounterState.TugOfWar;
+
+        /// <summary>True while the exchange owns the world clock and the ship's steering.</summary>
+        public bool InExchange => State is PatrolEncounterState.TugOfWar or PatrolEncounterState.Finisher;
+
         float stateTimer;      // seconds in the current state
         float commitTimer;     // seconds since the last run ended — the cadence
         float outsideTimer;    // seconds the ship has held outside the flank
@@ -115,6 +139,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         const float GroundRetestMeters = 25f;
         float groundTestedAt = float.NegativeInfinity;
         bool groundClear;
+
+        // How far the PATROL has driven the contest, 0 (the player has won) to
+        // 1 (the patrol has). Kept in the patrol's own terms rather than
+        // mirrored per side, so the model never has to know which way is which
+        // — the HUD does the mirroring, because the mirroring is a presentation
+        // question. It starts every contest at dead centre.
+        float tug;
 
         /// <summary>True from the first overdrive to the last frame of the break-off: the run owns the patrol.</summary>
         public bool Engaged => State is PatrolEncounterState.Committing
@@ -220,11 +251,55 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // It has to keep up to stay level, so the overdrive stays on.
                     intent.SpeedMultiplier = def.attackRunOverdrive;
                     intent.LineOverride = FlankLine(ctx, Side);
-                    // M1 hands this hold to the tug of war; for now the shove
-                    // simply lands at the end of it.
+                    // The flank hold is the wind-up; then the contest opens.
                     if (stateTimer >= def.alongsideHoldSeconds)
                     {
+                        tug = 0.5f;
+                        DuelMashInput.Clear(); // presses made before the bar existed do not count
+                        Enter(PatrolEncounterState.TugOfWar);
+                    }
+                    break;
+
+                case PatrolEncounterState.TugOfWar:
+                    // Breaking the geometry still ends it, and still for free:
+                    // the bar is the contest, but the road is the stake, and
+                    // getting off the flank is a legitimate answer to both.
+                    if (!ctx.ShipSteady || !GroundClear(ctx) || ctx.Gap < 0f)
+                    {
+                        Enter(PatrolEncounterState.BreakingOff);
+                        break;
+                    }
+                    outsideTimer = Mathf.Abs(ctx.Across) > def.alongsideLateral ? outsideTimer + dt : 0f;
+                    if (outsideTimer >= def.abortGraceSeconds)
+                    {
+                        Enter(PatrolEncounterState.BreakingOff);
+                        break;
+                    }
+
+                    intent.SpeedMultiplier = def.attackRunOverdrive;
+                    intent.LineOverride = FlankLine(ctx, Side);
+                    intent.SteerAssist = Assist(ctx);
+
+                    // REAL seconds, both sides of it. The world is at 30% for
+                    // the look of the thing; if the bar rode the same clock the
+                    // slow-mo would hand the player three times as long to
+                    // mash, which is a mechanical refund, not perception.
+                    tug += def.tugPatrolForce * ctx.UnscaledDt;
+                    if (ctx.Presses > 0) tug -= def.tugPressValue * ctx.Presses;
+                    tug = Mathf.Clamp01(tug);
+
+                    if (tug >= 1f)
+                    {
+                        // The patrol wins: the bar bottoming out is a shove on
+                        // the REAL ship, in the direction it was going. The bar
+                        // was never the stake by itself.
                         intent.Shove = true;
+                        Enter(PatrolEncounterState.BreakingOff);
+                    }
+                    else if (tug <= 0f)
+                    {
+                        // The player wins. M2 turns this into the finisher
+                        // prompt; for now the patrol simply lets go.
                         Enter(PatrolEncounterState.BreakingOff);
                     }
                     break;
@@ -267,6 +342,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                                               ctx.ShipDistance,
                                                               ctx.ShipDistance + ctx.Def.encounterLookaheadMeters);
             return groundClear;
+        }
+
+        /// <summary>
+        /// The soft assist (added to the player's steering, never a takeover).
+        /// It wants the middle of the road, which is also the answer to the
+        /// open edge the patrol deliberately parked you next to — so one pull
+        /// covers both jobs. Scaled by the strength on GameSettings; at full
+        /// authority it still loses to a player steering the other way,
+        /// because it is one term in a sum and theirs is the other.
+        /// </summary>
+        static float Assist(in PatrolEncounterContext ctx)
+        {
+            if (ctx.Track == null || ctx.AssistStrength <= 0f) return 0f;
+            ctx.Track.GetLateralBand(ctx.ShipDistance, out float min, out float max);
+            float centre = (min + max) * 0.5f;
+            float half = Mathf.Max((max - min) * 0.5f, 1f);
+            // Proportional to how far out the ship is, so the middle of the
+            // road is left alone and the edge is pulled at hardest.
+            return Mathf.Clamp((centre - ctx.ShipLateral) / half, -1f, 1f) * ctx.AssistStrength;
         }
 
         // The flank it drives for: beside the ship, not behind it. Lateral is

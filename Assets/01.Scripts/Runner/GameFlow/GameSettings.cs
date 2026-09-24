@@ -169,6 +169,26 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                  "Off returns the old chase exactly, proximity arrest included. The run's tunables live on the PatrolDefinition asset.")]
         public bool patrolDuelEnabled = true;
 
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("World timescale during a tug of war. Slow-mo buys PERCEPTION, not advantage: the bar runs on real seconds and the run's countdown keeps full pace, so an exchange still costs you mission time.")]
+        [PropertyRange(0.1f, 1f), EnableIf("patrolDuelEnabled")]
+        public float duelTimeScale = 0.3f;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("How long the world clock takes to ease into and out of the duel's slow motion.")]
+        [PropertyRange(0f, 1f), SuffixLabel("s", true), EnableIf("patrolDuelEnabled")]
+        public float duelTimeBlendSeconds = 0.15f;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("How hard the ship is steered for you during an exchange, as a share of full steering authority. It is ADDED to your own steering, never a takeover — enough to keep you off an open edge, not enough to hold a lane against you. 0 = no help at all.")]
+        [PropertyRange(0f, 1f), EnableIf("patrolDuelEnabled")]
+        public float duelAssistStrength = 0.5f;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("The colour the PATROL pushes the tug-of-war bar with. Your side uses the dash meter's colour.")]
+        [EnableIf("patrolDuelEnabled")]
+        public Color duelBarColor = new(1f, 0.32f, 0.28f, 1f);
+
         [ToggleGroup("patrolEnabled"), Title("Alerts")]
         [Tooltip("Announce every fresh patrol with the 'Patrol inbound' story line (RPG dialogue box). Off by default — the minimap and the rumble already show it arriving.")]
         public bool showPatrolAlert = false;

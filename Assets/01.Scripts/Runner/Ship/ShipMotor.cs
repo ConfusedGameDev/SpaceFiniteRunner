@@ -152,7 +152,17 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             set { paused = value; if (physicsShip != null) physicsShip.Paused = value; }
         }
 
-        /// <summary>Dash power meter, 0..1. Starts each run empty.</summary>
+        /// <summary>
+        /// Soft steering help added to the player's own input, -1..1 — the
+        /// duel's assist. Never an override, so the dash survives it.
+        /// </summary>
+        public float SteerAssist
+        {
+            get => physicsShip != null ? physicsShip.SteerAssist : 0f;
+            set { if (physicsShip != null) physicsShip.SteerAssist = value; }
+        }
+
+        /// <summary>Dash power meter, 0..1. Starts each run full (HoverShip.Launch).</summary>
         public float DashMeter => physicsShip != null ? physicsShip.DashMeter : 0f;
 
         /// <summary>True for the dash's window after the shove (the ghost trail's span; no new dash inside it). A wall ends it early.</summary>

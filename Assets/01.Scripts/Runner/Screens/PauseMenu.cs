@@ -548,7 +548,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 debugMenu.AddTab(DebugMenuFactory.BuildPatrolDriverTab(
                     panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildDuelTab(
-                    panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, patrol, patrolDebugSettings, runRules, changed, debugRefreshers, tab++, tabCount));
             }
 
             // No `changed` for the city pages: every car and camera knob they

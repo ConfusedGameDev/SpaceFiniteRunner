@@ -40,6 +40,10 @@ MonoBehaviour:
   patrolRedeployBand: {x: 691.74615, y: 1372.0339}
   patrolRedeploySpeedFactor: 1.15
   patrolDuelEnabled: 1
+  duelTimeScale: 0.3
+  duelTimeBlendSeconds: 0.15
+  duelAssistStrength: 0.5
+  duelBarColor: {r: 1, g: 0.32, b: 0.28, a: 1}
   showPatrolAlert: 0
   showPatrolWarnings: 0
   patrolProximityRumble: 1
