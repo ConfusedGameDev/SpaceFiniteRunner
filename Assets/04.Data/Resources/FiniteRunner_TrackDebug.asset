@@ -17,16 +17,16 @@ MonoBehaviour:
   straightness: 55
   entries:
   - name: Green
-    probability: 50.16999
+    probability: 58
     multiplier: 2.0000002
   - name: Blue
-    probability: 5.951814
+    probability: 17
     multiplier: 2.5
   - name: Purple
-    probability: 1.0765253
+    probability: 3
     multiplier: 10
   - name: Brake
-    probability: 72.8
+    probability: 22
     multiplier: 9.800001
   elevationEnabled: 1
   elevationBand: 60
@@ -35,9 +35,9 @@ MonoBehaviour:
   baselinePull: 0.5
   bankEnabled: 1
   maxBankAngle: 78
-  bankPerDegreeOfTurn: 4
+  bankPerDegreeOfTurn: 8
   maxBankStepPerKnot: 45
   levelLeadDistance: 200
-  unbankedSweepChance: 1
+  unbankedSweepChance: 0.3
   openStraightChance: 1
   trackLength: -1

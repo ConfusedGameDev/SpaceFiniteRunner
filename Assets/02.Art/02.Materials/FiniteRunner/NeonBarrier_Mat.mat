@@ -26,9 +26,9 @@ Material:
     m_Ints: []
     m_Floats:
     - _CenterLine: 0
-    - _EdgeGlow: 0.08
+    - _EdgeGlow: 0.52
     - _EdgeGlowStrength: 0.15
-    - _EdgeWidth: 0.02
+    - _EdgeWidth: 0.276
     - _LaneOffset: 0.34
     - _LateralAxis: 0
     - _LineGlow: 0.05
@@ -36,13 +36,16 @@ Material:
     - _LineWidth: 0.007
     - _MeshCenter: 0
     - _MeshHalfWidth: 0.5
+    - _OuterOffset: 1.48
+    - _OuterStrength: 0
+    - _OuterWidth: 0.01
     - _PulseAmount: 0.1
     - _PulseSpeed: 1.5
     - _WallStrip: 0.012
     - _WallTop: 0.08
     m_Colors:
-    - _BaseColor: {r: 0.008, g: 0.008, b: 0.014, a: 1}
-    - _EdgeColor: {r: 2.2, g: 0.6, b: 0.06, a: 1}
+    - _BaseColor: {r: 1, g: 0, b: 0.8482926, a: 1}
+    - _EdgeColor: {r: 2.2, g: 0.069109954, b: 0.3942994, a: 1}
     - _LineColor: {r: 0.35, g: 1.2, b: 3.2, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

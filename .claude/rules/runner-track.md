@@ -47,8 +47,17 @@ Stretches of track distance laid over the flat spline with their own pose functi
 - `GetPoseAtDistance` routes a distance inside a section to it; `SectionAt` /
   `SplineDistanceOf` answer the rest.
 - `GetLateralBand(distance)` is the steering lane at a distance — ±`HalfWidth` on the road, a
-  section's band inside one. The motor's clamp, the pad placer's range and the decorator's
-  strips all ask it.
+  section's band inside one. Pads, orbs, lasers, collectibles, ramp placement and the patrol
+  all ask it: it is where the game is AUTHORED.
+- `GetRoadBand(distance)` is the lane widened by a **banked shoulder** on each side
+  (`ShoulderWidth` = `HalfWidth` × `shoulderFraction`, rising `ShoulderRise` metres to its outer
+  lip) — all the road there is, and where the ship may physically BE. The collision surface, the
+  walls, the barrier art and the drop off an open edge all end on that outer lip, so the bank is
+  solid run-off and not a lie the art tells. `HasShoulders(distance)` is false inside a loop or a
+  tube (`TrackSection.HasShoulders`), whose own band already IS the road, and false at
+  `shoulderFraction` 0 — which puts everything back on the lane edge. **The two numbers describe
+  the road slab art**: set them to the profile of whatever piece the decorator stamps, or the wall
+  ends up in mid air.
 - **Body queries** (what `TrackBody` asks): `GetFrameAtDistance` (position + forward / up /
   right), `GetCurvatureAtDistance` (signed 1/m, **positive to the right**, the forward's change
   over ±5 m projected on the track's right — a loop's pitch and the grade read as 0),
@@ -178,7 +187,7 @@ and a scene with no `GameManager` stay endless.
   `TrackManager.AppendKnot(position, rotation)` carrying heading + grade: AutoSmooth keeps the
   rotation's up (projected onto the sloped tangent), which is how the grade reaches every pose.
   Features inherit the grade (a loop stands on the slope).
-  **Turns are sweeps** (Turns group: `turnRateRange` 15–35°/knot, `turnArcRange` 45–120°,
+  **Turns are sweeps** (Turns group: `turnRateRange` 6–13°/knot, `turnArcRange` 25–120°,
   `minStraightKnots` 1, `alternateTurnChance` 0.7, `maxHeadingDrift` 150°): on a straight knot
   one rng draw against `1 − straightness/100` may `StartTurn` — rate and arc rolled off the
   bands, knots = arc / rate, direction alternating by chance or forced back once the heading has
@@ -188,11 +197,26 @@ and a scene with no `GameManager` stay endless.
   / `maxHeading` are gone. The live `Resources/FiniteRunner_TrackDebug.asset` pins straightness
   at 60 (it was 100 = dead straight until M2) and the scene's `featureSpacing` is 1500–3000 m so
   a sweep has room between features.
-  **Banking** (`bankEnabled`, `maxBankAngle` 80°, `bankPerDegreeOfTurn` 4, `maxBankStepPerKnot`
+  **The rate band is set by the grip math, not by taste.** A sweep's radius is the knot length
+  (`segmentLength` 300–420 m) divided by the rate in radians, and a FLAT sweep holds only while
+  `v²/R ≤ gripBase + gripPerSpeed × v` (50 + 0.5v for the Fighter), so the top speed through a
+  radius is `v = (R/2 + sqrt(R²/4 + 200R)) / 2`. That is independent of `TrackGuide.assist`: the
+  stick's own yaw is capped at `turnAuthority × grip / speed`, so player steering and road
+  curvature come to the same limit either way. At 6–13°/knot the radius runs 1322–4011 m, holding
+  749–2101 m/s against a 1000 m/s cruise and a 1806 m/s Light Speed: the gentlest flat sweeps are
+  free at full speed, the tightest ask for a quarter off the cruise. At the old 15–35°/knot the
+  radius was 491–1604 m, holding 322–892 m/s — every sweep forced a brake and the tightest wanted
+  a near stop. **Keep `turnArcRange`'s minimum at or above 2 × the rate maximum**, or `TurnFits`
+  (which sizes a sweep as `ceil(TurnArcMin / TurnRateMax)` knots) starts demanding gaps the
+  feature spacing never leaves and sweeps quietly stop appearing.
+  **Banking** (`bankEnabled`, `maxBankAngle` 80°, `bankPerDegreeOfTurn` 8, `maxBankStepPerKnot`
   45°, `levelLeadDistance` 200 m): the bank target at a knot is −(heading change) ×
   `bankPerDegreeOfTurn` (a right turn drops the right edge), capped, eased per knot, rolled into
   the knot rotation about the segment direction — no rng draws. At the defaults a sweep is a
   near-vertical wall the ship rides like an oval's banking (the F-Zero look the user asked for).
+  `bankPerDegreeOfTurn` is paired to the rate band: it was 4 while sweeps turned 15–35°/knot and
+  went to 8 when they dropped to 6–13, so the bank still reaches the cap on the tightest sweeps.
+  Halve the rate again and double this, or the road flattens out.
   **Features need level road** (`LevelRequired`): the target is 0 while the spline end is under a
   `TubeSection` or within `levelLeadDistance` + the knots the current bank needs to unwind of the
   next `featureCursor`, so every loop stands upright, every tube curls from a flat pose and every
@@ -204,6 +228,14 @@ and a scene with no `GameManager` stay endless.
   sums to 100%. Entries without a prefab fall back to the code-built primitive with a recoloured
   boost-material instance; prefab entries keep their own materials and get their colliders forced
   to triggers. A moving orb's spawn lateral is clamped so its sway arc stays inside the track.
+  **A brake keeps its definition's own delta** (`BrakePad_Definition.speedDelta`, —25 m/s): only
+  boosts scale off `powerUpSpeedBoost`, so a brake row's `multiplier` is dead weight and the only
+  brake knob that bites is its probability. **`padSpacing` is the saturation knob** and the debug
+  snapshot does NOT carry it, so it lives in the scene alone; the table's probabilities DO come
+  from the snapshot, so retune both or the snapshot wins. At 400—700 m with the table at
+  Green 58 / Blue 17 / Purple 3 / Brake 22 the run meets a pad every 0.4—0.7 s at cruise:
+  73 pads over 40 km, a brake every 2.5 km, and about 9 km of track to climb cruise to Light Speed
+  on greens alone.
 
 The custom inspector is an `OdinEditor` (so Odin attributes render) and adds the
 "Regenerate Track" preview button.
@@ -452,8 +484,11 @@ centre with banked shoulders rising ~10 m to either side (mesh X is the width, m
 length, FBX cm). The wrapper's child is yawed 90° so the width lands on the wrapper's Z (the
 decorator's width axis at `roadYaw` 90), rolled 1.7° to level a modelling tilt, and lifted so the
 flat centre sits at y 0; `roadScale` (0.403, 0.543, 0.543) puts the flat centre exactly on the 60 m
-reference lane (the shoulders bank up OUTSIDE the barrier walls) and 40 m along the track, height in
-step with the width. **Tubes keep a flat piece**: `tubeRoadPrefab` / `tubeRoadScale` /
+reference lane and 40 m along the track, height in step with the width. Measured off the mesh, the
+crease is at 55.23 mesh units and the top of the bank at ~81.98, 9.44 up — so the shoulder is
+**0.4844 × the lane's half width, rising 5.1 m**, which is what `TrackManager.shoulderFraction` /
+`shoulderRise` carry and what puts the walls on the bank's lip. The width scales with the track, the
+rise does not (`roadScale.y` is not width-scaled), so both defaults hold at any track width. **Tubes keep a flat piece**: `tubeRoadPrefab` / `tubeRoadScale` /
 `tubeMaterialOverride` (the old unit `road-straight` at (40, 10, 60)) — a profiled strip would make a
 ribbed pipe. Every piece is drawn by `02.Art/04.Shaders/FiniteRunner/NeonRoad.shader`: unlit black
 asphalt with an HDR orange edge line on the crease where the shoulder starts (its halo spills both

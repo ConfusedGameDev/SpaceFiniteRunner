@@ -4945,7 +4945,7 @@ MonoBehaviour:
   - name: Green
     prefab: {fileID: 2850359091044272792, guid: 2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a, type: 3}
     definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
-    probability: 45.433846
+    probability: 58
     multiplier: 1
     color: {r: 0.1, g: 1, b: 0.3, a: 1}
     swayAmplitude: 0
@@ -4954,7 +4954,7 @@ MonoBehaviour:
   - name: Blue
     prefab: {fileID: 2850359091044272792, guid: 8d0f2a4c6e8b0d2f4a6c8e0b2d4f6a8c, type: 3}
     definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
-    probability: 15.803075
+    probability: 17
     multiplier: 2.5
     color: {r: 0.25, g: 0.55, b: 1, a: 1}
     swayAmplitude: 4
@@ -4963,7 +4963,7 @@ MonoBehaviour:
   - name: Purple
     prefab: {fileID: 2850359091044272792, guid: 4c6e8a0b2d4f6a8c0e2b4d6f8a0c2e4b, type: 3}
     definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
-    probability: 2.9630766
+    probability: 3
     multiplier: 10
     color: {r: 0.75, g: 0.3, b: 1, a: 1}
     swayAmplitude: 8
@@ -4972,7 +4972,7 @@ MonoBehaviour:
   - name: Brake
     prefab: {fileID: 2850359091044272792, guid: 6e8a0c2e4b6d8f0a2c4e6a8c0e2b4d6f, type: 3}
     definition: {fileID: 11400000, guid: 68dcd2a069fec4c56a8cca2c952f4244, type: 2}
-    probability: 35.8
+    probability: 22
     multiplier: 1
     color: {r: 1, g: 0.25, b: 0.2, a: 1}
     swayAmplitude: 0
@@ -4984,21 +4984,21 @@ MonoBehaviour:
   - name: Jump
     prefab: {fileID: 0}
     definition: {fileID: 11400000, guid: 036070dea45c4920a5d5fd439400a3b5, type: 2}
-    probability: 50
+    probability: 100
     minSpacing: 300
     multiplier: 1
     color: {r: 1, g: 0.8, b: 0.2, a: 1}
   - name: Loop
     prefab: {fileID: 0}
     definition: {fileID: 11400000, guid: 3f0b83579a6c4c04a2533aa02a053cb9, type: 2}
-    probability: 20
+    probability: 0
     minSpacing: 600
     multiplier: 0
     color: {r: 0.35, g: 0.85, b: 1, a: 1}
   - name: Full Tube
     prefab: {fileID: 0}
     definition: {fileID: 11400000, guid: 796af27969ac451e838bde8366476334, type: 2}
-    probability: 30
+    probability: 0
     minSpacing: 600
     multiplier: 0
     color: {r: 0.9, g: 0.5, b: 1, a: 1}
@@ -5024,7 +5024,7 @@ MonoBehaviour:
   boostMaterial: {fileID: 2100000, guid: d5349876b0f5c4ac6be9d2b65eb8b939, type: 2}
   brakeMaterial: {fileID: 2100000, guid: 5763c7e6bab0741b68b7e83bb42a8e9d, type: 2}
   padsParent: {fileID: 305136800}
-  padSpacing: {x: 150, y: 220}
+  padSpacing: {x: 400, y: 700}
   padSize: {x: 10, y: 0.5, z: 20}
   spawnCollectibles: 1
   collectiblePrefab: {fileID: 0}

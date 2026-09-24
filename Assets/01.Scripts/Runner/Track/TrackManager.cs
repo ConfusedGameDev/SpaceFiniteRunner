@@ -33,6 +33,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("How far the ship can steer to each side of the spline center.")]
         [SerializeField, Min(0.5f)] float halfWidth = 6f;
 
+        [Tooltip("Banked shoulder outside the lane on EACH side, as a share of the lane's half width — the road slab's bank, from the crease where it leaves the flat centre out to its top. Match it to the art: the barrier walls and the drop off an open edge stand on its outer lip, so a shoulder wider than the picture puts the wall in mid air. 0 = no shoulder, walls back on the lane edge.")]
+        [SerializeField, Min(0f)] float shoulderFraction = 0.4844f;
+
+        [Tooltip("How far the top of the shoulder rises above the road surface, metres — again the art's, so the collision road climbs the slope the player can see instead of cutting through it.")]
+        [SerializeField, Min(0f)] float shoulderRise = 5.1f;
+
         readonly List<TrackSection> sections = new(); // sorted by StartDistance
         readonly List<FlatSweep> flatSweeps = new(); // in the order they were laid, so sorted by Start
         readonly List<OpenStretch> openStretches = new(); // likewise
@@ -92,6 +98,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         /// <summary>The plain road's half width; ask <see cref="GetLateralBand"/> for the lane at a distance.</summary>
         public float HalfWidth => halfWidth;
+
+        /// <summary>Width of one banked shoulder, metres — the run-off outside the lane, on both sides of the plain road.</summary>
+        public float ShoulderWidth => halfWidth * Mathf.Max(0f, shoulderFraction);
+
+        /// <summary>How far the top of a shoulder stands above the road surface, metres.</summary>
+        public float ShoulderRise => Mathf.Max(0f, shoulderRise);
+
+        /// <summary>Half width of the whole road slab: the lane plus its shoulder. Where the walls stand.</summary>
+        public float RoadHalfWidth => halfWidth + ShoulderWidth;
 
         /// <summary>Whole track length in track distance: the spline plus every inserted section.</summary>
         public float Length { get; private set; }
@@ -251,6 +266,31 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 min = -halfWidth;
                 max = halfWidth;
             }
+        }
+
+        /// <summary>True where the plain road's banked shoulders run — everywhere but inside a loop or a tube.</summary>
+        public bool HasShoulders(float distance)
+        {
+            TrackSection s = SectionAt(distance);
+            return (s == null || s.HasShoulders) && ShoulderWidth > 0.01f;
+        }
+
+        /// <summary>
+        /// All the road there is at a track distance: the steering lane
+        /// (<see cref="GetLateralBand"/>) widened by a shoulder on each side.
+        /// The lane is where the game is authored — pads, orbs, ramps, the
+        /// patrol; the ROAD band is where the ship may physically be. The
+        /// walls, the collision surface and the drop off an open edge all end
+        /// here, so the banked run-off is solid ground and not a lie the art
+        /// tells. Inside a loop or a tube the two bands are the same.
+        /// </summary>
+        public void GetRoadBand(float distance, out float min, out float max)
+        {
+            GetLateralBand(distance, out min, out max);
+            if (!HasShoulders(distance)) return;
+            float shoulder = ShoulderWidth;
+            min -= shoulder;
+            max += shoulder;
         }
 
         /// <summary>

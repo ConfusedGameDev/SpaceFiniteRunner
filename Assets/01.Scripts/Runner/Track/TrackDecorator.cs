@@ -10,6 +10,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// <see cref="CullBefore"/> to drop pieces left behind the ship.
     /// Straight pieces stamped every ~20 m conform fine to the long-radius
     /// sweeps this game uses; the grid corner pieces from the kit are not used.
+    /// <b>The barrier walls stand on the ROAD's outer lip</b>, the top of the
+    /// banked shoulders (<see cref="TrackManager.GetRoadBand"/>), not on the
+    /// crease where a shoulder leaves the lane: a full-width piece is authored
+    /// to span the lane, so it is stretched by the slab's share of it, and the
+    /// placeholder wall and the open-edge marker are lifted to the lip. The
+    /// bank inside is road the ship may ride.
     /// <b>Where the track says an edge is open</b>
     /// (<see cref="TrackManager.IsEdgeOpen"/> — the outer side of a flat
     /// sweep, both sides of an open straight) <b>the wall is left off that
@@ -90,6 +96,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public void SetTrackWidth(float width) => widthScale = Mathf.Max(0.05f, width / ReferenceTrackWidth);
 
         Material BarrierMaterial => barrierMaterialOverride != null ? barrierMaterialOverride : roadMaterialOverride;
+
+        // A full-width barrier piece is authored to span the LANE, and its
+        // walls stand on the ends of that span. They belong on the road's
+        // outer lip instead — past the banked shoulders, which are road the
+        // ship may ride — so the piece is stretched across the whole slab.
+        float BarrierWidthFactor => widthScale * (track != null ? track.RoadHalfWidth / Mathf.Max(0.01f, track.HalfWidth) : 1f);
 
         // The kit tiles are yawed to align with the track, so which local axis
         // spans the road width depends on that yaw: near ±90 it is Z, else X.
@@ -172,7 +184,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     if (oneSidedBarrierPrefab != null)
                     {
                         var b = Stamp(d, oneSidedBarrierPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
-                                      rot * Quaternion.Euler(0f, roadYaw + (openSide < 0 ? 180f : 0f), 0f), ScaleAcrossWidth(barrierScale));
+                                      rot * Quaternion.Euler(0f, roadYaw + (openSide < 0 ? 180f : 0f), 0f), ScaleAcrossWidth(barrierScale, BarrierWidthFactor));
                         if (BarrierMaterial != null) OverrideMaterials(b, BarrierMaterial);
                     }
                     else StampPlaceholderWall(d, -openSide);
@@ -181,7 +193,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 {
                     // Full-width piece (e.g. road-straight-barrier): one centered stamp.
                     var b = Stamp(d, barrierPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
-                                  rot * Quaternion.Euler(0f, roadYaw, 0f), ScaleAcrossWidth(barrierScale));
+                                  rot * Quaternion.Euler(0f, roadYaw, 0f), ScaleAcrossWidth(barrierScale, BarrierWidthFactor));
                     if (BarrierMaterial != null) OverrideMaterials(b, BarrierMaterial);
                 }
                 else
@@ -212,9 +224,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             float thickness = Mathf.Max(0.1f, placeholderWallSize.x);
             float height = Mathf.Max(0.1f, placeholderWallSize.y);
-            float lateral = side * (track.HalfWidth + thickness * 0.5f);
+            float lateral = side * (track.RoadHalfWidth + thickness * 0.5f);
+            float lift = track.HasShoulders(d) ? track.ShoulderRise : 0f;
             track.GetPoseAtDistance(d, lateral, out Vector3 pos, out Quaternion rot);
-            StampBox(d, pos + rot * new Vector3(0f, roadYOffset + height * 0.5f, 0f), rot,
+            StampBox(d, pos + rot * new Vector3(0f, roadYOffset + lift + height * 0.5f, 0f), rot,
                      new Vector3(thickness, height, roadSpacing),
                      placeholderWallMaterial != null ? placeholderWallMaterial : BarrierMaterial);
         }
@@ -224,9 +237,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         void StampOpenEdgeMarker(float d, int side)
         {
             if (openEdgeMarkerSize.x <= 0f) return;
-            float lateral = side * (track.HalfWidth - openEdgeMarkerSize.x * 0.5f);
+            float lateral = side * (track.RoadHalfWidth - openEdgeMarkerSize.x * 0.5f);
+            float lift = track.HasShoulders(d) ? track.ShoulderRise : 0f;
             track.GetPoseAtDistance(d, lateral, out Vector3 pos, out Quaternion rot);
-            StampBox(d, pos + rot * new Vector3(0f, openEdgeMarkerSize.y * 0.5f, 0f), rot,
+            StampBox(d, pos + rot * new Vector3(0f, lift + openEdgeMarkerSize.y * 0.5f, 0f), rot,
                      new Vector3(openEdgeMarkerSize.x, Mathf.Max(0.05f, openEdgeMarkerSize.y), roadSpacing),
                      openEdgeMaterial != null ? openEdgeMaterial : roadMaterialOverride);
         }

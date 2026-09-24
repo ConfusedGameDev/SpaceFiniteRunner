@@ -12,13 +12,20 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// exist only as pose functions — which is exactly why the track-space
     /// ship could never leave it. The standalone ship knows a level only by
     /// its colliders, so this component streams them: chunk by chunk it
-    /// samples <see cref="TrackManager.GetPoseAtDistance"/> across the lane
-    /// (<see cref="TrackManager.GetLateralBand"/>) into a collision mesh. It
+    /// samples <see cref="TrackManager.GetPoseAtDistance"/> across the whole
+    /// road (<see cref="TrackManager.GetRoadBand"/>) into a collision mesh. It
     /// never special-cases a feature: a loop, a curled tube and a banked sweep
     /// all come out of the one pose function the old ship rides, so the two
-    /// can never disagree about where the road is. Walls stand on a lane edge
-    /// only where <see cref="TrackManager.IsEdgeOpen"/> says it is closed — a
-    /// flat sweep's outer side and an open straight are real drops — and a
+    /// can never disagree about where the road is.
+    ///
+    /// <b>The road is wider than the steering lane</b>: outside it a banked
+    /// shoulder climbs to the slab's outer lip, and that lip — not the crease
+    /// where the bank leaves the lane — is where the walls stand and where an
+    /// open edge finally drops away. The shoulder columns are lifted along the
+    /// slope, so the collision road is the road the player can see and the bank
+    /// is run-off to ride, not scenery to fall through. Walls go up only where
+    /// <see cref="TrackManager.IsEdgeOpen"/> says the edge is closed — a flat
+    /// sweep's outer side and an open straight are real drops — and a
     /// <see cref="JumpRamp"/> gets a wedge of its own.
     ///
     /// <b>The surface is sunk by the ship's ride height</b>, so a ship
@@ -67,6 +74,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Widest a collision quad may be across the lane where the road is curled (a tube). Flat road is a single quad wide.")]
         [PropertyRange(2f, 40f), SuffixLabel("m", true)]
         [SerializeField] float curledQuadWidth = 10f;
+
+        [TitleGroup("Meshing")]
+        [Tooltip("Quads up each banked shoulder — the run-off between the lane edge and the wall. The slope is a straight ramp in the art, so one quad already puts the lip in the right place; two keep the collision crease from reading as a step under a grazing hull.")]
+        [PropertyRange(1, 8)]
+        [SerializeField] int shoulderColumns = 2;
 
         [TitleGroup("Debug")]
         [Tooltip("Draw the collision meshes (a wireframe-ish checker) — they are invisible otherwise.")]
@@ -203,27 +215,29 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             int rows = Mathf.Max(1, Mathf.CeilToInt((to - from) / sampleSpacing));
             // One column count for the whole chunk, so the grid stays a grid: as many as its most curled cross-section needs.
-            int columns = Mathf.Max(1, flatColumns);
+            int laneColumns = Mathf.Max(1, flatColumns);
+            bool anyShoulders = false;
             for (int r = 0; r <= rows; r++)
             {
                 float d = Mathf.Lerp(from, to, r / (float)rows);
+                anyShoulders |= track.HasShoulders(d);
                 if (track.SectionAt(d) is not TubeSection tube) continue;
                 track.GetLateralBand(d, out float min, out float max);
                 if (tube.Curl(d - tube.StartDistance) > 0.001f)
-                    columns = Mathf.Max(columns, Mathf.CeilToInt((max - min) / curledQuadWidth));
+                    laneColumns = Mathf.Max(laneColumns, Mathf.CeilToInt((max - min) / curledQuadWidth));
             }
+
+            // The shoulders get columns of their OWN, so a crease lands exactly
+            // on a vertex ring: the flat centre stays flat and the slope starts
+            // where the art's does. A chunk that straddles a tube keeps the
+            // count and spreads it evenly over the band on the rows that have
+            // no shoulder, so the grid is still a grid.
+            int shoulderCols = anyShoulders ? Mathf.Max(1, shoulderColumns) : 0;
+            int columns = laneColumns + 2 * shoulderCols;
 
             int stride = columns + 1;
             for (int r = 0; r <= rows; r++)
-            {
-                float d = Mathf.Lerp(from, to, r / (float)rows);
-                track.GetLateralBand(d, out float min, out float max);
-                for (int c = 0; c <= columns; c++)
-                {
-                    track.GetPoseAtDistance(d, Mathf.Lerp(min, max, c / (float)columns), out Vector3 position, out Quaternion rotation);
-                    vertices.Add(position - rotation * Vector3.up * surfaceSink);
-                }
-            }
+                AddCrossSection(Mathf.Lerp(from, to, r / (float)rows), columns, shoulderCols, laneColumns);
 
             for (int r = 0; r < rows; r++)
                 for (int c = 0; c < columns; c++)
@@ -249,7 +263,56 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return Emit($"TrackCollider_{from:00000}", to, loop ? ShipLayers.Surface : ShipLayers.Ground);
         }
 
-        // A wall stands on a lane edge, along the road's up there, facing the lane — wherever the track says that edge is closed.
+        /// <summary>
+        /// One ring of surface vertices across the road at a distance: the left
+        /// shoulder falling from its lip to the lane, the lane, then the right
+        /// shoulder back up. Always <paramref name="columns"/> + 1 points, so
+        /// every row of a chunk indexes the same grid. Where the road has no
+        /// shoulder (a loop, a tube) the whole band is walked evenly instead
+        /// and nothing is lifted.
+        /// </summary>
+        void AddCrossSection(float d, int columns, int shoulderCols, int laneColumns)
+        {
+            track.GetLateralBand(d, out float min, out float max);
+            bool shoulders = shoulderCols > 0 && track.HasShoulders(d);
+            float shoulder = shoulders ? track.ShoulderWidth : 0f;
+            float rise = shoulders ? track.ShoulderRise : 0f;
+
+            for (int c = 0; c <= columns; c++)
+            {
+                float lateral, lift;
+                if (!shoulders)
+                {
+                    lateral = Mathf.Lerp(min, max, c / (float)columns);
+                    lift = 0f;
+                }
+                else if (c < shoulderCols)
+                {
+                    float u = c / (float)shoulderCols;                              // 0 at the outer lip, 1 at the crease
+                    lateral = min - shoulder * (1f - u);
+                    lift = rise * (1f - u);
+                }
+                else if (c <= shoulderCols + laneColumns)
+                {
+                    lateral = Mathf.Lerp(min, max, (c - shoulderCols) / (float)laneColumns);
+                    lift = 0f;
+                }
+                else
+                {
+                    float u = (c - shoulderCols - laneColumns) / (float)shoulderCols; // 0 at the crease, 1 at the lip
+                    lateral = max + shoulder * u;
+                    lift = rise * u;
+                }
+
+                track.GetPoseAtDistance(d, lateral, out Vector3 position, out Quaternion rotation);
+                Vector3 up = rotation * Vector3.up;
+                vertices.Add(position - up * (surfaceSink - lift));
+            }
+        }
+
+        // A wall stands on the ROAD's outer lip — the top of the banked shoulder, not the crease where the shoulder leaves
+        // the lane — along the road's up there, facing the lane, wherever the track says that edge is closed. Everything
+        // inside it is solid road: run wide off the lane, ride up the bank, and the wall is what turns you back.
         void AddWall(float from, float to, int rows, int side)
         {
             int previous = -1;
@@ -259,10 +322,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 bool closed = !track.IsEdgeOpen(d, side) && !IsUnboundedTube(d);
                 if (!closed) { previous = -1; continue; }
 
-                track.GetLateralBand(d, out float min, out float max);
+                track.GetRoadBand(d, out float min, out float max);
+                float lift = track.HasShoulders(d) ? track.ShoulderRise : 0f;
                 track.GetPoseAtDistance(d, side < 0 ? min : max, out Vector3 position, out Quaternion rotation);
                 Vector3 up = rotation * Vector3.up;
-                Vector3 foot = position - up * surfaceSink;
+                Vector3 foot = position - up * (surfaceSink - lift);
                 int index = vertices.Count;
                 vertices.Add(foot);
                 vertices.Add(foot + up * wallHeight);

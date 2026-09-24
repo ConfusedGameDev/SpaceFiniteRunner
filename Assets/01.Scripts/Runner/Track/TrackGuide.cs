@@ -148,7 +148,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 else position -= rotation * Vector3.right * lateral;
             }
             Vector3 forward = rotation * Vector3.forward, up = rotation * Vector3.up, right = rotation * Vector3.right;
-            track.GetLateralBand(distance, out float min, out float max);
+            // The fence is the whole ROAD, lane plus banked shoulders, not the
+            // steering lane: the bank is run-off the ship may ride, and the
+            // wall it is turned back by stands on the shoulder's outer lip.
+            // Pads, orbs, ramps and the patrol still read the lane.
+            track.GetRoadBand(distance, out float min, out float max);
             bool unbounded = track.SectionAt(distance) is TubeSection pipe && pipe.IsUnboundedAt(distance - pipe.StartDistance);
             sample = new GuideSample
             {

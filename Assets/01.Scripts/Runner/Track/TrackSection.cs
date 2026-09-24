@@ -62,6 +62,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             min = -trackHalfWidth;
             max = trackHalfWidth;
         }
+
+        /// <summary>
+        /// True when the plain road's banked shoulders carry on through the
+        /// section — the run-off outside the steering lane that the walls
+        /// stand on (<see cref="TrackManager.GetRoadBand"/>). A section that
+        /// curls the road round the ship or stands it on end IS the road out
+        /// to its own band, and has none.
+        /// </summary>
+        public virtual bool HasShoulders => true;
     }
 
     /// <summary>
@@ -105,6 +114,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         readonly float length;
 
         public override float Length => length;
+
+        /// <summary>The ring IS the road: a loop stands on end, with no shoulder to run off onto.</summary>
+        public override bool HasShoulders => false;
 
         /// <summary>Highest point of the first turn, on the centre line.</summary>
         public Vector3 Top => PointAt(0.5f / Turns, 0f);
@@ -294,6 +306,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
             Vector3 upDir = Vector3.Slerp(up, radial, e);
             rotation = Quaternion.LookRotation(forward, upDir);
         }
+
+        /// <summary>The pipe IS the road: its band already wraps the ship, and a shoulder outside it would only curl past the seam.</summary>
+        public override bool HasShoulders => false;
 
         public override void GetLateralBand(float local, float trackHalfWidth, out float min, out float max)
         {
