@@ -185,6 +185,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float duelAssistStrength = 0.5f;
 
         [ToggleGroup("patrolEnabled")]
+        [Tooltip("Print the attack run's state, gap and gates on screen. Both things that stop a run starting — the cadence and the clear-road test — are invisible when they work, so this is the only way to tell 'it decided not to' from 'it is broken'.")]
+        [EnableIf("patrolDuelEnabled")]
+        public bool duelDebugReadout = false;
+
+        [ToggleGroup("patrolEnabled")]
         [Tooltip("The colour the PATROL pushes the tug-of-war bar with. Your side uses the dash meter's colour.")]
         [EnableIf("patrolDuelEnabled")]
         public Color duelBarColor = new(1f, 0.32f, 0.28f, 1f);

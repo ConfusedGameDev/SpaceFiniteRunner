@@ -128,6 +128,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>True while the exchange owns the world clock and the ship's steering.</summary>
         public bool InExchange => State is PatrolEncounterState.TugOfWar or PatrolEncounterState.Finisher;
 
+        /// <summary>The last answer the forbidden-ground test gave — for the debug readout.</summary>
+        public bool GroundWasClear => groundClear;
+
+        /// <summary>Seconds still to wait on the cadence before another run may start. For the debug readout.</summary>
+        public float CommitIn(PatrolDefinition def) =>
+            def == null ? 0f : Mathf.Max(0f, def.commitIntervalSeconds - commitTimer);
+
         float stateTimer;      // seconds in the current state
         float commitTimer;     // seconds since the last run ended — the cadence
         float outsideTimer;    // seconds the ship has held outside the flank
@@ -138,6 +145,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // samples at, so nothing is ever missed.
         const float GroundRetestMeters = 25f;
         float groundTestedAt = float.NegativeInfinity;
+        float groundTestedFor = -1f;
         bool groundClear;
 
         // How far the PATROL has driven the contest, 0 (the player has won) to
@@ -178,6 +186,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             commitTimer = 0f;
             outsideTimer = 0f;
             groundTestedAt = float.NegativeInfinity;
+            groundTestedFor = -1f;
         }
 
         /// <summary>Ends a run in progress without a shove; the cooldown still applies.</summary>
@@ -203,13 +212,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // not 12 s on top of the 8 s break.
             commitTimer += dt;
 
+            // Standoff: a patrol that is not attacking holds its distance.
+            // The rubber band's floor is raised on every redeploy and sits
+            // ABOVE the ship's speed, so without this it closes to the "never
+            // through the ship" clamp and rides along inside the cruiser —
+            // which is both ugly and the permanent tailgating the duel exists
+            // to replace. Applied below, so an actual run overrides it.
+            if (!Engaged && ctx.Gap > 0f && ctx.Gap < def.standoffDistance)
+                intent.SpeedMultiplier = def.breakOffSpeedFactor;
+
             switch (State)
             {
                 case PatrolEncounterState.Cruising:
                     if (commitTimer >= def.commitIntervalSeconds
                         && ctx.Gap > 0f && ctx.Gap <= def.commitFromDistance
                         && ctx.ShipSteady
-                        && GroundClear(ctx))
+                        && ClearToStart(ctx))
                     {
                         Side = PickSide(ctx);
                         Enter(PatrolEncounterState.Committing);
@@ -220,7 +238,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // Overdrive until it draws level. It gives up if the ship
                     // pulls clear again, if the road stops allowing it, or if
                     // the burst simply never lands.
-                    if (!ctx.ShipSteady || !GroundClear(ctx)
+                    if (!ctx.ShipSteady || !ClearToContinue(ctx)
                         || ctx.Gap > def.commitFromDistance
                         || stateTimer >= def.commitTimeoutSeconds)
                     {
@@ -234,7 +252,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     break;
 
                 case PatrolEncounterState.Alongside:
-                    if (!ctx.ShipSteady || !GroundClear(ctx) || ctx.Gap < 0f)
+                    if (!ctx.ShipSteady || !ClearToContinue(ctx) || ctx.Gap < 0f)
                     {
                         Enter(PatrolEncounterState.BreakingOff);
                         break;
@@ -264,7 +282,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // Breaking the geometry still ends it, and still for free:
                     // the bar is the contest, but the road is the stake, and
                     // getting off the flank is a legitimate answer to both.
-                    if (!ctx.ShipSteady || !GroundClear(ctx) || ctx.Gap < 0f)
+                    if (!ctx.ShipSteady || !ClearToContinue(ctx) || ctx.Gap < 0f)
                     {
                         Enter(PatrolEncounterState.BreakingOff);
                         break;
@@ -334,15 +352,37 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // The road the exchange would play out on: ahead of the SHIP, because
         // that is where it ends up, and because the streamer culls the ground
         // behind it that a patrol-relative window would have to read.
-        bool GroundClear(in PatrolEncounterContext ctx)
+        bool GroundClear(in PatrolEncounterContext ctx, float lookahead)
         {
-            if (Mathf.Abs(ctx.ShipDistance - groundTestedAt) < GroundRetestMeters) return groundClear;
+            // Cached per stride AND per window, because the two callers ask
+            // about different distances and a shared cache would answer one
+            // with the other's result.
+            if (Mathf.Abs(ctx.ShipDistance - groundTestedAt) < GroundRetestMeters
+                && Mathf.Approximately(groundTestedFor, lookahead))
+                return groundClear;
             groundTestedAt = ctx.ShipDistance;
+            groundTestedFor = lookahead;
             groundClear = TrackHazards.IsEncounterGroundClear(ctx.Track, ctx.Generator,
                                                               ctx.ShipDistance,
-                                                              ctx.ShipDistance + ctx.Def.encounterLookaheadMeters);
+                                                              ctx.ShipDistance + lookahead);
             return groundClear;
         }
+
+        /// <summary>
+        /// Enough clean road to be worth STARTING on. The full lookahead.
+        /// </summary>
+        bool ClearToStart(in PatrolEncounterContext ctx) => GroundClear(ctx, ctx.Def.encounterLookaheadMeters);
+
+        /// <summary>
+        /// Whether a run already under way has to let go. This is a much
+        /// SHORTER window than the one that starts a run, and that difference
+        /// is the whole point: judging an in-progress exchange by the starting
+        /// distance means any feature that drifts into that range kills a run
+        /// that only just began, which on a busy track is every run. What
+        /// matters here is what the ship is about to actually reach.
+        /// </summary>
+        bool ClearToContinue(in PatrolEncounterContext ctx) =>
+            GroundClear(ctx, Mathf.Min(ctx.Def.encounterAbortMeters, ctx.Def.encounterLookaheadMeters));
 
         /// <summary>
         /// The soft assist (added to the player's steering, never a takeover).

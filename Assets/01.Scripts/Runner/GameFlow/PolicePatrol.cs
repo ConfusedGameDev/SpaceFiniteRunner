@@ -118,6 +118,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float Tug => encounter.Tug;
 
         /// <summary>
+        /// One line of why the duel is doing what it is doing, for the on-screen
+        /// readout: the state, the gap, and — when no run is happening — the two
+        /// things that gate one. Both of those are invisible when they work,
+        /// which is exactly why they need saying out loud.
+        /// </summary>
+        public string EncounterDebug()
+        {
+            if (runtimeDef == null) return "duel: no definition";
+            string line = $"{encounter.State} gap {SimGap:0} across {AcrossToShip():0}";
+            if (encounter.InTugOfWar) return $"{line} tug {encounter.Tug:0.00} side {encounter.Side}";
+            if (encounter.State == PatrolEncounterState.Cruising)
+                return $"{line} | commit in {encounter.CommitIn(runtimeDef):0.0}s | ground {(encounter.GroundWasClear ? "CLEAR" : "BLOCKED")}";
+            return line;
+        }
+
+        /// <summary>
         /// The whole duel, on or off. Off restores the old chase exactly,
         /// proximity arrest included — the GameManager wires this from
         /// <see cref="GameSettings.patrolDuelEnabled"/>.

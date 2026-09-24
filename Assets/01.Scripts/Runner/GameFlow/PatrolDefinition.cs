@@ -175,14 +175,24 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float attackRunCooldownSeconds = 8f;
 
         [TitleGroup("Duel")]
-        [Tooltip("How far ahead of the SHIP the road has to be clear of ramps, landings, loops, tubes and the final run-up for an attack run to be allowed.")]
+        [Tooltip("How far ahead of the SHIP the road has to be clear of ramps, landings, loops, tubes and the final run-up for an attack run to START.")]
         [PropertyRange(50f, 1000f), SuffixLabel("m", true)]
-        public float encounterLookaheadMeters = 300f;
+        public float encounterLookaheadMeters = 220f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How far ahead a run ALREADY UNDER WAY looks before it lets go. Much shorter than the starting distance on purpose: judge a running exchange by the starting window and every feature that drifts into range kills a run that just began.")]
+        [PropertyRange(20f, 400f), SuffixLabel("m", true)]
+        public float encounterAbortMeters = 70f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How close the patrol may sit while NOT attacking. Inside this it eases off to the back-off speed instead of driving into you — without it a raised floor parks the cruiser inside the ship between runs.")]
+        [PropertyRange(0f, 200f), SuffixLabel("m", true)]
+        public float standoffDistance = 45f;
 
         [TitleGroup("Duel")]
         [Tooltip("How fast the patrol drives the tug-of-war bar toward its own side, in bar widths per REAL second. 0.2 = centre to the edge in 2.5 s if you never press.")]
         [PropertyRange(0f, 1f), SuffixLabel("bar / s", true)]
-        public float tugPatrolForce = 0.2f;
+        public float tugPatrolForce = 0.15f;
 
         [TitleGroup("Duel")]
         [Tooltip("How much of the bar one press wins back. 0.08 = about six presses to take it from the centre.")]

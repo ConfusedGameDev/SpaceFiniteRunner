@@ -50,6 +50,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         Image fillImage;
         Image glyphImage;
         Text glyphLabel;
+        Text readout;
         RectTransform glyphRect;
 
         int shownSide;        // the side the layout is currently mirrored for
@@ -122,6 +123,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                                 MenuTextLibrary.Load().Get(MenuTextId.DuelMashPrompt), 20,
                                 theme.TextPrimary, theme.BodyFont, TextAnchor.MiddleCenter);
 
+            // Diagnostic line, off by default. Parented to the CANVAS rather
+            // than the bar holder, so it survives the bar being hidden — the
+            // whole reason it exists is to explain a contest that never opened.
+            readout = MenuScreen.MakeText("Readout", transform, new Vector2(0f, -470f),
+                                          new Vector2(1400f, 26f), string.Empty, 18,
+                                          new Color(1f, 0.85f, 0.4f, 0.9f), theme.BodyFont,
+                                          TextAnchor.MiddleCenter);
+            readout.enabled = false;
+
             shownSide = 0;
             shownGamepad = !DuelMashInput.UsingGamepad; // force the first refresh
             RefreshDevice();
@@ -130,6 +140,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         void Update()
         {
             if (patrol == null || motor == null || settings == null) return;
+
+            bool debug = settings.duelDebugReadout && !motor.Paused;
+            if (readout.enabled != debug) readout.enabled = debug;
+            if (debug) readout.text = patrol.EncounterDebug();
 
             bool visible = patrol.InTugOfWar && !motor.Paused && settings.patrolDuelEnabled;
             group.alpha = visible ? 1f : 0f;

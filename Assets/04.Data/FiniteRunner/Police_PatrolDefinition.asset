@@ -33,7 +33,9 @@ MonoBehaviour:
   breakOffSpeedFactor: 0.85
   breakOffSeconds: 1
   attackRunCooldownSeconds: 8
-  encounterLookaheadMeters: 300
+  encounterLookaheadMeters: 220
+  encounterAbortMeters: 70
+  standoffDistance: 45
   shoveMeters: 10
-  tugPatrolForce: 0.2
+  tugPatrolForce: 0.15
   tugPressValue: 0.08

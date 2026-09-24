@@ -41,6 +41,7 @@ MonoBehaviour:
   patrolRedeploySpeedFactor: 1.15
   patrolDuelEnabled: 1
   duelTimeScale: 0.3
+  duelDebugReadout: 1
   duelTimeBlendSeconds: 0.15
   duelAssistStrength: 0.5
   duelBarColor: {r: 1, g: 0.32, b: 0.28, a: 1}
