@@ -230,6 +230,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [EnableIf("patrolDuelEnabled")]
         public Color duelBarColor = new(1f, 0.32f, 0.28f, 1f);
 
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("Tint of the sparks grinding between the hulls in a tug of war (each spark rolls between this and white, so keep it saturated — the seam itself reads white-hot). The glow between the cars takes it too.")]
+        [EnableIf("patrolDuelEnabled")]
+        public Color duelSparkColor = new(1f, 0.5f, 0.8f, 1f);
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("Size of the contact-spark rig: scales the spark rates, their size and the glow's brightness together. 1 = the authored look; 0.5 = a hiss; 2 = a firework.")]
+        [PropertyRange(0.25f, 3f), SuffixLabel("x", true), EnableIf("patrolDuelEnabled")]
+        public float duelSparkScale = 1f;
+
         [ToggleGroup("patrolEnabled"), Title("Alerts")]
         [Tooltip("Announce every fresh patrol with the 'Patrol inbound' story line (RPG dialogue box). Off by default — the minimap and the rumble already show it arriving.")]
         public bool showPatrolAlert = false;

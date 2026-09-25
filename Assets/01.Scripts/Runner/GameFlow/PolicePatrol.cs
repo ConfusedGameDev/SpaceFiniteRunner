@@ -125,12 +125,24 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         bool controlLocked;   // THIS patrol has the ship's controls; gates the release so it never switches off someone else's autopilot
         DuelContactSparks sparks; // the tug of war's grinding sparks, under the root (the visual is switched off across a kill)
 
+        // The tug of war's SLAMS: the cruiser hitting the ship's flank on a
+        // cadence. Presentation only — the bar is a steady push — but it is
+        // what makes the exchange read as a fight rather than a lean.
+        bool contactNow;      // the hulls were grinding on the last fixed tick
+        float contactPush;    // how hard, 0..1, as the sparks were fed it
+        float slamTimer;      // real seconds to the next slam
+        float slamKickLeft;   // real seconds of the slam's lurch still to play on the visual
+        float shownYaw;       // the visual's nose-in, smoothed
+        const float SlamKickSeconds = 0.35f;
+
         Transform visual;
         GameObject redLight;
         GameObject blueLight;
 
         // Half width / half height of the cruiser's pickup volume, metres.
-        static readonly Vector2 PickupReach = new(2.5f, 2.3f);
+        // Sized to the shipped car at its current scale (about 9.4 m wide,
+        // 5.9 m tall — the ship's own footprint).
+        static readonly Vector2 PickupReach = new(4.5f, 3f);
 
         // Time constant of the ship-acceleration smoothing, seconds.
         const float ShipAccelSmoothSeconds = 0.15f;
@@ -138,7 +150,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // The two bodies' shared road. Inside this much lateral overlap they
         // are in one lane and may not occupy the same metre of it; outside it
         // they are side by side and either may pass the other.
-        const float SideBySideLateral = 5f;
+        const float SideBySideLateral = 8f; // both hulls are ~9.4 m wide: closer than this across is one lane
         const float MinLaneGap = 1f;
 
         /// <summary>Metres from the track start (negative behind the start line), as RENDERED this frame.</summary>
@@ -379,7 +391,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (sparks == null)
             {
                 GameSettings rules = target != null ? target.DashSettings : null;
-                sparks = DuelContactSparks.Create(transform, "DuelSparks", rules != null ? rules.duelBarColor : Color.white);
+                sparks = DuelContactSparks.Create(transform, "DuelSparks",
+                                                  rules != null ? rules.duelSparkColor : Color.white,
+                                                  rules != null ? rules.duelSparkScale : 1f);
             }
             Launch();
         }
@@ -446,6 +460,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void ReleaseControl()
         {
             if (sparks != null) sparks.Stop();
+            contactNow = false; // the lean and the slams end with the exchange, whatever tick last fed them
             if (!controlLocked) return;
             controlLocked = false;
             if (target == null) return;
@@ -669,6 +684,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (controlLocked && !lockAllowed) ReleaseControl();
             if (!encounter.InTugOfWar && sparks != null) sparks.Stop();
             if (!encounter.InExchange && target.SteerAssist != 0f) target.SteerAssist = 0f;
+            StepSlams(lockAllowed);
 
             PollFinisher();
 
@@ -883,13 +899,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // Sparks where the hulls grind: halfway between the two, at bumper
             // height, streaming back along the road. Fed per substep; the
             // emitter only reads the last write of the frame, which is fine.
+            contactNow = intent.Contact;
             if (intent.Contact && sparks != null)
             {
                 float contactLateral = body.Lateral + (target.Body.Lateral - body.Lateral) * 0.5f;
                 track.GetPoseAtDistance(body.Distance, contactLateral, out Vector3 contact, out Quaternion contactRot);
-                contact += contactRot * (Vector3.up * (body.Height + 1f));
-                float intensity = 0.35f + 0.65f * Mathf.Clamp01(Mathf.Abs(encounter.Tug - 0.5f) * 2f);
-                sparks.SetContact(contact, contactRot * Vector3.forward, intensity);
+                contact += contactRot * (Vector3.up * (body.Height + 0.6f));
+                contactPush = 0.35f + 0.65f * Mathf.Clamp01(Mathf.Abs(encounter.Tug - 0.5f) * 2f);
+                sparks.SetContact(contact, contactRot * Vector3.forward, contactRot * Vector3.up, contactPush);
             }
             else if (sparks != null) sparks.Stop();
 
@@ -912,6 +929,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 else if (lanedGap < 0f && lanedGap > -MinLaneGap) body.Distance = target.Body.Distance + MinLaneGap;
             }
 
+            HoldFlank();
             RamCheck(dt, rules);
 
             // The shove: a sideways slam AWAY from the patrol, sized in metres
@@ -1010,6 +1028,85 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                   rules != null ? rules.duelBarColor : Color.white, 6f, 24);
 
             HapticsSystem.Instance.Pulse(0.9f, 0.6f, 0.25f);
+            if (rules != null) CameraShake.Shake(rules.wallHitShake);
+        }
+
+        // The cruiser is NEVER in the ship's lateral. The driver steers for the
+        // flank line with the body's own lateral speed and lags it, and the
+        // player can steer INTO a cruiser that is only pacing them, so left to
+        // the steering the two hulls overlapped for stretches of every run.
+        // This is the analytic contact the design allows: from the moment a
+        // run is close (Committing inside the alongside distance, Alongside,
+        // and the whole exchange) the cruiser may only ever be flankOffset OUT
+        // on its side, never closer — a ship steering into it meets a wall of
+        // car — and for the tug of war it is GLUED there every substep, so
+        // the pair move as two hulls pressed together: the push walks the ship
+        // out and the cruiser with it, and every press the player wins shoves
+        // the cruiser visibly back toward the centre. The finisher keeps only
+        // the never-closer half, so its peel-out still reads. Clamped to the
+        // road's band: on an edge the pair are only as far out as the road is.
+        void HoldFlank()
+        {
+            if (!duelEnabled) return;
+            int side = encounter.Side;
+            if (side == 0) return;
+            bool glue = encounter.InTugOfWar;
+            bool near = glue
+                        || encounter.State is PatrolEncounterState.Alongside or PatrolEncounterState.Finisher
+                        || (encounter.State == PatrolEncounterState.Committing
+                            && Mathf.Abs(SimGap) <= runtimeDef.alongsideDistance * 1.5f);
+            if (!near) return;
+
+            float offset = runtimeDef.flankOffsetMeters;
+            float shipLateral = target.Body.Lateral;
+            float out_ = (body.Lateral - shipLateral) * side; // metres out on its own side; below the offset is inside the ship
+            if (!glue && out_ >= offset) return;                // already clear: the driver keeps its own line
+
+            float wanted = shipLateral + side * offset;
+            track.GetLateralBand(body.Distance, out float min, out float max);
+            if (max - min > FlankEdgeMargin * 2f) wanted = Mathf.Clamp(wanted, min + FlankEdgeMargin, max - FlankEdgeMargin);
+            body.Lateral = wanted;
+            body.StopLateralMotion();
+        }
+
+        // How close to the road's edge the held cruiser may be put, metres.
+        const float FlankEdgeMargin = 1f;
+
+        // The tug of war's slams, on the frame clock. Real seconds, like the
+        // bar: the world is at 30 % for the look, and a cadence on the scaled
+        // clock would land one hit per exchange. The first one comes soon
+        // after contact rather than a whole interval later, and losing
+        // contact (or the exchange) resets the beat.
+        void StepSlams(bool exchangeLive)
+        {
+            float dt = Time.unscaledDeltaTime;
+            if (slamKickLeft > 0f) slamKickLeft = Mathf.Max(0f, slamKickLeft - dt);
+
+            bool grinding = exchangeLive && encounter.InTugOfWar && contactNow && sparks != null;
+            if (!grinding)
+            {
+                slamTimer = runtimeDef.tugSlamIntervalSeconds * 0.35f;
+                return;
+            }
+            slamTimer -= dt;
+            if (slamTimer > 0f) return;
+            slamTimer = runtimeDef.tugSlamIntervalSeconds;
+            Slam();
+        }
+
+        // One lateral hit: the cruiser lurches into the ship and the ship is
+        // knocked away (both on the visuals — the bar owns the bodies), a
+        // burst of sparks jumps out of the seam, the glow flares, the pad
+        // kicks and the camera takes the wall-hit shake. Sized by the push,
+        // so a softened-up cruiser hits like one.
+        void Slam()
+        {
+            float strength = contactPush;
+            slamKickLeft = SlamKickSeconds;
+            sparks.Slam(strength);
+            if (encounter.Side != 0) target.VisualKick(-encounter.Side * runtimeDef.tugSlamKickMeters * Mathf.Lerp(0.6f, 1f, strength));
+            HapticsSystem.Instance.Pulse(Mathf.Lerp(0.4f, 0.9f, strength), 0.5f, 0.12f);
+            GameSettings rules = target.DashSettings;
             if (rules != null) CameraShake.Shake(rules.wallHitShake);
         }
 
@@ -1172,11 +1269,28 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // untouched — this is the reaction the PLAYER needs to see, and
                 // faking it on the visual keeps the sim honest.
                 float kick = ramKickLeft > 0f ? ramKickLeft / RamKickSeconds : 0f;
-                visual.localPosition = new Vector3(0f, 2f + bob, kick * 1.4f);
+                // The tug of war's slam: the cruiser LEANS on the ship for the
+                // whole contact (a third of the slam yaw, nose in), and on each
+                // hit lurches sideways into it nose-first — out fast, back
+                // slow — then settles. Visual only; the body holds its flank.
+                float slam = 0f;
+                if (slamKickLeft > 0f)
+                {
+                    float left = slamKickLeft / SlamKickSeconds;          // 1 → 0 over the hit
+                    slam = left > 0.75f ? (1f - left) / 0.25f : left / 0.75f;
+                }
+                bool leaning = encounter.InTugOfWar && contactNow && encounter.Side != 0;
+                float yawTarget = leaning ? -encounter.Side * runtimeDef.tugSlamYawDegrees * (0.33f + 0.67f * slam) : 0f;
+                float sideKick = leaning || slam > 0f ? -encounter.Side * runtimeDef.tugSlamKickMeters * slam : 0f;
+                visual.localPosition = new Vector3(sideKick, 2f + bob, kick * 1.4f);
                 float dt = Time.deltaTime;
                 float bank = -Mathf.Clamp(body.BankDemand, -1.25f, 1.25f) * 25f;
                 shownBank = dt > 0f ? Mathf.Lerp(shownBank, bank, 1f - Mathf.Exp(-6f * dt)) : bank;
-                visual.localRotation = Quaternion.Euler(body.PitchDegrees - kick * 16f, 0f, shownBank);
+                // The nose-in follows on real time: it is part of the hit, and
+                // the hit must not stretch with the slow-mo.
+                float udt = Time.unscaledDeltaTime;
+                shownYaw = udt > 0f ? Mathf.Lerp(shownYaw, yawTarget, 1f - Mathf.Exp(-14f * udt)) : yawTarget;
+                visual.localRotation = Quaternion.Euler(body.PitchDegrees - kick * 16f, shownYaw, shownBank);
             }
         }
 
@@ -1235,6 +1349,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             if (vs != null && vs.modelPrefab != null)
             {
+                // The light bar rides the MODEL: its position and size are in
+                // the model's own metres, so growing the car with modelScale
+                // keeps the lights on its roof instead of burying them inside
+                // it (which is what a fixed Visual-space position did the
+                // moment the model was scaled past the primitive car).
+                lightPos *= vs.modelScale;
+                lightScale *= vs.modelScale;
                 // The prefab's own transform is DISCARDED: one dragged out of a
                 // scene carries that scene's pose (the shipped car sits at
                 // (0.68, 7.35, -19.14), yawed -93°, at 2.69x). Every collider

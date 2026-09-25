@@ -279,14 +279,31 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float overshootTriggerMargin = 20f;
 
         [TitleGroup("Duel")]
-        [Tooltip("How much of the room between the ship and the far lane edge the tug of war pushes it across when the bar is fully the cruiser's way. Kept below 1 so the bar never drops the ship off an open edge by itself — that is the SHOVE's job when the bar bottoms out.")]
+        [Tooltip("How much of the room between the ship and the far lane edge the tug of war pushes it across when the bar is fully the cruiser's way. The bar IS the ship's position (it opens at the centre, so the cruiser's arrival shoves the ship halfway out at once; presses claw it back). " +
+                 "Kept below 1 so the bar never drops the ship off an open edge by itself — that is the SHOVE's job when the bar bottoms out.")]
         [PropertyRange(0f, 0.85f)]
-        public float tugPushFraction = 0.6f;
+        public float tugPushFraction = 0.8f;
 
         [TitleGroup("Duel")]
         [Tooltip("How HARD the tug of war shoves the ship sideways: a multiplier on the steering pull that walks the locked ship toward the edge. 1 is the ship's own autopilot pull (a creep); higher moves it decisively. The DISTANCE it can be pushed is the push room above; this is the force.")]
         [PropertyRange(0.25f, 8f), SuffixLabel("x", true)]
         public float tugPushGain = 2.5f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How often the cruiser SLAMS the ship sideways during a tug of war, in REAL seconds — the same clock as the bar, so an exchange always carries the same number of hits whatever the slow-mo. " +
+                 "Each slam is presentation: the cruiser lurches into the ship nose-first, the ship is knocked, a burst of sparks jumps out of the seam, the glow flares, the pad rumbles and the camera takes the wall-hit shake. The bar is untouched — it stays a steady push.")]
+        [PropertyRange(0.2f, 3f), SuffixLabel("s", true)]
+        public float tugSlamIntervalSeconds = 0.7f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How far the cruiser's nose turns INTO the ship at the peak of a slam, on the visual only. Between slams it holds a third of this, so the whole exchange reads as the cruiser leaning on you.")]
+        [PropertyRange(0f, 40f), SuffixLabel("°", true)]
+        public float tugSlamYawDegrees = 18f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How far the two visuals are knocked sideways by a slam: the cruiser lurches this far INTO the ship and the ship this far AWAY, both snapping back over the hit. Visual only — where the bodies actually are is the bar's business.")]
+        [PropertyRange(0f, 3f), SuffixLabel("m", true)]
+        public float tugSlamKickMeters = 0.9f;
 
         [TitleGroup("Duel")]
         [Tooltip("How far the cruiser peels away from the ship once the player has WON the bar and the kill prompt is open — the two separate a little before the button.")]

@@ -704,11 +704,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         /// <summary>
-        /// Where the locked ship should be this substep: its lateral when the
-        /// contest opened, walked AWAY from the cruiser by the bar's excess over
-        /// centre across <see cref="PatrolDefinition.tugPushFraction"/> of the
-        /// room to that side's lane edge (less a clearance). A bar the player is
-        /// winning leaves the ship where it was — the ship is pushed, never pulled.
+        /// Where the locked ship should be this substep: the bar IS the ship's
+        /// position. Bar 0 is its lateral when the contest opened, bar 1 is
+        /// <see cref="PatrolDefinition.tugPushFraction"/> of the room to that
+        /// side's lane edge (less a clearance), and the bar opens at the
+        /// centre — so the cruiser's arrival shoves the ship halfway to the
+        /// brink at once and the danger is on screen from the first frame. The
+        /// cruiser's force keeps walking it out; every press claws it back
+        /// toward where it was caught. Winning the bar is the ship back on its
+        /// own line, and the glued cruiser (see <c>PolicePatrol.HoldFlank</c>)
+        /// visibly shoved back with it.
         /// </summary>
         float PushTarget(in PatrolEncounterContext ctx)
         {
@@ -720,8 +725,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 room = away > 0 ? max - pushStartLateral : pushStartLateral - min;
                 room = Mathf.Max(0f, room - PushEdgeClearance);
             }
-            float drive = Mathf.Max(0f, (tug - 0.5f) * 2f);
-            return pushStartLateral + away * room * ctx.Def.tugPushFraction * drive;
+            return pushStartLateral + away * room * ctx.Def.tugPushFraction * tug;
         }
 
         void Enter(PatrolEncounterState next)

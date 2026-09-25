@@ -69,6 +69,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         bool meterWasFull = true;
         float rollTimeLeft, rollDuration, rollAngle;
         int rollDirection;
+        float kickLateral, kickTimeLeft; // the duel slam's visual knock: metres at the peak, real seconds left
+        const float KickSeconds = 0.35f;
         float stallTimer;
         float guideSearchTimer;
 
@@ -151,6 +153,21 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// tug of war and hands it straight back as the finisher.
         /// </summary>
         public bool DashLocked { get; set; }
+
+        /// <summary>
+        /// A visual-only sideways knock on the model — the patrol duel's slams,
+        /// where the cruiser hits the ship's flank on a cadence and the ship
+        /// has to be SEEN taking it. Positive is to the right, in metres at the
+        /// hit's peak; the model lurches out and settles back over a fixed
+        /// beat, rolling with it, on REAL time so it snaps under the exchange's
+        /// slow motion. The body is untouched: where the ship IS belongs to the
+        /// duel's push, not to its presentation.
+        /// </summary>
+        public void VisualKick(float lateralMeters)
+        {
+            kickLateral = lateralMeters;
+            kickTimeLeft = KickSeconds;
+        }
 
         /// <summary>
         /// Empties the dash meter outright, rather than charging one dash's
@@ -525,8 +542,19 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             float t = Time.time * definition.bobFrequency;
             float bob = (Mathf.PerlinNoise(t, 0.37f) - 0.5f) * 2f * definition.bobAmplitude;
             float pitch = (Mathf.PerlinNoise(0.71f, t * 0.8f) - 0.5f) * 2f * definition.hoverPitchDegrees;
-            visual.localPosition = new Vector3(0f, settings.visualLift + bob, 0f);
-            visual.localRotation = Quaternion.Euler(pitch, 0f, bankAngle + rollAngle);
+            // The slam's knock: out fast, back slow, rolling away from the hit.
+            // Real time, so it snaps under the duel's slow motion instead of
+            // stretching into a lean.
+            float kick = 0f;
+            if (kickTimeLeft > 0f)
+            {
+                kickTimeLeft = Mathf.Max(0f, kickTimeLeft - Time.unscaledDeltaTime);
+                float left = kickTimeLeft / KickSeconds;               // 1 → 0 over the hit
+                float env = left > 0.75f ? (1f - left) / 0.25f : left / 0.75f;
+                kick = kickLateral * env;
+            }
+            visual.localPosition = new Vector3(kick, settings.visualLift + bob, 0f);
+            visual.localRotation = Quaternion.Euler(pitch, 0f, bankAngle + rollAngle - kick * 8f);
         }
 
         void OnStateChanged(ShipState next) => StateChanged?.Invoke(next);

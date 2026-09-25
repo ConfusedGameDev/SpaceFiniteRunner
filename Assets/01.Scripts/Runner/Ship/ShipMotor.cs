@@ -391,6 +391,16 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         }
 
         /// <summary>
+        /// The duel slam's visual-only knock on the model (see
+        /// <see cref="HoverShip.VisualKick"/>): metres to the right at the
+        /// hit's peak, settling back on its own. Nothing physical moves.
+        /// </summary>
+        public void VisualKick(float lateralMeters)
+        {
+            if (physicsShip != null) physicsShip.VisualKick(lateralMeters);
+        }
+
+        /// <summary>
         /// The rear ram's price: a share of the forward speed, gone at once.
         /// Hitting the patrol from behind costs SPEED and never hull (the run's
         /// currency is speed, so that is what the aggressive option is priced

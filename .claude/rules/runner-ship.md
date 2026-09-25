@@ -593,13 +593,32 @@ minimap range, redeploy) stay on `GameSettings`.
     asking (so the shove lands on a free ship), from `Update`'s net (`!ControlLocked || HasCaught ||
     Hold || IsGone || HasLeftTrackEnd`), `Kill`, `SetHold`, `DuelEnabled = false`, `OnDestroy`. The
     soft assist (`SteerAssist`, `duelAssistStrength`) is dormant.
-  - **The push**: the bar is the ship's position too. `PushTarget` walks the locked ship AWAY from the
-    cruiser by `(tug − 0.5) × 2` of `tugPushFraction` (0.6) of the room to that side's lane edge (less
-    `PushEdgeClearance` 2.5 m), measured from where it was caught — never the whole room, so the bar
-    cannot drop the ship itself; a full bar leaves it at the brink for the shove. `intent.Contact`
-    while `|Across| <= flankOffset + 3` feeds `DuelContactSparks` (FX, one looping emitter under the
-    patrol's ROOT — the visual is hidden across a kill — aimed back along the road at the midpoint
-    between the hulls, rate rising with the bar's swing; scaled time on purpose).
+  - **The push**: the bar IS the ship's position. `PushTarget` puts the locked ship at
+    `tug × tugPushFraction` (0.8) of the room from where it was caught to that side's lane edge (less
+    `PushEdgeClearance` 2.5 m): the bar opens at the centre, so the cruiser's arrival shoves the ship
+    halfway to the brink at once, its force keeps walking it out and every press claws it back —
+    never the whole room, so the bar cannot drop the ship itself; a full bar leaves it at the brink
+    for the shove.
+  - **The flank hold** (`PolicePatrol.HoldFlank`, after the body's step): the cruiser is NEVER inside
+    the ship's lateral. From Committing within 1.5× `alongsideDistance`, through Alongside and the
+    Finisher, it may only be `flankOffsetMeters` OUT on its side or further (a ship steering into it
+    meets a wall of car); for the whole tug of war it is GLUED to exactly that line every substep
+    (lateral motion zeroed), so the pair move as two hulls pressed together and a press the player
+    wins visibly shoves the cruiser back. Clamped 1 m inside the road's band. `intent.Contact`
+    while `|Across| <= flankOffset + 3` feeds `DuelContactSparks` (FX, a looping rig under the
+    patrol's ROOT — the visual is hidden across a kill — at the midpoint between the hulls, 0.6 m
+    up: a GRIND cone streaming back along the road, a FOUNTAIN of long streaks jumping up out of
+    the seam, and a point-light GLOW between the cars, all in `duelSparkColor` × `duelSparkScale`,
+    rates rising with the bar's swing; scaled time on purpose).
+  - **Slams** (presentation only, the bar stays a steady push): while grinding, `PolicePatrol.StepSlams`
+    (Update, REAL seconds like the bar) fires `Slam()` every `tugSlamIntervalSeconds` (0.7; the
+    first one after 35 % of it) — `DuelContactSparks.Slam` bursts the fountain and flares the glow,
+    the cruiser's visual lurches `tugSlamKickMeters` (0.9) into the ship nose-first at
+    `tugSlamYawDegrees` (18; it holds a third of that as a lean for the whole contact), the ship's
+    model is knocked the same distance away (`ShipMotor.VisualKick` → `HoverShip.VisualKick`, a
+    0.35 s real-time envelope on the visual child, rolling with it), the pad pulses and the camera
+    takes `wallHitShake`. Sized by the same push the sparks read, so a softened cruiser hits soft.
+    `contactNow` is cleared by `ReleaseControl`, so the lean and the beat end with the exchange.
   - **Finisher**: the cruiser's line moves out by `finisherSeparationMeters` (4), the ship is held
     where the push left it, and the window counts `UnscaledDt` (`finisherWindowSeconds` retuned to
     1.5 — a scaled second under the 0.3× clock was three real ones). **The kill is a PRESS**:
@@ -645,8 +664,15 @@ minimap range, redeploy) stay on `GameSettings`.
   the mesh is built along X) / `modelScale`, **every `Collider` under it destroyed** (the patrol never
   has one — the ship's queries would find it), the `LODGroup` kept; with no prefab, the old primitive
   cop car (hull, cabin, skids). The two emissive red/blue light spheres are ALWAYS built from code at
-  `lightPosition`, so `Blink` and the ram kick read on either. `RebuildPreview` bakes the same thing in
-  edit mode.
+  `lightPosition`, so `Blink` and the ram kick read on either — with a model, position and diameter
+  are multiplied by `modelScale` so they stay on the roof at any size. `RebuildPreview` bakes the same
+  thing in edit mode.
+  **Size**: `modelScale` is THE size knob (the prefab's transform is discarded, and `Visual`'s scale
+  is overwritten by `overallScale` at build, so neither prefab edit does anything; the asset is read
+  once at `Init`, so a change bites on the next run). The air car mesh is 5.18 × 1.60 × 2.53 m at 1;
+  at `modelScale` 2.3 × `overallScale` 1.6 (= 3.68) it is 19.1 m long, 9.3 m wide and 5.9 m tall —
+  the ship (`nabucodonosor` at 0.57) is 19.2 × 9.5 × 4.6. Sizes that must track it: `flankOffsetMeters`
+  (9.5 = the two half widths touching), `SideBySideLateral` (8), `PickupReach` (4.5 × 3).
 
 ## `ChaseMinimap`
 

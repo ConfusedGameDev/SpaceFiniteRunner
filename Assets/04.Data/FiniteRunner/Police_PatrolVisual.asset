@@ -12,6 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb069e7fa2f8645e3acc08600f738d56, type: 3}
   m_Name: Police_PatrolVisual
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.GameFlow.PatrolVisualSettings
+  modelPrefab: {fileID: 2919269426456305765, guid: a8964ef1d2dcd944e9e9ec2490ad5377, type: 3}
+  modelScale: 2.3
+  modelYawOffset: -90
+  modelLocalOffset: {x: 0, y: 0, z: 0}
   bodyMaterial: {fileID: 2100000, guid: ec734ad7799ad433bb142a489fcdc2e9, type: 2}
   trimMaterial: {fileID: 2100000, guid: f182689e1b1a44eb8bacd3e77eae3d7b, type: 2}
   redLightMaterial: {fileID: 2100000, guid: 4c6c0a1cd126d4a838207811c68d376f, type: 2}
@@ -22,9 +26,5 @@ MonoBehaviour:
   cabinSize: {x: 2, y: 0.7, z: 2.6}
   skidPosition: {x: 1.8, y: -0.1, z: 0}
   skidSize: {x: 0.6, y: 0.5, z: 4}
-  lightPosition: {x: 0.55, y: 1.35, z: -0.4}
+  lightPosition: {x: 0.55, y: 1.6, z: -0.4}
   lightDiameter: 0.7
-  modelPrefab: {fileID: 2919269426456305765, guid: a8964ef1d2dcd944e9e9ec2490ad5377, type: 3}
-  modelScale: 1.15
-  modelYawOffset: -90
-  modelLocalOffset: {x: 0, y: 0, z: 0}

@@ -19,7 +19,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public GameObject modelPrefab;
 
         [TitleGroup("Model")]
-        [Tooltip("Scale of the model prefab, on top of the overall scale below.")]
+        [Tooltip("Scale of the model prefab, on top of the overall scale below — THE size knob for the cruiser (the prefab's own transform is discarded, so scaling the prefab does nothing). " +
+                 "The light bar's position and diameter scale with it. Read once when the patrol is built, so a change bites on the next run, not live. " +
+                 "The shipped car is 5.18 m long at 1: at 2.3 × the 1.6 overall it is 19 m, the ship's own length.")]
         [PropertyRange(0.1f, 5f)] public float modelScale = 1f;
 
         [TitleGroup("Model")]
@@ -44,7 +46,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Right skid; the left one is mirrored on X.")]
         public Vector3 skidPosition = new(1.8f, -0.1f, 0f);
         public Vector3 skidSize = new(0.6f, 0.5f, 4f);
-        [Tooltip("Blue light; the red one is mirrored on X.")]
+        [Tooltip("Blue light; the red one is mirrored on X. With a model prefab these are in the MODEL's own metres (multiplied by its scale, like the diameter), so they stay on the roof whatever size the car is; with the primitive car they are Visual-local.")]
         public Vector3 lightPosition = new(0.55f, 1.35f, -0.4f);
         [PropertyRange(0.1f, 2f)] public float lightDiameter = 0.7f;
     }
