@@ -218,6 +218,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float stationAccel = 60f;
 
         [TitleGroup("Duel")]
+        [Tooltip("How much harder each KILL (or outrun) makes the next cruiser, as a fraction. 0.15 = the fifth replacement is 1.75x. " +
+                 "It drives two things at once: the attack-run interval is DIVIDED by it (they come sooner) and the tug-of-war push is MULTIPLIED by it (they shove harder). 0 = no escalation.")]
+        [PropertyRange(0f, 1f), SuffixLabel("per kill", true)]
+        public float tierScalePerKill = 0.15f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("Ceiling on the escalation above. Mostly it bounds the ATTACK INTERVAL: without it a long run divides 12 s by a growing number until cruisers arrive on top of each other.")]
+        [PropertyRange(1f, 5f), SuffixLabel("x", true)]
+        public float tierScaleMax = 2f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("Separate, LOWER ceiling on what escalation does to the tug-of-war push. Escalation is allowed to compress your recovery time; it must never make the mash mathematically unwinnable, so this is capped below the interval's ceiling.")]
+        [PropertyRange(1f, 3f), SuffixLabel("x push", true)]
+        public float tugForceMaxScale = 1.8f;
+
+        [TitleGroup("Duel")]
         [Tooltip("How many rear rams the cruiser soaks up. The pool never kills it — it sets how hard the tug of war pushes: a full pool is full strength, one point left is a pushover. It refills on every fresh patrol.")]
         [PropertyRange(1, 10), SuffixLabel("hits", true)]
         public int damagePoolMax = 3;

@@ -45,3 +45,6 @@ MonoBehaviour:
   ramContactDistance: 8
   ramContactLateral: 6
   ramClosingSpeedThreshold: 15
+  tierScalePerKill: 0.15
+  tierScaleMax: 2
+  tugForceMaxScale: 1.8

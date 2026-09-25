@@ -448,9 +448,9 @@ minimap range, redeploy) stay on `GameSettings`.
   so the cruiser sailed straight past the ship still doing +24 m/s. The absolute distance clamp hid
   it completely; the moment that clamp became lateral it was the chase DYING, because `Cruising`
   can only commit from behind (`Gap > 0`) — a cruiser that gets in front never attacks again.
-  `PatrolEncounter.Standoff` is now proportional (the ship's own speed out at `standoffDistance`,
-  `breakOffSpeedFactor` on the tail and beyond it, so an overshoot recovers), never above 1 (the
-  standoff only ever says "no closer"), and `SpeedIsAbsolute`. `Cooldown` hands over to it once it
+  The standoff is now `ApproachSpeed` toward `standoffDistance` (see the next bullet — one shared
+  deceleration-limited profile replaced the separate `Standoff` and `StationSpeed` helpers), and
+  `SpeedIsAbsolute`. `Cooldown` hands over to it once it
   is a standoff behind. **Any new "hold this distance" behaviour must carry its own authority** —
   see the next bullet.
 - **A run only starts from a gap it can FINISH from, and that is a question of time, not metres.**
@@ -492,6 +492,19 @@ minimap range, redeploy) stay on `GameSettings`.
   was already doing, so runs timed out having closed nothing). The sweep's grip cap still wins over
   all of it, and the run's abort is `ShipGotPast` — a whole alongside window negative, not merely
   negative, because station keeping jitters around its station by design.
+- **Escalation** (M5, D22/R7.1-R7.4). `PolicePatrol.escalationTier` counts the cruisers the player
+  has KILLED or outrun this run, and it rises on **exactly the same `raiseFloor` flag that raises the
+  speed floor** — so a kill and an outrun escalate while a fall or a laser death does not (R7.3: the
+  player earned neither). `Launch` resets it with `PatrolNumber` (R7.4). `TierScale` =
+  `1 + tier x tierScalePerKill` (0.15) clamped to `tierScaleMax` (2), and ONE number drives both of
+  D22's axes: the attack interval is **divided** by it (`commitIntervalSeconds` 12 s -> 6 s at the cap,
+  matching OQ5) and the tug-of-war push is **multiplied** by it. The push carries its own, LOWER cap
+  (`tugForceMaxScale`, 1.8) because R7.2 is explicit that escalation may compress the player's
+  recovery time but must never make the mash unwinnable: at the cap with a full pool the bar costs
+  **3.4 presses/s merely to hold** against a human's 6-8, and softened to 1/3 pool it is 1.1/s — a
+  pushover, as D18 intends. **The tier scales at the point of USE, never by mutating the runtime
+  clone**, so the debug rows keep showing the authored values instead of drifting upward. The
+  readout carries `tier N (xS)` and `commit in` reports the EFFECTIVE (shortened) interval.
 - **Rear ramming and the damage pool** — M3 of the duel. **The patrol ahead of the ship is an
   obstacle and a target.** The old absolute "never through the ship" clamp is now a LANE rule:
   bodies overlapping within `SideBySideLateral` (5 m) are held `MinLaneGap` (1 m) clear on

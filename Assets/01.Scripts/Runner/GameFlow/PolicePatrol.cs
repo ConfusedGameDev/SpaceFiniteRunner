@@ -95,6 +95,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         int pendingPresses;   // mash presses drained this tick, spent on the first substep
         float killHideLeft;   // seconds the cruiser stays invisible across a kill's teleport
         int damagePool;       // rear rams this cruiser has left in it; scales its push, never kills it
+        int escalationTier;   // kills + outruns this run: each one makes the NEXT cruiser harder
         float ramCooldown;    // seconds before the same contact can count as a second ram
         float ramKickLeft;    // seconds of the rammed lurch still to play on the visual
         bool ramArmed = true; // a ram needs a fresh approach: leaving contact re-arms it
@@ -151,6 +152,23 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         public int DamagePool => damagePool;
 
+        /// <summary>
+        /// How many cruisers the player has KILLED or outrun this run. Each one
+        /// makes the next harder (D22) — it is the reason killing is worth doing
+        /// and never free.
+        /// </summary>
+        public int EscalationTier => escalationTier;
+
+        /// <summary>
+        /// What the tier multiplies by. It drives the attack interval (DIVIDED
+        /// by it: runs come sooner) and the tug-of-war push (MULTIPLIED, under
+        /// its own lower cap). Clamped, because an unbounded divide has cruisers
+        /// arriving on top of each other by the end of a long run.
+        /// </summary>
+        float TierScale => runtimeDef == null ? 1f
+            : Mathf.Clamp(1f + escalationTier * runtimeDef.tierScalePerKill,
+                          1f, Mathf.Max(1f, runtimeDef.tierScaleMax));
+
         /// <summary>What the pool leaves of the push: 1 at full, 0 when it is spent.</summary>
         float PushScale => runtimeDef == null || runtimeDef.damagePoolMax <= 0
             ? 1f
@@ -165,7 +183,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public string EncounterDebug()
         {
             if (runtimeDef == null) return "duel: no definition";
-            string line = $"{encounter.State} gap {SimGap:0} across {AcrossToShip():0} pool {damagePool}/{runtimeDef.damagePoolMax}";
+            string line = $"{encounter.State} gap {SimGap:0} across {AcrossToShip():0} pool {damagePool}/{runtimeDef.damagePoolMax} tier {escalationTier} (x{TierScale:0.00})";
             if (encounter.InTugOfWar) return $"{line} tug {encounter.Tug:0.00} side {encounter.Side}";
             if (encounter.State == PatrolEncounterState.Cruising)
                 return $"{line} | commit in {encounter.CommitIn(runtimeDef):0.0}s | reach {encounter.ReachWas:0} | ground {(encounter.GroundWasClear ? "CLEAR" : "BLOCKED")}";
@@ -348,6 +366,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             warnCooldown = 0f;
             warned = false;
             PatrolNumber = 1;
+            escalationTier = 0; // a fresh run starts the escalation over (R7.4)
             RefillDamagePool();
             encounter.Reset();
             ApplyPose(1f);
@@ -637,7 +656,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                                      pendingPresses,
                                                      rules != null ? rules.finisherWindowSeconds : 1f,
                                                      PushScale, target.CurrentSpeed, body.ForwardSpeed,
-                                                     armed != null && armed.IsArmed);
+                                                     armed != null && armed.IsArmed, TierScale);
                 pendingPresses = 0;
                 encounter.Tick(dt, ctx, out intent);
                 // The window is the SHIP's, so the ship is what spends it: one
@@ -921,7 +940,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             float speed = raiseFloor
                 ? Mathf.Max(minSpeed, target.CurrentSpeed * redeploySpeedFactor)
                 : Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.rubberBand);
-            if (raiseFloor) minSpeed = speed;
+            if (raiseFloor)
+            {
+                minSpeed = speed;
+                // The SAME flag that raises the floor raises the tier, which is
+                // exactly right: a kill and an outrun escalate, a cruiser that
+                // fell off or drove into a beam is a hazard death and does not
+                // (R7.3 — the player earned neither).
+                escalationTier++;
+            }
             body.Reset(target.Body.Distance - (gapOverride > 0f ? gapOverride : redeployGap), speed);
             tailTimer = 0f;
             warnCooldown = 0f;

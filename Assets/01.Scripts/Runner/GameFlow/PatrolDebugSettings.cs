@@ -71,6 +71,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float ramContactDistance = -1f;
         public float ramContactLateral = -1f;
         public float ramClosingSpeedThreshold = -1f;
+        public float tierScalePerKill = -1f;
+        public float tierScaleMax = -1f;
+        public float tugForceMaxScale = -1f;
 
         static PatrolDebugSettings cached;
 
@@ -139,6 +142,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             ramContactDistance = definition.ramContactDistance;
             ramContactLateral = definition.ramContactLateral;
             ramClosingSpeedThreshold = definition.ramClosingSpeedThreshold;
+            tierScalePerKill = definition.tierScalePerKill;
+            tierScaleMax = definition.tierScaleMax;
+            tugForceMaxScale = definition.tugForceMaxScale;
 
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
@@ -196,6 +202,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (ramContactDistance >= 0f) definition.ramContactDistance = ramContactDistance;
             if (ramContactLateral >= 0f) definition.ramContactLateral = ramContactLateral;
             if (ramClosingSpeedThreshold >= 0f) definition.ramClosingSpeedThreshold = ramClosingSpeedThreshold;
+            if (tierScalePerKill >= 0f) definition.tierScalePerKill = tierScalePerKill;
+            if (tierScaleMax >= 0f) definition.tierScaleMax = tierScaleMax;
+            if (tugForceMaxScale >= 0f) definition.tugForceMaxScale = tugForceMaxScale;
         }
 
         /// <summary>

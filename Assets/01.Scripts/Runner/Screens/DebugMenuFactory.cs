@@ -527,6 +527,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                           0f, 20f, 0.5f, "0.0", d => d.ramContactLateral, (d, v) => d.ramContactLateral = v);
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelRamClosing,
                           0f, 100f, 1f, "0", d => d.ramClosingSpeedThreshold, (d, v) => d.ramClosingSpeedThreshold = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelTierPerKill,
+                          0f, 1f, 0.01f, "0.00", d => d.tierScalePerKill, (d, v) => d.tierScalePerKill = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelTierMax,
+                          1f, 5f, 0.05f, "0.00", d => d.tierScaleMax, (d, v) => d.tierScaleMax = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelTugForceCap,
+                          1f, 3f, 0.05f, "0.00", d => d.tugForceMaxScale, (d, v) => d.tugForceMaxScale = v);
 
             // The clock and the assist live on GameSettings, which the run
             // reads LIVE and never clones — so these two edit the asset itself,

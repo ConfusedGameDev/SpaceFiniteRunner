@@ -60,13 +60,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public readonly float PushScale;
         /// <summary>The ship is carrying a strong orb's kill: the exchange skips the contest and opens the prompt (D19).</summary>
         public readonly bool ShipArmed;
+        /// <summary>
+        /// What the escalation tier multiplies by (1 on the first cruiser of a
+        /// run). The attack interval is DIVIDED by it and the push MULTIPLIED,
+        /// so one number makes a long run harder in both of D22's ways.
+        /// </summary>
+        public readonly float TierScale;
 
         public PatrolEncounterContext(float gap, float across, float shipLateral, float shipDistance,
                                       PatrolDefinition def, TrackManager track, TrackGenerator generator,
                                       bool shipSteady, float unscaledDt, float assistStrength, int presses,
                                       float finisherWindowSeconds, float pushScale, float shipSpeed,
-                                      float patrolSpeed, bool shipArmed)
+                                      float patrolSpeed, bool shipArmed, float tierScale)
         {
+            TierScale = tierScale <= 0f ? 1f : tierScale;
             ShipArmed = shipArmed;
             ShipSpeed = shipSpeed;
             PatrolSpeed = patrolSpeed;
@@ -186,14 +193,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         public float ReachWas { get; private set; }
 
-        /// <summary>Seconds still to wait on the cadence before another run may start. For the debug readout.</summary>
+        /// <summary>
+        /// Seconds still to wait on the cadence before another run may start, for
+        /// the debug readout — against the EFFECTIVE interval, which the
+        /// escalation tier shortens, not the authored one.
+        /// </summary>
         public float CommitIn(PatrolDefinition def) =>
-            def == null ? 0f : Mathf.Max(0f, def.commitIntervalSeconds - commitTimer);
+            def == null ? 0f : Mathf.Max(0f, (intervalWas > 0f ? intervalWas : def.commitIntervalSeconds) - commitTimer);
 
         float stateTimer;      // seconds in the current state
         float commitTimer;     // seconds since the last run ended — the cadence
         float outsideTimer;    // seconds the ship has held outside the flank
         float commitGap;       // the gap the current run started from, to tell escaping from jitter
+        float intervalWas;     // the effective (tier-shortened) commit interval, for the readout
 
         // The road test sweeps a few hundred metres, and it is asked every
         // substep. Its answer cannot change until the ship has moved, so it is
@@ -323,7 +335,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             {
                 case PatrolEncounterState.Cruising:
                     ReachWas = CommitReach(ctx);
-                    if (commitTimer >= def.commitIntervalSeconds
+                    intervalWas = def.commitIntervalSeconds / ctx.TierScale;
+                    if (commitTimer >= intervalWas
                         && ctx.Gap > 0f && ctx.Gap <= ReachWas
                         && ctx.ShipSteady
                         && ClearToStart(ctx))
@@ -431,7 +444,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     // The push is what the damage pool has left of it: this is
                     // the ONLY thing rear ramming buys, and it is bought before
                     // the contest, not during it.
-                    tug += def.tugPatrolForce * Mathf.Max(MinPushScale, ctx.PushScale) * ctx.UnscaledDt;
+                    tug += def.tugPatrolForce * PushNow(ctx) * ctx.UnscaledDt;
                     if (ctx.Presses > 0) tug -= def.tugPressValue * ctx.Presses;
                     tug = Mathf.Clamp01(tug);
 
@@ -657,6 +670,21 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             float cap = ctx.ShipSpeed * Mathf.Max(0f, ctx.Def.attackRunOverdrive - 1f);
             float closing = Mathf.Sign(toGo) * Mathf.Min(able, cap);
             return 1f + closing / Mathf.Max(ctx.ShipSpeed, 1f);
+        }
+
+        /// <summary>
+        /// What actually multiplies <see cref="PatrolDefinition.tugPatrolForce"/>
+        /// this substep: the damage pool the player has knocked out of the
+        /// cruiser, times the escalation the run has earned. The escalation half
+        /// carries its own, LOWER cap (<see cref="PatrolDefinition.tugForceMaxScale"/>):
+        /// D22 lets a long run compress the player's recovery time, but R7.2 is
+        /// explicit that it must never make the mash mathematically unwinnable,
+        /// so the interval may keep shrinking while the push stops growing.
+        /// </summary>
+        static float PushNow(in PatrolEncounterContext ctx)
+        {
+            float tier = Mathf.Min(ctx.TierScale, Mathf.Max(1f, ctx.Def.tugForceMaxScale));
+            return Mathf.Max(MinPushScale, ctx.PushScale) * tier;
         }
 
         // A weakened cruiser pushes weaker. Floored well above zero on
