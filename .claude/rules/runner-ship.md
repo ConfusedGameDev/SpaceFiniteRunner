@@ -155,7 +155,9 @@ Three sources, one `ApplyDamage`: `SpeedPad.Collected` with a negative delta (`b
 `ShipMotor.WallHit` — the dash slam / ramp side (`wallSlamDamage`) — and the polled
 `ShipMotor.IsTouchingWall` (`wallScrapeDamage`) — plus a laser beam (`laserDamage`, a fall's 30 by
 default): `LaserGate.Hit` is heard by the GAMEMANAGER (`OnLaserHit`), which calls the public
-`ShipHealth.ApplyLaserHit()` and only when the hit landed (the blink shields it) plays the heavy
+`ShipHealth.ApplyLaserHit()` and only when the hit landed (the blink shields it) cuts
+`GameSettings.laserSpeedLoss` (0.1) of the forward speed at once (`ShipMotor.ApplyImpactSpeedLoss`,
+the rear ram's jolt) and plays the heavy
 rumble `Pulse(1, 0.7, 0.8)`, `GameSettings.laserHitShake` and `ShipAudio.PlayLaserHit`
 (`RunnerSfxSettings.laserHitClip`); with the hull off the feedback still plays — plus
 `ShipMotor.FellOff` (`fallDamage`), the one FORCED hit: it lands on a ship already `OffTrack` and through the blink, and taking the last

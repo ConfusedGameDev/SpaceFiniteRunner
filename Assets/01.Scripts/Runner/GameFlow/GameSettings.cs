@@ -273,6 +273,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public Cameras.CameraShakeSettings wallHitShake;
 
         [TitleGroup("Track features")]
+        [Tooltip("Share of the forward speed a laser beam takes AT ONCE, on top of its hull damage (and still when the hull is off). The invulnerability blink shields it like the damage.")]
+        [PropertyRange(0f, 0.5f)]
+        public float laserSpeedLoss = 0.1f;
+
+        [TitleGroup("Track features")]
         [Tooltip("Camera shake when the ship starts sliding on a flat sweep taken too fast. Empty = no shake.")]
         public Cameras.CameraShakeSettings slideShake;
 

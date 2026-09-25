@@ -1093,13 +1093,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         // Through a laser beam: a fall's worth of hull (ShipHealth — the blink
-        // shields it, and then nothing plays) and the heaviest rumble short
-        // of the explosion's. The hull's own Damaged handler adds the glitch.
+        // shields it, and then nothing plays), a share of the speed gone at
+        // once, and the heaviest rumble short of the explosion's. The hull's
+        // own Damaged handler adds the glitch.
         void OnLaserHit(LaserGate gate, ShipMotor hitMotor)
         {
             if (hitMotor != motor || IsEnding || RunOver) return;
             bool hullOn = settings.hullEnabled && shipHealth != null;
             if (hullOn && !shipHealth.ApplyLaserHit()) return;
+
+            motor.ApplyImpactSpeedLoss(settings.laserSpeedLoss);
 
             HapticsSystem.Instance.Pulse(1f, 0.7f, 0.8f);
             CameraShake.Shake(settings.laserHitShake);

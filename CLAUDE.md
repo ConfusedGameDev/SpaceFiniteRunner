@@ -90,7 +90,7 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   the one feature not yet built.
 - **Laser gates**: emitter pairs firing a beam across 20–30 % of the road — single horizontal,
   single vertical, three stacked, or a flat spinning rotor — steered round, never jumped. A beam
-  costs a fall's worth of hull with a heavy rumble. Never on or near a ramp, its landing, a loop,
+  costs a fall's worth of hull and 10 % of the speed at once (`laserSpeedLoss`) with a heavy rumble. Never on or near a ramp, its landing, a loop,
   a tube or the final run-up.
 - Time AND distance are the limits. The track is streamed ahead of the ship but finite.
 - Story beats are RPG dialogue lines on purple-orb pickups and patrol taunts only.
