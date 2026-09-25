@@ -30,6 +30,17 @@ code-built rising/fading billboard component.
 
 ## `RpgMessageSystem`
 
+**`RpgMessageSystem.QueueHeld` holds the QUEUE** (static, cleared by every fresh instance's `Awake`
+like `SkipInputSuppressed`, so a scene change cannot leave it stuck): nothing new starts while it is
+set and whatever is on screen plays out normally. The patrol duel owns it — `GameManager.Update`
+writes `patrol.InAttackRun && !RunOver` every frame rather than on the run's edges, because every
+path that ends a run (an abort, a kill's recycle, a fall, a hold) would otherwise have to remember to
+release it, and one missed path is a text box that never returns for the rest of the level. The
+reason is D26: an attack run is a set piece read through the road and the cruiser, a text box wanting
+gamepad A fights both the mash and the kill prompt, and a purple orb *simultaneously* arms the
+instant kill and queues a line about it — so the line would talk over the thing it describes. Held
+lines also land better afterwards: the taunt on the approach, the orb's line after the kill.
+
 Singleton RPG dialogue box — portrait + speaker name + typewriter text at the bottom of the screen.
 Auto-created like `FloatingTextSystem`; **pre-place one in the scene** to wire its public
 UnityEvents (`onMessageStarted` / `onTypingFinished` / `onMessageFinished`) or assign a portrait

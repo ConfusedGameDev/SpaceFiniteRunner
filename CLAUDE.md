@@ -62,10 +62,19 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   takes a share (`boostShare`) of every boost the ship collects, steers for the ship, goes after
   boost orbs of its own (which it uses up), rounds ramps or jumps them, brakes for flat sweeps,
   and can fall off — a fall just drops a fresh one in behind you, except at the END of the
-  track, which takes every patrol that reaches it for good. It catches by being on your
-  tail AND close across the track (or on your tail for long enough), so a last-moment dodge
-  works. Outrun it far enough and a fresh one cuts in behind you at a new, higher floor —
-  coasting can never shake it.
+  track, which takes every patrol that reaches it for good. Outrun it far enough and a fresh one
+  cuts in behind you at a new, higher floor — coasting can never shake it.
+- **The patrol HUNTS you** (`PatrolDuelPRD.md`). It holds a standoff behind you, then on a cadence
+  commits to an **attack run**: an overdrive burst onto one of your flanks, chosen so YOU are between
+  it and an open edge. Alongside, a **tug of war** opens — a bar it pushes and you mash back — and
+  losing it is a shove into the wall or off the road. Winning it opens a **kill prompt** on the
+  shoulder it is on: dash into it and it explodes. It never commits on a ramp, a loop, a tube or the
+  final run-up, and braking out of the flank aborts the run for free. **Braking past it puts it
+  ahead of you**, where it is an obstacle you can **ram from behind** — costing you speed and
+  weakening its next push. A **laser beam destroys it**, which is the one hazard you can aim it at.
+  A blue or purple orb leaves you **armed**: the next exchange skips the bar and goes straight to the
+  kill. Each kill or outrun **escalates** the next cruiser. The old proximity arrest is gone: only
+  sitting on your tail WITHOUT committing, for a long fuse, still arrests you.
 - **Curves**: banked sweeps always hold the ship. A share of sweeps is authored FLAT, with no
   wall on the outer edge: taken too fast the ship loses grip and slides outward — brake first.
   Some straight runs have no walls at all: drift or dash too close to the side and the ship drops.
@@ -154,7 +163,7 @@ These hold everywhere. Break one and something else quietly stops working.
 - Uses `Unity.Mathematics` alongside `UnityEngine` math in spline code.
 - **Designer-facing inspectors use Odin** (`Sirenix.OdinInspector`, runtime attributes only — no
   serializer swap): every tunable is a `[PropertyRange]` slider with a hand-picked range, paired
-  values are single `[MinMaxSlider]` bands (`patrolDangerBand` = catch/warn, `patrolRedeployBand` =
+  values are single `[MinMaxSlider]` bands (`patrolRedeployBand` =
   drop-in/trigger) unpacked by accessor properties so gameplay never touches `.x`/`.y`, optional
   blocks are `[ToggleGroup]`s, and settings assets are `[InlineEditor]`-ed into the components that
   use them (`GameManager.settings`, `ShipMotor.definition`) so balancing happens without leaving

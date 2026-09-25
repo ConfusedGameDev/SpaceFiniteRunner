@@ -10,7 +10,13 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 {
     /// <summary>
     /// Teaches the lateral dash without ever nagging early: nothing is shown
-    /// until the meter fills for the first time (it starts each run empty),
+    /// until the meter fills for the first time — which, since `HoverShip.Launch`
+    /// now starts the meter FULL with `meterWasFull` already true, means after the
+    /// player's first dash has spent it and it has recharged. So the hint
+    /// currently teaches the dash to players who have already found it; it was
+    /// written when the meter started each run empty. Left as it behaves rather
+    /// than "fixed", because when the hint should first appear is a design call.
+    /// (The duel's kill drains the meter too, so a finisher also arms it.)
     /// then a pulsing bottom-screen hint appears showing the LIVE dash
     /// binding (<see cref="ControlBindings"/>): the pad glyphs while a pad
     /// is connected, bracketed key names otherwise, swapped live like the

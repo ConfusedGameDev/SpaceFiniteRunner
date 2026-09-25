@@ -141,6 +141,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>True while the exchange owns the world clock and the ship's steering.</summary>
         public bool InExchange => encounter.InExchange;
 
+        /// <summary>
+        /// True for the WHOLE attack run, from the first overdrive to the last
+        /// frame of the break-off. Wider than <see cref="InExchange"/> on
+        /// purpose: the RPG queue is held across all of it (D26), because the
+        /// approach is as much part of the set piece as the contest.
+        /// </summary>
+        public bool InAttackRun => encounter.Engaged;
+
         /// <summary>The contest as the PATROL's progress: 0.5 at the start, 1 it wins, 0 you do.</summary>
         public float Tug => encounter.Tug;
 

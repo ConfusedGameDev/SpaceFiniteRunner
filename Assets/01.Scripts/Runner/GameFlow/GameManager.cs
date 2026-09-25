@@ -421,6 +421,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             UpdateLoopCinematicHold();
             UpdateFallCamera();
 
+            // D26: an attack run holds the RPG queue. Driven every frame rather
+            // than on the run's edges, because every path that can end a run
+            // (an abort, a kill's recycle, a fall, a hold) would otherwise need
+            // to remember to release it — and one missed path is a text box that
+            // never comes back for the rest of the level.
+            RpgMessageSystem.QueueHeld = patrol != null && patrol.InAttackRun && !RunOver;
+
             if (motor == null || RunOver) return;
 
             // One "escape attempted" per run, recorded on the first frame the

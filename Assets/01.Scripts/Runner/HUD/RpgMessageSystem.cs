@@ -140,6 +140,22 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         /// </summary>
         public static bool SkipInputSuppressed { get; set; }
 
+        /// <summary>
+        /// Holds the QUEUE: nothing new starts while this is set, and whatever
+        /// is already on screen plays out normally. The patrol duel owns it
+        /// (D26) — an attack run is a set piece the player is reading the road
+        /// and a cruiser through, and a text box that wants gamepad A in the
+        /// middle of it fights both the mash and the kill prompt. Worse, a
+        /// purple orb SIMULTANEOUSLY arms the instant kill and queues a line
+        /// about it, so the line would talk over the thing it is describing.
+        /// Lines raised during a run are simply kept and flushed when it ends,
+        /// which is also where they read better: the taunt lands on the
+        /// approach, the orb's line pays off after the kill.
+        /// Cleared by every fresh instance's Awake, like the gate above, so a
+        /// scene change can never leave it stuck on.
+        /// </summary>
+        public static bool QueueHeld { get; set; }
+
         /// <summary>The page currently on screen (0-based) and how many the message has — for HUD prompts and debug overlays.</summary>
         public int CurrentPage => showing ? pageIndex : 0;
         public int PageCount => showing ? current.pages.Length : 0;
@@ -165,6 +181,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             }
             instance = this;
             SkipInputSuppressed = false;
+            QueueHeld = false;
             Build();
         }
 
@@ -376,7 +393,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         {
             if (!showing)
             {
-                if (queue.Count > 0) Begin(queue.Dequeue());
+                if (queue.Count > 0 && !QueueHeld) Begin(queue.Dequeue());
                 return;
             }
 

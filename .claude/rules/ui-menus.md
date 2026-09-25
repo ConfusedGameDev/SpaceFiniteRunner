@@ -73,6 +73,16 @@ binding.
   gameplay frozen. Gamepad A carries no default at all — the dialogue box's advance and the
   cinema's skip read it over live gameplay (`MenuNavigator.DialogueAdvancePressed` /
   `ConfirmHeld`) — though a player may bind it.
+- **The duel's mash button is the FOURTH documented exception to "gameplay reads through the
+  table"** (the others being gamepad A above, the mouse for camera pan and touch steering). The
+  tug-of-war mash is **fixed and non-bindable**: `Key.X` and `PadControl.ButtonWest`, both in the
+  reserved sets, read raw by `DuelMashInput`. Two reasons. It cannot be A (the dialogue box and the
+  cinema skip already read A over live gameplay, and a duel can have a text box queued behind it),
+  and there is no pool to randomize over: of the face buttons only **X** is genuinely free — B is
+  `CarHandbrake` plus the menus' Back, Y is `CarRespawn`, A is read raw. Reserving them also means a
+  player can never end up mashing a button that steers. The FINISHER prompt is the opposite: it reads
+  the player's real `ShipDashLeft` / `ShipDashRight` bindings through `ControlBindings.PadFor` /
+  `KeyFor` and re-reads them on `ControlBindings.Changed`, because it IS a dash.
 - A control is unique inside its **context** (`BindingSection` Ship / Car / General): same section
   conflicts, General conflicts with everything, Ship and Car never — both steer on A/D, and M is
   the ship's dash-right AND the car's map.
@@ -200,6 +210,16 @@ developer pages in `Scripts/UI/DebugMenu.cs`: each tab is a normal compact-row `
   (`Data/Resources/FiniteRunner_FeatureDebug.asset`, applied onto the clones in `Generate`).
 - **Four ship tabs** (Speed / Handling / Dash / Hover — only when the menu was spawned with a
   `ShipMotor`) edit the motor's live `ShipDefinition` clone.
+- **Duel** (`DebugMenuFactory.BuildDuelTab`, only with a patrol) — the whole patrol-duel surface: the
+  attack run's overdrive / commit distance / interval / timeout, the flank and its hold, the abort
+  grace, the break-off and cooldown, the ground lookahead and abort window, the standoff and the
+  run's speed authority (`stationAccel`), the tug-of-war push and press value, the shove, the damage
+  pool and the three rear-ram windows, the escalation knobs and the kill respawn gap — plus four rows
+  that edit `GameSettings` LIVE rather than the patrol's clone (duel timescale, steer assist, the
+  finisher window, the hit-stop, the ram's speed cost, the armed window), because that asset is read
+  live and never cloned. **Every new `PatrolDefinition` row must also get a `-1` sentinel in
+  `PatrolDebugSettings`** or an armed debug asset silently stamps a made-up default over the authored
+  value — the same trap as the ship and track assets.
 - **Patrol** (only when the GameManager's patrol is initialized) edits the patrol's live
   `PatrolDefinition` clone.
 
