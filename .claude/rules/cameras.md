@@ -210,5 +210,7 @@ cannot coexist with a `CinemachineBrain`.
 `ShakeOnPad` (`Runner/CameraFX/`) listens to `ShipMotor.PadImpulse` and picks the boost/brake
 `CameraShakeSettings` asset; it no longer needs to sit on the camera.
 
-**The runner's `Main Camera` is a scene root with a runtime-added brain — never parent it under
+**The runner's `Main Camera` sits under `===CAMERAS===` with a runtime-added brain, beside
+`CameraController` (the rig), `FirstPersonCamera` and `CinematicCamera` — the rig finds those two
+BY NAME under its own parent, so the four move together and keep their names. Never parent it under
 the ship again.**

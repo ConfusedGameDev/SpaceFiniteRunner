@@ -108,7 +108,7 @@ carries the material so a driver created at play time finds it — and is re-rea
 
 **The driver is a hand-placed scene object, never spawned** (the project rule for every
 scene-lifetime system — they must be tunable before play). The runner scene carries a `SpeedLines`
-root object beside its `DistanceFog`, `RainSystem`, `CollectibleManager` and `MoneyHud` with the
+object under `===LIGHTING===/Filters` beside its `DistanceFog` and the other full-screen filters, with the
 material and asset wired; `SpeedLines.Apply(enabled, settings)` only **finds** it (an error when
 missing) and parks it when off.
 

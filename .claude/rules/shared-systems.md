@@ -118,8 +118,8 @@ generator destroys it with its stretch. **It records nothing itself.**
 
 ### `CollectibleManager` is the one recorder
 
-A hand-placed scene-lifetime system in BOTH scenes (a root object in `FiniteRunner_Test`, under
-`===SYSTEMS===` in `CarTest`). **`Instance` only finds it** and logs an error once when a scene has
+A hand-placed scene-lifetime system in BOTH scenes (under `===SYSTEMS===` in both
+`FiniteRunner_Test` and `CarTest`). **`Instance` only finds it** and logs an error once when a scene has
 none — it never creates.
 
 It subscribes `Collected` in `OnEnable`/`OnDisable`, calls `PlayerStats.RecordCollectible(id)` for

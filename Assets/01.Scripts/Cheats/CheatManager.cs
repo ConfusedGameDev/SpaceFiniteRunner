@@ -112,7 +112,12 @@ namespace ConfusedGameDev.FiniteRunner.Cheats
                 Destroy(instance.gameObject);
             }
             instance = this;
-            if (Application.isPlaying) DontDestroyOnLoad(gameObject);
+            // DontDestroyOnLoad only takes roots, and the placed copy sits under ===SYSTEMS===.
+            if (Application.isPlaying)
+            {
+                transform.SetParent(null, true);
+                DontDestroyOnLoad(gameObject);
+            }
 
         }
 

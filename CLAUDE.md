@@ -138,6 +138,11 @@ These hold everywhere. Break one and something else quietly stops working.
 - **Scene-lifetime systems are hand-placed**, under `===SYSTEMS===`, so they are tunable before
   play; code only ever find-or-parks them. Per-run objects are runtime-spawned, under runtime
   headers (`===PLAYER===`, `===NPC===`) that are forced back to the origin on every fetch.
+  Every scene-root header sits at the origin; the runner scene is `===SYSTEMS===`, `===PLAYER===`,
+  `===ENV===`, `===CAMERAS===`, `===UI===`, `===LIGHTING===` (full-screen filters under its
+  `Filters`). Each header and each object directly under it is a nested `PF_` prefab in
+  `03.Prefabs/FiniteRunner/`; the instances keep their scene names, since headers and the rig's
+  sibling cameras are found by name.
 - **Auto-created singletons** (`FloatingTextSystem`, `RpgMessageSystem`, `HapticsSystem`,
   `CheatManager`, `DebugManager`) follow one rule: a hand-placed instance always wins, because
   that is the copy carrying someone's inspector wiring.
