@@ -146,6 +146,11 @@ the pause menu's commit points.
 **Hull (`Ship/ShipHealth.cs`).** Rides the ship like `RespawnBlink` (`Ensure` + `Configure(settings,
 gameManager)` in `GameManager.Awake`, AFTER the run definition is set so the bar fills to the
 clone's `ShipDefinition.maxHull`; always added, it gates itself on `GameSettings.hullEnabled`).
+The one way back up is `Heal(fraction)` / `HealFromRepairOrb()` (`repairOrbHealFraction`, 15 %):
+clamped to full, raises `Healed`, and a no-op (returns 0 / false) at full hull, destroyed, or in an
+ending run. `ShipHealth.For(IShip)` finds the enabled hull of a ship (a static list kept in
+`OnEnable`/`OnDisable`, matched by `motor.Is`) — how a `RepairOrb` that only knows the `IShip`
+it hit finds what to heal; the patrol has none.
 Three sources, one `ApplyDamage`: `SpeedPad.Collected` with a negative delta (`brakePadDamage`),
 `ShipMotor.WallHit` — the dash slam / ramp side (`wallSlamDamage`) — and the polled
 `ShipMotor.IsTouchingWall` (`wallScrapeDamage`) — plus a laser beam (`laserDamage`, a fall's 30 by

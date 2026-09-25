@@ -45,7 +45,9 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 - **Hull and lives** (`GameSettings.hullEnabled`): the HUD's life bar sits under the speed wedge
   with a ×N lives count at its right end. Brake pads, hard wall hits (a dash slam, a ramp's side),
   plain wall contact, laser beams and falling off the track take hull points; every hit blinks the ship
-  invulnerable for a moment.
+  invulnerable for a moment. **Repair orbs** (a white cross in a translucent green sphere, as
+  frequent as green boost orbs) give back 15 % of the hull; at full hull they are ignored and
+  stay put, and the patrol never takes them.
   **Every failed run costs a life** — a fresh set (`startingLives`) each time the runner is
   entered, kept across retries. The run that takes the last one is **GAME OVER**: the banner says
   so, the panel has no retry (PRESS ANY BUTTON → the Store), and the mission is forfeited — the

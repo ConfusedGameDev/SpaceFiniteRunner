@@ -1277,7 +1277,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         // No prefab: a unit sphere (the green shell, the boost material tinted)
-        // round a white plus sign of two boxes, scaled to the orb.
+        // round a white 3D cross of three boxes, scaled to the orb.
         GameObject BuildRepairOrbPrimitive(Vector3 pos, Quaternion rot, float diameter)
         {
             var orb = new GameObject();
@@ -1291,14 +1291,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             Material shell = null, cross = null;
             if (Application.isPlaying && boostMaterial != null)
             {
-                repairShellMaterial ??= TintedCopy(boostMaterial, new Color(0.2f, 1f, 0.35f, 0.3f));
-                repairCrossMaterial ??= TintedCopy(boostMaterial, Color.white);
+                repairShellMaterial ??= Transparent(TintedCopy(boostMaterial, new Color(0.2f, 1f, 0.35f, 0.3f), 0.35f));
+                repairCrossMaterial ??= TintedCopy(boostMaterial, Color.white, 1.5f);
                 shell = repairShellMaterial;
                 cross = repairCrossMaterial;
             }
             AddPart(orb.transform, PrimitiveType.Sphere, Vector3.one, shell);
             AddPart(orb.transform, PrimitiveType.Cube, new Vector3(0.2f, 0.6f, 0.2f), cross);
             AddPart(orb.transform, PrimitiveType.Cube, new Vector3(0.6f, 0.2f, 0.2f), cross);
+            AddPart(orb.transform, PrimitiveType.Cube, new Vector3(0.2f, 0.2f, 0.6f), cross); // a third arm: the orb spins, so the cross reads from any side
             return orb;
 
             static void AddPart(Transform parent, PrimitiveType type, Vector3 scale, Material mat)
@@ -1310,12 +1311,34 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (mat != null) part.GetComponent<Renderer>().sharedMaterial = mat;
             }
 
-            static Material TintedCopy(Material source, Color color)
+            static Material TintedCopy(Material source, Color color, float glow)
             {
                 var mat = new Material(source);
                 if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
                 else mat.color = color;
-                if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", color);
+                if (mat.HasProperty("_EmissionColor"))
+                {
+                    mat.EnableKeyword("_EMISSION");
+                    mat.SetColor("_EmissionColor", new Color(color.r, color.g, color.b) * glow);
+                }
+                return mat;
+            }
+
+            // URP Lit/Unlit switched to an alpha-blended surface — what the
+            // Surface Type dropdown sets — so the cross shows through the shell.
+            static Material Transparent(Material mat)
+            {
+                if (!mat.HasProperty("_Surface")) return mat;
+                mat.SetFloat("_Surface", 1f);
+                mat.SetFloat("_Blend", 0f);
+                mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                mat.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
+                mat.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                mat.SetFloat("_ZWrite", 0f);
+                mat.SetOverrideTag("RenderType", "Transparent");
+                mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
                 return mat;
             }
         }

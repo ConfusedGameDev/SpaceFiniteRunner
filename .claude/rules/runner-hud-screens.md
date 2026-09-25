@@ -31,7 +31,9 @@ The runner's scene-wired HUD on the `RaceHUD` canvas object.
   pushed down by the bar's row, before the objective lines are stacked off the goal line. One
   colour for the whole bar (full → mid → low by `ShipHealth.Fraction`), cells rounded UP, a drop
   between frames = white flash + scale punch, a blink under `lifeLowFraction`; the count punches
-  when a life goes. Knobs are the "Life bar" header.
+  when a life goes. A `RepairOrb.Collected` = a `repairColor` (green) flash + the same punch and a
+  green "+N" hull-points popup — keyed on the orb, not on the fraction rising, since a restart
+  refills the bar too. Knobs are the "Life bar" header.
 - **Reached once is reached**: the LIGHT SPEED line turns `winColor` the frame
   `GameManager.LightSpeedReached` latches and stays so while the ship still has to make an end ramp.
 - **The distance left is NOT a HUD line** — it reads on top of the `ChaseMinimap` track map (see

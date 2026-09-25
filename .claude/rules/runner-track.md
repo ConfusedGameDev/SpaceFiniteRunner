@@ -294,6 +294,26 @@ Loop knobs (`radius`, `exitClearance`, `fallGravity`, `fallSpeedLoss`, gate colo
 `AddStat<T>`, and per-tube radius / band / curl through `FeatureDebugSettings.tubes`, matched by
 entry name.
 
+### Repair orbs (`Track/RepairOrb.cs`)
+
+The "Repair orbs" toggle group (`spawnRepairOrbs`, optional `repairOrbPrefab` modelled at 1 m
+across, `repairOrbRateFrom` = "Green", `repairOrbSize` as a share of the pad width). A stream of its
+own — `PlaceRepairOrbsUpTo`, after the pads, with its own cursor and `repairRng` (seeded off the
+layout rng's state like `laserRng`) — NOT a spawn-table entry: every `padSpacing` step rolls the
+named entry's normalized share, so repair orbs come exactly as often as green orbs while the
+table's shares, a seed's pad layout and the index-matched `TrackDebugSettings` snapshot stay as
+they were. Skips claimed ground and any spot within a pad length of a pad; lands in `spawned`
+and `padDistances` (coins keep off it). Off entirely while `GameManager.HullEnabled` is false.
+No prefab = a code-built orb: a transparent green shell (a `boostMaterial` copy switched to an
+alpha-blended surface) round a white emissive 3D cross of three boxes (one per axis — the orb spins).
+
+`RepairOrb` is an `IShipPickup` only — never a `SpeedPad`, never an `ITrackPickup` — so it stays
+out of the `PickupRegistry` and the patrol neither seeks nor takes it, and it raises no speed
+impulse. `PickUp` calls `ShipHealth.For(ship)?.HealFromRepairOrb()`; a full hull heals 0 and the
+orb is left in place (not used up). Taken, it raises the static
+`RepairOrb.Collected(orb, ship, healed)` (RaceHud green flash + "+N", ShipAudio green-orb clip,
+GameManager soft haptic) and deactivates.
+
 ### Collectibles streaming
 
 The "Collectibles" toggle group (`spawnCollectibles`, optional `collectiblePrefab`,
