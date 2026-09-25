@@ -13,16 +13,16 @@ MonoBehaviour:
   m_Name: FiniteRunner_ShipDebug
   m_EditorClassIdentifier: 
   applyOnLoad: 1
-  initialImpulse: 3.87
+  initialImpulse: 6
   passiveDeceleration: 9.8
   acceleration: -50.14
-  weight: 133.5
-  cruiseSpeed: -37.2
-  thrust: -8.92
+  weight: 133.3
+  cruiseSpeed: -37
+  thrust: -8
   brakeDecel: 3.94
   coastDrag: 32.6
   digitalThrottleRampSeconds: -1
-  gripBase: 2.38
+  gripBase: 2
   gripPerSpeed: -1
   slideThreshold: -1
   slideSpeedLoss: -1
@@ -30,11 +30,11 @@ MonoBehaviour:
   handlingResponse: 24.8
   maxBankAngle: 48.17
   bankResponse: 7
-  dashDistance: 20.7
-  dashDuration: 0.431
-  dashRechargeSeconds: 1.8
-  dashGhostCount: 6
-  barrelRollSeconds: 0.5
+  dashDistance: 13.700001
+  dashDuration: 0.28099996
+  dashRechargeSeconds: 0.45
+  dashGhostCount: 5
+  barrelRollSeconds: 0.45
   hoverHeight: 3.75
   bobAmplitude: 1.3999997
   bobFrequency: 4
