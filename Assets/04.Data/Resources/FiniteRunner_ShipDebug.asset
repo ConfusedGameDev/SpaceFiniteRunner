@@ -15,9 +15,9 @@ MonoBehaviour:
   applyOnLoad: 1
   initialImpulse: 6
   passiveDeceleration: 9.8
-  acceleration: -50.14
+  acceleration: -50
   weight: 133.3
-  cruiseSpeed: -37
+  cruiseSpeed: -11.6
   thrust: -8
   brakeDecel: 3.94
   coastDrag: 32.6
