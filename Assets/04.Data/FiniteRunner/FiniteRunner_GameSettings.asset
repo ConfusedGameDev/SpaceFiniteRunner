@@ -44,7 +44,7 @@ MonoBehaviour:
   finisherWindowSeconds: 1.5
   duelHitStopSeconds: 0.12
   patrolExplosionScale: 0.8
-  duelDebugReadout: 1
+  duelDebugReadout: 0
   duelTimeBlendSeconds: 0.15
   duelAssistStrength: 0.5
   duelBarColor: {r: 1, g: 0.32, b: 0.28, a: 1}
