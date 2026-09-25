@@ -103,6 +103,28 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         public bool Autopilot { get; set; }
 
+        /// <summary>
+        /// The guide lateral the <see cref="Autopilot"/> steers for, metres
+        /// right-positive. 0 (the default) is the lane's middle — the win's
+        /// fly-on. The patrol duel sets it to walk the locked ship sideways as
+        /// the tug of war goes the cruiser's way. Cleared by <see cref="Launch()"/>.
+        /// </summary>
+        public float AutopilotLateral { get; set; }
+
+        /// <summary>
+        /// How hard the <see cref="Autopilot"/> steers for its lateral: a
+        /// multiplier on the pull (1 = full lock at <c>AutopilotReach</c> metres
+        /// off). The patrol duel raises it so the tug of war's push moves the
+        /// ship sideways decisively rather than creeping. Reset by <see cref="Launch()"/>.
+        /// </summary>
+        public float AutopilotGain { get; set; } = 1f;
+
+        /// <summary>The player's brake input this tick, 0..1 — readable even while an autopilot ignores it (the patrol's overshoot is keyed on it).</summary>
+        public float BrakeInput => throttleInput != null ? throttleInput.Brake : 0f;
+
+        /// <summary>Throws away any dash the input has latched. Whoever hands control back after a lock calls it, so a press made during the lock is not a dash a frame later.</summary>
+        public void ConsumeDashRequest() => dashInput?.ConsumeDashRequest();
+
         /// <summary>Launch by itself on Start. A game that launches the ship from its own start line switches this off in Awake.</summary>
         public bool LaunchOnStart { get => launchOnStart; set => launchOnStart = value; }
 
@@ -248,6 +270,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             stallTimer = 0f;
             HasStopped = false;
             Autopilot = false;
+            AutopilotLateral = 0f;
+            AutopilotGain = 1f;
             bankAngle = 0f;
             dashInput?.ConsumeDashRequest(); // a press from before the launch is not a dash
             guideSearchTimer = 0f;           // a teleport: look for the level's guide at once
@@ -318,8 +342,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (Autopilot)
                 controls = new BodyControls
                 {
-                    // Guided, the stick strafes: a pull to the middle of the lane. (The body's guide sample is last tick's — a tick stale is nothing here.)
-                    steer = body.HasGuideSample ? Mathf.Clamp(-body.Guided.lateral / AutopilotReach, -1f, 1f) : 0f,
+                    // Guided, the stick strafes: a pull to the autopilot's lateral (the lane's middle by default). (The body's guide sample is last tick's — a tick stale is nothing here.)
+                    steer = body.HasGuideSample ? Mathf.Clamp((AutopilotLateral - body.Guided.lateral) / AutopilotReach * Mathf.Max(AutopilotGain, 0.01f), -1f, 1f) : 0f,
                     throttle = 1f,
                 };
             long started = System.Diagnostics.Stopwatch.GetTimestamp();

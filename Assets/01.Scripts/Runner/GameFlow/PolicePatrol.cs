@@ -8,6 +8,7 @@ using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Simulation;
 using ConfusedGameDev.FiniteRunner.Track;
 using ConfusedGameDev.FiniteRunner.Track.Features;
+using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>
@@ -36,19 +37,28 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     ///
     /// <b>The attack run</b> (<see cref="PatrolEncounter"/>, on
     /// <see cref="GameSettings.patrolDuelEnabled"/>): on a cadence the patrol
-    /// overdrives past the ship's speed, pulls onto a flank and shoves the
-    /// ship into the wall or off an open edge, then breaks off and cools down.
-    /// It never commits on a ramp, its landing, a loop, a tube or the final
-    /// run-up, and braking behind it or out-steering the flank aborts it.
+    /// overdrives past the ship's speed and pulls onto a flank while the camera
+    /// dollies in; alongside, it TAKES THE SHIP'S CONTROLS (the ship flies
+    /// itself, autopilot-style, to a lateral the exchange dictates) and the tug
+    /// of war opens — sparks grind between the two hulls and the ship is walked
+    /// toward the edge the cruiser chose as the bar goes its way. Lose the bar
+    /// and the shove finishes the job; win it and the cruiser peels out a
+    /// little, the kill prompt opens on its shoulder, and ONE PRESS destroys
+    /// it. Miss the press (or press the wrong shoulder) and it brakes hard,
+    /// falls away and cools down. It never commits on a ramp, its landing, a
+    /// loop, a tube or the final run-up, and out-steering the flank before the
+    /// lock aborts it.
     ///
-    /// <b>Ahead of the ship</b> it is an obstacle and a target: outside a run
-    /// it is allowed to overshoot (brake and it sails past), it drops back to
-    /// the ship's own speed rather than running away, and a fast, lined-up
-    /// arrival from behind is a <b>rear ram</b> — analytic, like everything else
-    /// here, since it still has no collider. A ram costs the SHIP speed and
-    /// takes a point off the cruiser's damage pool, which is how hard it pushes
-    /// in the tug of war. The pool never kills it: softening one up is
-    /// preparation for the exchange, not a second way to win it.
+    /// <b>Ahead of the ship</b> it is an obstacle and a target: BRAKE with it in
+    /// its standoff and it swerves to a flank and sails past on held speed
+    /// (<see cref="PatrolEncounterState.Overshooting"/>) before dropping back;
+    /// while ahead it drops back to the ship's own speed rather than running
+    /// away, and a fast, lined-up arrival from behind is a <b>rear ram</b> —
+    /// analytic, like everything else here, since it still has no collider. A
+    /// ram costs the SHIP speed and takes a point off the cruiser's damage
+    /// pool, which is how hard it pushes in the tug of war. The pool never
+    /// kills it: softening one up is preparation for the exchange, not a
+    /// second way to win it.
     ///
     /// <b>Catch</b>: tailing the ship inside the catch distance for
     /// <see cref="PatrolDefinition.sustainedCatchSeconds"/> is an arrest — the
@@ -64,7 +74,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// <see cref="Init"/>); all chase tunables live on its
     /// <see cref="PatrolDefinition"/> asset, cloned at init so the debug menu
     /// edits a live run and never the asset on disk. The cruiser visual is
-    /// still built from code — the scene object is just an empty holder.
+    /// built at init from <see cref="PatrolVisualSettings"/> (its model prefab,
+    /// else primitives) — the scene object is just an empty holder.
     /// </summary>
     public class PolicePatrol : MonoBehaviour
     {
@@ -109,12 +120,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float blinkTimer;
         bool blinkState;
 
+        float lastShipSpeed;  // the ship's speed last tick, for its acceleration (a brake pad's deceleration triggers the overshoot)
+        float shipAccel;      // the ship's forward acceleration this tick, m/s²
+        bool controlLocked;   // THIS patrol has the ship's controls; gates the release so it never switches off someone else's autopilot
+        DuelContactSparks sparks; // the tug of war's grinding sparks, under the root (the visual is switched off across a kill)
+
         Transform visual;
         GameObject redLight;
         GameObject blueLight;
 
         // Half width / half height of the cruiser's pickup volume, metres.
         static readonly Vector2 PickupReach = new(2.5f, 2.3f);
+
+        // Time constant of the ship-acceleration smoothing, seconds.
+        const float ShipAccelSmoothSeconds = 0.15f;
 
         // The two bodies' shared road. Inside this much lateral overlap they
         // are in one lane and may not occupy the same metre of it; outside it
@@ -192,11 +211,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (runtimeDef == null) return "duel: no definition";
             string line = $"{encounter.State} gap {SimGap:0} across {AcrossToShip():0} pool {damagePool}/{runtimeDef.damagePoolMax} tier {escalationTier} (x{TierScale:0.00})";
+            if (controlLocked) line += $" LOCK->{target.AutopilotLateral:0.0}";
             if (encounter.InTugOfWar) return $"{line} tug {encounter.Tug:0.00} side {encounter.Side}";
+            if (encounter.Overshooting) return $"{line} held {body.ForwardSpeed * 3.6f:0} km/h";
             if (encounter.State == PatrolEncounterState.Cruising)
-                return $"{line} | commit in {encounter.CommitIn(runtimeDef):0.0}s | reach {encounter.ReachWas:0} | ground {(encounter.GroundWasClear ? "CLEAR" : "BLOCKED")}";
+                return $"{line} | commit in {encounter.CommitIn(runtimeDef):0.0}s | reach {encounter.ReachWas:0} | ground {(encounter.GroundWasClear ? "CLEAR" : "BLOCKED")} | brake {target.BrakeInput:0.0} acc {shipAccel:0}";
             return line;
         }
+
+        /// <summary>
+        /// How far into a fight the picture should be, 0..1, for the duel camera
+        /// (<see cref="Cameras.OrbitCameraRig.SetDuelFraming"/>): the GameManager
+        /// pushes it every frame. 0 whenever there is nothing to frame.
+        /// </summary>
+        public float DuelCloseness => duelEnabled && !IsGone && !HasCaught ? encounter.DuelCloseness : 0f;
 
         /// <summary>
         /// The whole duel, on or off. Off restores the old chase exactly,
@@ -206,7 +234,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool DuelEnabled
         {
             get => duelEnabled;
-            set { duelEnabled = value; if (!value) encounter.Reset(); }
+            set
+            {
+                duelEnabled = value;
+                if (value) return;
+                encounter.Reset();
+                ReleaseControl(); // switched off mid-exchange, the player gets the ship back at once
+            }
         }
 
         /// <summary>
@@ -281,6 +315,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             Hold = hold;
             encounter.Reset(); // held or released, no run survives it
             DuelMashInput.Clear();
+            ReleaseControl();  // a ship off the road or waiting to relaunch is nobody's to steer
             if (target != null) target.SteerAssist = 0f;
             if (hold || target == null) return;
 
@@ -310,15 +345,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (this.target != null)
             {
                 this.target.PadImpulse -= OnShipImpulse;
-                this.target.DashPerformed -= OnShipDashed;
+                ReleaseControl();
             }
             this.target = target;
             armed = target != null ? target.GetComponent<ShipArmed>() : null;
-            if (target != null)
-            {
-                target.PadImpulse += OnShipImpulse;
-                target.DashPerformed += OnShipDashed; // the finisher IS a dash
-            }
+            // The kill is a PRESS read in Update, not the ship's dash: under the
+            // exchange's control lock the ship swallows every dash request, so a
+            // DashPerformed subscription here could never fire when it mattered.
+            if (target != null) target.PadImpulse += OnShipImpulse;
             track = FindFirstObjectByType<TrackManager>();
             generator = FindFirstObjectByType<TrackGenerator>();
 
@@ -340,6 +374,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             }
 
             BuildVisual();
+            // Under the ROOT, not the visual: the visual is switched off across
+            // a kill's teleport and the sparks must be free to die out on their own.
+            if (sparks == null)
+            {
+                GameSettings rules = target != null ? target.DashSettings : null;
+                sparks = DuelContactSparks.Create(transform, "DuelSparks", rules != null ? rules.duelBarColor : Color.white);
+            }
             Launch();
         }
 
@@ -385,10 +426,33 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (target != null)
             {
                 target.PadImpulse -= OnShipImpulse;
-                target.DashPerformed -= OnShipDashed;
-                target.SteerAssist = 0f; // never leave the ship being steered by a patrol that is gone
+                ReleaseControl();        // never leave the ship flying itself for a patrol that is gone
+                target.SteerAssist = 0f;
                 target.DashLocked = false;
             }
+            if (sparks != null) Kill(sparks.gameObject);
+        }
+
+        /// <summary>
+        /// Hands the ship back to the player. Idempotent, and gated on THIS
+        /// patrol holding the lock, so it can never switch off an autopilot
+        /// someone else (a future set piece) owns. Every path out of an
+        /// exchange ends here — the fixed tick's own exits, the frame-rate
+        /// safety net in <see cref="Update"/>, a kill, a hold, the duel being
+        /// switched off, destruction. The dash request latched during the lock
+        /// is thrown away too: the first press of a double-tap habit was the
+        /// kill, and the second must not dash a freed ship into the wall.
+        /// </summary>
+        void ReleaseControl()
+        {
+            if (sparks != null) sparks.Stop();
+            if (!controlLocked) return;
+            controlLocked = false;
+            if (target == null) return;
+            target.Autopilot = false;
+            target.AutopilotLateral = 0f;
+            target.AutopilotGain = 1f;
+            target.ConsumeDashRequest();
         }
 
         /// <summary>
@@ -451,14 +515,21 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         }
 
         /// <summary>
-        /// The ship dashed. During the finisher's window a dash INTO the patrol
-        /// is the kill; any other dash is an ordinary dash that simply spends
-        /// the window. Everything outside the window is none of our business.
+        /// The kill prompt's button, polled every FRAME (a press between two
+        /// fixed ticks must not be lost — the mash has the same rule): the
+        /// ship's own dash bindings, read raw, because under the control lock
+        /// the ship swallows the dash they would normally be. The shoulder on
+        /// the cruiser's side is the kill; the other one is a miss.
         /// </summary>
-        void OnShipDashed(int direction)
+        void PollFinisher()
         {
-            if (!duelEnabled || IsGone || HasCaught) return;
-            if (encounter.ReportDash(direction)) Kill(spendsDashMeter: true, raiseFloor: true);
+            if (!duelEnabled || IsGone || HasCaught || Hold || target.Paused || Time.timeScale <= 0f) return;
+            if (encounter.State != PatrolEncounterState.Finisher) return;
+            int press = ControlBindings.WasPressedThisFrame(GameAction.ShipDashRight) ? 1
+                      : ControlBindings.WasPressedThisFrame(GameAction.ShipDashLeft) ? -1 : 0;
+            if (press == 0) return;
+            // No dash meter charge: nothing was dashed. Escalation is the price.
+            if (encounter.ReportFinisherPress(press)) Kill(spendsDashMeter: false, raiseFloor: true);
         }
 
         /// <summary>
@@ -467,12 +538,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// patrol. There is only ever ONE cruiser — the "destroyed" one is this
         /// one, hidden across its own teleport so the replacement reads as a
         /// fresh car arriving rather than the same one blinking backwards.
-        /// <paramref name="spendsDashMeter"/> is the finisher's own price (the
-        /// kill IS a dash, so it costs the whole meter and the next patrol's
-        /// approach is faced without an evasive move) — a cruiser killed by the
-        /// ROAD never charges the player for it. <paramref name="raiseFloor"/>
-        /// is the escalation: earned kills make the next patrol faster, hazard
-        /// deaths do not, exactly as a patrol's fall does not.
+        /// <paramref name="spendsDashMeter"/> empties the dash meter — kept as a
+        /// price a caller MAY charge; the finisher's press no longer does, since
+        /// nothing was dashed. <paramref name="raiseFloor"/> is the escalation:
+        /// earned kills make the next patrol faster, hazard deaths do not,
+        /// exactly as a patrol's fall does not.
         /// </summary>
         void Kill(bool spendsDashMeter, bool raiseFloor)
         {
@@ -487,6 +557,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             CameraShake.Shake(rules != null ? rules.explosionShake : default);
             if (rules != null) DuelSlowMo.RequestHitStop(rules.duelHitStopSeconds);
             if (spendsDashMeter) target.DrainDashMeter();
+            ReleaseControl(); // the player has the ship back the frame the cruiser goes
             target.SteerAssist = 0f;
             target.DashLocked = false;
 
@@ -584,13 +655,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 if (killHideLeft <= 0f && visual != null && !IsGone) visual.gameObject.SetActive(true);
             }
 
-            // The contest holds the dash; the finisher hands it straight back.
+            // The exchange holds the dash for its whole length (the kill is a
+            // press now, not a dash).
             target.DashLocked = duelEnabled && encounter.LocksDash;
 
-            // The assist is written by the fixed tick, which stops running on
-            // a catch, a hold or a pause — so the release is owned here, where
-            // nothing can strand the ship being steered for it.
+            // The lock is taken by the fixed tick, which stops running on a
+            // catch, a hold or a pause — so the RELEASE is owned here, where
+            // nothing can strand the ship flying itself for an exchange that is
+            // over. The fixed tick releases too, on its own exits; this is the
+            // net under it.
+            bool lockAllowed = duelEnabled && encounter.ControlLocked
+                               && !HasCaught && !Hold && !IsGone && !target.HasLeftTrackEnd;
+            if (controlLocked && !lockAllowed) ReleaseControl();
+            if (!encounter.InTugOfWar && sparks != null) sparks.Stop();
             if (!encounter.InExchange && target.SteerAssist != 0f) target.SteerAssist = 0f;
+
+            PollFinisher();
 
             if (!HasCaught && !target.Paused && !Hold && !IsGone)
             {
@@ -624,6 +704,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             float dt = Time.fixedDeltaTime;
             GameSettings rules = target.DashSettings;
             int substeps = Mathf.Max(1, rules != null ? rules.simSubsteps : 1);
+
+            // The ship's acceleration over the tick (its HoverShip ticks first,
+            // so this is current): a brake pad's deceleration must overshoot the
+            // cruiser exactly as the brake pedal does. SMOOTHED over a few ticks:
+            // a single-tick drop (a wall scrape, an impulse blending in, a
+            // harness clamp) is hundreds of m/s² for one sample and must not read
+            // as braking; a real brake or pad holds the deceleration for longer.
+            float rawAccel = (target.CurrentSpeed - lastShipSpeed) / Mathf.Max(dt, 1e-5f);
+            lastShipSpeed = target.CurrentSpeed;
+            shipAccel = Mathf.Lerp(shipAccel, rawAccel, 1f - Mathf.Exp(-dt / ShipAccelSmoothSeconds));
 
             body.BeginTick();
             float h = dt / substeps;
@@ -664,7 +754,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                                      pendingPresses,
                                                      rules != null ? rules.finisherWindowSeconds : 1f,
                                                      PushScale, target.CurrentSpeed, body.ForwardSpeed,
-                                                     armed != null && armed.IsArmed, TierScale);
+                                                     armed != null && armed.IsArmed, TierScale,
+                                                     target.BrakeInput, shipAccel);
                 pendingPresses = 0;
                 encounter.Tick(dt, ctx, out intent);
                 // The window is the SHIP's, so the ship is what spends it: one
@@ -686,22 +777,37 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // is one-sided, so a negative gap passes it and the cruiser
             // re-matches the ship's speed instead of running off up the track.
             bool onTail = !shipLeft && gap <= runtimeDef.catchDistance;
-            if (onTail && !encounter.Engaged) desired = Mathf.Min(desired, target.CurrentSpeed);
+            if (onTail && !encounter.Engaged && !encounter.Overshooting) desired = Mathf.Min(desired, target.CurrentSpeed);
             // A committed run OWNS the speed: station keeping has to be able to
             // ask for slower as well as faster, and the redeploy floor (which
             // sits above the ship's speed) would otherwise drive the cruiser
             // straight past the flank it is holding.
+            // The multiplier is a closing RATE relative to the ship
+            // (`ApproachSpeed` builds it as 1 + closing / max(shipSpeed, 1)),
+            // so it is unpacked the same way: against a ship doing less than a
+            // metre a second the plain product collapsed every target to zero
+            // and a run could never close on a slow or stopped ship.
+            float relative = target.CurrentSpeed + (intent.SpeedMultiplier - 1f) * Mathf.Max(target.CurrentSpeed, 1f);
             if (intent.SpeedIsAbsolute)
-                desired = target.CurrentSpeed * intent.SpeedMultiplier;
+                desired = relative;
             // Otherwise: above 1 the multiplier is a FLOOR, below 1 a CAP (the
             // standoff and the back-off, which only ever need to push one way).
             else if (intent.SpeedMultiplier > 1f)
-                desired = Mathf.Max(desired, target.CurrentSpeed * intent.SpeedMultiplier);
+                desired = Mathf.Max(desired, relative);
             else if (intent.SpeedMultiplier < 1f)
-                desired = Mathf.Min(desired, target.CurrentSpeed * intent.SpeedMultiplier);
+                desired = Mathf.Min(desired, relative);
+            // The hunt: a floor in m/s that closes on the standoff when a run is due.
+            if (intent.MinSpeedMps.HasValue)
+                desired = Mathf.Max(desired, intent.MinSpeedMps.Value);
+            // A speed named OUTRIGHT (the overshoot's held speed, the miss
+            // brake's floor) is none of the ship's business at all.
+            if (intent.AbsoluteSpeedMps.HasValue)
+                desired = intent.AbsoluteSpeedMps.Value;
+            bool ownsSpeed = intent.SpeedIsAbsolute || intent.AbsoluteSpeedMps.HasValue;
 
             BodyControls controls = driver.Drive(body, target.Body, track, runtimeDef, gap, out float speedCap,
                                                  intent.LineOverride);
+            controls.brake = Mathf.Max(controls.brake, Mathf.Clamp01(intent.Brake)); // the miss brake: the body's own brake rate, not the cruise slew
             // The sweep's grip limit still wins: an attack run does not get to
             // slide off a flat curve the driver just braked for.
             desired = Mathf.Min(desired, speedCap);
@@ -718,7 +824,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // the approach asked for. While a run or the standoff owns the
             // speed, excess is taken off at once: it is holding a position, and
             // it has no use for a boost it cannot spend.
-            if (intent.SpeedIsAbsolute && body.ForwardSpeed > desired)
+            if (ownsSpeed && body.ForwardSpeed > desired)
                 body.ForwardSpeed = desired;
 
             // Whenever the encounter OWNS the speed it owns the rate too. The
@@ -756,6 +862,36 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (body.State == ShipState.OffTrack) return; // it fell: OnLeftTrack has already redeployed it (or the end took it)
             if (ConsumeLaserKill()) return;               // a beam took it: it is already hundreds of metres back
             if (shipLeft) return; // nothing left to judge against
+
+            // The control lock: the exchange names where the ship should be and
+            // the ship flies itself there — stick, throttle, brake and dash all
+            // the exchange's. Taken here, released the substep the exchange
+            // stops asking (so the shove lands on a ship the player has back),
+            // and by Update's safety net for everything that stops this tick.
+            if (duelEnabled && intent.ShipLateralTarget.HasValue && ShipSteady)
+            {
+                target.AutopilotLateral = intent.ShipLateralTarget.Value;
+                target.AutopilotGain = runtimeDef.tugPushGain; // the push's force, live off the clone so the debug row bites
+                if (!controlLocked)
+                {
+                    controlLocked = true;
+                    target.Autopilot = true;
+                }
+            }
+            else if (controlLocked) ReleaseControl();
+
+            // Sparks where the hulls grind: halfway between the two, at bumper
+            // height, streaming back along the road. Fed per substep; the
+            // emitter only reads the last write of the frame, which is fine.
+            if (intent.Contact && sparks != null)
+            {
+                float contactLateral = body.Lateral + (target.Body.Lateral - body.Lateral) * 0.5f;
+                track.GetPoseAtDistance(body.Distance, contactLateral, out Vector3 contact, out Quaternion contactRot);
+                contact += contactRot * (Vector3.up * (body.Height + 1f));
+                float intensity = 0.35f + 0.65f * Mathf.Clamp01(Mathf.Abs(encounter.Tug - 0.5f) * 2f);
+                sparks.SetContact(contact, contactRot * Vector3.forward, intensity);
+            }
+            else if (sparks != null) sparks.Stop();
 
             // Never THROUGH the ship — but the block is LATERAL, not absolute.
             // Two bodies cannot share one piece of road, so a cruiser
@@ -1077,9 +1213,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
         public void RebuildPreview() => BuildVisual();
 
-        // Cop cruiser built from primitives: dark hull, white cabin, two side
-        // skids and an alternating red/blue light bar. Materials and
-        // proportions come from the PatrolVisualSettings asset (hardcoded
+        // The cruiser: the visual settings' model prefab when one is assigned,
+        // else a cop car built from primitives (dark hull, white cabin, two
+        // side skids). Either way the alternating red/blue light bar is two
+        // code-built spheres, so Blink and the ram kick read on both. Materials
+        // and proportions come from the PatrolVisualSettings asset (hardcoded
         // fallbacks keep an unwired patrol working).
         void BuildVisual()
         {
@@ -1090,23 +1228,41 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             visual.SetParent(transform, false);
             visual.localScale = Vector3.one * (vs != null ? vs.overallScale : 1.6f);
 
-            Material bodyMat = vs != null && vs.bodyMaterial != null ? vs.bodyMaterial : MakeMaterial(new Color(0.08f, 0.09f, 0.14f));
-            Material trimMat = vs != null && vs.trimMaterial != null ? vs.trimMaterial : MakeMaterial(Color.white);
             Material redMat = vs != null && vs.redLightMaterial != null ? vs.redLightMaterial : MakeMaterial(new Color(1f, 0.1f, 0.1f), emissive: true);
             Material blueMat = vs != null && vs.blueLightMaterial != null ? vs.blueLightMaterial : MakeMaterial(new Color(0.25f, 0.45f, 1f), emissive: true);
-
-            Vector3 hullSize = vs != null ? vs.hullSize : new Vector3(3f, 0.9f, 6f);
-            Vector3 cabinPos = vs != null ? vs.cabinPosition : new Vector3(0f, 0.7f, -0.4f);
-            Vector3 cabinSize = vs != null ? vs.cabinSize : new Vector3(2f, 0.7f, 2.6f);
-            Vector3 skidPos = vs != null ? vs.skidPosition : new Vector3(1.8f, -0.1f, 0f);
-            Vector3 skidSize = vs != null ? vs.skidSize : new Vector3(0.6f, 0.5f, 4f);
             Vector3 lightPos = vs != null ? vs.lightPosition : new Vector3(0.55f, 1.35f, -0.4f);
             Vector3 lightScale = Vector3.one * (vs != null ? vs.lightDiameter : 0.7f);
 
-            AddPart(PrimitiveType.Cube, Vector3.zero, hullSize, bodyMat);
-            AddPart(PrimitiveType.Cube, cabinPos, cabinSize, trimMat);
-            AddPart(PrimitiveType.Cube, new Vector3(-skidPos.x, skidPos.y, skidPos.z), skidSize, bodyMat);
-            AddPart(PrimitiveType.Cube, skidPos, skidSize, bodyMat);
+            if (vs != null && vs.modelPrefab != null)
+            {
+                // The prefab's own transform is DISCARDED: one dragged out of a
+                // scene carries that scene's pose (the shipped car sits at
+                // (0.68, 7.35, -19.14), yawed -93°, at 2.69x). Every collider
+                // under it goes — the patrol never has one; the ship's queries
+                // would find it and the whole chase is analytic by design.
+                var model = Instantiate(vs.modelPrefab, visual);
+                model.name = "Model";
+                model.transform.localPosition = vs.modelLocalOffset;
+                model.transform.localRotation = Quaternion.Euler(0f, vs.modelYawOffset, 0f);
+                model.transform.localScale = Vector3.one * vs.modelScale;
+                foreach (var collider in model.GetComponentsInChildren<Collider>(true)) Kill(collider);
+            }
+            else
+            {
+                Material bodyMat = vs != null && vs.bodyMaterial != null ? vs.bodyMaterial : MakeMaterial(new Color(0.08f, 0.09f, 0.14f));
+                Material trimMat = vs != null && vs.trimMaterial != null ? vs.trimMaterial : MakeMaterial(Color.white);
+
+                Vector3 hullSize = vs != null ? vs.hullSize : new Vector3(3f, 0.9f, 6f);
+                Vector3 cabinPos = vs != null ? vs.cabinPosition : new Vector3(0f, 0.7f, -0.4f);
+                Vector3 cabinSize = vs != null ? vs.cabinSize : new Vector3(2f, 0.7f, 2.6f);
+                Vector3 skidPos = vs != null ? vs.skidPosition : new Vector3(1.8f, -0.1f, 0f);
+                Vector3 skidSize = vs != null ? vs.skidSize : new Vector3(0.6f, 0.5f, 4f);
+
+                AddPart(PrimitiveType.Cube, Vector3.zero, hullSize, bodyMat);
+                AddPart(PrimitiveType.Cube, cabinPos, cabinSize, trimMat);
+                AddPart(PrimitiveType.Cube, new Vector3(-skidPos.x, skidPos.y, skidPos.z), skidSize, bodyMat);
+                AddPart(PrimitiveType.Cube, skidPos, skidSize, bodyMat);
+            }
 
             redLight = AddPart(PrimitiveType.Sphere, new Vector3(-lightPos.x, lightPos.y, lightPos.z), lightScale, redMat);
             blueLight = AddPart(PrimitiveType.Sphere, lightPos, lightScale, blueMat);

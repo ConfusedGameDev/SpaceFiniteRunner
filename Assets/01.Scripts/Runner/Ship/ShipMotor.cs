@@ -130,6 +130,33 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             set { autopilot = value; if (physicsShip != null) physicsShip.Autopilot = value; }
         }
 
+        /// <summary>
+        /// The lateral the <see cref="Autopilot"/> steers for, metres
+        /// right-positive; 0 is the lane's middle. The patrol duel's control
+        /// lock walks the ship sideways with it. Cleared by <see cref="Launch"/>.
+        /// </summary>
+        public float AutopilotLateral
+        {
+            get => physicsShip != null ? physicsShip.AutopilotLateral : 0f;
+            set { if (physicsShip != null) physicsShip.AutopilotLateral = value; }
+        }
+
+        /// <summary>How hard the autopilot steers for its lateral (1 = the stock pull). The duel's push raises it. Reset by <see cref="Launch"/>.</summary>
+        public float AutopilotGain
+        {
+            get => physicsShip != null ? physicsShip.AutopilotGain : 1f;
+            set { if (physicsShip != null) physicsShip.AutopilotGain = value; }
+        }
+
+        /// <summary>The player's brake input, 0..1 — still readable while the autopilot ignores it. The patrol's overshoot is keyed on it.</summary>
+        public float BrakeInput => physicsShip != null ? physicsShip.BrakeInput : 0f;
+
+        /// <summary>Drops any dash the input has latched — called by whoever hands control back after a lock.</summary>
+        public void ConsumeDashRequest()
+        {
+            if (physicsShip != null) physicsShip.ConsumeDashRequest();
+        }
+
         /// <summary>Raised on every <see cref="State"/> change, after the new state is set.</summary>
         public event System.Action<ShipState> StateChanged;
 

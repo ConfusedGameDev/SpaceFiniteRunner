@@ -27,6 +27,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         BreakingOff,
         /// <summary>Barred from committing again until it expires.</summary>
         Cooldown,
+        /// <summary>The player braked with the cruiser in its standoff: it swerves to a flank and HOLDS its speed past the ship before dropping back. An ordinary chase beat, not an attack run.</summary>
+        Overshooting,
+        /// <summary>The player missed the kill prompt: the cruiser brakes hard and visibly falls away before the ordinary cooldown.</summary>
+        MissBraking,
     }
 
     /// <summary>Everything the encounter needs to read, gathered once per substep by the patrol.</summary>
@@ -66,13 +70,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// so one number makes a long run harder in both of D22's ways.
         /// </summary>
         public readonly float TierScale;
+        /// <summary>The player's brake input, 0..1. With the cruiser in its standoff, braking is what makes it overshoot.</summary>
+        public readonly float ShipBrake;
+        /// <summary>The ship's forward acceleration this tick, m/s² — negative when slowing. A brake pad slows the ship with no brake input, and must overshoot the cruiser the same way.</summary>
+        public readonly float ShipAccel;
 
         public PatrolEncounterContext(float gap, float across, float shipLateral, float shipDistance,
                                       PatrolDefinition def, TrackManager track, TrackGenerator generator,
                                       bool shipSteady, float unscaledDt, float assistStrength, int presses,
                                       float finisherWindowSeconds, float pushScale, float shipSpeed,
-                                      float patrolSpeed, bool shipArmed, float tierScale)
+                                      float patrolSpeed, bool shipArmed, float tierScale,
+                                      float shipBrake, float shipAccel)
         {
+            ShipBrake = shipBrake;
+            ShipAccel = shipAccel;
             TierScale = tierScale <= 0f ? 1f : tierScale;
             ShipArmed = shipArmed;
             ShipSpeed = shipSpeed;
@@ -127,6 +138,32 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool Shove;
         /// <summary>Steering to ADD to the player's own, -1..1. 0 = hands off.</summary>
         public float SteerAssist;
+        /// <summary>
+        /// The target speed OUTRIGHT, in m/s — not a multiple of the ship's,
+        /// not floored, not capped. The overshoot holds the speed the cruiser
+        /// had when the player braked (a multiple of the ship's would follow
+        /// the ship down, which is the exact thing that stopped it passing);
+        /// the miss brake's floor is one too.
+        /// </summary>
+        public float? AbsoluteSpeedMps;
+        /// <summary>Brake to add to the driver's own, 0..1: the miss brake decelerates at the body's brake rate, not the cruise slew.</summary>
+        public float Brake;
+        /// <summary>
+        /// A FLOOR on the target speed in m/s — the hunt. When a run is due the
+        /// cruiser closes on its standoff from wherever it is at the run's own
+        /// closing rate, instead of waiting for the conservative cruise band
+        /// (which targets BELOW the ship) to never get there.
+        /// </summary>
+        public float? MinSpeedMps;
+        /// <summary>
+        /// The control lock: while set the ship flies itself to this guide
+        /// lateral and the player's stick, throttle, brake and dash are all
+        /// ignored. The tug of war walks it toward the edge the cruiser chose;
+        /// the finisher holds it. Null = the player has the ship.
+        /// </summary>
+        public float? ShipLateralTarget;
+        /// <summary>The two hulls are grinding this substep: sparks between them.</summary>
+        public bool Contact;
     }
 
     /// <summary>
@@ -179,8 +216,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>True while the bar is up and being fought over.</summary>
         public bool InTugOfWar => State == PatrolEncounterState.TugOfWar;
 
-        /// <summary>True while the exchange owns the world clock and the ship's steering.</summary>
+        /// <summary>True while the exchange owns the world clock and the ship's controls.</summary>
         public bool InExchange => State is PatrolEncounterState.TugOfWar or PatrolEncounterState.Finisher;
+
+        /// <summary>True while the ship's controls belong to the exchange — the tug of war and the kill prompt, one continuous lock.</summary>
+        public bool ControlLocked => InExchange;
+
+        /// <summary>The cruiser is sailing past a braking ship on held speed.</summary>
+        public bool Overshooting => State == PatrolEncounterState.Overshooting;
+
+        /// <summary>
+        /// How far into a fight the picture should be, 0..1, for the duel
+        /// camera: rising as a committed run closes the gap, 1 through the
+        /// flank hold, the contest and the kill prompt, 0 for everything else
+        /// (the rig eases it home itself).
+        /// </summary>
+        public float DuelCloseness { get; private set; }
 
         /// <summary>The last answer the forbidden-ground test gave — for the debug readout.</summary>
         public bool GroundWasClear => groundClear;
@@ -223,12 +274,30 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // question. It starts every contest at dead centre.
         float tug;
 
-        /// <summary>True from the first overdrive to the last frame of the break-off: the run owns the patrol.</summary>
+        float overshootSpeed;    // m/s the cruiser had when the player braked — what it holds while sailing past
+        int laneClearSide;       // the flank a cruiser AHEAD of the ship keeps to while it drops back behind (0 = none)
+        float pushStartLateral;  // the ship's lateral when the contest opened — what the push is measured from
+        float finisherLateral;   // where the push left the ship — held there through the kill prompt
+        float finisherTimer;     // REAL seconds the prompt has been open (the world is at 30 %, the window is not)
+
+        // Room the push leaves between the ship and the lane's edge at a full
+        // bar. Over an open edge the fall clock starts past the edge; over a
+        // wall it is the wall. Either way the bar must not finish the job the
+        // SHOVE exists for.
+        const float PushEdgeClearance = 2.5f;
+
+        /// <summary>
+        /// True from the first overdrive to the last frame of the wind-down:
+        /// the run owns the patrol. The miss brake is a wind-down like the
+        /// break-off (the arrest stays suspended, the story queue held); the
+        /// overshoot is NOT engaged — it is an ordinary chase beat.
+        /// </summary>
         public bool Engaged => State is PatrolEncounterState.Committing
                                      or PatrolEncounterState.Alongside
                                      or PatrolEncounterState.TugOfWar
                                      or PatrolEncounterState.Finisher
-                                     or PatrolEncounterState.BreakingOff;
+                                     or PatrolEncounterState.BreakingOff
+                                     or PatrolEncounterState.MissBraking;
 
         /// <summary>
         /// The tail-time arrest does not run for the whole duel cycle —
@@ -239,7 +308,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// it takes a few seconds to open the gap again even while backing off.
         /// The arrest is for a patrol tailing you OUTSIDE all of that.
         /// </summary>
-        public bool SuspendsArrest => Engaged || State == PatrolEncounterState.Cooldown;
+        public bool SuspendsArrest => Engaged
+                                      || State is PatrolEncounterState.Cooldown or PatrolEncounterState.Overshooting; // a cruiser sailing past is not tailing
 
         /// <summary>
         /// Back to an ordinary chase with the cadence restarted. Every path
@@ -253,39 +323,45 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             stateTimer = 0f;
             commitTimer = 0f;
             outsideTimer = 0f;
+            tug = 0.5f;
+            overshootSpeed = 0f;
+            laneClearSide = 0;
+            pushStartLateral = 0f;
+            finisherLateral = 0f;
+            finisherTimer = 0f;
+            DuelCloseness = 0f;
             groundTestedAt = float.NegativeInfinity;
             groundTestedFor = -1f;
         }
 
         /// <summary>
-        /// The contest takes the dash away — it is not an escape from the bar —
-        /// and the finisher hands it straight back, because the finisher IS a
-        /// dash. Nothing else in the cycle touches it.
+        /// The exchange takes the dash away for its whole length — the contest
+        /// AND the kill prompt, since the kill is a press, not a dash. The
+        /// control lock already swallows it; this is the named gate on top.
         /// </summary>
-        public bool LocksDash => State == PatrolEncounterState.TugOfWar;
+        public bool LocksDash => InExchange;
 
         /// <summary>
-        /// The ship just dashed, in the given direction (-1 left, +1 right).
-        /// Returns true when that was the kill: the finisher was open and the
-        /// dash went INTO the patrol. A dash the wrong way is an ordinary dash
-        /// with ordinary consequences, and it ends the window either way —
-        /// there is one swing, not a retry.
+        /// The player pressed a dash shoulder (-1 left, +1 right) while the
+        /// kill prompt was open. Returns true when it was the kill — the
+        /// shoulder on the cruiser's side. The WRONG shoulder is a miss, and a
+        /// miss sends the cruiser into its hard brake: one swing, no retry.
         /// </summary>
-        public bool ReportDash(int direction)
+        public bool ReportFinisherPress(int direction)
         {
             if (State != PatrolEncounterState.Finisher || direction == 0) return false;
             bool killed = direction == Side;
-            // Either way the window is spent. On a kill the recycle resets the
-            // whole encounter a moment later anyway; this just makes sure a
-            // miss cannot leave the prompt hanging.
-            Enter(PatrolEncounterState.BreakingOff);
+            // On a kill the recycle resets the whole encounter a moment later
+            // anyway; a miss goes into the brake so the prompt never hangs.
+            Enter(killed ? PatrolEncounterState.BreakingOff : PatrolEncounterState.MissBraking);
             return killed;
         }
 
-        /// <summary>Ends a run in progress without a shove; the cooldown still applies.</summary>
+        /// <summary>Ends a run in progress without a shove; the cooldown still applies. An overshoot in progress drops straight back.</summary>
         public void Abort()
         {
             if (Engaged) Enter(PatrolEncounterState.BreakingOff);
+            else if (State == PatrolEncounterState.Overshooting) Enter(PatrolEncounterState.Cooldown);
         }
 
         /// <summary>
@@ -324,11 +400,51 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // The trigger has to allow for BRAKING DISTANCE, not just the
             // standoff: a cruiser closing at +150 m/s needs ~190 m to shed it,
             // and 45 m of standoff cannot absorb that however hard it brakes.
-            if (!Engaged && ctx.Gap - def.standoffDistance <= BrakingDistance(ctx))
+            // An overshoot in progress owns the speed outright: the standoff
+            // would re-match the ship the same substep and the pass never happens.
+            if (!Engaged && State != PatrolEncounterState.Overshooting
+                && ctx.Gap - def.standoffDistance <= BrakingDistance(ctx))
             {
                 intent.SpeedMultiplier = ApproachSpeed(ctx, def.standoffDistance);
                 intent.SpeedIsAbsolute = true;
                 intent.HighAuthority = true;
+            }
+
+            // The overshoot: with the cruiser sitting in its standoff, the
+            // player BRAKING is answered by the cruiser swerving to a flank and
+            // holding the speed it had — it sails past, and for a couple of
+            // seconds it is ahead of the ship, an obstacle and a ram target.
+            // Without this the absolute standoff clamp follows the ship's speed
+            // down within a substep and the cruiser just brakes with it.
+            // A cruiser AHEAD of (or level with) the ship that wants to be
+            // behind it keeps to a flank until it is. Left to the driver it
+            // steers for the ship's own lateral — INTO the ship's lane — and
+            // the lane clamp then shunts it along a metre off the ship's nose
+            // for ever, slower than the ship yet never falling back. Measured:
+            // a whole run glued at gap 0. Out on a flank the two are side by
+            // side, nothing is clamped, and the ship simply passes it. The side
+            // is the one it overshot on, else whichever it is already nearer.
+            if (State is PatrolEncounterState.Cruising or PatrolEncounterState.Cooldown)
+            {
+                if (ctx.Gap < def.alongsideDistance)
+                {
+                    if (laneClearSide == 0) laneClearSide = ctx.Across > 0f ? -1 : 1;
+                    intent.LineOverride = FlankLine(ctx, laneClearSide);
+                }
+                else laneClearSide = 0;
+            }
+
+            if (State is PatrolEncounterState.Cruising or PatrolEncounterState.Cooldown
+                && ctx.Gap > 0f && ctx.Gap <= def.standoffDistance + def.overshootTriggerMargin
+                && ctx.ShipSteady
+                && ctx.PatrolSpeed > ctx.ShipSpeed * 0.9f
+                && ((def.overshootBrakeThreshold > 0f && ctx.ShipBrake >= def.overshootBrakeThreshold)
+                    || (def.overshootDecelThreshold > 0f && ctx.ShipAccel <= -def.overshootDecelThreshold)))
+            {
+                overshootSpeed = Mathf.Max(ctx.PatrolSpeed, ctx.ShipSpeed);
+                Side = PickSide(ctx);
+                laneClearSide = Side; // and it stays on that flank while it drops back afterwards
+                Enter(PatrolEncounterState.Overshooting);
             }
 
             switch (State)
@@ -336,7 +452,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 case PatrolEncounterState.Cruising:
                     ReachWas = CommitReach(ctx);
                     intervalWas = def.commitIntervalSeconds / ctx.TierScale;
-                    if (commitTimer >= intervalWas
+                    bool due = commitTimer >= intervalWas;
+                    // THE HUNT. The cruise band targets below the ship's speed
+                    // on purpose (a boost has to buy breathing room), so on its
+                    // own it never brings the cruiser back to the standoff once
+                    // the gap has opened — at 40 m/s it sat 170 m back with the
+                    // commit gate open for ever, because the run can only start
+                    // from inside its reach. So once a run is DUE the cruiser
+                    // closes on the standoff from wherever it is, at the run's
+                    // own closing rate (a floor, so a boost still out-runs it),
+                    // and only then does the standoff's absolute profile take
+                    // over and hold it there for the commit.
+                    if (due && !intent.SpeedIsAbsolute && ctx.Gap > def.standoffDistance)
+                    {
+                        float toGo = ctx.Gap - def.standoffDistance;
+                        float able = Mathf.Sqrt(2f * Authority(ctx) * ApproachSafety * toGo);
+                        intent.MinSpeedMps = ctx.ShipSpeed + Mathf.Min(able, Closing(ctx));
+                        intent.HighAuthority = true;
+                    }
+                    if (due
                         && ctx.Gap > 0f && ctx.Gap <= ReachWas
                         && ctx.ShipSteady
                         && ClearToStart(ctx))
@@ -410,22 +544,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                             break;
                         }
                         tug = 0.5f;
+                        pushStartLateral = ctx.ShipLateral; // the push is measured from where the ship was caught
                         DuelMashInput.Clear(); // presses made before the bar existed do not count
                         Enter(PatrolEncounterState.TugOfWar);
                     }
                     break;
 
                 case PatrolEncounterState.TugOfWar:
-                    // Breaking the geometry still ends it, and still for free:
-                    // the bar is the contest, but the road is the stake, and
-                    // getting off the flank is a legitimate answer to both.
+                    // The ship is LOCKED for the contest — stick, throttle,
+                    // brake and dash all taken — so the only aborts left are
+                    // the road's: the ground going bad, the ship leaving it, or
+                    // the cruiser's own station keeping slipping behind.
                     if (!ctx.ShipSteady || !ClearToContinue(ctx) || ShipGotPast(ctx))
-                    {
-                        Enter(PatrolEncounterState.BreakingOff);
-                        break;
-                    }
-                    outsideTimer = Mathf.Abs(ctx.Across) > def.alongsideLateral ? outsideTimer + dt : 0f;
-                    if (outsideTimer >= def.abortGraceSeconds)
                     {
                         Enter(PatrolEncounterState.BreakingOff);
                         break;
@@ -434,8 +564,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     intent.SpeedMultiplier = ApproachSpeed(ctx, FlankStationMeters);
                     intent.SpeedIsAbsolute = true;
                     intent.HighAuthority = true;
-                    intent.LineOverride = FlankLine(ctx, Side);
-                    intent.SteerAssist = Assist(ctx);
+                    intent.LineOverride = FlankLine(ctx, Side); // ship-relative: glued to the pushed ship, in contact
+                    intent.Contact = Mathf.Abs(ctx.Across) <= def.flankOffsetMeters + 3f;
 
                     // REAL seconds, both sides of it. The world is at 30% for
                     // the look of the thing; if the bar rode the same clock the
@@ -448,37 +578,77 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     if (ctx.Presses > 0) tug -= def.tugPressValue * ctx.Presses;
                     tug = Mathf.Clamp01(tug);
 
+                    // The bar is the contest AND the ship's position: as it goes
+                    // the cruiser's way the locked ship is walked toward the edge
+                    // the cruiser chose, across a share of the room it has —
+                    // never the whole room, so the bar can never drop the ship by
+                    // itself. A full bar leaves it at the brink for the shove.
+                    intent.ShipLateralTarget = PushTarget(ctx);
+
                     if (tug >= 1f)
                     {
                         // The patrol wins: the bar bottoming out is a shove on
                         // the REAL ship, in the direction it was going. The bar
-                        // was never the stake by itself.
+                        // was never the stake by itself. The lock drops with the
+                        // state, so the slam lands on a ship the player has back.
+                        intent.ShipLateralTarget = null;
                         intent.Shove = true;
                         Enter(PatrolEncounterState.BreakingOff);
                     }
                     else if (tug <= 0f)
                     {
-                        // The player wins: the kill window opens. Slow-mo and
-                        // assist carry straight through it (D33) so contest,
-                        // prompt and kill read as one authored beat rather
-                        // than three events.
+                        // The player wins: the two separate a little and the kill
+                        // prompt opens. Slow-mo and the lock carry straight
+                        // through (D33) so contest, prompt and kill read as one
+                        // authored beat rather than three events.
+                        finisherLateral = ctx.ShipLateral;
+                        finisherTimer = 0f;
                         Enter(PatrolEncounterState.Finisher);
                     }
                     break;
 
                 case PatrolEncounterState.Finisher:
-                    // Missable, and missing it costs nothing: you won the
-                    // contest, you keep your hull, you just do not get the
-                    // kill. Only the clock ends it — the geometry checks are
-                    // gone on purpose, because a window this short should not
-                    // be snatched away by a ramp coming into view.
+                    // The cruiser peels out by the separation, the ship is held
+                    // where the push left it, and the button decides it. Only
+                    // the clock ends it otherwise — the geometry checks are gone
+                    // on purpose, because a window this short should not be
+                    // snatched away by a ramp coming into view. The window is
+                    // REAL seconds: the world is at 30 % and a scaled second here
+                    // was three real ones.
                     intent.SpeedMultiplier = ApproachSpeed(ctx, FlankStationMeters);
                     intent.SpeedIsAbsolute = true;
                     intent.HighAuthority = true;
+                    intent.LineOverride = ctx.ShipLateral + Side * (def.flankOffsetMeters + def.finisherSeparationMeters);
+                    intent.ShipLateralTarget = finisherLateral;
+                    finisherTimer += ctx.UnscaledDt;
+                    if (finisherTimer >= ctx.FinisherWindowSeconds)
+                        Enter(PatrolEncounterState.MissBraking);
+                    break;
+
+                case PatrolEncounterState.Overshooting:
+                    // Held speed, the flank line so it clears the lane clamp,
+                    // and no reading of the gap: the hold IS the sail-past.
+                    // When it is over the cooldown's approach drops the cruiser
+                    // back behind the ship into its standoff.
+                    intent.AbsoluteSpeedMps = overshootSpeed;
+                    intent.HighAuthority = true;
                     intent.LineOverride = FlankLine(ctx, Side);
-                    intent.SteerAssist = Assist(ctx);
-                    if (stateTimer >= ctx.FinisherWindowSeconds)
-                        Enter(PatrolEncounterState.BreakingOff);
+                    if (stateTimer >= def.overshootHoldSeconds || !ctx.ShipSteady)
+                        Enter(PatrolEncounterState.Cooldown);
+                    break;
+
+                case PatrolEncounterState.MissBraking:
+                    // The player fumbled the kill: the cruiser brakes HARD and
+                    // falls visibly away, then cools down like any other
+                    // wind-down. The floor is a share of the ship's speed, so
+                    // it drops back rather than stopping dead in the lane.
+                    {
+                        float floor = ctx.ShipSpeed * def.finisherMissBrakeSpeedFactor;
+                        intent.AbsoluteSpeedMps = floor;
+                        intent.Brake = ctx.PatrolSpeed > floor ? 1f : 0f;
+                        intent.HighAuthority = true;
+                        if (stateTimer >= def.finisherMissBrakeSeconds) Enter(PatrolEncounterState.Cooldown);
+                    }
                     break;
 
                 // Backing off is ACTIVE: the patrol drives below the ship's
@@ -505,6 +675,53 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     if (stateTimer >= def.attackRunCooldownSeconds) Enter(PatrolEncounterState.Cruising);
                     break;
             }
+
+            DuelCloseness = ClosenessNow(ctx);
+        }
+
+        /// <summary>
+        /// The duel camera's drive: 0 for the chase, rising as a committed run
+        /// closes from where it started to the alongside gap, 1 through the
+        /// flank hold, the contest and the prompt, and 0 again the moment the
+        /// exchange is over (the rig eases the picture home itself).
+        /// </summary>
+        float ClosenessNow(in PatrolEncounterContext ctx)
+        {
+            switch (State)
+            {
+                case PatrolEncounterState.Committing:
+                {
+                    float span = Mathf.Max(commitGap - ctx.Def.alongsideDistance, 1f);
+                    return 1f - Mathf.Clamp01((ctx.Gap - ctx.Def.alongsideDistance) / span);
+                }
+                case PatrolEncounterState.Alongside:
+                case PatrolEncounterState.TugOfWar:
+                case PatrolEncounterState.Finisher:
+                    return 1f;
+                default:
+                    return 0f;
+            }
+        }
+
+        /// <summary>
+        /// Where the locked ship should be this substep: its lateral when the
+        /// contest opened, walked AWAY from the cruiser by the bar's excess over
+        /// centre across <see cref="PatrolDefinition.tugPushFraction"/> of the
+        /// room to that side's lane edge (less a clearance). A bar the player is
+        /// winning leaves the ship where it was — the ship is pushed, never pulled.
+        /// </summary>
+        float PushTarget(in PatrolEncounterContext ctx)
+        {
+            int away = -Side; // the cruiser on the right (+1) pushes the ship left
+            float room = 0f;
+            if (ctx.Track != null && away != 0)
+            {
+                ctx.Track.GetLateralBand(ctx.ShipDistance, out float min, out float max);
+                room = away > 0 ? max - pushStartLateral : pushStartLateral - min;
+                room = Mathf.Max(0f, room - PushEdgeClearance);
+            }
+            float drive = Mathf.Max(0f, (tug - 0.5f) * 2f);
+            return pushStartLateral + away * room * ctx.Def.tugPushFraction * drive;
         }
 
         void Enter(PatrolEncounterState next)
@@ -512,10 +729,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             State = next;
             stateTimer = 0f;
             outsideTimer = 0f;
-            if (next is PatrolEncounterState.Cruising or PatrolEncounterState.Cooldown) Side = 0;
+            if (next is PatrolEncounterState.Cruising or PatrolEncounterState.Cooldown)
+            {
+                Side = 0;
+                overshootSpeed = 0f;
+                pushStartLateral = 0f;
+                finisherLateral = 0f;
+                finisherTimer = 0f;
+            }
             // The cadence counts from the END of a run, not the start of one,
-            // so a long exchange does not immediately earn another.
-            if (next == PatrolEncounterState.BreakingOff) commitTimer = 0f;
+            // so a long exchange does not immediately earn another. Both
+            // wind-downs end a run.
+            if (next is PatrolEncounterState.BreakingOff or PatrolEncounterState.MissBraking) commitTimer = 0f;
         }
 
         // The road the exchange would play out on: ahead of the SHIP, because
@@ -573,9 +798,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         float Escaped(in PatrolEncounterContext ctx)
         {
-            float closing = Mathf.Max(1f, ctx.ShipSpeed * (ctx.Def.attackRunOverdrive - 1f));
+            float closing = Closing(ctx);
             return Mathf.Max(ctx.Def.commitFromDistance, commitGap + closing * CommitEscapeSeconds);
         }
+
+        /// <summary>
+        /// The overdrive's closing rate, m/s: a share of the SHIP's speed,
+        /// floored by <see cref="PatrolDefinition.minClosingSpeed"/>. The floor
+        /// is what lets a run happen at all against a slow or stopped ship —
+        /// every speed the cruiser drives is a multiple of the ship's, so
+        /// without it the reach shrank to nothing below ~100 km/h and the
+        /// cruiser sat in its standoff for ever, never attacking.
+        /// </summary>
+        static float Closing(in PatrolEncounterContext ctx) =>
+            Mathf.Max(1f, ctx.ShipSpeed * (ctx.Def.attackRunOverdrive - 1f), ctx.Def.minClosingSpeed);
 
         /// <summary>
         /// The furthest gap a run could actually be FINISHED from. The overdrive
@@ -593,9 +829,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         static float CommitReach(in PatrolEncounterContext ctx)
         {
             PatrolDefinition def = ctx.Def;
-            float closing = Mathf.Max(1f, ctx.ShipSpeed * (def.attackRunOverdrive - 1f));
             return Mathf.Min(def.commitFromDistance,
-                             closing * def.commitTimeoutSeconds * CommitReachSafety);
+                             Closing(ctx) * def.commitTimeoutSeconds * CommitReachSafety);
         }
 
         /// <summary>
@@ -667,7 +902,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             float toGo = ctx.Gap - station;                 // + still behind it, - past it
             // The fastest approach that can still come to rest in what is left.
             float able = Mathf.Sqrt(2f * Authority(ctx) * ApproachSafety * Mathf.Abs(toGo));
-            float cap = ctx.ShipSpeed * Mathf.Max(0f, ctx.Def.attackRunOverdrive - 1f);
+            float cap = Closing(ctx);
             float closing = Mathf.Sign(toGo) * Mathf.Min(able, cap);
             return 1f + closing / Mathf.Max(ctx.ShipSpeed, 1f);
         }
@@ -692,25 +927,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // one that resolves itself while the player watches — the mash still
         // has to be the thing that wins it.
         const float MinPushScale = 0.15f;
-
-        /// <summary>
-        /// The soft assist (added to the player's steering, never a takeover).
-        /// It wants the middle of the road, which is also the answer to the
-        /// open edge the patrol deliberately parked you next to — so one pull
-        /// covers both jobs. Scaled by the strength on GameSettings; at full
-        /// authority it still loses to a player steering the other way,
-        /// because it is one term in a sum and theirs is the other.
-        /// </summary>
-        static float Assist(in PatrolEncounterContext ctx)
-        {
-            if (ctx.Track == null || ctx.AssistStrength <= 0f) return 0f;
-            ctx.Track.GetLateralBand(ctx.ShipDistance, out float min, out float max);
-            float centre = (min + max) * 0.5f;
-            float half = Mathf.Max((max - min) * 0.5f, 1f);
-            // Proportional to how far out the ship is, so the middle of the
-            // road is left alone and the edge is pulled at hardest.
-            return Mathf.Clamp((centre - ctx.ShipLateral) / half, -1f, 1f) * ctx.AssistStrength;
-        }
 
         // The flank it drives for: beside the ship, not behind it. Lateral is
         // right-positive, so the right flank (+1) is the higher lateral.

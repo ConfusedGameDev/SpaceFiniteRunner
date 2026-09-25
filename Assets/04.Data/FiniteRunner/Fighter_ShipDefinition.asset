@@ -34,6 +34,7 @@ MonoBehaviour:
   dashGhostCount: 6
   barrelRollSeconds: 0.5
   weight: 0.57
+  maxHull: 300
   jumpStrength: 1
   hoverHeight: 3.5
   bobAmplitude: 0.35

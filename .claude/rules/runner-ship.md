@@ -572,8 +572,81 @@ minimap range, redeploy) stay on `GameSettings`.
   the "Patrol N inbound" line, `GameSettings.patrolInboundMessage`, only while `showPatrolAlert`
   is on, which it is not by default) at `patrolRedeploySpeedFactor` × the ship's current speed,
   and that speed becomes the rubber band's new floor. **One object, never a growing fleet.**
-- Its cruiser visual (hull, cabin, alternating red/blue lights) is built from primitives in code;
-  colliders are stripped so it can't trip pad triggers.
+- **The cinematic duel** (2026-09-25, `PoliceChaseImprovement.md`; PRD D35–D41). Everything is
+  decided in `PatrolEncounter.Tick` and expressed through `PatrolEncounterIntent`; `PolicePatrol.Step`
+  applies it and `PolicePatrol.Update` owns every RELEASE (it runs while paused / caught / held).
+  - **Overshoot** (`PatrolEncounterState.Overshooting`, appended): with the cruiser in its standoff
+    (`Gap <= standoffDistance + overshootTriggerMargin`, from `Cruising` or `Cooldown`) the player
+    braking (`ShipMotor.BrakeInput >= overshootBrakeThreshold`, or the ship decelerating past
+    `overshootDecelThreshold` — a brake pad) swerves it to a flank (`FlankLine`, 7 m, which clears the
+    5 m lane clamp) and HOLDS the speed it had (`intent.AbsoluteSpeedMps` — a target in m/s outright,
+    which is what lets it pass: `SpeedIsAbsolute` clamps the actual speed to a multiple of the ship's
+    every substep, and that clamp followed a braking ship down) for `overshootHoldSeconds`, then
+    `Cooldown`'s approach drops it back behind. Not `Engaged` (no RPG hold, cadence untouched) but it
+    does suspend the arrest; the standoff block and the `onTail` cap skip it.
+  - **Control lock**: `TugOfWar` and `Finisher` set `intent.ShipLateralTarget`; the patrol answers
+    with `ShipMotor.Autopilot = true` + `AutopilotLateral` (the autopilot generalised: `HoverShip`
+    steers for `AutopilotLateral` instead of the lane's middle, throttle held, brake ignored, dash
+    swallowed, `HoldOnRoad` grip off). NEVER `SteerOverride` — `UpdateTubeReturn` rewrites that every
+    tick. `ReleaseControl()` (gated on the patrol's own `controlLocked` flag, so it never switches off
+    someone else's autopilot; drains the latched dash request) runs on the substep the intent stops
+    asking (so the shove lands on a free ship), from `Update`'s net (`!ControlLocked || HasCaught ||
+    Hold || IsGone || HasLeftTrackEnd`), `Kill`, `SetHold`, `DuelEnabled = false`, `OnDestroy`. The
+    soft assist (`SteerAssist`, `duelAssistStrength`) is dormant.
+  - **The push**: the bar is the ship's position too. `PushTarget` walks the locked ship AWAY from the
+    cruiser by `(tug − 0.5) × 2` of `tugPushFraction` (0.6) of the room to that side's lane edge (less
+    `PushEdgeClearance` 2.5 m), measured from where it was caught — never the whole room, so the bar
+    cannot drop the ship itself; a full bar leaves it at the brink for the shove. `intent.Contact`
+    while `|Across| <= flankOffset + 3` feeds `DuelContactSparks` (FX, one looping emitter under the
+    patrol's ROOT — the visual is hidden across a kill — aimed back along the road at the midpoint
+    between the hulls, rate rising with the bar's swing; scaled time on purpose).
+  - **Finisher**: the cruiser's line moves out by `finisherSeparationMeters` (4), the ship is held
+    where the push left it, and the window counts `UnscaledDt` (`finisherWindowSeconds` retuned to
+    1.5 — a scaled second under the 0.3× clock was three real ones). **The kill is a PRESS**:
+    `PolicePatrol.PollFinisher` (frame rate, like the mash) reads `ControlBindings.WasPressedThisFrame`
+    on `ShipDashRight` / `ShipDashLeft` raw — the lock swallows the dash, so `DashPerformed` can never
+    fire there and its subscription is gone. `ReportFinisherPress(side)`: the cruiser's side →
+    `Kill(spendsDashMeter: false, raiseFloor: true)` (nothing was dashed, so no meter cost); the wrong
+    shoulder or the timeout → `MissBraking`.
+  - **`MissBraking`** (appended, `Engaged`): `intent.Brake = 1` (max'd into the driver's brake, so the
+    body decelerates at `brakeDecel`) down to `finisherMissBrakeSpeedFactor` × ship speed (an
+    `AbsoluteSpeedMps` floor) for `finisherMissBrakeSeconds`, then `Cooldown`. Resets the cadence like
+    `BreakingOff`.
+  - **The hunt, and why a run can start at any speed** (found by soak, 2026-09-25: at 40 m/s the
+    cruiser sat 170 m back with the commit gate open for ever). Every speed the cruiser drives is a
+    MULTIPLE of the ship's, and the cruise band targets below it, so nothing closed the gap between
+    the 70 m commit reach and the 700 m redeploy, and the overdrive's reach shrank to 11 m below
+    ~100 km/h. Three rules fix it: (1) `PatrolEncounter.Closing` floors the overdrive's closing rate
+    at `minClosingSpeed` (12 m/s) — used by `ApproachSpeed`, `CommitReach` and `Escaped`; (2) once a
+    run is DUE the `Cruising` case sets `intent.MinSpeedMps = shipSpeed + closing` (a floor, so a
+    boost still out-runs it) and the cruiser closes on its standoff from wherever it is; (3)
+    `PolicePatrol.Step` unpacks every relative multiplier as `ship + (mult − 1) × max(ship, 1)` so a
+    target against a ship under 1 m/s no longer collapses to zero. A stopped ship is duelled: the
+    lock's throttle then pulls it back up to cruise.
+  - **Lane clearing**: a cruiser AHEAD of or level with the ship (`Gap < alongsideDistance`, in
+    `Cruising`/`Cooldown`) keeps to a flank (`laneClearSide`, the overshoot's side else the nearer
+    one) until it has dropped behind. Without it the driver steered it into the ship's lane and the
+    lane clamp shunted it along a metre off the ship's nose for a whole run, slower than the ship
+    yet never falling back — reachable before only by braking past it, but the overshoot made it
+    every brake. `shipAccel` (the overshoot's decel trigger) is smoothed with a 0.15 s time constant:
+    a single-tick drop is hundreds of m/s² and must not read as braking.
+  - **Duel camera**: `PatrolEncounter.DuelCloseness` (0 → 1 across `Committing`, 1 alongside/tug/
+    finisher, else 0) → `PolicePatrol.DuelCloseness` → `GameManager.Update` →
+    `OrbitCameraRig.SetDuelFraming` every frame (see `cameras.md`).
+  - Knobs on `PatrolDefinition` (Duel group, with `-1` sentinels in `PatrolDebugSettings` and rows on
+    the PATROL DUEL tab): `overshootHoldSeconds`, `overshootBrakeThreshold`, `overshootDecelThreshold`,
+    `overshootTriggerMargin`, `tugPushFraction`, `finisherSeparationMeters`, `finisherMissBrakeSeconds`,
+    `finisherMissBrakeSpeedFactor`. `EncounterDebug` prints the lock target, the held speed and the
+    brake / accel inputs.
+- Its cruiser visual is built at `Init` from `PatrolVisualSettings`: the **model prefab**
+  (`modelPrefab` — `03.Prefabs/FiniteRunner/PF_PatrolCarModel.prefab`, the Cyberpunk Megapolis air
+  car) instantiated under the `Visual` child with its own transform DISCARDED (the prefab was dragged
+  out of a scene and carries that pose) and re-posed by `modelLocalOffset` / `modelYawOffset` (−90:
+  the mesh is built along X) / `modelScale`, **every `Collider` under it destroyed** (the patrol never
+  has one — the ship's queries would find it), the `LODGroup` kept; with no prefab, the old primitive
+  cop car (hull, cabin, skids). The two emissive red/blue light spheres are ALWAYS built from code at
+  `lightPosition`, so `Blink` and the ram kick read on either. `RebuildPreview` bakes the same thing in
+  edit mode.
 
 ## `ChaseMinimap`
 

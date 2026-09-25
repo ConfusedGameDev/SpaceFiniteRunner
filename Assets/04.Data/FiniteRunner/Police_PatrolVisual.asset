@@ -24,3 +24,7 @@ MonoBehaviour:
   skidSize: {x: 0.6, y: 0.5, z: 4}
   lightPosition: {x: 0.55, y: 1.35, z: -0.4}
   lightDiameter: 0.7
+  modelPrefab: {fileID: 2919269426456305765, guid: a8964ef1d2dcd944e9e9ec2490ad5377, type: 3}
+  modelScale: 1.15
+  modelYawOffset: -90
+  modelLocalOffset: {x: 0, y: 0, z: 0}

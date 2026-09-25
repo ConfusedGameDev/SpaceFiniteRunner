@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Track;
@@ -534,6 +535,30 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelTugForceCap,
                           1f, 3f, 0.05f, "0.00", d => d.tugForceMaxScale, (d, v) => d.tugForceMaxScale = v);
 
+            // The cinematic duel: the brake-triggered overshoot, how far the
+            // contest walks the locked ship, the finisher's separation and the
+            // miss brake.
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelMinClosing,
+                          0f, 60f, 1f, "0", d => d.minClosingSpeed, (d, v) => d.minClosingSpeed = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelOvershootHold,
+                          0f, 6f, 0.1f, "0.0", d => d.overshootHoldSeconds, (d, v) => d.overshootHoldSeconds = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelOvershootBrake,
+                          0f, 1f, 0.05f, "0.00", d => d.overshootBrakeThreshold, (d, v) => d.overshootBrakeThreshold = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelOvershootDecel,
+                          0f, 200f, 5f, "0", d => d.overshootDecelThreshold, (d, v) => d.overshootDecelThreshold = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelOvershootMargin,
+                          0f, 100f, 5f, "0", d => d.overshootTriggerMargin, (d, v) => d.overshootTriggerMargin = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelPushFraction,
+                          0f, 0.85f, 0.05f, "0.00", d => d.tugPushFraction, (d, v) => d.tugPushFraction = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelPushGain,
+                          0.25f, 8f, 0.25f, "0.00", d => d.tugPushGain, (d, v) => d.tugPushGain = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelFinisherSeparation,
+                          0f, 15f, 0.5f, "0.0", d => d.finisherSeparationMeters, (d, v) => d.finisherSeparationMeters = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelMissBrake,
+                          0f, 5f, 0.1f, "0.0", d => d.finisherMissBrakeSeconds, (d, v) => d.finisherMissBrakeSeconds = v);
+            AddPatrolStat(screen, patrol, saved, onChanged, refreshers, MenuTextId.DuelMissBrakeSpeed,
+                          0.2f, 1f, 0.05f, "0.00", d => d.finisherMissBrakeSpeedFactor, (d, v) => d.finisherMissBrakeSpeedFactor = v);
+
             // The clock and the assist live on GameSettings, which the run
             // reads LIVE and never clones — so these two edit the asset itself,
             // the fall/respawn page's rule, not the patrol tabs'. They are the
@@ -553,9 +578,42 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                            0f, 0.5f, 0.01f, "0.00", r => r.ramSpeedCost, (r, v) => r.ramSpeedCost = v);
                 AddRunStat(screen, runRules, refreshers, MenuTextId.DuelArmedWindow,
                            0.5f, 10f, 0.25f, "0.00", r => r.armedWindowSeconds, (r, v) => r.armedWindowSeconds = v);
+
+                // The duel camera framing lives on the camera settings asset,
+                // which the rig re-applies live every frame — same edit-the-asset
+                // rule as the four rows above.
+                var cam = runRules.cameraSettings;
+                if (cam != null)
+                {
+                    AddCameraStat(screen, cam, refreshers, MenuTextId.CamDuelDistance,
+                                  1.5f, 80f, 0.5f, "0.0", c => c.duelDistance, (c, v) => c.duelDistance = v);
+                    AddCameraStat(screen, cam, refreshers, MenuTextId.CamDuelHeight,
+                                  0f, 12f, 0.1f, "0.0", c => c.duelLookHeight, (c, v) => c.duelLookHeight = v);
+                    AddCameraStat(screen, cam, refreshers, MenuTextId.CamDuelPitch,
+                                  0f, 60f, 1f, "0", c => c.duelPitch, (c, v) => c.duelPitch = v);
+                    AddCameraStat(screen, cam, refreshers, MenuTextId.CamDuelBlend,
+                                  0.05f, 2f, 0.05f, "0.00", c => c.duelBlendSeconds, (c, v) => c.duelBlendSeconds = v);
+                }
             }
             screen.SetViewport(9);
             return screen;
+        }
+
+        /// <summary>A live-asset slider over the camera settings, the <see cref="AddRunStat"/> rule for a different asset.</summary>
+        static void AddCameraStat(MenuScreen screen, OrbitCameraSettings settings, List<System.Action> refreshers,
+                                  MenuTextId label, float min, float max, float step, string format,
+                                  System.Func<OrbitCameraSettings, float> get, System.Action<OrbitCameraSettings, float> set)
+        {
+            var row = screen.AddRow<DebugSliderRow>(label);
+            row.Configure(min, max, step, get(settings), format, v =>
+            {
+                set(settings, v);
+#if UNITY_EDITOR
+                if (settings != null && UnityEditor.EditorUtility.IsPersistent(settings))
+                    UnityEditor.EditorUtility.SetDirty(settings);
+#endif
+            });
+            refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
         }
 
         // A GameSettings row: the asset is read live by the run, so the edit

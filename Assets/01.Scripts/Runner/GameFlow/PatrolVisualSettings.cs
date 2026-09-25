@@ -4,13 +4,32 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>
-    /// Look of the police cruiser visual — materials and proportions for the
-    /// primitive-built cop car. All cruiser look tunables live on this asset;
-    /// add new knobs here, not on the PolicePatrol component.
+    /// Look of the police cruiser visual: an authored model prefab when one is
+    /// assigned, else the primitive-built cop car the materials and proportions
+    /// below describe. The two light spheres are always built from code, so
+    /// the light bar blinks and the ram kick reads on either. All cruiser look
+    /// tunables live on this asset; add new knobs here, not on the
+    /// PolicePatrol component.
     /// </summary>
     [CreateAssetMenu(menuName = "FiniteRunner/Patrol Visual Settings")]
     public class PatrolVisualSettings : ScriptableObject
     {
+        [TitleGroup("Model")]
+        [Tooltip("The cruiser's model. Instantiated under the Visual child with its own transform RESET (a prefab dragged out of a scene carries that scene's pose), every collider under it stripped — the patrol never has one. Empty = the primitive cop car below.")]
+        public GameObject modelPrefab;
+
+        [TitleGroup("Model")]
+        [Tooltip("Scale of the model prefab, on top of the overall scale below.")]
+        [PropertyRange(0.1f, 5f)] public float modelScale = 1f;
+
+        [TitleGroup("Model")]
+        [Tooltip("Yaw that turns the model's nose down the track (+Z). A model built along X wants ±90.")]
+        [PropertyRange(-180f, 180f), SuffixLabel("°", true)] public float modelYawOffset = -90f;
+
+        [TitleGroup("Model")]
+        [Tooltip("Where the model sits relative to the cruiser's flight line, in the Visual child's local metres.")]
+        public Vector3 modelLocalOffset = Vector3.zero;
+
         [TitleGroup("Materials")]
         [Required] public Material bodyMaterial;
         [Required] public Material trimMaterial;

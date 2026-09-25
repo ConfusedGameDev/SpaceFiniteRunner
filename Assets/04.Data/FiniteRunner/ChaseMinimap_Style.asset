@@ -15,10 +15,7 @@ MonoBehaviour:
   shipColor: {r: 0.48, g: 1, b: 0.4, a: 1}
   policeRed: {r: 1, g: 0.25, b: 0.2, a: 1}
   policeBlue: {r: 0.3, g: 0.5, b: 1, a: 1}
-  barAlpha: 0.18
-  barOffset: {x: -60, y: 0}
-  barSize: {x: 10, y: 480}
   shipIconSize: 24
   policeIconSize: 20
-  fontSize: 28
+  chaseSpan: 120
   blinkInterval: 0.25

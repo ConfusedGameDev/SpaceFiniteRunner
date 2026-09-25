@@ -75,6 +75,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float tierScaleMax = -1f;
         public float tugForceMaxScale = -1f;
 
+        // The cinematic duel's knobs (overshoot, the push, the separation, the
+        // miss brake) — same sentinel, same reason.
+        public float overshootHoldSeconds = -1f;
+        public float overshootBrakeThreshold = -1f;
+        public float overshootDecelThreshold = -1f;
+        public float overshootTriggerMargin = -1f;
+        public float tugPushFraction = -1f;
+        public float finisherSeparationMeters = -1f;
+        public float finisherMissBrakeSeconds = -1f;
+        public float finisherMissBrakeSpeedFactor = -1f;
+        public float minClosingSpeed = -1f;
+        public float tugPushGain = -1f;
+
         static PatrolDebugSettings cached;
 
         /// <summary>
@@ -146,6 +159,17 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             tierScaleMax = definition.tierScaleMax;
             tugForceMaxScale = definition.tugForceMaxScale;
 
+            overshootHoldSeconds = definition.overshootHoldSeconds;
+            overshootBrakeThreshold = definition.overshootBrakeThreshold;
+            overshootDecelThreshold = definition.overshootDecelThreshold;
+            overshootTriggerMargin = definition.overshootTriggerMargin;
+            tugPushFraction = definition.tugPushFraction;
+            finisherSeparationMeters = definition.finisherSeparationMeters;
+            finisherMissBrakeSeconds = definition.finisherMissBrakeSeconds;
+            finisherMissBrakeSpeedFactor = definition.finisherMissBrakeSpeedFactor;
+            minClosingSpeed = definition.minClosingSpeed;
+            tugPushGain = definition.tugPushGain;
+
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
 #endif
@@ -205,6 +229,17 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (tierScalePerKill >= 0f) definition.tierScalePerKill = tierScalePerKill;
             if (tierScaleMax >= 0f) definition.tierScaleMax = tierScaleMax;
             if (tugForceMaxScale >= 0f) definition.tugForceMaxScale = tugForceMaxScale;
+
+            if (overshootHoldSeconds >= 0f) definition.overshootHoldSeconds = overshootHoldSeconds;
+            if (overshootBrakeThreshold >= 0f) definition.overshootBrakeThreshold = overshootBrakeThreshold;
+            if (overshootDecelThreshold >= 0f) definition.overshootDecelThreshold = overshootDecelThreshold;
+            if (overshootTriggerMargin >= 0f) definition.overshootTriggerMargin = overshootTriggerMargin;
+            if (tugPushFraction >= 0f) definition.tugPushFraction = tugPushFraction;
+            if (finisherSeparationMeters >= 0f) definition.finisherSeparationMeters = finisherSeparationMeters;
+            if (finisherMissBrakeSeconds >= 0f) definition.finisherMissBrakeSeconds = finisherMissBrakeSeconds;
+            if (finisherMissBrakeSpeedFactor >= 0f) definition.finisherMissBrakeSpeedFactor = finisherMissBrakeSpeedFactor;
+            if (minClosingSpeed >= 0f) definition.minClosingSpeed = minClosingSpeed;
+            if (tugPushGain >= 0f) definition.tugPushGain = tugPushGain;
         }
 
         /// <summary>

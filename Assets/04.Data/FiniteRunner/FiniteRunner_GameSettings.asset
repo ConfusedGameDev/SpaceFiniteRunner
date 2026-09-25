@@ -28,7 +28,7 @@ MonoBehaviour:
   respawnClearance: 150
   respawnMinPatrolGap: 150
   lightSpeedKmh: 6500
-  timeLimitSeconds: 60
+  timeLimitSeconds: 180
   trackLengthMeters: 40000
   endRunUpMeters: 1200
   endRampGapMeters: 10
@@ -41,7 +41,7 @@ MonoBehaviour:
   patrolRedeploySpeedFactor: 1.15
   patrolDuelEnabled: 1
   duelTimeScale: 0.3
-  finisherWindowSeconds: 1
+  finisherWindowSeconds: 1.5
   duelHitStopSeconds: 0.12
   patrolExplosionScale: 0.8
   duelDebugReadout: 1
@@ -89,7 +89,7 @@ MonoBehaviour:
   failBannerDismissSeconds: 0.5
   failBannerColor: {r: 1, g: 0.22, b: 0.25, a: 1}
   hullEnabled: 1
-  startingLives: 3
+  startingLives: 10
   brakePadDamage: 20
   wallSlamDamage: 25
   wallScrapeDamage: 10

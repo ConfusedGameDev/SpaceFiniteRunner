@@ -180,7 +180,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float duelTimeBlendSeconds = 0.15f;
 
         [ToggleGroup("patrolEnabled")]
-        [Tooltip("How hard the ship is steered for you during an exchange, as a share of full steering authority. It is ADDED to your own steering, never a takeover — enough to keep you off an open edge, not enough to hold a lane against you. 0 = no help at all.")]
+        [Tooltip("DORMANT since the cinematic duel (2026-09-25): the exchange now LOCKS the ship's controls outright (see PatrolEncounterIntent.ShipLateralTarget), so no soft assist is added. Kept for the old soft-assist path and the debug row; it does nothing today.")]
         [PropertyRange(0f, 1f), EnableIf("patrolDuelEnabled")]
         public float duelAssistStrength = 0.5f;
 
@@ -410,7 +410,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         [ToggleGroup("hullEnabled")]
         [Tooltip("Runs a mission forgives: every failed run (destroyed, caught, out of time, off the end) takes one, and losing the last is GAME OVER. A fresh set every time the runner is entered.")]
-        [PropertyRange(1, 9)]
+        [PropertyRange(1, 20)]
         public int startingLives = 3;
 
         [ToggleGroup("hullEnabled")]

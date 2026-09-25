@@ -66,15 +66,20 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   cuts in behind you at a new, higher floor — coasting can never shake it.
 - **The patrol HUNTS you** (`PatrolDuelPRD.md`). It holds a standoff behind you, then on a cadence
   commits to an **attack run**: an overdrive burst onto one of your flanks, chosen so YOU are between
-  it and an open edge. Alongside, a **tug of war** opens — a bar it pushes and you mash back — and
-  losing it is a shove into the wall or off the road. Winning it opens a **kill prompt** on the
-  shoulder it is on: dash into it and it explodes. It never commits on a ramp, a loop, a tube or the
-  final run-up, and braking out of the flank aborts the run for free. **Braking past it puts it
-  ahead of you**, where it is an obstacle you can **ram from behind** — costing you speed and
-  weakening its next push. A **laser beam destroys it**, which is the one hazard you can aim it at.
-  A blue or purple orb leaves you **armed**: the next exchange skips the bar and goes straight to the
-  kill. Each kill or outrun **escalates** the next cruiser. The old proximity arrest is gone: only
-  sitting on your tail WITHOUT committing, for a long fuse, still arrests you.
+  it and an open edge, while the chase camera dollies in. Alongside, **it takes the ship's controls**
+  (stick, throttle, brake and dash all locked for the exchange) and a **tug of war** opens — a bar it
+  pushes and you mash back, sparks grinding between the hulls, your ship walked toward the edge as
+  the bar goes its way — and losing it is a shove into the wall or off the road. Winning it makes the
+  cruiser peel out a little and opens a **kill prompt** on the shoulder it is on: ONE PRESS of that
+  dash shoulder destroys it (no dash, no meter cost); the wrong shoulder or no press is a miss, and
+  it **brakes hard and falls away** before coming back. It never commits on a ramp, a loop, a tube or
+  the final run-up, and out-steering the flank before the lock aborts the run for free. **Brake with
+  it in its standoff and it overshoots**: it swerves to a flank, sails past on held speed, then drops
+  back — while ahead it is an obstacle you can **ram from behind**, costing you speed and weakening
+  its next push. A **laser beam destroys it**, which is the one hazard you can aim it at. A blue or
+  purple orb leaves you **armed**: the next exchange skips the bar and goes straight to the kill.
+  Each kill or outrun **escalates** the next cruiser. The old proximity arrest is gone: only sitting
+  on your tail WITHOUT committing, for a long fuse, still arrests you.
 - **Curves**: banked sweeps always hold the ship. A share of sweeps is authored FLAT, with no
   wall on the outer edge: taken too fast the ship loses grip and slides outward — brake first.
   Some straight runs have no walls at all: drift or dash too close to the side and the ship drops.

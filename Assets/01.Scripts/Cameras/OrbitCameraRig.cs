@@ -108,6 +108,13 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         float framingBlend;
         float appliedPitch;
 
+        // Duel framing. The game feeds a 0..1 "how close is the fight" every
+        // frame (SetDuelFraming); the rig eases toward it and lerps the orbit's
+        // radius / look height / pitch a second time, on top of the Far/Close
+        // framing, toward the asset's duel values. 0 = the ordinary chase view.
+        float duelTarget;
+        float duelBlend;
+
         // Look-back state. The swing is driven by a 0..1 blend off a REMEMBERED
         // orbit rather than by nudging the live axis: the axis wraps at +/-180,
         // so accumulating towards "behind" would be ambiguous exactly where the
@@ -210,6 +217,8 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             // first frame. The runner hands control back itself — FinishWin at
             // the debrief, Restart on a retry.
             lookBackBlend = 0f;
+            duelTarget = 0f;
+            duelBlend = 0f;
             cinematicOn = false;
             cinematicBlendLeft = 0f;
             SetMode(settings != null ? settings.defaultMode : CameraMode.Far, instant: true);
@@ -232,6 +241,16 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             cinematicBlendLeft = settings != null ? settings.cinematicBlendSeconds : 0f;
             if (built) ApplyPriorities();
         }
+
+        /// <summary>
+        /// How far into a duel the picture should be, 0..1: the orbit dollies
+        /// toward the asset's duel framing (distance, look height, pitch) as
+        /// this rises and eases back as it falls. The game writes it every
+        /// frame — the patrol's attack run closing in, the exchange, the kill
+        /// — so no path that ends a fight has to remember to hand the view back.
+        /// A no-op while the asset's duel framing toggle is off.
+        /// </summary>
+        public void SetDuelFraming(float closeness01) => duelTarget = Mathf.Clamp01(closeness01);
 
         /// <summary>Advance to the next view: Far → Close → First person → Far.</summary>
         public void CycleMode()
@@ -612,14 +631,22 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             framingBlend = dt > 0f ? Mathf.MoveTowards(framingBlend, goal, dt / seconds) : goal;
             float eased = Mathf.SmoothStep(0f, 1f, framingBlend);
 
-            float pitch = Mathf.Lerp(settings.defaultPitch, settings.closePitch, eased);
+            // The duel dolly rides on top of the Far/Close framing: the same
+            // three numbers lerped a second time toward the duel values, so a
+            // view cycled mid-fight still lands on a duel-framed picture.
+            float duelGoal = settings.duelFraming ? duelTarget : 0f;
+            float duelSeconds = Mathf.Max(0.001f, settings.duelBlendSeconds);
+            duelBlend = dt > 0f ? Mathf.MoveTowards(duelBlend, duelGoal, dt / duelSeconds) : duelGoal;
+            float duel = Mathf.SmoothStep(0f, 1f, duelBlend);
+
+            float pitch = Mathf.Lerp(Mathf.Lerp(settings.defaultPitch, settings.closePitch, eased), settings.duelPitch, duel);
             float pitchDelta = pitch - appliedPitch;
             appliedPitch = pitch;
             if (dt > 0f && Mathf.Abs(pitchDelta) > 0.0001f)
                 orbital.VerticalAxis.Value = Mathf.Clamp(orbital.VerticalAxis.Value + pitchDelta, settings.PitchMin, settings.PitchMax);
 
-            float lookHeight = Mathf.Lerp(settings.lookHeight, settings.closeLookHeight, eased);
-            orbital.Radius = Mathf.Lerp(settings.distance, settings.closeDistance, eased);
+            float lookHeight = Mathf.Lerp(Mathf.Lerp(settings.lookHeight, settings.closeLookHeight, eased), settings.duelLookHeight, duel);
+            orbital.Radius = Mathf.Lerp(Mathf.Lerp(settings.distance, settings.closeDistance, eased), settings.duelDistance, duel);
             orbital.TargetOffset = new Vector3(0f, lookHeight, 0f);
             orbital.VerticalAxis.Center = appliedPitch;
             composer.TargetOffset = new Vector3(0f, lookHeight, 0f);

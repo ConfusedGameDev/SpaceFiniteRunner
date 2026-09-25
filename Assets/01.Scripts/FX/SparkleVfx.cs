@@ -75,6 +75,9 @@ namespace ConfusedGameDev.FiniteRunner.FX
             particles.Play();
         }
 
+        /// <summary>The shared additive star material, for a looping emitter that wants the same spark (the duel's contact sparks).</summary>
+        public static Material SharedMaterial => SparkleMaterial();
+
         static Material SparkleMaterial()
         {
             if (sparkleMaterial != null) return sparkleMaterial;

@@ -125,6 +125,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float attackRunOverdrive = 1.15f;
 
         [TitleGroup("Duel")]
+        [Tooltip("The LEAST closing speed an attack run gets, in m/s, whatever the ship is doing. The overdrive is a multiple of the SHIP's speed, so on its own a run against a slow or stopped ship could never reach the flank — the cruiser parked in its standoff for ever. This floor lets it close at least this fast, so a duel can open at any speed.")]
+        [PropertyRange(0f, 60f), SuffixLabel("m/s", true)]
+        public float minClosingSpeed = 12f;
+
+        [TitleGroup("Duel")]
         [Tooltip("The patrol only starts an attack run once the gap is inside this — keep it just above the standoff, and inside the warn distance. " +
                  "The ordinary rubber band does the APPROACH; the overdrive only has to cover this last stretch. Large values make the run cross so much road " +
                  "that a ramp or loop is almost certain to interrupt it, and the run aborts for nothing.")]
@@ -252,5 +257,50 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("How much faster than the cruiser the ship has to be arriving for a ram to register. Below it the contact is a harmless nudge — drifting into its bumper is not an attack.")]
         [PropertyRange(0f, 100f), SuffixLabel("m/s closing", true)]
         public float ramClosingSpeedThreshold = 15f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How long a cruiser caught out by the player BRAKING holds its speed and sails past before it drops back behind. The overshoot is the cinematic beat and the way into a rear ram; too long and it drives out of the chase.")]
+        [PropertyRange(0f, 6f), SuffixLabel("s", true)]
+        public float overshootHoldSeconds = 2.5f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("Brake input (0..1) the ship has to hold, with the cruiser in its standoff, for the cruiser to overshoot. 0 = never on the brake input alone.")]
+        [PropertyRange(0f, 1f)]
+        public float overshootBrakeThreshold = 0.5f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("Ship deceleration that also triggers the overshoot — a brake pad slows the ship with no brake input at all. 0 = off.")]
+        [PropertyRange(0f, 200f), SuffixLabel("m/s²", true)]
+        public float overshootDecelThreshold = 25f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How far beyond the standoff distance still counts as 'in the standoff' for the overshoot. The cruiser oscillates around its station by design, so give it some room.")]
+        [PropertyRange(0f, 100f), SuffixLabel("m", true)]
+        public float overshootTriggerMargin = 20f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How much of the room between the ship and the far lane edge the tug of war pushes it across when the bar is fully the cruiser's way. Kept below 1 so the bar never drops the ship off an open edge by itself — that is the SHOVE's job when the bar bottoms out.")]
+        [PropertyRange(0f, 0.85f)]
+        public float tugPushFraction = 0.6f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How HARD the tug of war shoves the ship sideways: a multiplier on the steering pull that walks the locked ship toward the edge. 1 is the ship's own autopilot pull (a creep); higher moves it decisively. The DISTANCE it can be pushed is the push room above; this is the force.")]
+        [PropertyRange(0.25f, 8f), SuffixLabel("x", true)]
+        public float tugPushGain = 2.5f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How far the cruiser peels away from the ship once the player has WON the bar and the kill prompt is open — the two separate a little before the button.")]
+        [PropertyRange(0f, 15f), SuffixLabel("m", true)]
+        public float finisherSeparationMeters = 4f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How long the cruiser brakes HARD after the player misses the kill prompt (wrong shoulder or no press), before it goes on the ordinary cooldown.")]
+        [PropertyRange(0f, 5f), SuffixLabel("s", true)]
+        public float finisherMissBrakeSeconds = 1.5f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("The speed the miss brake stops at, as a share of the ship's — how far back the cruiser visibly drops.")]
+        [PropertyRange(0.2f, 1f), SuffixLabel("x ship speed", true)]
+        public float finisherMissBrakeSpeedFactor = 0.65f;
     }
 }

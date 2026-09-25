@@ -112,6 +112,21 @@ and cuts back on release.
 (`MapTogglePressed`). The debug menu's second camera page, **Camera Modes**, holds the
 close/first-person/blend sliders.
 
+## Duel framing
+
+The orbit **dollies in on the fight**. `OrbitCameraRig.SetDuelFraming(float closeness01)` is the
+whole API: the game writes a 0..1 every frame (the runner's `GameManager.Update` pushes
+`PolicePatrol.DuelCloseness` — 0 in the chase, rising as a committed attack run closes from where it
+started to the alongside gap, 1 through the flank hold, the tug of war and the kill prompt, 0 the
+moment the exchange is over) and `ApplyFraming` eases toward it over `duelBlendSeconds` and lerps the
+orbit's radius / look height / pitch a SECOND time, on top of the Far↔Close blend, toward the asset's
+`duelDistance` / `duelLookHeight` / `duelPitch` (the "Duel framing" toggle group). Driven per frame
+rather than on edges for the same reason as the RPG queue hold: every path that ends a fight (a kill,
+a shove, an abort, a fall, the run ending) would otherwise have to remember to hand the view back.
+`SetTarget` zeroes it. The look-back lerps from the radius `ApplyFraming` wrote, so a glance mid-fight
+returns to the duel framing; first person and the cinematic shot are untouched. The rows live on the
+runner's PATROL DUEL debug tab (`CamDuel*`), editing the asset live like the duel clock rows.
+
 ## Look-back
 
 Holding the right stick button (R3) or Right Shift swings the orbit to a **fixed rear-view pose in

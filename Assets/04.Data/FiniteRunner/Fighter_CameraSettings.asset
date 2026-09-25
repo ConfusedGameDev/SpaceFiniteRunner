@@ -25,6 +25,11 @@ MonoBehaviour:
   closeDistance: 23.5
   closeLookHeight: 3.5
   closePitch: 8
+  duelFraming: 1
+  duelDistance: 32
+  duelLookHeight: 5
+  duelPitch: 10
+  duelBlendSeconds: 0.6
   eyeFromChassis: 0
   firstPersonEyeOffset: {x: 0, y: 5, z: 5}
   firstPersonForward: 0.2

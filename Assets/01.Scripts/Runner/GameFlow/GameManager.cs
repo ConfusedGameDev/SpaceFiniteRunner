@@ -428,6 +428,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // never comes back for the rest of the level.
             RpgMessageSystem.QueueHeld = patrol != null && patrol.InAttackRun && !RunOver;
 
+            // The duel camera, driven the same way and for the same reason: the
+            // orbit dollies in as an attack run closes and eases back out on
+            // whatever ends it — a kill, a shove, an abort, the run ending.
+            if (cameraRig != null)
+                cameraRig.SetDuelFraming(patrol != null && !RunOver ? patrol.DuelCloseness : 0f);
+
             if (motor == null || RunOver) return;
 
             // One "escape attempted" per run, recorded on the first frame the

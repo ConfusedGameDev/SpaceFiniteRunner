@@ -164,6 +164,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             HasStopped = false;
             Autopilot = false;
+            AutopilotLateral = 0f;
+            AutopilotGain = 1f;
             ClearLoop();
             physicsDropping = false;
             physicsLeftEnd = false;

@@ -143,7 +143,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // Rear ramming and the damage pool.
         DuelDamagePool, DuelRamDistance, DuelRamLateral, DuelRamClosing, DuelRamCost,
         DuelStationAccel, DuelArmedWindow,
-        DuelTierPerKill, DuelTierMax, DuelTugForceCap
+        DuelTierPerKill, DuelTierMax, DuelTugForceCap,
+        // The cinematic duel: the overshoot, the push, the separation and the miss brake (debug rows), plus the duel camera framing.
+        DuelOvershootHold, DuelOvershootBrake, DuelOvershootDecel, DuelOvershootMargin,
+        DuelPushFraction, DuelFinisherSeparation, DuelMissBrake, DuelMissBrakeSpeed,
+        CamDuelDistance, CamDuelHeight, CamDuelPitch, CamDuelBlend,
+        DuelMinClosing, DuelPushGain
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1073,6 +1078,20 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString duelRamLateral = new("RAM WIDTH", "ANCHO DE EMBESTIDA", "追突の横幅", "LARGEUR DU CHOC");
         [SerializeField] LocalizedString duelRamClosing = new("RAM SPEED NEEDED", "VELOCIDAD PARA EMBESTIR", "追突に必要な速度", "VITESSE POUR CHOQUER");
         [SerializeField] LocalizedString duelRamCost = new("RAM SPEED COST", "COSTE DE EMBESTIDA", "追突の速度コスト", "COÛT DU CHOC");
+        [SerializeField] LocalizedString duelOvershootHold = new("OVERSHOOT HOLD", "DURACIÓN DEL REBASE", "追い越し保持", "MAINTIEN DU DÉPASSEMENT");
+        [SerializeField] LocalizedString duelOvershootBrake = new("OVERSHOOT ON BRAKE", "REBASE AL FRENAR", "ブレーキで追い越し", "DÉPASSEMENT AU FREINAGE");
+        [SerializeField] LocalizedString duelOvershootDecel = new("OVERSHOOT DECEL", "DECELERACIÓN DE REBASE", "追い越し減速しきい値", "DÉCÉLÉRATION DE DÉPASSEMENT");
+        [SerializeField] LocalizedString duelOvershootMargin = new("OVERSHOOT RANGE", "ALCANCE DE REBASE", "追い越し範囲", "PORTÉE DU DÉPASSEMENT");
+        [SerializeField] LocalizedString duelPushFraction = new("TUG PUSH ROOM", "EMPUJE LATERAL", "押し出し幅", "POUSSÉE LATÉRALE");
+        [SerializeField] LocalizedString duelFinisherSeparation = new("FINISHER GAP", "SEPARACIÓN DE REMATE", "とどめの間隔", "ÉCART D'ACHÈVEMENT");
+        [SerializeField] LocalizedString duelMissBrake = new("MISS BRAKE TIME", "FRENADA TRAS FALLO", "失敗時ブレーキ時間", "FREINAGE APRÈS ÉCHEC");
+        [SerializeField] LocalizedString duelMissBrakeSpeed = new("MISS BRAKE SPEED", "VELOCIDAD TRAS FALLO", "失敗時ブレーキ速度", "VITESSE APRÈS ÉCHEC");
+        [SerializeField] LocalizedString camDuelDistance = new("DUEL CAM DISTANCE", "DISTANCIA CÁMARA DUELO", "決闘カメラ距離", "DISTANCE CAMÉRA DUEL");
+        [SerializeField] LocalizedString camDuelHeight = new("DUEL CAM HEIGHT", "ALTURA CÁMARA DUELO", "決闘カメラ高さ", "HAUTEUR CAMÉRA DUEL");
+        [SerializeField] LocalizedString camDuelPitch = new("DUEL CAM PITCH", "INCLINACIÓN CÁMARA DUELO", "決闘カメラ角度", "INCLINAISON CAMÉRA DUEL");
+        [SerializeField] LocalizedString camDuelBlend = new("DUEL CAM BLEND", "TRANSICIÓN CÁMARA DUELO", "決闘カメラ遷移", "FONDU CAMÉRA DUEL");
+        [SerializeField] LocalizedString duelMinClosing = new("MIN CLOSING SPEED", "CIERRE MÍNIMO", "最低接近速度", "RAPPROCHEMENT MINIMAL");
+        [SerializeField] LocalizedString duelPushGain = new("TUG PUSH FORCE", "FUERZA DE EMPUJE", "押し出しの強さ", "FORCE DE POUSSÉE");
         [SerializeField] LocalizedString trackLength = new("TRACK LENGTH", "LONGITUD DE PISTA", "コース長", "LONGUEUR DE PISTE");
         [SerializeField] LocalizedString debugTabFall = new("FALL & RESPAWN", "CAÍDA Y REAPARICIÓN", "落下とリスポーン", "CHUTE ET RETOUR");
         [SerializeField] LocalizedString edgeOverhang = new("EDGE OVERHANG", "MARGEN DEL BORDE", "縁のはみ出し", "DÉBORD DU BORD");
@@ -1536,6 +1555,20 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DuelTierPerKill => duelTierPerKill,
             MenuTextId.DuelTierMax => duelTierMax,
             MenuTextId.DuelTugForceCap => duelTugForceCap,
+            MenuTextId.DuelOvershootHold => duelOvershootHold,
+            MenuTextId.DuelOvershootBrake => duelOvershootBrake,
+            MenuTextId.DuelOvershootDecel => duelOvershootDecel,
+            MenuTextId.DuelOvershootMargin => duelOvershootMargin,
+            MenuTextId.DuelPushFraction => duelPushFraction,
+            MenuTextId.DuelFinisherSeparation => duelFinisherSeparation,
+            MenuTextId.DuelMissBrake => duelMissBrake,
+            MenuTextId.DuelMissBrakeSpeed => duelMissBrakeSpeed,
+            MenuTextId.CamDuelDistance => camDuelDistance,
+            MenuTextId.CamDuelHeight => camDuelHeight,
+            MenuTextId.CamDuelPitch => camDuelPitch,
+            MenuTextId.CamDuelBlend => camDuelBlend,
+            MenuTextId.DuelMinClosing => duelMinClosing,
+            MenuTextId.DuelPushGain => duelPushGain,
             _ => start
         };
     }

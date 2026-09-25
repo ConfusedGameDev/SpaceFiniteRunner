@@ -54,6 +54,37 @@ Preview** (Odin button) draws the segments in edit mode. Do not add position/siz
 - **The HUD owns no retry and prints no result text.** Its old result/prompt texts and the R
   shortcut are gone — the two empty `Text` objects still wired in the scene can be deleted.
 
+## `DuelBarHud` (`Runner/HUD/`) — the tug of war and the kill prompt
+
+Spawned by `GameManager` on its own overlay canvas at sorting **12** (with the dash prompt: above the
+HUD, below the RPG box). `Spawn` returns null for a missing patrol or `patrolDuelEnabled` off, so the
+caller never checks.
+
+- **The bar is small, low and centred** (D32), because the bar is the contest but the ROAD is the
+  stake — the patrol is shoving you toward a wall or an edge the whole time, so it has to be readable
+  in peripheral vision rather than looked at. Push direction is reinforced through the rumble channel
+  for the same reason (`Rumble`, intensity rising with the patrol's share, on unscaled time).
+- **It is MIRRORED, always**: the model underneath counts the PATROL's progress 0→1 and knows nothing
+  about sides; the fill grows from the patrol's real side and the mash glyph sits at the far end —
+  the end you are pushing toward. `Mirror(side)` runs once per contest, not per frame, because the
+  side cannot change mid-exchange. The meaning never changes: push it AWAY from the patrol.
+- **The mash glyph is `PadControl.ButtonWest` / `Key.X`, fixed and non-bindable** — see
+  `ui-menus.md` for why that is a deliberate exception. **The finisher prompt is the opposite**: it
+  shows the player's own `ShipDashLeft` / `ShipDashRight` binding for the side the patrol is on,
+  re-read on `ControlBindings.Changed`, and pulses on **unscaled** time — the one thing in the
+  exchange that must not slow down with the world. **The kill is a single PRESS of that binding, not
+  a dash** (since 2026-09-25): the exchange holds the ship's controls, so the ship swallows the dash
+  and `PolicePatrol.PollFinisher` reads the binding raw each frame. The wrong shoulder is a miss.
+  The window (`finisherWindowSeconds`, 1.5) counts REAL seconds like the bar. Device choice is the dash prompt's presence rule
+  (`Gamepad.current != null`), polled for hot-plug; `InputPromptBinder.Poll()` is NOT usable here
+  because it is only called from the menus and its value is stale during a run.
+- **The diagnostic line is parented to the CANVAS, not the bar holder**, so it survives the bar being
+  hidden — the whole reason it exists is to explain a contest that never opened. On
+  `GameSettings.duelDebugReadout`, it prints `PolicePatrol.EncounterDebug()`: the state, gap, lateral,
+  damage pool, escalation tier and — while Cruising — the three gates that are invisible when they
+  refuse (`commit in`, `reach`, `ground`). All three of those hid real bugs during the build.
+- Hidden whenever `motor.Paused`.
+
 ## Runner fog
 
 The runner scene carries its own hand-placed `DistanceFog` driver with its own settings asset,

@@ -256,6 +256,31 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         [PropertyRange(0f, 1f), SuffixLabel("s", true)]
         public float cinematicBlendSeconds = 0.1f;
 
+        // ------------------------------------------------------------ duel framing
+        [ToggleGroup("duelFraming", "Duel framing")]
+        [Tooltip("The orbit dollies in on the vehicle while a patrol attack run closes in and holds the exchange — a tighter, lower framing that puts the cruiser on the flank in the picture. Off, the chase framing never changes.")]
+        public bool duelFraming = true;
+
+        [ToggleGroup("duelFraming")]
+        [Tooltip("Orbit radius at the height of an exchange (the chase's Framing distance is where it starts from). Keep it well above the vehicle's own size — the runner's ship is big, and a radius under its hull puts the camera beneath it.")]
+        [PropertyRange(1.5f, 80f), SuffixLabel("m", true)]
+        public float duelDistance = 30f;
+
+        [ToggleGroup("duelFraming")]
+        [Tooltip("Look height during an exchange — lower keeps both vehicles low in frame.")]
+        [PropertyRange(0f, 12f), SuffixLabel("m", true)]
+        public float duelLookHeight = 4f;
+
+        [ToggleGroup("duelFraming")]
+        [Tooltip("Resting pitch during an exchange. Flatter than the chase reads as riding beside the fight.")]
+        [PropertyRange(0f, 60f), SuffixLabel("°", true)]
+        public float duelPitch = 10f;
+
+        [ToggleGroup("duelFraming")]
+        [Tooltip("Seconds the dolly takes to reach the duel framing and to come back out of it.")]
+        [PropertyRange(0.05f, 2f), SuffixLabel("s", true)]
+        public float duelBlendSeconds = 0.6f;
+
         // ----------------------------------------------------------------- fov
         [TitleGroup("Speed FOV")]
         [Tooltip("Field of view at standstill.")]
