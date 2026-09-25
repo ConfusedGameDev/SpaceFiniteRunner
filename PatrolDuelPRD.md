@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress. All design decisions settled in the grill session on 2026-09-24. **M0–M4 landed, M5's mechanics landed** (its hands-on tuning pass and M6 outstanding). Open numbers are listed in §13. |
+| **Status** | In progress. All design decisions settled in the grill session on 2026-09-24. **M0–M4 landed; M5 and M6's mechanics landed.** Outstanding: M5's hands-on tuning pass (OQ1, OQ3–OQ7), duel AUDIO (needs new clips), and the `runner-hud-screens.md` / minimap items that a parallel session owns. Open numbers are listed in §13. |
 | **Branch** | `feature/finitePatrolUpdate`. |
 | **Scope** | Runner game only (`FiniteRunner_Test`, campaign runner levels). The city chase is untouched, and so are `Campaign` and `SaveData`. |
 | **Related** | `SpaceShipUpdatePRD.md` (the M9 physics cutover this builds on), `.claude/rules/runner-ship.md`, `.claude/rules/runner-hud-screens.md`, `.claude/rules/ui-menus.md` |
@@ -454,7 +454,7 @@ Found while speccing; fix when touching these files.
 | **M3** ✅ | Rear ramming: analytic contact (R4.1), laser kill (D34), speed cost (R4.2), damage pool (R4.3, R4.4), the patrol-as-obstacle behaviour (R4.6). | Braking past the patrol and ramming it costs you speed, takes a point, and visibly weakens its push in the next exchange. |
 | **M4** | The armed window: ship armed state (R5.1), blue/purple arming (R5.2), mash skip (R5.3), visual tell (R5.4). | Grabbing a blue or purple orb while hunted takes you straight to the finisher prompt. |
 | **M5** ◑ | Escalation and balance: tier scaling (R7.1), the cap (R7.2), a full tuning pass on OQ1, OQ3–OQ7. | A long run gets genuinely harder, the bar is always winnable from centre with a full pool, and killing is worth it but never free. |
-| **M6** | Polish and docs: RPG queue (R5.8/D26), reserved bindings (R9.3), `MenuTextId` entries in four languages (R9.6), debug menu rows and the sentinel rule (§6.4), audio, minimap, §11 documentation, §7.5 stale-doc fixes. | Nothing in §7 is outstanding and the rules files describe what the code does. |
+| **M6** ◑ | Polish and docs: RPG queue (R5.8/D26), reserved bindings (R9.3), `MenuTextId` entries in four languages (R9.6), debug menu rows and the sentinel rule (§6.4), audio, minimap, §11 documentation, §7.5 stale-doc fixes. | Nothing in §7 is outstanding and the rules files describe what the code does. |
 
 ## 10. Verification (every milestone)
 
