@@ -28,7 +28,7 @@ Material:
     - _Bleed: 2.8
     - _Convergence: 1
     - _CornerRadius: 0.050000012
-    - _Curvature: 0.32500002
+    - _Curvature: 0.175
     - _Flicker: 0.765
     - _Glow: 0.3
     - _Intensity: 0

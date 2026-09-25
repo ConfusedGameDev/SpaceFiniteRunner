@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.CrtScreenSettings
   material: {fileID: 2100000, guid: 51e286fba8b842e294007c3d358cd916, type: 2}
   intensity: 1
-  curvature: 0.32500002
+  curvature: 0.175
   cornerRadius: 0.050000012
   vignette: 0.122
   bleed: 2.8

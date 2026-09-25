@@ -11,25 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8f1e5c3a9b7d4f2ca1e0d8b6c4a2f9e3, type: 3}
   m_Name: FiniteRunner_PatrolDebug
-  m_EditorClassIdentifier: 
-  applyOnLoad: 1
+  m_EditorClassIdentifier:
+  applyOnLoad: 0
   baseSpeed: 33.06
   ramp: 0.083
   rubberBand: 0.95
   catchUpAccel: 3.33
-  boostShare: 0.156
-  startGap: 548
+  startGap: 750
   catchDistance: 10
   warnDistance: 130
-  lateralSpeed: 12
-  handlingResponse: 6
-  gripBase: 130
-  gripPerSpeed: 0.5
-  brakeDecel: 140
-  catchLateral: 18
-  sustainedCatchSeconds: 1.5
-  curveLookaheadSeconds: 4
-  orbLookaheadSeconds: 2.5
-  orbSeekWeight: 0.6
-  orbBoostShare: 0.5
-  rampLookaheadSeconds: 2.5
