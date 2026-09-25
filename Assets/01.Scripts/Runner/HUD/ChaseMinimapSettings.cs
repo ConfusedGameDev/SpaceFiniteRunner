@@ -7,6 +7,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// Look of the right-edge track map (ship climbing the track, the patrol
     /// hanging under it on the zoomed <see cref="chaseSpan"/> scale). All minimap look tunables live on
     /// this asset — add new knobs here, not on the ChaseMinimap component.
+    /// Positions and sizes of the strip and labels are NOT here: they are
+    /// the prefab children's own RectTransforms, laid out by hand.
     /// Field defaults mirror the original hardcoded values, so a missing
     /// asset degrades to the classic look.
     /// </summary>
@@ -17,15 +19,11 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         public Color shipColor = new(0.48f, 1f, 0.4f);
         public Color policeRed = new(1f, 0.25f, 0.2f);
         public Color policeBlue = new(0.3f, 0.5f, 1f);
-        [PropertyRange(0f, 1f)] public float barAlpha = 0.18f;
 
         [TitleGroup("Layout")]
-        [Tooltip("Offset of the strip from the right edge / vertical center.")]
-        public Vector2 barOffset = new(-60f, 0f);
-        public Vector2 barSize = new(10f, 480f);
+        [InfoBox("The strip, labels and fonts are laid out by hand on the ChaseMinimap prefab's children; only the icons' sizes live here.")]
         [PropertyRange(8f, 64f)] public float shipIconSize = 24f;
         [PropertyRange(8f, 64f)] public float policeIconSize = 20f;
-        [PropertyRange(10, 64)] public int fontSize = 28;
         [Tooltip("Pixels under the ship that stand for the full minimap range (GameSettings.minimapRangeMeters) — the patrol's zoomed gap scale. At track scale the gap would be a pixel or two.")]
         [PropertyRange(20f, 300f)] public float chaseSpan = 120f;
 

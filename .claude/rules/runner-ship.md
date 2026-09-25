@@ -590,10 +590,14 @@ two. It is drawn only when the gap is inside that range AND its spot is still on
 ship at the very bottom has nothing under it to draw on); a null or gone patrol hides the icon and
 blanks the gap. Red/blue flicker as before.
 
-A scene prefab instance (`03.Prefabs/Runner/ChaseMinimap.prefab`) with a baked editor preview
-(**Rebuild Preview** — re-bake after changing `Build`); `Spawn` finds it, tears the preview down
-and rebuilds live on its own overlay canvas. Label strings are rebuilt only when the shown number
-changes.
+A scene prefab instance (`03.Prefabs/Runner/ChaseMinimap.prefab`) whose children (`Bar`, and
+under it `Police`, `Ship`, `EndDistance`, `Distance`) are serialized parts **laid out by hand**:
+`Spawn` finds it and only BINDS them. Code moves the icons along the strip's height (keeping
+their authored x) and sets their size (`shipIconSize` / `policeIconSize`) and colours from
+`ChaseMinimapSettings` — nothing else; the strip's rect and the labels are the designer's. The
+settings asset has no layout fields beyond the icon sizes and `chaseSpan`. **Build Missing
+Parts** creates only unwired parts (also used at runtime for a prefab-less map). Unspawned, the
+map hides its canvas. Label strings are rebuilt only when the shown number changes.
 
 ## `SteeringInput` / `ISteeringInput` / `IThrottleInput`
 

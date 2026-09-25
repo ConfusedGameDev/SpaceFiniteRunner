@@ -17,18 +17,24 @@ paths:
 
 The runner's scene-wired HUD on the `RaceHUD` canvas object.
 
-- **Speed is a `SpeedGauge`** (in the UI assembly since the standalone ship's HUD draws the same wedge) built in code at the top-left (`gauge*` knobs in the
+**The layout is the designer's: code never moves, resizes, re-anchors or re-fonts a HUD element.**
+Every element is a hand-placed scene object — `SpeedText`, `SpeedGauge` (a rect, `gaugeRect`),
+`LifeBar` (`lifeBarRect`), `Lives`, `KmhLabel`, `TargetText`, `Objectives` (a
+`VerticalLayoutGroup` holding the `ObjectiveLine` template, cloned per line and hidden at Start)
+and the timer (`DistanceText`, wired as `timeText`). The wedge and hull bar FILL their rects
+(`SpeedGauge.BuildInto` — segments anchored as fractions of the rect, gap in px, shortest segment
+`gaugeMinHeightFraction` of its height); pulses multiply each element's authored scale. **Rebuild
+Preview** (Odin button) draws the segments in edit mode. Do not add position/size/font knobs back.
+
+- **Speed is a `SpeedGauge`** (in the UI assembly since the standalone ship's HUD draws the same wedge) filling `gaugeRect` (`gauge*` knobs in the
   "Speed gauge" group): 20 segments growing taller to the right, each coloured by its **own**
   Light Speed fraction on the blue → green → hot `SpeedColor` ramp, lit from the left up to
   `speed / LightSpeed`. Full = the win.
-- The scene's km/h number is re-seated at the wedge's right end by code at `Start` (smaller font,
-  baseline on the wedge's), then KM/H, the LIGHT SPEED target line, and one code-built line per
-  extra objective under it (`JUMP 1/3  ×2`).
-- **The life bar** (`BuildLifeBar`, only while `GameManager.HullEnabled`) is a second
-  `SpeedGauge` right under the wedge — the wedge's width in `lifeSegments` flat cells — with the
-  `×N` lives count (`GameManager.LivesLeft`, the goal line's font: it carries the × glyph) at its
-  right end. The KM/H caption (`unitText`, else found by name `KmhLabel`) and the goal line are
-  pushed down by the bar's row, before the objective lines are stacked off the goal line. One
+- Beside it the km/h number, then KM/H, the LIGHT SPEED target line, and one line per extra
+  objective under it (`JUMP 1/3  ×2`).
+- **The life bar** (`BuildLifeBar`) is a second `SpeedGauge` filling `lifeBarRect` in
+  `lifeSegments` flat cells, with the `×N` lives count (`livesText`, `GameManager.LivesLeft` — its
+  font must carry the × glyph). While `GameManager.HullEnabled` is off both are hidden. One
   colour for the whole bar (full → mid → low by `ShipHealth.Fraction`), cells rounded UP, a drop
   between frames = white flash + scale punch, a blink under `lifeLowFraction`; the count punches
   when a life goes. A `RepairOrb.Collected` = a `repairColor` (green) flash + the same punch and a
@@ -40,8 +46,7 @@ The runner's scene-wired HUD on the `RaceHUD` canvas object.
   `runner-ship.md`). The old `END  12.4 KM` line and its "too slow to make it" red tint are gone;
   `MenuTextId.HudDistanceToEnd` is left in the (append-only) enum, unused.
 - **The countdown is a plain `MM:SS`** (`GameManager.TimeRemaining`, whole seconds rounded up, the
-  string rebuilt once a second): the scene's timer text re-seated by `SeatTimer` at `Start` —
-  bottom centre (`timerBottomMargin`), the speed number's font size (`gaugeNumberFontSize`),
+  string rebuilt once a second): the scene's timer text, placed by hand,
   ALWAYS `timerColor` yellow, no low-time tint. There is no bar/slider any more. Unfinished
   objective lines use `lineColor` (white, the old `timeColor`).
 - Every booster hit spawns a floating "+N" at the ship (`FloatingWorldText`, spawned here);

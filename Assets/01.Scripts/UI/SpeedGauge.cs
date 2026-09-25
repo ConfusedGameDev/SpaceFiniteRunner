@@ -9,9 +9,11 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// a tachometer wedge — lit from the left up to the ship's fraction of
     /// Light Speed. Each segment carries its OWN colour for the fraction it
     /// stands for (the HUD's blue → green → hot ramp), so the wedge reads as
-    /// a scale even before anything is lit. Code-built by <see cref="RaceHud"/>
-    /// under the HUD canvas (plain quads, no sprites, anchored top-left like
-    /// the scene's texts); nothing here is scene-wired.
+    /// a scale even before anything is lit. Plain quads, no sprites. Two ways
+    /// in: <see cref="Build"/> makes its own top-left anchored rect (the
+    /// standalone ship's HUD), <see cref="BuildInto"/> fills a rect a designer
+    /// placed and never moves or resizes it (the runner's HUD) — the segments
+    /// are anchored as fractions of that rect, so they follow it.
     /// </summary>
     public class SpeedGauge : MonoBehaviour
     {
@@ -79,6 +81,77 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             }
             gauge.Recolour();
             return gauge;
+        }
+
+        /// <summary>
+        /// Fills <paramref name="container"/> with the wedge: the segments share
+        /// its width (minus the gaps), the tallest is its full height and the
+        /// shortest <paramref name="minHeightFraction"/> of it. The container's
+        /// own transform is never touched; segments a previous build (or an
+        /// editor preview) left in it are replaced.
+        /// </summary>
+        public static SpeedGauge BuildInto(RectTransform container, int segmentCount, float gap, float minHeightFraction, float emptyAlpha)
+        {
+            segmentCount = Mathf.Max(1, segmentCount);
+            ClearSegments(container);
+
+            var gauge = container.GetComponent<SpeedGauge>();
+            if (gauge == null) gauge = container.gameObject.AddComponent<SpeedGauge>();
+
+            Rect rect = container.rect;
+            float width = Mathf.Max(1f, rect.width);
+            float cell = Mathf.Max(0f, (width - (segmentCount - 1) * gap) / segmentCount);
+            gauge.layout = new Layout
+            {
+                segments = segmentCount,
+                segmentWidth = cell,
+                gap = gap,
+                minHeight = rect.height * minHeightFraction,
+                maxHeight = rect.height,
+                emptyAlpha = emptyAlpha,
+            };
+
+            gauge.segments = new Image[segmentCount];
+            gauge.palette = new Color[segmentCount];
+            gauge.lit = -1;
+            for (int i = 0; i < segmentCount; i++)
+            {
+                float t = segmentCount > 1 ? i / (float)(segmentCount - 1) : 1f;
+                float left = i * (cell + gap) / width;
+
+                var segGo = new GameObject($"{SegmentPrefix}{i}", typeof(RectTransform));
+                var seg = (RectTransform)segGo.transform;
+                seg.SetParent(container, false);
+                // Fractions of the container, standing on its bottom edge.
+                seg.anchorMin = new Vector2(left, 0f);
+                seg.anchorMax = new Vector2(left + cell / width, Mathf.Lerp(minHeightFraction, 1f, t));
+                seg.pivot = Vector2.zero;
+                seg.offsetMin = seg.offsetMax = Vector2.zero;
+
+                var image = segGo.AddComponent<Image>();
+                image.raycastTarget = false;
+                gauge.segments[i] = image;
+                gauge.palette[i] = Color.white;
+            }
+            gauge.Recolour();
+            return gauge;
+        }
+
+        const string SegmentPrefix = "Segment";
+
+        static void ClearSegments(RectTransform container)
+        {
+            for (int i = container.childCount - 1; i >= 0; i--)
+            {
+                GameObject child = container.GetChild(i).gameObject;
+                if (!child.name.StartsWith(SegmentPrefix)) continue;
+                if (Application.isPlaying)
+                {
+                    child.SetActive(false); // Destroy lands at the end of the frame
+                    Destroy(child);
+                }
+                else DestroyImmediate(child);
+            }
         }
 
         /// <summary>

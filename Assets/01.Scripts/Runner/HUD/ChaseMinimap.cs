@@ -15,10 +15,14 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// pixels; at track scale the gap would be a pixel or two), and is drawn
     /// only when it is inside that range AND there is strip left under the
     /// ship to draw it on. On an endless track the ship stays pinned at the
-    /// top. Spawned with or without a patrol. Lives as a scene
-    /// prefab with a baked editor preview (Rebuild Preview); at runtime the
-    /// GameManager's Spawn finds it, clears the preview and rebuilds live.
-    /// Look tunables live on the ChaseMinimapSettings asset.
+    /// top. Spawned with or without a patrol.
+    /// <para><b>The layout is the designer's.</b> The strip, icons and labels
+    /// are prefab children wired below; at runtime the GameManager's Spawn
+    /// only binds them. Code moves the icons along the strip's height and sets
+    /// their size and colours from the settings asset — nothing else: the
+    /// strip's rect, the labels' place and fonts and the icons' sideways
+    /// offset are left as authored. <b>Build Missing Parts</b> creates any
+    /// unwired part with a default look and never touches existing ones.</para>
     /// </summary>
     public class ChaseMinimap : MonoBehaviour
     {
@@ -26,18 +30,25 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
         ChaseMinimapSettings style;
 
+        [Title("Parts")]
+        [Tooltip("The strip: bottom = the track's start, top = its end.")]
+        [SerializeField] RectTransform bar;
+        [Tooltip("Child of the strip, bottom-anchored: moved up it by the run.")]
+        [SerializeField] RectTransform shipIcon;
+        [Tooltip("Child of the strip, bottom-anchored, with an Image: hangs under the ship.")]
+        [SerializeField] RectTransform policeIcon;
+        [Tooltip("Distance to the end of the track.")]
+        [SerializeField] Text endText;
+        [Tooltip("Patrol gap.")]
+        [SerializeField] Text distanceText;
+
         ShipMotor motor;
         PolicePatrol patrol;     // null on a chase-less run: the map still shows the track
         GameManager gameManager;
         float rangeMeters; // gap beyond which the patrol is off the map; at it the icon hangs a full chaseSpan under the ship
         float warnMeters;  // gap below which the readout turns red
 
-        RectTransform bar;
-        RectTransform shipIcon;
-        RectTransform policeIcon;
         Image policeImage;
-        Text endText;      // distance to the end of the track, above the strip
-        Text distanceText; // patrol gap, below the strip
         int shownEnd = -1; // what the two labels currently read, so the strings
         int shownGap = -1; // are rebuilt only when the number changes
         float blinkTimer;
@@ -54,104 +65,98 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             map.gameManager = gameManager;
             map.rangeMeters = Mathf.Max(1f, rangeMeters);
             map.warnMeters = warnMeters;
-            map.Build();
+            map.Bind();
             return map;
         }
 
         void Awake()
         {
             // Scene-placed instance whose Spawn has not come (or never will —
-            // a scene with no GameManager): drop the baked preview so no dead
-            // gauge lingers on screen.
-            if (motor == null) TearDown();
+            // a scene with no GameManager): hide it so no dead gauge lingers.
+            if (motor == null) SetShown(false);
         }
 
-        /// <summary>Editor bake: regenerates the preview so the prefab is visible before play.</summary>
-        [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
-        public void RebuildPreview()
+        void SetShown(bool shown)
         {
-            Build();
-            float shipY = Style.barSize.y * 0.4f;
-            shipIcon.anchoredPosition = new Vector2(0f, shipY);
-            policeIcon.anchoredPosition = new Vector2(0f, shipY - Style.chaseSpan * 0.5f);
-            policeIcon.gameObject.SetActive(true);
-            endText.text = "12.4 KM";
-            distanceText.text = "512 M";
+            var canvas = GetComponent<Canvas>();
+            if (canvas != null) canvas.enabled = shown;
         }
 
-        // Root components are reused by Build — see RpgMessageSystem.TearDown.
-        void TearDown()
+        // Runtime: adopt the authored parts (building only what a bare,
+        // prefab-less map lacks) and apply the settings' sizes and colours.
+        void Bind()
         {
-            for (int i = transform.childCount - 1; i >= 0; i--) Kill(transform.GetChild(i).gameObject);
-            bar = null;
-            shipIcon = null;
-            policeIcon = null;
-            policeImage = null;
-            endText = null;
-            distanceText = null;
+            BuildMissingParts();
+            SetShown(true);
+            var s = Style;
+            shipIcon.sizeDelta = Vector2.one * s.shipIconSize;
+            policeIcon.sizeDelta = Vector2.one * s.policeIconSize;
+            var shipImage = shipIcon.GetComponent<Image>();
+            if (shipImage != null) shipImage.color = s.shipColor;
+            policeImage = policeIcon.GetComponent<Image>();
+            if (policeImage != null) policeImage.color = s.policeRed;
+            policeIcon.gameObject.SetActive(false);
             shownEnd = shownGap = -1;
         }
 
-        static void Kill(Object o)
+        /// <summary>
+        /// Creates every unwired part with the default look (strip on the right
+        /// edge, icons on it, labels above and below) and wires it. Parts that
+        /// are already wired are left exactly as they are.
+        /// </summary>
+        [Button("Build Missing Parts", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
+        public void BuildMissingParts()
         {
-            if (o == null) return;
-            if (Application.isPlaying) Destroy(o);
-            else DestroyImmediate(o);
-        }
-
-        static T GetOrAdd<T>(GameObject go) where T : Component
-        {
-            var c = go.GetComponent<T>();
-            return c != null ? c : go.AddComponent<T>();
-        }
-
-
-        void Build()
-        {
-            TearDown();
             var s = Style;
+            if (GetComponent<Canvas>() == null)
+            {
+                var canvas = gameObject.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = 10;
+                var scaler = gameObject.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920f, 1080f);
+            }
 
-            var canvas = GetOrAdd<Canvas>(gameObject);
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 10;
-
-            var scaler = GetOrAdd<CanvasScaler>(gameObject);
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-
-            // Vertical strip hugging the right edge, vertically centered.
-            bar = CreateRect("Bar", transform, new Vector2(1f, 0.5f), s.barOffset, s.barSize);
-            bar.gameObject.AddComponent<Image>().color = new Color(1f, 1f, 1f, s.barAlpha);
-
-            // The patrol: hangs under the ship, hidden until Update says it
-            // is close enough and has strip to stand on. Built first so the
-            // ship draws over it.
-            policeIcon = CreateRect("Police", bar, new Vector2(0.5f, 0f), Vector2.zero, Vector2.one * s.policeIconSize);
-            policeImage = policeIcon.gameObject.AddComponent<Image>();
-            policeImage.color = s.policeRed;
-            policeIcon.gameObject.SetActive(false);
-
-            // The ship: a diamond, from the bottom (start) to the top (end).
-            shipIcon = CreateRect("Ship", bar, new Vector2(0.5f, 0f), Vector2.zero, Vector2.one * s.shipIconSize);
-            shipIcon.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            shipIcon.gameObject.AddComponent<Image>().color = s.shipColor;
-
-            // Distance to the end above the strip, patrol gap under it.
-            endText = CreateLabel("EndDistance", new Vector2(0.5f, 1f), new Vector2(0f, 44f), s.fontSize);
-            distanceText = CreateLabel("Distance", new Vector2(0.5f, 0f), new Vector2(0f, -44f), s.fontSize);
+            if (bar == null)
+            {
+                // Vertical strip hugging the right edge, vertically centered.
+                bar = CreateRect("Bar", transform, new Vector2(1f, 0.5f), new Vector2(-60f, 0f), new Vector2(10f, 480f));
+                bar.gameObject.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.18f);
+            }
+            // The patrol first so the ship draws over it.
+            if (policeIcon == null)
+            {
+                policeIcon = CreateRect("Police", bar, new Vector2(0.5f, 0f), Vector2.zero, Vector2.one * s.policeIconSize);
+                policeIcon.gameObject.AddComponent<Image>().color = s.policeRed;
+                policeIcon.SetAsFirstSibling();
+            }
+            if (shipIcon == null)
+            {
+                // A diamond, from the bottom (start) to the top (end).
+                shipIcon = CreateRect("Ship", bar, new Vector2(0.5f, 0f), new Vector2(0f, 190f), Vector2.one * s.shipIconSize);
+                shipIcon.localRotation = Quaternion.Euler(0f, 0f, 45f);
+                shipIcon.gameObject.AddComponent<Image>().color = s.shipColor;
+            }
+            if (endText == null) endText = CreateLabel("EndDistance", new Vector2(0.5f, 1f), new Vector2(0f, 44f), "12.4 KM");
+            if (distanceText == null) distanceText = CreateLabel("Distance", new Vector2(0.5f, 0f), new Vector2(0f, -44f), "512 M");
+#if UNITY_EDITOR
+            if (!Application.isPlaying) UnityEditor.EditorUtility.SetDirty(this);
+#endif
         }
 
-        Text CreateLabel(string name, Vector2 anchor, Vector2 position, int fontSize)
+        Text CreateLabel(string name, Vector2 anchor, Vector2 position, string preview)
         {
             var rect = CreateRect(name, bar, anchor, position, new Vector2(180f, 40f));
             var text = rect.gameObject.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = fontSize;
+            text.fontSize = 28;
             text.fontStyle = FontStyle.Bold;
             text.alignment = TextAnchor.MiddleCenter;
             text.horizontalOverflow = HorizontalWrapMode.Overflow;
             text.color = Color.white;
             text.raycastTarget = false;
+            text.text = preview;
             return text;
         }
 
@@ -178,7 +183,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             float travelled = Mathf.Max(0f, motor.DistanceTravelled);
             float length = travelled + remaining;
             float shipY = (finite && length > 0f ? Mathf.Clamp01(travelled / length) : 1f) * bar.rect.height;
-            shipIcon.anchoredPosition = new Vector2(0f, shipY);
+            shipIcon.anchoredPosition = new Vector2(shipIcon.anchoredPosition.x, shipY);
 
             // Kilometres with one decimal, metres on the last one. Keyed on
             // the shown number (decametres / metres) so the string is rebuilt
@@ -213,7 +218,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             float policeY = shipY - gap / rangeMeters * Style.chaseSpan;
             bool visible = gap <= rangeMeters && policeY >= 0f;
             if (policeIcon.gameObject.activeSelf != visible) policeIcon.gameObject.SetActive(visible);
-            if (visible) policeIcon.anchoredPosition = new Vector2(0f, policeY);
+            if (visible) policeIcon.anchoredPosition = new Vector2(policeIcon.anchoredPosition.x, policeY);
 
             int gapKey = Mathf.RoundToInt(gap);
             if (gapKey != shownGap)
