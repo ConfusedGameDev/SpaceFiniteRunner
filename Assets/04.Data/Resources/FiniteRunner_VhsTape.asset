@@ -25,7 +25,7 @@ MonoBehaviour:
   trackingHeight: 0.06
   headSwitch: 0.5
   headSwitchHeight: 0.035
-  noise: 0.25
+  noise: 0.40000004
   scanlines: 0.3
   scanlineCount: 480
   vignette: 0.35
