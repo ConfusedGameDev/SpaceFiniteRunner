@@ -48,7 +48,7 @@ namespace ConfusedGameDev.FiniteRunner.Audio
         public float fadeInSeconds = 2f;
 
         [TitleGroup("Fades")]
-        [Tooltip("Seconds the music takes to fall to silence when the run is LOST (caught, timed out, stalled). A WIN fades over the glitch ramp + hold on GameSettings instead, so it lands silent as the Mission Complete panel opens. The main menu never fades its loop itself — the loading curtain's duck takes it out.")]
+        [Tooltip("Seconds the music takes to fall to silence when the run is LOST (caught, timed out, destroyed). A WIN fades over the glitch ramp + hold on GameSettings instead, so it lands silent as the Mission Complete panel opens. The main menu never fades its loop itself — the loading curtain's duck takes it out.")]
         [PropertyRange(0f, 10f), SuffixLabel("s", true)]
         public float fadeOutSeconds = 1.5f;
 

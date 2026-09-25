@@ -96,6 +96,7 @@ namespace ConfusedGameDev.FiniteRunner.Audio
                 motor.BarrelRollStarted += OnBarrelRollStarted;
             }
             SpeedPad.Collected += OnPadCollected; // static: paired below — domain reload is off
+            RepairOrb.Collected += OnRepairOrb;
         }
 
         void OnDisable()
@@ -107,6 +108,7 @@ namespace ConfusedGameDev.FiniteRunner.Audio
                 motor.BarrelRollStarted -= OnBarrelRollStarted;
             }
             SpeedPad.Collected -= OnPadCollected;
+            RepairOrb.Collected -= OnRepairOrb;
             if (engine != null) engine.Stop();
             gate = 0f;
         }
@@ -133,6 +135,14 @@ namespace ConfusedGameDev.FiniteRunner.Audio
                 pickups.pitch = 1f;
                 pickups.PlayOneShot(sfx.brakeClip, sfx.brakeVolume);
             }
+        }
+
+        // A repair orb sounds like the green orb: the power-up clip at the band's bottom.
+        void OnRepairOrb(RepairOrb orb, IShip collector, float healed)
+        {
+            if (motor == null || !motor.Is(collector) || sfx == null || pickups == null || sfx.powerUpClip == null) return;
+            pickups.pitch = sfx.PowerUpPitchMin;
+            pickups.PlayOneShot(sfx.powerUpClip, sfx.powerUpVolume);
         }
 
         /// <summary>The ship's explosion at 0 hull — called by the GameManager, which owns that moment.</summary>

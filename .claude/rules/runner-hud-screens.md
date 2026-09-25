@@ -74,7 +74,7 @@ Three layouts:
   lift)`) so both lines fit between it and the rows. The runner raises it from `EndRun`, once the
   MISSION FAILED banner has torn away (`GameManager.FinishFail`); YES is `GameManager.Restart`
   **in place**, NO is `LoadingScreen.LoadMainMenu`. Reasons: `LoseCaught`, `LoseTimeOut`,
-  `LoseStalled`, `LoseMissedRamp` (end reached with the objectives met, not on a ramp),
+  `LoseMissedRamp` (end reached with the objectives met, not on a ramp),
   `LoseTooSlow` (end reached with Light Speed open) / `LoseObjectivesIncomplete` (another
   objective open).
 

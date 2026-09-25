@@ -203,6 +203,24 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Pad footprint (width, thickness, length). Also used to keep pads inside the track.")]
         [SerializeField] Vector3 padSize = new(10f, 0.5f, 20f);
 
+        // ------------------------------------------------------ Repair orbs
+        [ToggleGroup("spawnRepairOrbs", "Repair orbs")]
+        [Tooltip("Stream repair orbs along the flight line: flown through, they give back GameSettings.repairOrbHealFraction of the hull (ignored at full hull; the patrol never takes one). A stream of their own, NOT a spawn-table entry, so adding them leaves the boost/brake shares and seeded layouts as they were. Off whenever the hull is off.")]
+        [SerializeField] bool spawnRepairOrbs = true;
+
+        [ToggleGroup("spawnRepairOrbs")]
+        [Tooltip("The repair orb's look: a white cross inside a translucent green sphere, carrying a RepairOrb, modelled at 1 m across. Empty = a code-built green sphere with a white cross.")]
+        [SerializeField] GameObject repairOrbPrefab;
+
+        [ToggleGroup("spawnRepairOrbs")]
+        [Tooltip("Name of the spawn-table entry whose share the repair orbs copy: every pad-spacing step rolls that share, so they come exactly as often as that orb.")]
+        [SerializeField] string repairOrbRateFrom = "Green";
+
+        [ToggleGroup("spawnRepairOrbs")]
+        [Tooltip("Diameter of the repair orb as a share of the pad width (a boost orb's is its definition's size multiplier).")]
+        [PropertyRange(0.1f, 2f)]
+        [SerializeField] float repairOrbSize = 0.5f;
+
         // ------------------------------------------------------- Collectibles
         [ToggleGroup("spawnCollectibles", "Collectibles")]
         [Tooltip("Stream money pickups along the track: short rows of coins on the flight line, each worth a few dollars, banked at pickup.")]
@@ -399,6 +417,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         float3 endPosition;
         TrackShapeSettings shapeRuntime;
         float padCursor;
+        float repairCursor;
+        Unity.Mathematics.Random repairRng; // the repair orbs' own stream: the pad layout of a seed does not depend on them
+        Material repairShellMaterial, repairCrossMaterial; // the code-built orb's, play mode only
         float collectibleCursor;
         float featureCursor;
         readonly List<(FeatureSpawnEntry entry, float distance)> pendingRamps = new(); // decided at their knot, waiting for the run-up to settle
@@ -494,6 +515,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             // Seeded off the layout stream's STATE, not a draw from it.
             laserRng = new Unity.Mathematics.Random(math.hash(new uint2(rng.state, 0x1A5E12u)) | 1u);
+            repairRng = new Unity.Mathematics.Random(math.hash(new uint2(rng.state, 0x4EA11u)) | 1u);
             if (laserRuntime != null && laserRuntime != laserDefinition) DestroyObject(laserRuntime); // last run's clone
             laserRuntime = laserDefinition != null && Application.isPlaying ? Instantiate(laserDefinition) : laserDefinition;
 
@@ -537,6 +559,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             collectibleCursor = rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
             featureCursor = rng.NextFloat(featureSpacing.x, featureSpacing.y);
             laserCursor = laserStartDistance + laserRng.NextFloat(0f, laserSpacing.x);
+            repairCursor = repairRng.NextFloat(200f, 200f + padSpacing.y);
             pendingRamps.Clear();
             straightUntil = 0f;
 
@@ -576,6 +599,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 SpawnPendingRamps(track.Length - 150f);
                 PlaceLasersUpTo(track.Length - 150f);
                 PlacePadsUpTo(track.Length - 150f);
+                PlaceRepairOrbsUpTo(track.Length - 150f);
                 PlaceCollectiblesUpTo(track.Length - 150f);
                 PlaceMarkers();
                 if (decorator != null) decorator.DecorateUpTo(track.Length);
@@ -610,6 +634,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             SpawnPendingRamps(settled); // first: a ramp's footprint is already claimed, so the pads keep off it
             PlaceLasersUpTo(settled);   // before the pads: a gate claims its ground, so pads and coins keep off it
             PlacePadsUpTo(settled);
+            PlaceRepairOrbsUpTo(settled); // after the pads: keeps off where they landed
             PlaceCollectiblesUpTo(settled); // after the pads: coins keep off where they landed
             if (decorator != null) decorator.DecorateUpTo(settled);
         }
@@ -1174,6 +1199,124 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     CreatePad(padCursor, hi > lo ? rng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f, entry);
                 }
                 padCursor += rng.NextFloat(padSpacing.x, padSpacing.y);
+            }
+        }
+
+        /// <summary>
+        /// Repair orbs on a cursor and rng of their own: every pad-spacing step
+        /// rolls the share of the <see cref="repairOrbRateFrom"/> entry (the
+        /// Green orb), so they come as often as it does without being a
+        /// spawn-table entry — the table's shares and a seed's pad layout stay
+        /// what they were. Off claimed ground and off any pad, like the pads.
+        /// </summary>
+        void PlaceRepairOrbsUpTo(float limit)
+        {
+            if (!spawnRepairOrbs || (gameManager != null && !gameManager.HullEnabled))
+            {
+                repairCursor = Mathf.Max(repairCursor, limit);
+                return;
+            }
+
+            float share = RepairOrbShare();
+            while (repairCursor < limit)
+            {
+                float claimEnd = ClaimEnd(repairCursor);
+                if (claimEnd >= 0f) { repairCursor = claimEnd; continue; }
+
+                if (!NearPad(repairCursor) && repairRng.NextFloat(0f, 1f) < share)
+                {
+                    track.GetLateralBand(repairCursor, out float bandMin, out float bandMax);
+                    float margin = padSize.x * repairOrbSize * 0.5f + 2f;
+                    float lo = bandMin + margin;
+                    float hi = bandMax - margin;
+                    CreateRepairOrb(repairCursor, hi > lo ? repairRng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f);
+                }
+                repairCursor += repairRng.NextFloat(padSpacing.x, padSpacing.y);
+            }
+        }
+
+        // The named entry's share of a spawn roll, 0..1 — normalized by the table's sum, as the draw is.
+        float RepairOrbShare()
+        {
+            if (spawnTable == null) return 0f;
+            float total = 0f, share = 0f;
+            foreach (var entry in spawnTable)
+            {
+                if (entry == null) continue;
+                total += Mathf.Max(0f, entry.probability);
+                if (entry.name == repairOrbRateFrom) share = Mathf.Max(0f, entry.probability);
+            }
+            return total > 0f ? share / total : 0f;
+        }
+
+        void CreateRepairOrb(float distance, float lateral)
+        {
+            track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
+            float diameter = padSize.x * repairOrbSize;
+            GameObject orb;
+            if (repairOrbPrefab != null)
+            {
+                orb = Instantiate(repairOrbPrefab, pos, rot, padsParent);
+                orb.transform.localScale *= diameter;
+                var colliders = orb.GetComponentsInChildren<Collider>();
+                foreach (var c in colliders) c.isTrigger = true;
+                if (colliders.Length == 0)
+                {
+                    var sphere = orb.AddComponent<SphereCollider>();
+                    sphere.isTrigger = true;
+                    sphere.radius = 0.5f;
+                }
+            }
+            else orb = BuildRepairOrbPrimitive(pos, rot, diameter);
+
+            if (orb.GetComponent<RepairOrb>() == null) orb.AddComponent<RepairOrb>();
+            if (Application.isPlaying && orb.GetComponent<OrbHover>() == null) orb.AddComponent<OrbHover>();
+            orb.name = $"RepairOrb_{distance:00000}";
+            spawned.Add((distance, orb));
+            padDistances.Add(distance); // coins keep off it too
+        }
+
+        // No prefab: a unit sphere (the green shell, the boost material tinted)
+        // round a white plus sign of two boxes, scaled to the orb.
+        GameObject BuildRepairOrbPrimitive(Vector3 pos, Quaternion rot, float diameter)
+        {
+            var orb = new GameObject();
+            orb.transform.SetParent(padsParent, false);
+            orb.transform.SetPositionAndRotation(pos, rot);
+            orb.transform.localScale = Vector3.one * diameter;
+            var trigger = orb.AddComponent<SphereCollider>();
+            trigger.isTrigger = true;
+            trigger.radius = 0.5f;
+
+            Material shell = null, cross = null;
+            if (Application.isPlaying && boostMaterial != null)
+            {
+                repairShellMaterial ??= TintedCopy(boostMaterial, new Color(0.2f, 1f, 0.35f, 0.3f));
+                repairCrossMaterial ??= TintedCopy(boostMaterial, Color.white);
+                shell = repairShellMaterial;
+                cross = repairCrossMaterial;
+            }
+            AddPart(orb.transform, PrimitiveType.Sphere, Vector3.one, shell);
+            AddPart(orb.transform, PrimitiveType.Cube, new Vector3(0.2f, 0.6f, 0.2f), cross);
+            AddPart(orb.transform, PrimitiveType.Cube, new Vector3(0.6f, 0.2f, 0.2f), cross);
+            return orb;
+
+            static void AddPart(Transform parent, PrimitiveType type, Vector3 scale, Material mat)
+            {
+                var part = GameObject.CreatePrimitive(type);
+                Object.DestroyImmediate(part.GetComponent<Collider>()); // now, not end of frame: the root's trigger is the pickup, and a solid child would be hit by the ship's casts
+                part.transform.SetParent(parent, false);
+                part.transform.localScale = scale;
+                if (mat != null) part.GetComponent<Renderer>().sharedMaterial = mat;
+            }
+
+            static Material TintedCopy(Material source, Color color)
+            {
+                var mat = new Material(source);
+                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+                else mat.color = color;
+                if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", color);
+                return mat;
             }
         }
 

@@ -545,6 +545,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                            0f, 0.5f, 0.01f, "0.00", r => r.duelHitStopSeconds, (r, v) => r.duelHitStopSeconds = v);
                 AddRunStat(screen, runRules, refreshers, MenuTextId.DuelRamCost,
                            0f, 0.5f, 0.01f, "0.00", r => r.ramSpeedCost, (r, v) => r.ramSpeedCost = v);
+                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelArmedWindow,
+                           0.5f, 10f, 0.25f, "0.00", r => r.armedWindowSeconds, (r, v) => r.armedWindowSeconds = v);
             }
             screen.SetViewport(9);
             return screen;

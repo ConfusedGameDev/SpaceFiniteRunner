@@ -31,7 +31,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public int simSubsteps = 2;
 
         [TitleGroup("Simulation")]
-        [Tooltip("Seconds the ship may sit at a standstill with the throttle released before the run is lost as Stalled. Braking to a stop is allowed; staying there is not.")]
+        [Tooltip("Seconds at a standstill with the throttle released before the ship reports itself stopped (engine sound off). Only a report: a standstill never loses the run.")]
         [PropertyRange(0f, 10f), SuffixLabel("s", true)]
         public float stallGraceSeconds = 2f;
 
@@ -193,6 +193,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("The deeper dip the world takes on the kill's connect, before it snaps back to full speed. The transition out of the exchange, not an effect in itself.")]
         [PropertyRange(0f, 0.5f), SuffixLabel("s", true), EnableIf("patrolDuelEnabled")]
         public float duelHitStopSeconds = 0.12f;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("How long a strong boost orb leaves the ship ARMED: an exchange that draws level inside this skips the tug of war and goes straight to the kill prompt. " +
+                 "Long enough to reach a cruiser you can already see, short enough that it is not a standing state.")]
+        [PropertyRange(0.5f, 10f), SuffixLabel("s", true), EnableIf("patrolDuelEnabled")]
+        public float armedWindowSeconds = 3f;
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("Which orb tiers arm the ship, by their name in the generator's spawn table. Green is 46% of spawns and would make the window permanent; purple alone is 3% and would make it a rumour.")]
+        [EnableIf("patrolDuelEnabled")]
+        public List<string> armingOrbTiers = new() { "Blue", "Purple" };
+
+        [ToggleGroup("patrolEnabled")]
+        [Tooltip("Colour of the sparks streaming off an ARMED ship. The tell is on the ship, not the HUD: the player's eyes are on the road and the cruiser.")]
+        [EnableIf("patrolDuelEnabled")]
+        public Color armedTellColor = new(0.75f, 0.45f, 1f, 1f);
 
         [ToggleGroup("patrolEnabled")]
         [Tooltip("What a rear ram costs the SHIP, as a share of its current forward speed — so the price scales with how fast you arrive. Speed is the run's currency, which is why the aggressive option is priced in it and not in hull.")]
@@ -393,7 +409,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool hullEnabled = true;
 
         [ToggleGroup("hullEnabled")]
-        [Tooltip("Runs a mission forgives: every failed run (destroyed, caught, out of time, stalled, off the end) takes one, and losing the last is GAME OVER. A fresh set every time the runner is entered.")]
+        [Tooltip("Runs a mission forgives: every failed run (destroyed, caught, out of time, off the end) takes one, and losing the last is GAME OVER. A fresh set every time the runner is entered.")]
         [PropertyRange(1, 9)]
         public int startingLives = 3;
 
@@ -430,6 +446,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Seconds the ship blinks and takes no damage after a hit.")]
         [PropertyRange(0f, 5f), SuffixLabel("s", true)]
         public float hitInvulnerabilitySeconds = 1f;
+
+        [ToggleGroup("hullEnabled")]
+        [Tooltip("Share of the full hull a repair orb (white cross in a green sphere) gives back. At full hull the orb is ignored and stays on the track. Player only — the patrol never takes one.")]
+        [PropertyRange(0.05f, 0.5f)]
+        public float repairOrbHealFraction = 0.15f;
 
         [ToggleGroup("hullEnabled")]
         [Tooltip("Camera shake on a wall scrape (the dash slam keeps Wall Hit Shake). Empty = no shake.")]

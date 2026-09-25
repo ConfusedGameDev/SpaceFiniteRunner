@@ -58,13 +58,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public readonly float FinisherWindowSeconds;
         /// <summary>What the cruiser's remaining damage pool leaves of its push: 1 at full, less for every rear ram it has taken.</summary>
         public readonly float PushScale;
+        /// <summary>The ship is carrying a strong orb's kill: the exchange skips the contest and opens the prompt (D19).</summary>
+        public readonly bool ShipArmed;
 
         public PatrolEncounterContext(float gap, float across, float shipLateral, float shipDistance,
                                       PatrolDefinition def, TrackManager track, TrackGenerator generator,
                                       bool shipSteady, float unscaledDt, float assistStrength, int presses,
                                       float finisherWindowSeconds, float pushScale, float shipSpeed,
-                                      float patrolSpeed)
+                                      float patrolSpeed, bool shipArmed)
         {
+            ShipArmed = shipArmed;
             ShipSpeed = shipSpeed;
             PatrolSpeed = patrolSpeed;
             PushScale = pushScale;
@@ -157,6 +160,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <see cref="InTugOfWar"/>.
         /// </summary>
         public float Tug => tug;
+
+        /// <summary>
+        /// Set for one tick when an armed ship's window was cashed in for a
+        /// finisher. The PATROL clears it, because the window belongs to the
+        /// ship and the encounter cannot reach it — one orb buys one kill, not
+        /// every exchange inside the three seconds.
+        /// </summary>
+        public bool SpentArming { get; set; }
 
         /// <summary>True while the bar is up and being fought over.</summary>
         public bool InTugOfWar => State == PatrolEncounterState.TugOfWar;
@@ -370,9 +381,21 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     intent.SpeedIsAbsolute = true;
                     intent.HighAuthority = true;
                     intent.LineOverride = FlankLine(ctx, Side);
-                    // The flank hold is the wind-up; then the contest opens.
+                    // The flank hold is the wind-up; then the contest opens —
+                    // unless the ship is ARMED, in which case the contest is
+                    // exactly what the orb bought its way out of (D19) and the
+                    // kill prompt opens instead. The hold still plays, so the
+                    // beat reads the same: the cruiser pulls level, then the
+                    // window. Slow-mo and assist come with the Finisher either
+                    // way, so nothing about the moment is skipped but the mash.
                     if (stateTimer >= def.alongsideHoldSeconds)
                     {
+                        if (ctx.ShipArmed)
+                        {
+                            SpentArming = true; // the patrol spends the ship's window
+                            Enter(PatrolEncounterState.Finisher);
+                            break;
+                        }
                         tug = 0.5f;
                         DuelMashInput.Clear(); // presses made before the bar existed do not count
                         Enter(PatrolEncounterState.TugOfWar);

@@ -99,7 +99,7 @@ materials with the dash ghost material at `respawnBlinkRate`; then it relaunches
 fell with × (1 − `respawnSpeedPenalty`). Events: `FellOff`, `RespawnStarted(Vector3 teleport)`,
 `Respawned`. **Both phases are timers in the simulation tick, not a coroutine**, so
 `motor.Paused` and a menu's timeScale freeze them; the countdown keeps running through them
-(only `motor.Paused` stops it) and the stall timer does not (it lives in the normal step).
+(only `motor.Paused` stops it).
 
 `GameManager` answers: `OnFellOff` holds the patrol (`PolicePatrol.SetHold(true)`), pulses the
 glitch (`fallGlitchStrength`) and rumble, and after `fallCameraFollowSeconds` cuts to the rig's
@@ -164,10 +164,12 @@ ending. `Damaged(amount, hard)` / `Destroyed` are the events; what 0 MEANS is th
 `SetShipVisible(false)` switches off every renderer under the visual and hands back exactly
 those on `ResetForRun` / disable.
 
-**A standstill is not the end by itself.** `HasStopped` latches only after
-`GameSettings.stallGraceSeconds` (2) at speed 0 with the throttle released (`UpdateStall`), so the
-brake can stop the ship and the throttle pulls it away again; `GameManager` still just polls
-`HasStopped` for the Stalled loss.
+**A standstill never loses the run** (the Stalled loss was removed 2026-09-25). `HasStopped` is
+still reported — after `GameSettings.stallGraceSeconds` (2) at speed 0 with the throttle released,
+cleared once the ship moves — but only `ShipAudio` reads it (engine off). The motor never freezes
+on it: its tick and its `AddSpeedImpulse` / `AddLateralShove` / `ApplyImpactSpeedLoss` no longer
+test it, so the throttle simply pulls the ship away again. `MenuTextId.LoseStalled` is unused
+(kept: the enum is append-only).
 
 **Hover bob and banking are visual-only**, applied to a `visual` child transform — the root stays
 exactly on the flight line (the body's pose). Keep that separation when touching movement code.
@@ -287,8 +289,8 @@ Win/lose and the countdown.
   `Data/FiniteRunner_LevelDefinition.asset`, drawn inline) is `Satisfied`: `EvaluateObjectives`
   latches each entry once met (takeoffs are counted in `OnTookOff`) and `ObjectivesMet` latches
   with them — a level with no objectives latches the plain Light Speed test the same way.
-  `LightSpeedReached` is the HUD's done flag. That alone wins nothing: the countdown, the catch
-  and the stall all stay live. (2) `OnReachedTrackEnd(tookRamp)` (from `ShipMotor.ReachedTrackEnd`,
+  `LightSpeedReached` is the HUD's done flag. That alone wins nothing: the countdown and the
+  catch stay live. (2) `OnReachedTrackEnd(tookRamp)` (from `ShipMotor.ReachedTrackEnd`,
   in the sim tick; the objectives are read once more first): `tookRamp && ObjectivesMet` latches
   `HasWon`, calls `motor.BeginEscape()` and starts `FinishWin` (unscaled time) — no wait for
   Grounded any more: the MISSION ACCOMPLISHED banner slams in
@@ -301,15 +303,14 @@ Win/lose and the countdown.
   for a definition with no Reach Speed target. The lip wins a same-frame catch (`Update` returns
   on `IsEnding` before polling `HasCaught`); a timeout while still on the slope is a loss.
   `PlayerStats.fastestEscapeSeconds` is now launch-to-lip.
-- **Lose** = the patrol catches up, `TimeRemaining` hits 0, the ship stalls out
-  (`motor.HasStopped` — the stall grace above, not merely speed 0), or the end of the track is
+- **Lose** = the patrol catches up, `TimeRemaining` hits 0, the hull is destroyed, or the end of the track is
   reached without the win: `RunOutcome.TooSlow` (an objective open, ramp or not) /
   `MissedRamp` (objectives met, no ramp). `RunOutcome` is private and never serialized. Every
   loss goes through `BeginFail` → `FinishFail` (unscaled): messages cleared, music faded, the
   MISSION FAILED banner for `failBannerHoldSeconds` + `failBannerDismissSeconds`, then `EndRun` →
   `ShowGameOver`. A loss ON the track pauses the motor at once; a loss off the END keeps the sim
   running from the planted camera so the fall (and the patrol's) plays out under the banner.
-  Reasons: `LoseCaught` / `LoseTimeOut` / `LoseStalled` / `LoseMissedRamp` / `LoseTooSlow`
+  Reasons: `LoseCaught` / `LoseTimeOut` / `LoseMissedRamp` / `LoseTooSlow`
   (Light Speed open) / `LoseObjectivesIncomplete`.
 - **Hull and lives** (`GameSettings` "Hull and lives" toggle group). `ShipHealth.Destroyed` →
   `BeginFail(RunOutcome.Destroyed)`: an on-track loss (motor paused) whose `FinishFail` first
@@ -460,27 +461,32 @@ minimap range, redeploy) stay on `GameSettings`.
   standoff. At 450 m (the old value, larger than `warnDistance`, against D8) a run crossed ~1700 m
   of road, and with features claiming ~400 m every 600–1200 m it was near-certain to meet forbidden
   ground and abort for nothing.
-- **Station keeping** is what holds a run together. Every engaged state used to ask for
-  `attackRunOverdrive` — a permanent "faster than the ship" — which only ever looked like holding a
-  flank because the absolute distance clamp pinned the cruiser a metre off the ship's nose. It now
-  steers its speed AT the station (level, gap 0): `PatrolEncounter.StationSpeed` is proportional to
-  the gap over an `alongsideDistance` window, the overdrive as the ceiling and `StationBackOff`
-  (12 %) as the floor, and it is flagged `SpeedIsAbsolute` so the run OWNS the speed — as a floor it
-  could only ever speed the cruiser up, and the redeploy floor (above the ship's speed) would drive
-  it straight past. `Committing` is absolute too, so the telegraph burst is the same readable 15 %
-  whatever the floor has grown to. A run also gets its own speed authority
-  (`PatrolDefinition.stationAccel`, 60 m/s², applied whenever **`intent.HighAuthority`** — kept
-  separate from `SpeedIsAbsolute` because the two are different questions: `Committing` wants the
-  RATE but must stay a FLOOR, since the redeploy floor above it is what actually closes the gap.
-  Making the commit absolute capped the cruiser BELOW the speed it was already doing, so runs timed
-  out having closed nothing): the cruise band's
-  `catchUpAccel` (3.33 on the asset) is deliberately sluggish so boosts buy breathing room, but
-  every position the encounter holds asks for tens of m/s inside a second, and at the band's rate
-  the cruiser answers ten seconds late — which is not a soft feel, it is the difference between
-  holding a distance and driving straight through it. The sweep's grip cap still wins over all of it. **And the abort is
-  `ShipGotPast` — the gap a whole alongside window NEGATIVE, not merely negative**: station keeping
-  oscillates around level by design, so the sign of the gap aborted every run the instant the
-  cruiser drew level.
+- **Holding station is a DECELERATION-LIMITED APPROACH, not proportional control**
+  (`PatrolEncounter.ApproachSpeed`, shared by the standoff, `Committing` and all three exchange
+  states, so there is no handover for an overshoot to hide in). It commands the fastest closing
+  speed that can still come to rest in the distance left — `sqrt(2 a d)` against
+  `PatrolDefinition.stationAccel` with an `ApproachSafety` (0.75) margin for the body's own slew —
+  capped by the overdrive, and it eases to zero at the station. **Proportional control on position
+  cannot do this however it is tuned**: it asks for full closing right up to the station and only
+  then sheds it, costing `closing² / 2a` metres — 4 m at cruise (invisible, which is why a
+  speed-clamped soak passed it) but **68 m at 600 m/s, 188 m at Light Speed, and over 500 m off a
+  redeploy's 1.25× floor**. That overshoot WAS the cruiser sailing past the player.
+  The station is `FlankStationMeters` (3 m) BEHIND the ship — never level, so the profile's slack
+  cannot put the cruiser in front — and the standoff's trigger allows for `BrakingDistance`, because
+  45 m of standoff cannot absorb a +150 m/s arrival however hard it brakes.
+  **`SpeedIsAbsolute` also clamps the ACTUAL speed** (`PolicePatrol`, after the sweep cap): boost
+  share and the cruiser's own orb pickups add straight to `ForwardSpeed`, and the body treats an
+  impulse as the one thing allowed to sit above the cruise target — so at speed the cruiser arrived
+  on the flank **230 m/s faster than the ship** and sailed past whatever the approach asked for.
+  Holding a position, it has no use for a boost it cannot spend. Measured after: 0 frames ahead of
+  the ship in 11.7 k at 600 m/s, holding ~51 m matched to the ship's speed. The one thing that can
+  still put it in front is the player BRAKING hard — which is D6's overshoot and the way into a ram.
+  A run also gets its own rate whenever `intent.HighAuthority` (kept separate from
+  `SpeedIsAbsolute`: `Committing` wants the RATE but must stay a FLOOR, since the redeploy floor
+  above it is what closes the gap — making the commit absolute capped the cruiser BELOW the speed it
+  was already doing, so runs timed out having closed nothing). The sweep's grip cap still wins over
+  all of it, and the run's abort is `ShipGotPast` — a whole alongside window negative, not merely
+  negative, because station keeping jitters around its station by design.
 - **Rear ramming and the damage pool** — M3 of the duel. **The patrol ahead of the ship is an
   obstacle and a target.** The old absolute "never through the ship" clamp is now a LANE rule:
   bodies overlapping within `SideBySideLateral` (5 m) are held `MinLaneGap` (1 m) clear on

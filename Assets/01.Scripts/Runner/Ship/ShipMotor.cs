@@ -56,7 +56,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>Metres from the track start, as RENDERED this frame (interpolated between simulation ticks). <see cref="Body"/> holds the tick's own.</summary>
         public float DistanceTravelled { get; private set; }
 
-        /// <summary>Stalled out: the ship sat at speed 0 with the throttle released for the whole stall grace (the ship's own rule, read off it). Cleared by <see cref="Launch"/>.</summary>
+        /// <summary>The ship has sat at speed 0 with the throttle released for the whole stall grace (the ship's own rule, read off it). Only a report: the runner no longer loses on it, and it clears once the ship moves again.</summary>
         public bool HasStopped { get; private set; }
 
         /// <summary>The track-space body the ship is mirrored into every tick: what the patrol chases and the generator streams for.</summary>
@@ -345,7 +345,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         public void AddSpeedImpulse(float rawMagnitude)
         {
-            if (HasStopped || physicsShip == null) return;
+            if (physicsShip == null) return;
             physicsShip.AddSpeedImpulse(rawMagnitude); // its PadImpulse comes back through the forward
         }
 
@@ -359,7 +359,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         public void AddLateralShove(float velocity)
         {
-            if (HasStopped || physicsShip == null || physicsShip.Body == null) return;
+            if (physicsShip == null || physicsShip.Body == null) return;
             physicsShip.Body.AddLateralImpulse(velocity);
         }
 
@@ -371,7 +371,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         public void ApplyImpactSpeedLoss(float share)
         {
-            if (HasStopped || physicsShip == null) return;
+            if (physicsShip == null) return;
             physicsShip.ApplyImpactSpeedLoss(share);
         }
 
@@ -396,7 +396,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void FixedUpdate()
         {
-            if (Paused || HasStopped || physicsShip == null) return;
+            if (Paused || physicsShip == null) return;
             TickPhysics(Time.fixedDeltaTime);
             lastTickTime = Time.fixedTime;
         }

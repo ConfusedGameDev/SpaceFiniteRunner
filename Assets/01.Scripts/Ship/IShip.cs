@@ -30,7 +30,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         ShipState State { get; }
         float AirTime { get; }
         bool IsSliding { get; }
-        /// <summary>The ship has sat at a standstill with the throttle released for the stall grace. The runner's motor latches it (and its game ends the run); the standalone ship only reports it and clears it once it moves again.</summary>
+        /// <summary>The ship has sat at a standstill with the throttle released for the stall grace. Only a report, cleared once the ship moves again; no game ends a run on it.</summary>
         bool HasStopped { get; }
         /// <summary>Freezes the simulation (menus, a game's countdown, the end of a run).</summary>
         bool Paused { get; set; }

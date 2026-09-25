@@ -77,6 +77,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         PatrolVisualSettings visualSettings;
 
         ShipMotor target;
+        ShipArmed armed;      // the ship's armed window, if the run has one; the skip to the finisher reads it
         TrackManager track;
         PatrolDefinition runtimeDef; // clone of the asset, the only copy ever mutated
 
@@ -286,6 +287,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 this.target.DashPerformed -= OnShipDashed;
             }
             this.target = target;
+            armed = target != null ? target.GetComponent<ShipArmed>() : null;
             if (target != null)
             {
                 target.PadImpulse += OnShipImpulse;
@@ -634,9 +636,17 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                                      rules != null ? rules.duelAssistStrength : 0f,
                                                      pendingPresses,
                                                      rules != null ? rules.finisherWindowSeconds : 1f,
-                                                     PushScale, target.CurrentSpeed, body.ForwardSpeed);
+                                                     PushScale, target.CurrentSpeed, body.ForwardSpeed,
+                                                     armed != null && armed.IsArmed);
                 pendingPresses = 0;
                 encounter.Tick(dt, ctx, out intent);
+                // The window is the SHIP's, so the ship is what spends it: one
+                // strong orb buys one finisher, not every exchange inside it.
+                if (encounter.SpentArming)
+                {
+                    encounter.SpentArming = false;
+                    if (armed != null) armed.Spend();
+                }
             }
             // Soft assist: ADDED to the player's steering, never a takeover,
             // so the dash (and M2's finisher, which is one) still fires.

@@ -77,7 +77,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// reached it with an objective still open, ramp or not; Destroyed =
         /// the hull reached 0 and the ship blew up.
         /// </summary>
-        enum RunOutcome { Escaped, Caught, Stalled, TimedOut, MissedRamp, TooSlow, Destroyed }
+        enum RunOutcome { Escaped, Caught, TimedOut, MissedRamp, TooSlow, Destroyed }
 
         bool runCounted; // this run's "escape attempted" has been recorded
 
@@ -132,7 +132,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// Latched the frame every mandatory objective is met (reaching Light
         /// Speed ONCE is enough). It is only half the win: the ship must still
         /// leave the track by an end ramp, and until it does the countdown,
-        /// the patrol and the stall are all still live.
+        /// and the patrol are both still live.
         /// </summary>
         public bool ObjectivesMet { get; private set; }
         /// <summary>True once the run's Light Speed goal is latched — the HUD's done state. A level whose objectives hold no Reach Speed never sets it (its Light Speed is only a gauge reference).</summary>
@@ -228,6 +228,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             TimeRemaining = settings.timeLimitSeconds;
             if (motor != null) motor.PadImpulse += OnPadImpulse;
             SpeedPad.Collected += OnPadCollected;
+            RepairOrb.Collected += OnRepairOrb;
             LaserGate.Hit += OnLaserHit;
 
             if (motor != null)
@@ -249,6 +250,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // The loop's slow motion rides on the ship (the clock-owner
                 // contract lives there); the knobs are on the settings asset.
                 LoopSlowMo.Ensure(motor).Configure(settings);
+
+                // The duel's armed window rides the ship too: it is a state OF
+                // the ship (a strong orb leaves it carrying a kill), and it
+                // gates itself on the duel's master switch.
+                ShipArmed.Ensure(motor).Configure(settings);
 
                 // The ship's own components live below the runner and speak
                 // ShipSettings: the sync hands them the run rules, live.
@@ -452,12 +458,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 return;
             }
 
-            if (motor.HasStopped)
-            {
-                BeginFail(RunOutcome.Stalled);
-                return;
-            }
-
             UpdateLoops();
 
             // Time only pressures the player while the ship is flying.
@@ -557,7 +557,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// win banner's own animation, in the fail colour), holds
         /// <c>failBannerHoldSeconds</c>, tears away over
         /// <c>failBannerDismissSeconds</c>, then the run ends and the retry
-        /// panel opens. A loss ON the track (caught, stalled, out of time)
+        /// panel opens. A loss ON the track (caught, destroyed, out of time)
         /// freezes the simulation at once; a loss off the END of it keeps the
         /// simulation running under the banner, from a planted camera, so the
         /// ship's fall — and the patrol's, right behind it — plays out.
@@ -751,8 +751,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // The speed goal is the one the HUD is about; any other goal
                 // left open gets the general line.
                 RunOutcome.TooSlow => SpeedGoalOpen ? MenuTextId.LoseTooSlow : MenuTextId.LoseObjectivesIncomplete,
-                RunOutcome.Destroyed => MenuTextId.LoseDestroyed,
-                _ => MenuTextId.LoseStalled
+                _ => MenuTextId.LoseDestroyed
             };
 
             // The last life lost: no retry. The mission is forfeited HERE, not
@@ -879,6 +878,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (!string.IsNullOrEmpty(settings.messageOrbTierName) && pad.TierName == settings.messageOrbTierName)
                 RpgMessageSystem.Instance.ShowMessage(
                     "PILOT", settings.purpleOrbMessage, settings.messageHoldSeconds, settings.pilotMessageColor);
+        }
+
+        // A repair orb: a soft, even pulse in the hands — neither a boost's kick nor a hit's rumble.
+        void OnRepairOrb(RepairOrb orb, IShip collector, float healed)
+        {
+            if (motor == null || !motor.Is(collector) || RunOver || IsEnding) return;
+            HapticsSystem.Instance.Pulse(0.3f, 0.3f, 0.2f);
         }
 
         // Story beat: the fresh patrol announces itself — a dialogue line, not
@@ -1114,6 +1120,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol.Warned -= OnPatrolWarned;
             }
             SpeedPad.Collected -= OnPadCollected;
+            RepairOrb.Collected -= OnRepairOrb;
             LaserGate.Hit -= OnLaserHit;
             if (shipHealth != null)
             {

@@ -7,6 +7,7 @@ using ConfusedGameDev.FiniteRunner.Collectibles;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
+using ConfusedGameDev.FiniteRunner.Track;
 using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.HUD
 {
@@ -115,6 +116,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [SerializeField, Min(0.05f)] float boostTextSize = 0.6f;
         [Tooltip("Colour of the floating \"+$N\" popup on a money pickup (same lead and size as the boost text).")]
         [SerializeField] Color moneyTextColor = new(1f, 0.85f, 0.3f);
+        [Tooltip("Colour the hull bar flashes, and of the floating \"+N\" popup, when a repair orb gives hull back.")]
+        [SerializeField] Color repairColor = new(0.3f, 1f, 0.45f);
 
         float currentPulse = 1f;
 
@@ -132,6 +135,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         float lastLife = 1f;   // last frame's hull fraction: a drop is a hit
         float lifeFlash;       // 1 → 0 white flash after a hit
         float lifePunch = 1f;  // the bar's scale, decaying to 1
+        float healFlash;       // 1 → 0 green flash after a repair orb
         float livesPunch = 1f; // the count's scale, decaying to 1
         int shownLives = -1;   // what the count currently reads
 
@@ -242,6 +246,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             }
             lastLife = life;
             lifeFlash = Mathf.MoveTowards(lifeFlash, 0f, pulseDecay * Time.deltaTime);
+            healFlash = Mathf.MoveTowards(healFlash, 0f, pulseDecay * Time.deltaTime);
             lifePunch = Mathf.MoveTowards(lifePunch, 1f, pulseDecay * Time.deltaTime);
             lifeBar.transform.localScale = Vector3.one * lifePunch;
 
@@ -251,6 +256,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 : Color.Lerp(lifeLowColor, lifeMidColor, life / 0.5f);
             if (life > 0f && life <= lifeLowFraction && Mathf.Repeat(Time.time * lifeLowBlinkHz, 1f) > 0.5f)
                 color *= 0.45f;
+            color = Color.Lerp(color, repairColor, healFlash);
             color = Color.Lerp(color, Color.white, lifeFlash);
             color.a = 1f;
 
@@ -315,12 +321,14 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         {
             if (motor != null) motor.PadImpulse += OnPadImpulse;
             CollectibleManager.MoneyChanged += OnMoneyChanged;
+            RepairOrb.Collected += OnRepairOrb;
         }
 
         void OnDisable()
         {
             if (motor != null) motor.PadImpulse -= OnPadImpulse;
             CollectibleManager.MoneyChanged -= OnMoneyChanged;
+            RepairOrb.Collected -= OnRepairOrb;
         }
 
         // The money twin of the boost popup: "+$3" in gold ahead of the ship.
@@ -331,6 +339,20 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             FloatingTextSystem.Instance.DisplayText(
                 $"+${delta}", moneyTextColor, 1f,
                 gameManager.BoostTextLeadMeters, boostTextSize);
+        }
+
+        // A repair orb: the bar flashes green and punches, and "+N" (hull
+        // points) floats up ahead of the ship like the boost text. Keyed on
+        // the orb, not on the fraction rising — a restart refills it too.
+        void OnRepairOrb(RepairOrb orb, IShip collector, float healed)
+        {
+            if (motor == null || !motor.Is(collector)) return;
+            healFlash = 1f;
+            lifePunch = lifeHitPunch;
+            if (spawnBoostText && gameManager != null && !gameManager.RunOver)
+                FloatingTextSystem.Instance.DisplayText(
+                    $"+{healed:0}", repairColor, 1f,
+                    gameManager.BoostTextLeadMeters, boostTextSize);
         }
 
         void OnPadImpulse(float magnitude)

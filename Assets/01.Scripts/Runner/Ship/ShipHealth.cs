@@ -25,7 +25,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// (<see cref="SetShipVisible"/>), and always hands it back: on
     /// <see cref="ResetForRun"/> and on disable. Added to the ship by the
     /// GameManager (<see cref="Ensure"/>), reading the settings live like
-    /// <see cref="LoopSlowMo"/>.
+    /// <see cref="LoopSlowMo"/>. The one thing that gives points back is a
+    /// <see cref="RepairOrb"/> (<see cref="Heal"/>), and it is a no-op at full hull.
     /// </summary>
     [DisallowMultipleComponent]
     public class ShipHealth : MonoBehaviour
@@ -36,6 +37,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float invulnerableLeft;
 
         readonly List<Renderer> hidden = new(); // what SetShipVisible(false) switched off
+
+        // Every enabled hull, so a world pickup that only knows the IShip it hit can find the one to heal. Filled in OnEnable/OnDisable — domain reload is off.
+        static readonly List<ShipHealth> active = new();
 
         /// <summary>Hull points left.</summary>
         public float Hull { get; private set; }
@@ -59,6 +63,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>Raised once, the hit that takes the hull to 0.</summary>
         public event System.Action Destroyed;
+
+        /// <summary>Raised on every <see cref="Heal"/> that gave points back. Argument: the points restored.</summary>
+        public event System.Action<float> Healed;
+
+        /// <summary>The enabled hull of <paramref name="ship"/>, or null (no hull on it — a patrol, the standalone ship).</summary>
+        public static ShipHealth For(IShip ship)
+        {
+            if (ship == null) return null;
+            foreach (var health in active)
+                if (health.motor != null && health.motor.Is(ship)) return health;
+            return null;
+        }
 
         public static ShipHealth Ensure(ShipMotor motor)
         {
@@ -131,12 +147,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             if (motor != null) Hook();
             SpeedPad.Collected += OnPadCollected; // static: paired below — domain reload is off
+            if (!active.Contains(this)) active.Add(this);
         }
 
         void OnDisable()
         {
             if (motor != null) Unhook();
             SpeedPad.Collected -= OnPadCollected;
+            active.Remove(this);
             SetShipVisible(true);
         }
 
@@ -185,6 +203,29 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         public bool ApplyLaserHit() =>
             settings != null && ApplyDamage(settings.laserDamage, hard: true);
+
+        /// <summary>
+        /// Gives back <paramref name="fraction"/> of <see cref="MaxHull"/>,
+        /// clamped to full. Returns false — and changes nothing — when the hull
+        /// is off, already full, destroyed, or the run is ending: the caller
+        /// (a <see cref="RepairOrb"/>) is then left in place, not used up.
+        /// </summary>
+        public bool Heal(float fraction) => HealPoints(fraction) > 0f;
+
+        /// <summary>A <see cref="RepairOrb"/> was flown through: <see cref="Heal"/> by <see cref="GameSettings.repairOrbHealFraction"/>. Returns the points restored, 0 when it did nothing (full hull).</summary>
+        public float HealFromRepairOrb() => settings != null ? HealPoints(settings.repairOrbHealFraction) : 0f;
+
+        float HealPoints(float fraction)
+        {
+            if (fraction <= 0f || settings == null || !settings.hullEnabled || IsDestroyed) return 0f;
+            if (gameManager != null && (gameManager.IsEnding || gameManager.RunOver)) return 0f;
+            if (Hull >= MaxHull) return 0f;
+
+            float before = Hull;
+            Hull = Mathf.Min(MaxHull, Hull + MaxHull * fraction);
+            Healed?.Invoke(Hull - before);
+            return Hull - before;
+        }
 
         bool ApplyDamage(float amount, bool hard, bool forced = false)
         {

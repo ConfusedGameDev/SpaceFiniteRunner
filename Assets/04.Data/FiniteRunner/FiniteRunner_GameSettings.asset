@@ -49,6 +49,11 @@ MonoBehaviour:
   duelAssistStrength: 0.5
   duelBarColor: {r: 1, g: 0.32, b: 0.28, a: 1}
   ramSpeedCost: 0.08
+  armedWindowSeconds: 3
+  armingOrbTiers:
+  - Blue
+  - Purple
+  armedTellColor: {r: 0.75, g: 0.45, b: 1, a: 1}
   showPatrolAlert: 0
   showPatrolWarnings: 0
   patrolProximityRumble: 1

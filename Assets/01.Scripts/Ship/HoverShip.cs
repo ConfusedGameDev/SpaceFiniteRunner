@@ -27,11 +27,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// <b>barrel roll</b> (the same shove at air authority under a full 360°
     /// of the model, on its own clock so a wall or a landing never leaves the
     /// ship on its side) and the <b>stall</b> (a standstill with the throttle
-    /// released for the grace — braking to a stop alone is fine). Unlike the
-    /// runner's motor, a stall never freezes this ship: <see cref="HasStopped"/>
-    /// is a REPORT a game may end its run on (and pause the ship itself); in a
-    /// level with no such game the ship simply flies on, and the report clears
-    /// the moment it moves again.
+    /// released for the grace — braking to a stop alone is fine). A stall never
+    /// freezes this ship: <see cref="HasStopped"/> is only a REPORT (the runner
+    /// no longer loses on it), and it clears the moment the ship moves again.
     ///
     /// Both assets run as runtime clones taken in <c>Awake</c> — a game may
     /// push its rules into them, and the debug menu edits them, without ever

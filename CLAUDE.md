@@ -33,12 +33,11 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 - **Win** = BOTH halves: every mandatory objective of the run's `RunnerLevelDefinition` is met
   (today one Reach Speed objective, whose target IS the HUD's "Light Speed" — reaching it ONCE
   latches it, the HUD line turns done) AND the ship leaves the track by one of the end ramps.
-  Until the lip everything stays live: countdown, patrol, stall. At the lip the win latches, the
+  Until the lip everything stays live: countdown, patrol. A standstill
+  is never a loss. At the lip the win latches, the
   ship flies on off the ramp (it never lands), MISSION ACCOMPLISHED slams in, the glitch ramps
   to max, then the Mission Complete panel opens.
-- **Lose**: the countdown hits 0, the patrol catches you, the ship stalls out (sits at a
-  standstill with the throttle released for the stall grace — braking to a stop alone is fine),
-  or it reaches the end of the track without the win — an objective still open (ramp or not), or
+- **Lose**: the countdown hits 0, the patrol catches you, or it reaches the end of the track without the win — an objective still open (ramp or not), or
   through a gap between the ramps — and drops into the void — or the **hull reaches 0 and the ship
   explodes**. EVERY loss slams a MISSION FAILED banner in (the win banner's animation), then the
   `GameOverScreen` retry panel: MISSION FAILED, the localized reason, RETRY? YES / NO (NO = main
