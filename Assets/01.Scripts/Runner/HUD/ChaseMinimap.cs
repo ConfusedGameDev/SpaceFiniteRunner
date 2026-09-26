@@ -21,13 +21,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// only binds them. Code moves the icons along the strip's height and sets
     /// their size and colours from the settings asset — nothing else: the
     /// strip's rect, the labels' place and fonts and the icons' sideways
-    /// offset are left as authored. <b>Build Missing Parts</b> creates any
-    /// unwired part with a default look and never touches existing ones.</para>
+    /// offset are left as authored. <b>Rebuild UI</b> creates any unwired
+    /// part with a default look and re-applies the style; editing the style
+    /// asset does the same live.</para>
     /// </summary>
     public class ChaseMinimap : MonoBehaviour
     {
         [Tooltip("All minimap look tunables live on this asset — add new knobs there, not here.")]
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        [OnValueChanged(nameof(RebuildUI))]
         ChaseMinimapSettings style;
 
         [Title("Parts")]
@@ -54,6 +56,13 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         float blinkTimer;
         bool blinkState;
 
+        /// <summary>The ship icon part (editor sync reads its rotation back into the style).</summary>
+        public RectTransform ShipIcon => shipIcon;
+        /// <summary>The police icon part (editor sync reads its rotation back into the style).</summary>
+        public RectTransform PoliceIcon => policeIcon;
+        /// <summary>The assigned style asset, or null.</summary>
+        public ChaseMinimapSettings StyleAsset => style;
+
         ChaseMinimapSettings Style => style != null ? style : style = ScriptableObject.CreateInstance<ChaseMinimapSettings>();
 
         public static ChaseMinimap Spawn(ShipMotor motor, PolicePatrol patrol, GameManager gameManager, float rangeMeters, float warnMeters)
@@ -68,6 +77,20 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             map.Bind();
             return map;
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Rebuilds every live minimap on <paramref name="changed"/> — scene
+        /// instances and the open prefab stage, never the prefab asset itself.
+        /// Called by the settings asset whenever it is edited.
+        /// </summary>
+        public static void RebuildAllUsing(ChaseMinimapSettings changed)
+        {
+            foreach (var map in Resources.FindObjectsOfTypeAll<ChaseMinimap>())
+                if (map.style == changed && !UnityEditor.EditorUtility.IsPersistent(map))
+                    map.RebuildUI();
+        }
+#endif
 
         void Awake()
         {
@@ -86,26 +109,71 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         // prefab-less map lacks) and apply the settings' sizes and colours.
         void Bind()
         {
-            BuildMissingParts();
+            RebuildUI();
             SetShown(true);
-            var s = Style;
-            shipIcon.sizeDelta = Vector2.one * s.shipIconSize;
-            policeIcon.sizeDelta = Vector2.one * s.policeIconSize;
-            var shipImage = shipIcon.GetComponent<Image>();
-            if (shipImage != null) shipImage.color = s.shipColor;
-            policeImage = policeIcon.GetComponent<Image>();
-            if (policeImage != null) policeImage.color = s.policeRed;
             policeIcon.gameObject.SetActive(false);
             shownEnd = shownGap = -1;
         }
 
         /// <summary>
-        /// Creates every unwired part with the default look (strip on the right
-        /// edge, icons on it, labels above and below) and wires it. Parts that
-        /// are already wired are left exactly as they are.
+        /// Creates any unwired part with the default look, then applies the
+        /// style asset to the icons: sizes, colours and sprites. Runs on Spawn,
+        /// from this button, and live whenever the style asset is edited or
+        /// swapped. The strip's rect, the labels and the icons' sideways offset
+        /// are never touched.
         /// </summary>
-        [Button("Build Missing Parts", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
-        public void BuildMissingParts()
+        [Button("Rebuild UI", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
+        public void RebuildUI()
+        {
+            BuildMissingParts();
+            ApplyStyle();
+        }
+
+        void ApplyStyle()
+        {
+            var s = Style;
+            shipIcon.sizeDelta = Vector2.one * s.ShipIconEdge;
+            policeIcon.sizeDelta = Vector2.one * s.PoliceIconEdge;
+            var shipImage = shipIcon.GetComponent<Image>();
+            if (shipImage != null)
+            {
+                shipImage.color = s.shipColor;
+                ApplySprite(shipImage, s.shipSprite, 45f, s.shipSpriteRotation);
+            }
+            policeImage = policeIcon.GetComponent<Image>();
+            if (policeImage != null)
+            {
+                policeImage.color = s.policeRed;
+                ApplySprite(policeImage, s.policeSprite, 0f, s.policeSpriteRotation);
+            }
+            blinkTimer = 0f;
+            blinkState = false;
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                UnityEditor.EditorUtility.SetDirty(shipIcon);
+                UnityEditor.EditorUtility.SetDirty(policeIcon);
+                if (shipImage != null) UnityEditor.EditorUtility.SetDirty(shipImage);
+                if (policeImage != null) UnityEditor.EditorUtility.SetDirty(policeImage);
+            }
+#endif
+        }
+
+        // An assigned sprite keeps its aspect and takes the style's rotation;
+        // none gives back the default shape — a plain square turned by
+        // defaultAngle (the ship's diamond is a square at 45°) — so clearing a
+        // sprite is live too.
+        static void ApplySprite(Image image, Sprite sprite, float defaultAngle, float spriteAngle)
+        {
+            image.sprite = sprite;
+            image.preserveAspect = sprite != null;
+            image.transform.localRotation = Quaternion.Euler(0f, 0f, sprite != null ? spriteAngle : defaultAngle);
+        }
+
+        // Creates every unwired part with the default look (strip on the right
+        // edge, icons on it, labels above and below) and wires it. Parts that
+        // are already wired are left exactly as they are.
+        void BuildMissingParts()
         {
             var s = Style;
             if (GetComponent<Canvas>() == null)
@@ -228,7 +296,14 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             }
             distanceText.color = gap <= warnMeters ? Style.policeRed : Color.white;
 
-            // Red/blue flicker, same cadence as the patrol's light bar.
+            // Red/blue flicker, same cadence as the patrol's light bar — or
+            // one steady colour when the blink is off.
+            if (policeImage == null) return;
+            if (!Style.policeBlink)
+            {
+                policeImage.color = Style.policeRed;
+                return;
+            }
             blinkTimer += Time.deltaTime;
             if (blinkTimer >= Style.blinkInterval)
             {

@@ -13,9 +13,16 @@ MonoBehaviour:
   m_Name: ChaseMinimap_Style
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.HUD.ChaseMinimapSettings
   shipColor: {r: 0.48, g: 1, b: 0.4, a: 1}
-  policeRed: {r: 1, g: 0.25, b: 0.2, a: 1}
-  policeBlue: {r: 0.3, g: 0.5, b: 1, a: 1}
+  policeBlink: 0
+  policeRed: {r: 1, g: 0.43280405, b: 0, a: 1}
+  policeBlue: {r: 0.6981132, g: 0.27871025, b: 0.009878943, a: 1}
+  shipSprite: {fileID: 0}
+  shipSpriteScale: 3.46
+  shipSpriteRotation: -87
+  policeSprite: {fileID: -7784307790315414325, guid: 9ba225e145724f64996f4a6d85f0555f, type: 3}
+  policeSpriteScale: 1.74
+  policeSpriteRotation: -85
   shipIconSize: 24
   policeIconSize: 20
   chaseSpan: 120
-  blinkInterval: 0.25
+  blinkInterval: 0.05

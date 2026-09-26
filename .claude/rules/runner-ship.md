@@ -689,15 +689,22 @@ kilometre, always white) and the patrol gap in metres below it (red inside the w
 `ChaseMinimapSettings.chaseSpan` pixels, because at track scale a few hundred metres is a pixel or
 two. It is drawn only when the gap is inside that range AND its spot is still on the strip (a
 ship at the very bottom has nothing under it to draw on); a null or gone patrol hides the icon and
-blanks the gap. Red/blue flicker as before.
+blanks the gap. Red/blue flicker unless `policeBlink` is off (then one steady `policeRed`, labelled
+Police Color). Optional `shipSprite` / `policeSprite` replace the default shapes (upright,
+aspect kept, still tinted), each scaled by its `*SpriteScale` × the icon size and turned by its `*SpriteRotation`; empty
+gives back the plain square (ship turned 45°). The rotation is two-way: hand-rotating the `Ship` /
+`Police` object (inspector or rotate tool) writes back into the style asset while that icon has a
+sprite (`Runner/Editor/ChaseMinimapRotationSync`, an `Undo.postprocessModifications` hook).
 
 A scene prefab instance (`03.Prefabs/Runner/ChaseMinimap.prefab`) whose children (`Bar`, and
 under it `Police`, `Ship`, `EndDistance`, `Distance`) are serialized parts **laid out by hand**:
 `Spawn` finds it and only BINDS them. Code moves the icons along the strip's height (keeping
 their authored x) and sets their size (`shipIconSize` / `policeIconSize`) and colours from
 `ChaseMinimapSettings` — nothing else; the strip's rect and the labels are the designer's. The
-settings asset has no layout fields beyond the icon sizes and `chaseSpan`. **Build Missing
-Parts** creates only unwired parts (also used at runtime for a prefab-less map). Unspawned, the
+settings asset has no layout fields beyond the icon sizes and `chaseSpan`. **Rebuild UI**
+creates only unwired parts (also used at runtime for a prefab-less map) and re-applies the style;
+it runs live when the style asset is edited (`ChaseMinimapSettings.OnValidate` → `ChaseMinimap.RebuildAllUsing`,
+edit or play mode, skipping the prefab asset itself — only scene / prefab-stage instances) or swapped (`OnValueChanged`). Unspawned, the
 map hides its canvas. Label strings are rebuilt only when the shown number changes.
 
 ## `SteeringInput` / `ISteeringInput` / `IThrottleInput`
