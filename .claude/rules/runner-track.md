@@ -325,11 +325,13 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
   colour, sway, lane), one weighted draw per step. Spacing 513–897 m — the old 400–700 m ÷ 0.78,
   so removing the brake's 22 % share left the orb count per km as it was.
 - **`RepairOrbSpawner`**: 400–700 m, `chance` 0.58 (the green share it used to copy), `size` as a
-  share of the pad width (1.5 = a 15 m orb), `roadClearance` (0.5 m) = the gap between the
+  share of the pad width (1.5 = a 15 m orb), `roadClearance` (1.5 m; 0.5 let the bob dip the orb
+  into the road) = the gap between the
   VISIBLE road and the orb's lowest point: the centre is lifted along the track's up by
   `ctx.RoadSurfaceOffset` (the decorator's `roadYOffset`, −1) + clearance + `OrbHover.BobAmplitude`
   + radius, so at any size it never dips into the road and, sitting just above it, is always in
-  the ship's path — optional prefab else the code-built shell + cross (`shellColor` translucent red, `crossColor`
+  the ship's path (the ship's hit box tops out ~3.4 m over the road, so keep clearance + 2 × bob
+  under that) — optional prefab else the code-built shell + cross (`shellColor` translucent red, `crossColor`
   green). Off while
   `GameManager.HullEnabled` is false.
 - **`LaserGateSpawner`**: see Laser gates.
@@ -371,7 +373,9 @@ the two shoot points. **A beam never spans the track** — `LaserGateDefinition.
 Four variants by weight (`PickVariant`): `Horizontal` (one beam on the flight line), `Vertical`
 (road → `verticalHeight`), `Triple` (three horizontal beams `tripleSpacing` apart, one above
 another — the upper two catch a ship in the air) and `Rotor` (a horizontal beam on the flight line
-turning about the track's UP, `rotorSpeedBand`, direction a coin toss).
+turning about the track's UP, `rotorSpeedBand`, direction a coin toss). **`Vertical` is shipped at
+weight 0** (`LaserGate_Definition.verticalWeight`): with only its top emitter showing it read as a
+lone emitter floating over a beam out of bare road, so it is off; the code is kept.
 
 - **Not a `TrackFeatureDefinition`.** Gates are the `LaserGateSpawner` (`Spawner_LaserGates`:
   prefab, definition drawn inline and cloned in play, spacing 600–1200 m, `startDistance` 1500,
@@ -411,6 +415,19 @@ turning about the track's UP, `rotorSpeedBand`, direction a coin toss).
   so the corners stay sharp however it slides — never resample it at a fixed step. It swings
   along the track's up (across the track on the vertical gate), and `LaserGate.WaveReach` grows
   what burns by the amplitude on that same axis, so the picture never lies.
+- **The picture is lifted off the burn** (`LaserGate.VisualLift`). At `emitterScale` 5 an emitter
+  reaches ~4.3 m out from its barrel (`LaserBeam.EmitterRadius`, measured off its mesh bounds) and
+  rolls about it, so a beam on the flight line — 1 m over the visible road — buried the emitters
+  ~3 m in it. The burn segments stay on the flight line (where the ship's hit box is); horizontal,
+  triple and rotor gates are DRAWN `roadSurface + emitterRoadClearance + EmitterRadius − lowest
+  beam` higher (≈ 3.8 m), which is where the ship's MODEL rides anyway (0.9–6 m over its box). The
+  vertical gate is not lifted: its burn and picture start at `ctx.RoadSurfaceOffset` and its
+  bottom emitter (A) is hidden, so it rises out of the road.
+- **Beams are red** (`beamColor` / `coreColor` on the definition; the material stays white).
+- **A hit smokes the hull**: `GameManager.OnLaserHit` (only when the hit lands, not through the
+  blink) calls `FX/SmokeVfx.SpawnTrail` on the ship's ROOT, simulating in its local space so the
+  plume stays on the ship at any speed and never rolls with a barrel roll. Knobs:
+  `GameSettings.laserSmoke*` (textures = the Black smoke sprites; empty = no smoke).
 - Debug: CORE SETTINGS → LASER GATES DENSITY (the spawner's density row, 0 = none, live).
 
 ### Analytic pickups (`Simulation/PickupRegistry.cs`)

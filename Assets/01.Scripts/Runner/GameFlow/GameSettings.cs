@@ -342,6 +342,30 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float laserSpeedLoss = 0.1f;
 
         [TitleGroup("Track features")]
+        [Tooltip("Sprites of the smoke that pours off the hull after a laser hit — one is picked per plume. Empty = no smoke.")]
+        public List<Texture2D> laserSmokeTextures = new();
+
+        [TitleGroup("Track features")]
+        [Tooltip("Size of the laser-hit smoke puffs.")]
+        [PropertyRange(0.5f, 20f), SuffixLabel("m", true)]
+        public float laserSmokeScale = 5f;
+
+        [TitleGroup("Track features")]
+        [Tooltip("Seconds the hull keeps smoking after a laser hit.")]
+        [PropertyRange(0.1f, 6f), SuffixLabel("s", true)]
+        public float laserSmokeSeconds = 2f;
+
+        [TitleGroup("Track features")]
+        [Tooltip("Puffs a second while the hull smokes.")]
+        [PropertyRange(1f, 80f), SuffixLabel("/s", true)]
+        public float laserSmokeRate = 22f;
+
+        [TitleGroup("Track features")]
+        [Tooltip("Puffs in the burst at the moment of the hit.")]
+        [PropertyRange(0, 60)]
+        public int laserSmokeBurst = 14;
+
+        [TitleGroup("Track features")]
         [Tooltip("Camera shake when the ship starts sliding on a flat sweep taken too fast. Empty = no shake.")]
         public Cameras.CameraShakeSettings slideShake;
 

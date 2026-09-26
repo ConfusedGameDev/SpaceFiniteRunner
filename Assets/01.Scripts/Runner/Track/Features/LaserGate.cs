@@ -28,6 +28,14 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
     /// registered as feature keep-outs, so a patrol attack run may happen at
     /// one: steering the duel so the cruiser's flank lands on a beam is how the
     /// player aims the road at it.
+    /// <b>The picture is lifted off the burn</b> (<see cref="VisualLift"/>):
+    /// the emitters are metres across and roll about the beam, so a beam on
+    /// the flight line would sink them into the road. The segments that burn
+    /// stay where the ship's hit box is; every beam is DRAWN higher by just
+    /// enough to keep the emitters clear of the visible road — which is where
+    /// the ship's model rides anyway (it sits metres above its box). The
+    /// vertical beam is not lifted: it rises out of the road with its bottom
+    /// emitter hidden.
     /// </summary>
     public class LaserGate : MonoBehaviour, ITrackPickup
     {
@@ -54,6 +62,9 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         float lastHitTime = float.NegativeInfinity;
         float waveAmplitude; // 0 = straight beams; else what burns grows by it on the axis the wave swings along
 
+        /// <summary>Metres the beams are DRAWN above the segments that burn, along the track's up — see the class summary.</summary>
+        public float VisualLift { get; private set; }
+
         public LaserGateVariant Variant { get; private set; }
 
         // ------------------------------------------------------- ITrackPickup
@@ -68,11 +79,12 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         /// across the track, <paramref name="length"/> its length;
         /// <paramref name="beamVisuals"/> carries one picture per beam (three
         /// for the triple). The root already stands on the track pose at
-        /// <paramref name="distance"/>, lateral 0.
+        /// <paramref name="distance"/>, lateral 0; <paramref name="roadSurface"/>
+        /// is the visible road's height relative to that pose (negative: below).
         /// </summary>
         public void Configure(LaserGateDefinition def, LaserGateVariant variant, float distance, float lateral,
                               float length, float rotorDegreesPerSecond, float rotorPhaseDegrees,
-                              IReadOnlyList<LaserBeam> beamVisuals, bool wavy = false)
+                              IReadOnlyList<LaserBeam> beamVisuals, float roadSurface, bool wavy = false)
         {
             definition = def;
             Variant = variant;
@@ -85,7 +97,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             switch (variant)
             {
                 case LaserGateVariant.Vertical:
-                    AddBeam(new Vector3(lateral, -1f, 0f), new Vector3(lateral, def.verticalHeight, 0f), beamVisuals, 0);
+                    AddBeam(new Vector3(lateral, roadSurface, 0f), new Vector3(lateral, def.verticalHeight, 0f), beamVisuals, 0);
+                    if (beams[0].visual != null) beams[0].visual.HideEmitterA(); // A is the bottom muzzle, on the road: its body would be buried
                     break;
                 case LaserGateVariant.Triple:
                     for (int i = 0; i < 3; i++)
@@ -107,6 +120,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                     break;
             }
 
+            VisualLift = variant == LaserGateVariant.Vertical ? 0f : LiftClearOfRoad(beamVisuals, roadSurface);
             ComputeBounds();
             UpdateBeams();
             placed = true;
@@ -117,6 +131,18 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         {
             var visual = visuals != null && index < visuals.Count ? visuals[index] : null;
             beams.Add(new Beam { a = a, b = b, visual = visual });
+        }
+
+        // How far the horizontal beams must be drawn up for the lowest one's
+        // emitters, spinning about it, to stay emitterRoadClearance over the road.
+        float LiftClearOfRoad(IReadOnlyList<LaserBeam> visuals, float roadSurface)
+        {
+            float reach = 0f;
+            if (visuals != null) foreach (var visual in visuals) if (visual != null) reach = Mathf.Max(reach, visual.EmitterRadius);
+            float lowest = isRotor ? rotorCentre.y : float.PositiveInfinity;
+            foreach (var beam in beams) lowest = Mathf.Min(lowest, Mathf.Min(beam.a.y, beam.b.y));
+            if (float.IsInfinity(lowest)) return 0f;
+            return Mathf.Max(0f, roadSurface + definition.emitterRoadClearance + reach - lowest);
         }
 
         // The broad phase's box: everything the beams can ever reach (the
@@ -164,11 +190,12 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         void UpdateBeams()
         {
             Transform root = transform;
+            Vector3 lift = Vector3.up * VisualLift;
             for (int i = 0; i < beams.Count; i++)
             {
                 if (beams[i].visual == null) continue;
                 GetSegment(i, out Vector3 a, out Vector3 b);
-                beams[i].visual.SetEndpoints(root.TransformPoint(a), root.TransformPoint(b), root.up, root.forward);
+                beams[i].visual.SetEndpoints(root.TransformPoint(a + lift), root.TransformPoint(b + lift), root.up, root.forward);
             }
         }
 

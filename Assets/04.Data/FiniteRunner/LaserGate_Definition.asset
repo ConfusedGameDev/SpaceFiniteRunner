@@ -16,7 +16,7 @@ MonoBehaviour:
   beamRadius: 0.27
   beamHeight: 0
   horizontalWeight: 4
-  verticalWeight: 2
+  verticalWeight: 0
   tripleWeight: 2
   rotorWeight: 2
   tripleSpacing: 5
@@ -25,8 +25,8 @@ MonoBehaviour:
   emitterScale: 5
   emitterSpinDegPerSec: 360
   beamMaterial: {fileID: 2100000, guid: 818364b793a257b4e97d59c89537325b, type: 2}
-  beamColor: {r: 3, g: 0.9, b: 0.15, a: 0.85}
-  coreColor: {r: 4.0052357, g: 0.25307617, b: 0, a: 1}
+  beamColor: {r: 4, g: 0.12, b: 0.08, a: 0.85}
+  coreColor: {r: 4, g: 0.9, b: 0.7, a: 1}
   glowWidthFactor: 2.5
   flickerAmount: 0.25
   flickerFrequency: 22

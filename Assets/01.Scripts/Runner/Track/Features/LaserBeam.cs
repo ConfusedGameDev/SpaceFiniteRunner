@@ -45,6 +45,14 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         bool wavy;
         Vector3[] wavePoints = new Vector3[2]; // scratch, grown on demand
 
+        /// <summary>
+        /// How far an emitter's model reaches out from its barrel line, metres,
+        /// at its configured scale — the larger of the two. The emitters roll
+        /// about that line, so this is how far below a horizontal beam they can
+        /// ever dip: what the gate lifts the picture by to keep them off the road.
+        /// </summary>
+        public float EmitterRadius { get; private set; }
+
         /// <summary>Wires the run's definition, sizes the emitters and builds the beam. Called once by the generator; <paramref name="wave"/> = this gate rolled the zigzag.</summary>
         public void Configure(LaserGateDefinition def, bool wave = false)
         {
@@ -66,6 +74,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             baseScaleB = emitterB.localScale;
             emitterA.localScale = baseScaleA * def.emitterScale;
             emitterB.localScale = baseScaleB * def.emitterScale;
+            EmitterRadius = Mathf.Max(BarrelRadius(emitterA, shootPointA), BarrelRadius(emitterB, shootPointB));
 
             Material material = def.beamMaterial != null ? def.beamMaterial : FallbackMaterial();
             float glowWidth = def.beamRadius * 2f * def.glowWidthFactor;
@@ -73,6 +82,34 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             core = BuildLine("Core", material, def.coreColor, glowWidth / 3f);
             flickerSeed = Random.value * 100f;
             ready = true;
+        }
+
+        /// <summary>Hides emitter A: a vertical beam rises straight out of the road, where A's body would be buried.</summary>
+        public void HideEmitterA()
+        {
+            if (emitterA != null) emitterA.gameObject.SetActive(false);
+        }
+
+        // Farthest any mesh corner of the emitter sits from the line through its
+        // shoot point along the barrel. Rotation-invariant, so any pose will do.
+        static float BarrelRadius(Transform emitter, Transform shootPoint)
+        {
+            float radius = 0f;
+            Vector3 axis = shootPoint.forward;
+            foreach (var filter in emitter.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (filter.sharedMesh == null) continue;
+                Bounds b = filter.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = new Vector3((i & 1) != 0 ? b.max.x : b.min.x,
+                                             (i & 2) != 0 ? b.max.y : b.min.y,
+                                             (i & 4) != 0 ? b.max.z : b.min.z);
+                    Vector3 v = filter.transform.TransformPoint(corner) - shootPoint.position;
+                    radius = Mathf.Max(radius, Vector3.ProjectOnPlane(v, axis).magnitude);
+                }
+            }
+            return radius;
         }
 
         /// <summary>

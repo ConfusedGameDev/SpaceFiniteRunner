@@ -20,6 +20,6 @@ MonoBehaviour:
   chance: 0.58
   prefab: {fileID: 0}
   size: 1.5
-  roadClearance: 0.5
+  roadClearance: 1.5
   shellColor: {r: 1, g: 0.1, b: 0.1, a: 0.45}
   crossColor: {r: 0.1, g: 1, b: 0.25, a: 1}

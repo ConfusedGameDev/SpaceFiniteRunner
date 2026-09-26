@@ -101,6 +101,18 @@ MonoBehaviour:
   landingShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
   wallHitShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
   laserSpeedLoss: 0.1
+  laserSmokeTextures:
+  - {fileID: 2800000, guid: 6bd4792093f9c4229805e4ffc689be94, type: 3}
+  - {fileID: 2800000, guid: ced67ea39b03d441383bddeb8ebcaf1a, type: 3}
+  - {fileID: 2800000, guid: 7b65ef923a3d44c4ca5c2845afb32fd3, type: 3}
+  - {fileID: 2800000, guid: 9b94c7c434d8d40628cd9d666da90eff, type: 3}
+  - {fileID: 2800000, guid: 78407c48e698f4e81bd14b2163ce158d, type: 3}
+  - {fileID: 2800000, guid: 1e8c250e20eed437aa19e143338584d2, type: 3}
+  - {fileID: 2800000, guid: e7945eaf8466044849bafdaddea04182, type: 3}
+  laserSmokeScale: 5
+  laserSmokeSeconds: 2
+  laserSmokeRate: 22
+  laserSmokeBurst: 14
   slideShake: {fileID: 0}
   landingSparkleCount: 45
   landingSparkleScale: 3

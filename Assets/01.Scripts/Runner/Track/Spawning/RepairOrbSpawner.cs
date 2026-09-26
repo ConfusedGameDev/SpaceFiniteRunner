@@ -22,7 +22,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Gap between the visible road and the orb's LOWEST point (the bottom of its bob), along the track's up. The centre is placed from this and the orb's radius, so at any size the orb floats clear of the road — and, sitting just above it, is always in the ship's path.")]
         [Sirenix.OdinInspector.PropertyRange(0f, 10f), Sirenix.OdinInspector.SuffixLabel("m", true)]
         [UnityEngine.Serialization.FormerlySerializedAs("height")]
-        [SerializeField] float roadClearance = 0.5f;
+        [SerializeField] float roadClearance = 1.5f;
 
         [Tooltip("Colour of the code-built orb's translucent shell (alpha = how see-through it is, so the cross shows inside).")]
         [SerializeField] Color shellColor = new(1f, 0.1f, 0.1f, 0.45f);

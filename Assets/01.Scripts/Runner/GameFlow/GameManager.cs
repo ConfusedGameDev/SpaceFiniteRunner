@@ -1111,6 +1111,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             motor.ApplyImpactSpeedLoss(settings.laserSpeedLoss);
 
+            // Smoke rides the ship's root (not the banking visual), so the
+            // plume never rolls with a barrel roll.
+            Vector3 smokeAt = motor.Visual != null
+                ? motor.transform.InverseTransformPoint(motor.Visual.position)
+                : Vector3.zero;
+            SmokeVfx.SpawnTrail(motor.transform, smokeAt, settings.laserSmokeTextures, settings.laserSmokeScale,
+                                settings.laserSmokeSeconds, settings.laserSmokeRate, settings.laserSmokeBurst);
+
             HapticsSystem.Instance.Pulse(1f, 0.7f, 0.8f);
             CameraShake.Shake(settings.laserHitShake);
             var shipAudio = motor.GetComponent<ShipAudio>();

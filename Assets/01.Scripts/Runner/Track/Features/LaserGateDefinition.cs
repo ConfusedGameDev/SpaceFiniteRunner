@@ -83,6 +83,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [PropertyRange(0f, 1440f), SuffixLabel("°/s", true)]
         public float emitterSpinDegPerSec = 360f;
 
+        [TitleGroup("Emitters")]
+        [Tooltip("Gap kept between the visible road and the lowest point an emitter can reach as it spins. A horizontal, triple or rotor gate is DRAWN lifted by whatever this takes (the burn stays on the flight line, where the ship's hit box is — the ship's model rides that much above it anyway); a vertical beam rises out of the road with its bottom emitter hidden.")]
+        [PropertyRange(0f, 5f), SuffixLabel("m", true)]
+        public float emitterRoadClearance = 0.5f;
+
         [TitleGroup("Look")]
         [Tooltip("Additive material of the beam (URP Particles/Unlit, vertex colour). Empty = one is built in code.")]
         public Material beamMaterial;
@@ -90,12 +95,12 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [TitleGroup("Look")]
         [Tooltip("Colour of the wide outer glow.")]
         [ColorUsage(true, true)]
-        public Color beamColor = new(3f, 0.9f, 0.15f, 0.85f);
+        public Color beamColor = new(4f, 0.12f, 0.08f, 0.85f);
 
         [TitleGroup("Look")]
         [Tooltip("Colour of the thin hot core.")]
         [ColorUsage(true, true)]
-        public Color coreColor = new(3f, 2.6f, 1.6f, 1f);
+        public Color coreColor = new(4f, 0.9f, 0.7f, 1f);
 
         [TitleGroup("Look")]
         [Tooltip("Drawn width of the glow as a multiple of the burning thickness (the core is a third of it).")]

@@ -106,7 +106,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
 
             var gate = root.AddComponent<LaserGate>();
-            gate.Configure(runtime, variant, distance, lateral, length, rotorSpeed, rotorPhase, visuals, wavy);
+            gate.Configure(runtime, variant, distance, lateral, length, rotorSpeed, rotorPhase, visuals, ctx.RoadSurfaceOffset, wavy);
 
             ctx.Register(distance + halfDepth, root); // keyed on its END, like everything that spans track
             ctx.Claim(distance - halfDepth, distance + halfDepth);
