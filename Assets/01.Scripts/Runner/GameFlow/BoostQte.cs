@@ -39,6 +39,43 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// </list>
     /// Spawned by the GameManager; the picture is <see cref="BoostQtePrompt"/>.
     /// </summary>
+    /// <summary>How a boost-orb press landed. Not serialized.</summary>
+    public enum BoostQteResult
+    {
+        /// <summary>Pressed before the window opened.</summary>
+        TooFast,
+        /// <summary>Pressed after the window closed, or never pressed on an orb that was taken.</summary>
+        TooLate,
+        /// <summary>Inside the window, outside the perfect band.</summary>
+        Sweet,
+        /// <summary>Inside the perfect band.</summary>
+        Perfect
+    }
+
+    /// <summary>
+    /// One verdict of the boost QTE: the result, the multiplier it gave (1 on
+    /// a miss), the colour the prompt shows, and whether the player pressed at
+    /// all — an orb taken unpressed is a TooLate the prompt shows in red but
+    /// the HUD's label stays quiet about.
+    /// </summary>
+    public readonly struct BoostQteVerdict
+    {
+        public readonly BoostQteResult Result;
+        public readonly float Multiplier;
+        public readonly Color Color;
+        public readonly bool Pressed;
+
+        public BoostQteVerdict(BoostQteResult result, float multiplier, Color color, bool pressed)
+        {
+            Result = result;
+            Multiplier = multiplier;
+            Color = color;
+            Pressed = pressed;
+        }
+
+        public bool IsMiss => Result is BoostQteResult.TooFast or BoostQteResult.TooLate;
+    }
+
     public class BoostQte : MonoBehaviour
     {
         /// <summary>The live controller, or null when the QTE is off. Cleared on disable (domain reload is off).</summary>
@@ -55,8 +92,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public static float WarpScale =>
             Instance != null && Instance.settings != null ? 1f + FeedbackScale * (Instance.settings.boostQteWarpAtPerfect - 1f) : 1f;
 
-        /// <summary>Raised on every verdict of the player's press: the orb, the multiplier (1 = miss), perfect or not.</summary>
-        public static event System.Action<SpeedPad, float, bool> Graded;
+        /// <summary>Raised on every verdict of the player's press: the orb and the verdict (the HUD's result label).</summary>
+        public static event System.Action<SpeedPad, BoostQteVerdict> Graded;
 
         ShipMotor motor;
         GameSettings settings;
@@ -127,7 +164,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 if (!pressed && dt < -settings.boostQteWindowSeconds)
                 {
                     // The window closed. Taken unpressed = a miss; never taken = no verdict.
-                    if (collected) Verdict(1f, false, true);
+                    if (collected) Verdict(1f, BoostQteResult.TooLate, false);
                     else prompt.Drop();
                     Clear();
                 }
@@ -217,7 +254,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             float window = Mathf.Max(0.01f, settings.boostQteWindowSeconds);
             if (offset > window)
             {
-                Verdict(1f, false, true);
+                Verdict(1f, dt > 0f ? BoostQteResult.TooFast : BoostQteResult.TooLate);
                 return;
             }
 
@@ -228,7 +265,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (!collected)
             {
                 bankedMultiplier = multiplier; // SpeedPad.Collect applies it
-                Verdict(multiplier, perfect, false);
+                Verdict(multiplier, perfect ? BoostQteResult.Perfect : BoostQteResult.Sweet);
                 return;
             }
 
@@ -236,7 +273,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             FeedbackScale = Strength(multiplier);
             motor.AddSpeedImpulse(target.SpeedDelta * (multiplier - 1f));
             FeedbackScale = 0f;
-            Verdict(multiplier, perfect, false);
+            Verdict(multiplier, perfect ? BoostQteResult.Perfect : BoostQteResult.Sweet);
         }
 
         /// <summary>
@@ -262,10 +299,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float Strength(float multiplier) =>
             Mathf.Clamp01((multiplier - 1f) / Mathf.Max(0.01f, settings.BoostQteMaxMultiplier - 1f));
 
-        void Verdict(float multiplier, bool perfect, bool miss)
+        void Verdict(float multiplier, BoostQteResult result, bool pressedButton = true)
         {
+            bool perfect = result == BoostQteResult.Perfect;
             Color color;
-            if (miss) color = settings.boostQteMissColor;
+            if (result is BoostQteResult.TooFast or BoostQteResult.TooLate) color = settings.boostQteMissColor;
             else if (perfect) color = settings.boostQtePerfectColor;
             else
             {
@@ -277,7 +315,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             }
             prompt.Follow(lastRingPosition, lastRingSize);
             prompt.Resolve(color, perfect);
-            Graded?.Invoke(target, miss ? 1f : multiplier, perfect);
+            Graded?.Invoke(target, new BoostQteVerdict(result, multiplier, color, pressedButton));
         }
     }
 }

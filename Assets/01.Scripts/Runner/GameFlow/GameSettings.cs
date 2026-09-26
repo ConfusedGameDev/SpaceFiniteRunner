@@ -280,12 +280,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [ToggleGroup("boostQte")]
         [Tooltip("Graded window on EACH side of the crossing. A press this far before or after gets the low end of the multiplier band; further out is a miss.")]
         [PropertyRange(0.05f, 1f), SuffixLabel("s", true)]
-        public float boostQteWindowSeconds = 0.25f;
+        public float boostQteWindowSeconds = 0.15f;
 
         [ToggleGroup("boostQte")]
         [Tooltip("A press within this many seconds of the crossing is PERFECT — the top of the band and the green flash.")]
         [PropertyRange(0f, 0.2f), SuffixLabel("s", true)]
-        public float boostQtePerfectSeconds = 0.04f;
+        public float boostQtePerfectSeconds = 0.02f;
 
         [ToggleGroup("boostQte")]
         [Tooltip("Boost multiplier: X at the edge of the window, Y for a perfect press.")]

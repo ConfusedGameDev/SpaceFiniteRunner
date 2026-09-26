@@ -23,6 +23,7 @@ MonoBehaviour:
   fallCameraFollowSeconds: 0.5
   fallGlitchStrength: 0.8
   respawnWaitSeconds: 3
+  respawnRollingStart: 1
   respawnBlinkRate: 8
   respawnSpeedPenalty: 0.15
   respawnClearance: 150
@@ -41,26 +42,65 @@ MonoBehaviour:
   patrolRedeploySpeedFactor: 1.15
   patrolDuelEnabled: 1
   duelTimeScale: 0.3
-  finisherWindowSeconds: 1.5
-  duelHitStopSeconds: 0.12
-  patrolExplosionScale: 0.8
-  duelDebugReadout: 0
   duelTimeBlendSeconds: 0.15
   duelAssistStrength: 0.5
-  duelBarColor: {r: 1, g: 0.32, b: 0.28, a: 1}
-  ramSpeedCost: 0.08
+  finisherWindowSeconds: 1.5
+  duelHitStopSeconds: 0.12
   armedWindowSeconds: 3
   armingOrbTiers:
   - Blue
   - Purple
   armedTellColor: {r: 0.75, g: 0.45, b: 1, a: 1}
+  ramSpeedCost: 0.08
+  patrolExplosionScale: 0.8
+  duelDebugReadout: 0
+  duelBarColor: {r: 1, g: 0.32, b: 0.28, a: 1}
+  duelSparkColor: {r: 1, g: 0.5, b: 0.8, a: 1}
+  duelSparkScale: 1
   showPatrolAlert: 0
   showPatrolWarnings: 0
   patrolProximityRumble: 1
   powerUpSpeedBoost: 42.6
+  boostRumble: {x: 0.15, y: 0.55, z: 0.15}
+  boostQte: 1
+  boostQteShowSeconds: 1
+  boostQteWindowSeconds: 0.15
+  boostQtePerfectSeconds: 0.02
+  boostQteMultiplierBand: {x: 1.1, y: 1.5}
+  boostQteFalloff:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 1
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  boostQteWarpAtPerfect: 1.8
+  boostQteRumbleAtPerfect: {x: 0.7, y: 1, z: 0.4}
+  boostQteGlyphSize: 0.45
+  boostQteMissColor: {r: 1, g: 0.15, b: 0.12, a: 1}
+  boostQteMidColor: {r: 1, g: 0.85, b: 0.1, a: 1}
+  boostQtePerfectColor: {r: 0.2, g: 1, b: 0.3, a: 1}
   airLaneHeight: 30
   landingShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
   wallHitShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  laserSpeedLoss: 0.1
   slideShake: {fileID: 0}
   landingSparkleCount: 45
   landingSparkleScale: 3
@@ -97,6 +137,7 @@ MonoBehaviour:
   laserDamage: 30
   laserHitShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
   hitInvulnerabilitySeconds: 1
+  repairOrbHealFraction: 0.15
   scrapeShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
   hullHitGlitchStrength: 0.35
   explosionTextures:

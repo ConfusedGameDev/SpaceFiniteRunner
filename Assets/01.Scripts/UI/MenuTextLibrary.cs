@@ -154,7 +154,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // Track spawnables: the debug menu's per-spawner density row. {0} = the spawner's name.
         SpawnDensity,
         // The boost-orb timing press: its CONTROLS row.
-        ActionBoost
+        ActionBoost,
+        // The boost QTE's HUD result label.
+        QteTooFast, QteTooLate, QteSweet, QtePerfect
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -846,6 +848,18 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString actionAccelerate =new("ACCELERATE", "ACELERAR", "アクセル", "ACCÉLÉRER");
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString actionBrake = new("BRAKE / REVERSE", "FRENO / MARCHA ATRÁS", "ブレーキ / バック", "FREIN / MARCHE ARRIÈRE");
+        [TitleGroup("Boost QTE")]
+        [Tooltip("HUD result label: pressed before the window.")]
+        [SerializeField] LocalizedString qteTooFast = new("TOO FAST!", "¡DEMASIADO RÁPIDO!", "早すぎ！", "TROP RAPIDE !");
+        [TitleGroup("Boost QTE")]
+        [Tooltip("HUD result label: pressed after the window, or not at all.")]
+        [SerializeField] LocalizedString qteTooLate = new("TOO LATE!", "¡DEMASIADO TARDE!", "遅すぎ！", "TROP TARD !");
+        [TitleGroup("Boost QTE")]
+        [Tooltip("HUD result label: inside the window.")]
+        [SerializeField] LocalizedString qteSweet = new("SWEET!", "¡GENIAL!", "いいね！", "SUPER !");
+        [TitleGroup("Boost QTE")]
+        [Tooltip("HUD result label: the perfect band.")]
+        [SerializeField] LocalizedString qtePerfect = new("PERFECT!", "¡PERFECTO!", "パーフェクト！", "PARFAIT !");
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString actionBoost = new("BOOST", "IMPULSO TURBO", "ブースト", "BOOST");
         [TitleGroup("Controls")]
@@ -1583,6 +1597,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.RespawnRollingStart => respawnRollingStart,
             MenuTextId.SpawnDensity => spawnDensity,
             MenuTextId.ActionBoost => actionBoost,
+            MenuTextId.QteTooFast => qteTooFast,
+            MenuTextId.QteTooLate => qteTooLate,
+            MenuTextId.QteSweet => qteSweet,
+            MenuTextId.QtePerfect => qtePerfect,
             _ => start
         };
     }

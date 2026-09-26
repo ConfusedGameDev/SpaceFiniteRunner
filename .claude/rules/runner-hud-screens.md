@@ -51,7 +51,15 @@ Preview** (Odin button) draws the segments in edit mode. Do not add position/siz
   objective lines use `lineColor` (white, the old `timeColor`).
 - Every booster hit spawns a floating "+N" at the ship (`FloatingWorldText`, spawned here);
   `MoneyChanged` is answered with a gold `+$N` floating text.
-- **The HUD owns no retry and prints no result text.** Its old result/prompt texts and the R
+- **The boost QTE's verdict** (`qteResultText`, the `QteResultText` object, top-left by default):
+  on `BoostQte.Graded` it reads TOO FAST! (pressed before the window) / TOO LATE! (pressed after
+  it) / SWEET! (inside the window) / PERFECT! (the perfect band). **Only a press gets a word**: an
+  orb taken without one (`BoostQteVerdict.Pressed` false) turns the ring glyph red but shows no
+  label —
+  `MenuTextId.QteTooFast`…`QtePerfect`, in the prompt's colour. It pops in, holds
+  `qteResultHoldSeconds` (1.5), then dissolves over `qteResultFadeSeconds` (0.75); a new verdict
+  restarts it. Placed by hand like everything else — code only sets text, colour, alpha and the pop.
+- **The HUD owns no retry and prints no run-result text.** Its old result/prompt texts and the R
   shortcut are gone — the two empty `Text` objects still wired in the scene can be deleted.
 
 ## `DuelBarHud` (`Runner/HUD/`) — the tug of war and the kill prompt

@@ -109,7 +109,21 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Tooltip("Colour the hull bar flashes, and of the floating \"+N\" popup, when a repair orb gives hull back.")]
         [SerializeField] Color repairColor = new(0.3f, 1f, 0.45f);
 
+        [Header("Boost QTE result")]
+        [Tooltip("The boost QTE's verdict (TOO FAST! / TOO LATE! / SWEET! / PERFECT!), in the prompt's colour. Placed by hand like every HUD element; empty = no label.")]
+        [SerializeField] Text qteResultText;
+        [Tooltip("Seconds the verdict stays fully visible.")]
+        [SerializeField, Min(0f)] float qteResultHoldSeconds = 1.5f;
+        [Tooltip("Seconds it then takes to dissolve.")]
+        [SerializeField, Min(0.01f)] float qteResultFadeSeconds = 0.75f;
+        [Tooltip("Scale the label pops to when a verdict lands, settling back to its authored scale.")]
+        [SerializeField, Min(1f)] float qteResultPunch = 1.3f;
+
         float currentPulse = 1f;
+        float qteResultShownAt = float.NegativeInfinity;
+        float qteResultPunchNow = 1f;
+        Vector3 qteResultScale = Vector3.one;
+        Color qteResultColor = Color.white;
 
         // The objective readout: (goal, is it a challenge, its index in the
         // level's list, the line drawn for it), built once in Start.
@@ -134,6 +148,11 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         void Start()
         {
             if (speedText != null) speedScale = speedText.rectTransform.localScale;
+            if (qteResultText != null)
+            {
+                qteResultScale = qteResultText.rectTransform.localScale;
+                qteResultText.gameObject.SetActive(false);
+            }
             if (objectiveLineTemplate != null) objectiveLineTemplate.gameObject.SetActive(false);
             BuildGauge();
             BuildLifeBar();
@@ -248,6 +267,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             if (motor != null) motor.PadImpulse += OnPadImpulse;
             CollectibleManager.MoneyChanged += OnMoneyChanged;
             RepairOrb.Collected += OnRepairOrb;
+            BoostQte.Graded += OnQteGraded; // static: paired below — domain reload is off
         }
 
         void OnDisable()
@@ -255,6 +275,44 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             if (motor != null) motor.PadImpulse -= OnPadImpulse;
             CollectibleManager.MoneyChanged -= OnMoneyChanged;
             RepairOrb.Collected -= OnRepairOrb;
+            BoostQte.Graded -= OnQteGraded;
+        }
+
+        // The boost QTE's verdict: the word in the prompt's colour, popped in,
+        // held, then dissolved (UpdateQteResult). A new verdict restarts it.
+        void OnQteGraded(SpeedPad orb, BoostQteVerdict verdict)
+        {
+            // No label for an orb taken without a press — only a press gets a verdict word.
+            if (qteResultText == null || !verdict.Pressed) return;
+            MenuTextId id = verdict.Result switch
+            {
+                BoostQteResult.TooFast => MenuTextId.QteTooFast,
+                BoostQteResult.TooLate => MenuTextId.QteTooLate,
+                BoostQteResult.Perfect => MenuTextId.QtePerfect,
+                _ => MenuTextId.QteSweet
+            };
+            qteResultText.text = MenuTextLibrary.Load().Get(id);
+            qteResultColor = verdict.Color;
+            qteResultShownAt = Time.time;
+            qteResultPunchNow = qteResultPunch;
+            qteResultText.gameObject.SetActive(true);
+        }
+
+        void UpdateQteResult()
+        {
+            if (qteResultText == null || !qteResultText.gameObject.activeSelf) return;
+            float since = Time.time - qteResultShownAt;
+            float alpha = 1f - Mathf.Clamp01((since - qteResultHoldSeconds) / qteResultFadeSeconds);
+            if (alpha <= 0f)
+            {
+                qteResultText.gameObject.SetActive(false);
+                return;
+            }
+            Color c = qteResultColor;
+            c.a *= alpha;
+            qteResultText.color = c;
+            qteResultPunchNow = Mathf.MoveTowards(qteResultPunchNow, 1f, pulseDecay * Time.deltaTime);
+            qteResultText.rectTransform.localScale = qteResultScale * qteResultPunchNow;
         }
 
         // The money twin of the boost popup: "+$3" in gold ahead of the ship.
@@ -297,6 +355,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void Update()
         {
+            UpdateQteResult();
             if (motor == null) return;
 
             float kmh = motor.CurrentSpeed * 3.6f;
