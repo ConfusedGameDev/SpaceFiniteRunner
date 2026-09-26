@@ -262,6 +262,66 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0f, 100f), SuffixLabel("m/s", true)]
         public float powerUpSpeedBoost = 15f;
 
+        [TitleGroup("Power-ups")]
+        [Tooltip("Base boost rumble (low motor, high motor, seconds) — a boost orb taken without a timed press, and every non-orb boost (a ramp takeoff).")]
+        public Vector3 boostRumble = new(0.15f, 0.55f, 0.15f);
+
+        // ----------------------------------------------------------- boost QTE
+        [ToggleGroup("boostQte", "Boost QTE")]
+        [Tooltip("Timed boost: press Boost (A / Space) as the ship crosses a boost orb and the boost is multiplied by how close the press was. " +
+                 "Taking the orb without a press still gives the plain boost. Off = orbs work exactly as before, no prompt.")]
+        public bool boostQte = true;
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("The prompt appears over the next boost orb once the ship is this many seconds from it at its current speed.")]
+        [PropertyRange(0.2f, 3f), SuffixLabel("s", true)]
+        public float boostQteShowSeconds = 1f;
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("Graded window on EACH side of the crossing. A press this far before or after gets the low end of the multiplier band; further out is a miss.")]
+        [PropertyRange(0.05f, 1f), SuffixLabel("s", true)]
+        public float boostQteWindowSeconds = 0.25f;
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("A press within this many seconds of the crossing is PERFECT — the top of the band and the green flash.")]
+        [PropertyRange(0f, 0.2f), SuffixLabel("s", true)]
+        public float boostQtePerfectSeconds = 0.04f;
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("Boost multiplier: X at the edge of the window, Y for a perfect press.")]
+        [MinMaxSlider(1f, 3f, true)]
+        public Vector2 boostQteMultiplierBand = new(1.1f, 1.5f);
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("Accuracy (0 = perfect, 1 = window edge) → share of the way from the band's top to its bottom.")]
+        public AnimationCurve boostQteFalloff = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("Warp kick of a perfect press, as a scale of the base orb warp. A graded press blends toward it.")]
+        [PropertyRange(1f, 3f), SuffixLabel("x", true)]
+        public float boostQteWarpAtPerfect = 1.8f;
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("Rumble of a perfect press (low motor, high motor, seconds). A graded press blends from the base boost rumble toward it.")]
+        public Vector3 boostQteRumbleAtPerfect = new(0.7f, 1f, 0.4f);
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("Prompt glyph size as a share of the orb ring's width.")]
+        [PropertyRange(0.1f, 1f)]
+        public float boostQteGlyphSize = 0.45f;
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("Prompt colour of a miss (pressed outside the window, or never pressed) and of the window's edge.")]
+        public Color boostQteMissColor = new(1f, 0.15f, 0.12f);
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("Prompt colour halfway between the window's edge and perfect.")]
+        public Color boostQteMidColor = new(1f, 0.85f, 0.1f);
+
+        [ToggleGroup("boostQte")]
+        [Tooltip("Prompt colour of a perfect press.")]
+        public Color boostQtePerfectColor = new(0.2f, 1f, 0.3f);
+
         // ----------------------------------------------------- track features
         [TitleGroup("Track features")]
         [Tooltip("Height of the air lane above the flight line — where Air-lane pads spawn, reachable only off a jump. Prepared for future power-ups; the tables hold no air entries yet.")]
@@ -717,5 +777,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         /// <summary>Gap that retires the current patrol for a fresh one; 0 when redeploying is off (band Y).</summary>
         public float PatrolRedeployDistance => patrolRedeploys ? patrolRedeployBand.y : 0f;
+
+        /// <summary>Boost multiplier at the edge of the timing window (band X).</summary>
+        public float BoostQteMinMultiplier => boostQteMultiplierBand.x;
+
+        /// <summary>Boost multiplier of a perfect press (band Y).</summary>
+        public float BoostQteMaxMultiplier => boostQteMultiplierBand.y;
     }
 }

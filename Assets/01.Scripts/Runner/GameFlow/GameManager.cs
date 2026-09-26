@@ -282,6 +282,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     rollTrail.Init(motor, shipSettings);
                     dashPrompt = DashPromptController.Spawn(motor, settings);
                 }
+
+                if (settings.boostQte) BoostQte.Spawn(motor, settings);
             }
 
             // The ship's run definition: the Store's bought levels multiplied
@@ -924,7 +926,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // Haptics: a snappy buzz for boosts, a heavier thud for brakes.
         void OnPadImpulse(float rawMagnitude)
         {
-            if (rawMagnitude > 0f) HapticsSystem.Instance.Pulse(0.15f, 0.55f, 0.15f);
+            // A boost rumbles from the base toward the perfect-press rumble by the boost QTE's grade (0 for a plain boost).
+            if (rawMagnitude > 0f)
+            {
+                Vector3 rumble = Vector3.Lerp(settings.boostRumble, settings.boostQteRumbleAtPerfect, BoostQte.FeedbackScale);
+                HapticsSystem.Instance.Pulse(rumble.x, rumble.y, rumble.z);
+            }
             else HapticsSystem.Instance.Pulse(0.65f, 0.2f, 0.25f);
 
             // A burst of speed lines per boost, scaled by the orb's tier

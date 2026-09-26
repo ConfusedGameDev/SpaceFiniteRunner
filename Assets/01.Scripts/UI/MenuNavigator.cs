@@ -71,10 +71,23 @@ namespace ConfusedGameDev.FiniteRunner.UI
         }
 
         /// <summary>
+        /// Set by the runner while a boost-orb timing prompt is live: gamepad A
+        /// is the ship's Boost then, so the dialogue box stops reading it and
+        /// one press never both boosts and advances a line. Enter still
+        /// advances. Whoever sets it clears it (and it is cleared on boot —
+        /// domain reload is off).
+        /// </summary>
+        public static bool DialogueAdvanceSuppressed { get; set; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => DialogueAdvanceSuppressed = false;
+
+        /// <summary>
         /// The dialogue box's advance chord as an edge — Enter / numpad Enter
         /// or gamepad A, the same set as <see cref="ConfirmHeld"/> and for the
         /// same reason: Space is the car's handbrake, and a message is read
-        /// with the world still running under it.
+        /// with the world still running under it. A is ignored while
+        /// <see cref="DialogueAdvanceSuppressed"/>.
         /// </summary>
         public static bool DialogueAdvancePressed()
         {
@@ -82,6 +95,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             if (keyboard != null && (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame))
                 return true;
 
+            if (DialogueAdvanceSuppressed) return false;
             return Gamepad.current is { buttonSouth: { wasPressedThisFrame: true } };
         }
 

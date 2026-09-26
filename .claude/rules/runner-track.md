@@ -512,6 +512,23 @@ visual carries are only a picture.
   plane in bursts (one fast eased turn, a pause, again). Written in world space in `LateUpdate`, so
   `OrbHover`'s slow spin of the root never leaks into it. `SpeedPad.ApplyColor` tints EVERY renderer, so the ring wears the
   tier colour.
+- **The boost QTE** (`GameFlow/BoostQte.cs`, spawned by `GameManager` when
+  `GameSettings.boostQte`): press Boost (`GameAction.ShipBoost`, A / Space) as the ship crosses a
+  boost orb and the boost is multiplied by the accuracy. Taking an orb without a press is unchanged.
+  Graded in **time** — `(orb.TrackDistance − ship distance) / speed` — so the window feels the
+  same at every speed: within `boostQtePerfectSeconds` = PERFECT (the top of
+  `boostQteMultiplierBand`, 1.5), falling along `boostQteFalloff` to the bottom (1.1) at
+  `boostQteWindowSeconds` either side, beyond = a miss. **An early press is banked** and applied
+  by `Collect` in the ONE impulse (`OnOrbCollected` → `SpeedDelta × mult`), so speed lines, "+N",
+  audio and the patrol's `boostShare` all scale; **a late press tops up** with a second impulse of
+  `SpeedDelta × (mult − 1)`. One press per orb — a press outside the window locks it as a miss, and
+  a window that closes unpressed on a taken orb is a miss too. The target is the nearest boost orb
+  ahead within `boostQteShowSeconds`; not while falling, respawning or `DashLocked` (the duel).
+  Feedback scales through the static `BoostQte.FeedbackScale` (0 plain … 1 perfect), set only
+  around a graded impulse and read inside `PadImpulse`: the warp (`PadEffects` →
+  `LensDistortionController.Trigger(BoostQte.WarpScale)`, up to `boostQteWarpAtPerfect`) and the
+  rumble (`GameManager.OnPadImpulse`, `boostRumble` → `boostQteRumbleAtPerfect`). The picture is
+  `BoostQtePrompt` (`runner-hud-screens.md`). The patrol's `Take()` never grades.
 - `floatingOrb` makes it a hovering sphere on the flight line, with an `OrbHover` bob/spin/sway
   component added at runtime. `OrbHover` bobs and sways along the **track's** up/right captured
   at spawn, not world axes, so orbs survive loops and tubes.

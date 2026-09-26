@@ -58,6 +58,7 @@ namespace ConfusedGameDev.FiniteRunner.CameraFX
 
         LensDistortion lens;
         float timer;
+        float peak; // this kick's top, set by Trigger
 
         void Awake()
         {
@@ -90,7 +91,18 @@ namespace ConfusedGameDev.FiniteRunner.CameraFX
         /// <summary>Restart the kick: intensity jumps to max and the curve settles it back to the default.</summary>
         [TitleGroup("Actions")]
         [Button("Trigger", ButtonSizes.Medium), EnableIf("@UnityEngine.Application.isPlaying")]
-        public void Trigger() => timer = 0f;
+        public void Trigger() => Trigger(1f);
+
+        /// <summary>
+        /// Restart the kick with its peak scaled: 1 = <see cref="maxIntensity"/>,
+        /// above 1 pushes past it (clamped to the effect's -1..1) — the boost
+        /// QTE's graded warp.
+        /// </summary>
+        public void Trigger(float peakScale)
+        {
+            timer = 0f;
+            peak = Mathf.Clamp(defaultIntensity + (maxIntensity - defaultIntensity) * Mathf.Max(0f, peakScale), -1f, 1f);
+        }
 
         void Update()
         {
@@ -99,7 +111,7 @@ namespace ConfusedGameDev.FiniteRunner.CameraFX
             if (timer < duration)
             {
                 timer += Time.deltaTime;
-                value = Mathf.Lerp(defaultIntensity, maxIntensity, envelope.Evaluate(Mathf.Clamp01(timer / duration)));
+                value = Mathf.Lerp(defaultIntensity, peak, envelope.Evaluate(Mathf.Clamp01(timer / duration)));
             }
             lens.intensity.value = value;
         }

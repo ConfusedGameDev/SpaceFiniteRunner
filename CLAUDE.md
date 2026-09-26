@@ -59,6 +59,11 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   for; green 1× / blue 2.5× / purple 10×) push past cruise, where a passive bleed pulls the speed
   back down to it; laser beams take 10 % of it. No cap. (Brake pads are retired: the
   `Spawner_BrakePads` asset is kept out of the track's spawn set — see `runner-track.md`.)
+- **Timed boost (QTE)**: a boost orb still boosts when you just fly through it, but pressing
+  **Boost (A / Space)** right as you cross it multiplies the boost — ×1.5 dead on, down to ×1.1 at
+  the edge of the window (graded in time, either side of the crossing), with the warp and rumble
+  scaled to match. The A glyph floats in the orb's ring as a billboard: white while waiting,
+  red → yellow → green by the grade, red on a miss. One press per orb.
 - **The patrol** drives the same physics as the ship: it rubber-bands to the ship's speed and
   takes a share (`boostShare`) of every boost the ship collects, steers for the ship, goes after
   boost orbs of its own (which it uses up), rounds ramps or jumps them, brakes for flat sweeps,

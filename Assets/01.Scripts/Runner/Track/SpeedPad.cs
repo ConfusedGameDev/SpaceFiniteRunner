@@ -1,5 +1,6 @@
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Simulation;
 namespace ConfusedGameDev.FiniteRunner.Track
@@ -100,13 +101,20 @@ namespace ConfusedGameDev.FiniteRunner.Track
         // The standalone ship's swept query finds the pad by its collider; taking it is the same act.
         void IShipPickup.PickUp(IShip ship) => Collect(ship);
 
-        /// <summary>A ship went through it: apply the speed change, tell the listeners, use an orb up.</summary>
+        /// <summary>
+        /// A ship went through it: apply the speed change, tell the listeners,
+        /// use an orb up. A boost orb asks the <see cref="BoostQte"/> first —
+        /// a timed press banked before the crossing multiplies the boost here,
+        /// in the one impulse, so every listener sees the real amount.
+        /// </summary>
         public void Collect(IShip motor)
         {
             if (!Available || motor == null) return;
             taken = true;
-            motor.AddSpeedImpulse(SpeedDelta);
+            float multiplier = IsBoostOrb && BoostQte.Instance != null ? BoostQte.Instance.OnOrbCollected(this) : 1f;
+            motor.AddSpeedImpulse(SpeedDelta * multiplier);
             Collected?.Invoke(this, motor);
+            BoostQte.EndImpulse();
             if (definition.floatingOrb) gameObject.SetActive(false); // OnDisable drops it from the registry
         }
 

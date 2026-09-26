@@ -60,6 +60,14 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             (PadControl.RightStickUp, "stick_r_up"), (PadControl.RightStickDown, "stick_r_down")
         };
 
+        // The white face buttons — ControlGlyphSet.ForMono, for prompts that
+        // tint the glyph (the boost QTE's red / green).
+        static readonly (PadControl control, string file)[] MonoPadFiles =
+        {
+            (PadControl.ButtonSouth, "button_a"), (PadControl.ButtonEast, "button_b"),
+            (PadControl.ButtonWest, "button_x"), (PadControl.ButtonNorth, "button_y")
+        };
+
         [MenuItem("Tools/FiniteRunner/Build Control Glyphs")]
         public static void Build()
         {
@@ -96,7 +104,11 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             foreach (var (control, file) in PadFiles)
                 pads.Add(new PadGlyph { control = control, sprite = LoadSprite($"{ControlGlyphSet.GamepadFolder}/xbox_{file}.png", missing) });
 
-            set.SetGlyphs(keys, pads);
+            var monoPads = new List<PadGlyph>();
+            foreach (var (control, file) in MonoPadFiles)
+                monoPads.Add(new PadGlyph { control = control, sprite = LoadSprite($"{ControlGlyphSet.GamepadFolder}/xbox_{file}.png", missing) });
+
+            set.SetGlyphs(keys, pads, monoPads);
             EditorUtility.SetDirty(set);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -106,7 +118,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                                  string.Join("\n", missing), set);
 
             Selection.activeObject = set;
-            Debug.Log($"Control glyphs ready: {path} ({keys.Count} keys, {pads.Count} pad controls).", set);
+            Debug.Log($"Control glyphs ready: {path} ({keys.Count} keys, {pads.Count} pad controls, {monoPads.Count} mono).", set);
         }
 
         static string KeyPath(string file) => $"{ControlGlyphSet.KeyboardFolder}/keyboard_{file}.png";

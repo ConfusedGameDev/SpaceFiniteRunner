@@ -85,6 +85,20 @@ caller never checks.
   refuse (`commit in`, `reach`, `ground`). All three of those hid real bugs during the build.
 - Hidden whenever `motor.Paused`.
 
+## `BoostQtePrompt` (`Runner/HUD/`) — the boost orb's timing glyph
+
+The picture of the boost QTE (`BoostQte`, `runner-track.md`): the player's LIVE `ShipBoost`
+binding on a small **world-space canvas**, a full billboard (`LookRotation` from the camera,
+camera up) sitting at the centre of the orb's `Indicator` ring (its mesh bounds' centre), sized
+`GameSettings.boostQteGlyphSize` × the ring's width. **Never a child of the orb** — the orb is
+deactivated when taken (the verdict must outlive it) and `SpeedPad.ApplyColor` tints every
+renderer under it. The glyph is WHITE so `Image.color` tints true: the mono face buttons
+(`ControlGlyphSet.ForMono`, filled by `Build Control Glyphs`) on a pad, the key cap otherwise,
+a text label when there is no art. Waiting: white, growing and pulsing faster toward the
+crossing. Verdict: red (miss) → yellow → green by the grade, a pure green pop on PERFECT; held
+0.35 s, then faded. An orb that leaves without a verdict (steered past, the patrol took it)
+just fades. Holds no rules.
+
 ## Runner fog
 
 The runner scene carries its own hand-placed `DistanceFog` driver with its own settings asset,

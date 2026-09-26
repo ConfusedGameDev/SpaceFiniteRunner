@@ -2,6 +2,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 
 using ConfusedGameDev.FiniteRunner.FX;
+using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
 namespace ConfusedGameDev.FiniteRunner.CameraFX
 {
@@ -36,8 +37,9 @@ namespace ConfusedGameDev.FiniteRunner.CameraFX
 
         void OnPadImpulse(float rawMagnitude)
         {
+            // A timed boost-orb press kicks harder, up to the settings' warp at perfect.
             if (rawMagnitude > 0f)
-                LensDistortionController.Instance.Trigger();
+                LensDistortionController.Instance.Trigger(BoostQte.WarpScale);
             else if (rawMagnitude < 0f && GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(brakeGlitchPulse);
         }

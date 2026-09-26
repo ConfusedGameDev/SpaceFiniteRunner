@@ -70,9 +70,12 @@ binding.
   / navigate / pause-open stay hard-wired, and **menus keep polling the devices directly — only
   gameplay reads through the table.** Gamepad B (the menus' Back) is deliberately NOT reserved,
   for the same reason Space is not: it is the car handbrake's default, and menus only run with
-  gameplay frozen. Gamepad A carries no default at all — the dialogue box's advance and the
-  cinema's skip read it over live gameplay (`MenuNavigator.DialogueAdvancePressed` /
-  `ConfirmHeld`) — though a player may bind it.
+  gameplay frozen. Gamepad A (with Space) is the ship's **Boost** (`GameAction.ShipBoost`, the
+  boost-orb timing press — `runner-track.md`). The dialogue box's advance and the cinema's skip
+  also read A raw over live gameplay (`MenuNavigator.DialogueAdvancePressed` / `ConfirmHeld`);
+  the dialogue box **yields A while a boost prompt is live** — `BoostQte` holds
+  `MenuNavigator.DialogueAdvanceSuppressed` (Enter still advances), so one press never both
+  boosts and advances a line.
 - **The duel's mash button is the FOURTH documented exception to "gameplay reads through the
   table"** (the others being gamepad A above, the mouse for camera pan and touch steering). The
   tug-of-war mash is **fixed and non-bindable**: `Key.X` and `PadControl.ButtonWest`, both in the

@@ -54,8 +54,14 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TableList(ShowIndexLabels = false, AlwaysExpanded = false)]
         [SerializeField] List<PadGlyph> pads = new();
 
+        [TitleGroup("Gamepad (06.UI/01.Sprites/Xbox Series/Double)")]
+        [Tooltip("White versions of the colour face buttons, for world prompts that tint the glyph (the boost QTE). Controls not listed fall back to the main set.")]
+        [TableList(ShowIndexLabels = false, AlwaysExpanded = false)]
+        [SerializeField] List<PadGlyph> monoPads = new();
+
         Dictionary<Key, Sprite> keyLookup;
         Dictionary<PadControl, Sprite> padLookup;
+        Dictionary<PadControl, Sprite> monoLookup;
 
         /// <summary>The key cap for a key, or null when the set has no art for it.</summary>
         public Sprite For(Key key)
@@ -71,6 +77,18 @@ namespace ConfusedGameDev.FiniteRunner.UI
             if (control == PadControl.None) return null;
             padLookup ??= BuildPads();
             return padLookup.TryGetValue(control, out var sprite) ? sprite : null;
+        }
+
+        /// <summary>
+        /// A tintable (white) glyph for a pad control: the mono face button
+        /// when the set has one, else the regular glyph (the shoulders, sticks
+        /// and d-pad are white already). Null when there is no art at all.
+        /// </summary>
+        public Sprite ForMono(PadControl control)
+        {
+            if (control == PadControl.None) return null;
+            monoLookup ??= BuildPads(monoPads);
+            return monoLookup.TryGetValue(control, out var sprite) ? sprite : For(control);
         }
 
         /// <summary>
@@ -107,13 +125,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
         {
             keyLookup = null;
             padLookup = null;
+            monoLookup = null;
         }
 
         /// <summary>Replaces the whole set. Used by the editor builder.</summary>
-        public void SetGlyphs(List<KeyGlyph> keyGlyphs, List<PadGlyph> padGlyphs)
+        public void SetGlyphs(List<KeyGlyph> keyGlyphs, List<PadGlyph> padGlyphs, List<PadGlyph> monoPadGlyphs)
         {
             keys = keyGlyphs;
             pads = padGlyphs;
+            monoPads = monoPadGlyphs;
             Invalidate();
         }
 
@@ -127,10 +147,13 @@ namespace ConfusedGameDev.FiniteRunner.UI
             return map;
         }
 
-        Dictionary<PadControl, Sprite> BuildPads()
+        Dictionary<PadControl, Sprite> BuildPads() => BuildPads(pads);
+
+        static Dictionary<PadControl, Sprite> BuildPads(List<PadGlyph> list)
         {
             var map = new Dictionary<PadControl, Sprite>();
-            foreach (var entry in pads)
+            if (list == null) return map;
+            foreach (var entry in list)
                 if (entry.control != PadControl.None && entry.sprite != null) map[entry.control] = entry.sprite;
             return map;
         }

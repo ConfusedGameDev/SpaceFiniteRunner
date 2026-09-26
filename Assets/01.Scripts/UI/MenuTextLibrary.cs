@@ -152,7 +152,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // FALL & RESPAWN: relaunch at once and fly the wait blinking.
         RespawnRollingStart,
         // Track spawnables: the debug menu's per-spawner density row. {0} = the spawner's name.
-        SpawnDensity
+        SpawnDensity,
+        // The boost-orb timing press: its CONTROLS row.
+        ActionBoost
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -844,6 +846,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString actionAccelerate =new("ACCELERATE", "ACELERAR", "アクセル", "ACCÉLÉRER");
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString actionBrake = new("BRAKE / REVERSE", "FRENO / MARCHA ATRÁS", "ブレーキ / バック", "FREIN / MARCHE ARRIÈRE");
+        [TitleGroup("Controls")]
+        [SerializeField] LocalizedString actionBoost = new("BOOST", "IMPULSO TURBO", "ブースト", "BOOST");
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString actionHandbrake = new("HANDBRAKE", "FRENO DE MANO", "ハンドブレーキ", "FREIN À MAIN");
         [TitleGroup("Controls")]
@@ -1578,6 +1582,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DuelPushGain => duelPushGain,
             MenuTextId.RespawnRollingStart => respawnRollingStart,
             MenuTextId.SpawnDensity => spawnDensity,
+            MenuTextId.ActionBoost => actionBoost,
             _ => start
         };
     }

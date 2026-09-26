@@ -33,7 +33,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CityMap, RadioPrevious, RadioNext,
         CameraCycle, CameraLookBack,
         CameraPanLeft, CameraPanRight, CameraPanUp, CameraPanDown,
-        ShipAccelerate, ShipBrake
+        ShipAccelerate, ShipBrake,
+        ShipBoost
     }
 
     /// <summary>
@@ -49,9 +50,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
     /// a menu. Menus keep polling the devices directly — only gameplay reads
     /// through here. Gamepad B is the menus' Back but NOT reserved, for the
     /// same reason Space is not: menus only run with gameplay frozen, so the
-    /// handbrake (its default) and Back never meet. A is left free of any
-    /// default because the dialogue box and the cinema skip read it while the
-    /// world runs.</item>
+    /// handbrake (its default) and Back never meet. A is the ship's Boost
+    /// (the timed boost-orb press); the dialogue box also reads it while the
+    /// world runs, and yields it to the boost while a boost prompt is live
+    /// (<see cref="MenuNavigator.DialogueAdvanceSuppressed"/>).</item>
     /// <item><b>A control is unique inside its context</b> (<see cref="BindingSection"/>):
     /// binding a control another action of the same context already holds
     /// SWAPS the two (the other action takes this one's old control) —
@@ -93,7 +95,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             }
         }
 
-        // No default collides inside any context: Ship {A D N M W S}, Car {A D
+        // No default collides inside any context: Ship {A D N M W S Space}, Car {A D
         // W S Space R M 5 6}, General {Tab RShift arrows} — and the pads
         // likewise. INDEXED BY THE ENUM VALUE: rows stay in enum order.
         static readonly Default[] Defaults =
@@ -118,15 +120,17 @@ namespace ConfusedGameDev.FiniteRunner.UI
             new(GameAction.CameraPanUp, BindingSection.General, Key.UpArrow, PadControl.RightStickUp),
             new(GameAction.CameraPanDown, BindingSection.General, Key.DownArrow, PadControl.RightStickDown),
             new(GameAction.ShipAccelerate, BindingSection.Ship, Key.W, PadControl.RightTrigger),
-            new(GameAction.ShipBrake, BindingSection.Ship, Key.S, PadControl.LeftTrigger)
+            new(GameAction.ShipBrake, BindingSection.Ship, Key.S, PadControl.LeftTrigger),
+            new(GameAction.ShipBoost, BindingSection.Ship, Key.Space, PadControl.ButtonSouth)
         };
 
         // Confirm (Enter / numpad Enter), Back (Esc / Backspace), the
         // pause-open Start, and keys the OS or IME owns. Space and gamepad B
         // are deliberately NOT here: they are the handbrake, and menus only
         // run with gameplay frozen, so the two never meet. Nor is A: it is
-        // the dialogue advance / cinema skip, read over live gameplay, so no
-        // default sits on it — but a player who wants it there may bind it.
+        // the ship's Boost by default AND the dialogue advance / cinema skip,
+        // read over live gameplay — the dialogue yields it while a boost
+        // prompt is up (MenuNavigator.DialogueAdvanceSuppressed).
         // X / gamepad X are the patrol duel's mash, read RAW over live
         // gameplay (the fourth documented exception to "gameplay input goes
         // through this table", after dialogue advance on A, the camera mouse

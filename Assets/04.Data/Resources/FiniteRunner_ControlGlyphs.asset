@@ -270,3 +270,12 @@ MonoBehaviour:
     sprite: {fileID: 2194442242755624189, guid: 0796773c0a6e56042bfceb815938eb1a, type: 3}
   - control: 24
     sprite: {fileID: 246453436953034071, guid: e7a41810558384947bdb5604e37dfa02, type: 3}
+  monoPads:
+  - control: 1
+    sprite: {fileID: -7956427973557797689, guid: dfe23cc467b4d9044822194b3c6473df, type: 3}
+  - control: 2
+    sprite: {fileID: 643402748272714948, guid: da634deeda298154083c7047443c947c, type: 3}
+  - control: 3
+    sprite: {fileID: 7183707057315010591, guid: b3b18116a0b99394cb144f28f9db27e5, type: 3}
+  - control: 4
+    sprite: {fileID: -1236389414660901761, guid: 71e7436a8b1d86e44b4fb62bf86f6e3f, type: 3}
