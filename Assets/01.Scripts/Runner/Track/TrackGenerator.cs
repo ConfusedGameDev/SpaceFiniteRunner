@@ -440,6 +440,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             track.Recalculate();
 
             spawnContext = new TrackSpawnContext(track, gameManager, padsParent, padSize, boostMaterial, layoutSeed,
+                                                 decorator != null ? decorator.RoadYOffset : -1.2f,
                                                  spawned, claims, padDistances, featureKeepOuts);
             foreach (var spawner in runtimeSpawners)
                 if (spawner != null) spawner.Begin(spawnContext);

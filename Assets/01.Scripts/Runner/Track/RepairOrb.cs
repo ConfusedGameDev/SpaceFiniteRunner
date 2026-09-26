@@ -5,11 +5,12 @@ using ConfusedGameDev.FiniteRunner.Ship;
 namespace ConfusedGameDev.FiniteRunner.Track
 {
     /// <summary>
-    /// A repair orb: a white cross inside a translucent green sphere floating
+    /// A repair orb: a green cross inside a translucent red sphere floating
     /// on the flight line. Flying through it gives back
     /// <see cref="GameSettings.repairOrbHealFraction"/> of the ship's hull
-    /// (<see cref="ShipHealth.HealFromRepairOrb"/>) and uses it up. At full
-    /// hull it is <b>ignored</b> — not taken, it stays on the track. It is
+    /// (<see cref="ShipHealth.HealFromRepairOrb"/>) and uses it up. It is
+    /// ALWAYS taken, full hull or not — the heal just never goes past the
+    /// max (<see cref="Collected"/> then reports 0 restored). It is
     /// deliberately NOT a <see cref="SpeedPad"/> and NOT an <c>ITrackPickup</c>:
     /// it never enters the <c>PickupRegistry</c>, so the patrol neither seeks
     /// nor takes it, and it raises no speed impulse (no boost/brake haptics,
@@ -22,7 +23,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
     {
         bool taken;
 
-        /// <summary>Raised when the player's ship takes a repair orb. Arguments: the orb, the ship, the hull points it restored. Static, like <see cref="SpeedPad.Collected"/>.</summary>
+        /// <summary>Raised when the player's ship takes a repair orb. Arguments: the orb, the ship, the hull points it restored (0 at full hull). Static, like <see cref="SpeedPad.Collected"/>.</summary>
         public static event System.Action<RepairOrb, IShip, float> Collected;
 
         public bool Available => !taken;
@@ -33,8 +34,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             var health = ShipHealth.For(ship);
             if (health == null) return; // no hull on it: never the patrol's
 
-            float healed = health.HealFromRepairOrb();
-            if (healed <= 0f) return; // full hull: left where it is
+            float healed = health.HealFromRepairOrb(); // capped at the max hull: 0 when it was full
 
             taken = true;
             Collected?.Invoke(this, ship, healed);

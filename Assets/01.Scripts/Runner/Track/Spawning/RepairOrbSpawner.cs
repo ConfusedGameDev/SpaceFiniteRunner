@@ -4,20 +4,31 @@ namespace ConfusedGameDev.FiniteRunner.Track
 {
     /// <summary>
     /// Repair orbs on the flight line: flown through, they give back
-    /// GameSettings.repairOrbHealFraction of the hull (ignored at full hull;
-    /// the patrol never takes one — see <see cref="RepairOrb"/>). Off claimed
+    /// GameSettings.repairOrbHealFraction of the hull (taken even at full hull,
+    /// healing nothing past the max; the patrol never takes one — see <see cref="RepairOrb"/>). Off claimed
     /// ground and off any other pickup; off entirely whenever the hull is off.
     /// Put it after the speed orbs in the set, so it keeps off where they landed.
     /// </summary>
     [CreateAssetMenu(fileName = "Spawner_RepairOrbs", menuName = "FiniteRunner/Spawners/Repair Orbs")]
     public class RepairOrbSpawner : TrackSpawner
     {
-        [Tooltip("The repair orb's look: a white cross inside a translucent green sphere, carrying a RepairOrb, modelled at 1 m across. Empty = a code-built green sphere with a white cross.")]
+        [Tooltip("The repair orb's look, carrying a RepairOrb, modelled at 1 m across. Empty = a code-built translucent sphere (shellColor) round a glowing cross (crossColor).")]
         [SerializeField] GameObject prefab;
 
         [Tooltip("Diameter of the repair orb as a share of the pad width (a boost orb's is its definition's size multiplier).")]
         [Sirenix.OdinInspector.PropertyRange(0.1f, 2f)]
-        [SerializeField] float size = 0.5f;
+        [SerializeField] float size = 1f;
+
+        [Tooltip("Gap between the visible road and the orb's LOWEST point (the bottom of its bob), along the track's up. The centre is placed from this and the orb's radius, so at any size the orb floats clear of the road — and, sitting just above it, is always in the ship's path.")]
+        [Sirenix.OdinInspector.PropertyRange(0f, 10f), Sirenix.OdinInspector.SuffixLabel("m", true)]
+        [UnityEngine.Serialization.FormerlySerializedAs("height")]
+        [SerializeField] float roadClearance = 0.5f;
+
+        [Tooltip("Colour of the code-built orb's translucent shell (alpha = how see-through it is, so the cross shows inside).")]
+        [SerializeField] Color shellColor = new(1f, 0.1f, 0.1f, 0.45f);
+
+        [Tooltip("Colour of the code-built orb's glowing cross.")]
+        [SerializeField] Color crossColor = new(0.1f, 1f, 0.25f, 1f);
 
         [System.NonSerialized] Material shellMaterial, crossMaterial; // the code-built orb's, play mode only
 
@@ -49,15 +60,22 @@ namespace ConfusedGameDev.FiniteRunner.Track
             else orb = BuildPrimitive(ctx, pos, rot, diameter);
 
             if (orb.GetComponent<RepairOrb>() == null) orb.AddComponent<RepairOrb>();
-            if (Application.isPlaying && orb.GetComponent<OrbHover>() == null) orb.AddComponent<OrbHover>();
+            OrbHover hover = orb.GetComponent<OrbHover>();
+            if (Application.isPlaying && hover == null) hover = orb.AddComponent<OrbHover>();
+
+            // Lifted along the track's up (so it holds on a bank or a tube) until
+            // its lowest point — radius and bob below the centre — clears the road.
+            float bob = hover != null ? hover.BobAmplitude : 0f;
+            float lift = ctx.RoadSurfaceOffset + roadClearance + bob + diameter * 0.5f;
+            orb.transform.position = pos + rot * (Vector3.up * lift);
             orb.name = $"RepairOrb_{distance:00000}";
             ctx.Register(distance, orb);
             ctx.RecordPickup(distance); // coins keep off it too
             return -1f;
         }
 
-        // No prefab: a unit sphere (the green shell, the boost material tinted)
-        // round a white 3D cross of three boxes, scaled to the orb.
+        // No prefab: a unit sphere (the red shell, the boost material tinted)
+        // round a green 3D cross of three boxes, scaled to the orb.
         GameObject BuildPrimitive(TrackSpawnContext ctx, Vector3 pos, Quaternion rot, float diameter)
         {
             var orb = new GameObject();
@@ -70,8 +88,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             if (Application.isPlaying && ctx.BoostMaterial != null)
             {
-                if (shellMaterial == null) shellMaterial = Transparent(TrackSpawnContext.TintedCopy(ctx.BoostMaterial, new Color(0.2f, 1f, 0.35f, 0.3f), 0.35f));
-                if (crossMaterial == null) crossMaterial = TrackSpawnContext.TintedCopy(ctx.BoostMaterial, Color.white, 1.5f);
+                if (shellMaterial == null) shellMaterial = Transparent(TrackSpawnContext.TintedCopy(ctx.BoostMaterial, shellColor, 0.6f));
+                if (crossMaterial == null) crossMaterial = TrackSpawnContext.TintedCopy(ctx.BoostMaterial, crossColor, 2f);
             }
             Material shell = Application.isPlaying ? shellMaterial : null;
             Material cross = Application.isPlaying ? crossMaterial : null;

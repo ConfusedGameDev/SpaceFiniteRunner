@@ -27,6 +27,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         Vector3 spinAxis;
         float phase;
 
+        /// <summary>How far the bob carries the orb either side of its spawn position, metres — what a spawner adds so the orb never bobs into the road.</summary>
+        public float BobAmplitude => bobAmplitude;
+
         /// <summary>Metres the orb is swayed across the track right now, right positive (the track's right at the spawn pose).</summary>
         public float SwayOffset { get; private set; }
 

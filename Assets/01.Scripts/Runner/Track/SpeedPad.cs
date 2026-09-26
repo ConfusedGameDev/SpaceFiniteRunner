@@ -135,15 +135,18 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         void OnDisable() => PickupRegistry.Unregister(this);
 
+        // Every renderer, not just the first: the boost orbs carry a spinning
+        // indicator ring that must wear the tier's colour too.
         void ApplyColor()
         {
             if (definition == null) return;
-            var rend = GetComponentInChildren<Renderer>();
-            if (rend == null) return;
             mpb ??= new MaterialPropertyBlock();
-            rend.GetPropertyBlock(mpb);
-            mpb.SetColor(BaseColorId, tintOverride ?? definition.color);
-            rend.SetPropertyBlock(mpb);
+            foreach (var rend in GetComponentsInChildren<Renderer>())
+            {
+                rend.GetPropertyBlock(mpb);
+                mpb.SetColor(BaseColorId, tintOverride ?? definition.color);
+                rend.SetPropertyBlock(mpb);
+            }
         }
     }
 }

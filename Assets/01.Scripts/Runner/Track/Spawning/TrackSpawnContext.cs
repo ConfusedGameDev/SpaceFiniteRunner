@@ -29,9 +29,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public Material BoostMaterial { get; }
         /// <summary>The layout's seed state: every spawner hashes its own stream off it.</summary>
         public uint LayoutSeed { get; }
+        /// <summary>Where the visible road surface sits along the track's up, relative to the flight line (negative = below). A floating pickup's lowest point must stay above it.</summary>
+        public float RoadSurfaceOffset { get; }
 
         public TrackSpawnContext(TrackManager track, GameManager gameManager, Transform parent,
-                                 Vector3 padSize, Material boostMaterial, uint layoutSeed,
+                                 Vector3 padSize, Material boostMaterial, uint layoutSeed, float roadSurfaceOffset,
                                  List<(float, GameObject)> spawned, List<(float, float)> claims,
                                  List<float> pickupDistances, List<(float, float)> featureKeepOuts)
         {
@@ -41,6 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             PadSize = padSize;
             BoostMaterial = boostMaterial;
             LayoutSeed = layoutSeed;
+            RoadSurfaceOffset = roadSurfaceOffset;
             this.spawned = spawned;
             this.claims = claims;
             this.pickupDistances = pickupDistances;

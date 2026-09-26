@@ -268,14 +268,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         }
 
         // A repair orb: the bar flashes green and punches, and "+N" (hull
-        // points) floats up ahead of the ship like the boost text. Keyed on
-        // the orb, not on the fraction rising — a restart refills it too.
+        // points) floats up ahead of the ship like the boost text — no "+0"
+        // when it was taken at full hull. Keyed on the orb, not on the
+        // fraction rising — a restart refills it too.
         void OnRepairOrb(RepairOrb orb, IShip collector, float healed)
         {
             if (motor == null || !motor.Is(collector)) return;
             healFlash = 1f;
             lifePunch = lifeHitPunch;
-            if (spawnBoostText && gameManager != null && !gameManager.RunOver)
+            if (spawnBoostText && healed >= 0.5f && gameManager != null && !gameManager.RunOver)
                 FloatingTextSystem.Instance.DisplayText(
                     $"+{healed:0}", repairColor, 1f,
                     gameManager.BoostTextLeadMeters, boostTextSize);

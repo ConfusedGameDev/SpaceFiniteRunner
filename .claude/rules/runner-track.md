@@ -325,7 +325,12 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
   colour, sway, lane), one weighted draw per step. Spacing 513–897 m — the old 400–700 m ÷ 0.78,
   so removing the brake's 22 % share left the orb count per km as it was.
 - **`RepairOrbSpawner`**: 400–700 m, `chance` 0.58 (the green share it used to copy), `size` as a
-  share of the pad width, optional prefab else the code-built shell + cross. Off while
+  share of the pad width (1.5 = a 15 m orb), `roadClearance` (0.5 m) = the gap between the
+  VISIBLE road and the orb's lowest point: the centre is lifted along the track's up by
+  `ctx.RoadSurfaceOffset` (the decorator's `roadYOffset`, −1) + clearance + `OrbHover.BobAmplitude`
+  + radius, so at any size it never dips into the road and, sitting just above it, is always in
+  the ship's path — optional prefab else the code-built shell + cross (`shellColor` translucent red, `crossColor`
+  green). Off while
   `GameManager.HullEnabled` is false.
 - **`LaserGateSpawner`**: see Laser gates.
 - **`BrakePadSpawner`**: one `PadSpawnEntry`, the brake material, the pad sign; 1800–3200 m
@@ -340,10 +345,10 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
 
 `RepairOrb` is an `IShipPickup` only — never a `SpeedPad`, never an `ITrackPickup` — so it stays
 out of the `PickupRegistry` and the patrol neither seeks nor takes it, and it raises no speed
-impulse. `PickUp` calls `ShipHealth.For(ship)?.HealFromRepairOrb()`; a full hull heals 0 and the
-orb is left in place (not used up). Taken, it raises the static
-`RepairOrb.Collected(orb, ship, healed)` (RaceHud green flash + "+N", ShipAudio green-orb clip,
-GameManager soft haptic) and deactivates.
+impulse. `PickUp` calls `ShipHealth.For(ship)?.HealFromRepairOrb()` (capped at the max hull) and
+the orb is ALWAYS taken — at full hull it heals 0 but is still used up. Taken, it raises the static
+`RepairOrb.Collected(orb, ship, healed)` (RaceHud green flash + "+N" — skipped when `healed` is 0,
+ShipAudio green-orb clip, GameManager soft haptic) and deactivates.
 
 ### Collectibles streaming
 
@@ -498,8 +503,15 @@ the flight line.
 taken; a brake pad stays painted on the road but only bites once. Whatever colliders a pad's
 visual carries are only a picture.
 
-- `sizeMultiplier` scales the spawned pad. Speed-ups are small **hovering orbs (0.3)** on the
+- `sizeMultiplier` scales the spawned pad (`BoostPad_Definition` 0.75 → the boost prefabs at 18×,
+  ring included) and its pickup volume. Speed-ups are small **hovering orbs (0.3)** on the
   flight line that must be aimed for; speed-downs are large **1.2 pads** that must be dodged.
+- **The boost prefabs carry a ring above the pad** (`Indicator`: `indicator-round-d.fbx`, no
+  collider) driven by **`BurstSpin`**: a Y-axis billboard — it yaws about the track's up (captured
+  at start) to face `Camera.main` every frame, so it is never seen edge on — spinning in its own
+  plane in bursts (one fast eased turn, a pause, again). Written in world space in `LateUpdate`, so
+  `OrbHover`'s slow spin of the root never leaks into it. `SpeedPad.ApplyColor` tints EVERY renderer, so the ring wears the
+  tier colour.
 - `floatingOrb` makes it a hovering sphere on the flight line, with an `OrbHover` bob/spin/sway
   component added at runtime. `OrbHover` bobs and sways along the **track's** up/right captured
   at spawn, not world axes, so orbs survive loops and tubes.

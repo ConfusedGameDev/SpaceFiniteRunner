@@ -467,7 +467,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float hitInvulnerabilitySeconds = 1f;
 
         [ToggleGroup("hullEnabled")]
-        [Tooltip("Share of the full hull a repair orb (white cross in a green sphere) gives back. At full hull the orb is ignored and stays on the track. Player only — the patrol never takes one.")]
+        [Tooltip("Share of the full hull a repair orb (green cross in a red sphere) gives back, never past the max — the orb is collected even at full hull. Player only — the patrol never takes one.")]
         [PropertyRange(0.05f, 0.5f)]
         public float repairOrbHealFraction = 0.15f;
 

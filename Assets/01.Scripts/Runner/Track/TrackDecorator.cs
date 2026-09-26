@@ -93,6 +93,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// (Core Settings on the TrackGenerator). Only affects pieces stamped
         /// afterwards — the generator regenerates, so everything restamps.
         /// </summary>
+        /// <summary>Where the road pieces' surface sits along the track's up, relative to the flight line (negative = below it). Anything that must float over the visible road measures from here.</summary>
+        public float RoadYOffset => roadYOffset;
+
         public void SetTrackWidth(float width) => widthScale = Mathf.Max(0.05f, width / ReferenceTrackWidth);
 
         Material BarrierMaterial => barrierMaterialOverride != null ? barrierMaterialOverride : roadMaterialOverride;
