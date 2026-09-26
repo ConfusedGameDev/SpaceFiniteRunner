@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.Splines;
 
 using ConfusedGameDev.FiniteRunner.Collectibles;
@@ -12,20 +11,16 @@ using ConfusedGameDev.FiniteRunner.Store;
 using ConfusedGameDev.FiniteRunner.Track.Features;
 namespace ConfusedGameDev.FiniteRunner.Track
 {
-    /// <summary>Which lane a pad spawns on: the flight line, or the air lane above it that only a jump reaches.</summary>
-    public enum PadLane { Ground, Air }
-
-    /// <summary>A spawn-table entry with a probability share, so both tables rebalance through one rule.</summary>
-    public interface IWeightedEntry
-    {
-        float Probability { get; set; }
-    }
-
     /// <summary>
     /// Procedural track builder and endless streamer. Builds an initial
     /// stretch on load, then — while the ship flies — keeps appending spline
-    /// segments ahead of it, placing power-ups and decoration on the newly
+    /// segments ahead of it, placing spawnables and decoration on the newly
     /// settled stretch and culling spawned objects left far behind.
+    /// <b>Spawnables</b> — speed orbs, repair orbs, laser gates, anything else
+    /// — are <see cref="TrackSpawner"/> assets listed in the
+    /// <see cref="TrackSpawnSet"/>: the generator knows none of them by name,
+    /// it only runs each one's stream over the settled track (ground claimers
+    /// first) through a shared <see cref="TrackSpawnContext"/>.
     /// Knots are never removed, so distances measured from the track start
     /// stay valid for the whole run (see TrackManager.DistanceToT).
     /// <b>Track features</b> (jump ramps now; loops and tubes later) come
@@ -36,55 +31,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// the debug menu edits. <b>Money collectibles</b> (the "Collectibles"
     /// toggle group) stream between the orbs as short rows of coins on the
     /// flight line — the shared <see cref="Collectible"/> component, so the
-    /// city's pickup prefabs drop straight in — placed after the pads so a
+    /// city's pickup prefabs drop straight in — placed after the spawners so a
     /// coin never sits on an orb, and off claimed ground like everything
     /// else. Runtime-only: uses Object.Destroy for cleanup.
     /// </summary>
     public class TrackGenerator : MonoBehaviour
     {
         /// <summary>
-        /// One spawnable pad/orb kind. Probability is the share of every spawn
-        /// roll this entry wins (the sliders auto-rebalance so the table always
-        /// sums to 100%). A prefab replaces the code-built primitive; boosts
-        /// apply GameSettings.powerUpSpeedBoost × multiplier, and sway makes
-        /// the juicier orbs drift across the track so they must be earned.
-        /// </summary>
-        [System.Serializable]
-        public class PadSpawnEntry : IWeightedEntry
-        {
-            public string name = "Green";
-
-            [Tooltip("Optional model spawned instead of the code-built primitive. Colliders are forced to triggers; one is added if the prefab has none.")]
-            public GameObject prefab;
-
-            [Tooltip("What the pad does on pickup (boost/brake, orb or flat pad, size).")]
-            [Required] public PadDefinition definition;
-
-            [Tooltip("Share of every spawn roll this entry wins. The table always sums to 100%.")]
-            [PropertyRange(0f, 100f), SuffixLabel("%", true)]
-            public float probability = 25f;
-
-            [Tooltip("Boosts only: multiplies GameSettings.powerUpSpeedBoost. Brakes use their definition's own delta.")]
-            [Min(0f)] public float multiplier = 1f;
-
-            [Tooltip("Tint of the code-built primitive (prefabs keep their own materials) and of the pickup's story color.")]
-            public Color color = new(0.1f, 1f, 0.3f);
-
-            [Tooltip("How far the orb sways side to side across the track, in meters. 0 = holds the flight line.")]
-            [Min(0f)] public float swayAmplitude;
-
-            [Tooltip("Sway cycles per second.")]
-            [Min(0f)] public float swayFrequency = 0.5f;
-
-            [Tooltip("Ground = on the flight line. Air = GameSettings.airLaneHeight above it, where only a jump reaches — the future air lane, keep such entries at 0% until jumps ship them.")]
-            public PadLane lane = PadLane.Ground;
-
-            public float Probability { get => probability; set => probability = value; }
-        }
-
-        /// <summary>
         /// One placeable track feature kind. Drawn by probability at every
-        /// feature step (the sliders rebalance to 100% like the pad table);
+        /// feature step (the sliders rebalance to 100% like the orb tiers);
         /// minSpacing is the least track between this kind and the next
         /// feature, on top of the definition's own footprint and exclusion.
         /// </summary>
@@ -124,18 +79,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Full width of the track in meters. Drives the ship's steering clamp, the pad placement bounds and the road meshes (which are authored for 60 m and stretch proportionally). Regenerate to see it.")]
         [PropertyRange(10f, 120f), SuffixLabel("m", true)]
         [SerializeField] float trackWidth = 60f;
-
-        [TitleGroup("Core Settings")]
-        [Tooltip("One entry per power-up / slowdown kind. Every spawn step draws one entry by probability; the sliders auto-rebalance to always total 100%.")]
-        [OnValueChanged(nameof(NormalizeProbabilities), true)]
-        [SerializeField]
-        PadSpawnEntry[] spawnTable =
-        {
-            new() { name = "Green",  probability = 46f, multiplier = 1f,   color = new Color(0.1f, 1f, 0.3f) },
-            new() { name = "Blue",   probability = 16f, multiplier = 2.5f, color = new Color(0.25f, 0.55f, 1f), swayAmplitude = 4f, swayFrequency = 0.45f },
-            new() { name = "Purple", probability = 3f,  multiplier = 10f,  color = new Color(0.75f, 0.3f, 1f),  swayAmplitude = 8f, swayFrequency = 0.8f },
-            new() { name = "Brake",  probability = 35f, multiplier = 1f,   color = new Color(1f, 0.25f, 0.2f) },
-        };
 
         [TitleGroup("Core Settings")]
         [Tooltip("Chance that a straight knot starts a banked sweep: 100% = a dead straight line, 0% = a sweep at every chance the features leave room for. The sweeps' rate, arc and bank live on the Track Shape asset. Regenerate to see it.")]
@@ -192,34 +135,17 @@ namespace ConfusedGameDev.FiniteRunner.Track
         // Turn rate, arc and drift live on the TrackShapeSettings asset (Turns group).
 
         [Header("Pads")]
-        [Tooltip("Base material of code-built boost primitives; each entry gets a recolored instance. Prefab entries keep their own materials.")]
+        [Tooltip("Base material of code-built pickups (orbs, repair orbs, coins); each tint gets a recolored instance. Prefabs keep their own materials.")]
         [SerializeField] Material boostMaterial;
-        [Tooltip("Material of code-built brake primitives.")]
-        [SerializeField] Material brakeMaterial;
         [SerializeField] Transform padsParent;
-        [Tooltip("Distance between consecutive spawn rolls (min, max) — each roll places one entry from the Core Settings spawn table.")]
-        [FormerlySerializedAs("boostSpacing")]
-        [SerializeField] Vector2 padSpacing = new(150f, 220f);
-        [Tooltip("Pad footprint (width, thickness, length). Also used to keep pads inside the track.")]
+        [Tooltip("Pad footprint (width, thickness, length): the unit the spawners' orbs and pads scale from, and how far pickups and coins keep off each other and off claimed ground.")]
         [SerializeField] Vector3 padSize = new(10f, 0.5f, 20f);
 
-        // ------------------------------------------------------ Repair orbs
-        [ToggleGroup("spawnRepairOrbs", "Repair orbs")]
-        [Tooltip("Stream repair orbs along the flight line: flown through, they give back GameSettings.repairOrbHealFraction of the hull (ignored at full hull; the patrol never takes one). A stream of their own, NOT a spawn-table entry, so adding them leaves the boost/brake shares and seeded layouts as they were. Off whenever the hull is off.")]
-        [SerializeField] bool spawnRepairOrbs = true;
-
-        [ToggleGroup("spawnRepairOrbs")]
-        [Tooltip("The repair orb's look: a white cross inside a translucent green sphere, carrying a RepairOrb, modelled at 1 m across. Empty = a code-built green sphere with a white cross.")]
-        [SerializeField] GameObject repairOrbPrefab;
-
-        [ToggleGroup("spawnRepairOrbs")]
-        [Tooltip("Name of the spawn-table entry whose share the repair orbs copy: every pad-spacing step rolls that share, so they come exactly as often as that orb.")]
-        [SerializeField] string repairOrbRateFrom = "Green";
-
-        [ToggleGroup("spawnRepairOrbs")]
-        [Tooltip("Diameter of the repair orb as a share of the pad width (a boost orb's is its definition's size multiplier).")]
-        [PropertyRange(0.1f, 2f)]
-        [SerializeField] float repairOrbSize = 0.5f;
+        // ------------------------------------------------------- Spawnables
+        [TitleGroup("Spawnables")]
+        [Tooltip("What streams onto the track — speed orbs, repair orbs, laser gates, and any other TrackSpawner asset listed in it. Add or remove spawner assets in the set; each one's spacing, chance and look live on its own asset. Play mode runs a runtime clone of each, which is what the debug menu edits.")]
+        [InlineEditor(InlineEditorObjectFieldModes.Foldout)]
+        [SerializeField] TrackSpawnSet spawnSet;
 
         // ------------------------------------------------------- Collectibles
         [ToggleGroup("spawnCollectibles", "Collectibles")]
@@ -264,51 +190,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Tint of the code-built coin (a recolored instance of the boost material).")]
         [SerializeField] Color collectibleColor = new(1f, 0.8f, 0.2f);
 
-        // -------------------------------------------------------- Laser gates
-        [ToggleGroup("spawnLasers", "Laser gates")]
-        [Tooltip("Stream laser gates along the track: emitter pairs firing a beam across part of the road that burns the hull of a ship flying through it. On a cursor of their own — never on or near a ramp, its landing zone, a loop, a tube or the final run-up (flat sweeps and open edges are the two toggles below). Play mode only.")]
-        [SerializeField] bool spawnLasers = true;
-
-        [ToggleGroup("spawnLasers")]
-        [Tooltip("The emitter pair (PF_LaserSystem): LaserA and LaserB, each with a ShootPoint child, carrying a LaserBeam. One instance per beam — three for the triple gate.")]
-        [SerializeField] GameObject laserPrefab;
-
-        [ToggleGroup("spawnLasers")]
-        [Tooltip("Beam size, variant weights, rotor speed and the look. Cloned at play, so the asset is never edited by a run.")]
-        [InlineEditor(InlineEditorObjectFieldModes.Foldout)]
-        [SerializeField] LaserGateDefinition laserDefinition;
-
-        [ToggleGroup("spawnLasers")]
-        [Tooltip("Metres of track between one gate and the next (min, max), before the keep-outs push one further on.")]
-        [MinMaxSlider(100f, 5000f, true), SuffixLabel("m", true)]
-        [SerializeField] Vector2 laserSpacing = new(600f, 1200f);
-
-        [ToggleGroup("spawnLasers")]
-        [Tooltip("No gate before this distance, so the launch is clean.")]
-        [PropertyRange(0f, 5000f), SuffixLabel("m", true)]
-        [SerializeField] float laserStartDistance = 1500f;
-
-        [ToggleGroup("spawnLasers")]
-        [Tooltip("Clear road kept between a gate and every feature (ramp + its longest landing, loop, tube), flat sweep and the final run-up, either side. Must stay under the settle margin (two segments), which is what guarantees no feature is decided behind an already placed gate.")]
-        [PropertyRange(0f, 500f), SuffixLabel("m", true)]
-        [SerializeField] float laserClearance = 150f;
-
-        [ToggleGroup("spawnLasers")]
-        [Tooltip("Gates may stand on a FLAT sweep (no bank, the outer wall gone, grip tested). Off = the clearance is kept round every flat sweep too — on a track authored with mostly flat sweeps that leaves few spots.")]
-        [SerializeField] bool lasersOnFlatSweeps = true;
-
-        [ToggleGroup("spawnLasers")]
-        [Tooltip("Gates may stand where the road has no wall (an open straight, the outer edge of a flat sweep). Off = walled road only.")]
-        [SerializeField] bool lasersOnOpenEdges = true;
-
         [Header("Features")]
         [Tooltip("Material of the code-built ramp slab and rails; each entry gets a recolored instance. Empty = the boost material.")]
         [SerializeField] Material featureMaterial;
-
-        [Header("Pad signs")]
-        [Tooltip("Optional sign model placed at each flat pad, tinted with the pad color.")]
-        [SerializeField] GameObject padSignPrefab;
-        [SerializeField, Min(0.1f)] float padSignScale = 8f;
 
         [Header("Markers (non-endless only, superseded by the decorator's barriers)")]
         [SerializeField] Transform markersParent;
@@ -321,18 +205,29 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         // Live access for the pause menu's debug tab. Width/straightness only
         // take effect on the next Generate (the debug tab reloads the scene);
-        // spawn-table edits affect streaming immediately.
+        // spawner edits affect streaming immediately.
         public float TrackWidth { get => trackWidth; set => trackWidth = Mathf.Clamp(value, 10f, 120f); }
         public float Straightness { get => straightness; set => straightness = Mathf.Clamp(value, 0f, 100f); }
-        public PadSpawnEntry[] SpawnTable => spawnTable;
         public FeatureSpawnEntry[] FeatureTable => featureTable;
         public Vector2 FeatureSpacing { get => featureSpacing; set => featureSpacing = new Vector2(Mathf.Max(100f, value.x), Mathf.Max(Mathf.Max(100f, value.x), value.y)); }
 
-        /// <summary>Debug multiplier on the laser gates' density (the debug menu's LASER DENSITY row): 0 = none, 1 = the authored spacing, 2 = twice as many. Affects streaming immediately.</summary>
-        public float LaserDensity { get; set; } = 1f;
+        /// <summary>The authored spawn set (the assets). Null when none is wired.</summary>
+        public TrackSpawnSet SpawnSet => spawnSet;
 
-        /// <summary>The laser definition in force: the runtime clone in play. Null when none is wired.</summary>
-        public LaserGateDefinition LaserDefinition => laserRuntime;
+        /// <summary>
+        /// The spawners in force, index for index with <see cref="SpawnSet"/>'s
+        /// list (a null slot stays null): runtime clones in play, the assets in
+        /// edit-mode previews. Empty until the first Generate.
+        /// </summary>
+        public IReadOnlyList<TrackSpawner> Spawners => runtimeSpawners;
+
+        /// <summary>The first spawner in force of type <typeparamref name="T"/>, or null.</summary>
+        public T GetSpawner<T>() where T : TrackSpawner
+        {
+            foreach (var spawner in runtimeSpawners)
+                if (spawner is T match) return match;
+            return null;
+        }
 
         /// <summary>Resources path of the end ramps' definition, used when the scene wires none.</summary>
         public const string EndRampResourcePath = "FiniteRunner_EndRamp";
@@ -393,9 +288,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
             else DestroyImmediate(target);
         }
 
-        /// <summary>Height of the air lane above the flight line, from GameSettings (30 m without a manager).</summary>
-        float AirLaneHeight => gameManager != null ? gameManager.AirLaneHeight : 30f;
-
         // Streaming state — all reset by Generate().
         Unity.Mathematics.Random rng;
         float heading;
@@ -416,10 +308,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
         TrackManager.OpenStretch openStretch; // the open straight being grown, or null
         float3 endPosition;
         TrackShapeSettings shapeRuntime;
-        float padCursor;
-        float repairCursor;
-        Unity.Mathematics.Random repairRng; // the repair orbs' own stream: the pad layout of a seed does not depend on them
-        Material repairShellMaterial, repairCrossMaterial; // the code-built orb's, play mode only
         float collectibleCursor;
         float featureCursor;
         readonly List<(FeatureSpawnEntry entry, float distance)> pendingRamps = new(); // decided at their knot, waiting for the run-up to settle
@@ -436,15 +324,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         enum SpotKind { None, Feature, EndZoneStart, End }
         readonly List<(float distance, GameObject go)> spawned = new();
         readonly List<(float start, float end)> claims = new(); // feature footprints pads keep off
-        readonly List<float> padDistances = new();               // where pads landed — coins keep off them
+        readonly List<float> padDistances = new();               // where pickups landed — later pickups and coins keep off them
+        readonly List<TrackSpawner> runtimeSpawners = new();     // the set's spawners in force, index for index
+        TrackSpawnContext spawnContext;
         readonly List<(float start, float end)> featureKeepOuts = new(); // every feature's ground + what lies ahead of it (a ramp's landing), and the end zone
-        Unity.Mathematics.Random laserRng; // the gates' own stream: the road and pad layout of a seed does not depend on them
-        float laserCursor;
-        LaserGateDefinition laserRuntime;
-        Dictionary<PadSpawnEntry, Material> entryMaterials;
         Dictionary<FeatureSpawnEntry, Material> featureMaterials;
         Material collectibleMaterial;
-        float[] lastProbabilities; // change-detection cache for the 100% rebalance
         float[] lastFeatureProbabilities;
 
         // AutoSmooth reshapes the curves around the previous knot every time a
@@ -488,7 +373,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // Debug-tab tweaks (saved to the TrackDebugSettings asset) override
             // the scene's Core Settings — play mode only, so edit-mode previews
             // and the inspector always reflect the authored scene values.
-            PrepareShape(); // the debug values land on the fresh clone
+            PrepareShape(); // the debug values land on the fresh clones
+            PrepareSpawners();
             if (Application.isPlaying) TrackDebugSettings.Load().ApplyTo(this);
 
             // Features play a runtime clone of their definition asset (the
@@ -513,11 +399,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 ? new Unity.Mathematics.Random((uint)System.Environment.TickCount)
                 : new Unity.Mathematics.Random((uint)seed);
 
-            // Seeded off the layout stream's STATE, not a draw from it.
-            laserRng = new Unity.Mathematics.Random(math.hash(new uint2(rng.state, 0x1A5E12u)) | 1u);
-            repairRng = new Unity.Mathematics.Random(math.hash(new uint2(rng.state, 0x4EA11u)) | 1u);
-            if (laserRuntime != null && laserRuntime != laserDefinition) DestroyObject(laserRuntime); // last run's clone
-            laserRuntime = laserDefinition != null && Application.isPlaying ? Instantiate(laserDefinition) : laserDefinition;
+            // Every spawner seeds a stream of its own off the layout stream's
+            // STATE, not a draw from it: the road never depends on what spawns.
+            uint layoutSeed = rng.state;
 
             spawned.Clear();
             claims.Clear();
@@ -555,11 +439,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // plenty of track, placing everything on a one-knot spline.
             track.Recalculate();
 
-            padCursor = rng.NextFloat(120f, 200f);
+            spawnContext = new TrackSpawnContext(track, gameManager, padsParent, padSize, boostMaterial, layoutSeed,
+                                                 spawned, claims, padDistances, featureKeepOuts);
+            foreach (var spawner in runtimeSpawners)
+                if (spawner != null) spawner.Begin(spawnContext);
             collectibleCursor = rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
             featureCursor = rng.NextFloat(featureSpacing.x, featureSpacing.y);
-            laserCursor = laserStartDistance + laserRng.NextFloat(0f, laserSpacing.x);
-            repairCursor = repairRng.NextFloat(200f, 200f + padSpacing.y);
             pendingRamps.Clear();
             straightUntil = 0f;
 
@@ -597,9 +482,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     if (spot == SpotKind.Feature) DecideFeature();
                 }
                 SpawnPendingRamps(track.Length - 150f);
-                PlaceLasersUpTo(track.Length - 150f);
-                PlacePadsUpTo(track.Length - 150f);
-                PlaceRepairOrbsUpTo(track.Length - 150f);
+                PlaceSpawnersUpTo(track.Length - 150f);
                 PlaceCollectiblesUpTo(track.Length - 150f);
                 PlaceMarkers();
                 if (decorator != null) decorator.DecorateUpTo(track.Length);
@@ -631,11 +514,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // A finished track has no trailing margin: nothing lands after the
             // last knot, so the run-up and the end are stamped at once.
             float settled = trackComplete ? track.Length : track.Length - SettleMargin;
-            SpawnPendingRamps(settled); // first: a ramp's footprint is already claimed, so the pads keep off it
-            PlaceLasersUpTo(settled);   // before the pads: a gate claims its ground, so pads and coins keep off it
-            PlacePadsUpTo(settled);
-            PlaceRepairOrbsUpTo(settled); // after the pads: keeps off where they landed
-            PlaceCollectiblesUpTo(settled); // after the pads: coins keep off where they landed
+            SpawnPendingRamps(settled); // first: a ramp's footprint is already claimed, so everything keeps off it
+            PlaceSpawnersUpTo(settled);     // ground claimers (gates), then pickups in set order
+            PlaceCollectiblesUpTo(settled); // after the pickups: coins keep off where they landed
             if (decorator != null) decorator.DecorateUpTo(settled);
         }
 
@@ -956,9 +837,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
 
             float roll = rng.NextFloat(0f, 1f);
-            var entry = PickWeighted(featureTable, roll) as FeatureSpawnEntry;
+            var entry = WeightedTable.Pick(featureTable, roll) as FeatureSpawnEntry;
             if (entry != null && !LoopReachable(entry, spot))
-                entry = PickWeighted(featureTable, roll, exclude: entry) as FeatureSpawnEntry;
+                entry = WeightedTable.Pick(featureTable, roll, exclude: entry) as FeatureSpawnEntry;
             if (entry == null || entry.Runtime == null)
             {
                 featureCursor = spot + rng.NextFloat(featureSpacing.x, featureSpacing.y);
@@ -1169,185 +1050,45 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
         }
 
-        /// <summary>End of the claimed footprint covering <paramref name="distance"/>, or -1 when it is free.</summary>
-        float ClaimEnd(float distance)
-        {
-            foreach (var c in claims)
-                if (distance >= c.start - padSize.z && distance < c.end + padSize.z) return c.end + padSize.z;
-            return -1f;
-        }
-
-        void PlacePadsUpTo(float limit)
-        {
-            // One weighted draw from the Core Settings spawn table per step;
-            // the cursor resumes here on the next stream.
-            while (padCursor < limit)
-            {
-                // A feature's footprint is claimed ground: skip to its far end.
-                float claimEnd = ClaimEnd(padCursor);
-                if (claimEnd >= 0f) { padCursor = claimEnd; continue; }
-
-                PadSpawnEntry entry = PickSpawnEntry();
-                if (entry != null && entry.definition != null)
-                {
-                    // Inside the lane at this distance — on a tube that is the
-                    // arc round the pipe, so orbs hang off its sides and under it.
-                    track.GetLateralBand(padCursor, out float bandMin, out float bandMax);
-                    float margin = PadMargin(entry.definition, entry.swayAmplitude);
-                    float lo = bandMin + margin;
-                    float hi = bandMax - margin;
-                    CreatePad(padCursor, hi > lo ? rng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f, entry);
-                }
-                padCursor += rng.NextFloat(padSpacing.x, padSpacing.y);
-            }
-        }
-
         /// <summary>
-        /// Repair orbs on a cursor and rng of their own: every pad-spacing step
-        /// rolls the share of the <see cref="repairOrbRateFrom"/> entry (the
-        /// Green orb), so they come as often as it does without being a
-        /// spawn-table entry — the table's shares and a seed's pad layout stay
-        /// what they were. Off claimed ground and off any pad, like the pads.
+        /// One streaming pass of the spawn set up to <paramref name="limit"/>:
+        /// every ground claimer first (a laser gate claims its stretch, so no
+        /// pickup lands in a beam), then every pickup spawner in set order (each
+        /// keeps off the pickups placed before it).
         /// </summary>
-        void PlaceRepairOrbsUpTo(float limit)
+        void PlaceSpawnersUpTo(float limit)
         {
-            if (!spawnRepairOrbs || (gameManager != null && !gameManager.HullEnabled))
-            {
-                repairCursor = Mathf.Max(repairCursor, limit);
-                return;
-            }
-
-            float share = RepairOrbShare();
-            while (repairCursor < limit)
-            {
-                float claimEnd = ClaimEnd(repairCursor);
-                if (claimEnd >= 0f) { repairCursor = claimEnd; continue; }
-
-                if (!NearPad(repairCursor) && repairRng.NextFloat(0f, 1f) < share)
-                {
-                    track.GetLateralBand(repairCursor, out float bandMin, out float bandMax);
-                    float margin = padSize.x * repairOrbSize * 0.5f + 2f;
-                    float lo = bandMin + margin;
-                    float hi = bandMax - margin;
-                    CreateRepairOrb(repairCursor, hi > lo ? repairRng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f);
-                }
-                repairCursor += repairRng.NextFloat(padSpacing.x, padSpacing.y);
-            }
+            if (spawnContext == null) return;
+            foreach (var spawner in runtimeSpawners)
+                if (spawner != null && spawner.Phase == SpawnPhase.ClaimsGround) spawner.PlaceUpTo(spawnContext, limit);
+            foreach (var spawner in runtimeSpawners)
+                if (spawner != null && spawner.Phase != SpawnPhase.ClaimsGround) spawner.PlaceUpTo(spawnContext, limit);
         }
 
-        // The named entry's share of a spawn roll, 0..1 — normalized by the table's sum, as the draw is.
-        float RepairOrbShare()
+        // The spawn set's assets are never mutated in play: a clone of each per
+        // Generate, like the shape and the feature definitions, so the debug
+        // menu edits the run's own copy. Index for index with the set's list.
+        void PrepareSpawners()
         {
-            if (spawnTable == null) return 0f;
-            float total = 0f, share = 0f;
-            foreach (var entry in spawnTable)
+            foreach (var spawner in runtimeSpawners)
             {
-                if (entry == null) continue;
-                total += Mathf.Max(0f, entry.probability);
-                if (entry.name == repairOrbRateFrom) share = Mathf.Max(0f, entry.probability);
+                if (spawner == null) continue;
+                spawner.Cleanup();
+                bool isAsset = spawnSet != null && System.Array.IndexOf(spawnSet.Spawners, spawner) >= 0;
+                if (Application.isPlaying && !isAsset) Destroy(spawner); // last run's clone
             }
-            return total > 0f ? share / total : 0f;
-        }
+            runtimeSpawners.Clear();
+            if (spawnSet == null) return;
 
-        void CreateRepairOrb(float distance, float lateral)
-        {
-            track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
-            float diameter = padSize.x * repairOrbSize;
-            GameObject orb;
-            if (repairOrbPrefab != null)
-            {
-                orb = Instantiate(repairOrbPrefab, pos, rot, padsParent);
-                orb.transform.localScale *= diameter;
-                var colliders = orb.GetComponentsInChildren<Collider>();
-                foreach (var c in colliders) c.isTrigger = true;
-                if (colliders.Length == 0)
-                {
-                    var sphere = orb.AddComponent<SphereCollider>();
-                    sphere.isTrigger = true;
-                    sphere.radius = 0.5f;
-                }
-            }
-            else orb = BuildRepairOrbPrimitive(pos, rot, diameter);
-
-            if (orb.GetComponent<RepairOrb>() == null) orb.AddComponent<RepairOrb>();
-            if (Application.isPlaying && orb.GetComponent<OrbHover>() == null) orb.AddComponent<OrbHover>();
-            orb.name = $"RepairOrb_{distance:00000}";
-            spawned.Add((distance, orb));
-            padDistances.Add(distance); // coins keep off it too
-        }
-
-        // No prefab: a unit sphere (the green shell, the boost material tinted)
-        // round a white 3D cross of three boxes, scaled to the orb.
-        GameObject BuildRepairOrbPrimitive(Vector3 pos, Quaternion rot, float diameter)
-        {
-            var orb = new GameObject();
-            orb.transform.SetParent(padsParent, false);
-            orb.transform.SetPositionAndRotation(pos, rot);
-            orb.transform.localScale = Vector3.one * diameter;
-            var trigger = orb.AddComponent<SphereCollider>();
-            trigger.isTrigger = true;
-            trigger.radius = 0.5f;
-
-            Material shell = null, cross = null;
-            if (Application.isPlaying && boostMaterial != null)
-            {
-                repairShellMaterial ??= Transparent(TintedCopy(boostMaterial, new Color(0.2f, 1f, 0.35f, 0.3f), 0.35f));
-                repairCrossMaterial ??= TintedCopy(boostMaterial, Color.white, 1.5f);
-                shell = repairShellMaterial;
-                cross = repairCrossMaterial;
-            }
-            AddPart(orb.transform, PrimitiveType.Sphere, Vector3.one, shell);
-            AddPart(orb.transform, PrimitiveType.Cube, new Vector3(0.2f, 0.6f, 0.2f), cross);
-            AddPart(orb.transform, PrimitiveType.Cube, new Vector3(0.6f, 0.2f, 0.2f), cross);
-            AddPart(orb.transform, PrimitiveType.Cube, new Vector3(0.2f, 0.2f, 0.6f), cross); // a third arm: the orb spins, so the cross reads from any side
-            return orb;
-
-            static void AddPart(Transform parent, PrimitiveType type, Vector3 scale, Material mat)
-            {
-                var part = GameObject.CreatePrimitive(type);
-                Object.DestroyImmediate(part.GetComponent<Collider>()); // now, not end of frame: the root's trigger is the pickup, and a solid child would be hit by the ship's casts
-                part.transform.SetParent(parent, false);
-                part.transform.localScale = scale;
-                if (mat != null) part.GetComponent<Renderer>().sharedMaterial = mat;
-            }
-
-            static Material TintedCopy(Material source, Color color, float glow)
-            {
-                var mat = new Material(source);
-                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
-                else mat.color = color;
-                if (mat.HasProperty("_EmissionColor"))
-                {
-                    mat.EnableKeyword("_EMISSION");
-                    mat.SetColor("_EmissionColor", new Color(color.r, color.g, color.b) * glow);
-                }
-                return mat;
-            }
-
-            // URP Lit/Unlit switched to an alpha-blended surface — what the
-            // Surface Type dropdown sets — so the cross shows through the shell.
-            static Material Transparent(Material mat)
-            {
-                if (!mat.HasProperty("_Surface")) return mat;
-                mat.SetFloat("_Surface", 1f);
-                mat.SetFloat("_Blend", 0f);
-                mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                mat.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
-                mat.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                mat.SetFloat("_ZWrite", 0f);
-                mat.SetOverrideTag("RenderType", "Transparent");
-                mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-                mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-                return mat;
-            }
+            foreach (var asset in spawnSet.Spawners)
+                runtimeSpawners.Add(asset == null ? null : Application.isPlaying ? Instantiate(asset) : asset);
         }
 
         /// <summary>
         /// True when nothing claimed sits anywhere in [<paramref name="from"/>,
         /// <paramref name="to"/>]: no feature footprint, no ramp landing zone
         /// and not the final run-up. The same <see cref="featureKeepOuts"/>
-        /// list the laser placer tests against (<see cref="LaserBlockedUntil"/>),
+        /// list the laser gates test against (<see cref="TrackSpawnContext.KeepOutUntil"/>),
         /// exposed as a plain predicate for anything that needs the rule
         /// rather than the next free spot — the patrol's attack run holds off
         /// on exactly this ground.
@@ -1361,113 +1102,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return true;
         }
 
-        // ------------------------------------------------------- laser gates
-
-        /// <summary>
-        /// Laser gates on a cursor of their own, drawn from their own rng (so
-        /// a seed's road and pads are the same with or without them). A gate
-        /// is rolled first — variant and beam length decide how much track it
-        /// takes — then tested against the keep-outs and pushed on if it does
-        /// not fit. Placed before the pads, claiming its ground, so no pad or
-        /// coin sits in a beam. Play mode only: the beams are runtime objects.
-        /// </summary>
-        void PlaceLasersUpTo(float limit)
-        {
-            if (!Application.isPlaying || !spawnLasers || laserPrefab == null || laserRuntime == null) return;
-            if (LaserDensity <= 0f || laserRuntime.TotalWeight <= 0f) return;
-
-            while (laserCursor < limit)
-            {
-                LaserGateVariant variant = laserRuntime.PickVariant(laserRng.NextFloat());
-                track.GetLateralBand(laserCursor, out float bandMin, out float bandMax);
-                float length = (bandMax - bandMin) * laserRng.NextFloat(laserRuntime.CoverageMin, laserRuntime.CoverageMax);
-                // Only the rotor has depth: its blade sweeps a disc of road.
-                float halfDepth = laserRuntime.beamRadius + (variant == LaserGateVariant.Rotor ? length * 0.5f : 0f);
-
-                float blockedUntil = LaserBlockedUntil(laserCursor, halfDepth);
-                if (float.IsPositiveInfinity(blockedUntil)) { laserCursor = float.MaxValue; return; } // the end zone: no more gates, ever
-                if (blockedUntil >= 0f) { laserCursor = Mathf.Max(blockedUntil, laserCursor + 10f); continue; }
-
-                CreateLaserGate(laserCursor, variant, length, halfDepth, bandMin, bandMax);
-                laserCursor += laserRng.NextFloat(laserSpacing.x, laserSpacing.y) / LaserDensity;
-            }
-        }
-
-        /// <summary>
-        /// Where a gate at <paramref name="distance"/> could go instead, or -1
-        /// when the spot is free: clear of every feature and what lies ahead
-        /// of it (a ramp's landing zone), of any section, of the final run-up
-        /// (+infinity — nothing fits after it) and, when the two toggles say
-        /// so, of flat sweeps and open edges.
-        /// Every one of those is registered while its knot is still inside the
-        /// settle margin, and the clearance is shorter than the margin, so
-        /// nothing is ever decided behind a gate that already stands.
-        /// </summary>
-        float LaserBlockedUntil(float distance, float halfDepth)
-        {
-            float reach = halfDepth + laserClearance;
-            float start = distance - reach, end = distance + reach;
-
-            foreach (var keepOut in featureKeepOuts)
-                if (end > keepOut.start && start < keepOut.end)
-                    return float.IsPositiveInfinity(keepOut.end) ? keepOut.end : keepOut.end + reach;
-
-            if (!lasersOnFlatSweeps)
-            {
-                TrackManager.FlatSweep sweep = track.FlatSweepWithin(start, end - start);
-                if (sweep != null) return sweep.End + reach;
-            }
-
-            // A loop or a tube is a keep-out already (belt and braces); an open edge is not.
-            for (float d = start; d <= end; d += 25f)
-                if (track.SectionAt(d) != null
-                    || (!lasersOnOpenEdges && (track.IsEdgeOpen(d, -1) || track.IsEdgeOpen(d, 1))))
-                    return d + reach + 25f;
-            return -1f;
-        }
-
-        /// <summary>
-        /// One gate: a root on the track pose at the flight line's middle, a
-        /// laser prefab instance per beam under it, and the <see cref="LaserGate"/>
-        /// that owns the beams' track-space segments. The beam's lateral is
-        /// rolled so the whole beam (and the emitters' bulk) stays in the lane.
-        /// </summary>
-        void CreateLaserGate(float distance, LaserGateVariant variant, float length, float halfDepth, float bandMin, float bandMax)
-        {
-            float halfAcross = variant == LaserGateVariant.Vertical ? laserRuntime.beamRadius : length * 0.5f;
-            float margin = halfAcross + 2f * laserRuntime.emitterScale; // the emitter is ~2 m long at scale 1
-            float lo = bandMin + margin, hi = bandMax - margin;
-            float lateral = hi > lo ? laserRng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f;
-            float rotorSpeed = laserRng.NextFloat(laserRuntime.RotorSpeedMin, laserRuntime.RotorSpeedMax) * (laserRng.NextBool() ? 1f : -1f);
-            float rotorPhase = laserRng.NextFloat(0f, 360f);
-            bool wavy = laserRuntime.wavy && laserRng.NextFloat() < laserRuntime.waveChance; // no draw while the wave is off
-
-            track.GetPoseAtDistance(distance, 0f, out Vector3 pos, out Quaternion rot);
-            var root = new GameObject($"LaserGate_{variant}_{distance:00000}");
-            root.transform.SetParent(padsParent, false);
-            root.transform.SetPositionAndRotation(pos, rot);
-
-            int beamCount = variant == LaserGateVariant.Triple ? 3 : 1;
-            var visuals = new List<LaserBeam>(beamCount);
-            for (int i = 0; i < beamCount; i++)
-            {
-                GameObject instance = Instantiate(laserPrefab, root.transform);
-                instance.name = $"Beam_{i}";
-                instance.transform.localPosition = Vector3.zero; // the emitters are posed in world space by the beam
-                instance.transform.localRotation = Quaternion.identity;
-                var beam = instance.GetComponent<LaserBeam>();
-                if (beam == null) beam = instance.AddComponent<LaserBeam>();
-                beam.Configure(laserRuntime, wavy);
-                visuals.Add(beam);
-            }
-
-            var gate = root.AddComponent<LaserGate>();
-            gate.Configure(laserRuntime, variant, distance, lateral, length, rotorSpeed, rotorPhase, visuals, wavy);
-
-            spawned.Add((distance + halfDepth, root)); // keyed on its END, like everything that spans track
-            claims.Add((distance - halfDepth, distance + halfDepth));
-        }
-
         /// <summary>
         /// Rows of coins between the orbs: one lateral per row, coins a step
         /// apart along the track, every coin skipped where a pad already sits
@@ -1475,10 +1109,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// </summary>
         void PlaceCollectiblesUpTo(float limit)
         {
-            if (!spawnCollectibles) return;
+            if (!spawnCollectibles || spawnContext == null) return;
             while (collectibleCursor < limit)
             {
-                float claimEnd = ClaimEnd(collectibleCursor);
+                float claimEnd = spawnContext.ClaimEnd(collectibleCursor);
                 if (claimEnd >= 0f) { collectibleCursor = claimEnd; continue; }
 
                 int count = rng.NextInt(collectibleGroupSize.x, Mathf.Max(collectibleGroupSize.x, collectibleGroupSize.y) + 1);
@@ -1491,19 +1125,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 for (int i = 0; i < count; i++)
                 {
                     float d = collectibleCursor + i * collectibleStep;
-                    if (d >= limit || ClaimEnd(d) >= 0f || NearPad(d)) continue;
+                    if (d >= limit || spawnContext.ClaimEnd(d) >= 0f || spawnContext.NearPickup(d)) continue;
                     CreateCollectible(d, lateral);
                 }
 
                 collectibleCursor += count * collectibleStep + rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
             }
-        }
-
-        bool NearPad(float distance)
-        {
-            foreach (float pad in padDistances)
-                if (Mathf.Abs(pad - distance) < padSize.z) return true;
-            return false;
         }
 
         void CullBehind(float minDistance)
@@ -1522,47 +1149,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
             for (int i = featureKeepOuts.Count - 1; i >= 0; i--)
                 if (featureKeepOuts[i].end < minDistance) featureKeepOuts.RemoveAt(i);
             if (decorator != null) decorator.CullBefore(minDistance);
-        }
-
-        // Keep the whole pad (half its scaled width + a margin) inside the
-        // lane edge — including the full sway arc of a moving orb.
-        float PadMargin(PadDefinition def, float sway = 0f)
-        {
-            float width = padSize.x * (def != null ? def.sizeMultiplier : 1f);
-            return width * 0.5f + 2f + sway;
-        }
-
-        // Weighted draw from the spawn table; uses the layout rng so seeded
-        // runs reproduce the same sequence. Probabilities are normalized by
-        // their sum, so the draw stays correct even mid-edit.
-        PadSpawnEntry PickSpawnEntry() =>
-            spawnTable == null || spawnTable.Length == 0 ? null : PickWeighted(spawnTable, rng.NextFloat(0f, 1f)) as PadSpawnEntry;
-
-        // Weighted draw off a 0..1 roll; probabilities are normalized by
-        // their sum, so the draw stays correct even mid-edit. An excluded
-        // entry weighs nothing and is skipped; null when nothing else has weight.
-        static IWeightedEntry PickWeighted(IWeightedEntry[] table, float roll01, IWeightedEntry exclude = null)
-        {
-            if (table == null || table.Length == 0) return null;
-            float total = 0f;
-            IWeightedEntry last = null;
-            foreach (var e in table)
-            {
-                if (e == exclude) continue;
-                total += e.Probability;
-                last = e;
-            }
-            if (last == null) return null;
-            if (total <= 0f) return exclude == null ? table[0] : last;
-
-            float roll = roll01 * total;
-            foreach (var e in table)
-            {
-                if (e == exclude) continue;
-                roll -= e.Probability;
-                if (roll <= 0f) return e;
-            }
-            return last;
         }
 
         /// <summary>
@@ -1589,96 +1175,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return predicted >= required;
         }
 
-        // Keeps the Core Settings probability sliders honest: whichever slider
-        // the designer just moved keeps its value, the others rebalance
+        // Keeps the feature probability sliders honest: whichever slider the
+        // designer just moved keeps its value, the others rebalance
         // proportionally so the table always totals 100%.
-        void NormalizeProbabilities() => Normalize(spawnTable, ref lastProbabilities);
-        void NormalizeFeatureProbabilities() => Normalize(featureTable, ref lastFeatureProbabilities);
+        void NormalizeFeatureProbabilities() => WeightedTable.Normalize(featureTable, ref lastFeatureProbabilities);
 
-        static void Normalize(IWeightedEntry[] table, ref float[] last)
-        {
-            if (table == null || table.Length == 0) { last = null; return; }
-
-            if (table.Length == 1)
-            {
-                table[0].Probability = 100f;
-            }
-            else if (last != null && last.Length == table.Length)
-            {
-                int changed = -1;
-                for (int i = 0; i < table.Length; i++)
-                    if (!Mathf.Approximately(table[i].Probability, last[i])) { changed = i; break; }
-
-                if (changed >= 0)
-                {
-                    float kept = Mathf.Clamp(table[changed].Probability, 0f, 100f);
-                    table[changed].Probability = kept;
-
-                    float othersSum = 0f;
-                    for (int i = 0; i < table.Length; i++)
-                        if (i != changed) othersSum += table[i].Probability;
-
-                    float remainder = 100f - kept;
-                    for (int i = 0; i < table.Length; i++)
-                    {
-                        if (i == changed) continue;
-                        table[i].Probability = othersSum > 0f
-                            ? table[i].Probability * remainder / othersSum
-                            : remainder / (table.Length - 1);
-                    }
-                }
-            }
-            else
-            {
-                // Entry added/removed (or first touch): scale everything to 100.
-                float total = 0f;
-                foreach (var e in table) total += e.Probability;
-                for (int i = 0; i < table.Length; i++)
-                    table[i].Probability = total > 0f
-                        ? table[i].Probability * 100f / total
-                        : 100f / table.Length;
-            }
-
-            last = new float[table.Length];
-            for (int i = 0; i < table.Length; i++) last[i] = table[i].Probability;
-        }
-
-        void OnValidate()
-        {
-            NormalizeProbabilities();
-            NormalizeFeatureProbabilities();
-        }
-
-        float EffectiveBoost(PadSpawnEntry entry)
-        {
-            float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost : 15f;
-            return baseBoost * entry.multiplier;
-        }
-
-        // The SpeedPad's MPB tint alone is unreliable with the SRP Batcher
-        // (see TrackDecorator), so each boost entry gets its own recolored
-        // instance of the boost material. Play mode only — edit-mode previews
-        // would leak the instances into the scene.
-        Material EntryMaterial(PadSpawnEntry entry)
-        {
-            bool boost = entry.definition == null || entry.definition.speedDelta >= 0f;
-            if (!boost) return brakeMaterial;
-            if (!Application.isPlaying || boostMaterial == null) return boostMaterial;
-
-            entryMaterials ??= new Dictionary<PadSpawnEntry, Material>();
-            if (!entryMaterials.TryGetValue(entry, out var mat))
-            {
-                mat = new Material(boostMaterial);
-                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", entry.color);
-                else mat.color = entry.color;
-                if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", entry.color);
-                entryMaterials.Add(entry, mat);
-            }
-            return mat;
-        }
+        void OnValidate() => NormalizeFeatureProbabilities();
 
         // The code-built coin's gold: one recolored boost-material instance,
-        // play mode only for the same leak reason as the pad entries.
+        // play mode only: edit-mode previews would leak the instance into the scene.
         Material CollectibleMaterial()
         {
             if (!Application.isPlaying || boostMaterial == null) return boostMaterial;
@@ -1863,100 +1368,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // less, so keyed on the mouth it was destroyed with the ship
             // still climbing it.
             spawned.Add((section.EndDistance, go));
-        }
-
-        void CreatePad(float distance, float lateral, PadSpawnEntry entry)
-        {
-            PadDefinition def = entry.definition;
-            track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
-            // Orbs sit on the flight line; flat pads sink to road level. The
-            // air lane rides the track's up so it stays overhead on a roll.
-            Vector3 padPos = def.floatingOrb ? pos : pos + rot * new Vector3(0f, -0.9f, 0f);
-            if (entry.lane == PadLane.Air) padPos += rot * (Vector3.up * AirLaneHeight);
-            Material mat = EntryMaterial(entry);
-            GameObject pad;
-
-            if (entry.prefab != null)
-            {
-                // Designer-authored look: the prefab keeps its own materials,
-                // only the definition's size multiplier scales it.
-                pad = Instantiate(entry.prefab, padPos, rot, padsParent);
-                pad.transform.localScale *= def.sizeMultiplier;
-
-                var colliders = pad.GetComponentsInChildren<Collider>();
-                foreach (var c in colliders) c.isTrigger = true;
-                if (colliders.Length == 0)
-                {
-                    if (def.floatingOrb)
-                    {
-                        var sphere = pad.AddComponent<SphereCollider>();
-                        sphere.isTrigger = true;
-                        sphere.radius = padSize.x * 0.5f;
-                    }
-                    else
-                    {
-                        var box = pad.AddComponent<BoxCollider>();
-                        box.isTrigger = true;
-                        box.size = padSize;
-                    }
-                }
-            }
-            else if (def.floatingOrb)
-            {
-                // Floating orb centered on the flight line so the ship's trigger
-                // collider passes straight through it. Small — must be aimed for.
-                pad = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                pad.transform.SetParent(padsParent, false);
-                pad.transform.SetPositionAndRotation(padPos, rot);
-                pad.transform.localScale = Vector3.one * (padSize.x * def.sizeMultiplier);
-                pad.GetComponent<SphereCollider>().isTrigger = true;
-                if (mat != null) pad.GetComponent<Renderer>().sharedMaterial = mat;
-            }
-            else
-            {
-                pad = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                pad.transform.SetParent(padsParent, false);
-                pad.transform.SetPositionAndRotation(padPos, rot);
-                pad.transform.localScale = padSize * def.sizeMultiplier;
-                pad.GetComponent<BoxCollider>().isTrigger = true;
-                if (mat != null) pad.GetComponent<Renderer>().sharedMaterial = mat;
-            }
-
-            if (def.floatingOrb && Application.isPlaying)
-            {
-                var hover = pad.AddComponent<OrbHover>();
-                hover.Configure(entry.swayAmplitude, entry.swayFrequency);
-            }
-
-            pad.name = $"{entry.name}{def.displayName}Pad_{distance:00000}";
-            // The prefabs carry a SpeedPad of their own (so they work dropped into any level); a second one would take twice.
-            var speedPad = pad.GetComponent<SpeedPad>();
-            if (speedPad == null) speedPad = pad.AddComponent<SpeedPad>();
-            // Its pickup volume, in track space: an orb is a ball of its own
-            // size, a flat pad the whole slab (and as tall as the ship, so a
-            // grounded ship always reads as on it). The air lane lifts both.
-            float padScale = def.sizeMultiplier;
-            Vector3 halfExtents = def.floatingOrb
-                ? Vector3.one * (padSize.x * padScale * 0.5f)
-                : new Vector3(padSize.x * padScale * 0.5f, 1f, padSize.z * padScale * 0.5f);
-            speedPad.PlaceOnTrack(distance, lateral, entry.lane == PadLane.Air ? AirLaneHeight : 0f, halfExtents);
-            // Boosts scale off the shared power-up base; brakes keep their
-            // definition's own delta so dodging stays predictable.
-            if (def.speedDelta >= 0f) speedPad.SetDefinition(def, EffectiveBoost(entry), entry.color, entry.name);
-            else speedPad.SetDefinition(def);
-            spawned.Add((distance, pad));
-            padDistances.Add(distance);
-
-            // Orbs are their own landmark; the gate-style sign only suits flat pads.
-            if (!def.floatingOrb && padSignPrefab != null)
-            {
-                var sign = Instantiate(padSignPrefab, pad.transform.position,
-                                       rot * Quaternion.Euler(0f, 90f, 0f), padsParent);
-                sign.name = pad.name + "_Sign";
-                sign.transform.localScale = Vector3.one * padSignScale;
-                if (mat != null) TrackDecorator.OverrideMaterials(sign, mat);
-                spawned.Add((distance, sign));
-            }
         }
 
         /// <summary>

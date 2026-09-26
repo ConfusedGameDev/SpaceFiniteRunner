@@ -150,7 +150,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CamDuelDistance, CamDuelHeight, CamDuelPitch, CamDuelBlend,
         DuelMinClosing, DuelPushGain,
         // FALL & RESPAWN: relaunch at once and fly the wait blinking.
-        RespawnRollingStart
+        RespawnRollingStart,
+        // Track spawnables: the debug menu's per-spawner density row. {0} = the spawner's name.
+        SpawnDensity
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1106,6 +1108,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString respawnSpeedPenalty = new("RESPAWN SPEED PENALTY", "PENALIZACIÓN DE VELOCIDAD", "リスポーン速度ペナルティ", "PÉNALITÉ DE VITESSE");
         [SerializeField] LocalizedString respawnClearance = new("RESPAWN CLEARANCE", "DESPEJE DE REAPARICIÓN", "リスポーン前方の余裕", "DÉGAGEMENT DE RETOUR");
         [SerializeField] LocalizedString respawnRollingStart = new("ROLLING RESPAWN", "REAPARICIÓN EN MARCHA", "走行中リスポーン", "RETOUR LANCÉ");
+        [Tooltip("The debug menu's per-spawner density row. {0} = the spawner's name.")]
+        [SerializeField] LocalizedString spawnDensity = new("{0} DENSITY", "DENSIDAD: {0}", "{0} 密度", "DENSITÉ : {0}");
         [SerializeField] LocalizedString respawnPatrolGap = new("RESPAWN PATROL GAP", "VENTAJA SOBRE LA PATRULLA", "リスポーン時のパトロール差", "AVANCE SUR LA PATROUILLE");
         [SerializeField] LocalizedString stallGrace = new("STALL GRACE", "GRACIA AL DETENERSE", "停止の猶予", "DÉLAI DE CALAGE");
         [SerializeField] LocalizedString debugTabPatrolDriver = new("PATROL DRIVER", "PILOTO DE PATRULLA", "パトロールドライバー", "PILOTE DE PATROUILLE");
@@ -1573,6 +1577,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DuelMinClosing => duelMinClosing,
             MenuTextId.DuelPushGain => duelPushGain,
             MenuTextId.RespawnRollingStart => respawnRollingStart,
+            MenuTextId.SpawnDensity => spawnDensity,
             _ => start
         };
     }

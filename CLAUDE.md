@@ -43,7 +43,7 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   `GameOverScreen` retry panel: MISSION FAILED, the localized reason, RETRY? YES / NO (NO = main
   menu).
 - **Hull and lives** (`GameSettings.hullEnabled`): the HUD's life bar sits under the speed wedge
-  with a ×N lives count at its right end. Brake pads, hard wall hits (a dash slam, a ramp's side),
+  with a ×N lives count at its right end. Hard wall hits (a dash slam, a ramp's side),
   plain wall contact, laser beams and falling off the track take hull points; every hit blinks the ship
   invulnerable for a moment. **Repair orbs** (a white cross in a translucent green sphere, as
   frequent as green boost orbs) give back 15 % of the hull; at full hull they are ignored and
@@ -57,7 +57,8 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 - **Speed** is the whole game: one launch impulse, then the throttle (W / RT) holds the ship up
   to its cruise speed and the brake (S / LT) slows it. Only boost orbs (small, 0.3, must be aimed
   for; green 1× / blue 2.5× / purple 10×) push past cruise, where a passive bleed pulls the speed
-  back down to it; brake pads (large, 1.2, must be dodged) lower it. No cap.
+  back down to it; laser beams take 10 % of it. No cap. (Brake pads are retired: the
+  `Spawner_BrakePads` asset is kept out of the track's spawn set — see `runner-track.md`.)
 - **The patrol** drives the same physics as the ship: it rubber-bands to the ship's speed and
   takes a share (`boostShare`) of every boost the ship collects, steers for the ship, goes after
   boost orbs of its own (which it uses up), rounds ramps or jumps them, brakes for flat sweeps,

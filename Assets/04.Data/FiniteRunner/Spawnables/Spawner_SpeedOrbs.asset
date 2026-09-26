@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8adaa79417c14588924e0b4c72fe9f70, type: 3}
+  m_Name: Spawner_SpeedOrbs
+  m_EditorClassIdentifier: 
+  active: 1
+  displayName: Speed Orbs
+  color: {r: 0.1, g: 1, b: 0.3, a: 1}
+  spacing: {x: 513, y: 897}
+  startDistance: 120
+  chance: 1
+  tiers:
+  - name: Green
+    prefab: {fileID: 2850359091044272792, guid: 2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a, type: 3}
+    definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
+    probability: 74.35897
+    multiplier: 1
+    color: {r: 0.1, g: 1, b: 0.3, a: 1}
+    swayAmplitude: 0
+    swayFrequency: 0.5
+    lane: 0
+  - name: Blue
+    prefab: {fileID: 2850359091044272792, guid: 8d0f2a4c6e8b0d2f4a6c8e0b2d4f6a8c, type: 3}
+    definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
+    probability: 21.794872
+    multiplier: 2.5
+    color: {r: 0.25, g: 0.55, b: 1, a: 1}
+    swayAmplitude: 4
+    swayFrequency: 0.45
+    lane: 0
+  - name: Purple
+    prefab: {fileID: 2850359091044272792, guid: 4c6e8a0b2d4f6a8c0e2b4d6f8a0c2e4b, type: 3}
+    definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
+    probability: 3.8461537
+    multiplier: 10
+    color: {r: 0.75, g: 0.3, b: 1, a: 1}
+    swayAmplitude: 8
+    swayFrequency: 0.8
+    lane: 0

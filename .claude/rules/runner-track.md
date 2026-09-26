@@ -1,5 +1,5 @@
 ---
-description: Runner track — TrackManager, sections, endless generation, features, pads and orbs, decorator
+description: Runner track — TrackManager, sections, endless generation, features, spawnables (orbs, repair orbs, lasers), decorator
 paths:
   - "Assets/01.Scripts/Runner/Track/**"
   - "Assets/01.Scripts/Runner/**/Track*"
@@ -14,7 +14,7 @@ paths:
 
 The runner is spline-based, not rigidbody-based: the ship is a track-space `TrackBody` posed
 along a `SplineContainer` (Unity Splines), and pads, orbs and coins are found by an analytic
-sweep of the `PickupRegistry` — never by trigger colliders.
+sweep of the `PickupRegistry` (the patrol) or the physics ship's collider sweep (the player).
 
 ## `TrackManager` — owns the spline
 
@@ -222,20 +222,7 @@ and a scene with no `GameManager` stay endless.
   next `featureCursor`, so every loop stands upright, every tube curls from a flat pose and every
   ramp rides its rails. `TrackDebugSettings`' bank defaults must equal the asset's — the shipped
   debug asset has `applyOnLoad` on, so a key it lacks applies the C# default.
-- `spawnTable` — one `PadSpawnEntry` per pad/orb kind (optional prefab, `PadDefinition`, boost
-  multiplier × `GameManager.powerUpSpeedBoost`, colour/sway), drawn once per spacing step by
-  probability. Probability sliders auto-rebalance (`NormalizeProbabilities`) so the table always
-  sums to 100%. Entries without a prefab fall back to the code-built primitive with a recoloured
-  boost-material instance; prefab entries keep their own materials and get their colliders forced
-  to triggers. A moving orb's spawn lateral is clamped so its sway arc stays inside the track.
-  **A brake keeps its definition's own delta** (`BrakePad_Definition.speedDelta`, —25 m/s): only
-  boosts scale off `powerUpSpeedBoost`, so a brake row's `multiplier` is dead weight and the only
-  brake knob that bites is its probability. **`padSpacing` is the saturation knob** and the debug
-  snapshot does NOT carry it, so it lives in the scene alone; the table's probabilities DO come
-  from the snapshot, so retune both or the snapshot wins. At 400—700 m with the table at
-  Green 58 / Blue 17 / Purple 3 / Brake 22 the run meets a pad every 0.4—0.7 s at cruise:
-  73 pads over 40 km, a brake every 2.5 km, and about 9 km of track to climb cruise to Light Speed
-  on greens alone.
+- `spawnSet` — the `TrackSpawnSet` of everything that streams onto the track (see Spawnables).
 
 The custom inspector is an `OdinEditor` (so Odin attributes render) and adds the
 "Regenerate Track" preview button.
@@ -256,9 +243,9 @@ and **the spline continues from the feature** — a loop gets an exit knot at it
 pose (`ContinueFromLoopExit`: explicit tangent along `ExitForward`, the bridge measured into
 `SetSplineExtent`, the builder's heading/grade re-read from the exit, bank 0), a tube just keeps
 the spline coming (level) underneath, a ramp goes on `pendingRamps` and lands once its run-up is
-settled (`SpawnPendingRamps`, before the pads). The cursor then advances by footprint +
+settled (`SpawnPendingRamps`, before the spawners). The cursor then advances by footprint +
 `ExclusionAhead` (a jump's longest arc, so nothing waits under a landing) + max(spacing roll,
-`minSpacing`). `PlacePadsUpTo` skips claimed ground.
+`minSpacing`). Every spawner skips claimed ground.
 
 Every entry gets a **runtime clone** of its definition (`Runtime`) in play — the debug menu edits
 the clone, never the asset.
@@ -286,7 +273,7 @@ the clone, never the asset.
   `CreateSection` rolls the length off the rng, `CreateFeature` builds nothing. **A feature with
   a section never waits for the settle margin** — only a road-bound ramp does; a 4.5 km tube
   could never fit inside the settled stretch, and its pose is only sampled where pads and road
-  are placed. Pads keep spawning across it (`PadMargin` inside `GetLateralBand`) and the
+  are placed. Pickups keep spawning across it (`PadMargin` inside `GetLateralBand`) and the
   decorator stamps the pipe.
 
 Loop knobs (`radius`, `exitClearance`, `fallGravity`, `fallSpeedLoss`, gate colours) live on
@@ -294,18 +281,62 @@ Loop knobs (`radius`, `exitClearance`, `fallGravity`, `fallSpeedLoss`, gate colo
 `AddStat<T>`, and per-tube radius / band / curl through `FeatureDebugSettings.tubes`, matched by
 entry name.
 
-### Repair orbs (`Track/RepairOrb.cs`)
+### Spawnables (`Track/Spawning/`)
 
-The "Repair orbs" toggle group (`spawnRepairOrbs`, optional `repairOrbPrefab` modelled at 1 m
-across, `repairOrbRateFrom` = "Green", `repairOrbSize` as a share of the pad width). A stream of its
-own — `PlaceRepairOrbsUpTo`, after the pads, with its own cursor and `repairRng` (seeded off the
-layout rng's state like `laserRng`) — NOT a spawn-table entry: every `padSpacing` step rolls the
-named entry's normalized share, so repair orbs come exactly as often as green orbs while the
-table's shares, a seed's pad layout and the index-matched `TrackDebugSettings` snapshot stay as
-they were. Skips claimed ground and any spot within a pad length of a pad; lands in `spawned`
-and `padDistances` (coins keep off it). Off entirely while `GameManager.HullEnabled` is false.
-No prefab = a code-built orb: a transparent green shell (a `boostMaterial` copy switched to an
-alpha-blended surface) round a white emissive 3D cross of three boxes (one per axis — the orb spins).
+Everything the generator streams onto the track besides features and coins is a **`TrackSpawner`**
+(an abstract ScriptableObject), listed in a **`TrackSpawnSet`** asset —
+`04.Data/FiniteRunner/FiniteRunner_TrackSpawnSet.asset`, drawn inline on `PF_Track`'s
+`TrackGenerator` (`spawnSet`). The spawner assets live in `04.Data/FiniteRunner/Spawnables/`. The
+generator knows none of them by name. **Add a kind** = a `TrackSpawner` subclass + an asset in the
+set; **remove one** = take it out of the set (or untick `active` on the asset).
+
+- **Shipped set**: `Spawner_LaserGates`, `Spawner_SpeedOrbs`, `Spawner_RepairOrbs`.
+  `Spawner_BrakePads` exists but is **not in the set** — brake pads were retired once laser gates
+  took over as the slow-down hazard. The `PowerUp_Brake` prefab, `BrakePad_Definition` and all
+  the brake code (`SpeedPad`, `ShipHealth.brakePadDamage`, `ShipAudio.brakeClip`, the patrol's
+  overshoot) are kept, so dropping the asset back into the set restores them.
+- **Base fields** (every spawner): `active`, `displayName` (debug label, seed salt, and the key the
+  debug snapshot matches on), `color` (debug tint), `spacing` band, `startDistance` (the first step
+  lands in `start + [0, spacing.x]`), `chance` per step. Runtime-only: `Density` (the debug
+  multiplier on the spacing, 0 = none), the cursor and **its own rng** —
+  `hash(layout rng state, FNV(displayName))`, so a spawner never moves another's layout and the
+  road never depends on what spawns.
+- **The loop** (`TrackSpawner.PlaceUpTo`): roll `chance`, then the subclass `Step(ctx, distance)`
+  returns −1 (done, move on by the spacing ÷ `Density`), a distance to retry from (the claimed
+  ground in the way), or +∞ (never again — the end zone). An inactive spawner (`IsActive` false,
+  or density 0) still walks its cursor up to the limit, so nothing lands behind the ship when it
+  comes back on.
+- **Phases**: `ClaimsGround` spawners (laser gates) run first in every pass and `Claim` their
+  stretch; `Pickup` spawners run after, **in set order** — each keeps off the pickups recorded
+  before it (`NearPickup`), which is why repair orbs are listed after speed orbs. Then coins.
+- **`TrackSpawnContext`** is all a spawner touches: the track, the GameManager, the parent,
+  `padSize`, `boostMaterial`, `ClaimEnd` / `Claim`, `NearPickup` / `RecordPickup`
+  (`padDistances`), `Register(endDistance, go)` for the cull (**keyed on the END**),
+  `KeepOutUntil` (the feature keep-outs, flat sweeps, sections, open edges), `RandomLateral`,
+  `PadMargin`, and `CreatePad` (the one `SpeedPad` builder: prefab with colliders forced to
+  triggers, or a code-built orb / slab; boosts = `powerUpSpeedBoost` × multiplier, a brake keeps
+  its own delta).
+- **Runtime clones**: `Generate` clones each set entry (`PrepareSpawners`, before
+  `TrackDebugSettings.ApplyTo`), index for index — `generator.Spawners`, `GetSpawner<T>()` — and
+  calls `Begin`; last run's clones are `Cleanup()`-ed (nested definition clones, tint materials)
+  and destroyed. Edit-mode previews run the assets themselves.
+- **`SpeedOrbSpawner`**: `tiers` of `PadSpawnEntry` (Green / Blue / Purple — prefab,
+  `PadDefinition`, probability rebalanced to 100 % by `WeightedTable.Normalize`, multiplier,
+  colour, sway, lane), one weighted draw per step. Spacing 513–897 m — the old 400–700 m ÷ 0.78,
+  so removing the brake's 22 % share left the orb count per km as it was.
+- **`RepairOrbSpawner`**: 400–700 m, `chance` 0.58 (the green share it used to copy), `size` as a
+  share of the pad width, optional prefab else the code-built shell + cross. Off while
+  `GameManager.HullEnabled` is false.
+- **`LaserGateSpawner`**: see Laser gates.
+- **`BrakePadSpawner`**: one `PadSpawnEntry`, the brake material, the pad sign; 1800–3200 m
+  (about the old one-in-2.5 km).
+- Debug: CORE SETTINGS → one `{NAME} DENSITY` row per spawner (`MenuTextId.SpawnDensity`) and a
+  `%` row per orb tier; MULTIPLIERS → a `×` row per tier. Rows are built from the set's ASSETS
+  (the menu can be built before the first `Generate`) and edit the runtime clones.
+  `TrackDebugSettings` stores `densities` (by spawner name) and `entries` (orb tiers by name,
+  renormalized on apply — a saved "Brake" entry is ignored).
+
+### Repair orbs (`Track/RepairOrb.cs`)
 
 `RepairOrb` is an `IShipPickup` only — never a `SpeedPad`, never an `ITrackPickup` — so it stays
 out of the `PickupRegistry` and the patrol neither seeks nor takes it, and it raises no speed
@@ -319,8 +350,8 @@ GameManager soft haptic) and deactivates.
 The "Collectibles" toggle group (`spawnCollectibles`, optional `collectiblePrefab`,
 `collectibleSpacing` between rows, `collectibleGroupSize` coins per row a `collectibleStep`
 apart at one lateral, `collectibleValue`, `collectiblePickupSize`, coin size/colour).
-`PlaceCollectiblesUpTo` runs after the pads in every stream, skips claimed ground and any
-distance within a pad length of a pad (`padDistances`, pruned with the cull).
+`PlaceCollectiblesUpTo` runs after the spawners in every stream, skips claimed ground and any
+distance within a pad length of a pickup (`padDistances`, pruned with the cull).
 
 `collectiblePickupSize` (width, height; `FormerlySerializedAs` the old 20 m long
 `collectibleTriggerSize`) is the coin's pickup volume for the swept query — there is no trigger
@@ -337,19 +368,18 @@ Four variants by weight (`PickVariant`): `Horizontal` (one beam on the flight li
 another — the upper two catch a ship in the air) and `Rotor` (a horizontal beam on the flight line
 turning about the track's UP, `rotorSpeedBand`, direction a coin toss).
 
-- **Not a `TrackFeatureDefinition`.** Gates stream on a cursor of their own (`PlaceLasersUpTo`,
-  the generator's "Laser gates" toggle group: prefab, definition drawn inline and cloned in play,
-  `laserSpacing` 600–1200 m, `laserStartDistance`, `laserClearance`), BEFORE the pads in
-  `StreamTo`, claiming their ground so no pad or coin sits in a beam, keyed on their END for the
-  cull. **They draw from their own `laserRng`** (seeded off the layout stream's state, not a draw
-  from it), so a seed's road and pads do not depend on the gates. Play mode only.
-- **Keep-outs** (`LaserBlockedUntil`): `laserKeepOuts` gets `(spot, spot + footprint + exclusion)`
+- **Not a `TrackFeatureDefinition`.** Gates are the `LaserGateSpawner` (`Spawner_LaserGates`:
+  prefab, definition drawn inline and cloned in play, spacing 600–1200 m, `startDistance` 1500,
+  `clearance`), phase `ClaimsGround` — so BEFORE every pickup in `StreamTo`, claiming their ground
+  so no orb or coin sits in a beam, keyed on their END for the cull, drawing from the spawner's own
+  rng. Play mode only.
+- **Keep-outs** (`TrackSpawnContext.KeepOutUntil`): `featureKeepOuts` gets `(spot, spot + footprint + exclusion)`
   from `DecideFeature` for EVERY feature — a tube too, which claims nothing, and a ramp's longest
   landing — and `(start, ∞)` from `BeginEndZone` (+infinity parks the cursor for good); the
-  `laserClearance` (150 m) is kept either side. It works because all of those are registered at
+  `clearance` (150 m) is kept either side. It works because all of those are registered at
   a knot still inside the settle margin and **the clearance is shorter than the margin**, so
   nothing is ever decided behind a gate that already stands — keep it that way. Flat sweeps and
-  open edges are allowed by default (`lasersOnFlatSweeps` / `lasersOnOpenEdges`): the shipped
+  open edges are allowed by default (`onFlatSweeps` / `onOpenEdges`): the shipped
   TrackShape asset authors 100 % of both, and excluding them left almost no gates.
 - **Detection is two-phase.** `LaserGate` is an `ITrackPickup` whose volume is the box round all
   its beams (the rotor's swept disc), so the body's swept query finds it at any speed; the ship
@@ -370,14 +400,13 @@ turning about the track's UP, `rotorSpeedBand`, direction a coin toss).
   code-built `LineRenderer`s (glow + core) on one shared additive URP Particles/Unlit material
   tinted by vertex colour — no MPB, no per-instance material.
 - **The wave** (`LaserGateDefinition` "Wave" toggle group: `waveChance`, `waveAmplitude`,
-  `waveLength`, `waveSpeed`, `waveTaper`; rolled per gate off `laserRng`, no draw while off): a
+  `waveLength`, `waveSpeed`, `waveTaper`; rolled per gate off the spawner's rng, no draw while off): a
   TRIANGLE wave running A → B. `LaserBeam.BuildWave` puts a vertex on each muzzle and one ON every
   corner of the wave and nowhere else (corner k at `s = (k/2 + shift) × wavelength`, even = crest),
   so the corners stay sharp however it slides — never resample it at a fixed step. It swings
   along the track's up (across the track on the vertical gate), and `LaserGate.WaveReach` grows
   what burns by the amplitude on that same axis, so the picture never lies.
-- Debug: CORE SETTINGS → LASER DENSITY (a multiplier on the spacing, 0 = none, live),
-  `TrackDebugSettings.laserDensity` with the −1 "never captured" rule.
+- Debug: CORE SETTINGS → LASER GATES DENSITY (the spawner's density row, 0 = none, live).
 
 ### Analytic pickups (`Simulation/PickupRegistry.cs`)
 
@@ -389,9 +418,11 @@ disable/destroy (cull, consume). The registry is static and cleared on boot (dom
 `TrackBody.SweepPickups` runs every step over the distance just covered — tunnel-proof at any
 speed — with the body's own `pickupReach` (the ship's: half its `BoxCollider`, 2.5 × 2.3 m)
 added on, the height test making a jump clear the ground lane, and laterals compared modulo the
-circumference round a full tube. It raises `body.PickedUp`; the OWNER decides what taking it
-means (`ShipMotor.OnPickedUp` → `SpeedPad.Collect(motor)` / `Collectible.Collect()`), which is
-what lets the patrol sweep the same registry. A swaying orb reports its live lateral through
+circumference round a full tube. It raises `body.PickedUp`, which only the patrol subscribes to
+(`PolicePatrol.OnPickedUp`). **The player's physics ship does not take pickups here**: pads, orbs,
+repair orbs and coins are found by collider through `ShipPickupSweeper` (`ship-standalone.md` —
+which is why every spawned pickup gets a trigger), and laser gates by `ShipMotor.SweepLaserGates`
+over this registry. A swaying orb reports its live lateral through
 `OrbHover.SwayOffset`.
 
 ## Feature geometry
@@ -421,7 +452,7 @@ haze) and tinted with the gate. It is never a popup riding ahead of the ship.
 **A loop is only placed when it is reachable** (`TrackGenerator.LoopReachable`): in an endless
 play run, the ship's predicted speed at the spot (current speed minus the passive bleed over the
 gap) must clear `LoopRequiredSpeed(spot)` × (1 + `LoopDefinition.gateHeadroom`, 0.1). A refused
-loop redraws among the other entries off the **same** roll (`PickWeighted(…, exclude)`), so seeds
+loop redraws among the other entries off the **same** roll (`WeightedTable.Pick(…, exclude)`), so seeds
 only diverge where a loop was refused; a table with nothing else skips the spot. Edit-mode and
 non-endless previews are not gated. So a red gate can only come from speed lost after placement.
 
@@ -451,7 +482,7 @@ the flight line.
   steering and dash locked, so the road never unrolls under a ship hanging off its side. The
   return unwinds to the NEAREST top, then snaps that to 0 as the curl-out begins — same pose, no
   jolt.
-- Orbs and brake pads spawn anywhere in the band (a tube claims no footprint) — a purple orb
+- Orbs spawn anywhere in the band (a tube claims no footprint) — a purple orb
   under the pipe is the reason to go under. Ramps and loops never start inside one.
 - The road is the ordinary road prefab stamped in strips round the band
   (`TrackDecorator.StampTube`, `tubeStripWidth`), with **no barriers on any tube** — the band
@@ -476,7 +507,7 @@ visual carries are only a picture.
   `SetDefinition(def, speedDelta, tint)` — the shared `PadDefinition` asset is never mutated.
   Three rarity tiers: green 1×, blue 2.5×, purple 10× of `GameManager.powerUpSpeedBoost`; the
   higher the multiplier the scarcer the orb and the more it sways. Tier weights/colours/sway live
-  in `TrackGenerator.orbTiers`.
+  on `Spawner_SpeedOrbs` (`SpeedOrbSpawner.tiers`).
 - `PadSpawnEntry.lane` (Ground / Air) is the prepared **air lane**: Air entries spawn
   `GameSettings.airLaneHeight` above the flight line along the track's up, reachable only off a
   jump. No table carries one yet.

@@ -16,8 +16,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// shake or pad stats). Only the ship's collider sweep
     /// (<see cref="IShipPickup"/>) finds it, and only a ship with a
     /// <see cref="ShipHealth"/> can use it. Spawned by the
-    /// <see cref="TrackGenerator"/>'s repair-orb stream, at the Green boost
-    /// orb's rate.
+    /// <see cref="RepairOrbSpawner"/>.
     /// </summary>
     public class RepairOrb : MonoBehaviour, IShipPickup
     {

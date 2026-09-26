@@ -17,7 +17,6 @@ MonoBehaviour:
   straightness: 100
   entries:
   - name: Green
-<<<<<<< Updated upstream
     probability: 58
     multiplier: 2.0000002
   - name: Blue
@@ -26,22 +25,6 @@ MonoBehaviour:
   - name: Purple
     probability: 3
     multiplier: 10
-  - name: Brake
-    probability: 22
-    multiplier: 9.800001
-=======
-    probability: 10.691315
-    multiplier: 2.0000002
-  - name: Blue
-    probability: 49.431854
-    multiplier: 2.5
-  - name: Purple
-    probability: 1.435438
-    multiplier: 3.2999973
-  - name: Brake
-    probability: 38.44139
-    multiplier: 6.1999965
->>>>>>> Stashed changes
   elevationEnabled: 1
   elevationBand: 60
   maxGrade: 1
@@ -52,11 +35,9 @@ MonoBehaviour:
   bankPerDegreeOfTurn: 8
   maxBankStepPerKnot: 45
   levelLeadDistance: 200
-<<<<<<< Updated upstream
   unbankedSweepChance: 0.3
-=======
-  unbankedSweepChance: 0.2
->>>>>>> Stashed changes
   openStraightChance: 1
   trackLength: 48000
-  laserDensity: 0.5
+  densities:
+  - name: Laser Gates
+    density: 0.5

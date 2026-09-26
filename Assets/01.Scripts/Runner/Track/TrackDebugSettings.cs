@@ -5,7 +5,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
 {
     /// <summary>
     /// Disk-backed home of the pause menu's debug tweaks: track width,
-    /// straightness, and per-entry spawn probability / boost multiplier.
+    /// straightness, per-spawner density, and the speed-orb tiers' spawn
+    /// probability / boost multiplier.
     /// Every debug slider change is captured here and, in the editor, the
     /// asset is flushed to disk at commit points (reload scene, resume) — so
     /// the tuned values survive scene reloads, play-mode exits and editor
@@ -25,6 +26,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
             public string name;
             public float probability;
             public float multiplier = 1f;
+        }
+
+        [System.Serializable]
+        public class SpawnerValues
+        {
+            public string name;
+            public float density = 1f;
         }
 
         [Tooltip("When on, these saved values override the scene's Core Settings on every play-mode Generate. Turned on the first time the debug menu saves; untick to return to the scene's authored values.")]
@@ -56,9 +64,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         // Track length override, metres. -1 = none (never captured, or the row
         // set back to 0): the run keeps its level's / GameSettings' length.
         public float trackLength = -1f;
-        // Laser gate density multiplier (0 = none, 1 = the authored spacing).
-        // -1 = never captured: the generator keeps its own 1.
-        public float laserDensity = -1f;
+        // Per-spawner density multiplier (0 = none, 1 = the authored spacing),
+        // matched by the spawner's display name. A spawner not listed keeps 1.
+        public List<SpawnerValues> densities = new();
 
         static TrackDebugSettings cached;
 
@@ -100,12 +108,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
             unbankedSweepChance = shape.unbankedSweepChance;
             openStraightChance = shape.openStraightChance;
             trackLength = generator.TrackLengthOverride;
-            laserDensity = generator.LaserDensity;
+
+            densities.Clear();
+            foreach (var spawner in generator.Spawners)
+                if (spawner != null)
+                    densities.Add(new SpawnerValues { name = spawner.displayName, density = spawner.Density });
 
             entries.Clear();
-            var table = generator.SpawnTable;
-            if (table != null)
-                foreach (var e in table)
+            var tiers = generator.GetSpawner<SpeedOrbSpawner>()?.Tiers;
+            if (tiers != null)
+                foreach (var e in tiers)
                     entries.Add(new EntryValues { name = e.name, probability = e.probability, multiplier = e.multiplier });
 
 #if UNITY_EDITOR
@@ -113,7 +125,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
 #endif
         }
 
-        /// <summary>Writes the saved values onto the generator. Entries match by name, then by index.</summary>
+        /// <summary>Writes the saved values onto the generator's runtime spawners. Spawners and orb tiers match by name; a saved name with nothing to match (a retired brake entry) is ignored.</summary>
         public void ApplyTo(TrackGenerator generator)
         {
             if (!applyOnLoad) return;
@@ -134,18 +146,26 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (unbankedSweepChance >= 0f) shape.unbankedSweepChance = unbankedSweepChance;
             if (openStraightChance >= 0f) shape.openStraightChance = openStraightChance;
             if (trackLength > 0f) generator.TrackLengthOverride = trackLength;
-            if (laserDensity >= 0f) generator.LaserDensity = laserDensity;
 
-            var table = generator.SpawnTable;
-            if (table == null) return;
-            for (int i = 0; i < table.Length; i++)
+            foreach (var spawner in generator.Spawners)
             {
-                var saved = entries.Find(e => e.name == table[i].name)
-                            ?? (i < entries.Count ? entries[i] : null);
-                if (saved == null) continue;
-                table[i].probability = saved.probability;
-                table[i].multiplier = saved.multiplier;
+                if (spawner == null) continue;
+                var saved = densities.Find(d => d.name == spawner.displayName);
+                if (saved != null) spawner.Density = saved.density;
             }
+
+            var tiers = generator.GetSpawner<SpeedOrbSpawner>()?.Tiers;
+            if (tiers == null) return;
+            foreach (var tier in tiers)
+            {
+                var saved = entries.Find(e => e.name == tier.name);
+                if (saved == null) continue;
+                tier.probability = saved.probability;
+                tier.multiplier = saved.multiplier;
+            }
+            // A saved table from before an entry was retired no longer sums to 100.
+            float[] noHistory = null;
+            WeightedTable.Normalize(tiers, ref noHistory);
         }
 
         /// <summary>

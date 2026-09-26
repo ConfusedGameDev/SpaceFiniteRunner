@@ -12,7 +12,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 {
     /// <summary>
     /// Builders for the individual debug tabs. The Core Settings tab edits the
-    /// TrackGenerator live (spawn table takes effect while streaming; width and
+    /// TrackGenerator live (spawner densities and orb tiers take effect while streaming; width and
     /// straightness need a rebuild) and its RELOAD SCENE row snapshots the
     /// values into <see cref="TrackDebugSettings"/> before reloading, so the
     /// fresh scene comes up with the tweaked track.
@@ -76,35 +76,57 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.OpenStraights,
                          0f, 100f, 5f, "0", g => g.Shape.openStraightChance * 100f, (g, v) => g.Shape.openStraightChance = v / 100f);
 
-            // Laser gates: a multiplier on the authored spacing (0 = none).
-            // Live — it only changes the gates still to be streamed.
-            AddTrackStat(screen, generator, saved, onChanged, refreshers, MenuTextId.LaserDensity,
-                         0f, 5f, 0.25f, "0.00", g => g.LaserDensity, (g, v) => g.LaserDensity = v);
+            // Spawnables: one density row per spawner in the set — a multiplier
+            // on its authored spacing (0 = none). Live: it only changes what is
+            // still to be streamed. The rows come from the set's ASSETS (this
+            // menu can be built before the first Generate); the values are read
+            // from and written to the runtime clones, index for index.
+            var authored = generator.SpawnSet != null ? generator.SpawnSet.Spawners : System.Array.Empty<TrackSpawner>();
+            string densityFormat = MenuTextLibrary.Load().Get(MenuTextId.SpawnDensity);
+            SpeedOrbSpawner authoredOrbs = null;
+            for (int i = 0; i < authored.Length; i++)
+            {
+                if (authored[i] == null) continue;
+                if (authoredOrbs == null) authoredOrbs = authored[i] as SpeedOrbSpawner;
+                int index = i;
+                var row = screen.AddRow<DebugSliderRow>(string.Format(densityFormat, authored[i].displayName.ToUpperInvariant()));
+                row.Configure(0f, 5f, 0.25f, LiveSpawner(generator, index)?.Density ?? 1f, "0.00", v =>
+                {
+                    var live = LiveSpawner(generator, index);
+                    if (live == null) return;
+                    live.Density = v;
+                    saved.CaptureFrom(generator);
+                    onChanged?.Invoke();
+                });
+                row.SetLabelTint(authored[i].color);
+                refreshers?.Add(() => row.SetWithoutNotify(LiveSpawner(generator, index)?.Density ?? 1f));
+            }
 
-            // One color-tinted percentage slider per spawn entry. Adjusting one
-            // rebalances the others live, so the on-screen table always adds
-            // up to exactly 100% — same rule as the inspector's spawn table.
-            var table = generator.SpawnTable;
-            if (table != null)
+            // One color-tinted percentage slider per speed-orb tier. Adjusting
+            // one rebalances the others live, so the on-screen table always
+            // adds up to exactly 100% — same rule as the inspector's tiers.
+            if (authoredOrbs != null)
             {
                 var probabilityRows = new List<DebugSliderRow>();
-                for (int i = 0; i < table.Length; i++)
+                var tiers = authoredOrbs.Tiers;
+                for (int i = 0; i < tiers.Length; i++)
                 {
                     int index = i;
-                    var entry = table[i];
-                    var row = screen.AddRow<DebugSliderRow>($"{entry.name.ToUpperInvariant()} %");
-                    row.Configure(0f, 100f, 1f, entry.probability, "0", v =>
+                    var row = screen.AddRow<DebugSliderRow>($"{tiers[i].name.ToUpperInvariant()} %");
+                    row.Configure(0f, 100f, 1f, LiveTier(generator, index)?.probability ?? tiers[i].probability, "0", v =>
                     {
-                        RebalanceProbabilities(table, probabilityRows, index, v);
+                        var live = LiveTiers(generator);
+                        if (live == null || index >= live.Length) return;
+                        RebalanceProbabilities(live, probabilityRows, index, v);
                         saved.CaptureFrom(generator);
                         onChanged?.Invoke();
                     });
-                    row.SetLabelTint(entry.color);
+                    row.SetLabelTint(tiers[i].color);
                     probabilityRows.Add(row);
                     refreshers?.Add(() =>
                     {
-                        var live = generator.SpawnTable;
-                        if (live != null && index < live.Length) row.SetWithoutNotify(live[index].probability);
+                        var live = LiveTier(generator, index);
+                        if (live != null) row.SetWithoutNotify(live.probability);
                     });
                 }
             }
@@ -128,28 +150,34 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             screen.SetRowMetrics(RowHeight, RowSpacing);
             DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabMultipliers, tabIndex, tabCount);
 
-            var table = generator.SpawnTable;
-            if (table != null)
+            // Built from the set's asset (see the Core tab); edits the runtime clone.
+            SpeedOrbSpawner authoredOrbs = null;
+            if (generator.SpawnSet != null)
+                foreach (var spawner in generator.SpawnSet.Spawners)
+                    if (spawner is SpeedOrbSpawner orbs) { authoredOrbs = orbs; break; }
+
+            if (authoredOrbs != null)
             {
-                for (int i = 0; i < table.Length; i++)
+                var tiers = authoredOrbs.Tiers;
+                for (int i = 0; i < tiers.Length; i++)
                 {
                     int index = i;
-                    var captured = table[i];
-                    var row = screen.AddRow<DebugSliderRow>($"{captured.name.ToUpperInvariant()} ×");
-                    row.Configure(0.1f, 10f, 0.1f, Mathf.Clamp(captured.multiplier, 0.1f, 10f), "0.0", v =>
+                    var row = screen.AddRow<DebugSliderRow>($"{tiers[i].name.ToUpperInvariant()} ×");
+                    row.Configure(0.1f, 10f, 0.1f, Mathf.Clamp(LiveTier(generator, index)?.multiplier ?? tiers[i].multiplier, 0.1f, 10f), "0.0", v =>
                     {
-                        captured.multiplier = v;
+                        var live = LiveTier(generator, index);
+                        if (live == null) return;
+                        live.multiplier = v;
                         saved.CaptureFrom(generator);
                         onChanged?.Invoke();
                     });
-                    row.SetLabelTint(captured.color);
+                    row.SetLabelTint(tiers[i].color);
                     // Same rule as the Core tab: re-read on open, the saved
                     // values may land after the menu was built.
                     refreshers?.Add(() =>
                     {
-                        var live = generator.SpawnTable;
-                        if (live != null && index < live.Length)
-                            row.SetWithoutNotify(Mathf.Clamp(live[index].multiplier, 0.1f, 10f));
+                        var live = LiveTier(generator, index);
+                        if (live != null) row.SetWithoutNotify(Mathf.Clamp(live.multiplier, 0.1f, 10f));
                     });
                 }
             }
@@ -725,6 +753,18 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 onChanged?.Invoke();
             });
             refreshers?.Add(() => row.SetWithoutNotify(get(motor.Definition)));
+        }
+
+        // The runtime clone at a set index, or null before the first Generate.
+        static TrackSpawner LiveSpawner(TrackGenerator generator, int index) =>
+            index < generator.Spawners.Count ? generator.Spawners[index] : null;
+
+        static PadSpawnEntry[] LiveTiers(TrackGenerator generator) => generator.GetSpawner<SpeedOrbSpawner>()?.Tiers;
+
+        static PadSpawnEntry LiveTier(TrackGenerator generator, int index)
+        {
+            var tiers = LiveTiers(generator);
+            return tiers != null && index < tiers.Length ? tiers[index] : null;
         }
 
         // The moved slider keeps its value; every other entry scales into the
