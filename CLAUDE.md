@@ -83,9 +83,10 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 - **Curves**: banked sweeps always hold the ship. A share of sweeps is authored FLAT, with no
   wall on the outer edge: taken too fast the ship loses grip and slides outward — brake first.
   Some straight runs have no walls at all: drift or dash too close to the side and the ship drops.
-  Over the edge it falls, then comes back further down the track: a 3 s blinking standstill with
-  the patrol frozen, a relaunch at 85% of the speed it fell with, and the countdown never
-  stopped — falling costs time, not the run.
+  Over the edge it falls, then comes back further down the track at 85% of the speed it fell
+  with, blinking and untouchable for 3 s with the patrol frozen (`respawnRollingStart`: ON flies
+  that window under control, OFF stands still through it and relaunches after), and the
+  countdown never stopped — falling costs time, not the run.
 - **Track features**: ramps/jumps (1), vertical loops (2), cylinder sections (3). Multi-path is
   the one feature not yet built.
 - **Laser gates**: emitter pairs firing a beam across 20–30 % of the road — single horizontal,

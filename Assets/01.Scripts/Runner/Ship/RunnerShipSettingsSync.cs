@@ -65,6 +65,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Settings.fallTumbleDegreesPerSecond = source.fallTumbleDegreesPerSecond;
             Settings.fallDurationSeconds = source.fallDurationSeconds;
             Settings.respawnWaitSeconds = source.respawnWaitSeconds;
+            Settings.respawnRollingStart = source.respawnRollingStart;
             Settings.respawnSpeedPenalty = source.respawnSpeedPenalty;
             Settings.respawnClearance = source.respawnClearance;
         }

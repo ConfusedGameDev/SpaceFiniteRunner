@@ -148,7 +148,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DuelOvershootHold, DuelOvershootBrake, DuelOvershootDecel, DuelOvershootMargin,
         DuelPushFraction, DuelFinisherSeparation, DuelMissBrake, DuelMissBrakeSpeed,
         CamDuelDistance, CamDuelHeight, CamDuelPitch, CamDuelBlend,
-        DuelMinClosing, DuelPushGain
+        DuelMinClosing, DuelPushGain,
+        // FALL & RESPAWN: relaunch at once and fly the wait blinking.
+        RespawnRollingStart
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1103,6 +1105,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString respawnBlinkRate = new("BLINK RATE", "PARPADEO", "点滅速度", "CLIGNOTEMENT");
         [SerializeField] LocalizedString respawnSpeedPenalty = new("RESPAWN SPEED PENALTY", "PENALIZACIÓN DE VELOCIDAD", "リスポーン速度ペナルティ", "PÉNALITÉ DE VITESSE");
         [SerializeField] LocalizedString respawnClearance = new("RESPAWN CLEARANCE", "DESPEJE DE REAPARICIÓN", "リスポーン前方の余裕", "DÉGAGEMENT DE RETOUR");
+        [SerializeField] LocalizedString respawnRollingStart = new("ROLLING RESPAWN", "REAPARICIÓN EN MARCHA", "走行中リスポーン", "RETOUR LANCÉ");
         [SerializeField] LocalizedString respawnPatrolGap = new("RESPAWN PATROL GAP", "VENTAJA SOBRE LA PATRULLA", "リスポーン時のパトロール差", "AVANCE SUR LA PATROUILLE");
         [SerializeField] LocalizedString stallGrace = new("STALL GRACE", "GRACIA AL DETENERSE", "停止の猶予", "DÉLAI DE CALAGE");
         [SerializeField] LocalizedString debugTabPatrolDriver = new("PATROL DRIVER", "PILOTO DE PATRULLA", "パトロールドライバー", "PILOTE DE PATROUILLE");
@@ -1569,6 +1572,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.CamDuelBlend => camDuelBlend,
             MenuTextId.DuelMinClosing => duelMinClosing,
             MenuTextId.DuelPushGain => duelPushGain,
+            MenuTextId.RespawnRollingStart => respawnRollingStart,
             _ => start
         };
     }

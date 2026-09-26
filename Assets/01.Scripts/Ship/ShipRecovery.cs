@@ -16,6 +16,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// back on the road, stands still for the wait while
     /// <see cref="RespawnBlink"/> flickers it, and relaunches with the speed
     /// it fell with minus the penalty. Falling costs time, never the run.
+    /// With <see cref="ShipSettings.respawnRollingStart"/> the relaunch comes
+    /// first: the ship is seated already flying at that speed, under control,
+    /// and the wait is spent <see cref="RespawnShielded"/> — blinking and
+    /// untouchable — with <c>Respawned</c> raised only as the window closes,
+    /// so whatever a game holds for the wait (the runner's patrol) holds for it.
     ///
     /// <b>Where it comes back</b>: with a guide in reach, where the guide says
     /// (<see cref="IShipGuide.FindRespawn"/> — at or past the fall point, so
@@ -52,6 +57,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         HoverShip ship;
         float odometer, lastCrumbAt;
         float groundlessTimer, phaseTimer, speedAtFall;
+        float shieldLeft; // a rolling start's blinking window, seconds
         Vector3 lastPosition, fallVelocity, fallPosition;
         Vector3 fallOrigin; // where it left from: what the respawn reasons about, not where the tumble ended
         Quaternion fallRotation;
@@ -59,6 +65,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         bool hasLastPosition;
         IShipGuide lastGuide;        // the guide the ship was last ON, and how far along it —
         float lastGuideDistance;     // where it left the road, which is not where it was declared lost
+
+        /// <summary>A rolling start is flying out its respawn wait: blinking, and untouchable for a game that asks.</summary>
+        public bool RespawnShielded => shieldLeft > 0f;
 
         /// <summary>Why the ship last fell — a debug readout.</summary>
         public string LastFallReason { get; private set; } = "";
@@ -76,6 +85,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             groundlessTimer = 0f;
             hasLastPosition = false;
             lastGuide = null;
+            shieldLeft = 0f;
         }
 
         void FixedUpdate()
@@ -84,6 +94,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (ship.Paused || settings == null || !settings.recoveryEnabled) return;
             float dt = Time.fixedDeltaTime;
             HoverBody body = ship.Body;
+            StepShield(dt);
 
             switch (body.State)
             {
@@ -272,6 +283,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             HoverBody body = ship.Body;
             if (body.State == ShipState.OffTrack || body.State == ShipState.Respawning) return;
             LastFallReason = reason;
+            shieldLeft = 0f; // fell again inside the window: its Respawned waits for the next one
             speedAtFall = body.ForwardSpeed;
             fallVelocity = body.Velocity;
             fallPosition = fallOrigin = body.Position;
@@ -302,8 +314,19 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             HoverBody body = ship.Body;
             FindRespawnPose(out Vector3 position, out Quaternion rotation);
             Vector3 from = body.Position;
-            body.Reset(position, rotation, 0f, ShipState.Respawning);
             phaseTimer = 0f;
+            ShipSettings settings = ship.Settings;
+            if (settings.respawnRollingStart)
+            {
+                // Relaunched on the spot: the wait is flown, not stood, and only the blink says it is still going.
+                body.Reset(position, rotation, RelaunchSpeed(settings), ShipState.Grounded);
+                hasLastPosition = false;
+                shieldLeft = settings.respawnWaitSeconds;
+                ship.RaiseRespawnStarted(body.Position - from);
+                if (shieldLeft <= 0f) ship.RaiseRespawned();
+                return;
+            }
+            body.Reset(position, rotation, 0f, ShipState.Respawning);
             ship.RaiseRespawnStarted(body.Position - from);
         }
 
@@ -312,11 +335,21 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             phaseTimer += dt;
             if (phaseTimer < settings.respawnWaitSeconds) return;
             HoverBody body = ship.Body;
-            body.ForwardSpeed = speedAtFall * (1f - Mathf.Clamp01(settings.respawnSpeedPenalty));
+            body.ForwardSpeed = RelaunchSpeed(settings);
             body.SetState(ShipState.Grounded);
             hasLastPosition = false;
             ship.RaiseRespawned();
         }
+
+        // A rolling start's window runs in the fixed tick like the wait it replaces, so a pause freezes it too.
+        void StepShield(float dt)
+        {
+            if (shieldLeft <= 0f) return;
+            shieldLeft -= dt;
+            if (shieldLeft <= 0f) ship.RaiseRespawned();
+        }
+
+        float RelaunchSpeed(ShipSettings settings) => speedAtFall * (1f - Mathf.Clamp01(settings.respawnSpeedPenalty));
 
         void FindRespawnPose(out Vector3 position, out Quaternion rotation)
         {

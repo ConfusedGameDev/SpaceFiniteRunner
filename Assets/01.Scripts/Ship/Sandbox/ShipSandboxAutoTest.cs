@@ -30,6 +30,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
         readonly StringBuilder report = new();
         int wallHits, takeOffs, landings, slides, falls, respawns, orbsTaken, jumpOrbsTaken, padImpulses;
         float fellAt, respawnedAt;
+        float relaunchSpeed; // read the moment the ship moves again: a rolling start flies its wait, and the speed drifts through it
         int guidedTicks, flownTicks;
         float worstLateral, worstJump;
         Vector3 lastPosition;
@@ -58,6 +59,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             ship.Sliding += OnSliding;
             ship.FellOff += OnFellOff;
             ship.Respawned += OnRespawned;
+            ship.RespawnStarted += OnRespawnStarted;
             ship.PadImpulse += OnPadImpulse;
             ShipBoostPickup.Taken += OnOrbTaken; // static: paired in OnDisable — domain reload is off
         }
@@ -71,6 +73,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             ship.Sliding -= OnSliding;
             ship.FellOff -= OnFellOff;
             ship.Respawned -= OnRespawned;
+            ship.RespawnStarted -= OnRespawnStarted;
             ship.PadImpulse -= OnPadImpulse;
             ShipBoostPickup.Taken -= OnOrbTaken;
         }
@@ -84,7 +87,17 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
         }
 
         void OnFellOff() { falls++; fellAt = Time.time; }
-        void OnRespawned() { respawns++; respawnedAt = Time.time; }
+        void OnRespawnStarted(Vector3 teleport)
+        {
+            if (ship.Settings != null && ship.Settings.respawnRollingStart) relaunchSpeed = ship.CurrentSpeed;
+        }
+
+        void OnRespawned()
+        {
+            respawns++;
+            respawnedAt = Time.time;
+            if (ship.Settings == null || !ship.Settings.respawnRollingStart) relaunchSpeed = ship.CurrentSpeed;
+        }
 
         void OnSliding(float excess) => slides++;
 
@@ -295,7 +308,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship.Sandbox
             float expectedWait = settings.fallDurationSeconds + settings.respawnWaitSeconds;
             Line($"open deck, steered off the edge: {(falls > 0 ? "fell (" + reason + ")" : "NEVER FELL")}, " +
                  $"{(respawns > 0 ? $"back after {respawnedAt - fellAt:F2} s (expected {expectedWait:F2})" : "NEVER RESPAWNED")}, " +
-                 $"relaunched at {ship.CurrentSpeed:F0} m/s (expected {speedAtFall * (1f - settings.respawnSpeedPenalty):F0}), state {ship.State}");
+                 $"relaunched at {relaunchSpeed:F0} m/s (expected {speedAtFall * (1f - settings.respawnSpeedPenalty):F0}), state {ship.State}");
             // A free respawn must be in the middle of the road and facing down it — not at the edge it fell off.
             foreach (ShipSandboxCourse.Station station in course.Stations)
             {

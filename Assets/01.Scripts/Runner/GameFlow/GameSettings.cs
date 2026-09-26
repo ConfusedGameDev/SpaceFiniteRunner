@@ -72,9 +72,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float fallGlitchStrength = 0.8f;
 
         [TitleGroup("Fall and respawn")]
-        [Tooltip("Seconds the respawned ship waits on the track — at a standstill, blinking, uncontrollable and untouchable, with the patrol frozen — before it relaunches.")]
+        [Tooltip("Seconds the respawned ship waits on the track — blinking and untouchable, with the patrol frozen — before it relaunches (or, with a rolling respawn, before the blink ends).")]
         [PropertyRange(0f, 10f), SuffixLabel("s", true)]
         public float respawnWaitSeconds = 3f;
+
+        [TitleGroup("Fall and respawn")]
+        [Tooltip("ON: the respawned ship is relaunched at once at its penalised speed and flies the wait under control, still blinking and untouchable, the patrol frozen. OFF: it waits at a standstill, uncontrollable, and relaunches when the wait ends.")]
+        public bool respawnRollingStart = true;
 
         [TitleGroup("Fall and respawn")]
         [Tooltip("Blinks per second between the ship's own look and the ghost material during the wait.")]

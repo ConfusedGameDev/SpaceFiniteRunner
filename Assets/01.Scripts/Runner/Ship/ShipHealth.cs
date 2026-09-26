@@ -52,6 +52,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>True for the blink after a hit: nothing hurts.</summary>
         RespawnBlink blink;
+        ShipRecovery recovery;
 
         public bool IsInvulnerable => invulnerableLeft > 0f;
 
@@ -250,6 +251,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (gameManager != null && (gameManager.IsEnding || gameManager.RunOver)) return false;
             if (forced) return true;
             if (IsInvulnerable) return false;
+            if (recovery == null) recovery = motor.GetComponent<ShipRecovery>();
+            if (recovery != null && recovery.RespawnShielded) return false; // a rolling start flies its wait untouchable
             return motor.State != ShipState.OffTrack
                 && motor.State != ShipState.Respawning
                 && motor.State != ShipState.Falling;

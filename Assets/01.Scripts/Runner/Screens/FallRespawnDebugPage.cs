@@ -8,7 +8,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     /// <summary>
     /// The pause menu's FALL &amp; RESPAWN page: the run rules of leaving the
     /// track (edge overhang and grace, the fall, the respawn wait and its
-    /// penalty, the patrol's head start) plus the stall grace. These live on
+    /// penalty and whether it is a rolling start, the patrol's head start) plus the stall grace. These live on
     /// <see cref="GameSettings"/>, which the run reads LIVE and never clones —
     /// so, like the fog and rain pages and unlike the ship and patrol tabs,
     /// these sliders edit the asset itself: every change applies at once, it
@@ -41,6 +41,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 0f, 5f, 0.1f, "0.0", s => s.fallCameraFollowSeconds, (s, v) => s.fallCameraFollowSeconds = v);
             Add(screen, settings, refreshers, MenuTextId.RespawnWait,
                 0f, 10f, 0.25f, "0.00", s => s.respawnWaitSeconds, (s, v) => s.respawnWaitSeconds = v);
+            AddToggle(screen, settings, refreshers, MenuTextId.RespawnRollingStart,
+                s => s.respawnRollingStart, (s, v) => s.respawnRollingStart = v);
             Add(screen, settings, refreshers, MenuTextId.RespawnBlinkRate,
                 1f, 30f, 1f, "0", s => s.respawnBlinkRate, (s, v) => s.respawnBlinkRate = v);
             Add(screen, settings, refreshers, MenuTextId.RespawnSpeedPenalty,
@@ -66,6 +68,20 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 MarkDirty(settings);
             });
             refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
+        }
+
+        /// <summary>An ON/OFF row on a GameSettings bool. Configure sets without notifying, so the reopen readout never re-fires the write.</summary>
+        static void AddToggle(MenuScreen screen, GameSettings settings, List<System.Action> refreshers, MenuTextId label,
+                              System.Func<GameSettings, bool> get, System.Action<GameSettings, bool> set)
+        {
+            var row = screen.AddRow<MenuToggle>(label);
+            void OnChanged(bool v)
+            {
+                set(settings, v);
+                MarkDirty(settings);
+            }
+            row.Configure(get(settings), OnChanged);
+            refreshers?.Add(() => row.Configure(get(settings), OnChanged));
         }
 
         // -------------------------------------------------------- persistence

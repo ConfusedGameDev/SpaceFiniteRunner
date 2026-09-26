@@ -197,9 +197,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float fallDurationSeconds = 1.5f;
 
         [TitleGroup("Recovery")]
-        [Tooltip("Blinking standstill before the relaunch.")]
+        [Tooltip("Blinking standstill before the relaunch — or, with a rolling start, the blinking untouchable window after it.")]
         [PropertyRange(0f, 10f), SuffixLabel("s", true)]
         public float respawnWaitSeconds = 3f;
+
+        [TitleGroup("Recovery")]
+        [Tooltip("ON: relaunched at once at the penalised speed, under control, and the wait is spent blinking and untouchable while it flies. OFF: a blinking standstill for the wait, then the relaunch.")]
+        public bool respawnRollingStart = true;
 
         [TitleGroup("Recovery")]
         [Tooltip("Share of the speed it fell with that the relaunch loses.")]
