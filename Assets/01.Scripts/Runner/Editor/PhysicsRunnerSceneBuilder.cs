@@ -129,7 +129,10 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             if (hover == null) hover = ship.AddComponent<HoverShip>();
             RestoreTuning(hover);
             var hoverFields = new SerializedObject(hover);
-            hoverFields.FindProperty("definition").objectReferenceValue = motorFields.FindProperty("definition").objectReferenceValue;
+            // Older scenes kept the definition on the motor; the HoverShip holds the one reference now.
+            var motorDefinition = motorFields.FindProperty("definition");
+            if (motorDefinition != null && motorDefinition.objectReferenceValue != null)
+                hoverFields.FindProperty("definition").objectReferenceValue = motorDefinition.objectReferenceValue;
             hoverFields.FindProperty("settings").objectReferenceValue = settings;
             Object visual = motorFields.FindProperty("visual").objectReferenceValue;
             hoverFields.FindProperty("visual").objectReferenceValue = visual != null ? visual : ship.transform;

@@ -57,6 +57,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             physicsShip = GetComponent<HoverShip>();
             if (physicsShip == null) return;
+            // The ship prefab carries the one reference to the definition asset (on the HoverShip).
+            if (definition == null) definition = physicsShip.DefinitionAsset;
             physicsShip.LaunchOnStart = false; // the motor launches it, from the track's start line
             physicsGuide = FindFirstObjectByType<TrackGuide>();
             if (physicsGuide == null)
@@ -137,11 +139,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         }
 
         // ------------------------------------------------------------ commands
-        /// <summary>The run's rules reach the standalone ship through the settings sync, live; its world is the runner's own colliders and nothing else.</summary>
+        /// <summary>The runner's world for the standalone ship: the runner's own colliders and nothing else.</summary>
         void ConfigurePhysics(GameSettings settings)
         {
             if (physicsShip == null || physicsShip.Settings == null) return;
-            ShipSettings shipSettings = RunnerShipSettingsSync.Ensure(gameObject, settings, physicsShip.Settings).Settings;
+            ShipSettings shipSettings = physicsShip.Settings;
             shipSettings.groundLayers = ShipLayers.GroundMask | ShipLayers.SurfaceMask; // the city may still be loaded beside the runner: never its colliders
             MatchSurfaceToShip();
         }
@@ -151,7 +153,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         void MatchSurfaceToShip()
         {
             if (physicsShip == null || definition == null) return;
-            if (physicsShip.Settings != null) physicsShip.Settings.visualLift = definition.hoverHeight;
+            physicsShip.VisualLift = definition.hoverHeight;
             var colliders = FindFirstObjectByType<TrackColliderBuilder>();
             if (colliders != null && !Mathf.Approximately(colliders.SurfaceSink, definition.hoverHeight))
             {
@@ -350,7 +352,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             float? steer = null;
             if (!Autopilot && track.SectionAt(distance) is TubeSection tube && tube.ReturnProgress(distance - tube.StartDistance) > 0f)
-                steer = Mathf.Clamp(-lateral / AutopilotReach, -1f, 1f);
+                steer = Mathf.Clamp(-lateral / TubeReturnReach, -1f, 1f);
             physicsShip.SteerOverride = steer;
         }
 

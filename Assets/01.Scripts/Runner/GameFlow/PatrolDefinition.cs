@@ -67,6 +67,21 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0f, 500f), SuffixLabel("m/s per s", true)]
         public float brakeDecel = 140f;
 
+        [TitleGroup("Handling")]
+        [Tooltip("Lateral speed (m/s) past which a slide on a flat sweep starts costing speed (the ship's rule, for the cruiser's body).")]
+        [PropertyRange(0f, 30f), SuffixLabel("m/s", true)]
+        public float slideThreshold = 4f;
+
+        [TitleGroup("Handling")]
+        [Tooltip("Share of its speed a sliding cruiser loses per second past the threshold.")]
+        [PropertyRange(0f, 1f)]
+        public float slideSpeedLoss = 0.1f;
+
+        [TitleGroup("Handling")]
+        [Tooltip("Minimum seconds between two wall hits the cruiser's body reports.")]
+        [PropertyRange(0.1f, 2f), SuffixLabel("s", true)]
+        public float wallHitCooldownSeconds = 0.5f;
+
         [TitleGroup("Driver")]
         [Tooltip("How far ahead (in seconds at its speed) the driver looks for a flat sweep to brake for.")]
         [PropertyRange(0.5f, 10f), SuffixLabel("s", true)]
@@ -96,6 +111,26 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Meters behind the start line the patrol launches from.")]
         [PropertyRange(0f, 1000f), SuffixLabel("m", true)]
         public float startGap = 250f;
+
+        [TitleGroup("Distances"), Title("Redeploy")]
+        [Tooltip("Keep the chase alive: once the ship is clear by the band's outer distance, this cruiser drops out and a fresh one cuts in.")]
+        public bool redeploys = true;
+
+        [TitleGroup("Distances")]
+        [Tooltip("Redeploy band, in meters: X = how far behind the ship the fresh cruiser drops in (keep it inside the minimap range so the player sees it arrive), Y = the gap that retires the old one.")]
+        [MinMaxSlider(50f, 2000f, true), EnableIf("redeploys")]
+        public Vector2 redeployBand = new(320f, 700f);
+
+        [TitleGroup("Distances")]
+        [Tooltip("The fresh cruiser's speed as a multiple of the ship's current speed. Above 1 so it closes in until the next boost; that speed becomes the new rubber-band floor.")]
+        [PropertyRange(1f, 3f), SuffixLabel("x ship speed", true), EnableIf("redeploys")]
+        public float redeploySpeedFactor = 1.25f;
+
+        /// <summary>How far behind the ship a fresh cruiser drops in, metres (band X).</summary>
+        public float RedeployGap => redeployBand.x;
+
+        /// <summary>Gap that retires this cruiser for a fresh one, metres; 0 when redeploying is off (band Y).</summary>
+        public float RedeployDistance => redeploys ? redeployBand.y : 0f;
 
         [TitleGroup("Distances")]
         [Tooltip("Gap inside which the patrol can catch the ship. Inside it the patrol stops gaining and sits on the ship's tail, steering for it. Keep it below the warn distance.")]

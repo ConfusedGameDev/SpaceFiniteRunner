@@ -438,7 +438,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
             // (Only asked of the manager in a finite play run: the getter
             // resolves the run's data, which an edit-mode preview must not.)
-            endRunUp = IsFinite && gameManager != null ? gameManager.EndRunUpMeters : 1200f;
+            endRunUp = IsFinite && gameManager != null ? gameManager.EndRunUpMeters : GameSettings.Default.endRunUpMeters;
             // Never a run-up that eats the whole track.
             endRunUp = Mathf.Min(endRunUp, targetLength * 0.5f);
             endZoneTarget = targetLength - endRunUp;
@@ -991,7 +991,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             if (!(endRamp?.Runtime is JumpDefinition def)) return;
 
-            float gap = gameManager != null ? gameManager.EndRampGapMeters : 10f;
+            float gap = gameManager != null ? gameManager.EndRampGapMeters : GameSettings.Default.endRampGapMeters;
             float sideGap = gameManager != null ? gameManager.EndRampSideGapMeters : 0f;
             float width = Mathf.Max(2f, (track.HalfWidth * 2f - 2f * gap - 2f * sideGap) / 3f);
             float start = track.EndDistance - def.length;
@@ -1213,7 +1213,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float rampHalf = track.HalfWidth * Mathf.Clamp01(def.widthFraction);
             float maxLat = Mathf.Max(0f, track.HalfWidth - rampHalf - 2f);
             float lateral = rng.NextFloat(-maxLat, maxLat);
-            float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost : 15f;
+            float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost : GameSettings.Default.powerUpSpeedBoost;
             BuildRamp(distance, lateral, rampHalf, entry, def, baseBoost * entry.multiplier, isEndRamp: false);
         }
 

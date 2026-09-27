@@ -18,6 +18,23 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     [CreateAssetMenu(fileName = "ShipSettings", menuName = "FiniteRunner/Ship Settings")]
     public class ShipSettings : ScriptableObject
     {
+        static ShipSettings defaults;
+
+        /// <summary>A shared in-memory instance with the class defaults, for code that has no settings in hand. Never saved, never edited.</summary>
+        public static ShipSettings Default
+        {
+            get
+            {
+                if (defaults == null)
+                {
+                    defaults = CreateInstance<ShipSettings>();
+                    defaults.name = "ShipSettings (defaults)";
+                    defaults.hideFlags = HideFlags.HideAndDontSave;
+                }
+                return defaults;
+            }
+        }
+
         [TitleGroup("Simulation")]
         [Tooltip("Longest distance one substep may cover. A tick is split so no step is longer: 4 m = 5 substeps at cruise (1000 m/s), 10 at Light Speed. Smaller follows tight geometry (a loop, a ramp) more exactly and costs more queries.")]
         [PropertyRange(1f, 12f), SuffixLabel("m", true)]

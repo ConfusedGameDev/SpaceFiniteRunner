@@ -15,8 +15,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     {
         public enum Stat { LaunchSpeed = 0, Acceleration = 1, Handling = 2, Weight = 3 }
 
-        [SerializeField] ShipMotor motor;
-        [SerializeField] ShipDefinition baseDefinition;
+        [SerializeField] ShipMotor motor; // the base stats are the motor's definition asset (the one reference, on the HoverShip)
 
         [Header("Flow")]
         [Tooltip("Skip the setup panel and launch immediately with the base definition — the scene is entered mid-glitch from the city chase, so the run must already be moving when the corruption fades. Restarts auto-launch too.")]
@@ -129,7 +128,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
         public void StartRun()
         {
-            if (motor == null || baseDefinition == null) return;
+            if (motor == null || motor.Definition == null) return;
+            ShipDefinition baseDefinition = motor.Definition.Source != null ? motor.Definition.Source : motor.Definition;
 
             // A fresh clone every launch: the store multipliers below are
             // applied in place, and applying them twice to one clone would

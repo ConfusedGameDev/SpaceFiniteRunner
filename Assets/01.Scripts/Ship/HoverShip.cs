@@ -75,7 +75,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float guideSearchTimer;
 
         public ShipDefinition Definition => definition;
+
+        /// <summary>The authored definition asset (the one serialized reference to it on the ship prefab). <see cref="Definition"/> is its runtime clone in play.</summary>
+        public ShipDefinition DefinitionAsset => definitionAsset != null ? definitionAsset : definition;
+        ShipDefinition definitionAsset;
+
+        /// <summary>Cosmetic lift of the model above the root, metres. Starts at <see cref="ShipSettings.visualLift"/>; a host that sinks its colliders under the flight line (the runner) sets it to the same depth so the model hovers where it should.</summary>
+        public float VisualLift { get; set; }
         public ShipSettings Settings => settings;
+
+        /// <summary>The authored settings asset <see cref="Settings"/> was cloned from — what debug pages write (then mirror onto the clone).</summary>
+        public ShipSettings SettingsAsset => settingsAsset != null ? settingsAsset : settings;
+        ShipSettings settingsAsset;
         public HoverBody Body => body;
         public Transform Visual => visual;
         public float CurrentSpeed => body.ForwardSpeed;
@@ -229,17 +240,20 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             // Play never touches the assets.
             if (definition != null)
             {
+                definitionAsset = definition;
                 string source = definition.name;
                 definition = Instantiate(definition);
                 definition.name = source + " (run)";
             }
             if (settings != null)
             {
+                settingsAsset = settings;
                 string source = settings.name;
                 settings = Instantiate(settings);
                 settings.name = source + " (run)";
             }
             body.Settings = settings;
+            VisualLift = settings != null ? settings.visualLift : 0f;
         }
 
         void OnEnable()
@@ -553,7 +567,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 float env = left > 0.75f ? (1f - left) / 0.25f : left / 0.75f;
                 kick = kickLateral * env;
             }
-            visual.localPosition = new Vector3(kick, settings.visualLift + bob, 0f);
+            visual.localPosition = new Vector3(kick, VisualLift + bob, 0f);
             visual.localRotation = Quaternion.Euler(pitch, 0f, bankAngle + rollAngle - kick * 8f);
         }
 

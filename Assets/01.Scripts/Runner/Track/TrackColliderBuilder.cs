@@ -46,10 +46,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [SerializeField, Required] TrackManager track;
         [SerializeField, Required] TrackGenerator generator;
 
-        [TitleGroup("Surface")]
-        [Tooltip("How far under the flight line the collision surface lies — the ship's hover height, so a ship hovering over it rides the flight line exactly.")]
-        [PropertyRange(0f, 10f), SuffixLabel("m", true)]
-        [SerializeField] float surfaceSink = 3.5f;
+        // How far under the flight line the collision surface lies. Not a
+        // tunable of its own: it is the flying ship's hover height, handed in
+        // at run start by whoever owns the ship (ShipDefinition.hoverHeight is
+        // the one authored value), so a ship hovering over it rides the flight
+        // line exactly.
+        [System.NonSerialized] float surfaceSink;
 
         [TitleGroup("Surface")]
         [PropertyRange(0f, 60f), SuffixLabel("m", true)]
@@ -112,6 +114,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         /// <summary>Track distance the colliders reach.</summary>
         public float BuiltDistance => built;
+        /// <summary>The ship's hover height, set at run start (0 until then). Changing it clears the built colliders.</summary>
         public float SurfaceSink { get => surfaceSink; set => surfaceSink = Mathf.Max(0f, value); }
 
         /// <summary>For a builder added from code: what the inspector would wire.</summary>

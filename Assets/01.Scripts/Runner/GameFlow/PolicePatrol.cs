@@ -92,9 +92,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         TrackManager track;
         PatrolDefinition runtimeDef; // clone of the asset, the only copy ever mutated
 
-        float redeployDistance;    // gap that retires this patrol for a fresh one, meters (0 = never)
-        float redeployGap;         // meters behind the ship the fresh patrol drops in at
-        float redeploySpeedFactor; // fresh patrol's speed as a multiple of the ship's
 
         float minSpeed;       // current floor: baseSpeed + accumulated ramp
         TrackBody body;       // the same track-space body the ship rides
@@ -399,21 +396,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             Launch();
         }
 
-        /// <summary>
-        /// Arms the "never lose them for good" rule: once the ship is more than
-        /// <paramref name="distance"/> meters clear, this patrol drops out and a
-        /// fresh one takes over <paramref name="gap"/> meters back, running at
-        /// <paramref name="speedFactor"/> times the ship's speed. Pass 0 distance
-        /// to disable. Kept separate from Spawn so the chase tunables stay on the
-        /// GameSettings asset without growing its argument list.
-        /// </summary>
-        public void SetRedeployRule(float distance, float gap, float speedFactor)
-        {
-            redeployDistance = distance;
-            redeployGap = gap;
-            redeploySpeedFactor = speedFactor;
-        }
-
         /// <summary>Resets the chase to the launch gap behind the start line.</summary>
         public void Launch()
         {
@@ -582,7 +564,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             killHideLeft = KillHideSeconds;
             if (visual != null) visual.gameObject.SetActive(false);
 
-            float gap = runtimeDef.killTeleportGap > 0f ? runtimeDef.killTeleportGap : redeployGap;
+            float gap = runtimeDef.killTeleportGap > 0f ? runtimeDef.killTeleportGap : runtimeDef.RedeployGap;
             Redeploy(raiseFloor, gapOverride: gap);
         }
 
@@ -639,9 +621,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         void StepEndFall(float dt)
         {
-            GameSettings rules = target.DashSettings;
-            float gravity = rules != null ? rules.fallGravity : 30f;
-            float tumble = rules != null ? rules.fallTumbleDegreesPerSecond : 120f;
+            ShipSettings shipRules = target != null ? target.ShipSettings : ShipSettings.Default;
+            float gravity = shipRules.fallGravity;
+            float tumble = shipRules.fallTumbleDegreesPerSecond;
             prevOffPosition = offPosition;
             offVelocity += Vector3.down * (gravity * dt);
             offPosition += offVelocity * dt;
@@ -867,13 +849,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 handlingResponse = runtimeDef.handlingResponse,
                 gripBase = runtimeDef.gripBase,
                 gripPerSpeed = runtimeDef.gripPerSpeed,
-                slideThreshold = 4f,
-                slideSpeedLoss = 0.1f,
+                slideThreshold = runtimeDef.slideThreshold,
+                slideSpeedLoss = runtimeDef.slideSpeedLoss,
                 jumpStrength = 1f,
-                wallHitCooldownSeconds = 0.5f,
+                wallHitCooldownSeconds = runtimeDef.wallHitCooldownSeconds,
                 pickupReach = PickupReach,
-                edgeOverhang = rules != null ? rules.edgeOverhang : 1f,
-                edgeGraceSeconds = rules != null ? rules.edgeGraceSeconds : 0.25f,
+                edgeOverhang = (rules != null ? rules : GameSettings.Default).edgeOverhang,
+                edgeGraceSeconds = (rules != null ? rules : GameSettings.Default).edgeGraceSeconds,
             };
             body.Step(dt, controls);
             if (body.State == ShipState.OffTrack) return; // it fell: OnLeftTrack has already redeployed it (or the end took it)
@@ -940,12 +922,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // the ship (hull, plus the fall's lost time).
             if (intent.Shove && encounter.Side != 0) Shove(encounter.Side);
 
-            if (redeployDistance > 0f && SimGap > redeployDistance) Redeploy(raiseFloor: true);
+            if (runtimeDef.RedeployDistance > 0f && SimGap > runtimeDef.RedeployDistance) Redeploy(raiseFloor: true);
             // The mirror image: a cruiser left this far AHEAD is out of the
             // chase just as surely as one left behind, so a fresh one takes
             // over — without raising the floor, because letting it run ahead is
             // not outrunning it.
-            if (redeployDistance > 0f && -SimGap > redeployDistance) Redeploy(raiseFloor: false);
+            if (runtimeDef.RedeployDistance > 0f && -SimGap > runtimeDef.RedeployDistance) Redeploy(raiseFloor: false);
 
             UpdateCatch(dt);
             if (!HasCaught) WarnIfClose(dt);
@@ -1141,7 +1123,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // ship left.
         void Shove(int side)
         {
-            float drag = target.Definition != null ? target.Definition.handlingResponse : 8f;
+            if (target.Definition == null) return;
+            float drag = target.Definition.handlingResponse;
             target.AddLateralShove(-side * runtimeDef.shoveMeters * drag);
             HapticsSystem.Instance.Pulse(1f, 0.8f, 0.5f);
         }
@@ -1180,7 +1163,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void Redeploy(bool raiseFloor, float gapOverride = 0f)
         {
             float speed = raiseFloor
-                ? Mathf.Max(minSpeed, target.CurrentSpeed * redeploySpeedFactor)
+                ? Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.redeploySpeedFactor)
                 : Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.rubberBand);
             if (raiseFloor)
             {
@@ -1191,7 +1174,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // (R7.3 — the player earned neither).
                 escalationTier++;
             }
-            body.Reset(target.Body.Distance - (gapOverride > 0f ? gapOverride : redeployGap), speed);
+            body.Reset(target.Body.Distance - (gapOverride > 0f ? gapOverride : runtimeDef.RedeployGap), speed);
             tailTimer = 0f;
             warnCooldown = 0f;
             warned = false;

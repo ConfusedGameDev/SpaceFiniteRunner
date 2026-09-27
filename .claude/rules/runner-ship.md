@@ -570,11 +570,12 @@ minimap range, redeploy) stay on `GameSettings`.
   answers `Warned` with the "Right on your tail" RPG line (`patrolWarningMessage`, `{0}` =
   metres) only while `showPatrolWarnings` is on and the message box is idle, so a stale gap is
   never queued.
-- **Redeploy keeps the chase from going stale** (`SetRedeployRule()`): outrun the patrol past
-  `patrolRedeployBand.y` and it teleports back in `patrolRedeployBand.x` metres behind the ship as
+- **Redeploy keeps the chase from going stale** (the rule lives on `PatrolDefinition`:
+  `redeploys`, `redeployBand`, `redeploySpeedFactor` — moved off GameSettings in refactor Step 3):
+  outrun the patrol past `redeployBand.y` and it teleports back in `redeployBand.x` metres behind the ship as
   patrol N+1 (`PatrolNumber`, a rumble, the `Redeployed(int)` event — `GameManager` answers with
   the "Patrol N inbound" line, `GameSettings.patrolInboundMessage`, only while `showPatrolAlert`
-  is on, which it is not by default) at `patrolRedeploySpeedFactor` × the ship's current speed,
+  is on, which it is not by default) at `redeploySpeedFactor` × the ship's current speed,
   and that speed becomes the rubber band's new floor. **One object, never a growing fleet.**
 - **The cinematic duel** (2026-09-25, `PoliceChaseImprovement.md`; PRD D35–D41). Everything is
   decided in `PatrolEncounter.Tick` and expressed through `PatrolEncounterIntent`; `PolicePatrol.Step`

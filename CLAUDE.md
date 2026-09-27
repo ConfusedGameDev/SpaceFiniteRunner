@@ -184,10 +184,10 @@ These hold everywhere. Break one and something else quietly stops working.
 - Uses `Unity.Mathematics` alongside `UnityEngine` math in spline code.
 - **Designer-facing inspectors use Odin** (`Sirenix.OdinInspector`, runtime attributes only — no
   serializer swap): every tunable is a `[PropertyRange]` slider with a hand-picked range, paired
-  values are single `[MinMaxSlider]` bands (`patrolRedeployBand` =
+  values are single `[MinMaxSlider]` bands (`PatrolDefinition.redeployBand` =
   drop-in/trigger) unpacked by accessor properties so gameplay never touches `.x`/`.y`, optional
   blocks are `[ToggleGroup]`s, and settings assets are `[InlineEditor]`-ed into the components that
-  use them (`GameManager.settings`, `ShipMotor.definition`) so balancing happens without leaving
+  use them (`GameManager.settings`, `HoverShip.definition` / `.settings`) so balancing happens without leaving
   the scene. Keep that style.
 - **Menu plates auto-fit their texts** across all four languages — never hardcode a plate width.
   A new row type with right-side widgets overrides `ReservedRightWidth` and `SetWidth`.

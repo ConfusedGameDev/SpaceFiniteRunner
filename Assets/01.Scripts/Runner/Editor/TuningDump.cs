@@ -16,8 +16,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// per object, so two dumps taken before and after a change diff line by
     /// line. Two kinds of entry: <b>effective</b> — the objects a run really
     /// flies on, resolved exactly as the runtime resolves them (ship
-    /// definition: clone → store upgrades; ship settings: clone → the
-    /// GameSettings sync; patrol: clone) — and <b>raw</b>
+    /// definition: clone → store upgrades; ship settings and patrol: the
+    /// clone of the asset) — and <b>raw</b>
     /// — every ScriptableObject under <c>Assets/04.Data</c> as authored.
     /// Nothing is played, nothing is saved: every clone is destroyed.
     /// </summary>
@@ -40,16 +40,9 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 Object.DestroyImmediate(run);
             }
 
-            var rules = Find<GameSettings>().FirstOrDefault();
             foreach (var settings in Find<ShipSettings>())
             {
                 var clone = Object.Instantiate(settings);
-                if (rules != null)
-                {
-                    var probe = new GameObject("TuningDump probe") { hideFlags = HideFlags.HideAndDontSave };
-                    RunnerShipSettingsSync.Ensure(probe, rules, clone); // the same push the run does
-                    Object.DestroyImmediate(probe);
-                }
                 count += Write(dir, "effective", "ShipSettings", settings, clone);
                 Object.DestroyImmediate(clone);
             }

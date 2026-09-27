@@ -26,7 +26,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [SerializeField] RectTransform costTick;
 
         ShipMotor motor;
-        GameSettings settings;
+        GameSettings settings;   // the meter's look (runner feedback)
+        ShipSettings ship;       // the dash rules (on/off, cost) — the ship's own
 
         void Awake()
         {
@@ -38,7 +39,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         void Start()
         {
             settings = motor != null ? motor.DashSettings : null;
-            if (settings == null || !settings.dashEnabled || fill == null)
+            ship = motor != null ? motor.ShipSettings : null;
+            if (settings == null || ship == null || !ship.dashEnabled || fill == null)
             {
                 gameObject.SetActive(false);
                 return;
@@ -51,7 +53,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             {
                 float width = fill.rectTransform.sizeDelta.x;
                 costTick.anchoredPosition = new Vector2(
-                    (Mathf.Clamp01(settings.dashCost) - 0.5f) * width, costTick.anchoredPosition.y);
+                    (Mathf.Clamp01(ship.dashCost) - 0.5f) * width, costTick.anchoredPosition.y);
             }
         }
 
@@ -65,7 +67,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             // Full colour once a dash is banked, dimmed while still charging,
             // and a soft pulse at full so the bar itself says "use me".
             Color color = settings.dashMeterColor;
-            if (meter < settings.dashCost)
+            if (meter < ship.dashCost)
             {
                 color = Color.Lerp(color, Color.black, 0.4f);
                 color.a = 0.55f;

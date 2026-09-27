@@ -204,7 +204,7 @@ shape knobs, so the whole track is tuned in one asset. The generator reads them 
   **The rate band is set by the grip math, not by taste.** A sweep's radius is the knot length
   (`segmentLength` 300–420 m) divided by the rate in radians, and a FLAT sweep holds only while
   `v²/R ≤ gripBase + gripPerSpeed × v` (50 + 0.5v for the Fighter), so the top speed through a
-  radius is `v = (R/2 + sqrt(R²/4 + 200R)) / 2`. That is independent of `TrackGuide.assist`: the
+  radius is `v = (R/2 + sqrt(R²/4 + 200R)) / 2`. That is independent of the guide assist: the
   stick's own yaw is capped at `turnAuthority × grip / speed`, so player steering and road
   curvature come to the same limit either way. At 6–13°/knot the radius runs 1322–4011 m, holding
   749–2101 m/s against a 1000 m/s cruise and a 1806 m/s Light Speed: the gentlest flat sweeps are

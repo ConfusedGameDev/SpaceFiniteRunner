@@ -3,7 +3,6 @@ description: Standalone physics ship — Ship assembly, IShip contracts, HoverBo
 paths:
   - "Assets/01.Scripts/Ship/**"
   - "**/IRunnerShip.cs"
-  - "**/RunnerShipSettingsSync.cs"
   - "**/TrackColliderBuilder.cs"
   - "**/TrackGuide.cs"
   - "**/TrackGuideValidator.cs"
@@ -76,8 +75,8 @@ Light Speed, a 60 m ramp is under two ticks, a loop wants 10⁴ m/s² of centrip
   surface at all, rolled 60° and more — against that up the slope stopped being floor, became a
   wall met square-on, and a ship clipping a ramp's edge at 1400 m/s stood still within a tick
   (1 ramp pass in ~45 on the runner's track, always hands-off on the centre line).
-  Ride height is `ShipDefinition.hoverHeight` (physical here; `ShipSettings.visualLift` is the
-  cosmetic extra).
+  Ride height is `ShipDefinition.hoverHeight` (physical here; `HoverShip.VisualLift`, seeded from
+  `ShipSettings.visualLift`, is the cosmetic extra — the runner sets it, see below).
 - **Letting go**: no centre hit for `coyoteMeters`, or a crest beyond `magnetStrength` (0 =
   unlimited). `magnetic` off = world-gravity rules (steep surfaces need centripetal load, a bank
   pulls downhill). `LastTakeOffReason` says which.
@@ -234,7 +233,7 @@ off the open edge, which is the game working** (the M7 spike fell exactly there 
 existed). Cleared by `Launch`. With no guide it just holds the throttle and flies straight.
 **It always flies FULL assist** (`HoverBody.EffectiveAssist`: `HoldOnRoad` → 1 where there is a
 line): its one control is a strafe to the lane's middle, and at partial assist the stick YAWS — on a
-level tuned to `TrackGuide.assist` 0.18 the pull became a swerve that grew until the ship left the
+level tuned to 0.18 assist the pull became a swerve that grew until the ship left the
 road, every run. A soak harness that flies on the autopilot says nothing about how a partial-assist
 level FEELS by hand.
 
@@ -279,7 +278,8 @@ untouched and still runs the runner** until the swap scene (M7).
   a road whose bank is changing is a twisted strip and ONE quad folds it on a diagonal) or, where
   a tube is curled, band ÷ `curledQuadWidth`. Walls only where `IsEdgeOpen` is false and the tube
   is not unbounded; a `JumpRamp` gets a wedge of its own. **The surface is sunk by
-  `surfaceSink` = the ship's hover height**, so a hovering ship rides the flight line exactly and
+  `SurfaceSink` = the ship's hover height** (a runtime value handed in by the motor, not a
+  serialized knob — `ShipDefinition.hoverHeight` is the one authored value), so a hovering ship rides the flight line exactly and
   pads, camera and patrol pose stay put. World-space vertices, single-sided, colliders only
   (`showMeshes` to look at them), layer `ShipGround`.
 - **A ramp's wedge has outward-facing flanks.** Without them a ship meeting an off-line ramp rode
@@ -325,12 +325,20 @@ With no `HoverShip` beside it the motor is exactly the track-space ship it was.
 - `HoverShip` is `[DefaultExecutionOrder(-10)]` so the motor mirrors THIS tick; the motor switches
   the ship's `LaunchOnStart` off. `ShipMotor.Is(IShip)` answers "is that my ship" (a pickup taken
   in physics mode names the HoverShip) — `GameManager` / `ShipAudio` use it.
-- `ConfigureDash` → `RunnerShipSettingsSync.Ensure(gameObject, settings, hover.Settings)`: the run
-  rules (dash, stall, fall / respawn timings, trails) are pushed into the ship's OWN settings
-  clone live; `groundLayers` is forced to `ShipGround | ShipSurface` (the city may share the
-  physics scene during the handoff). **Sink = lift**: `TrackColliderBuilder.SurfaceSink` and
-  `ShipSettings.visualLift` are both set to the definition's hover height, so the ROOT rides the
-  flight line (pads, camera, patrol pose unmoved) and the model hovers where it always did.
+- **The ship's own rules live on the ship** (refactor Step 3): dash on/off, cost, gesture, stall
+  grace, ghosts, barrel-roll trails, fall and respawn timings are `ShipSettings` fields on
+  `Runner_ShipSettings.asset`, read through `ShipMotor.ShipSettings` (the HoverShip's live clone).
+  The old per-frame `RunnerShipSettingsSync` from GameSettings is deleted. `ConfigureDash` only
+  forces `groundLayers` to `ShipGround | ShipSurface` (the city may share the physics scene during
+  the handoff). **Sink = lift**: `TrackColliderBuilder.SurfaceSink` and `HoverShip.VisualLift` are
+  both set to the definition's hover height, so the ROOT rides the flight line (pads, camera,
+  patrol pose unmoved) and the model hovers where it always did.
+- **One definition reference**: `HoverShip.definition` (inlined on the prefab). `ShipMotor` has no
+  serialized definition of its own — it starts from `HoverShip.DefinitionAsset` and holds the
+  run's clone once `SetDefinition` hands it in; the tuning screen takes its base from the motor.
+- **Guide assist is one knob**: `ShipSettings.guideAssist` (0.18 on `Runner_ShipSettings`).
+  `TrackGuide.Assist` is a fixed 1; the level-×-ship product stays for `SplineGuide` levels (the
+  sandbox courses), where a level's own assist is part of its design.
 - The runner's rules over the physical flight: **loop gate** (verdict at the mouth,
   `LoopEntered`; a fail lets go at `FirstTopLocal` and plays the track-space drop onto the exit
   through `HoverBody.MoveOutOfPlay` with the body in `ShipState.Falling` — which `HoverBody`,
@@ -468,10 +476,9 @@ dashGhostCount` metres of travel, the barrel roll's on a time spread; knobs `das
 Verified: the first ghost stays where the dash began while the ship pulls its full carry across, ≤ 2 m
 creep over a life. A ship spun by a crash swings its ghosts round with it — the frame is the ship's.
 
-**`RunnerShipSettingsSync`** (Runner) is how the runner's rules reach components that only
-speak `ShipSettings`: it owns ONE runtime `ShipSettings` per run and **re-pushes the
-`GameSettings` values into it every frame** (the FALL & RESPAWN debug page edits that asset
-live). `GameSettings` was not split and no asset was migrated.
+The ship components (`RespawnBlink`, `BarrelRollTrail`, `ShipDashGhosts`, `ShipRecovery`) read
+the ship's own `ShipSettings` clone. The FALL & RESPAWN debug page writes `HoverShip.SettingsAsset`
+and mirrors onto that clone (its edge / camera / patrol-gap rows stay on `GameSettings`).
 
 ## `HoverShip`
 

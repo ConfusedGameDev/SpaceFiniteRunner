@@ -30,10 +30,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
     {
         [SerializeField, Required] TrackManager track;
 
-        [Tooltip("How strongly the runner helps: 1 = the heading is the track's and the stick strafes — the track-space ship's feel.")]
-        [PropertyRange(0f, 1f)]
-        [SerializeField] float assist = 1f;
-
         [Tooltip("How far from the flight line a ship is still on this track. Generous: round a tube the ship is a pipe's diameter away from the line it follows.")]
         [PropertyRange(20f, 2000f), SuffixLabel("m", true)]
         [SerializeField] float captureRange = 400f;
@@ -48,7 +44,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         public float Length => track != null ? track.Length : 0f;
         public float CaptureRange => captureRange;
-        public float Assist => assist;
+        /// <summary>The track gives the ship its full say: the runner's assist is ONE knob, the ship's ShipSettings.guideAssist (0.18 on Runner_ShipSettings).</summary>
+        public float Assist => 1f;
         public Scene Scene => gameObject.scene;
 
         /// <summary>For a guide added from code.</summary>

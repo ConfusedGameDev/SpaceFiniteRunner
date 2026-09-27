@@ -180,7 +180,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         }
 
         // Same rule as SteeringInput: the run's toggle OR the player's.
-        bool SinglePress => (settings != null && settings.dashSinglePress) || UserSettings.DashSinglePress;
+        bool SinglePress => (motor != null && motor.ShipSettings.dashSinglePress) || UserSettings.DashSinglePress;
 
         // Either side can flip mid-run (the inspector, the pause menu) and
         // neither has a change event — both are polled — so Update re-checks.

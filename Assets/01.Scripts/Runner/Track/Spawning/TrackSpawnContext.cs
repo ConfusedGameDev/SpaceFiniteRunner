@@ -50,11 +50,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             this.featureKeepOuts = featureKeepOuts;
         }
 
-        /// <summary>Height of the air lane above the flight line, from GameSettings (30 m without a manager).</summary>
-        public float AirLaneHeight => GameManager != null ? GameManager.AirLaneHeight : 30f;
+        /// <summary>Height of the air lane above the flight line, from GameSettings (its class default without a manager).</summary>
+        public float AirLaneHeight => GameManager != null ? GameManager.AirLaneHeight : GameSettings.Default.airLaneHeight;
 
-        /// <summary>GameSettings.powerUpSpeedBoost — the base every boost tier multiplies (15 without a manager).</summary>
-        public float BaseBoost => GameManager != null ? GameManager.PowerUpSpeedBoost : 15f;
+        /// <summary>GameSettings.powerUpSpeedBoost — the base every boost tier multiplies (its class default without a manager).</summary>
+        public float BaseBoost => GameManager != null ? GameManager.PowerUpSpeedBoost : GameSettings.Default.powerUpSpeedBoost;
 
         /// <summary>End of the claimed stretch covering <paramref name="distance"/> (widened by a pad length), or -1 when it is free.</summary>
         public float ClaimEnd(float distance)

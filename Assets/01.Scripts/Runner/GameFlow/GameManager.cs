@@ -270,8 +270,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 ShipArmed.Ensure(motor).Configure(settings);
 
                 // The ship's own components live below the runner and speak
-                // ShipSettings: the sync hands them the run rules, live.
-                ShipSettings shipSettings = RunnerShipSettingsSync.Ensure(motor.gameObject, settings).Settings;
+                // ShipSettings: the ship's live clone is the one home of the
+                // dash, ghost, fall and respawn rules.
+                ShipSettings shipSettings = motor.ShipSettings;
 
                 // The respawn blink rides the ship the same way.
                 RespawnBlink.Ensure(motor).Configure(shipSettings);
@@ -284,11 +285,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
                 // The DashMeterUI is a scene child of the Ship — it configures
                 // itself off the motor in Start, after ConfigureDash above.
-                if (settings.dashEnabled)
+                if (shipSettings.dashEnabled)
                 {
                     var trail = motor.GetComponent<DashGhostTrail>();
                     if (trail == null) trail = motor.gameObject.AddComponent<DashGhostTrail>();
-                    trail.Init(motor, settings);
+                    trail.Init(motor, shipSettings);
                     // The airborne dash's wingtip ribbons — same lifetime as the ghosts.
                     var rollTrail = motor.GetComponent<BarrelRollTrail>();
                     if (rollTrail == null) rollTrail = motor.gameObject.AddComponent<BarrelRollTrail>();
@@ -344,9 +345,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // run instead of breaking the scene.
             if (settings.patrolEnabled && motor != null && patrol != null)
             {
-                patrol.Init(motor);
-                patrol.SetRedeployRule(settings.PatrolRedeployDistance, settings.PatrolRedeployGap,
-                                       settings.patrolRedeploySpeedFactor);
+                patrol.Init(motor); // the redeploy rule is on its PatrolDefinition
                 patrol.Redeployed += OnPatrolRedeployed;
                 patrol.Warned += OnPatrolWarned;
                 patrol.ProximityRumble = settings.patrolProximityRumble;

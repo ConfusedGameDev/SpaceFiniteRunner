@@ -239,7 +239,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             GameAudio.SetPaused(false, theme.PauseAudioFade);
             pauseMusicStopTime = Time.unscaledTime + theme.PauseAudioFade; // stop only once the fade has hidden it
             DebugAssetEdits.Flush();     // commit the debug tweaks written to assets
-            FallRespawnDebugPage.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
@@ -327,7 +326,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // gameplay mix, not a muted one.
             if (isPaused) GameAudio.SetPaused(false, 0f);
             DebugAssetEdits.Flush();     // commit the debug tweaks written to assets
-            FallRespawnDebugPage.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
@@ -526,7 +524,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             }
             // No `changed`: the run reads these live off the asset, nothing to reload.
             if (runRules != null)
-                debugMenu.AddTab(FallRespawnDebugPage.Build(panelRect, theme, runRules, debugRefreshers, tab++, tabCount));
+                debugMenu.AddTab(FallRespawnDebugPage.Build(panelRect, theme, runRules, motor.PhysicsShip, debugRefreshers, tab++, tabCount));
             if (patrolReady)
             {
                 debugMenu.AddTab(DebugMenuFactory.BuildPatrolTab(
@@ -565,7 +563,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         void ReloadScene()
         {
             DebugAssetEdits.Flush();     // commit the debug tweaks written to assets
-            FallRespawnDebugPage.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();

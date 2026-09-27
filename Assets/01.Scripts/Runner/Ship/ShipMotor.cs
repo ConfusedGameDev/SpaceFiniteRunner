@@ -41,16 +41,24 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     [RequireComponent(typeof(HoverShip))]
     public partial class ShipMotor : MonoBehaviour, IRunnerShip, ICameraTarget, ICollector
     {
-        // Inline so the ship's sliders are reachable without leaving the scene —
-        // in play mode this field holds the run's runtime clone, so editing here
-        // tweaks the live run and never the asset on disk.
-        [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)] ShipDefinition definition;
+        // The run's definition: the HoverShip's asset until the GameManager hands
+        // in the run's clone (SetDefinition). The asset itself is referenced and
+        // inlined once, on the HoverShip.
+        ShipDefinition definition;
         [SerializeField, Required] TrackManager track;
 
         [Tooltip("The ship model — banked, bobbed and rolled by the HoverShip. Falls back to this transform.")]
         [SerializeField] Transform visual;
 
-        public ShipDefinition Definition => definition;
+        public ShipDefinition Definition
+        {
+            get
+            {
+                if (definition != null) return definition;
+                var ship = GetComponent<HoverShip>(); // edit mode: no Awake has bound the ship yet
+                return ship != null ? ship.DefinitionAsset : null;
+            }
+        }
         public float CurrentSpeed => body != null ? body.ForwardSpeed : 0f;
 
         /// <summary>Metres from the track start, as RENDERED this frame (interpolated between simulation ticks). <see cref="Body"/> holds the tick's own.</summary>
@@ -232,6 +240,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>The run-level rules pushed in by the GameManager; null while unconfigured.</summary>
         public GameSettings DashSettings => dashSettings;
 
+        /// <summary>The ship's live settings (the HoverShip's runtime clone of its ShipSettings asset): the one home of the dash, ghost, fall and respawn rules. <see cref="ShipSettings.Default"/> before the ship has woken.</summary>
+        public ShipSettings ShipSettings => physicsShip != null && physicsShip.Settings != null ? physicsShip.Settings : ShipSettings.Default;
+
         /// <summary>Where the ship is, in the runner's terms — see <see cref="ShipState"/>. Grounded is Looping inside a loop, OnTube on a tube.</summary>
         public ShipState State => body != null ? body.State : ShipState.Grounded;
 
@@ -306,8 +317,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         Vector2 pickupReach = new(2.5f, 2.3f); // half width / half height of the ship's pickup volume (the laser gates' test)
 
-        // Metres of lateral offset the autopilot and the tube return answer with full steer.
-        const float AutopilotReach = 6f;
+        // Metres of lateral offset the tube's return stretch answers with full steer
+        // (the HoverShip's own autopilot has its own reach; this is not it).
+        const float TubeReturnReach = 6f;
 
         void Awake()
         {
@@ -351,7 +363,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>
         /// Hands the motor the run's rules (GameManager pushes the shared
         /// GameSettings asset here — the motor holds no settings reference of
-        /// its own); they reach the ship through <see cref="RunnerShipSettingsSync"/>.
+        /// its own). The ship's own rules (dash, fall, respawn) are not among
+        /// them: they live on the ship's <see cref="ShipSettings"/>.
         /// </summary>
         public void ConfigureDash(GameSettings settings)
         {
@@ -453,8 +466,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 return;
             }
 
-            float gravity = dashSettings != null ? dashSettings.fallGravity : 30f;
-            float tumble = dashSettings != null ? dashSettings.fallTumbleDegreesPerSecond : 120f;
+            float gravity = ShipSettings.fallGravity;
+            float tumble = ShipSettings.fallTumbleDegreesPerSecond;
             offVelocity += Vector3.down * (gravity * dt);
             offPosition += offVelocity * dt;
             offRotation *= Quaternion.Euler(tumble * 0.35f * dt, 0f, -offSide * tumble * dt);

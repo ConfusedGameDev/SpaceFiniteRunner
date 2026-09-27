@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Track;
 namespace ConfusedGameDev.FiniteRunner.Ship
 {
@@ -29,7 +28,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     public class DashGhostTrail : MonoBehaviour
     {
         ShipMotor motor;
-        GameSettings settings;
+        ShipSettings settings;   // the ship's live settings: ghost look and lifetime
         TrackManager track;
         MeshFilter[] sourceMeshes = new MeshFilter[0];
         Material ghostMaterial;
@@ -39,7 +38,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         bool wasDashing;
         float rollTimer;
 
-        public void Init(ShipMotor motor, GameSettings settings)
+        public void Init(ShipMotor motor, ShipSettings settings)
         {
             if (this.motor != null) this.motor.Launched -= ClearGhosts;
             this.motor = motor;
@@ -48,8 +47,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             sourceMeshes = motor.Visual != null
                 ? motor.Visual.GetComponentsInChildren<MeshFilter>()
                 : new MeshFilter[0];
-            ghostMaterial = settings.dashGhostMaterial != null
-                ? settings.dashGhostMaterial
+            ghostMaterial = settings.ghostMaterial != null
+                ? settings.ghostMaterial
                 : BuildFallbackMaterial();
 
             if (frame == null) frame = new GameObject("DashGhostFrame").transform;

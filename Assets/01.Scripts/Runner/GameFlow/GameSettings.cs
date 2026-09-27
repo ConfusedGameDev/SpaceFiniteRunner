@@ -19,6 +19,23 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     [CreateAssetMenu(fileName = "GameSettings", menuName = "FiniteRunner/Game Settings")]
     public class GameSettings : ScriptableObject
     {
+        static GameSettings defaults;
+
+        /// <summary>A shared in-memory instance with the class defaults, for code that runs without a GameManager. Never saved, never edited.</summary>
+        public static GameSettings Default
+        {
+            get
+            {
+                if (defaults == null)
+                {
+                    defaults = CreateInstance<GameSettings>();
+                    defaults.name = "GameSettings (defaults)";
+                    defaults.hideFlags = HideFlags.HideAndDontSave;
+                }
+                return defaults;
+            }
+        }
+
         // --------------------------------------------------------------- flow
         [TitleGroup("Flow")]
         [Tooltip("Open the pre-run point-allocation screen (TuningScreen) instead of flying straight on the Store's bought upgrades. Off in the shipping flow: the Store between missions owns the ship's stats, and the runner is entered mid-mission from the city with no pause for a setup panel. On, the screen applies the store levels on top of its points.")]
@@ -29,11 +46,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Substeps per physics tick (0.02 s) of the ship's track-space body. More = the same rules integrated in finer slices; 1 is enough for today's scripted rules, the grip and slide forces want 2+.")]
         [PropertyRange(1, 8)]
         public int simSubsteps = 2;
-
-        [TitleGroup("Simulation")]
-        [Tooltip("Seconds at a standstill with the throttle released before the ship reports itself stopped (engine sound off). Only a report: a standstill never loses the run.")]
-        [PropertyRange(0f, 10f), SuffixLabel("s", true)]
-        public float stallGraceSeconds = 2f;
 
         // ------------------------------------------------------ fall + respawn
         [TitleGroup("Fall and respawn")]
@@ -47,21 +59,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float edgeGraceSeconds = 0.25f;
 
         [TitleGroup("Fall and respawn")]
-        [Tooltip("Gravity of the off-track fall.")]
-        [PropertyRange(0f, 200f), SuffixLabel("m/s²", true)]
-        public float fallGravity = 30f;
-
-        [TitleGroup("Fall and respawn")]
-        [Tooltip("How fast the falling ship rolls over the edge it left by (visual).")]
-        [PropertyRange(0f, 720f), SuffixLabel("°/s", true)]
-        public float fallTumbleDegreesPerSecond = 120f;
-
-        [TitleGroup("Fall and respawn")]
-        [Tooltip("Seconds the ship falls before it is put back on the track. The countdown keeps running the whole time — lost time is the penalty.")]
-        [PropertyRange(0.1f, 5f), SuffixLabel("s", true)]
-        public float fallDurationSeconds = 1.5f;
-
-        [TitleGroup("Fall and respawn")]
         [Tooltip("Seconds the chase camera keeps following the falling ship before it plants itself and just watches (the rig's cinematic shot).")]
         [PropertyRange(0f, 5f), SuffixLabel("s", true)]
         public float fallCameraFollowSeconds = 0.5f;
@@ -70,30 +67,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Glitch-effect burst strength as the ship goes over the edge.")]
         [PropertyRange(0f, 1f)]
         public float fallGlitchStrength = 0.8f;
-
-        [TitleGroup("Fall and respawn")]
-        [Tooltip("Seconds the respawned ship waits on the track — blinking and untouchable, with the patrol frozen — before it relaunches (or, with a rolling respawn, before the blink ends).")]
-        [PropertyRange(0f, 10f), SuffixLabel("s", true)]
-        public float respawnWaitSeconds = 3f;
-
-        [TitleGroup("Fall and respawn")]
-        [Tooltip("ON: the respawned ship is relaunched at once at its penalised speed and flies the wait under control, still blinking and untouchable, the patrol frozen. OFF: it waits at a standstill, uncontrollable, and relaunches when the wait ends.")]
-        public bool respawnRollingStart = true;
-
-        [TitleGroup("Fall and respawn")]
-        [Tooltip("Blinks per second between the ship's own look and the ghost material during the wait.")]
-        [PropertyRange(1f, 30f), SuffixLabel("Hz", true)]
-        public float respawnBlinkRate = 8f;
-
-        [TitleGroup("Fall and respawn")]
-        [Tooltip("Share of the speed the ship fell with that is lost when it relaunches.")]
-        [PropertyRange(0f, 1f)]
-        public float respawnSpeedPenalty = 0.15f;
-
-        [TitleGroup("Fall and respawn")]
-        [Tooltip("Feature-free road required AHEAD of a respawn spot: no loop, tube, ramp or flat sweep may start within it. The ship comes back at the first such spot past where it fell. Keep it under the track's level lead (200 m), or a respawn after a sweep next to a feature skips the whole feature.")]
-        [PropertyRange(0f, 1000f), SuffixLabel("m", true)]
-        public float respawnClearance = 150f;
 
         [TitleGroup("Fall and respawn")]
         [Tooltip("The least head start over the patrol the ship relaunches with: a patrol closer than this when the wait ends is dropped back to it.")]
@@ -152,21 +125,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Gap beyond which the patrol is off the track map; at this gap its icon hangs a full chase span (ChaseMinimapSettings.chaseSpan) under the ship.")]
         [PropertyRange(50f, 2000f), SuffixLabel("m", true)]
         public float minimapRangeMeters = 400f;
-
-        // ----------------------------------------------------------- redeploy
-        [ToggleGroup("patrolEnabled"), Title("Redeploy")]
-        [Tooltip("Keep the chase alive: once the ship is clear by the outer distance below, that patrol drops out and a fresh one cuts in.")]
-        public bool patrolRedeploys = true;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Redeploy band, in meters: X = how far behind the ship the fresh patrol drops in (keep it inside the minimap range so the player sees it arrive), Y = the gap that retires the old one.")]
-        [MinMaxSlider(50f, 2000f, true), EnableIf("patrolRedeploys")]
-        public Vector2 patrolRedeployBand = new(320f, 700f);
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Fresh patrol's speed as a multiple of the ship's current speed. Above 1 so it closes in until the next boost.")]
-        [PropertyRange(1f, 3f), SuffixLabel("x ship speed", true), EnableIf("patrolRedeploys")]
-        public float patrolRedeploySpeedFactor = 1.25f;
 
         [ToggleGroup("patrolEnabled"), Title("Duel")]
         [Tooltip("The patrol hunts you: it commits to an attack run, pulls onto a flank and shoves you into the wall or off the edge, then breaks off. " +
@@ -594,93 +552,29 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         // --------------------------------------------------------------- dash
         // Per-ship dash stats (power, speed, fill rate, ghost count) live on
-        // ShipDefinition — this section only holds the run-level rules.
-        [ToggleGroup("dashEnabled", "Lateral dash")]
-        [Tooltip("Enable the lateral dash (bumpers on pad, N/M on keyboard — a double tap, or one press with the player's SINGLE-PRESS DASH setting on) with its power meter, ghosts and prompts.")]
-        public bool dashEnabled = true;
-
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("Meter fraction one dash consumes. 0.5 = a full meter holds two dashes.")]
-        [PropertyRange(0.1f, 1f)]
-        public float dashCost = 0.5f;
-
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("ON = one press of a dash control dashes. OFF = the double tap — and the player can still opt into the single press with the SINGLE-PRESS DASH toggle on the CONTROLS page. Read live, so it can be flipped during play.")]
-        public bool dashSinglePress = false;
-
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("Max seconds between two taps of the same bumper/key that still count as a double tap. Unused while the dash is single-press (the toggle above, or the player's own setting).")]
-        [PropertyRange(0.1f, 0.6f), SuffixLabel("s", true)]
-        [DisableIf(nameof(dashSinglePress))]
-        public float dashDoubleTapSeconds = 0.3f;
-
-        [ToggleGroup("dashEnabled")]
+        // ShipDefinition and the dash rules (on/off, cost, gesture, ghosts,
+        // barrel-roll trails) on the ship's ShipSettings — this section only
+        // holds the runner's own dash feedback: meter look, hints, glitch.
+        [TitleGroup("Lateral dash")]
         [Tooltip("Glitch-effect burst strength when a dash slams the track edge.")]
         [PropertyRange(0f, 1f)]
         public float dashWallGlitchStrength = 0.7f;
 
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("Minimum seconds between two wall-slam feedbacks, so hugging the edge can't spam them.")]
-        [PropertyRange(0.1f, 2f), SuffixLabel("s", true)]
-        public float dashWallHitCooldownSeconds = 0.5f;
-
-        [ToggleGroup("dashEnabled"), Title("Ghost trail")]
-        [Tooltip("Seconds an onion-skin ghost takes to fade out completely.")]
-        [PropertyRange(0.05f, 1f), SuffixLabel("s", true)]
-        public float dashGhostLifetime = 0.35f;
-
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("Starting opacity of a freshly spawned ghost.")]
-        [PropertyRange(0f, 1f)]
-        public float dashGhostStartAlpha = 0.45f;
-
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("Ghosts ride with the ship (only their sideways offset is frozen). This is how far BEHIND the ship a ghost has slid by the end of its life, metres. 0 = a pure sideways staircase beside the ship.")]
-        [PropertyRange(0f, 30f), SuffixLabel("m", true)]
-        public float dashGhostDriftMeters = 0f;
-
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("Transparent URP material for the onion-skin ghosts (Materials/DashGhost_Mat). Empty = a runtime fallback material is built instead.")]
-        public Material dashGhostMaterial;
-
-        [ToggleGroup("dashEnabled"), Title("Barrel roll trails")]
-        [Tooltip("Seconds the two wingtip ribbons drawn during an airborne barrel roll linger before they fade out — the spiral's length in time.")]
-        [PropertyRange(0.1f, 2f), SuffixLabel("s", true)]
-        public float barrelRollTrailSeconds = 0.6f;
-
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("Width of a wingtip ribbon at the ship, in metres; it tapers to nothing along its length.")]
-        [PropertyRange(0.1f, 4f), SuffixLabel("m", true)]
-        public float barrelRollTrailWidth = 0.9f;
-
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("Where along the wing each ribbon is emitted, as a fraction of the model's half-width (1 = the wingtip).")]
-        [PropertyRange(0.2f, 1.2f)]
-        public float barrelRollTrailSpan = 1f;
-
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("Ribbon colour at the ship; it fades to transparent along the trail.")]
-        public Color barrelRollTrailColor = new(0.45f, 0.9f, 1f, 0.9f);
-
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("Vertex-coloured transparent URP material for the ribbons (Materials/BarrelRollTrail_Mat). Empty = a runtime fallback material is built instead.")]
-        public Material barrelRollTrailMaterial;
-
-        [ToggleGroup("dashEnabled"), Title("Power meter")]
+        [TitleGroup("Lateral dash"), Title("Power meter")]
         [Tooltip("Fill colour of the meter once at least one dash is banked; dimmed while still charging. The bar itself is the DashMeter scene object under the Ship.")]
         public Color dashMeterColor = new(0.35f, 0.9f, 1f);
 
-        [ToggleGroup("dashEnabled"), Title("Encouragement")]
+        [TitleGroup("Lateral dash"), Title("Encouragement")]
         [Tooltip("Seconds the meter may sit full and unused before the on-screen hint comes back.")]
         [PropertyRange(2f, 60f), SuffixLabel("s", true)]
         public float dashEncourageAfterSeconds = 10f;
 
-        [ToggleGroup("dashEnabled")]
+        [TitleGroup("Lateral dash")]
         [Tooltip("Caption of the pulsing on-screen hint between the bumper glyphs / key labels.")]
         public string dashHintText = "DOUBLE-TAP TO DASH";
 
-        [ToggleGroup("dashEnabled")]
-        [Tooltip("The same caption while the dash is single-press (Dash Single Press above, or the player's SINGLE-PRESS DASH setting on the CONTROLS page).")]
+        [TitleGroup("Lateral dash")]
+        [Tooltip("The same caption while the dash is single-press (the ship settings' Dash Single Press, or the player's SINGLE-PRESS DASH setting on the CONTROLS page).")]
         public string dashHintTextSinglePress = "PRESS TO DASH";
 
         // ------------------------------------------------------- floating text
@@ -796,12 +690,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public RunnerSfxSettings sfxSettings;
 
         // --------------------------------------------------------- accessors
-        /// <summary>How far behind the ship a fresh patrol drops in, in meters (band X).</summary>
-        public float PatrolRedeployGap => patrolRedeployBand.x;
-
-        /// <summary>Gap that retires the current patrol for a fresh one; 0 when redeploying is off (band Y).</summary>
-        public float PatrolRedeployDistance => patrolRedeploys ? patrolRedeployBand.y : 0f;
-
         /// <summary>Boost multiplier at the edge of the timing window (band X).</summary>
         public float BoostQteMinMultiplier => boostQteMultiplierBand.x;
 

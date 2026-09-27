@@ -22,12 +22,18 @@ MonoBehaviour:
   gripBase: 130
   gripPerSpeed: 0.5
   brakeDecel: 140
+  slideThreshold: 4
+  slideSpeedLoss: 0.1
+  wallHitCooldownSeconds: 0.5
   curveLookaheadSeconds: 4
   orbLookaheadSeconds: 2.5
   orbSeekWeight: 0.6
   orbBoostShare: 0.5
   rampLookaheadSeconds: 2.5
   startGap: 548
+  redeploys: 1
+  redeployBand: {x: 691.74615, y: 1372.0339}
+  redeploySpeedFactor: 1.15
   catchDistance: 10
   alongsideLateral: 18
   sustainedCatchSeconds: 1.5
