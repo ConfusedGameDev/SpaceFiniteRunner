@@ -12,15 +12,11 @@ namespace ConfusedGameDev.FiniteRunner.FX
     /// adds it wherever it finds one. The driver re-reads its asset every
     /// frame (no runtime clone), so these sliders edit the asset itself: the
     /// change is on screen the moment the menu is dismissed, and it is kept
-    /// dirty until <see cref="Flush"/> writes it at the menu's commit points —
+    /// dirty until the pause menu's flush (<see cref="DebugAssetEdits"/>) writes it at the menu's commit points —
     /// the same persistence contract the fog page keeps.
     /// </summary>
     public static class SpeedLinesDebugPage
     {
-        const float RowHeight = 54f;
-        const float RowSpacing = 8f;
-        const float ContentTop = 340f;
-
         /// <summary>The live driver's asset, or null when the scene has no speed lines to tune.</summary>
         public static SpeedLinesSettings Discover()
         {
@@ -39,68 +35,33 @@ namespace ConfusedGameDev.FiniteRunner.FX
         public static MenuScreen Build(RectTransform parent, MenuTheme theme, SpeedLinesSettings settings,
                                        List<System.Action> refreshers, int tabIndex, int tabCount)
         {
-            var screen = MenuScreen.Create("Debug_SpeedLines", parent, theme, 0f, ContentTop);
-            screen.SetRowMetrics(RowHeight, RowSpacing);
-            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabSpeedLines, tabIndex, tabCount);
+            var page = new SettingsDebugPage<SpeedLinesSettings>("Debug_SpeedLines", parent, theme, MenuTextId.DebugTabSpeedLines, settings, refreshers, tabIndex, tabCount);
 
-            Add(screen, settings, refreshers, MenuTextId.SpeedLinesIntensity,
+            page.Slider(MenuTextId.SpeedLinesIntensity,
                 0f, 1f, 0.05f, "0.00", s => s.intensity, (s, v) => s.intensity = v);
-            Add(screen, settings, refreshers, MenuTextId.SpeedLinesStart,
+            page.Slider(MenuTextId.SpeedLinesStart,
                 0f, 1f, 0.05f, "0.00", s => s.speedBand.x, (s, v) => s.speedBand.x = Mathf.Min(v, s.speedBand.y));
-            Add(screen, settings, refreshers, MenuTextId.SpeedLinesFull,
+            page.Slider(MenuTextId.SpeedLinesFull,
                 0f, 1f, 0.05f, "0.00", s => s.speedBand.y, (s, v) => s.speedBand.y = Mathf.Max(v, s.speedBand.x));
-            Add(screen, settings, refreshers, MenuTextId.SpeedLinesDensity,
+            page.Slider(MenuTextId.SpeedLinesDensity,
                 0f, 1f, 0.05f, "0.00", s => s.density, (s, v) => s.density = v);
-            Add(screen, settings, refreshers, MenuTextId.SpeedLinesWidth,
+            page.Slider(MenuTextId.SpeedLinesWidth,
                 0f, 1f, 0.05f, "0.00", s => s.lineWidth, (s, v) => s.lineWidth = v);
-            Add(screen, settings, refreshers, MenuTextId.SpeedLinesInnerMax,
+            page.Slider(MenuTextId.SpeedLinesInnerMax,
                 0f, 1f, 0.02f, "0.00", s => s.innerRadius.y, (s, v) => s.innerRadius.y = Mathf.Max(v, s.innerRadius.x));
-            Add(screen, settings, refreshers, MenuTextId.SpeedLinesInnerMin,
+            page.Slider(MenuTextId.SpeedLinesInnerMin,
                 0f, 1f, 0.02f, "0.00", s => s.innerRadius.x, (s, v) => s.innerRadius.x = Mathf.Min(v, s.innerRadius.y));
-            Add(screen, settings, refreshers, MenuTextId.SpeedLinesFlicker,
+            page.Slider(MenuTextId.SpeedLinesFlicker,
                 1f, 60f, 1f, "0", s => s.flickerRate, (s, v) => s.flickerRate = v);
-            Add(screen, settings, refreshers, MenuTextId.SpeedLinesResponse,
+            page.Slider(MenuTextId.SpeedLinesResponse,
                 1f, 20f, 0.5f, "0.0", s => s.responseSharpness, (s, v) => s.responseSharpness = v);
-            return screen;
+            return page.Screen;
         }
 
-        static void Add(MenuScreen screen, SpeedLinesSettings settings, List<System.Action> refreshers,
-                        MenuTextId label, float min, float max, float step, string format,
-                        System.Func<SpeedLinesSettings, float> get, System.Action<SpeedLinesSettings, float> set)
-        {
-            var row = screen.AddRow<DebugSliderRow>(label);
-            row.Configure(min, max, step, get(settings), format, v =>
-            {
-                set(settings, v);
-                MarkDirty(settings);
-            });
-            refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
-        }
-
-        // -------------------------------------------------------- persistence
-
-#if UNITY_EDITOR
-        static readonly List<Object> touched = new();
-#endif
-
-        /// <summary>Marks the edited asset for the next <see cref="Flush"/> — a no-op for the in-memory default, which has no file to save.</summary>
-        static void MarkDirty(Object asset)
-        {
-#if UNITY_EDITOR
-            if (asset == null || !UnityEditor.EditorUtility.IsPersistent(asset)) return;
-            if (!touched.Contains(asset)) touched.Add(asset);
-            UnityEditor.EditorUtility.SetDirty(asset);
-#endif
-        }
-
-        /// <summary>Writes the tuned asset to disk (editor only) — called at the pause menu's commit points, not on every slider tick.</summary>
-        public static void Flush()
-        {
-#if UNITY_EDITOR
-            foreach (var asset in touched)
-                if (asset != null) UnityEditor.AssetDatabase.SaveAssetIfDirty(asset);
-            touched.Clear();
-#endif
-        }
+        // Registered with the pause menu's page registry: any scene with a
+        // driver gets this tab, and the menu never names the system.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        static void Register() =>
+            DebugPages.Register(nameof(SpeedLinesDebugPage), 30, () => DebugPages.Single(Discover(), Build));
     }
 }

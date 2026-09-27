@@ -255,15 +255,29 @@ The `CarTest` scene hosts the same `PauseMenu` as a hand-placed object and gets 
   the speed and time steps and read-only `DebugLabelRow`s for the rest.
 
 **Those cars, the rig and the level manager read their settings assets live (no runtime clone to
-catch), so those sliders edit the assets themselves.** Persistence is `EditorUtility.SetDirty` + a
-`CityDebugMenuFactory.Flush()` at the menu's commit points (resume, reload, `OnDestroy`, so tweaks
-land on disk before play mode ends). Everything there applies live, so **the city pages never raise
+catch), so those sliders edit the assets themselves.** Persistence is `DebugAssetEdits.Touch`, flushed with
+every other page at the menu's commit points (resume, reload, `OnDestroy`, so tweaks land on disk
+before play mode ends). Everything there applies live, so **the city pages never raise
 the reload prompt.**
 
-A **Weather** page is added by `RainDebugPage` (which lives with the system in `FX/Weather/`, not in
-either game's factory, because both scenes spawn the same `RainSystem`) whenever the scene is
-raining. `DistanceFogDebugPage` and `SpeedLinesDebugPage` are added the same way wherever their
-drivers exist.
+**The page registry** (`UI/DebugPages`, refactor Step 10.1). After its own runner tabs the pause
+menu asks `DebugPages.Discover()` for every registered provider with something to show, counts their
+tabs and builds them — it names no other system. A system registers ONE provider from a
+`[RuntimeInitializeOnLoadMethod(AfterAssembliesLoaded)]`: `DebugPages.Register(key, order, discover)`
+(same key replaces — domain reload is off). The city registers its tab batch at order 0 (silent when
+a `TrackGenerator` exists: the runner loads additively over the city for a beat); the shared FX
+pages register at 10–60 — weather, distance fog, speed lines, VHS, PSX, CRT — each answering only
+where its driver exists. `DebugPages.Single(asset, Build)` wraps a one-tab page.
+
+**The generic settings page** (`SettingsDebugPage<T>`): a tab of slider rows over one asset the
+system re-reads every frame. `new SettingsDebugPage<T>(name, parent, theme, title, asset, …)` then
+`.Slider(label, min, max, step, format, get, set)` per row; each row writes the ASSET and calls
+`DebugAssetEdits.Touch`. The six FX pages are now a row list each (they carried six copies of the row
+helper and of their own touched/SetDirty/Flush persistence), and **the menu flushes once**:
+`DebugAssetEdits.Flush()` at its three commit points — the per-page `Flush` calls and the
+`DebugMenuHooks.Discover` / `Flush` slots are gone (`DebugMenuHooks` keeps the full-screen takeover
+gate and the `IDebugTabs` contract). A page that must mirror onto a runtime clone builds its own rows
+(the runner's track, ship and patrol tabs, FALL & RESPAWN).
 
 **Backing out of a debug tab after any slider change opens a localized "DO YOU WANT TO RELOAD THE
 SCENE?" confirm** (YES reloads, NO continues). All debug tab titles and row labels are `MenuTextId`

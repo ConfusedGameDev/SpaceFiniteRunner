@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -239,13 +240,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             GameAudio.SetPaused(false, theme.PauseAudioFade);
             pauseMusicStopTime = Time.unscaledTime + theme.PauseAudioFade; // stop only once the fade has hidden it
             DebugAssetEdits.Flush();     // commit the debug tweaks written to assets
-            DebugMenuHooks.Flush?.Invoke();
-            RainDebugPage.Flush();
-            DistanceFogDebugPage.Flush();
-            SpeedLinesDebugPage.Flush();
-            VhsTapeDebugPage.Flush();
-            PsxLookDebugPage.Flush();
-            CrtScreenDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty(); // recorded stats reach the disk at the same commit points
             Blip(theme.BackClip);
         }
@@ -326,13 +320,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // gameplay mix, not a muted one.
             if (isPaused) GameAudio.SetPaused(false, 0f);
             DebugAssetEdits.Flush();     // commit the debug tweaks written to assets
-            DebugMenuHooks.Flush?.Invoke();
-            RainDebugPage.Flush();
-            DistanceFogDebugPage.Flush();
-            SpeedLinesDebugPage.Flush();
-            VhsTapeDebugPage.Flush();
-            PsxLookDebugPage.Flush();
-            CrtScreenDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty();
         }
 
@@ -470,32 +457,20 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             PolicePatrol patrol = gameManager != null ? gameManager.Patrol : null;
             bool patrolReady = patrol != null && patrol.Definition != null;
             bool shipReady = generator != null && motor != null;
-            // City pages only in the city: the runner scene loads additively
-            // over the city it replaces, so for a beat both worlds exist and
-            // its menu must not sprout car tabs that are about to unload.
-            DebugMenuHooks.IDebugTabs city = generator == null ? DebugMenuHooks.Discover?.Invoke() : null;
-            // Weather belongs to neither game — both scenes spawn the same
-            // RainSystem — so its page is added here rather than by either
-            // side's factory, and only when the scene is actually raining.
-            RainSettings rain = RainDebugPage.Discover();
-            // Same for the distance fog: any scene with a DistanceFog object.
-            DistanceFogSettings fog = DistanceFogDebugPage.Discover();
-            // And the speed lines: any scene with a SpeedLines driver.
-            SpeedLinesSettings lines = SpeedLinesDebugPage.Discover();
-            // And the VHS tape: any scene with a VhsTape driver.
-            VhsTapeSettings vhs = VhsTapeDebugPage.Discover();
-            // And the PSX look: any scene with a PsxLook driver.
-            PsxLookSettings psx = PsxLookDebugPage.Discover();
-            // And the CRT screen: any scene with a CrtScreen driver.
-            CrtScreenSettings crt = CrtScreenDebugPage.Discover();
+            // Every other page comes from the registry (refactor Step 10.1): the
+            // city's car tabs and the shared FX pages (weather, fog, speed
+            // lines, VHS, PSX, CRT) each register a provider with their system
+            // and answer only when the scene has something to tune. The city
+            // provider stays silent in a runner scene itself.
+            List<DebugMenuHooks.IDebugTabs> registered = DebugPages.Discover();
+            int registeredTabs = 0;
+            foreach (var provider in registered) registeredTabs += provider.TabCount;
 
             // The run rules of falling off (GameSettings, edited live like the fog).
             GameSettings runRules = shipReady ? motor.DashSettings : null;
 
             int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0) + (runRules != null ? 1 : 0)
-                         + (patrolReady ? 3 : 0) + (city?.TabCount ?? 0) + (rain != null ? 1 : 0) + (fog != null ? 1 : 0)
-                         + (lines != null ? 1 : 0) + (vhs != null ? 1 : 0) + (psx != null ? 1 : 0)
-                         + (crt != null ? 1 : 0);
+                         + (patrolReady ? 3 : 0) + registeredTabs;
             if (tabCount == 0) return;
 
             debugMenu = new DebugMenu();
@@ -535,26 +510,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                     panelRect, theme, patrol, runRules, changed, debugRefreshers, tab++, tabCount));
             }
 
-            // No `changed` for the city pages: every car and camera knob they
-            // expose applies live, so they never need the reload the runner's
-            // track sliders do — and reloading the city would reroll the whole
-            // layout under the player for nothing.
-            city?.AddTabs(debugMenu, panelRect, theme, debugRefreshers, ref tab, tabCount);
-
-            // Same rule as the city pages: the rain re-reads its asset every
-            // frame, so nothing here needs a reload either.
-            if (rain != null)
-                debugMenu.AddTab(RainDebugPage.Build(panelRect, theme, rain, debugRefreshers, tab++, tabCount));
-            if (fog != null)
-                debugMenu.AddTab(DistanceFogDebugPage.Build(panelRect, theme, fog, debugRefreshers, tab++, tabCount));
-            if (lines != null)
-                debugMenu.AddTab(SpeedLinesDebugPage.Build(panelRect, theme, lines, debugRefreshers, tab++, tabCount));
-            if (vhs != null)
-                debugMenu.AddTab(VhsTapeDebugPage.Build(panelRect, theme, vhs, debugRefreshers, tab++, tabCount));
-            if (psx != null)
-                debugMenu.AddTab(PsxLookDebugPage.Build(panelRect, theme, psx, debugRefreshers, tab++, tabCount));
-            if (crt != null)
-                debugMenu.AddTab(CrtScreenDebugPage.Build(panelRect, theme, crt, debugRefreshers, tab++, tabCount));
+            // No `changed` for the registered pages: every knob they expose
+            // applies live (the city's cars and camera, the FX drivers re-read
+            // their assets every frame), so they never need the reload the
+            // runner's track sliders do.
+            foreach (var provider in registered)
+                provider.AddTabs(debugMenu, panelRect, theme, debugRefreshers, ref tab, tabCount);
         }
 
         // The debug sliders wrote their values into the settings assets as
@@ -563,13 +524,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         void ReloadScene()
         {
             DebugAssetEdits.Flush();     // commit the debug tweaks written to assets
-            DebugMenuHooks.Flush?.Invoke();
-            RainDebugPage.Flush();
-            DistanceFogDebugPage.Flush();
-            SpeedLinesDebugPage.Flush();
-            VhsTapeDebugPage.Flush();
-            PsxLookDebugPage.Flush();
-            CrtScreenDebugPage.Flush();
             PlayerProfileStore.SaveIfDirty();
 
             Time.timeScale = 1f;

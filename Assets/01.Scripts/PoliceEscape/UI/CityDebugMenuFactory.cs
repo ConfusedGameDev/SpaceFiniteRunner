@@ -49,14 +49,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         public static CityDebugTabs None => new(null, null, null, null);
 
         /// <summary>
-        /// Registers the city pages with the menu framework's hooks so the
-        /// pause menu can build them without referencing this assembly.
+        /// Registers the city pages with the menu's page registry (first, before
+        /// the shared FX pages) so the pause menu builds them without
+        /// referencing this assembly. Silent in a runner scene: the runner loads
+        /// additively over the city it replaces, so for a beat both worlds exist
+        /// and its menu must not sprout car tabs that are about to unload.
         /// </summary>
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         static void RegisterHooks()
         {
-            DebugMenuHooks.Discover = () => Discover();
-            DebugMenuHooks.Flush = Flush;
+            DebugPages.Register("City", 0, () =>
+                Object.FindFirstObjectByType<ConfusedGameDev.FiniteRunner.Track.TrackGenerator>() != null ? null : Discover());
             DebugMenuHooks.FullScreenTakeoverOpen = () => CityMapScreen.IsOpen;
         }
 
@@ -507,7 +510,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                     ? VehiclePhysicsSettings.Backend.EdyVehiclePhysics
                     : VehiclePhysicsSettings.Backend.BuiltIn;
                 VehiclePhysicsSettings.ApplyToLiveCars();
-                MarkDirty(settings);
+                DebugAssetEdits.Touch(settings);
             }
 
             var row = screen.AddRow<MenuChoice>(MenuTextId.CarPhysicsBackend);
@@ -535,7 +538,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 var objective = Objective();
                 if (objective == null) return;
                 set(objective, v);
-                MarkDirty(manager.Level);
+                DebugAssetEdits.Touch(manager.Level);
             });
             refreshers?.Add(() =>
             {
@@ -574,7 +577,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             {
                 set(config, v);
                 PushToLiveCars(config, chassis);
-                MarkDirty(config);
+                DebugAssetEdits.Touch(config);
             });
             refreshers?.Add(() => row.SetWithoutNotify(get(config)));
         }
@@ -588,7 +591,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             {
                 set(config, v);
                 PushToLiveCars(config, false);
-                MarkDirty(config);
+                DebugAssetEdits.Touch(config);
             }
             row.Configure(get(config), OnChanged);
             refreshers?.Add(() => row.Configure(get(config), OnChanged));
@@ -603,7 +606,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             row.Configure(min, max, step, get(settings), format, v =>
             {
                 set(settings, v);
-                MarkDirty(settings);
+                DebugAssetEdits.Touch(settings);
             });
             refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
         }
@@ -618,7 +621,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             row.Configure(min, max, step, get(settings), format, v =>
             {
                 set(settings, v);
-                MarkDirty(settings);
+                DebugAssetEdits.Touch(settings);
             });
             refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
             return row;
@@ -642,39 +645,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 if (clone) CarUpgradeApplier.Refresh(car.config);
                 if (chassis && (clone || car.config == config)) car.ApplyConfig();
             }
-        }
-
-        // -------------------------------------------------------- persistence
-
-#if UNITY_EDITOR
-        static readonly List<Object> touched = new();
-#endif
-
-        /// <summary>Marks an edited settings asset for the next <see cref="Flush"/>.</summary>
-        static void MarkDirty(Object asset)
-        {
-#if UNITY_EDITOR
-            // Only real assets: a LevelManager with nothing assigned plays an
-            // in-memory level, and there is nothing on disk to save for it.
-            if (asset == null || !UnityEditor.EditorUtility.IsPersistent(asset)) return;
-            if (!touched.Contains(asset)) touched.Add(asset);
-            UnityEditor.EditorUtility.SetDirty(asset);
-#endif
-        }
-
-        /// <summary>
-        /// Writes every asset these tabs edited to disk (editor only — builds
-        /// keep the changes for the app session). Called at the pause menu's
-        /// commit points, not on every slider tick, so the tweaks are on disk
-        /// well before play mode ends.
-        /// </summary>
-        public static void Flush()
-        {
-#if UNITY_EDITOR
-            foreach (var asset in touched)
-                if (asset != null) UnityEditor.AssetDatabase.SaveAssetIfDirty(asset);
-            touched.Clear();
-#endif
         }
     }
 

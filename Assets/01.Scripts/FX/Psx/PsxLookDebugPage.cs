@@ -12,15 +12,11 @@ namespace ConfusedGameDev.FiniteRunner.FX
     /// PauseMenu adds it wherever it finds one. The driver re-reads its asset
     /// every frame (no runtime clone), so these sliders edit the asset itself:
     /// the change is on screen the moment the menu is dismissed, and it is
-    /// kept dirty until <see cref="Flush"/> writes it at the menu's commit
+    /// kept dirty until the pause menu's flush (<see cref="DebugAssetEdits"/>) writes it at the menu's commit
     /// points — the same persistence contract the other pages keep.
     /// </summary>
     public static class PsxLookDebugPage
     {
-        const float RowHeight = 54f;
-        const float RowSpacing = 8f;
-        const float ContentTop = 340f;
-
         /// <summary>The live driver's asset, or null when the scene has no console look to tune.</summary>
         public static PsxLookSettings Discover()
         {
@@ -38,68 +34,33 @@ namespace ConfusedGameDev.FiniteRunner.FX
         public static MenuScreen Build(RectTransform parent, MenuTheme theme, PsxLookSettings settings,
                                        List<System.Action> refreshers, int tabIndex, int tabCount)
         {
-            var screen = MenuScreen.Create("Debug_PsxLook", parent, theme, 0f, ContentTop);
-            screen.SetRowMetrics(RowHeight, RowSpacing);
-            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabPsx, tabIndex, tabCount);
+            var page = new SettingsDebugPage<PsxLookSettings>("Debug_PsxLook", parent, theme, MenuTextId.DebugTabPsx, settings, refreshers, tabIndex, tabCount);
 
-            Add(screen, settings, refreshers, MenuTextId.PsxIntensity,
+            page.Slider(MenuTextId.PsxIntensity,
                 0f, 1f, 0.05f, "0.00", s => s.intensity, (s, v) => s.intensity = v);
-            Add(screen, settings, refreshers, MenuTextId.PsxResolution,
+            page.Slider(MenuTextId.PsxResolution,
                 120f, 480f, 20f, "0", s => s.targetHeight, (s, v) => s.targetHeight = Mathf.RoundToInt(v));
-            Add(screen, settings, refreshers, MenuTextId.PsxColorBits,
+            page.Slider(MenuTextId.PsxColorBits,
                 3f, 8f, 1f, "0", s => s.colorBits, (s, v) => s.colorBits = Mathf.RoundToInt(v));
-            Add(screen, settings, refreshers, MenuTextId.PsxDither,
+            page.Slider(MenuTextId.PsxDither,
                 0f, 1f, 0.05f, "0.00", s => s.dither, (s, v) => s.dither = v);
-            Add(screen, settings, refreshers, MenuTextId.PsxWobble,
+            page.Slider(MenuTextId.PsxWobble,
                 0f, 3f, 0.25f, "0.00", s => s.wobble, (s, v) => s.wobble = v);
-            Add(screen, settings, refreshers, MenuTextId.PsxWobbleBlock,
+            page.Slider(MenuTextId.PsxWobbleBlock,
                 4f, 64f, 4f, "0", s => s.wobbleBlock, (s, v) => s.wobbleBlock = Mathf.RoundToInt(v));
-            Add(screen, settings, refreshers, MenuTextId.PsxSwim,
+            page.Slider(MenuTextId.PsxSwim,
                 0f, 2f, 0.1f, "0.0", s => s.swim, (s, v) => s.swim = v);
-            Add(screen, settings, refreshers, MenuTextId.PsxJitterRate,
+            page.Slider(MenuTextId.PsxJitterRate,
                 1f, 60f, 1f, "0", s => s.jitterRate, (s, v) => s.jitterRate = v);
-            Add(screen, settings, refreshers, MenuTextId.PsxDepthFalloff,
+            page.Slider(MenuTextId.PsxDepthFalloff,
                 0f, 0.05f, 0.005f, "0.000", s => s.wobbleDepthFalloff, (s, v) => s.wobbleDepthFalloff = v);
-            return screen;
+            return page.Screen;
         }
 
-        static void Add(MenuScreen screen, PsxLookSettings settings, List<System.Action> refreshers,
-                        MenuTextId label, float min, float max, float step, string format,
-                        System.Func<PsxLookSettings, float> get, System.Action<PsxLookSettings, float> set)
-        {
-            var row = screen.AddRow<DebugSliderRow>(label);
-            row.Configure(min, max, step, get(settings), format, v =>
-            {
-                set(settings, v);
-                MarkDirty(settings);
-            });
-            refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
-        }
-
-        // -------------------------------------------------------- persistence
-
-#if UNITY_EDITOR
-        static readonly List<Object> touched = new();
-#endif
-
-        /// <summary>Marks the edited asset for the next <see cref="Flush"/> — a no-op for the in-memory default, which has no file to save.</summary>
-        static void MarkDirty(Object asset)
-        {
-#if UNITY_EDITOR
-            if (asset == null || !UnityEditor.EditorUtility.IsPersistent(asset)) return;
-            if (!touched.Contains(asset)) touched.Add(asset);
-            UnityEditor.EditorUtility.SetDirty(asset);
-#endif
-        }
-
-        /// <summary>Writes the tuned asset to disk (editor only) — called at the pause menu's commit points, not on every slider tick.</summary>
-        public static void Flush()
-        {
-#if UNITY_EDITOR
-            foreach (var asset in touched)
-                if (asset != null) UnityEditor.AssetDatabase.SaveAssetIfDirty(asset);
-            touched.Clear();
-#endif
-        }
+        // Registered with the pause menu's page registry: any scene with a
+        // driver gets this tab, and the menu never names the system.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        static void Register() =>
+            DebugPages.Register(nameof(PsxLookDebugPage), 50, () => DebugPages.Single(Discover(), Build));
     }
 }

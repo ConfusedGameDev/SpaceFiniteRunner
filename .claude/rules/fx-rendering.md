@@ -67,8 +67,8 @@ when the fog is off — because the brain pushes lens clip planes onto the camer
 `Tools → Police Escape → Install Distance Fog Feature` (`DistanceFogInstaller`) creates the
 material + settings asset (never overwriting) and **inserts** the feature before the `GlitchPost`
 full-screen feature on every renderer asset. `DistanceFogDebugPage` (nine slider rows, `MenuTextId`
-`Fog*` / `FarGlitch*`) is added by `PauseMenu` wherever a `DistanceFog` exists, editing the asset
-directly and flushing at the menu's commit points.
+`Fog*` / `FarGlitch*`) registers with the pause menu's page registry and appears wherever a
+`DistanceFog` exists, editing the asset directly (a `SettingsDebugPage`; see `ui-menus.md`).
 
 ## Speed lines
 
@@ -382,4 +382,5 @@ editor preview.
 - `RainDebugPage` lives here with the system, not in either game's factory, because both scenes
   spawn the same `RainSystem`. It is added whenever the scene is raining: eight downpour rows,
   where the two min-max bands (fall speed, drop size) collapse to one row each that *slides* the
-  band and keeps its spread. It edits the asset directly and flushes at the menu's commit points.
+  band and keeps its spread. It edits the asset directly (a `SettingsDebugPage` registered with
+  `DebugPages`, like every FX page here — see `ui-menus.md`).
