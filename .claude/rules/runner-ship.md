@@ -352,7 +352,8 @@ wires an empty `GameManager.level`.
 (`Data/FiniteRunner_GameSettings.asset`). Add new knobs there, not as fields on the manager;
 patrol chase tunables live on `PatrolDefinition` instead.
 
-`Awake` wires the scene's `PolicePatrol` (`patrol.Init(motor)`; deactivates it when
+`Awake` wires the scene's `PolicePatrol` (`patrol.Init(motor, motor, settings, motor.Track, generator)`
+— the chase contracts, the run's rules, the track; deactivates it when
 `GameSettings.patrolEnabled` is off) and spawns the `PauseMenu` **after** that init so the debug
 menu can bind to the patrol's live definition.
 
@@ -422,6 +423,16 @@ minimap range, redeploy) stay on `GameSettings`.
   patrol that fraction of the ship's actual gain (after weight) in the same frame. A +100 km/h orb
   is +70 km/h for the patrol, so boosts stop buying the gap. Brakes are never shared and the floor
   is untouched.
+- **The patrol never sees the ship's motor** (refactor Step 7). It hunts through
+  `Contracts.IChaseTarget` (track distance — the physics value, plus `DisplayDistance` for readouts
+  — lateral, speed, paused, steady, off the end, brake input, armed + `SpendArmed`, handling
+  response, `ScaleBoost`, fall gravity / tumble, the `Boosted` event) and acts in a duel only
+  through `Contracts.IControlTakeover` (steer assist, dash lock, autopilot line + gain, dash
+  consume / drain, impact speed loss, lateral shove, visual kick). `ShipMotor` implements both
+  explicitly. The run's rules (`GameSettings`) and the track come in through `Init`, not through
+  the ship (`target.DashSettings` is gone) or scene searches (only a fallback). `PatrolDriver.Drive`
+  takes the ship's lateral as a float. The patrol still drives a `TrackBody` on the track's
+  coordinates: it is a track vehicle, and the track knows nothing of it.
 - **The duel's rules all live on `PatrolDefinition`** (refactor Step 4): the Duel group now also
   holds the run-wide knobs that were on GameSettings — `duelEnabled`, `duelTimeScale` /
   `duelTimeBlendSeconds`, `finisherWindowSeconds`, `duelHitStopSeconds`, `armedWindowSeconds` /

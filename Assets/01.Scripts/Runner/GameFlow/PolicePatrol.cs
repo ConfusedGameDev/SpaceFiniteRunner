@@ -9,6 +9,7 @@ using ConfusedGameDev.FiniteRunner.Simulation;
 using ConfusedGameDev.FiniteRunner.Track;
 using ConfusedGameDev.FiniteRunner.Track.Features;
 using ConfusedGameDev.FiniteRunner.UI;
+using ConfusedGameDev.FiniteRunner.Contracts;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>
@@ -87,8 +88,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
         PatrolVisualSettings visualSettings;
 
-        ShipMotor target;
-        ShipArmed armed;      // the ship's armed window, if the run has one; the skip to the finisher reads it
+        IChaseTarget target;      // the hunted vehicle, by contract — the patrol never sees its motor or body
+        IControlTakeover control; // what the duel may do to it
+        GameSettings runRules;    // the run's feedback rules (explosion, shakes, substeps), handed in by the game flow
         TrackManager track;
         PatrolDefinition runtimeDef; // clone of the asset, the only copy ever mutated
 
@@ -220,7 +222,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (runtimeDef == null) return "duel: no definition";
             string line = $"{encounter.State} gap {SimGap:0} across {AcrossToShip():0} pool {damagePool}/{runtimeDef.damagePoolMax} tier {escalationTier} (x{TierScale:0.00})";
-            if (controlLocked) line += $" LOCK->{target.AutopilotLateral:0.0}";
+            if (controlLocked) line += $" LOCK->{control.AutopilotLateral:0.0}";
             if (encounter.InTugOfWar) return $"{line} tug {encounter.Tug:0.00} side {encounter.Side}";
             if (encounter.Overshooting) return $"{line} held {body.ForwardSpeed * 3.6f:0} km/h";
             if (encounter.State == PatrolEncounterState.Cruising)
@@ -260,10 +262,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public void AbortEncounter() => encounter.Abort();
 
         /// <summary>The gap on the simulation's own state — what the catch and the driver judge by.</summary>
-        float SimGap => target != null && target.Body != null && body != null ? target.Body.Distance - body.Distance : float.MaxValue;
+        float SimGap => target != null && body != null ? target.Distance - body.Distance : float.MaxValue;
         /// <summary>How many patrols have joined the chase this run (1 = the launch patrol).</summary>
         public int PatrolNumber { get; private set; } = 1;
-        public float GapToShip => target != null ? target.DistanceTravelled - DistanceTravelled : float.MaxValue;
+        public float GapToShip => target != null ? target.DisplayDistance - DistanceTravelled : float.MaxValue;
 
         /// <summary>
         /// True once this patrol has run off the END of the track: it is
@@ -328,12 +330,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             encounter.Reset(); // held or released, no run survives it
             DuelMashInput.Clear();
             ReleaseControl();  // a ship off the road or waiting to relaunch is nobody's to steer
-            if (target != null) target.SteerAssist = 0f;
+            if (target != null) control.SteerAssist = 0f;
             if (hold || target == null) return;
 
             if (body != null && SimGap < minGapOnRelease)
             {
-                body.Distance = target.Body.Distance - minGapOnRelease;
+                body.Distance = target.Distance - minGapOnRelease;
                 body.SnapInterpolation();
                 ApplyPose(1f);
             }
@@ -347,25 +349,31 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool ProximityRumble { get; set; } = true;
 
         /// <summary>
-        /// Wires the scene patrol up for a run: clones its definition,
+        /// Wires the scene patrol up for a run: what it hunts (read through
+        /// <see cref="IChaseTarget"/>) and may take over in a duel
+        /// (<see cref="IControlTakeover"/> — the target's own when not given),
+        /// the run's rules, the track it drives; then clones its definition,
         /// builds the cruiser visual and launches the chase. Called by the
-        /// GameManager in Awake; the object stays inert without it.
+        /// composition root (the GameManager) in Awake; the object stays inert
+        /// without it. A missing track or generator is looked up in the scene.
         /// </summary>
-        public void Init(ShipMotor target)
+        public void Init(IChaseTarget target, IControlTakeover control, GameSettings runRules,
+                         TrackManager track = null, TrackGenerator generator = null)
         {
             if (this.target != null)
             {
-                this.target.PadImpulse -= OnShipImpulse;
+                this.target.Boosted -= OnShipImpulse;
                 ReleaseControl();
             }
             this.target = target;
-            armed = target != null ? target.GetComponent<ShipArmed>() : null;
+            this.control = control ?? target as IControlTakeover;
+            this.runRules = runRules;
             // The kill is a PRESS read in Update, not the ship's dash: under the
             // exchange's control lock the ship swallows every dash request, so a
             // DashPerformed subscription here could never fire when it mattered.
-            if (target != null) target.PadImpulse += OnShipImpulse;
-            track = FindFirstObjectByType<TrackManager>();
-            generator = FindFirstObjectByType<TrackGenerator>();
+            if (target != null) target.Boosted += OnShipImpulse;
+            this.track = track != null ? track : FindFirstObjectByType<TrackManager>();
+            this.generator = generator != null ? generator : FindFirstObjectByType<TrackGenerator>();
 
             if (definition == null)
             {
@@ -421,10 +429,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (target != null)
             {
-                target.PadImpulse -= OnShipImpulse;
+                target.Boosted -= OnShipImpulse;
                 ReleaseControl();        // never leave the ship flying itself for a patrol that is gone
-                target.SteerAssist = 0f;
-                target.DashLocked = false;
+                control.SteerAssist = 0f;
+                control.DashLocked = false;
             }
             if (sparks != null) Kill(sparks.gameObject);
         }
@@ -446,10 +454,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (!controlLocked) return;
             controlLocked = false;
             if (target == null) return;
-            target.Autopilot = false;
-            target.AutopilotLateral = 0f;
-            target.AutopilotGain = 1f;
-            target.ConsumeDashRequest();
+            control.Autopilot = false;
+            control.AutopilotLateral = 0f;
+            control.AutopilotGain = 1f;
+            control.ConsumeDashRequest();
         }
 
         /// <summary>
@@ -467,7 +475,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void OnShipImpulse(float rawMagnitude)
         {
             if (rawMagnitude <= 0f || runtimeDef == null || body == null || HasCaught || IsGone) return;
-            float gain = target.Definition != null ? target.Definition.ScalePadEffect(rawMagnitude) : rawMagnitude;
+            float gain = target.ScaleBoost(rawMagnitude);
             body.ForwardSpeed += gain * runtimeDef.boostShare;
         }
 
@@ -543,7 +551,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         void Kill(bool spendsDashMeter, bool raiseFloor)
         {
-            GameSettings rules = target.DashSettings;
+            GameSettings rules = runRules;
             Vector3 origin = visual != null ? visual.position : transform.position;
             if (rules != null && rules.explosionTextures != null && rules.explosionTextures.Count > 0)
                 ExplosionVfx.SpawnFireball(origin, rules.explosionTextures,
@@ -553,10 +561,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             HapticsSystem.Instance.Pulse(1f, 1f, 0.5f);
             CameraShake.Shake(rules != null ? rules.explosionShake : default);
             DuelSlowMo.RequestHitStop(runtimeDef.duelHitStopSeconds);
-            if (spendsDashMeter) target.DrainDashMeter();
+            if (spendsDashMeter) control.DrainDashMeter();
             ReleaseControl(); // the player has the ship back the frame the cruiser goes
-            target.SteerAssist = 0f;
-            target.DashLocked = false;
+            control.SteerAssist = 0f;
+            control.DashLocked = false;
 
             // Hidden for the reposition, and off the minimap with it, so the
             // teleport is never seen from either direction.
@@ -620,9 +628,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         void StepEndFall(float dt)
         {
-            ShipSettings shipRules = target != null ? target.ShipSettings : ShipSettings.Default;
-            float gravity = shipRules.fallGravity;
-            float tumble = shipRules.fallTumbleDegreesPerSecond;
+            float gravity = target != null ? target.FallGravity : ShipSettings.Default.fallGravity;
+            float tumble = target != null ? target.FallTumbleDegreesPerSecond : ShipSettings.Default.fallTumbleDegreesPerSecond;
             prevOffPosition = offPosition;
             offVelocity += Vector3.down * (gravity * dt);
             offPosition += offVelocity * dt;
@@ -654,7 +661,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             // The exchange holds the dash for its whole length (the kill is a
             // press now, not a dash).
-            target.DashLocked = duelEnabled && encounter.LocksDash;
+            control.DashLocked = duelEnabled && encounter.LocksDash;
 
             // The lock is taken by the fixed tick, which stops running on a
             // catch, a hold or a pause — so the RELEASE is owned here, where
@@ -665,7 +672,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                && !HasCaught && !Hold && !IsGone && !target.HasLeftTrackEnd;
             if (controlLocked && !lockAllowed) ReleaseControl();
             if (!encounter.InTugOfWar && sparks != null) sparks.Stop();
-            if (!encounter.InExchange && target.SteerAssist != 0f) target.SteerAssist = 0f;
+            if (!encounter.InExchange && control.SteerAssist != 0f) control.SteerAssist = 0f;
             StepSlams(lockAllowed);
 
             PollFinisher();
@@ -697,10 +704,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             }
             // Freezes with the ship: tuning screen open or run over — and
             // holds while the ship is off the track or waiting to relaunch.
-            if (HasCaught || target.Paused || Hold || target.Body == null) return;
+            if (HasCaught || target.Paused || Hold) return;
 
             float dt = Time.fixedDeltaTime;
-            GameSettings rules = target.DashSettings;
+            GameSettings rules = runRules;
             int substeps = Mathf.Max(1, rules != null ? rules.simSubsteps : 1);
 
             // The ship's acceleration over the tick (its HoverShip ticks first,
@@ -709,8 +716,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // a single-tick drop (a wall scrape, an impulse blending in, a
             // harness clamp) is hundreds of m/s² for one sample and must not read
             // as braking; a real brake or pad holds the deceleration for longer.
-            float rawAccel = (target.CurrentSpeed - lastShipSpeed) / Mathf.Max(dt, 1e-5f);
-            lastShipSpeed = target.CurrentSpeed;
+            float rawAccel = (target.Speed - lastShipSpeed) / Mathf.Max(dt, 1e-5f);
+            lastShipSpeed = target.Speed;
             shipAccel = Mathf.Lerp(shipAccel, rawAccel, 1f - Mathf.Exp(-dt / ShipAccelSmoothSeconds));
 
             body.BeginTick();
@@ -728,7 +735,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // Rubber band: chase the ship's speed (scaled), but never drop
             // below the floor — the launch speed plus the accumulated ramp.
             minSpeed += runtimeDef.ramp * dt;
-            float desired = Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.rubberBand);
+            float desired = Mathf.Max(minSpeed, target.Speed * runtimeDef.rubberBand);
 
             // The ship has left the END of the track (won or lost): it is no
             // longer on the road to be tailed, caught, warned or cut in
@@ -745,14 +752,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             {
                 // The tick's presses are spent on the first substep only —
                 // splitting them would round most of them away.
-                var ctx = new PatrolEncounterContext(gap, AcrossToShip(), target.Body.Lateral,
-                                                     target.Body.Distance, runtimeDef, track, generator,
+                var ctx = new PatrolEncounterContext(gap, AcrossToShip(), target.Lateral,
+                                                     target.Distance, runtimeDef, track, generator,
                                                      ShipSteady, unscaledStep,
                                                      runtimeDef.duelAssistStrength,
                                                      pendingPresses,
                                                      runtimeDef.finisherWindowSeconds,
-                                                     PushScale, target.CurrentSpeed, body.ForwardSpeed,
-                                                     armed != null && armed.IsArmed, TierScale,
+                                                     PushScale, target.Speed, body.ForwardSpeed,
+                                                     target.IsArmed, TierScale,
                                                      target.BrakeInput, shipAccel);
                 pendingPresses = 0;
                 encounter.Tick(dt, ctx, out intent);
@@ -761,12 +768,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 if (encounter.SpentArming)
                 {
                     encounter.SpentArming = false;
-                    if (armed != null) armed.Spend();
+                    target.SpendArmed();
                 }
             }
             // Soft assist: ADDED to the player's steering, never a takeover,
             // so the dash (and M2's finisher, which is one) still fires.
-            target.SteerAssist = intent.SteerAssist;
+            control.SteerAssist = intent.SteerAssist;
 
             // On the ship's tail it stops gaining: it matches the ship and
             // works on the sideways gap instead of driving through it. A
@@ -775,7 +782,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // is one-sided, so a negative gap passes it and the cruiser
             // re-matches the ship's speed instead of running off up the track.
             bool onTail = !shipLeft && gap <= runtimeDef.catchDistance;
-            if (onTail && !encounter.Engaged && !encounter.Overshooting) desired = Mathf.Min(desired, target.CurrentSpeed);
+            if (onTail && !encounter.Engaged && !encounter.Overshooting) desired = Mathf.Min(desired, target.Speed);
             // A committed run OWNS the speed: station keeping has to be able to
             // ask for slower as well as faster, and the redeploy floor (which
             // sits above the ship's speed) would otherwise drive the cruiser
@@ -785,7 +792,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // so it is unpacked the same way: against a ship doing less than a
             // metre a second the plain product collapsed every target to zero
             // and a run could never close on a slow or stopped ship.
-            float relative = target.CurrentSpeed + (intent.SpeedMultiplier - 1f) * Mathf.Max(target.CurrentSpeed, 1f);
+            float relative = target.Speed + (intent.SpeedMultiplier - 1f) * Mathf.Max(target.Speed, 1f);
             if (intent.SpeedIsAbsolute)
                 desired = relative;
             // Otherwise: above 1 the multiplier is a FLOOR, below 1 a CAP (the
@@ -803,7 +810,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 desired = intent.AbsoluteSpeedMps.Value;
             bool ownsSpeed = intent.SpeedIsAbsolute || intent.AbsoluteSpeedMps.HasValue;
 
-            BodyControls controls = driver.Drive(body, target.Body, track, runtimeDef, gap, out float speedCap,
+            BodyControls controls = driver.Drive(body, target.Lateral, track, runtimeDef, gap, out float speedCap,
                                                  intent.LineOverride);
             controls.brake = Mathf.Max(controls.brake, Mathf.Clamp01(intent.Brake)); // the miss brake: the body's own brake rate, not the cruise slew
             // The sweep's grip limit still wins: an attack run does not get to
@@ -868,12 +875,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // and by Update's safety net for everything that stops this tick.
             if (duelEnabled && intent.ShipLateralTarget.HasValue && ShipSteady)
             {
-                target.AutopilotLateral = intent.ShipLateralTarget.Value;
-                target.AutopilotGain = runtimeDef.tugPushGain; // the push's force, live off the clone so the debug row bites
+                control.AutopilotLateral = intent.ShipLateralTarget.Value;
+                control.AutopilotGain = runtimeDef.tugPushGain; // the push's force, live off the clone so the debug row bites
                 if (!controlLocked)
                 {
                     controlLocked = true;
-                    target.Autopilot = true;
+                    control.Autopilot = true;
                 }
             }
             else if (controlLocked) ReleaseControl();
@@ -884,7 +891,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             contactNow = intent.Contact;
             if (intent.Contact && sparks != null)
             {
-                float contactLateral = body.Lateral + (target.Body.Lateral - body.Lateral) * 0.5f;
+                float contactLateral = body.Lateral + (target.Lateral - body.Lateral) * 0.5f;
                 track.GetPoseAtDistance(body.Distance, contactLateral, out Vector3 contact, out Quaternion contactRot);
                 contact += contactRot * (Vector3.up * (body.Height + 0.6f));
                 contactPush = 0.35f + 0.65f * Mathf.Clamp01(Mathf.Abs(encounter.Tug - 0.5f) * 2f);
@@ -907,8 +914,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             float lanedGap = SimGap;
             if (Mathf.Abs(AcrossToShip()) < SideBySideLateral)
             {
-                if (lanedGap >= 0f && lanedGap < MinLaneGap) body.Distance = target.Body.Distance - MinLaneGap;
-                else if (lanedGap < 0f && lanedGap > -MinLaneGap) body.Distance = target.Body.Distance + MinLaneGap;
+                if (lanedGap >= 0f && lanedGap < MinLaneGap) body.Distance = target.Distance - MinLaneGap;
+                else if (lanedGap < 0f && lanedGap > -MinLaneGap) body.Distance = target.Distance + MinLaneGap;
             }
 
             HoldFlank();
@@ -940,16 +947,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         float AcrossToShip()
         {
-            float across = target.Body.Lateral - body.Lateral;
+            float across = target.Lateral - body.Lateral;
             if (track.SectionAt(body.Distance) is TubeSection { Unbounded: true } tube)
                 across = Mathf.Repeat(across + tube.Circumference * 0.5f, tube.Circumference) - tube.Circumference * 0.5f;
             return across;
         }
 
         /// <summary>The ship is on the road and driveable — nothing to attack otherwise.</summary>
-        bool ShipSteady => target.State != ShipState.OffTrack
-                        && target.State != ShipState.Respawning
-                        && target.State != ShipState.Falling;
+        bool ShipSteady => target.Steady;
 
         /// <summary>
         /// The rear ram, detected the only way anything is detected in this
@@ -985,7 +990,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             if (!ramArmed || ramCooldown > 0f || damagePool <= 0) return;
             if (encounter.InExchange || !ShipSteady) return;
-            if (target.CurrentSpeed - body.ForwardSpeed < runtimeDef.ramClosingSpeedThreshold) return;
+            if (target.Speed - body.ForwardSpeed < runtimeDef.ramClosingSpeedThreshold) return;
 
             ramArmed = false;
             TakeRam(rules);
@@ -1000,7 +1005,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             ramCooldown = RamCooldownSeconds;
             ramKickLeft = RamKickSeconds;
 
-            target.ApplyImpactSpeedLoss(runtimeDef.ramSpeedCost);
+            control.ApplyImpactSpeedLoss(runtimeDef.ramSpeedCost);
 
             // Sparks off the cruiser's BACK, where the two actually met — a
             // couple of metres behind its centre, lifted to bumper height.
@@ -1040,7 +1045,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (!near) return;
 
             float offset = runtimeDef.flankOffsetMeters;
-            float shipLateral = target.Body.Lateral;
+            float shipLateral = target.Lateral;
             float out_ = (body.Lateral - shipLateral) * side; // metres out on its own side; below the offset is inside the ship
             if (!glue && out_ >= offset) return;                // already clear: the driver keeps its own line
 
@@ -1086,9 +1091,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             float strength = contactPush;
             slamKickLeft = SlamKickSeconds;
             sparks.Slam(strength);
-            if (encounter.Side != 0) target.VisualKick(-encounter.Side * runtimeDef.tugSlamKickMeters * Mathf.Lerp(0.6f, 1f, strength));
+            if (encounter.Side != 0) control.VisualKick(-encounter.Side * runtimeDef.tugSlamKickMeters * Mathf.Lerp(0.6f, 1f, strength));
             HapticsSystem.Instance.Pulse(Mathf.Lerp(0.4f, 0.9f, strength), 0.5f, 0.12f);
-            GameSettings rules = target.DashSettings;
+            GameSettings rules = runRules;
             if (rules != null) CameraShake.Shake(rules.wallHitShake);
         }
 
@@ -1122,9 +1127,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // ship left.
         void Shove(int side)
         {
-            if (target.Definition == null) return;
-            float drag = target.Definition.handlingResponse;
-            target.AddLateralShove(-side * runtimeDef.shoveMeters * drag);
+            float drag = target.HandlingResponse;
+            control.AddLateralShove(-side * runtimeDef.shoveMeters * drag);
             HapticsSystem.Instance.Pulse(1f, 0.8f, 0.5f);
         }
 
@@ -1162,8 +1166,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void Redeploy(bool raiseFloor, float gapOverride = 0f)
         {
             float speed = raiseFloor
-                ? Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.redeploySpeedFactor)
-                : Mathf.Max(minSpeed, target.CurrentSpeed * runtimeDef.rubberBand);
+                ? Mathf.Max(minSpeed, target.Speed * runtimeDef.redeploySpeedFactor)
+                : Mathf.Max(minSpeed, target.Speed * runtimeDef.rubberBand);
             if (raiseFloor)
             {
                 minSpeed = speed;
@@ -1173,7 +1177,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // (R7.3 — the player earned neither).
                 escalationTier++;
             }
-            body.Reset(target.Body.Distance - (gapOverride > 0f ? gapOverride : runtimeDef.RedeployGap), speed);
+            body.Reset(target.Distance - (gapOverride > 0f ? gapOverride : runtimeDef.RedeployGap), speed);
             tailTimer = 0f;
             warnCooldown = 0f;
             warned = false;

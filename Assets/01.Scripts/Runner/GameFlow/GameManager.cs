@@ -345,7 +345,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // run instead of breaking the scene.
             if (settings.patrolEnabled && motor != null && patrol != null)
             {
-                patrol.Init(motor); // the redeploy rule is on its PatrolDefinition
+                // The composition root hands the patrol what it hunts and may take
+                // over (the motor, through the chase contracts), the run's rules and
+                // the track it drives. The redeploy rule is on its PatrolDefinition.
+                patrol.Init(motor, motor, settings, motor.Track, generator);
                 patrol.Redeployed += OnPatrolRedeployed;
                 patrol.Warned += OnPatrolWarned;
                 patrol.ProximityRumble = settings.patrolProximityRumble;

@@ -199,10 +199,10 @@
   <div class="facts">
     <span>Unity <b>6000.7.0a3</b> · URP 17.7</span>
     <span>Branch <b class="mono">refactor/single-source-tuning</b></span>
-    <span>Refactor <b>7 of 12 steps</b> done</span>
+    <span>Refactor <b>8 of 12 steps</b> done</span>
   </div>
   <div class="legend" aria-label="Change markers">
-    <span><span class="tag done">Changed · Step 6</span> already changed on the branch</span>
+    <span><span class="tag done">Changed · Step 7</span> already changed on the branch</span>
     <span><span class="tag plan">Step 3</span> planned, with the step that does it</span>
     <span><span class="tag drift">Shipped ≠ authored</span> the value that runs is not the value in the inspector</span>
     <span><span class="tag retired">Retired</span> kept in code, no longer used</span>
@@ -365,7 +365,7 @@ flowchart BT
       <dl><dt>Coupling</dt><dd>none to the ship or the game flow: it holds <code>IStreamFocus</code>, <code>IShipPerformance</code> and <code>ITrackRunRules</code> (Contracts), handed in by <code>Bind</code> or discovered by interface. Laser hits name a <code>Component</code>; boost orbs ask a timing hook; repair orbs look for <code>IRepairable</code>.</dd><dt>Status</dt><dd><span class="tag done">Changed · Steps 2 + 6</span></dd></dl></div>
     <div class="sys"><h4><code>PolicePatrol</code> + the duel</h4>
       <p>Drives a <code>TrackBody</code> through <code>PatrolDriver</code> and runs the <code>PatrolEncounter</code> state machine: Cruising → Committing → Alongside → TugOfWar → Finisher → BreakingOff → Cooldown, plus Overshooting and MissBraking.</p>
-      <dl><dt>Coupling today</dt><dd>reads the ship's internal <code>TrackBody</code>, gets run rules through <code>target.DashSettings</code>, writes about 9 ship controls.</dd><dt>Plan</dt><dd><span class="tag plan">Step 7</span> <code>IChaseTarget</code> + <code>IControlTakeover</code></dd></dl></div>
+      <dl><dt>Coupling</dt><dd>none to the ship's motor: it reads <code>IChaseTarget</code> and acts only through <code>IControlTakeover</code> (Contracts); run rules and track come in through <code>Init</code>. It still drives on the track's coordinates — a track vehicle, and the track knows nothing of it.</dd><dt>Status</dt><dd><span class="tag done">Changed · Step 7</span></dd></dl></div>
     <div class="sys"><h4><code>GameManager</code></h4>
       <p>Win and lose, countdown, lives, endings and retry. Owns no tunables. Wires the run: adds about 10 components to the ship and spawns about 6 HUD pieces at <code>Awake</code>.</p>
       <dl><dt>Plan</dt><dd><span class="tag plan">Step 8</span> split into <code>RunnerInstaller</code> (wiring), <code>RunController</code> (rules) and feedback responders</dd></dl></div>
@@ -385,12 +385,12 @@ flowchart LR
   TG -. "IStreamFocus + IShipPerformance<br/>(Contracts)" .-> SM
   TG -. "ITrackRunRules (Contracts)" .-> GM
   SM -. "finds, writes sink" .-> TCB["TrackColliderBuilder"]
-  PP -. "reads TrackBody,<br/>writes controls" .-> SM
-  PP -. "run rules via DashSettings" .-> GM
-  linkStyle 5,6 stroke:#a35c00
-  linkStyle 7,8,9 stroke:#b3261e,stroke-dasharray:4 3
+  PP -. "IChaseTarget + IControlTakeover<br/>(Contracts)" .-> SM
+  GM -- "Init: run rules, track" --> PP
+  linkStyle 5,6,8 stroke:#a35c00
+  linkStyle 7 stroke:#b3261e,stroke-dasharray:4 3
 </pre>
-    <div class="cap">Solid = wiring by the composition root (stays). Amber = contract seams (Step 6: the track now reaches the ship and the game flow only through Contracts interfaces). Red dashed = couplings Steps 7–8 remove.</div>
+    <div class="cap">Solid = wiring by the composition root (stays). Amber = contract seams (Step 6: the track now reaches the ship and the game flow only through Contracts interfaces). Red dashed = the one left: the motor still finds the collider builder and guide in the scene (Step 8 hands them in).</div>
   </div>
 
   <h3 id="runner-scene">Scene wiring</h3>
@@ -554,8 +554,8 @@ flowchart LR
     <li class="is-done"><span class="st">Step 4<br/>done</span><div><b>Take the other systems' knobs off GameSettings</b><span class="d">The duel's run-wide rules joined the patrol's Duel group; the filter and rain slots were removed so each driver owns its asset; the runner's rain is hand-placed. The planned DuelSettings and CameraFeedbackSettings wrappers and the RunRules rename were dropped as churn without a tuning gain.</span></div></li>
     <li class="is-done"><span class="st">Step 5<br/>done</span><div><b>Contracts assembly</b><span class="d">Interfaces only, no references; built together with its first consumer (the track) rather than up front.</span></div></li>
     <li class="is-done"><span class="st">Step 6<br/>done</span><div><b>Track stops knowing the ship</b><span class="d">The generator, spawners and pickups hold contracts only; ShipMotor, GameManager and ShipHealth implement them; the QTE registers a timing hook.</span></div></li>
-    <li class="is-next"><span class="st">Step 7<br/>next</span><div><b>Patrol stops reaching into the ship</b><span class="d">Chase target and control takeover interfaces; full duel check.</span></div></li>
-    <li><span class="st">Step 8</span><div><b>Split GameManager</b><span class="d">Installer, run controller, feedback responders; haptic profiles; glitch requests.</span></div></li>
+    <li class="is-done"><span class="st">Step 7<br/>done</span><div><b>Patrol stops reaching into the ship</b><span class="d">IChaseTarget and IControlTakeover; run rules and track through Init. Hands-off soak: 12 km, a duel, a redeploy, no errors.</span></div></li>
+    <li class="is-next"><span class="st">Step 8<br/>next</span><div><b>Split GameManager</b><span class="d">Installer, run controller, feedback responders; haptic profiles; glitch requests.</span></div></li>
     <li><span class="st">Step 9</span><div><b>City</b><span class="d">Player registry, LevelManager split with a health meter, EVP values into CarConfig, shared AI driving profile.</span></div></li>
     <li><span class="st">Step 10</span><div><b>Shared assemblies</b><span class="d">Debug page registry, camera far-clip source, cheats, fog and rain merge.</span></div></li>
     <li><span class="st">Step 11</span><div><b>Independence proof and docs</b><span class="d">One sandbox scene per system, a validator against cross-system lookups, rule files updated.</span></div></li>
@@ -597,6 +597,7 @@ flowchart LR
     <tr data-g="runner"><td>6</td><td><span class="tag game runner">Runner</span></td><td><code>LaserGate.Hit</code>, <code>RepairOrb</code>, <code>SpeedPad</code> ↔ <code>BoostQte</code></td><td>Typed on <code>ShipMotor</code>; called <code>ShipHealth.For</code>; called <code>BoostQte.Instance</code></td><td>Hit names a <code>Component</code>; repair finds <code>IRepairable</code>; the QTE registers <code>SpeedPad.BoostTiming</code></td><td>none (play-verified: laser −30 hull)</td></tr>
     <tr data-g="runner"><td>6</td><td><span class="tag game runner">Runner</span></td><td><code>TrackGuideValidator</code></td><td>In the track folder, naming the motor</td><td>Moved beside the ship code: it validates the ship against the guide</td><td>none</td></tr>
     <tr data-g="runner"><td>merge</td><td><span class="tag game runner">Runner</span></td><td><code>FiniteRunner_TrackShape</code>, <code>GameSettings.trackLengthMeters</code>, <code>Spawner_LaserGates</code> / <code>_SpeedOrbs</code> / <code>_RepairOrbs</code></td><td>Merging <code>main</code> (d2c2980) brought the teammate's track tuning back inside the retired <code>FiniteRunner_TrackDebug</code> asset, where nothing reads it</td><td>Ported to the owners: straightness 70, 45 % flat sweeps, 90 % open straights, features to 3241 m, 33 km, orb mix 57/36/6, laser / orb / repair densities ×2.75 / ×3.75 / ×0.5 as spacings; the resurrected asset deleted</td><td><b>the teammate's tuning now actually applies</b></td></tr>
+    <tr data-g="runner"><td>7</td><td><span class="tag game runner">Runner</span></td><td><code>PolicePatrol</code>, <code>PatrolDriver</code>, <code>ShipMotor</code>, <code>Contracts/ChaseContracts.cs</code></td><td>The patrol held a <code>ShipMotor</code>: read its private <code>TrackBody</code> (13 sites), its definition, its run rules; wrote ~10 controls; found track and generator in the scene</td><td>Reads <code>IChaseTarget</code>, acts through <code>IControlTakeover</code>; rules and track through <code>Init</code>; the driver takes the ship's lateral as a float</td><td>none (hands-off soak: duel, redeploy, no errors)</td></tr>
   </table></div>
 
   <h3 id="changes-register">Duplication register</h3>

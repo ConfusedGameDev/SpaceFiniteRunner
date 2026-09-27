@@ -40,7 +40,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// </summary>
     [RequireComponent(typeof(HoverShip))]
     public partial class ShipMotor : MonoBehaviour, IRunnerShip, ICameraTarget, ICollector,
-                                     Contracts.IStreamFocus, Contracts.IShipPerformance
+                                     Contracts.IStreamFocus, Contracts.IShipPerformance,
+                                     Contracts.IChaseTarget, Contracts.IControlTakeover
     {
         // The run's definition: the HoverShip's asset until the GameManager hands
         // in the run's clone (SetDefinition). The asset itself is referenced and
@@ -248,6 +249,23 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float Contracts.IShipPerformance.CruiseSpeed => Definition != null ? Definition.cruiseSpeed : 0f;
         float Contracts.IShipPerformance.PassiveDeceleration => Definition != null ? Definition.passiveDeceleration : 0f;
         float Contracts.IShipPerformance.JumpStrength => Definition != null ? Definition.jumpStrength : 1f;
+
+        // The chaser's view of the ship (Contracts): what the patrol may read of
+        // it, and what the duel may do to it. The patrol never sees this class.
+        float Contracts.IChaseTarget.Distance => body != null ? body.Distance : DistanceTravelled;
+        float Contracts.IChaseTarget.DisplayDistance => DistanceTravelled;
+        float Contracts.IChaseTarget.Lateral => body != null ? body.Lateral : LateralOffset;
+        float Contracts.IChaseTarget.Speed => CurrentSpeed;
+        bool Contracts.IChaseTarget.Steady => State != ShipState.OffTrack && State != ShipState.Respawning && State != ShipState.Falling;
+        bool Contracts.IChaseTarget.IsArmed => Armed != null && Armed.IsArmed;
+        void Contracts.IChaseTarget.SpendArmed() { if (Armed != null) Armed.Spend(); }
+        float Contracts.IChaseTarget.HandlingResponse => Definition != null ? Definition.handlingResponse : 0f;
+        float Contracts.IChaseTarget.ScaleBoost(float rawMagnitude) => Definition != null ? Definition.ScalePadEffect(rawMagnitude) : rawMagnitude;
+        float Contracts.IChaseTarget.FallGravity => ShipSettings.fallGravity;
+        float Contracts.IChaseTarget.FallTumbleDegreesPerSecond => ShipSettings.fallTumbleDegreesPerSecond;
+        event System.Action<float> Contracts.IChaseTarget.Boosted { add => PadImpulse += value; remove => PadImpulse -= value; }
+        ShipArmed Armed => armedCache != null ? armedCache : (armedCache = GetComponent<ShipArmed>());
+        ShipArmed armedCache;
 
         /// <summary>The ship's live settings (the HoverShip's runtime clone of its ShipSettings asset): the one home of the dash, ghost, fall and respawn rules. <see cref="ShipSettings.Default"/> before the ship has woken.</summary>
         public ShipSettings ShipSettings => physicsShip != null && physicsShip.Settings != null ? physicsShip.Settings : ShipSettings.Default;

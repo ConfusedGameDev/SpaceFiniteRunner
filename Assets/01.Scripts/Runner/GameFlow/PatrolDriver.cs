@@ -49,7 +49,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// not break off for a pickup. Everything else still applies, so the
         /// patrol keeps itself off the open edge it is pushing the ship toward.
         /// </summary>
-        public BodyControls Drive(TrackBody body, TrackBody ship, TrackManager track, PatrolDefinition def,
+        public BodyControls Drive(TrackBody body, float shipLateral, TrackManager track, PatrolDefinition def,
                                   float gap, out float speedCap, float? lineOverride = null)
         {
             float d = body.Distance;
@@ -58,7 +58,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             // Round a full tube the ship's lateral may be whole turns away:
             // chase the nearest equivalent.
-            float line = lineOverride ?? ship.Lateral;
+            float line = lineOverride ?? shipLateral;
             if (track.SectionAt(d) is TubeSection { Unbounded: true } tube)
                 line += Mathf.Round((body.Lateral - line) / tube.Circumference) * tube.Circumference;
 
