@@ -20,18 +20,13 @@ MonoBehaviour:
   upBinding: 1
   rollLagSeconds: 0.15
   deoccluder: 0
-  defaultMode: 0
-  modeBlendSeconds: 0.35
-  closeDistance: 23.5
-  closeLookHeight: 3.5
-  closePitch: 8
-  duelFraming: 1
-  duelDistance: 32
-  duelLookHeight: 5
-  duelPitch: 10
-  duelBlendSeconds: 0.6
+  defaultMode: 1
+  modeBlendSeconds: 0.3
+  closeDistance: 30
+  closeLookHeight: 8.34
+  closePitch: 10.6
   eyeFromChassis: 0
-  firstPersonEyeOffset: {x: 0, y: 5, z: 5}
+  firstPersonEyeOffset: {x: 0, y: 4.53, z: 4.53}
   firstPersonForward: 0.2
   firstPersonHeight: 0.12
   firstPersonDamping: 0.06
@@ -63,6 +58,11 @@ MonoBehaviour:
   cinematicAimDamping: 1.2
   cinematicFov: 55
   cinematicBlendSeconds: 0.1
+  duelFraming: 1
+  duelDistance: 32
+  duelLookHeight: 5
+  duelPitch: 10
+  duelBlendSeconds: 0.6
   baseFov: 71
   fovPerKmh: 0.005
   maxFovBoost: 15
