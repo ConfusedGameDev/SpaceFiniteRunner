@@ -556,7 +556,7 @@ visual carries are only a picture.
   Feedback scales through the static `BoostQte.FeedbackScale` (0 plain … 1 perfect), set only
   around a graded impulse and read inside `PadImpulse`: the warp (`PadEffects` →
   `LensDistortionController.Trigger(BoostQte.WarpScale)`, up to `boostQteWarpAtPerfect`) and the
-  rumble (`GameManager.OnPadImpulse`, `boostRumble` → `boostQteRumbleAtPerfect`). The picture is
+  rumble (`RunFeedback.OnPadImpulse`, `boostRumble` → `boostQteRumbleAtPerfect`). The picture is
   `BoostQtePrompt` (`runner-hud-screens.md`). The patrol's `Take()` never grades.
 - `floatingOrb` makes it a hovering sphere on the flight line, with an `OrbHover` bob/spin/sway
   component added at runtime. `OrbHover` bobs and sways along the **track's** up/right captured

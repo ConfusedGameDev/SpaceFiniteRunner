@@ -199,10 +199,10 @@
   <div class="facts">
     <span>Unity <b>6000.7.0a3</b> · URP 17.7</span>
     <span>Branch <b class="mono">refactor/single-source-tuning</b></span>
-    <span>Refactor <b>8 of 12 steps</b> done</span>
+    <span>Refactor <b>9 of 12 steps</b> done</span>
   </div>
   <div class="legend" aria-label="Change markers">
-    <span><span class="tag done">Changed · Step 8.4</span> already changed on the branch</span>
+    <span><span class="tag done">Changed · Step 8.5</span> already changed on the branch</span>
     <span><span class="tag plan">Step 3</span> planned, with the step that does it</span>
     <span><span class="tag drift">Shipped ≠ authored</span> the value that runs is not the value in the inspector</span>
     <span><span class="tag retired">Retired</span> kept in code, no longer used</span>
@@ -367,8 +367,8 @@ flowchart BT
       <p>Drives a <code>TrackBody</code> through <code>PatrolDriver</code> and runs the <code>PatrolEncounter</code> state machine: Cruising → Committing → Alongside → TugOfWar → Finisher → BreakingOff → Cooldown, plus Overshooting and MissBraking.</p>
       <dl><dt>Coupling</dt><dd>none to the ship's motor: it reads <code>IChaseTarget</code> and acts only through <code>IControlTakeover</code> (Contracts); run rules and track come in through <code>Init</code>. It still drives on the track's coordinates — a track vehicle, and the track knows nothing of it.</dd><dt>Status</dt><dd><span class="tag done">Changed · Step 7</span></dd></dl></div>
     <div class="sys"><h4><code>GameManager</code></h4>
-      <p>Win and lose, countdown, lives, endings and retry. Owns no tunables. Wires the run: adds about 10 components to the ship and spawns about 6 HUD pieces at <code>Awake</code>.</p>
-      <dl><dt>Plan</dt><dd><span class="tag plan">Step 8</span> split into <code>RunnerInstaller</code> (wiring), <code>RunController</code> (rules) and feedback responders</dd></dl></div>
+      <p>The run's rules: win and lose, countdown, objectives, lives, hull, endings and retry. Owns no tunables. Its <code>Awake</code> is the composition root: it finds and configures the hand-placed ship and HUD components and binds its two presentation siblings.</p>
+      <dl><dt>Status</dt><dd><span class="tag done">Step 8.5</span> 1,234 → 957 lines. Split out beside it on the same object in <code>PF_Systems</code>: <code>RunFeedback</code> (every rumble, shake, glitch pulse, speed-line burst, sparkle and story line; the loop gates' tint) and <code>RunCameraDirector</code> (jump framing, loop and fall shots, the duel dolly, the endings' planted shot). Both read the run only through <code>IRunState</code>. Rules whose feedback depends on their outcome (a laser hit, a hull hit, the endings) stay in <code>GameManager</code>. The wiring was not split into a separate installer: it is the composition root, and a second class would only move it.</dd></dl></div>
     <div class="sys"><h4>HUD and screens</h4>
       <p><code>RaceHud</code> (speed wedge, life bar, timer), <code>ChaseMinimap</code>, <code>DuelBarHud</code>, <code>BoostQtePrompt</code>, <code>MissionAccomplishedBanner</code>, <code>MissionCompleteScreen</code>, <code>GameOverScreen</code>. The layout belongs to the designers.</p>
       <dl><dt>Status</dt><dd><span class="tag done">Step 8.4</span> <code>RaceHud</code> and <code>ChaseMinimap</code> read <code>IRunState</code> and <code>IChaseTarget</code>; the duel bar and boost QTE are hand-placed in <code>PF_UI</code></dd></dl></div>
@@ -555,8 +555,8 @@ flowchart LR
     <li class="is-done"><span class="st">Step 5<br/>done</span><div><b>Contracts assembly</b><span class="d">Interfaces only, no references; built together with its first consumer (the track) rather than up front.</span></div></li>
     <li class="is-done"><span class="st">Step 6<br/>done</span><div><b>Track stops knowing the ship</b><span class="d">The generator, spawners and pickups hold contracts only; ShipMotor, GameManager and ShipHealth implement them; the QTE registers a timing hook.</span></div></li>
     <li class="is-done"><span class="st">Step 7<br/>done</span><div><b>Patrol stops reaching into the ship</b><span class="d">IChaseTarget and IControlTakeover; run rules and track through Init. Hands-off soak: 12 km, a duel, a redeploy, no errors.</span></div></li>
-    <li class="is-next"><span class="st">Step 8<br/>in progress</span><div><b>Split GameManager</b><span class="d">8.1 glitch holds <b>done</b> · 8.2 rumbles on the settings assets <b>done</b> · 8.3 hand-placed ship components <b>done</b> · 8.4 HUD on a run-state interface <b>done</b> · 8.5 installer + run controller + feedback responders.</span></div></li>
-    <li><span class="st">Step 9</span><div><b>City</b><span class="d">Player registry, LevelManager split with a health meter, EVP values into CarConfig, shared AI driving profile.</span></div></li>
+    <li class="is-done"><span class="st">Step 8<br/>done</span><div><b>Split GameManager</b><span class="d">8.1 glitch holds · 8.2 rumbles on the settings assets · 8.3 hand-placed ship components · 8.4 HUD on a run-state interface · 8.5 <code>RunFeedback</code> + <code>RunCameraDirector</code> split out of the rules.</span></div></li>
+    <li class="is-next"><span class="st">Step 9<br/>next</span><div><b>City</b><span class="d">Player registry, LevelManager split with a health meter, EVP values into CarConfig, shared AI driving profile.</span></div></li>
     <li><span class="st">Step 10</span><div><b>Shared assemblies</b><span class="d">Debug page registry, camera far-clip source, cheats, fog and rain merge.</span></div></li>
     <li><span class="st">Step 11</span><div><b>Independence proof and docs</b><span class="d">One sandbox scene per system, a validator against cross-system lookups, rule files updated.</span></div></li>
   </ol>
@@ -602,6 +602,7 @@ flowchart LR
     <tr data-g="runner"><td>8.2</td><td><span class="tag game runner">Runner</span></td><td><code>GameSettings</code> "Haptics" group, <code>PatrolDefinition</code> Duel group, <code>HapticsSystem.Pulse(Vector3)</code></td><td>20 rumbles were literals in <code>GameManager</code>, <code>PolicePatrol</code> and the banner</td><td>Each is a <code>Vector3</code> (low, high, seconds) on the asset of its event, beside its shake and glitch; defaults equal the old literals</td><td>none</td></tr>
     <tr data-g="runner"><td>8.3</td><td><span class="tag game runner">Runner</span></td><td><code>PF_Ship</code></td><td>Seven ship components were added to the ship at play start by <code>GameManager.Awake</code></td><td>Hand-placed on the prefab (visible and tunable before play); <code>GameManager</code> finds and configures them</td><td>none (one of each in play, hull configured, no errors)</td></tr>
     <tr data-g="runner"><td>8.4</td><td><span class="tag game runner">Runner</span></td><td><code>GameFlow/IRunState.cs</code>, <code>RaceHud</code>, <code>ChaseMinimap</code>, <code>DuelBarHud</code>, <code>PF_UI</code></td><td>The HUD held <code>ShipMotor</code> and <code>GameManager</code>; the duel bar was created at run start</td><td>The HUD reads <code>IRunState</code> + <code>IChaseTarget</code> (discovered by interface if unwired); the duel bar and the boost QTE are placed in <code>PF_UI</code></td><td>none (HUD speed, lives, timer, objectives and minimap live in play; no errors)</td></tr>
+    <tr data-g="runner"><td>8.5</td><td><span class="tag game runner">Runner</span></td><td><code>GameFlow/RunFeedback.cs</code>, <code>GameFlow/RunCameraDirector.cs</code>, <code>GameManager</code>, <code>IRunState</code>, <code>PF_Systems</code></td><td><code>GameManager</code> held the rules, ~15 feedback handlers, the camera's loop / fall / jump / duel / ending shots and the speed lines in one 1,234-line class</td><td>Feedback and camera are two components hand-placed beside it, bound in <code>Awake</code>, reading <code>IRunState</code> (which gained <code>IsEnding</code>); endings ask the director to <code>PlantEndingShot</code> / <code>ReleaseEndingShot</code>, retry calls each one's <code>ResetForRun</code></td><td>none (play: jump pulls to Far and back, jump counted, boosts rumble, a hull-destroyed ending and a retry run clean; no errors). Loops and falls were not hit in the soak.</td></tr>
   </table></div>
 
   <h3 id="changes-register">Duplication register</h3>
@@ -669,7 +670,7 @@ flowchart LR
 </main>
 
 <footer class="wrap">
-  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 8.4, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
+  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 8.5, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
 </footer>
 
 <script>

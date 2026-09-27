@@ -93,7 +93,7 @@ the lines. It draws under the HUD.
 
 The driver is **`SpeedLines`** (in FX — it cannot see `Cameras`, so it takes a focus `Transform`, a
 `Func<float>` km/h reader, the reference speed its band is a fraction of, and a camera-mode index
-0/1/2/3 Far/Close/First person/Cinematic — `GameManager` pushes `SpeedLines.CinematicMode` while
+0/1/2/3 Far/Close/First person/Cinematic — `RunFeedback` pushes `SpeedLines.CinematicMode` while
 `OrbitCameraRig.Cinematic` holds):
 
 - intensity = the smoothed `speedBand` fraction of the reference speed (exponential
@@ -113,9 +113,9 @@ material and asset wired; `SpeedLines.Apply(enabled, settings)` only **finds** i
 missing) and parks it when off.
 
 Runner wiring: `GameSettings` "Speed lines" toggle group (on/off,
-`boostPulseStrength` / `boostPulseSeconds`; the look is the driver's own asset); `GameManager.Awake` → `SpeedLines.Apply` +
-`SetTarget(motor, km/h, lightSpeedKmh)`; `Update` pushes `cameraRig.Mode`; `OnPadImpulse` pulses on
-boosts scaled by tier (`rawMagnitude / powerUpSpeedBoost`); `Restart` clears the pulse.
+`boostPulseStrength` / `boostPulseSeconds`; the look is the driver's own asset); `RunFeedback.Bind` (from `GameManager.Awake`) → `SpeedLines.Apply` +
+`SetTarget(motor, km/h, lightSpeedKmh)`; its `Update` pushes the director's `Rig.Mode`; `OnPadImpulse` pulses on
+boosts scaled by tier (`rawMagnitude / powerUpSpeedBoost`); `Restart` → `RunFeedback.ResetForRun` clears the pulse.
 
 `Tools → FiniteRunner → Install Speed Lines Feature` (`SpeedLinesInstaller`, material at
 `02.Materials/FiniteRunner/SpeedLines.mat`, never overwriting) also places and wires the

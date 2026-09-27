@@ -61,13 +61,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         RunnerLevelDefinition level;
 
         DashPromptController dashPrompt;
-        OrbitCameraRig cameraRig;          // null when GameSettings has no camera asset
-        CameraMode modeBeforeJump;         // the view a jump forced to Far hands back on landing
-        float fallCameraLeft = -1f;        // seconds until the camera stops following an off-track fall, -1 = not counting
-        bool fallCinematic;                // the rig is holding the planted shot for an off-track fall
-        bool loopCinematic;                // the rig is holding the cinematic shot for a loop (and its fall)
-        float loopCinematicHoldLeft;       // real seconds the shot lingers past the exit, -1 = not releasing
-        SpeedLines speedLines;             // null when the speed lines are off on GameSettings
+        // The run's presentation, split out in refactor Step 8.5: both are
+        // hand-placed on this object (PF_Systems) and bound in Awake.
+        RunCameraDirector cameraDirector;  // framing: jumps, loops, falls, the duel dolly, the endings' shot
+        RunFeedback feedback;              // feel: rumbles, shakes, glitch pulses, speed lines, story lines
         RunnerMusic music;                 // null when the music is off on GameSettings
 
         /// <summary>
@@ -241,26 +238,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             ResetObjectives();
 
             TimeRemaining = settings.timeLimitSeconds;
-            if (motor != null) motor.PadImpulse += OnPadImpulse;
             SpeedPad.Collected += OnPadCollected;
-            RepairOrb.Collected += OnRepairOrb;
             LaserGate.Hit += OnLaserHit;
 
             if (motor != null)
             {
                 motor.ConfigureDash(settings);
-                motor.WallHit += OnWallHit;
-                motor.Sliding += OnSliding;
                 motor.FellOff += OnFellOff;
                 motor.ReachedTrackEnd += OnReachedTrackEnd;
-                motor.RespawnStarted += OnRespawnStarted;
                 motor.Respawned += OnRespawned;
-                motor.DashPerformed += OnDashPerformed;
                 motor.TookOff += OnTookOff;
-                motor.Landed += OnLanded;
-                motor.LoopFailed += OnLoopFailed;
-                motor.LoopEntered += OnLoopEntered;
-                motor.StateChanged += OnShipStateChanged;
 
                 // The loop's slow motion rides on the ship (the clock-owner
                 // contract lives there); the knobs are on the settings asset.
@@ -351,8 +338,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // over (the motor, through the chase contracts), the run's rules and
                 // the track it drives. The redeploy rule is on its PatrolDefinition.
                 patrol.Init(motor, motor, settings, motor.Track, generator);
-                patrol.Redeployed += OnPatrolRedeployed;
-                patrol.Warned += OnPatrolWarned;
                 patrol.ProximityRumble = settings.patrolProximityRumble;
             }
             else
@@ -379,11 +364,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 DuelBarHud.Spawn(motor, patrol);
             }
 
-            // The chase camera: the shared Cinemachine rig, attached to the ship
-            // root with the ship's own settings asset (Far framing, target-up
-            // roll binding). Without an asset the scene keeps its camera as is.
-            if (motor != null && settings.cameraSettings != null)
-                cameraRig = CameraRigInstaller.Attach(motor, settings.cameraSettings);
+            // The presentation: the camera director attaches the chase rig and
+            // frames the run's set pieces; the feedback plays each event's
+            // rumble, shake, glitch and story line and brings up the speed
+            // lines (it follows the director's camera mode, so it binds after).
+            cameraDirector = RunCameraDirector.Ensure(this);
+            cameraDirector.Bind(motor, patrol, settings, this);
+            feedback = RunFeedback.Ensure(this);
+            feedback.Bind(motor, patrol, settings, this, cameraDirector);
 
             // Weather rides with the camera and needs nothing from the run, so
             // it goes up before the menu — the debug page binds to the live
@@ -391,17 +379,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // not spawn: the scene's own RainSystem is the one the designer
             // tuned before play, and switching the weather off has to park it.
             RainSystem.Apply(settings.rainEnabled);
-
-            // Speed lines: the scene's hand-placed SpeedLines object (next to
-            // the fog and the rain — tuned before play, never spawned here).
-            // Apply finds it and parks it when off. The driver cannot see the
-            // camera rig or the ship (FX does not reference Cameras), so it
-            // takes the ship root as its focus, a km/h reader and Light Speed
-            // as the reference its band is a fraction of; Update pushes the
-            // camera mode each frame.
-            speedLines = SpeedLines.Apply(settings.speedLinesEnabled);
-            if (speedLines != null && motor != null)
-                speedLines.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, LightSpeedKmh);
 
             // VHS tape: the scene's hand-placed VhsTape object, found and
             // parked the same way. It needs nothing from the run — the whole
@@ -430,27 +407,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         void Update()
         {
-            // Before the RunOver return: the lines stay up through the death
-            // glitch, and the view can still be cycled on the result screen.
-            // The cinematic shot is its own mode for the lines: their asset
-            // multiplier for it is 0, so they are off for the side-on shot.
-            if (speedLines != null && cameraRig != null)
-                speedLines.SetCameraMode(cameraRig.Cinematic ? SpeedLines.CinematicMode : (int)cameraRig.Mode);
-            UpdateLoopCinematicHold();
-            UpdateFallCamera();
-
             // D26: an attack run holds the RPG queue. Driven every frame rather
             // than on the run's edges, because every path that can end a run
             // (an abort, a kill's recycle, a fall, a hold) would otherwise need
             // to remember to release it — and one missed path is a text box that
             // never comes back for the rest of the level.
             RpgMessageSystem.QueueHeld = patrol != null && patrol.InAttackRun && !RunOver;
-
-            // The duel camera, driven the same way and for the same reason: the
-            // orbit dollies in as an attack run closes and eases back out on
-            // whatever ends it — a kill, a shove, an abort, the run ending.
-            if (cameraRig != null)
-                cameraRig.SetDuelFraming(patrol != null && !RunOver ? patrol.DuelCloseness : 0f);
 
             if (motor == null || RunOver) return;
 
@@ -469,11 +431,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             // An ending is playing out (the win's fly-past, the MISSION FAILED
             // banner): nothing is judged any more and the clock stands still.
-            if (IsEnding)
-            {
-                UpdateLoops();
-                return;
-            }
+            if (IsEnding) return;
 
             // The objectives latch the moment they are all met — Light Speed
             // reached once is reached — but that is only half the win: the
@@ -488,8 +446,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 BeginFail(RunOutcome.Caught);
                 return;
             }
-
-            UpdateLoops();
 
             // Time only pressures the player while the ship is flying.
             if (motor.Paused) return;
@@ -555,7 +511,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void OnShipDestroyed() => BeginFail(RunOutcome.Destroyed);
 
         // Any hull hit: a scrape gets its own light feedback; a hard hit (brake
-        // pad, dash slam, ramp side) already has the pad's / OnWallHit's.
+        // pad, dash slam, ramp side) already has its own (RunFeedback's wall hit, the pad's).
         void OnHullDamaged(float amount, bool hard)
         {
             if (GlitchController.Instance != null)
@@ -606,15 +562,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.Paused = true; // freeze the sim; the hover keeps the ship floating
                 if (outcome == RunOutcome.Destroyed) ExplodeShip();
             }
-            else if (cameraRig != null)
+            else
             {
                 // A loop or fall shot may still be armed; this one replaces it.
-                loopCinematic = false;
-                loopCinematicHoldLeft = -1f;
-                fallCameraLeft = -1f;
-                cameraRig.SetCinematic(true);
-                planted = cameraRig.Cinematic;
-                if (planted) cameraRig.hasPlayerControl = false;
+                planted = cameraDirector.PlantEndingShot();
             }
 
             // The last life lost says so: GAME OVER, not MISSION FAILED.
@@ -627,11 +578,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             yield return new WaitForSecondsRealtime(dismiss);
 
             failRoutine = null;
-            if (planted && cameraRig != null)
-            {
-                cameraRig.SetCinematic(false);
-                cameraRig.hasPlayerControl = true;
-            }
+            if (planted) cameraDirector.ReleaseEndingShot();
             EndRun(outcome);
         }
 
@@ -688,24 +635,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // would lose it in a tenth of one. The sim is still running (nothing
             // pauses until EndRun), so the ship flies on through the shot, and
             // the player's hands come off the camera for it.
-            if (cameraRig != null && settings.winCameraHoldSeconds > 0f)
-            {
-                // A loop shot may still be up with its own hold counting down;
-                // disarm it so it cannot cut back out from under this one.
-                loopCinematic = false;
-                loopCinematicHoldLeft = -1f;
-                fallCameraLeft = -1f;
-                cameraRig.SetCinematic(true); // a no-op if that loop shot is already live
-                // The shot can refuse — the camera asset's Cinematic toggle kills
-                // it per vehicle. Without a planted camera there is nothing to
-                // hold on, so don't sit the player in front of a locked chase
-                // view for two seconds; go straight to the glitch.
-                if (cameraRig.Cinematic)
-                {
-                    cameraRig.hasPlayerControl = false;
-                    yield return new WaitForSecondsRealtime(settings.winCameraHoldSeconds);
-                }
-            }
+            // A loop shot may still be up with its own hold counting down; the
+            // director disarms it so it cannot cut back out from under this one.
+            // The shot can refuse — the camera asset's Cinematic toggle kills it
+            // per vehicle. Without a planted camera there is nothing to hold on,
+            // so don't sit the player in front of a locked chase view for two
+            // seconds; go straight to the glitch.
+            if (settings.winCameraHoldSeconds > 0f && cameraDirector.PlantEndingShot())
+                yield return new WaitForSecondsRealtime(settings.winCameraHoldSeconds);
 
             // The sound washes out with the picture: the fade spans the ramp
             // and the hold, so the music lands silent on the frame EndRun
@@ -736,11 +673,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             winRoutine = null;
             // The debrief is the player's screen again: the shot cuts back to a
             // live chase view and the camera answers to them while they read it.
-            if (cameraRig != null)
-            {
-                cameraRig.SetCinematic(false);
-                cameraRig.hasPlayerControl = true;
-            }
+            cameraDirector.ReleaseEndingShot();
             EndRun(RunOutcome.Escaped);
             ReleaseGlitch();
         }
@@ -897,218 +830,30 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             challengeDone = new bool[level != null ? level.ChallengeCount : 0];
         }
 
-        // Story beat: hype line every time the rare orb tier is grabbed.
+        // The record: every orb the ship takes (its story line is RunFeedback's).
         void OnPadCollected(SpeedPad pad, IShip collector)
         {
             if (motor == null || !motor.Is(collector) || RunOver || IsEnding) return;
             PlayerStats.RecordPad(pad.SpeedDelta > 0f); // positive = power-up, negative = slow-down
-            if (!string.IsNullOrEmpty(settings.messageOrbTierName) && pad.TierName == settings.messageOrbTierName)
-                RpgMessageSystem.Instance.ShowMessage(
-                    "PILOT", settings.purpleOrbMessage, settings.messageHoldSeconds, settings.pilotMessageColor);
         }
 
-        // A repair orb: a soft, even pulse in the hands — neither a boost's kick nor a hit's rumble.
-        void OnRepairOrb(RepairOrb orb, IShip collector, float healed)
-        {
-            if (motor == null || !motor.Is(collector) || RunOver || IsEnding) return;
-            HapticsSystem.Instance.Pulse(settings.repairRumble);
-        }
-
-        // Story beat: the fresh patrol announces itself — a dialogue line, not
-        // a floating text, and only when GameSettings asks for it (the minimap
-        // and the rumble already show it cutting in).
-        void OnPatrolRedeployed(int patrolNumber)
-        {
-            if (RunOver || IsEnding || !settings.showPatrolAlert) return;
-            RpgMessageSystem.Instance.ShowMessage(
-                "PATROL", string.Format(settings.patrolInboundMessage, patrolNumber),
-                settings.messageHoldSeconds, settings.patrolMessageColor);
-        }
-
-        // Story beat: the patrol taunts as it closes in — once per approach,
-        // and never queued behind a line already up (a stale gap would lie).
-        void OnPatrolWarned(float gap)
-        {
-            if (RunOver || IsEnding || !settings.showPatrolWarnings || RpgMessageSystem.Instance.IsBusy) return;
-            RpgMessageSystem.Instance.ShowMessage(
-                "PATROL", string.Format(settings.patrolWarningMessage, Mathf.RoundToInt(gap)),
-                settings.messageHoldSeconds, settings.patrolMessageColor);
-        }
-
-        // Haptics: a snappy buzz for boosts, a heavier thud for brakes.
-        void OnPadImpulse(float rawMagnitude)
-        {
-            // A boost rumbles from the base toward the perfect-press rumble by the boost QTE's grade (0 for a plain boost).
-            if (rawMagnitude > 0f)
-            {
-                Vector3 rumble = Vector3.Lerp(settings.boostRumble, settings.boostQteRumbleAtPerfect, BoostQte.FeedbackScale);
-                HapticsSystem.Instance.Pulse(rumble.x, rumble.y, rumble.z);
-            }
-            else HapticsSystem.Instance.Pulse(settings.brakeRumble);
-
-            // A burst of speed lines per boost, scaled by the orb's tier
-            // (rawMagnitude is tier × powerUpSpeedBoost; a ramp takeoff's
-            // boost comes through the same event and gets one too).
-            if (rawMagnitude > 0f && speedLines != null)
-                speedLines.Pulse(settings.boostPulseStrength * rawMagnitude / Mathf.Max(0.01f, settings.powerUpSpeedBoost),
-                                 settings.boostPulseSeconds);
-        }
-
-        // Dash feel: a short kick in the hands.
-        void OnDashPerformed(int direction)
-        {
-            HapticsSystem.Instance.Pulse(settings.dashRumble);
-        }
-
-        // A jump: the camera pulls out to the Far framing for the arc and
-        // hands the player's view back on landing (a no-op if it was Far).
-        // The cycle is locked meanwhile — ShipMotor.BlockModeCycle.
+        // A jump: the Jump X Times goals count takeoffs (the Far framing is the director's).
         void OnTookOff()
         {
-            if (!RunOver) jumpCount++; // the Jump X Times goals count takeoffs
-            if (cameraRig == null) return;
-            modeBeforeJump = cameraRig.Mode;
-            cameraRig.SetMode(CameraMode.Far, instant: false);
+            if (!RunOver) jumpCount++;
         }
 
-        /// <summary>
-        /// Loop gates and labels: every live loop's gate is tinted against the
-        /// ship's speed, and its required-speed number (fixed above the mouth)
-        /// is shown once the loop comes inside its definition's label lead and
-        /// hidden again once the ship has gone through the gate.
-        /// </summary>
-        void UpdateLoops()
-        {
-            float speed = motor.CurrentSpeed;
-            float d = motor.DistanceTravelled;
-            foreach (var loop in Track.Features.LoopFeature.Active)
-            {
-                if (loop == null) continue;
-                loop.SetGateColor(speed >= loop.RequiredSpeed);
-
-                float gap = loop.StartDistance - d;
-                float lead = loop.Definition != null ? loop.Definition.labelLeadMeters : 0f;
-                loop.SetLabelVisible(gap >= 0f && gap <= lead);
-            }
-        }
-
-        // A loop: the picture cuts to the rig's cinematic side shot for the
-        // ride round — and, when the ship was too slow, through the fall too,
-        // so the shot never cuts mid-drop. Released once the ship is Grounded
-        // again (a clean exit, or the fall's landing) plus a short hold, real
-        // seconds, so the exit registers before the chase view cuts back. The
-        // slow-mo rides the same window on its own (LoopSlowMo).
-        void OnLoopEntered(bool passed)
-        {
-            if (!settings.loopCinematic || cameraRig == null) return;
-            loopCinematic = true;
-            loopCinematicHoldLeft = -1f;
-            cameraRig.SetCinematic(true);
-        }
-
-        void OnShipStateChanged(ShipState state)
-        {
-            if (loopCinematic && state == ShipState.Grounded && loopCinematicHoldLeft < 0f)
-                loopCinematicHoldLeft = settings.loopCinematicHoldSeconds;
-        }
-
-        void UpdateLoopCinematicHold()
-        {
-            if (!loopCinematic || loopCinematicHoldLeft < 0f) return;
-            loopCinematicHoldLeft -= Time.unscaledDeltaTime;
-            if (loopCinematicHoldLeft <= 0f) EndLoopCinematic();
-        }
-
-        void EndLoopCinematic()
-        {
-            if (!loopCinematic) return;
-            loopCinematic = false;
-            loopCinematicHoldLeft = -1f;
-            if (cameraRig != null) cameraRig.SetCinematic(false);
-        }
-
-        // Too slow for the loop: the drop off the top is a hit of corruption
-        // and a long rumble; the landing below rides the ordinary Landed path.
-        void OnLoopFailed()
-        {
-            HapticsSystem.Instance.Pulse(settings.loopFailRumble);
-            if (GlitchController.Instance != null)
-                GlitchController.Instance.Pulse(settings.loopFallGlitchStrength);
-        }
-
-        // Touchdown: a thump in the hands and on the picture, a spray of
-        // sparkles at the touchdown point, no speed change.
-        void OnLanded()
-        {
-            HapticsSystem.Instance.Pulse(settings.landingRumble);
-            CameraShake.Shake(settings.landingShake);
-            SparkleVfx.SpawnBurst(motor.transform.position, motor.transform.up,
-                                  settings.landingSparkleColor, settings.landingSparkleScale,
-                                  settings.landingSparkleCount);
-            if (cameraRig != null && modeBeforeJump != CameraMode.Far)
-                cameraRig.SetMode(modeBeforeJump, instant: false);
-        }
-
-        // Dash into the wall, or a ramp hit from the side: a thud in the
-        // hands, a burst of signal corruption and a kick on the picture.
-        // Over an open edge: the patrol holds (the clock does not), the
-        // picture glitches, and after a beat of following the fall the camera
-        // plants itself and just watches the ship go.
+        // Over an open edge: the patrol holds (the clock does not) until the
+        // ship is back. The fall's rumble and glitch are RunFeedback's, the
+        // planted shot the director's.
         void OnFellOff()
         {
             if (patrol != null) patrol.SetHold(true);
-            HapticsSystem.Instance.Pulse(settings.fallRumble);
-            if (GlitchController.Instance != null)
-                GlitchController.Instance.Pulse(settings.fallGlitchStrength);
-            fallCameraLeft = Mathf.Max(0f, settings.fallCameraFollowSeconds);
-        }
-
-        void UpdateFallCamera()
-        {
-            if (fallCameraLeft < 0f) return;
-            fallCameraLeft -= Time.deltaTime;
-            if (fallCameraLeft > 0f) return;
-            fallCameraLeft = -1f;
-            if (cameraRig == null || cameraRig.Cinematic) return;
-            cameraRig.SetCinematic(true);
-            fallCinematic = cameraRig.Cinematic;
-        }
-
-        // Back on the track: hand the picture back and cut the camera along
-        // with the teleport instead of letting it damp across the gap.
-        void OnRespawnStarted(Vector3 teleport)
-        {
-            EndFallCamera();
-            if (cameraRig != null) cameraRig.NotifyWarp(teleport);
         }
 
         void OnRespawned()
         {
             if (patrol != null) patrol.SetHold(false, settings.respawnMinPatrolGap);
-        }
-
-        void EndFallCamera()
-        {
-            fallCameraLeft = -1f;
-            if (!fallCinematic) return;
-            fallCinematic = false;
-            if (cameraRig != null) cameraRig.SetCinematic(false);
-        }
-
-        // Grip lost on a flat sweep: the warning before the edge, so it is a
-        // long low rumble rather than the wall's sharp knock.
-        void OnSliding(float excess)
-        {
-            HapticsSystem.Instance.Pulse(settings.slideRumble);
-            CameraShake.Shake(settings.slideShake);
-        }
-
-        void OnWallHit(float impactSpeed)
-        {
-            HapticsSystem.Instance.Pulse(settings.wallHitRumble);
-            CameraShake.Shake(settings.wallHitShake);
-            if (GlitchController.Instance != null)
-                GlitchController.Instance.Pulse(settings.dashWallGlitchStrength);
         }
 
         // Through a laser beam: a fall's worth of hull (ShipHealth — the blink
@@ -1143,27 +888,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (motor != null)
             {
-                motor.PadImpulse -= OnPadImpulse;
-                motor.WallHit -= OnWallHit;
-                motor.Sliding -= OnSliding;
                 motor.FellOff -= OnFellOff;
                 motor.ReachedTrackEnd -= OnReachedTrackEnd;
-                motor.RespawnStarted -= OnRespawnStarted;
                 motor.Respawned -= OnRespawned;
-                motor.DashPerformed -= OnDashPerformed;
                 motor.TookOff -= OnTookOff;
-                motor.Landed -= OnLanded;
-                motor.LoopFailed -= OnLoopFailed;
-                motor.LoopEntered -= OnLoopEntered;
-                motor.StateChanged -= OnShipStateChanged;
-            }
-            if (patrol != null)
-            {
-                patrol.Redeployed -= OnPatrolRedeployed;
-                patrol.Warned -= OnPatrolWarned;
             }
             SpeedPad.Collected -= OnPadCollected;
-            RepairOrb.Collected -= OnRepairOrb;
             LaserGate.Hit -= OnLaserHit;
             if (shipHealth != null)
             {
@@ -1179,7 +909,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // from the old run lands on the new one.
             RpgMessageSystem.Instance.ClearMessages();
             if (dashPrompt != null) dashPrompt.ResetForRun();
-            if (speedLines != null) speedLines.ClearPulse(); // the speed term follows the relaunch on its own
+            if (feedback != null) feedback.ResetForRun();
             if (music != null) music.Play(); // every attempt is a fresh play: a new random point under a fade-in
 
             // A retry from the panel: the wind-down is over, but a RETRY pressed
@@ -1189,16 +919,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             KillBanner(); // a retry mid-beat must not leave the word over the new run
             ReleaseGlitch();
             if (GlitchController.Instance != null) GlitchController.Instance.SetBaseIntensity(0f);
-            // A retry from inside a loop must not leave the shot armed — nor one mid-fall.
-            EndLoopCinematic();
-            EndFallCamera();
-            // Nor a retry pressed mid-win-beat leave the camera planted and the
-            // player locked out of it (EndLoopCinematic only drops a LOOP shot).
-            if (cameraRig != null)
-            {
-                cameraRig.SetCinematic(false);
-                cameraRig.hasPlayerControl = true;
-            }
+            // A retry from inside a loop must not leave the shot armed — nor one
+            // mid-fall, nor the win's planted shot with the player locked out.
+            if (cameraDirector != null) cameraDirector.ResetForRun();
 
             bool wasWon = HasWon;
             RunOver = false;

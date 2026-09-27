@@ -96,7 +96,7 @@ Singleton gamepad rumble, auto-created like `FloatingTextSystem`.
 - `SetChaseIntensity(0..1)` is a continuous channel the patrol refreshes each frame while close;
   **it self-fades when the calls stop**, so stale rumble can't persist.
 
-Wired: boost/brake pulses via `GameManager.OnPadImpulse`, proximity rumble in `PolicePatrol`, long
+Wired: boost/brake pulses via `RunFeedback.OnPadImpulse`, proximity rumble in `PolicePatrol`, long
 rumble on getting caught, ramp wall hits and loop falls. Motors reset on disable/quit. It runs on
 **unscaled** time so rumble decays while paused.
 

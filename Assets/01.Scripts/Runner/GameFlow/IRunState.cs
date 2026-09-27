@@ -14,6 +14,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float TimeRemaining { get; }
         /// <summary>The run has ended (won or lost); readouts freeze.</summary>
         bool RunOver { get; }
+        /// <summary>An ending is playing out (the win's fly-past, the MISSION FAILED banner): no story lines.</summary>
+        bool IsEnding { get; }
         /// <summary>Lives left in this runner entry.</summary>
         int LivesLeft { get; }
         /// <summary>Hull and lives are in play.</summary>

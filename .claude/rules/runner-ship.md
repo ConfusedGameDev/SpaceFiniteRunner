@@ -78,7 +78,7 @@ force, plus the dash — not on lateral velocity.
 — see `runner-track.md`). There, while Grounded, the demand `v² × curvature` beyond
 `gripBase + gripPerSpeed × v` becomes an outward lateral acceleration. Slipping outward faster
 than `slideThreshold` is a slide: `IsSliding`, `slideSpeedLoss` (fraction of speed per second)
-scrubbed, and `Sliding(excess)` fired once as it begins (`GameManager.OnSliding`: long low rumble
+scrubbed, and `Sliding(excess)` fired once as it begins (`RunFeedback.OnSliding`: long low rumble
 + `GameSettings.slideShake`). Banked sweeps, straights, sections and the air always hold. Demand
 grows with v², grip with v, so braking is the only answer past a point — at the defaults a 490 m
 flat sweep holds to ~1.3 × cruise.
@@ -101,11 +101,12 @@ fell with × (1 − `respawnSpeedPenalty`). Events: `FellOff`, `RespawnStarted(V
 `motor.Paused` and a menu's timeScale freeze them; the countdown keeps running through them
 (only `motor.Paused` stops it).
 
-`GameManager` answers: `OnFellOff` holds the patrol (`PolicePatrol.SetHold(true)`), pulses the
-glitch (`fallGlitchStrength`) and rumble, and after `fallCameraFollowSeconds` cuts to the rig's
-planted cinematic shot, which just watches the ship drop; `OnRespawnStarted` hands the picture
-back and `NotifyWarp`s the rig across the teleport; `OnRespawned` releases the patrol with at
-least `respawnMinPatrolGap`. `Restart` clears the fall camera, `PolicePatrol.Launch` the hold.
+Three listeners answer: `GameManager.OnFellOff` holds the patrol (`PolicePatrol.SetHold(true)`) and
+`OnRespawned` releases it with at least `respawnMinPatrolGap`; `RunFeedback` pulses the glitch
+(`fallGlitchStrength`) and rumble; `RunCameraDirector` cuts to the rig's planted cinematic shot
+after `fallCameraFollowSeconds`, which just watches the ship drop, and on `RespawnStarted` hands the
+picture back and `NotifyWarp`s the rig across the teleport. `Restart` clears the fall camera
+(`RunCameraDirector.ResetForRun`), `PolicePatrol.Launch` the hold.
 
 **The end of the track** (`TrackManager.HasEnd` / `EndDistance`, see `runner-track.md`). A body
 that reaches it leaves the road for good: `TrackBody.LeaveEnd` → `ShipState.OffTrack` +
@@ -269,7 +270,7 @@ and long rumble play on the drop, and it lands through the same `Landed` event a
 **A loop is a set piece** — the window is Looping *or* Falling (the fall is the failed loop's
 second half, so nothing cuts mid-drop), ended by `StateChanged(Grounded)`:
 
-- `GameManager.OnLoopEntered` cuts to the rig's cinematic side shot
+- `RunCameraDirector.OnLoopEntered` cuts to the rig's cinematic side shot
   (`OrbitCameraRig.SetCinematic`, `GameSettings.loopCinematic`; the shot is authored on
   `Fighter_CameraSettings`' Cinematic group) and hands it back `loopCinematicHoldSeconds` (0.25,
   real time) after Grounded, or at once on `Restart`.
@@ -347,6 +348,22 @@ Win/lose and the countdown.
 a `multiplier`) that are live from launch with no accept step.
 `Tools → FiniteRunner → Create Runner Level Definition` creates the asset (never overwriting) and
 wires an empty `GameManager.level`.
+
+**Presentation is split out** (refactor Step 8.5). `GameManager` keeps the RULES; two siblings on
+its object in `PF_Systems` (hand-placed, `Ensure`d and `Bind`-ed in `Awake`, reading the run through
+`IRunState`, which carries `IsEnding`) keep the rest:
+- **`RunFeedback`** — every event's rumble, shake, glitch pulse and story line (orb hype line, patrol
+  taunt and inbound line, repair, boost/brake + speed-line burst, dash, loop drop, landing +
+  sparkles, fall, slide, wall hit), the speed lines (`SpeedLines.Apply`, the camera mode pushed each
+  frame off the director's rig), and the loop gates' tint and labels. `ResetForRun` clears the pulse.
+- **`RunCameraDirector`** — attaches the rig (`CameraRigInstaller.Attach`), the jump's Far framing,
+  the loop and fall shots, the duel dolly, and the endings' shot: `FinishWin` / `FinishFail` call
+  `PlantEndingShot()` (disarms a loop/fall hold, returns false when the camera asset refuses) and
+  `ReleaseEndingShot()`; `Restart` calls `ResetForRun()`.
+An event whose feedback depends on a rule's outcome stays whole in `GameManager`: the laser hit (only
+when the blink did not shield it), the hull's `Damaged` / `Destroyed`, the endings. `PlayerStats.RecordPad`
+and the jump count stay there too. A new reaction to an event goes to `RunFeedback`, a new shot to the
+director — never back into `GameManager`.
 
 **It owns no tunables** — they all live on the `GameSettings` asset it draws inline
 (`Data/FiniteRunner_GameSettings.asset`). Add new knobs there, not as fields on the manager;
@@ -590,14 +607,14 @@ minimap range, redeploy) stay on `GameSettings`.
   a patrol closer than the given gap back to that gap and suppresses the taunt for it.
 - **`Warned(gap)` fires ONCE per approach** when the gap drops inside the warn distance, re-armed
   once the ship opens it again, plus a proximity rumble (`ProximityRumble`, from
-  `GameSettings.patrolProximityRumble`). **The patrol draws no floating text** — `GameManager`
+  `GameSettings.patrolProximityRumble`). **The patrol draws no floating text** — `RunFeedback`
   answers `Warned` with the "Right on your tail" RPG line (`patrolWarningMessage`, `{0}` =
   metres) only while `showPatrolWarnings` is on and the message box is idle, so a stale gap is
   never queued.
 - **Redeploy keeps the chase from going stale** (the rule lives on `PatrolDefinition`:
   `redeploys`, `redeployBand`, `redeploySpeedFactor` — moved off GameSettings in refactor Step 3):
   outrun the patrol past `redeployBand.y` and it teleports back in `redeployBand.x` metres behind the ship as
-  patrol N+1 (`PatrolNumber`, a rumble, the `Redeployed(int)` event — `GameManager` answers with
+  patrol N+1 (`PatrolNumber`, a rumble, the `Redeployed(int)` event — `RunFeedback` answers with
   the "Patrol N inbound" line, `GameSettings.patrolInboundMessage`, only while `showPatrolAlert`
   is on, which it is not by default) at `redeploySpeedFactor` × the ship's current speed,
   and that speed becomes the rubber band's new floor. **One object, never a growing fleet.**
@@ -679,7 +696,7 @@ minimap range, redeploy) stay on `GameSettings`.
     every brake. `shipAccel` (the overshoot's decel trigger) is smoothed with a 0.15 s time constant:
     a single-tick drop is hundreds of m/s² and must not read as braking.
   - **Duel camera**: `PatrolEncounter.DuelCloseness` (0 → 1 across `Committing`, 1 alongside/tug/
-    finisher, else 0) → `PolicePatrol.DuelCloseness` → `GameManager.Update` →
+    finisher, else 0) → `PolicePatrol.DuelCloseness` → `RunCameraDirector.Update` →
     `OrbitCameraRig.SetDuelFraming` every frame (see `cameras.md`).
   - Knobs on `PatrolDefinition` (Duel group, with rows on the PATROL DUEL tab): `overshootHoldSeconds`, `overshootBrakeThreshold`, `overshootDecelThreshold`,
     `overshootTriggerMargin`, `tugPushFraction`, `finisherSeparationMeters`, `finisherMissBrakeSeconds`,

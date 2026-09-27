@@ -40,7 +40,7 @@ city's rig and brain, which the unload then destroyed ("A CinemachineBrain is re
 scene"). The rig remembers that camera as its `outputCamera` for the authored far clip and the
 brain's default blend.
 
-The city calls it from `CarFactory.Spawn`, the runner from `GameManager.Awake` with
+The city calls it from `CarFactory.Spawn`, the runner from `RunCameraDirector.Bind` (called by `GameManager.Awake`) with
 `GameSettings.cameraSettings` (`Data/Fighter_CameraSettings.asset`; empty = the scene keeps its
 camera). `CameraRigInstaller.Warp` is what `CarFactory.Teleport` tells about a teleport.
 
@@ -115,7 +115,7 @@ close/first-person/blend sliders.
 ## Duel framing
 
 The orbit **dollies in on the fight**. `OrbitCameraRig.SetDuelFraming(float closeness01)` is the
-whole API: the game writes a 0..1 every frame (the runner's `GameManager.Update` pushes
+whole API: the game writes a 0..1 every frame (the runner's `RunCameraDirector.Update` pushes
 `PolicePatrol.DuelCloseness` — 0 in the chase, rising as a committed attack run closes from where it
 started to the alongside gap, 1 through the flank hold, the tug of war and the kill prompt, 0 the
 moment the exchange is over) and `ApplyFraming` eases toward it over `duelBlendSeconds` and lerps the
@@ -179,11 +179,11 @@ drops a live shot.
 
 Who cuts: the city's `AirTimeSlowMo` (slow-mo in and still airborne — back the frame the wheels
 touch; it finds the rig with `CameraRigInstaller.FindRig(scene)`, public for that) and the runner's
-`GameManager` on `ShipMotor.LoopEntered`, held until the state is Grounded again (the fall of a
+`RunCameraDirector` on `ShipMotor.LoopEntered`, held until the state is Grounded again (the fall of a
 failed loop included) and force-dropped on `Restart`.
 
 **The win fly-past** is the runner's other cut: the step the ship leaves an end ramp with the win
-(`GameManager.OnReachedTrackEnd` → `FinishWin`; the ship is already in its escape flight, off the
+(`GameManager.OnReachedTrackEnd` → `FinishWin` → `RunCameraDirector.PlantEndingShot`; the ship is already in its escape flight, off the
 track for good) it disarms any loop or fall hold, cuts to the planted shot — planted AT THE LIP,
 which is what frames the ship flying off the end of the road — and takes `HasPlayerControl` away for
 `GameSettings.winCameraHoldSeconds` (2 s) while the ship — still unpaused — flies on out of the
