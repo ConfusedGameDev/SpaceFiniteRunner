@@ -31,6 +31,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         [PropertyRange(10f, 200f), SuffixLabel("m", true)]
         public float despawnPadding = 50f;
 
+        /// <summary>How far from the player a civilian may be before it is retired: the active radius plus the padding. The one formula — the manager culls by it, the streamer checks its load distance against it.</summary>
+        public float DespawnReach => activeRadius + despawnPadding;
+
         [TitleGroup("Fleet")]
         [Tooltip("Vehicles never spawn closer than this, so they don't pop into view.")]
         [PropertyRange(10f, 200f), SuffixLabel("m", true)]

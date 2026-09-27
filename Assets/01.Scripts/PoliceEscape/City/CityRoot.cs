@@ -21,13 +21,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
     /// </summary>
     public class CityRoot : MonoBehaviour
     {
+        /// <summary>The grid cell a city falls back to before anything is baked or configured.</summary>
+        public const float DefaultCellSize = 20f;
+
         [ReadOnly, Tooltip("The definition this prefab was baked from — editor tooling only, never read at runtime.")]
         public CityDefinition definition;
 
         [TitleGroup("Baked city"), ReadOnly] public int gridWidth = 1;
         [TitleGroup("Baked city"), ReadOnly] public int gridHeight = 1;
         [TitleGroup("Baked city"), ReadOnly] public int blockSizeInCells = 14;
-        [TitleGroup("Baked city"), ReadOnly, SuffixLabel("m", true)] public float cellSize = 20f;
+        [TitleGroup("Baked city"), ReadOnly, SuffixLabel("m", true)] public float cellSize = DefaultCellSize;
         [TitleGroup("Baked city"), ReadOnly, SuffixLabel("m", true)] public float deckWorldHeight;
         [TitleGroup("Baked city"), ReadOnly] public int citySeed;
 

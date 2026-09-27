@@ -31,7 +31,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         {
             this.root = root;
             origin = root != null ? root.transform.position : Vector3.zero;
-            cellSize = root != null ? root.cellSize : 20f;
+            cellSize = root != null ? root.cellSize : City.CityRoot.DefaultCellSize;
             blockSize = root != null ? Mathf.Max(1, root.blockSizeInCells) : 1;
             if (root != null)
             {

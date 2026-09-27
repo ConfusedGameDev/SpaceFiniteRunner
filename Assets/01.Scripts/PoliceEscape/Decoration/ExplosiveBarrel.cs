@@ -15,7 +15,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
     /// radius, whoever set it off. That is what makes a barrel a weapon —
     /// leading a cruiser past one is worth doing, and standing next to the
     /// one you just clipped is not. Every <see cref="IDamageable"/> caught
-    /// takes <see cref="DecorationSet.blastDamage"/>: an NPC car dies through
+    /// takes <see cref="DecorationSet.blast"/>'s damage: an NPC car dies through
     /// its <see cref="Vehicles.CarHealth"/> — it stops, burns its fuse and
     /// explodes in turn instead of vanishing — the player takes it scaled on
     /// the corruption meter, and another barrel detonates too (the barrel IS
@@ -77,8 +77,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
             ExplosionVfx.SpawnFireball(origin, set.explosionTextures,
                 set.explosionScale, set.explosionLifetime, set.explosionParticles);
 
-            Blast.Apply(origin, set.blastRadius, set.blastForce,
-                        set.blastUpModifier, set.blastDamage, GetComponent<Rigidbody>());
+            Blast.Apply(origin, set.blast, GetComponent<Rigidbody>());
 
             Destroy(gameObject);
         }

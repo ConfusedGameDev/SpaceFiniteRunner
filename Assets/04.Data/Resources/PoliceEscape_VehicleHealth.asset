@@ -14,16 +14,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.VehicleHealthSettings
   minImpactSpeed: 3
   damagePerImpactSpeed: 0.03
+  playerCollisionPulse: 0.4
+  playerPoliceHitDamage: 0.34
+  playerHealPerSecond: 0.05
+  playerBlastDamageScale: 0.35
+  playerCrashRumbleFullSpeed: 20
+  playerCrashRumbleLight: {x: 0.25, y: 0.15, z: 0.12}
+  playerCrashRumbleFull: {x: 1, y: 0.6, z: 0.4}
+  playerBlastRumble: {x: 1, y: 0.7, z: 0.45}
+  playerSplashRumble: {x: 0.8, y: 0.5, z: 0.4}
   crawlSpeedFactor: 0.3
   speedEasePerSecond: 0.4
+  policeToughness: 3
+  policeLimpHealth: 0.2
   lightSmokeHealth: 0.5
   heavySmokeHealth: 0.2
   fuseSeconds: 5
   wreckLingerSeconds: 12
-  blastRadius: 7
-  blastForce: 900
-  blastUpModifier: 1.2
-  blastDamage: 1
+  blast:
+    radius: 7
+    force: 900
+    upModifier: 1.2
+    damage: 1
   explosionScale: 5
   explosionLifetime: 0.9
   explosionParticles: 14

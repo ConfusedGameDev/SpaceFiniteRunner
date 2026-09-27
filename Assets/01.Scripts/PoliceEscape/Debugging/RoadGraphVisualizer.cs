@@ -128,7 +128,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Debugging
             }
         }
 
-        float CellSize => city != null && city.settings != null ? city.settings.cellSize : 20f;
+        float CellSize => city != null ? city.CellSize : City.CityRoot.DefaultCellSize;
 
         RoadGraph Graph()
         {

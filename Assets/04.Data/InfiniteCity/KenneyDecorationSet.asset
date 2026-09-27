@@ -20,10 +20,11 @@ MonoBehaviour:
   impactMomentum: 150
   maxLaunchFactor: 2
   impactUpBias: 0.25
-  explosionDamage: 0.35
-  blastRadius: 7
-  blastForce: 900
-  blastUpModifier: 1.2
+  blast:
+    radius: 7
+    force: 900
+    upModifier: 1.2
+    damage: 1
   detonationSpeed: 3
   explosionScale: 6
   explosionLifetime: 0.9

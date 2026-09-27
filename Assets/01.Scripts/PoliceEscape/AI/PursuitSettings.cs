@@ -32,6 +32,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float SpawnDistanceMin => spawnDistanceBand.x;
         public float SpawnDistanceMax => spawnDistanceBand.y;
 
+        /// <summary>
+        /// How far from the player a patrol may be before it is retired: the
+        /// despawn distance, but never inside the spawn band (+50 m of slack),
+        /// or a fresh patrol would be culled the tick it spawns. The one
+        /// formula — the manager culls by it, the streamer checks its load
+        /// distance against it.
+        /// </summary>
+        public float DespawnReach => Mathf.Max(despawnDistance, SpawnDistanceMax + 50f);
+
         // ----------------------------------------------------------- detection
         [TitleGroup("Detection")]
         [Tooltip("Maximum distance at which a patrol can spot the player — still needs line of sight (buildings block it).")]

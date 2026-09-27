@@ -66,7 +66,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 ? block.GetComponentInChildren<WaterSplashZone>()
                 : null;
             if (zone != null) zone.Splash(player);
-            else WaterSplashZone.Splash(player, WaterSplashZone.DefaultDamage);
+            else
+            {
+                // Open sea with no baked zone under it: the city's live splash damage.
+                CityManager city = FindAnyObjectByType<CityManager>();
+                if (city != null && city.settings != null) WaterSplashZone.Splash(player, city.settings.splashDamage);
+            }
         }
     }
 }

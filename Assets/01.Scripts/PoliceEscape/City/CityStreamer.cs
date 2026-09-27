@@ -182,9 +182,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (city != null)
             {
                 if (city.pursuitSettings != null)
-                    reach = Mathf.Max(reach, Mathf.Max(city.pursuitSettings.despawnDistance, city.pursuitSettings.SpawnDistanceMax + 50f));
+                    reach = Mathf.Max(reach, city.pursuitSettings.DespawnReach);
                 if (city.trafficSettings != null)
-                    reach = Mathf.Max(reach, city.trafficSettings.activeRadius + city.trafficSettings.despawnPadding);
+                    reach = Mathf.Max(reach, city.trafficSettings.DespawnReach);
             }
             if (reach > root.streamEnterDistance)
                 Debug.LogWarning($"CityStreamer: streamEnterDistance ({root.streamEnterDistance:0} m) is shorter than the NPC reach ({reach:0} m): " +

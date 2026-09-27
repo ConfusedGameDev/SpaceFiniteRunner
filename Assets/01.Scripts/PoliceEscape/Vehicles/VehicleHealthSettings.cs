@@ -120,24 +120,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
         // --------------------------------------------------------------- blast
         [TitleGroup("Blast")]
-        [Tooltip("Everything inside this radius is caught by the death blast — same positional rule as the explosive barrel.")]
-        [PropertyRange(1f, 30f), SuffixLabel("m", true)]
-        public float blastRadius = 7f;
-
-        [TitleGroup("Blast")]
-        [Tooltip("Impulse handed to a body at the centre of the blast, falling off to nothing at the radius.")]
-        [PropertyRange(0f, 5000f)]
-        public float blastForce = 900f;
-
-        [TitleGroup("Blast")]
-        [Tooltip("Metres the blast's origin is sunk below itself when throwing bodies — the lower it sits, the more the blast lifts rather than shoves.")]
-        [PropertyRange(0f, 5f), SuffixLabel("m", true)]
-        public float blastUpModifier = 1.2f;
-
-        [TitleGroup("Blast")]
-        [Tooltip("Normalized damage dealt to every IDamageable caught in the blast — 1 is a full NPC health bar (an outright kill). The player's receiver scales it down by their plating before it hits the corruption meter.")]
-        [PropertyRange(0f, 1f)]
-        public float blastDamage = 1f;
+        [Tooltip("A dying car's blast — the same positional rule as the explosive barrel: radius, impulse, lift and normalized damage.")]
+        [InlineProperty, HideLabel]
+        public BlastProfile blast = BlastProfile.Default;
 
         [TitleGroup("Blast")]
         [Tooltip("Size of the fireball, in metres. Independent of the blast radius so the look and the damage can be tuned apart.")]

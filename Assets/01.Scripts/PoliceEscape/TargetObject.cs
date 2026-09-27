@@ -87,7 +87,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
             // Ground only: the arrival test is horizontal, so a target on an overpass deck would be "reached" from the street below.
             if (!city.TryFindNearestRoadCell(transform.position, out Vector3 center, out _, groundOnly: true)) return;
-            float accept = 2f * city.settings.cellSize;
+            float accept = 2f * city.CellSize;
             if (HorizontalDistance(center, transform.position) > accept) return; // our chunk isn't built yet
 
             transform.position = new Vector3(center.x, center.y + 0.5f, center.z);

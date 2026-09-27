@@ -168,8 +168,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             ExplosionVfx.SpawnFireball(origin, settings.explosionTextures,
                 settings.explosionScale, settings.explosionLifetime, settings.explosionParticles);
 
-            Blast.Apply(origin, settings.blastRadius, settings.blastForce,
-                        settings.blastUpModifier, settings.blastDamage, GetComponent<Rigidbody>());
+            Blast.Apply(origin, settings.blast, GetComponent<Rigidbody>());
 
             BecomeWreck();
         }

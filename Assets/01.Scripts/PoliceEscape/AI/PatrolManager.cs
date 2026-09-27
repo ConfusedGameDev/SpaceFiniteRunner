@@ -58,7 +58,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             // endless spawn/despawn churn. The two are separate sliders on the
             // debug menu and the asset, so the invariant is enforced here
             // rather than trusted to tuning.
-            float despawnDistance = Mathf.Max(settings.despawnDistance, settings.SpawnDistanceMax + 50f);
+            float despawnDistance = settings.DespawnReach;
 
             for (int i = patrols.Count - 1; i >= 0; i--)
             {
@@ -143,7 +143,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 count++;
                 if (Random.Range(0, count) == 0) direction = dir;
             }
-            float cellSize = city.settings != null ? city.settings.cellSize : 20f;
+            float cellSize = city.CellSize;
             float lane = graph.IsCenterLineOnly(pickedNode)
                 ? 0f
                 : Mathf.Min(cellSize * settings.laneOffsetFraction, settings.laneOffsetMaxMeters);

@@ -204,9 +204,11 @@ post ~350 kg with high `angularDamping` topples slowly, barrier ~3000 kg barely 
 Unity primitive cylinder the set builder makes, authored in the kit's units off the cone's height,
 weight 1.5 against the cone's 6 so a street is never lined with them. Any car above
 `detonationSpeed` sets it off, and **detonation is positional, not about who touched it**:
-everything inside `blastRadius` is caught. That is what makes leading a cruiser past one worth
+everything inside the set's `blast.radius` is caught (`DecorationSet.blast`, a `BlastProfile` —
+radius, force, lift, damage — the same shape a dying car's blast uses, `VehicleHealthSettings.blast`;
+refactor Step 9.3 folded the four loose fields into it; `Blast.Apply(origin, profile, ignore)`). That is what makes leading a cruiser past one worth
 doing, and standing next to the one you just clipped a mistake. The player takes
-`blastDamage` × `VehicleHealthSettings.playerBlastDamageScale` (0.35) through `PlayerDamageReceiver` →
+`blast.damage` × `VehicleHealthSettings.playerBlastDamageScale` (0.35) through `PlayerDamageReceiver` →
 `PlayerHealthMeter.ApplyBlast`; a caught police car
 is destroyed outright and the `PatrolManager`'s next maintenance tick cuts a replacement in at its
 spawn band, away from the player. The fireball is a code-built burst off one randomly-picked

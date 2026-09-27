@@ -240,7 +240,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             return arrowHeadMesh;
         }
 
-        float CellSize => city != null && city.settings != null ? city.settings.cellSize : 20f;
+        float CellSize => city != null ? city.CellSize : City.CityRoot.DefaultCellSize;
 
         public void Initialize(TrafficSettings trafficSettings, CityManager cityManager, bool stops)
         {

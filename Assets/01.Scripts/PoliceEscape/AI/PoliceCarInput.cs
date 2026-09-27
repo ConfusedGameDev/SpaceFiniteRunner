@@ -123,7 +123,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
         static readonly Collider[] OverlapBuffer = new Collider[8];
 
-        float CellSize => city != null && city.settings != null ? city.settings.cellSize : 20f;
+        float CellSize => city != null ? city.CellSize : City.CityRoot.DefaultCellSize;
 
         public void Initialize(PursuitSettings pursuitSettings, CityManager cityManager)
         {
@@ -288,7 +288,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                     // "reached" inside the pop radius, and that is exactly how
                     // the cruiser used to ease to a stop a car-length behind a
                     // slow or parked player instead of hitting it.
-                    if (seesPlayer && FlatDistance(transform.position, player.transform.position) < city.settings.cellSize * 1.5f
+                    if (seesPlayer && FlatDistance(transform.position, player.transform.position) < CellSize * 1.5f
                         && Mathf.Abs(player.transform.position.y - transform.position.y) < 3f)
                     {
                         if (waypoints.Count > 0)

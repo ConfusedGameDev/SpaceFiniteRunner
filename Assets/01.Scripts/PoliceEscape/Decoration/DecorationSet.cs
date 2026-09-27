@@ -58,25 +58,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
 
         // ---------------------------------------------------------- explosive
         [TitleGroup("Explosive")]
-        [Tooltip("Normalized damage dealt to every IDamageable caught in the blast — 1 is a full NPC health bar (an outright kill). The player's receiver scales it down by their plating before it hits the corruption meter; another barrel detonates at any amount.")]
-        [PropertyRange(0f, 1f)]
-        public float blastDamage = 1f;
-
-        [TitleGroup("Explosive")]
-        [Tooltip("Everything inside this radius is caught: damageables take the damage above, loose props are thrown.")]
-        [PropertyRange(1f, 30f), SuffixLabel("m", true)]
-        public float blastRadius = 7f;
-
-        [TitleGroup("Explosive")]
-        [Tooltip("Impulse handed to a body at the centre of the blast, falling off to nothing at the radius.")]
-        [PropertyRange(0f, 5000f)]
-        public float blastForce = 900f;
-
-        [TitleGroup("Explosive")]
-        [Tooltip("Metres the blast's origin is sunk below itself when throwing bodies — the lower it sits, the more the blast lifts rather than shoves.")]
-        [PropertyRange(0f, 5f), SuffixLabel("m", true)]
-        public float blastUpModifier = 1.2f;
-
+        [Tooltip("The barrel's blast: radius, impulse, lift and the normalized damage it deals (1 kills an NPC car outright).")]
+        [InlineProperty, HideLabel]
+        public BlastProfile blast = BlastProfile.Default;
         [TitleGroup("Explosive")]
         [Tooltip("Contact slower than this is a nudge, not a detonation — traffic brushing a barrel in the gutter must not level the street.")]
         [PropertyRange(0.5f, 40f), SuffixLabel("m/s", true)]

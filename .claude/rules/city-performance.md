@@ -64,9 +64,15 @@ Disabling the component restores every block immediately.
 
 ### Invariants (warned once on the first tick)
 
-- `streamEnterDistance` ≥ the **police reach** (`max(despawnDistance, spawn max + 50)`) and the
-  **traffic reach** (`activeRadius + despawnPadding`) — or NPCs drive on switched-off ramp/deck
-  colliders. Spawns are already restricted to `CityBounds`' allowed set ⊂ the ring.
+- `streamEnterDistance` ≥ the **police reach** (`PursuitSettings.DespawnReach` =
+  `max(despawnDistance, spawn max + 50)`) and the **traffic reach** (`TrafficSettings.DespawnReach` =
+  `activeRadius + despawnPadding`) — or NPCs drive on switched-off ramp/deck colliders. Each formula
+  lives once, on its settings class; the fleet managers cull by the same property (refactor Step 9.3).
+- **The runtime cell size is `CityManager.CellSize`**: the baked `CityRoot.cellSize`, else the
+  generation settings' (no baked city), else `CityRoot.DefaultCellSize` (20). The AI, the fleet
+  managers, spawn points, targets and the road-graph overlay all read it (they had five "settings,
+  else 20 m" copies). Bake-time code still reads `CityGenerationSettings.cellSize` — it is the bake's
+  input. Spawns are already restricted to `CityBounds`' allowed set ⊂ the ring.
 - `streamEnterDistance` ≥ `DistanceFogSettings.fogEnd` — or blocks pop in ahead of the fog.
 
 `IsCellClear` reads "clear" in an unloaded block — only the debug Create Car button can land

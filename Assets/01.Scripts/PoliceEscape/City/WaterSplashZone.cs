@@ -38,9 +38,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         const float PlayerCooldown = 1f;
 
         /// <summary>Charge used when no baked zone can answer (a water block baked without colliders).</summary>
-        public const float DefaultDamage = 0.3f;
 
-        [SerializeField, HideInInspector] float splashDamage = DefaultDamage;
+        [SerializeField, HideInInspector] float splashDamage = 0.3f; // baked from CityGenerationSettings.splashDamage
 
         static float lastPlayerSplash = float.NegativeInfinity;
 

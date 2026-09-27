@@ -74,7 +74,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
             if (!city.TryFindNearestRoadCell(position, out Vector3 center, out _))
                 return;
-            float accept = 2f * city.settings.cellSize;
+            float accept = 2f * city.CellSize;
             if (TargetObject.HorizontalDistance(center, position) > accept)
             {
                 Debug.LogWarning($"{nameof(PlayerSpawnPoint)} '{name}': nearest road cell is {TargetObject.HorizontalDistance(center, position):0} m away — too far to snap, spawning at the authored pose.", this);

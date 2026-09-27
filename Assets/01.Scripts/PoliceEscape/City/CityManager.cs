@@ -92,6 +92,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             }
         }
 
+        /// <summary>
+        /// The city's grid cell, metres — THE runtime cell size (refactor Step
+        /// 9.3). The baked root's value is the truth for the city that exists;
+        /// the generation settings only when there is no baked city (the road
+        /// kit sandbox). It replaced five "settings, else 20 m" copies in the
+        /// AI, the fleet managers and the debug overlay.
+        /// </summary>
+        public float CellSize
+        {
+            get
+            {
+                CityRoot root = Root;
+                if (root != null && root.cellSize > 0f) return root.cellSize;
+                return settings != null ? settings.cellSize : CityRoot.DefaultCellSize;
+            }
+        }
+
         /// <summary>Uniform scale applied to every baked road piece: cell fit (cellSize ÷ native footprint) × the extra multiplier.</summary>
         public float PieceScale => settings != null ? settings.PieceScale : 1f;
 
