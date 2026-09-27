@@ -114,7 +114,7 @@ MonoBehaviour:
   evpWheelMass: 20
   evpWheelDampingRate: 0.25
   evpDamage: 1
-  evpDamageWheels: 1
+  evpDamageWheels: 0
   evpDamageMinSpeed: 2.25
   evpDamageMultiplier: 1
   evpDamageRadius: 0.5
