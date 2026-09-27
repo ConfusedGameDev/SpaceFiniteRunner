@@ -1,0 +1,1562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finite Runner Handbook</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#F2F5F8; --surface:#FFFFFF; --sunk:#E8EDF2; --ink:#132030; --muted:#56687B; --line:#D3DCE5;
+  --accent:#0A7CA3; --accent-soft:#DDF1F8; --patrol:#C9362C; --patrol-soft:#FBE4E1;
+  --orb:#6E44CC; --orb-soft:#ECE5FB; --warn:#9A6212; --warn-soft:#FBEFD9; --good:#237A4B; --good-soft:#DDF2E5;
+  --wedge-off:#CAD4DE;
+  --f-head:"Avenir Next","Segoe UI Variable Display","Segoe UI","Helvetica Neue",system-ui,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#0A111A; --surface:#101A26; --sunk:#0D1620; --ink:#DCE6F0; --muted:#8FA0B2; --line:#223346;
+    --accent:#5CDDFF; --accent-soft:#0F2C3A; --patrol:#FF6E61; --patrol-soft:#3A1715;
+    --orb:#B993FF; --orb-soft:#241A3D; --warn:#F2B650; --warn-soft:#352812; --good:#5FD394; --good-soft:#12301F;
+    --wedge-off:#1E2C3C;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0A111A; --surface:#101A26; --sunk:#0D1620; --ink:#DCE6F0; --muted:#8FA0B2; --line:#223346;
+  --accent:#5CDDFF; --accent-soft:#0F2C3A; --patrol:#FF6E61; --patrol-soft:#3A1715;
+  --orb:#B993FF; --orb-soft:#241A3D; --warn:#F2B650; --warn-soft:#352812; --good:#5FD394; --good-soft:#12301F;
+  --wedge-off:#1E2C3C;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:72px}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 var(--f-body); -webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+code,.mono{font-family:var(--f-mono); font-size:.86em}
+code{background:var(--sunk); padding:.08em .35em; border-radius:4px; overflow-wrap:anywhere}
+
+/* ---------- top bar with speed wedge ---------- */
+.topbar{position:sticky; top:env(safe-area-inset-top,0px); z-index:20; background:var(--bg); border-bottom:1px solid var(--line)}
+.topbar-in{display:flex; align-items:center; gap:16px; padding:10px 20px; flex-wrap:wrap}
+.brand{font:600 15px/1 var(--f-head); letter-spacing:.02em; white-space:nowrap}
+.brand small{color:var(--muted); font-weight:500; margin-left:6px}
+.wedge{display:flex; gap:3px; align-items:flex-end; height:18px; flex:0 0 auto}
+.wedge i{display:block; width:5px; background:var(--wedge-off); border-radius:1px; transition:background .15s}
+.wedge i.on{background:var(--accent)}
+.wedge i.hot{background:var(--patrol)}
+.wedge-lbl{font:11px/1 var(--f-mono); color:var(--muted); letter-spacing:.06em; min-width:9ch}
+.search{margin-left:auto; display:flex; gap:8px; align-items:center; flex:1 1 320px; max-width:720px; flex-wrap:wrap}
+.search input{flex:1 1 200px; min-width:0; font:14px var(--f-body); padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--ink)}
+.qnav[hidden]{display:none}
+.qnav{display:flex; gap:6px; align-items:center; flex:1 1 300px; min-width:0}
+.qnav button{font:12px/1 var(--f-mono); width:30px; height:30px; border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--ink); cursor:pointer}
+.qnav button:hover{border-color:var(--accent); color:var(--accent)}
+.qnav output{font:12px var(--f-mono); color:var(--muted); white-space:nowrap; min-width:9ch; text-align:center; font-variant-numeric:tabular-nums}
+.qnav select{flex:1 1 140px; min-width:0; max-width:100%; font:13px var(--f-body); padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--ink)}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+tr.qcur td{background:var(--accent-soft); box-shadow:inset 0 1px 0 var(--accent), inset 0 -1px 0 var(--accent)}
+tr.qcur td:first-child{box-shadow:inset 3px 0 0 var(--accent), inset 0 1px 0 var(--accent), inset 0 -1px 0 var(--accent)}
+
+/* ---------- layout ---------- */
+.shell{display:grid; grid-template-columns:250px minmax(0,1fr); gap:40px; max-width:1320px; margin:0 auto; padding-inline:20px}
+nav.toc{position:sticky; top:64px; align-self:start; max-height:calc(100vh - 80px); overflow:auto; padding-block:24px; font-size:13.5px}
+nav.toc ol{list-style:none; margin:0; padding:0; display:grid; gap:1px}
+nav.toc a{display:block; padding:4px 10px; color:var(--muted); text-decoration:none; border-radius:5px; border-left:2px solid transparent}
+nav.toc a:hover{color:var(--ink); background:var(--sunk)}
+nav.toc a.active{color:var(--ink); border-left-color:var(--accent); background:var(--surface)}
+nav.toc .grp{font:600 10.5px/1 var(--f-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:14px 10px 6px}
+main{padding-block:28px 120px; min-width:0}
+.prose{max-width:74ch}
+section.doc{padding-block:36px 8px; border-top:1px solid var(--line)}
+section.doc:first-of-type{border-top:0; padding-top:8px}
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr); gap:0}
+  nav.toc{position:static; max-height:none; padding-block:12px 0}
+  nav.toc details{border:1px solid var(--line); border-radius:8px; background:var(--surface); padding:6px}
+  nav.toc ol{grid-template-columns:1fr 1fr}
+  .search{max-width:none}
+}
+@media (min-width:901px){ nav.toc details > summary{display:none} }
+
+/* ---------- type ---------- */
+h1,h2,h3,h4{font-family:var(--f-head); text-wrap:balance; line-height:1.2; margin:0}
+h1{font-size:34px; font-weight:650; letter-spacing:-.01em}
+h2{font-size:25px; font-weight:650; margin-bottom:6px}
+h3{font-size:18px; font-weight:620; margin:28px 0 8px}
+h4{font-size:13px; font-weight:650; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:22px 0 8px}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 12px; padding-left:22px}
+li{margin:3px 0}
+.eyebrow{font:600 11px/1 var(--f-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:10px}
+.lede{font-size:17px; color:var(--muted); max-width:66ch}
+.why{color:var(--muted)}
+.why::before{content:"why — "; font:600 11px var(--f-mono); letter-spacing:.06em; color:var(--accent)}
+
+/* ---------- blocks ---------- */
+.callout{border:1px solid var(--line); border-radius:10px; padding:16px 18px; background:var(--surface); margin:16px 0}
+.callout.alert{border-color:var(--patrol); background:var(--patrol-soft)}
+.callout.note{border-color:var(--accent); background:var(--accent-soft)}
+.callout h3{margin-top:0}
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin:14px 0}
+.tile{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px}
+.tile h4{margin-top:0}
+.tile p:last-child,.tile ul:last-child{margin-bottom:0}
+
+/* badges */
+.b{display:inline-block; font:600 10.5px/1.5 var(--f-mono); letter-spacing:.04em; padding:1px 7px; border-radius:99px; white-space:nowrap; vertical-align:1px; border:1px solid transparent}
+.b-so{background:var(--accent-soft); color:var(--accent); border-color:var(--accent)}
+.b-clone{background:var(--warn-soft); color:var(--warn); border-color:var(--warn)}
+.b-asset{background:var(--patrol-soft); color:var(--patrol); border-color:var(--patrol)}
+.b-reload{color:var(--muted); border-color:var(--line)}
+.b-live{background:var(--good-soft); color:var(--good); border-color:var(--good)}
+.b-orb{background:var(--orb-soft); color:var(--orb); border-color:var(--orb)}
+.dbg{font:600 12px/1.4 var(--f-mono); letter-spacing:.05em; text-transform:uppercase; background:var(--ink); color:var(--bg); padding:1px 6px; border-radius:3px; white-space:nowrap}
+
+/* tables */
+.tw{overflow-x:auto; margin:10px 0 18px; border:1px solid var(--line); border-radius:10px; background:var(--surface)}
+.tw > .cap{font:600 12px var(--f-mono); letter-spacing:.06em; color:var(--muted); padding:10px 14px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+.tw > .cap strong{color:var(--ink); letter-spacing:.02em}
+table{border-collapse:collapse; width:100%; font-size:13.5px}
+th,td{text-align:left; padding:7px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font:600 11px var(--f-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); white-space:nowrap}
+td.n,th.n{font-variant-numeric:tabular-nums; white-space:nowrap}
+td:first-child code{white-space:nowrap}
+tr.over td{background:var(--warn-soft)}
+.ov{color:var(--warn); font-weight:600}
+table.k td:nth-child(2),table.k td:nth-child(3){font-family:var(--f-mono); font-size:12.5px; white-space:nowrap}
+mark{background:var(--warn-soft); color:inherit; border-radius:2px}
+
+/* do-this table */
+table.want td:first-child{width:44%; font-weight:500}
+
+/* details */
+details.hood{margin:18px 0; border:1px dashed var(--line); border-radius:10px; background:var(--sunk)}
+details.hood > summary{cursor:pointer; padding:10px 14px; font:600 12px var(--f-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); list-style:none}
+details.hood > summary::-webkit-details-marker{display:none}
+details.hood > summary::before{content:"▸ "; color:var(--accent)}
+details.hood[open] > summary::before{content:"▾ "}
+details.hood > div{padding:0 16px 12px}
+
+/* flow diagrams */
+.flow{display:grid; gap:10px; counter-reset:step; margin:14px 0}
+.flow > li{list-style:none; display:grid; grid-template-columns:34px 1fr; gap:12px; align-items:start; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px}
+.flow > li::before{counter-increment:step; content:counter(step); font:600 13px/28px var(--f-mono); text-align:center; width:28px; height:28px; border-radius:50%; background:var(--accent-soft); color:var(--accent)}
+.flow > li.win::before{background:var(--good-soft); color:var(--good)}
+.flow > li.lose::before{background:var(--patrol-soft); color:var(--patrol)}
+.flow b{font-family:var(--f-head)}
+.chain{display:flex; flex-wrap:wrap; gap:8px; align-items:stretch; margin:14px 0}
+.chain > div{flex:1 1 150px; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:13px; position:relative}
+.chain > div b{display:block; font:600 12px var(--f-mono); letter-spacing:.04em; margin-bottom:3px}
+.chain > div + div::before{content:"→"; position:absolute; left:-9px; top:50%; transform:translate(-50%,-50%); color:var(--muted); font-weight:700}
+.chain > div.last{border-color:var(--warn); background:var(--warn-soft)}
+pre.tree{font:12.5px/1.55 var(--f-mono); background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; overflow-x:auto; margin:12px 0}
+pre.tree em{font-style:normal; color:var(--muted)}
+pre.tree b{color:var(--accent); font-weight:600}
+.svgwrap{overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px; margin:14px 0}
+.svgwrap svg{display:block; min-width:760px; width:100%; height:auto}
+svg .st{fill:var(--sunk); stroke:var(--line)}
+svg .st.hot{fill:var(--patrol-soft); stroke:var(--patrol)}
+svg .st.good{fill:var(--good-soft); stroke:var(--good)}
+svg .st.calm{fill:var(--accent-soft); stroke:var(--accent)}
+svg text{fill:var(--ink); font:600 13px var(--f-mono)}
+svg text.s{fill:var(--muted); font:11px var(--f-body)}
+svg .ar{stroke:var(--muted); stroke-width:1.5; fill:none; marker-end:url(#arw)}
+svg .ar.hot{stroke:var(--patrol)}
+svg .ar.good{stroke:var(--good)}
+svg #arw path{fill:var(--muted)}
+.hidden-by-search{display:none}
+footer{color:var(--muted); font-size:13px; padding-top:28px; border-top:1px solid var(--line); margin-top:40px}
+@media print{ .topbar,nav.toc{display:none} .shell{display:block} details.hood{display:block} details.hood > div{display:block} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">Finite Runner Handbook<small>design · rules · tuning</small></div>
+    <div class="wedge" id="wedge" aria-hidden="true"></div>
+    <div class="wedge-lbl" id="wedgeLbl" aria-hidden="true">0 km/h</div>
+    <div class="search" role="search">
+      <label class="sr" for="q">Filter settings</label>
+      <input id="q" type="search" placeholder="Filter settings… (Enter = next match)" autocomplete="off">
+      <div class="qnav" id="qnav" hidden>
+        <button type="button" id="qprev" aria-label="Previous match" title="Previous match (Shift+Enter)">▲</button>
+        <output id="qcount" for="q" aria-live="polite"></output>
+        <button type="button" id="qnext" aria-label="Next match" title="Next match (Enter)">▼</button>
+        <label class="sr" for="qpick">Jump to a match</label>
+        <select id="qpick"></select>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+<nav class="toc" aria-label="Contents">
+  <details open><summary>Contents</summary>
+  <ol id="tocList">
+    <li class="grp">Orientation</li>
+    <li><a href="#start">Start here</a></li>
+    <li><a href="#reality">What actually plays today</a></li>
+    <li><a href="#lifecycle">A run, start to finish</a></li>
+    <li><a href="#scene">Scene map</a></li>
+    <li class="grp">Systems</li>
+    <li><a href="#ship">The ship</a></li>
+    <li><a href="#track">The track</a></li>
+    <li><a href="#features">Track features</a></li>
+    <li><a href="#pickups">Orbs &amp; pickups</a></li>
+    <li><a href="#patrol">The patrol</a></li>
+    <li><a href="#duel">The duel</a></li>
+    <li><a href="#hull">Hull &amp; lives</a></li>
+    <li><a href="#hud">HUD &amp; end screens</a></li>
+    <li><a href="#missions">Missions &amp; Store</a></li>
+    <li><a href="#camera">Camera &amp; feel</a></li>
+    <li><a href="#fx">FX &amp; audio</a></li>
+    <li class="grp">Tools</li>
+    <li><a href="#debug">Debug menu</a></li>
+    <li><a href="#cheats">Cheats &amp; debug aids</a></li>
+    <li><a href="#recipes">Tuning recipes</a></li>
+    <li><a href="#drift">Known doc drift</a></li>
+  </ol>
+  </details>
+</nav>
+
+<main>
+
+<!-- ================================================================ START -->
+<section class="doc" id="start">
+  <div class="eyebrow">Orientation</div>
+  <h1>Finite Runner Handbook</h1>
+  <p class="lede">Every moving piece of the hover-ship police-chase runner: what it does, the rules it keeps and why, and every knob that tunes it — in the ScriptableObjects and in the in-game DEBUG menu.</p>
+
+  <div class="prose">
+  <h3>The game in one paragraph</h3>
+  <p>You fly a hover ship down a <b>finite</b> spline track with a police cruiser on your tail. One launch impulse gets you moving, the throttle holds you at <b>cruise speed</b>, and only <b>boost orbs</b> push you past it — where a passive bleed pulls you back down, so boosts must be chained. You must hit <b>Light Speed</b> (the level's speed objective) at least once, then leave the track by one of <b>three end ramps</b> over a void, before the countdown runs out. The patrol hunts you: it holds back, then commits to attack runs that turn into a button-mashing <b>tug of war</b>; win it and one shoulder press destroys the cruiser.</p>
+  </div>
+
+  <h3>Winning and losing</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Outcome</th><th>When</th><th>Reason shown</th></tr></thead>
+    <tbody>
+      <tr><td><span class="b b-live">WIN</span></td><td>Every mandatory objective is met (latched — reaching Light Speed once counts) <b>and</b> the ship leaves the track over an end ramp.</td><td>MISSION ACCOMPLISHED</td></tr>
+      <tr><td><span class="b b-asset">LOSE</span></td><td>The countdown reaches 0.</td><td><code>LoseTimeOut</code></td></tr>
+      <tr><td><span class="b b-asset">LOSE</span></td><td>The patrol arrests you: sitting on your tail inside the catch distance for the arrest fuse without committing.</td><td><code>LoseCaught</code></td></tr>
+      <tr><td><span class="b b-asset">LOSE</span></td><td>You reach the end with an objective still open — ramp or not.</td><td><code>LoseTooSlow</code></td></tr>
+      <tr><td><span class="b b-asset">LOSE</span></td><td>Objectives are met but you go off the end through a gap between ramps (or beside them).</td><td><code>LoseMissedRamp</code></td></tr>
+      <tr><td><span class="b b-asset">LOSE</span></td><td>Hull reaches 0 and the ship explodes.</td><td><code>LoseDestroyed</code></td></tr>
+      <tr><td><span class="b b-reload">NEVER</span></td><td>Stopping dead. A standstill only switches the engine sound off. Falling off an open edge costs time and hull, not the run.</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Where the numbers live</h3>
+  <div class="prose">
+  <p>Every tunable lives in a <b>ScriptableObject</b> (SO) asset, never as a field on a manager. At runtime the game usually plays a <b>clone</b> of the asset so nothing is mutated on disk. The DEBUG menu (pause → DEBUG) edits either that clone or, for some pages, the asset itself. A value can pass through up to five layers before it reaches the game:</p>
+  </div>
+  <div class="chain" aria-label="Override chain">
+    <div><b>1 · SO asset</b>The authored value, e.g. <code>Fighter_ShipDefinition</code>.</div>
+    <div><b>2 · Runtime clone</b>Copied at run start; gameplay reads this.</div>
+    <div><b>3 · Store upgrades</b>Ship only: level multipliers applied to the clone.</div>
+    <div><b>4 · Debug override asset</b><code>Resources/FiniteRunner_*Debug</code> with <code>applyOnLoad</code> ON stamps saved slider values over the clone.</div>
+    <div class="last"><b>5 · Debug menu</b>Live slider edits during play.</div>
+  </div>
+
+  <h4>Badges used in this handbook</h4>
+  <div class="grid2">
+    <div class="tile"><p><span class="b b-so">SO</span> Edit the asset in the Inspector (Odin sliders). Permanent, versioned.</p>
+    <p><span class="b b-clone">DEBUG · CLONE</span> Debug page edits the run clone; the value is saved into a <code>*Debug</code> override asset and re-applied next play while <code>applyOnLoad</code> is on.</p></div>
+    <div class="tile"><p><span class="b b-asset">DEBUG · ASSET</span> Debug page writes straight into the SO asset — the change stays after you leave play mode. No undo switch.</p>
+    <p><span class="b b-reload">RELOAD</span> Takes effect only after RELOAD SCENE. <span class="b b-live">LIVE</span> applies immediately.</p></div>
+  </div>
+
+  <h4>Conventions worth knowing</h4>
+  <ul class="prose">
+    <li>Speeds are stored in <b>m/s</b>; the UI shows km/h (× 3.6). Cruise 1000 m/s = 3600 km/h.</li>
+    <li><b>Distance from the track start</b> is the authoritative coordinate for everything — never spline <code>t</code>.</li>
+    <li>The ship is a <b>kinematic, cast-based surface follower</b>, never a dynamic rigidbody. At Light Speed it covers ~36 m per physics step, so each tick is split into ≤ 4 m substeps and the world is read by PhysX queries, never by moving trigger volumes.</li>
+    <li>Domain reload is off: static state survives play sessions.</li>
+  </ul>
+
+  <h4>Glossary</h4>
+  <div class="tw"><table>
+    <tbody>
+      <tr><td><b>Light Speed</b></td><td>The target of the level's first ReachSpeed objective. Shown on the HUD. Latches once reached.</td></tr>
+      <tr><td><b>Cruise</b></td><td>The top speed the throttle alone reaches (<code>cruiseSpeed</code>). Past it, only orbs push, and the bleed pulls back down.</td></tr>
+      <tr><td><b>Bleed</b></td><td><code>passiveDeceleration</code> — how fast over-cruise speed drains away. The core pressure of the game.</td></tr>
+      <tr><td><b>Standoff</b></td><td>The distance the patrol holds behind you between attacks (45 m).</td></tr>
+      <tr><td><b>Attack run</b></td><td>The patrol's committed burst onto one of your flanks.</td></tr>
+      <tr><td><b>Tug of war</b></td><td>The mash contest alongside; the bar is literally your ship's position toward the edge.</td></tr>
+      <tr><td><b>Finisher / kill prompt</b></td><td>After you win the tug: one press of the correct dash shoulder destroys the cruiser.</td></tr>
+      <tr><td><b>Armed</b></td><td>A blue or purple orb in the last 3 s: the next exchange skips the tug and goes straight to the kill.</td></tr>
+      <tr><td><b>Redeploy</b></td><td>A fresh cruiser cut in behind you when the old one is outrun, killed or falls.</td></tr>
+      <tr><td><b>Open edge</b></td><td>A road edge with no wall (outer side of a flat sweep, or an open straight). Going over it is a fall.</td></tr>
+      <tr><td><b>Frontier</b></td><td>The first uncompleted mission — what START MISSION plays.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ================================================================ REALITY -->
+<section class="doc" id="reality">
+  <div class="eyebrow">Read before tuning</div>
+  <h2>What actually plays today</h2>
+  <div class="callout alert">
+    <h3>Three debug override assets are silently overriding authored values</h3>
+    <p class="prose"><code>Assets/04.Data/Resources/FiniteRunner_ShipDebug.asset</code>, <code>FiniteRunner_PatrolDebug.asset</code> and <code>FiniteRunner_TrackDebug.asset</code> all ship with <code>applyOnLoad: 1</code>. They are stamped over the definitions every time you press Play, <b>after</b> Store upgrades. If you change an SO and "nothing happens", this is why.</p>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>What you see in play</th><th>Authored</th><th>Effective</th><th>Cause</th></tr></thead>
+    <tbody>
+      <tr class="over"><td>Ship <code>weight</code> (pad effects are divided by it — orbs ~133× weaker)</td><td class="n">0.57</td><td class="n">133.3</td><td>ShipDebug · slider range is only 0.1–5, looks corrupt</td></tr>
+      <tr class="over"><td>Ship <code>acceleration</code> (blend rate of pads/impulses; negative pushes the wrong way)</td><td class="n">113</td><td class="n">−50</td><td>ShipDebug · looks corrupt</td></tr>
+      <tr class="over"><td>Store Handling &amp; Dash Power upgrades do nothing; Speed only half works</td><td>—</td><td>—</td><td>ShipDebug overwrites <code>lateralSpeed</code> 29.71, <code>handlingResponse</code> 24.8, <code>dashDistance</code> 13.7, <code>gripBase</code> 2, <code>passiveDeceleration</code> 9.8 after upgrades</td></tr>
+      <tr><td>Launch impulse</td><td class="n">0</td><td class="n">6 m/s</td><td>ShipDebug</td></tr>
+      <tr><td>Dash recharge</td><td class="n">1.8 s</td><td class="n">0.45 s</td><td>ShipDebug</td></tr>
+      <tr class="over"><td>Arrest fuse (tail time before you're caught)</td><td class="n">7 s</td><td class="n">1.5 s</td><td>PatrolDebug <code>sustainedCatchSeconds</code></td></tr>
+      <tr><td>Patrol steering / grip</td><td class="n">22 / 50</td><td class="n">12 / 130</td><td>PatrolDebug</td></tr>
+      <tr><td>Track width</td><td class="n">104.4 m</td><td class="n">120 m</td><td>TrackDebug</td></tr>
+      <tr><td>Track length, <i>every</i> level</td><td class="n">40 000 m (or level's)</td><td class="n">48 000 m</td><td>TrackDebug overrides the level and GameSettings</td></tr>
+      <tr><td>Green orb multiplier</td><td class="n">×1</td><td class="n">×2</td><td>TrackDebug</td></tr>
+      <tr><td>Laser gate density</td><td class="n">1</td><td class="n">0.5</td><td>TrackDebug</td></tr>
+      <tr><td>Max grade</td><td class="n">6°</td><td class="n">1°</td><td>TrackDebug</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Other shipped choices that change the feel</h3>
+  <ul class="prose">
+    <li><b>No loops or tubes spawn.</b> In <code>PF_Track</code>'s feature table Jump is 100 %, Loop 0 %, Full Tube 0 %.</li>
+    <li><b>The track is dead straight</b>: <code>straightness</code> 100 on the prefab and TrackDebug — so no sweeps, no banking and no flat sweeps appear.</li>
+    <li><b>Every plain straight is open</b> (no walls either side): <code>openStraightChance</code> 1.0.</li>
+    <li><b>Mission 1's Light Speed is 3423 km/h</b>, below cruise (3600 km/h) — holding the throttle alone meets it. Mission 2 asks 7500 km/h.</li>
+    <li><code>dashSinglePress</code> is ON (one press dashes), <code>startingLives</code> is 10, <code>timeLimitSeconds</code> 180.</li>
+  </ul>
+  <div class="callout note">
+    <h3>How to get back to authored values</h3>
+    <p>Select the override asset in <code>Assets/04.Data/Resources/</code> and untick <b>applyOnLoad</b>. The debug menu will turn it back on the next time you move one of its sliders. <code>FiniteRunner_FeatureDebug</code> ships with it already off.</p>
+  </div>
+</section>
+
+<!-- ================================================================ LIFECYCLE -->
+<section class="doc" id="lifecycle">
+  <div class="eyebrow">Flow</div>
+  <h2>A run, start to finish</h2>
+  <p class="prose">A <b>mission</b> is a city chase level plus this escape run. The Store's START MISSION snapshots the wallet, plays the city, and the city hands off additively (a glitch transition) into the runner scene <code>FiniteRunner_Test</code>. Every other scene trip goes through <code>LoadingScreen</code>.</p>
+  <ol class="flow">
+    <li><div><b>Boot</b> — <code>GameManager.Awake</code> resolves the level (session → serialized → default), resets objectives, sets the countdown to <code>timeLimitSeconds</code>, adds the runtime helpers to the ship, builds the run's ShipDefinition (clone × Store × ShipDebug), deals lives, snapshots the wallet, inits the patrol, camera, weather/FX, music and pause menu. <code>TrackGenerator</code> builds the first stretch and pulls the track length.</div></li>
+    <li><div><b>Launch</b> — one launch impulse from the track start; the throttle then holds cruise. The patrol starts <code>startGap</code> (548 m) behind at its base speed.</div></li>
+    <li><div><b>Live run, every frame</b> — objectives latch; patrol arrest → fail; countdown ticks (on real time during duel slow-mo, so slow-mo buys perception, not time); hull 0 → fail; open-edge falls respawn you further on at 85 % speed with a 3 s shield and the patrol held back ≥ 150 m.</div></li>
+    <li><div><b>End of track</b> — the verdict: took a ramp <i>and</i> objectives met → win; objectives met but no ramp → <code>MissedRamp</code>; objectives open → <code>TooSlow</code>. At the lip, a win beats a same-frame arrest.</div></li>
+    <li class="win"><div><b>Win beat</b> — MISSION ACCOMPLISHED slams in letter by letter; the camera plants at the lip and the ship flies on off the ramp (it never lands) for 2 s; music fades while the glitch ramps (0.8 s) and holds (0.4 s); then the <b>Mission Complete</b> panel counts up and pays the whole mission at the RANK slam.</div></li>
+    <li class="lose"><div><b>Loss beat</b> — the patrol's attack is aborted, a life is spent (while hull is on), MISSION FAILED (or GAME OVER) slams in for 2 s + 0.5 s tear, then the <b>GameOverScreen</b>: reason, RETRY? YES / NO. On the last life: forfeit (wallet back to the mission-start snapshot, city clear dropped) and PRESS ANY BUTTON → Store.</div></li>
+    <li><div><b>Retry</b> — <code>Restart()</code> resets everything in place (timer, objectives, hull, camera, FX, track regenerated), keeps the lives count, relaunches ship and patrol. No scene reload.</div></li>
+  </ol>
+  <p class="why prose">Neither ending speaks an RPG line or prints HUD text — the banner is the whole message. Run start is counted on the first unpaused frame because <code>Launch</code> can fire up to three times per run.</p>
+</section>
+
+<!-- ================================================================ SCENE -->
+<section class="doc" id="scene">
+  <div class="eyebrow">Where things are</div>
+  <h2>Scene map</h2>
+  <p class="prose">Every scene-root header sits at the origin, and each header plus each object directly under it is a nested <code>PF_</code> prefab in <code>Assets/03.Prefabs/FiniteRunner/</code>. Scene-lifetime systems are <b>hand-placed</b> so they're tunable before play; per-run objects are spawned at runtime.</p>
+<pre class="tree"><b>===SYSTEMS===</b>            <em>PF_Systems</em>
+  GameManager            <em>GameManager — GameSettings + RunnerLevelDefinition drawn inline</em>
+  CollectibleManager     <em>the only coin recorder</em>
+  FloatingTextSystem · RpgMessageSystem · HapticsSystem · CheatManager   <em>(a placed instance always wins)</em>
+  Music                  <em>RunnerMusic</em>
+  NPC / Patrol           <em>PolicePatrol — PatrolDefinition + PatrolVisualSettings</em>
+<b>===PLAYER===</b>             <em>PF_Player</em>
+  Ship                   <em>PF_Ship: ShipMotor, HoverShip, ShipRecovery, ShipPickupSweeper, DashMeter, model</em>
+<b>===ENV===</b>                <em>PF_Env</em>
+  Track                  <em>PF_Track: TrackManager, TrackGenerator, TrackDecorator, TrackColliderBuilder, TrackGuide</em>
+<b>===CAMERAS===</b>            <em>PF_Cameras</em>
+  Main Camera · CameraController (OrbitCameraRig) · FirstPersonCamera · CinematicCamera  <em>siblings, found by name</em>
+<b>===UI===</b>                 <em>PF_UI</em>
+  RaceHUD (+ TuningScreen) · ChaseMinimap · DashPrompt · MoneyHud · PauseMenu
+<b>===LIGHTING===</b>           <em>PF_Lighting</em>
+  Global Volume · Lights
+  Filters                <em>PF_Filters: DistanceFog, SpeedLines, GlitchController, PsxLook, VhsTape, CrtScreen, OrbFx</em></pre>
+  <details class="hood"><summary>Under the hood — created at runtime</summary><div>
+    <ul>
+      <li><b>On the ship:</b> <code>LoopSlowMo</code>, <code>ShipArmed</code>, <code>RunnerShipSettingsSync</code>, <code>RespawnBlink</code>, <code>ShipAudio</code>, <code>BarrelRollTrail</code>, <code>ShipHealth</code>, <code>DuelSlowMo</code>, <code>BoostQte</code> (+ <code>BoostQtePrompt</code>).</li>
+      <li><b>Screens:</b> <code>DuelBarHud</code>, <code>DashPromptController</code>, <code>MissionAccomplishedBanner</code>, <code>GameOverScreen</code>, <code>MissionCompleteScreen</code>.</li>
+      <li><b>Track:</b> laser gates, orbs, coins, ramps, collider chunks. <code>RainSystem</code> is also created at runtime.</li>
+      <li>Headers are found by name — keep the scene names when replacing prefab instances. Never parent the sibling cameras under the rig.</li>
+    </ul>
+  </div></details>
+</section>
+
+<!-- ================================================================ SHIP -->
+<section class="doc" id="ship">
+  <div class="eyebrow">System</div>
+  <h2>The ship</h2>
+  <p class="prose lede">A hover ship that rides any collider surface. Speed is the whole game: the throttle holds cruise, the brake slows, orbs push past cruise and a bleed pulls you back.</p>
+
+  <h3>Rules &amp; decisions</h3>
+  <ul class="prose">
+    <li><b>One launch impulse, then the throttle.</b> W / RT accelerates toward cruise at <code>thrust</code>; releasing coasts down at <code>coastDrag</code>; S / LT brakes at <code>brakeDecel</code>. <span class="why">the player controls pace, orbs control peak speed.</span></li>
+    <li><b>Only orbs exceed cruise</b>, and above cruise <code>passiveDeceleration</code> bleeds it back. There is no speed cap. <span class="why">boosts must be chained; coasting on one orb never wins.</span></li>
+    <li><b>Kinematic, never physics-driven.</b> Each tick is split into ≤ 4 m substeps; ground is found with 5 probe rays, walls with sphere/box sweeps. <span class="why">at ~36 m per step, a dynamic body would tunnel through everything.</span></li>
+    <li><b>Grip is only tested on flat sweeps.</b> Banked sweeps always hold. Grip = <code>gripBase + gripPerSpeed · v</code>; exceed it and you slide outward (losing <code>slideSpeedLoss</code>/s). <span class="why">danger is authored, not random.</span></li>
+    <li><b>Dash</b> (shoulder buttons) is a lateral burst that costs half the meter (<code>dashCost</code> 0.5). Airborne, it's a barrel roll. Dashing into a wall is a slam (hull damage + glitch).</li>
+    <li><b>Falls cost time, not the run.</b> Hang past an open edge for more than <code>edgeOverhang</code> (1 m) for <code>edgeGraceSeconds</code> (0.25 s) and you fall; after <code>fallDurationSeconds</code> you're placed back further down the track at 85 % of your speed, blinking and untouchable for 3 s with the patrol frozen. The countdown never stops.</li>
+    <li><b>Rolling respawn</b> (<code>respawnRollingStart</code> ON): you fly the shield window under control. OFF: you stand still through it, then relaunch.</li>
+    <li><b>Hover</b> height, bob and pitch wobble are purely visual.</li>
+  </ul>
+
+  <h3>How to tune it</h3>
+  <div class="tw"><table class="want">
+    <thead><tr><th>I want to…</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td>Make the ship faster without orbs</td><td><code>ShipDefinition.cruiseSpeed</code> (and <code>thrust</code> for how fast it gets there)</td></tr>
+      <tr><td>Make boosts last longer</td><td>Lower <code>passiveDeceleration</code></td></tr>
+      <tr><td>Snappier steering</td><td>Raise <code>handlingResponse</code> and/or <code>lateralSpeed</code></td></tr>
+      <tr><td>Flat sweeps less punishing</td><td>Raise <code>gripBase</code> / <code>gripPerSpeed</code></td></tr>
+      <tr><td>Dash more often / farther</td><td><code>dashRechargeSeconds</code>, <code>GameSettings.dashCost</code> / <code>dashDistance</code></td></tr>
+      <tr><td>Falls hurt less</td><td><code>GameSettings.respawnSpeedPenalty</code>, <code>fallDurationSeconds</code>, <code>fallDamage</code></td></tr>
+      <tr><td>Harder to fall off open edges</td><td>Raise <code>GameSettings.edgeOverhang</code> / <code>edgeGraceSeconds</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="tw"><div class="cap"><strong>ShipDefinition</strong> <span class="b b-so">SO</span> <code>04.Data/FiniteRunner/Fighter_ShipDefinition.asset</code> · cloned per run</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>initialImpulse</code></td><td>0–1000</td><td>0 <span class="ov">[6]</span></td><td>Launch speed (m/s).</td></tr>
+    <tr><td><code>cruiseSpeed</code></td><td>0–1000</td><td>1000</td><td>Top speed the throttle alone reaches (m/s).</td></tr>
+    <tr><td><code>thrust</code></td><td>0–300</td><td>60</td><td>Acceleration below cruise (m/s²).</td></tr>
+    <tr><td><code>brakeDecel</code></td><td>0–500</td><td>284 <span class="ov">[3.94]</span></td><td>Full-brake deceleration.</td></tr>
+    <tr><td><code>coastDrag</code></td><td>0–100</td><td>20 <span class="ov">[32.6]</span></td><td>Speed lost below cruise with the throttle released.</td></tr>
+    <tr><td><code>passiveDeceleration</code></td><td>0–50</td><td>6 <span class="ov">[9.8]</span></td><td>Over-cruise bleed — the core pressure.</td></tr>
+    <tr><td><code>digitalThrottleRampSeconds</code></td><td>0–1</td><td>0.15</td><td>Keyboard throttle ease-in.</td></tr>
+    <tr><td><code>acceleration</code></td><td>0.01–200</td><td>113 <span class="ov">[−50]</span></td><td>Blend rate of external speed changes (orbs, impulses).</td></tr>
+    <tr><td><code>weight</code></td><td>0.1–5</td><td>0.57 <span class="ov">[133.3]</span></td><td>Divides every pad/orb effect (2 = half effect).</td></tr>
+    <tr><td><code>lateralSpeed</code></td><td>0–100</td><td>58.3 <span class="ov">[29.71]</span></td><td>Sideways speed at full steer.</td></tr>
+    <tr><td><code>handlingResponse</code></td><td>0.01–30</td><td>17.4 <span class="ov">[24.8]</span></td><td>Lateral drag; higher = snappier.</td></tr>
+    <tr><td><code>gripBase</code></td><td>0–500</td><td>50 <span class="ov">[2]</span></td><td>Grip on flat sweeps at a standstill.</td></tr>
+    <tr><td><code>gripPerSpeed</code></td><td>0–3</td><td>0.5</td><td>Extra grip per m/s.</td></tr>
+    <tr><td><code>slideThreshold</code></td><td>0–30</td><td>4</td><td>Outward slip that counts as a slide.</td></tr>
+    <tr><td><code>slideSpeedLoss</code></td><td>0–1</td><td>0.1</td><td>Speed share scrubbed per second while sliding.</td></tr>
+    <tr><td><code>dashDistance</code></td><td>2–30</td><td>20.7 <span class="ov">[13.7]</span></td><td>How far one dash carries the ship (m).</td></tr>
+    <tr><td><code>dashDuration</code></td><td>0.05–1</td><td>0.214 <span class="ov">[0.281]</span></td><td>Dash window; no re-dash inside it.</td></tr>
+    <tr><td><code>dashRechargeSeconds</code></td><td>1–60</td><td>1.8 <span class="ov">[0.45]</span></td><td>Empty → full meter.</td></tr>
+    <tr><td><code>dashGhostCount</code></td><td>1–20</td><td>6 <span class="ov">[5]</span></td><td>Afterimages in the dash trail.</td></tr>
+    <tr><td><code>barrelRollSeconds</code></td><td>0.2–1.5</td><td>0.5 <span class="ov">[0.45]</span></td><td>Airborne dash roll length.</td></tr>
+    <tr><td><code>maxHull</code></td><td>10–500</td><td>300</td><td>Life bar size.</td></tr>
+    <tr><td><code>jumpStrength</code></td><td>0.5–3</td><td>1</td><td>Scales ramp take-off boost and arc (Store: Jump Strength).</td></tr>
+    <tr><td><code>hoverHeight</code></td><td>0–10</td><td>3.5 <span class="ov">[3.75]</span></td><td>Ride height (visual).</td></tr>
+    <tr><td><code>bobAmplitude</code> / <code>bobFrequency</code></td><td>0–3 / 0–10</td><td>0.35 / 1.5 <span class="ov">[1.4 / 4]</span></td><td>Idle hover bob.</td></tr>
+    <tr><td><code>hoverPitchDegrees</code></td><td>0–10</td><td>2.5 <span class="ov">[3]</span></td><td>Pitch wobble.</td></tr>
+    <tr><td><code>maxBankAngle</code> / <code>bankResponse</code></td><td>0–90 / 0.01–20</td><td>60.7 / 7 <span class="ov">[48.17]</span></td><td>Visual roll into turns.</td></tr>
+  </tbody></table></div>
+  <p class="prose why">Values in <span class="ov">[brackets]</span> are what <code>FiniteRunner_ShipDebug</code> currently stamps over the asset at run start.</p>
+
+  <div class="tw"><div class="cap"><strong>GameSettings — Fall and respawn · Simulation</strong> <span class="b b-so">SO</span> <code>04.Data/FiniteRunner/FiniteRunner_GameSettings.asset</code> · read live</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>simSubsteps</code></td><td>1–8</td><td>2</td><td>Substeps per 0.02 s physics tick of the track-space body.</td></tr>
+    <tr><td><code>stallGraceSeconds</code></td><td>0–10</td><td>2</td><td>Stopped time before the engine sound cuts (never a loss).</td></tr>
+    <tr><td><code>edgeOverhang</code></td><td>0–10</td><td>1</td><td>Metres past an open edge before falling.</td></tr>
+    <tr><td><code>edgeGraceSeconds</code></td><td>0–2</td><td>0.25</td><td>Time past the overhang before falling.</td></tr>
+    <tr><td><code>fallGravity</code></td><td>0–200</td><td>30</td><td>Gravity of the off-track fall.</td></tr>
+    <tr><td><code>fallTumbleDegreesPerSecond</code></td><td>0–720</td><td>120</td><td>Visual tumble while falling.</td></tr>
+    <tr><td><code>fallDurationSeconds</code></td><td>0.1–5</td><td>1.5</td><td>Fall time before respawn.</td></tr>
+    <tr><td><code>fallCameraFollowSeconds</code></td><td>0–5</td><td>0.5</td><td>Camera follows this long, then plants.</td></tr>
+    <tr><td><code>fallGlitchStrength</code></td><td>0–1</td><td>0.8</td><td>Glitch burst going over the edge.</td></tr>
+    <tr><td><code>respawnWaitSeconds</code></td><td>0–10</td><td>3</td><td>Blinking, untouchable window (patrol frozen).</td></tr>
+    <tr><td><code>respawnRollingStart</code></td><td>bool</td><td>ON</td><td>Fly the window under control vs. stand still.</td></tr>
+    <tr><td><code>respawnBlinkRate</code></td><td>1–30</td><td>8</td><td>Blink Hz.</td></tr>
+    <tr><td><code>respawnSpeedPenalty</code></td><td>0–1</td><td>0.15</td><td>Share of speed lost on relaunch.</td></tr>
+    <tr><td><code>respawnClearance</code></td><td>0–1000</td><td>150</td><td>Feature-free road needed ahead of a respawn spot.</td></tr>
+    <tr><td><code>respawnMinPatrolGap</code></td><td>0–1000</td><td>150</td><td>Minimum head start over the patrol after respawn.</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>GameSettings — Lateral dash</strong> <span class="b b-so">SO</span> toggle group <code>dashEnabled</code> (ON)</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>dashCost</code></td><td>0.1–1</td><td>0.5</td><td>Meter fraction per dash.</td></tr>
+    <tr><td><code>dashSinglePress</code></td><td>bool</td><td>ON</td><td>One press dashes; OFF = double-tap.</td></tr>
+    <tr><td><code>dashDoubleTapSeconds</code></td><td>0.1–0.6</td><td>0.3</td><td>Double-tap window (only when single press is off).</td></tr>
+    <tr><td><code>dashWallGlitchStrength</code></td><td>0–1</td><td>0.7</td><td>Glitch on a dash wall slam.</td></tr>
+    <tr><td><code>dashWallHitCooldownSeconds</code></td><td>0.1–2</td><td>0.5</td><td>Min time between counted wall slams.</td></tr>
+    <tr><td><code>dashGhostLifetime</code> / <code>StartAlpha</code> / <code>DriftMeters</code></td><td>—</td><td>0.35 / 0.45 / 0</td><td>Ghost trail look.</td></tr>
+    <tr><td><code>barrelRollTrail*</code></td><td>—</td><td>0.6 s, 0.9 m</td><td>Barrel-roll ribbon seconds, width, span, colour, material.</td></tr>
+    <tr><td><code>dashMeterColor</code></td><td>colour</td><td>cyan</td><td>Dash meter tint.</td></tr>
+    <tr><td><code>dashEncourageAfterSeconds</code></td><td>2–60</td><td>10</td><td>Show the "PRESS TO DASH" hint after this long without dashing.</td></tr>
+  </tbody></table></div>
+
+  <h4>In the DEBUG menu</h4>
+  <div class="tw"><div class="cap"><strong class="dbg">DEBUG — SHIP SPEED</strong> <span class="b b-clone">DEBUG · CLONE</span> saved to ShipDebug · <span class="b b-live">LIVE</span> except launch</div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td>LAUNCH SPEED <span class="b b-reload">RELOAD</span></td><td>0–1000, 10</td><td>initialImpulse</td></tr>
+    <tr><td>CRUISE SPEED</td><td>0–1000, 10</td><td>cruiseSpeed</td></tr>
+    <tr><td>THRUST</td><td>0–300, 5</td><td>thrust</td></tr>
+    <tr><td>BRAKE POWER</td><td>0–500, 10</td><td>brakeDecel</td></tr>
+    <tr><td>COAST DRAG</td><td>0–100, 1</td><td>coastDrag</td></tr>
+    <tr><td>DECELERATION</td><td>0–50, 0.5</td><td>passiveDeceleration</td></tr>
+    <tr><td>ACCELERATION</td><td>1–200, 5</td><td>acceleration</td></tr>
+    <tr><td>WEIGHT</td><td>0.1–5, 0.1</td><td>weight</td></tr>
+    <tr><td>KEY THROTTLE RAMP</td><td>0–1, 0.05</td><td>digitalThrottleRampSeconds</td></tr>
+  </tbody></table></div>
+  <div class="tw"><div class="cap"><strong class="dbg">DEBUG — SHIP HANDLING</strong> <span class="b b-clone">DEBUG · CLONE</span> <span class="b b-live">LIVE</span></div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td>LATERAL SPEED</td><td>0–100, 1</td><td>lateralSpeed</td></tr>
+    <tr><td>STEER RESPONSE</td><td>0.5–30, 0.5</td><td>handlingResponse</td></tr>
+    <tr><td>GRIP</td><td>0–500, 5</td><td>gripBase</td></tr>
+    <tr><td>GRIP PER SPEED</td><td>0–3, 0.05</td><td>gripPerSpeed</td></tr>
+    <tr><td>SLIDE THRESHOLD</td><td>0–30, 0.5</td><td>slideThreshold</td></tr>
+    <tr><td>SLIDE SPEED LOSS</td><td>0–1, 0.05</td><td>slideSpeedLoss</td></tr>
+    <tr><td>BANK ANGLE</td><td>0–90, 5</td><td>maxBankAngle</td></tr>
+    <tr><td>BANK RESPONSE</td><td>0.5–20, 0.5</td><td>bankResponse</td></tr>
+  </tbody></table></div>
+  <div class="grid2">
+  <div class="tw" style="margin:0"><div class="cap"><strong class="dbg">DEBUG — SHIP DASH</strong> <span class="b b-clone">DEBUG · CLONE</span></div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td>DASH DISTANCE</td><td>2–30, 1</td><td>dashDistance</td></tr>
+    <tr><td>DASH DURATION</td><td>0.05–1, 0.05</td><td>dashDuration</td></tr>
+    <tr><td>DASH RECHARGE</td><td>1–60, 1</td><td>dashRechargeSeconds</td></tr>
+    <tr><td>DASH GHOSTS</td><td>1–20, 1</td><td>dashGhostCount</td></tr>
+    <tr><td>BARREL ROLL TIME</td><td>0.2–1.5, 0.05</td><td>barrelRollSeconds</td></tr>
+  </tbody></table></div>
+  <div class="tw" style="margin:0"><div class="cap"><strong class="dbg">DEBUG — SHIP HOVER</strong> <span class="b b-clone">DEBUG · CLONE</span></div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td>HOVER HEIGHT</td><td>0–10, 0.25</td><td>hoverHeight</td></tr>
+    <tr><td>BOB AMPLITUDE</td><td>0–3, 0.05</td><td>bobAmplitude</td></tr>
+    <tr><td>BOB FREQUENCY</td><td>0–10, 0.25</td><td>bobFrequency</td></tr>
+    <tr><td>PITCH WOBBLE</td><td>0–10, 0.5</td><td>hoverPitchDegrees</td></tr>
+  </tbody></table></div>
+  </div>
+  <div class="tw"><div class="cap"><strong class="dbg">FALL &amp; RESPAWN</strong> <span class="b b-asset">DEBUG · ASSET</span> writes GameSettings directly · <span class="b b-live">LIVE</span></div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td>EDGE OVERHANG</td><td>0–10, 0.25</td><td>edgeOverhang</td></tr>
+    <tr><td>EDGE GRACE TIME</td><td>0–2, 0.05</td><td>edgeGraceSeconds</td></tr>
+    <tr><td>FALL GRAVITY</td><td>0–200, 5</td><td>fallGravity</td></tr>
+    <tr><td>FALL TIME</td><td>0.1–5, 0.1</td><td>fallDurationSeconds</td></tr>
+    <tr><td>CAMERA FOLLOW TIME</td><td>0–5, 0.1</td><td>fallCameraFollowSeconds</td></tr>
+    <tr><td>RESPAWN WAIT</td><td>0–10, 0.25</td><td>respawnWaitSeconds</td></tr>
+    <tr><td>ROLLING RESPAWN (toggle)</td><td>ON / OFF</td><td>respawnRollingStart</td></tr>
+    <tr><td>BLINK RATE</td><td>1–30, 1</td><td>respawnBlinkRate</td></tr>
+    <tr><td>RESPAWN SPEED PENALTY</td><td>0–1, 0.05</td><td>respawnSpeedPenalty</td></tr>
+    <tr><td>RESPAWN CLEARANCE</td><td>0–1000, 25</td><td>respawnClearance</td></tr>
+    <tr><td>RESPAWN PATROL GAP</td><td>0–1000, 25</td><td>respawnMinPatrolGap</td></tr>
+    <tr><td>STALL GRACE</td><td>0–10, 0.25</td><td>stallGraceSeconds</td></tr>
+  </tbody></table></div>
+
+  <details class="hood"><summary>Under the hood — ship components</summary><div>
+    <ul>
+      <li><b><code>HoverBody</code></b> (<code>01.Scripts/Ship/HoverBody.cs</code>) — the movement model. Per substep: free steering → hull sweep → re-seat on the surface (5 probe rays; the ship's up is never smoothed) → wall clearance (sweep, slim-hull retry, <code>KeepClear</code> whiskers, slide along walls). Jump gravity is solved per flight so the ship lands <code>airDistancePerSpeed × speed</code> metres on.</li>
+      <li><b><code>HoverShip</code></b> — input → movement, dash, barrel roll, stall, and the autopilot the duel uses to lock controls.</li>
+      <li><b><code>ShipMotor</code></b> (<code>Runner/Ship/ShipMotor.cs</code> + <code>.Physics.cs</code>) — no longer simulates. Mirrors the HoverShip into track coordinates (<code>TrackBody</code>: distance, lateral, height, speed, state) and adds runner rules: loop gate, ramp boost, ramp side hit, tube return, end-of-track (<code>Fall</code> / <code>TerminalFall</code> / <code>Escape</code>), and the analytic laser sweep.</li>
+      <li><b><code>ShipRecovery</code></b> — lost-ship detection, ballistic fall, respawn search and relaunch. Timers run in the fixed tick so pause freezes them.</li>
+      <li><b><code>ShipPickupSweeper</code></b> — box-casts along each tick's path for orbs, repair orbs and coins; blind while OffTrack/Respawning.</li>
+      <li><b><code>ShipSettings</code></b> (<code>04.Data/Ship/Runner_ShipSettings.asset</code>) — surface/guide/recovery tuning of the standalone ship: <code>maxStepMeters</code> 4, <code>maxSubsteps</code> 24, <code>attachRange</code> 6, <code>coyoteMeters</code> 3.9, <code>hullRadius</code> 2, <code>climbAngle</code> 45, <code>airDistancePerSpeed</code> 1.08, <code>guideRefreshMeters</code> 16, <code>reverseSpeed</code> 25… Its dash, fall, respawn and trail fields are <b>overwritten every frame</b> from GameSettings by <code>RunnerShipSettingsSync</code> — tune those in GameSettings, not here.</li>
+      <li><code>ShipState</code> (append-only enum): Grounded, Airborne, Looping, Falling, OnTube, OffTrack, Respawning.</li>
+      <li>Run definition = <code>ShipUpgradeApplier.BuildRunDefinition</code>: clone → Store multipliers → <code>ShipDebugSettings.ApplyTo</code>. Sentinel fields (−1) in ShipDebug are skipped; the older fields (impulse, bleed, acceleration, weight) are always stamped.</li>
+    </ul>
+  </div></details>
+</section>
+
+<!-- ================================================================ TRACK -->
+<section class="doc" id="track">
+  <div class="eyebrow">System</div>
+  <h2>The track</h2>
+  <p class="prose lede">A finite spline road streamed ahead of you, ending in a straight walled run-up and three ramps side by side over a void.</p>
+
+  <h3>Rules &amp; decisions</h3>
+  <ul class="prose">
+    <li><b>Finite length</b> per level (<code>RunnerLevelDefinition.trackLengthMeters</code>; 0 = <code>GameSettings.trackLengthMeters</code>). The HUD shows distance left. <span class="why">time AND distance are the limits.</span></li>
+    <li><b>Streamed</b>: <code>aheadDistance</code> (1600 m) of finished road is kept ahead, road more than <code>behindDistance</code> (1500 m) back is culled. Knots are never removed.</li>
+    <li><b>Collisions come from the same pose function</b> that places everything (<code>TrackColliderBuilder</code>, 120 m chunks). <span class="why">no per-feature special cases; the ship reads the world through physics queries.</span></li>
+    <li><b>A missing wall is always a real drop.</b> Edges are open only on the outer side of a flat sweep or on an open straight.</li>
+    <li><b>Shape</b>: elevation within a band, grade-limited; turns with rate/arc ranges; banking proportional to the turn. A share of sweeps is authored <b>flat</b> (no outer wall; grip is tested). Turn rates are derived from the grip formula <code>v²/R ≤ gripBase + gripPerSpeed·v</code> — keep <code>turnArcMin ≥ 2 × turnRateMax</code>.</li>
+    <li><b>The end</b>: a pinned end-zone knot, then <code>endRunUpMeters</code> of straight, walled road with no features or pickups, then <b>three end ramps</b> with <code>endRampGapMeters</code> gaps between them. The outer two reach 0.5 m past the wall so hugging a wall still lands you on a ramp. End ramps give no boost and never land.</li>
+    <li><b>The last two segments</b> (the settle margin) are never decorated or populated.</li>
+  </ul>
+
+  <h3>How to tune it</h3>
+  <div class="tw"><table class="want"><thead><tr><th>I want to…</th><th>Change</th></tr></thead><tbody>
+    <tr><td>Longer / shorter run</td><td><code>RunnerLevelDefinition.trackLengthMeters</code> per level (and check TrackDebug's 48 000 isn't overriding it)</td></tr>
+    <tr><td>Curvier track</td><td><code>TrackGenerator.straightness</code> down from 100; then <code>TrackShapeSettings</code> turn ranges</td></tr>
+    <tr><td>More / fewer wall-less stretches</td><td><code>openStraightChance</code>, <code>unbankedSweepChance</code></td></tr>
+    <tr><td>Wider road</td><td><code>TrackGenerator.trackWidth</code> (TrackDebug currently forces 120)</td></tr>
+    <tr><td>Easier to hit an end ramp</td><td>Lower <code>GameSettings.endRampGapMeters</code></td></tr>
+    <tr><td>Hillier track</td><td><code>elevationBand</code>, <code>maxGrade</code></td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>GameSettings — Win condition · Track end</strong> <span class="b b-so">SO</span></div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>lightSpeedKmh</code></td><td>100–10000</td><td>6500</td><td>Fallback win speed if the level has no ReachSpeed objective.</td></tr>
+    <tr><td><code>timeLimitSeconds</code></td><td>10–300</td><td>180</td><td>The countdown.</td></tr>
+    <tr><td><code>trackLengthMeters</code></td><td>5000–100000</td><td>40000 <span class="ov">[48000]</span></td><td>Length when the level says 0.</td></tr>
+    <tr><td><code>endRunUpMeters</code></td><td>600–3000</td><td>1200</td><td>Final straight, walled, empty run-up.</td></tr>
+    <tr><td><code>endRampGapMeters</code></td><td>4–40</td><td>10</td><td>Gap between the three end ramps.</td></tr>
+    <tr><td><code>endRampSideGapMeters</code></td><td>0–20</td><td>0</td><td>Gap between an outer ramp and the wall.</td></tr>
+    <tr><td><code>winEscapeGravity</code></td><td>0–60</td><td>0</td><td>Gravity on the winning ship after the lip.</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>TrackGenerator component</strong> <span class="b b-so">prefab</span> <code>03.Prefabs/FiniteRunner/PF_Track.prefab</code></div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>trackWidth</code></td><td>10–120</td><td>104.4 <span class="ov">[120]</span></td><td>Road width; overwrites TrackManager's half-width.</td></tr>
+    <tr><td><code>straightness</code></td><td>0–100</td><td>100</td><td>100 = dead straight.</td></tr>
+    <tr><td><code>featureSpacing</code></td><td>band</td><td>1500–3000</td><td>Metres between features.</td></tr>
+    <tr><td><code>segmentLength</code></td><td>band</td><td>300–420</td><td>Spline segment length.</td></tr>
+    <tr><td><code>aheadDistance</code> / <code>behindDistance</code></td><td>m</td><td>1600 / 1500</td><td>Streaming window. Keep fog end below ahead distance.</td></tr>
+    <tr><td><code>seed</code></td><td>int</td><td>0</td><td>0 = different every run.</td></tr>
+    <tr><td>collectibles</td><td>—</td><td>every 250–500 m</td><td>Rows of 1–5 coins, $1–5 each.</td></tr>
+    <tr><td><code>featureTable</code></td><td>list</td><td>Jump 100 · Loop 0 · Tube 0</td><td>See <a href="#features">Track features</a>.</td></tr>
+    <tr><td><code>endRamp</code></td><td>JumpDefinition</td><td>null → <code>Resources/FiniteRunner_EndRamp</code></td><td>End-ramp shape.</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>TrackShapeSettings</strong> <span class="b b-so">SO</span> <code>04.Data/FiniteRunner/FiniteRunner_TrackShape.asset</code> · cloned</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>elevationEnabled</code></td><td>bool</td><td>ON</td><td>Hills on/off.</td></tr>
+    <tr><td><code>elevationBand</code></td><td>0–300</td><td>60</td><td>± metres the road may climb/drop from its baseline.</td></tr>
+    <tr><td><code>maxGrade</code></td><td>0–20°</td><td>6 <span class="ov">[1]</span></td><td>Steepest slope (0 = flat).</td></tr>
+    <tr><td><code>maxGradeStepPerKnot</code></td><td>0–10°</td><td>3</td><td>Max grade change per knot.</td></tr>
+    <tr><td><code>baselinePull</code></td><td>0–1</td><td>0.5</td><td>Pull back toward baseline height.</td></tr>
+    <tr><td><code>turnRateRange</code></td><td>2–60 °/knot</td><td>6–13</td><td>Turn tightness.</td></tr>
+    <tr><td><code>turnArcRange</code></td><td>10–180°</td><td>25–120</td><td>Total angle of one turn.</td></tr>
+    <tr><td><code>minStraightKnots</code></td><td>0–6</td><td>1</td><td>Straight between turns.</td></tr>
+    <tr><td><code>alternateTurnChance</code></td><td>0–1</td><td>0.7</td><td>Chance the next turn goes the other way.</td></tr>
+    <tr><td><code>maxHeadingDrift</code></td><td>0–180°</td><td>150</td><td>Max overall drift from the start heading.</td></tr>
+    <tr><td><code>unbankedSweepChance</code></td><td>0–1</td><td>0.3</td><td>Share of sweeps authored flat and dangerous.</td></tr>
+    <tr><td><code>openStraightChance</code></td><td>0–1</td><td>1.0</td><td>Share of straights with no walls.</td></tr>
+    <tr><td><code>bankEnabled</code></td><td>bool</td><td>ON</td><td>Banking on/off.</td></tr>
+    <tr><td><code>maxBankAngle</code></td><td>0–89°</td><td>80 <span class="ov">[78]</span></td><td>Steepest bank.</td></tr>
+    <tr><td><code>bankPerDegreeOfTurn</code></td><td>0–10</td><td>8</td><td>Bank per degree of turn.</td></tr>
+    <tr><td><code>maxBankStepPerKnot</code></td><td>0–90°</td><td>45</td><td>Bank change per knot.</td></tr>
+    <tr><td><code>levelLeadDistance</code></td><td>0–3000</td><td>200</td><td>Level road before a feature.</td></tr>
+  </tbody></table></div>
+
+  <h4>In the DEBUG menu</h4>
+  <div class="tw"><div class="cap"><strong class="dbg">DEBUG — CORE SETTINGS</strong> <span class="b b-clone">DEBUG · CLONE</span> saved to TrackDebug · shape rows <span class="b b-reload">RELOAD</span> · densities/tiers <span class="b b-live">LIVE</span> for road not yet streamed</div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td>TRACK WIDTH</td><td>10–120, 5</td><td>TrackWidth</td></tr>
+    <tr><td>STRAIGHTNESS</td><td>0–100, 5</td><td>Straightness</td></tr>
+    <tr><td>TRACK LENGTH</td><td>0–100000, 1000</td><td>TrackLengthOverride (0 = level's)</td></tr>
+    <tr><td>ELEVATION BAND</td><td>0–300, 10</td><td>elevationBand</td></tr>
+    <tr><td>MAX GRADE</td><td>0–20, 1</td><td>maxGrade</td></tr>
+    <tr><td>GRADE STEP</td><td>0–10, 0.5</td><td>maxGradeStepPerKnot</td></tr>
+    <tr><td>BASELINE PULL</td><td>0–1, 0.05</td><td>baselinePull</td></tr>
+    <tr><td>MAX BANK</td><td>0–89, 1</td><td>maxBankAngle</td></tr>
+    <tr><td>BANK PER TURN</td><td>0–10, 0.5</td><td>bankPerDegreeOfTurn</td></tr>
+    <tr><td>BANK STEP</td><td>0–90, 5</td><td>maxBankStepPerKnot</td></tr>
+    <tr><td>LEVEL LEAD</td><td>0–3000, 50</td><td>levelLeadDistance</td></tr>
+    <tr><td>FLAT CURVES %</td><td>0–100, 5</td><td>unbankedSweepChance</td></tr>
+    <tr><td>OPEN STRAIGHTS %</td><td>0–100, 5</td><td>openStraightChance</td></tr>
+    <tr><td>LASER GATES / SPEED ORBS / REPAIR ORBS DENSITY</td><td>0–5, 0.25</td><td>spawner Density (1 = authored)</td></tr>
+    <tr><td>GREEN % / BLUE % / PURPLE %</td><td>0–100, 1</td><td>orb tier probability (others rebalance to 100)</td></tr>
+    <tr><td>RELOAD SCENE (button)</td><td>—</td><td>flush debug stores, reload</td></tr>
+  </tbody></table></div>
+
+  <details class="hood"><summary>Under the hood — track code</summary><div>
+    <ul>
+      <li><b><code>TrackManager</code></b> — the only thing that touches the spline: distance → pose, sections, bands, edges. <code>GetLateralBand</code> is the steering lane (where things are placed); <code>GetRoadBand</code> adds the banked shoulders (where the ship can be). <code>IsEdgeOpen</code>, <code>HasEnd</code>, <code>EndDistance</code>, <code>EndZoneStart</code>. On PF_Track: <code>shoulderFraction</code> 0.4844, <code>shoulderRise</code> 5.1 m (measured off the road-slab mesh). Knots live in container space — use <code>WorldToKnotSpace</code>.</li>
+      <li><b><code>TrackGenerator</code></b> — streaming + feature placement: <code>featureCursor</code> → <code>DecideFeature</code> → <code>AddSection</code> before anything is placed beyond it. Spans are culled by their END. <code>FinishTrack</code> → <code>CreateEndRamps</code>. Each spawner runs a runtime clone with its own RNG.</li>
+      <li><b><code>TrackColliderBuilder</code></b> — 120 m chunks, 4 road columns (10 m quads on curled tubes), walls only where the edge is closed, ramp wedges with outward flanks, loop chunks surface-only on layer 10, surface sunk by hover height. Debug toggle <code>showMeshes</code> draws them.</li>
+      <li><b><code>TrackGuide</code></b> (<code>IShipGuide</code>) — projects world positions back to track distance with Newton steps from the last answer (keeps the right pass of a loop). <code>assist</code> 0.18, <code>acquireScanMeters</code> 4000. <code>FindRespawn</code> skips sections, flat sweeps, ramps, and never passes <code>EndZoneStart</code>.</li>
+    </ul>
+  </div></details>
+</section>
+
+<!-- ================================================================ FEATURES -->
+<section class="doc" id="features">
+  <div class="eyebrow">System</div>
+  <h2>Track features</h2>
+  <p class="prose lede">Ramps, vertical loops, cylinder tubes and laser gates. Features are placed one at a time from a weighted table; laser gates come from their own spawner.</p>
+
+  <div class="grid2">
+    <div class="tile"><h4>Ramps / jumps</h4><ul>
+      <li>Inside the run-up by more than <code>entryMargin</code>, you're committed.</li>
+      <li>Beside a ramp its edge is a wall: hitting it costs speed (<code>sideHitSpeedLoss</code>) and hull (<code>wallSlamDamage</code>).</li>
+      <li>At the lip: take-off boost (feature ×, × <code>jumpStrength</code>) and gravity solved so you land <code>airDistancePerSpeed × speed</code> metres on, clamped.</li>
+      <li>A ramp reserves a straight, level landing zone. Take-offs count for JumpCount objectives. The camera forces the Far view in the air.</li>
+    </ul></div>
+    <div class="tile"><h4>Vertical loops <span class="b b-reload">0 % today</span></h4><ul>
+      <li>A speed gate: the verdict is taken once at the entry. Required speed grows along the run (1200 km/h + 18 per 100 m, capped at 2900).</li>
+      <li>A loop is only placed if predicted speed ≥ required × (1 + <code>gateHeadroom</code>).</li>
+      <li>Fail = drop off the top onto the exit, lose 40 % speed; the patrol gains ground.</li>
+      <li>Cinematic side shot + slow-mo so the loop reads (~3.5 real seconds).</li>
+    </ul></div>
+    <div class="tile"><h4>Cylinder tubes <span class="b b-reload">0 % today</span></h4><ul>
+      <li>You run round the outside of a pipe; a ±180° band means full circle.</li>
+      <li>Steering × <code>steeringFactor</code>. Curl in/out over <code>curlLength</code>.</li>
+      <li>The last <code>returnLength</code> returns you to the centre line with steering and dash locked. No barriers; orbs spawn all round.</li>
+    </ul></div>
+    <div class="tile"><h4>Laser gates</h4><ul>
+      <li>Emitter pairs whose beam covers 20–30 % of the road: single horizontal, vertical (weight 0 today), three stacked, or a flat spinning rotor. Always wavy today.</li>
+      <li><b>Steered round, never jumped.</b> A hit costs <code>laserDamage</code> (30) hull and <code>laserSpeedLoss</code> (10 %) speed at once, plus smoke, rumble and shake. Once per pass.</li>
+      <li>Never on/near a ramp, its landing, a loop, a tube or the final run-up. Allowed on flat sweeps and open edges.</li>
+      <li>A beam <b>destroys the patrol</b> — the one hazard you can aim it at.</li>
+    </ul></div>
+  </div>
+  <p class="why prose">Lasers stay analytic (segment closest-approach against the ship's substep path), with no colliders — a moving trigger would miss at Light Speed.</p>
+
+  <h3>How to tune it</h3>
+  <div class="tw"><table class="want"><thead><tr><th>I want to…</th><th>Change</th></tr></thead><tbody>
+    <tr><td>Turn loops or tubes back on</td><td><code>PF_Track → TrackGenerator.featureTable</code> probability for Loop / Full Tube</td></tr>
+    <tr><td>More features overall</td><td>Lower <code>featureSpacing</code> (or FEATURE SPACING in debug)</td></tr>
+    <tr><td>Longer jumps</td><td><code>JumpDefinition.airDistancePerSpeed</code> and <code>airDistanceRange</code> max</td></tr>
+    <tr><td>Loops easier to clear</td><td><code>GameSettings.loopSpeedFloorKmh</code> / <code>loopSpeedRampKmhPer100m</code> / <code>loopSpeedCapKmh</code></td></tr>
+    <tr><td>Fewer / thinner lasers</td><td>Spawner density (debug), <code>LaserGateDefinition.coverageBand</code>, variant weights</td></tr>
+    <tr><td>Lasers hurt less</td><td><code>GameSettings.laserDamage</code>, <code>laserSpeedLoss</code></td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>Feature table</strong> <span class="b b-so">prefab</span> <code>TrackGenerator.featureTable</code> on PF_Track · runtime clone of each definition</div>
+  <table class="k"><thead><tr><th>Entry</th><th>Probability</th><th>Min spacing</th><th>Notes</th></tr></thead><tbody>
+    <tr><td>Jump</td><td>100 %</td><td>300 m</td><td>boost ×1 · <code>Jump_Definition</code></td></tr>
+    <tr><td>Loop</td><td>0 %</td><td>—</td><td><code>Loop_Definition</code></td></tr>
+    <tr><td>Full Tube</td><td>0 %</td><td>—</td><td><code>FullTube_Definition</code></td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>JumpDefinition</strong> <span class="b b-so">SO</span> <code>Jump_Definition</code> · end ramps use <code>Resources/FiniteRunner_EndRamp</code></div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped (end ramp)</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>widthFraction</code></td><td>0.05–1</td><td>0.25</td><td>Ramp width as a share of the lane.</td></tr>
+    <tr><td><code>length</code></td><td>10–200</td><td>60 (120)</td><td>Ramp length, m.</td></tr>
+    <tr><td><code>rampAngle</code></td><td>5–45°</td><td>20 (15)</td><td>Ramp angle.</td></tr>
+    <tr><td><code>entryMargin</code></td><td>0–10</td><td>2.5 (0)</td><td>Commit distance into the run-up.</td></tr>
+    <tr><td><code>airDistancePerSpeed</code></td><td>0.05–3</td><td>0.6</td><td>Metres of air per m/s of take-off speed.</td></tr>
+    <tr><td><code>airDistanceRange</code></td><td>20–2000</td><td>80–600</td><td>Clamp on air distance.</td></tr>
+    <tr><td><code>landingClearance</code></td><td>0–600</td><td>150</td><td>Clear landing road reserved.</td></tr>
+    <tr><td><code>airControlFactor</code></td><td>0–1</td><td>0.5</td><td>Steering authority in the air.</td></tr>
+    <tr><td><code>sideHitSpeedLoss</code></td><td>0–1</td><td>0.15 (0.05)</td><td>Speed share lost hitting the side.</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>LoopDefinition</strong> <span class="b b-so">SO</span> <code>Loop_Definition</code> · plus GameSettings Loops</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>radius</code></td><td>40–250</td><td>100</td><td>Loop radius, m.</td></tr>
+    <tr><td><code>exitClearance</code></td><td>0–1000</td><td>200</td><td>Clear road after the exit.</td></tr>
+    <tr><td><code>lateralDriftRange</code> · <code>forwardCarryRange</code> · <code>exitYawRange</code> · <code>turnsRange</code></td><td>bands</td><td>0–240 · 0–300 · 0–30° · 1</td><td>Per-loop variation (corkscrew drift, carry, exit yaw, turns).</td></tr>
+    <tr><td><code>fallGravity</code> / <code>fallSpeedLoss</code></td><td>20–400 / 0–1</td><td>120 / 0.4</td><td>The failed-loop drop.</td></tr>
+    <tr><td><code>gateHeadroom</code></td><td>0–0.5</td><td>0.1</td><td>Placement margin on predicted speed.</td></tr>
+    <tr><td><code>labelLeadMeters</code></td><td>50–4000</td><td>1800</td><td>Required-speed label shows this far ahead.</td></tr>
+    <tr><td><code>GameSettings.loopSpeedFloorKmh</code> / <code>…RampKmhPer100m</code> / <code>…CapKmh</code></td><td>—</td><td>1200 / 18 / 2900</td><td>Required entry speed curve.</td></tr>
+    <tr><td><code>GameSettings.loopCinematic</code> / <code>loopCinematicHoldSeconds</code></td><td>—</td><td>ON / 0.25</td><td>Side shot and linger.</td></tr>
+    <tr><td><code>GameSettings.loopApparentSpeedKmh</code></td><td>100–2000</td><td>650</td><td>Speed the loop is <i>shown</i> at (slow-mo).</td></tr>
+    <tr><td><code>loopMinTimeScale</code> / <code>loopTimeScale</code></td><td>—</td><td>0.08 / 0.5</td><td>Slow-mo clock range; blend in 0.2 s, out 0.35 s.</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>TubeDefinition</strong> <span class="b b-so">SO</span> <code>FullTube_Definition</code></div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>radius</code></td><td>20–150</td><td>60</td><td>Pipe radius.</td></tr>
+    <tr><td><code>bandDegrees</code> / <code>centreDegrees</code></td><td>15–180 / ±180</td><td>180 / 0</td><td>Rideable arc (180 = full pipe).</td></tr>
+    <tr><td><code>steeringFactor</code></td><td>0.5–6</td><td>3</td><td>Steering multiplier on the pipe.</td></tr>
+    <tr><td><code>lengthRange</code></td><td>200–12000</td><td>1096–3565</td><td>Tube length.</td></tr>
+    <tr><td><code>curlLength</code> / <code>returnLength</code> / <code>exitClearance</code></td><td>—</td><td>150 / 500 / 150</td><td>Curl in/out, locked return, clear road after.</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>LaserGateDefinition</strong> <span class="b b-so">SO</span> <code>LaserGate_Definition</code> · spawner <code>Spawner_LaserGates</code></div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>coverageBand</code></td><td>0.05–0.6</td><td>0.2–0.3</td><td>Beam length as a share of the lane.</td></tr>
+    <tr><td><code>beamRadius</code> / <code>beamHeight</code></td><td>0.1–4 / −1–5</td><td>0.27 / 0</td><td>Hit radius and height.</td></tr>
+    <tr><td><code>horizontalWeight</code> · <code>verticalWeight</code> · <code>tripleWeight</code> · <code>rotorWeight</code></td><td>0–10</td><td>4 · 0 · 2 · 2</td><td>Variant mix.</td></tr>
+    <tr><td><code>tripleSpacing</code> / <code>verticalHeight</code> / <code>rotorSpeedBand</code></td><td>—</td><td>5 / 20 / 40–90 °/s</td><td>Variant geometry.</td></tr>
+    <tr><td><code>emitterScale</code> / <code>emitterSpinDegPerSec</code></td><td>—</td><td>5 / 360</td><td>Emitter look.</td></tr>
+    <tr><td><code>beamColor</code>, <code>glowWidthFactor</code>, <code>flickerAmount</code>, <code>flickerFrequency</code></td><td>—</td><td>HDR red, 2.5, 0.25, 22 Hz</td><td>Beam look.</td></tr>
+    <tr><td><code>wavy</code> · <code>waveChance</code> · <code>waveAmplitude</code> · <code>waveLength</code> · <code>waveSpeed</code></td><td>—</td><td>ON · 1 · 1.5 · 6 · 2</td><td>Wavy beam.</td></tr>
+    <tr><td>Spawner: <code>spacing</code> · <code>startDistance</code> · <code>clearance</code></td><td>—</td><td>600–1200 · 1500 · 150</td><td>How often, from where, how far from features.</td></tr>
+    <tr><td>Spawner: <code>onFlatSweeps</code> / <code>onOpenEdges</code></td><td>bool</td><td>ON / ON</td><td>Allowed placements.</td></tr>
+    <tr><td><code>GameSettings.laserDamage</code> / <code>laserSpeedLoss</code></td><td>0–200 / 0–0.5</td><td>30 / 0.1</td><td>Cost of a hit.</td></tr>
+    <tr><td><code>GameSettings.laserSmoke*</code></td><td>—</td><td>scale 5, 2 s, 22/s, burst 14</td><td>Hull smoke after a hit.</td></tr>
+  </tbody></table></div>
+
+  <h4>In the DEBUG menu</h4>
+  <div class="tw"><div class="cap"><strong class="dbg">FEATURES</strong> <span class="b b-clone">DEBUG · CLONE</span> saved to FeatureDebug (applyOnLoad OFF) · <span class="b b-reload">RELOAD</span> — placed features keep their build values</div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td>FEATURE SPACING</td><td>100–4000, 50</td><td>featureSpacing (whole band shifts)</td></tr>
+    <tr><td>JUMP % / LOOP % / FULL TUBE %</td><td>0–100, 1</td><td>probability (rebalances)</td></tr>
+    <tr><td>{TAG} SPACING</td><td>0–3000, 50</td><td>minSpacing</td></tr>
+    <tr><td>{TAG} ×</td><td>0–10, 0.1</td><td>multiplier (take-off boost)</td></tr>
+    <tr><td>RAMP WIDTH · RAMP LENGTH · RAMP ANGLE</td><td>0.05–1 · 10–200 · 5–45</td><td>widthFraction · length · rampAngle</td></tr>
+    <tr><td>AIR PER SPEED · MAX AIR DISTANCE · AIR CONTROL</td><td>0.05–3 · 20–2000 · 0–1</td><td>airDistancePerSpeed · airDistanceRange.y · airControlFactor</td></tr>
+    <tr><td>SIDE HIT LOSS · LANDING CLEARANCE</td><td>0–1 · 0–600</td><td>sideHitSpeedLoss · landingClearance</td></tr>
+    <tr><td>LOOP RADIUS · FALL GRAVITY · FALL SPEED LOSS</td><td>40–250 · 20–400 · 0–1</td><td>radius · fallGravity · fallSpeedLoss</td></tr>
+    <tr><td>LOOP SPEED MARGIN · LOOP DRIFT · LOOP CARRY</td><td>0–0.5 · 0–600 · 0–1000</td><td>gateHeadroom · drift max · carry max</td></tr>
+    <tr><td>LOOP EXIT YAW · LOOP TURNS</td><td>0–60 · 1–3</td><td>exitYawRange max · turnsRange max</td></tr>
+    <tr><td>TUBE RADIUS · TUBE BAND · TUBE CURL</td><td>20–150 · 15–180 · 20–500</td><td>radius · bandDegrees · curlLength</td></tr>
+  </tbody></table></div>
+  <p class="prose">Laser gates have no page of their own — only the <span class="dbg">LASER GATES DENSITY</span> row on Core Settings.</p>
+</section>
+
+<!-- ================================================================ PICKUPS -->
+<section class="doc" id="pickups">
+  <div class="eyebrow">System</div>
+  <h2>Orbs &amp; pickups</h2>
+  <p class="prose lede">Boost orbs are the only way past cruise. Repair orbs heal. Coins are money. Brake pads are retired.</p>
+
+  <h3>Rules &amp; decisions</h3>
+  <ul class="prose">
+    <li><b>Speed orbs</b> come in three tiers: <span class="b b-live">GREEN ×1</span> <span class="b b-so">BLUE ×2.5</span> <span class="b b-orb">PURPLE ×10</span>. Boost = <code>powerUpSpeedBoost</code> (42.6 m/s) × tier ÷ ship weight, blended in at the ship's <code>acceleration</code>. They're small and must be aimed for.</li>
+    <li>Each orb is used up when taken. The patrol also takes <code>boostShare</code> of every gain you get, and chases orbs of its own.</li>
+    <li><b>Purple</b> orbs trigger a pilot RPG line. <b>Blue and purple</b> <a href="#duel">arm</a> the ship for the next duel.</li>
+    <li><b>Timed boost (QTE)</b>: flying through still boosts, but pressing <b>Boost (A / Space)</b> as you cross multiplies it — ×1.5 inside ±0.02 s, falling off to ×1.1 at the ±0.15 s window edge. Graded in <i>time</i> (distance ÷ speed) so it's fair at any speed. One press per orb. The A glyph in the orb ring goes white → red/yellow/green by grade. Early presses are banked into the orb's impulse; late presses add a top-up.</li>
+    <li><b>Repair orbs</b> (green cross in a translucent red sphere) heal 15 % of max hull, never past max. <b>Always collected</b>, full hull or not; the patrol never takes them. Only spawn while the hull is enabled.</li>
+    <li><b>Coins</b>: rows every 250–500 m, $1–5 each, banked at once.</li>
+    <li><b>Brake pads</b> are retired: <code>Spawner_BrakePads</code> still exists but is not in the spawn set.</li>
+  </ul>
+
+  <h3>How to tune it</h3>
+  <div class="tw"><table class="want"><thead><tr><th>I want to…</th><th>Change</th></tr></thead><tbody>
+    <tr><td>Stronger boosts across the board</td><td><code>GameSettings.powerUpSpeedBoost</code></td></tr>
+    <tr><td>More orbs</td><td><code>Spawner_SpeedOrbs.spacing</code> (or density in debug)</td></tr>
+    <tr><td>More rare purples</td><td>Tier probabilities on <code>Spawner_SpeedOrbs</code> (or PURPLE % in debug)</td></tr>
+    <tr><td>QTE more forgiving</td><td><code>boostQteWindowSeconds</code>, <code>boostQtePerfectSeconds</code></td></tr>
+    <tr><td>QTE bigger reward</td><td><code>boostQteMultiplierBand</code> max</td></tr>
+    <tr><td>More healing</td><td><code>repairOrbHealFraction</code>, <code>Spawner_RepairOrbs.chance</code> / spacing</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>Spawn set &amp; spawners</strong> <span class="b b-so">SO</span> <code>FiniteRunner_TrackSpawnSet</code> → <code>04.Data/FiniteRunner/Spawnables/</code> · cloned per run</div>
+  <table class="k"><thead><tr><th>Spawner</th><th>Spacing</th><th>Start · chance</th><th>Notes</th></tr></thead><tbody>
+    <tr><td>Spawner_LaserGates</td><td>600–1200 m</td><td>1500 · 1</td><td>Claims ground first.</td></tr>
+    <tr><td>Spawner_SpeedOrbs</td><td>513–897 m</td><td>120 · 1</td><td>Tiers: Green 74.4 % ×1 · Blue 21.8 % ×2.5 (sway 4 m @ 0.45 Hz) · Purple 3.8 % ×10 (sway 8 m @ 0.8 Hz)</td></tr>
+    <tr><td>Spawner_RepairOrbs</td><td>400–700 m</td><td>200 · 0.58</td><td><code>size</code> 1.5, <code>roadClearance</code> 1.5 m, shell/cross colours.</td></tr>
+    <tr><td>Spawner_BrakePads</td><td>1800–3200 m</td><td>—</td><td>Not in the set (retired).</td></tr>
+  </tbody></table></div>
+  <p class="prose">Every spawner shares <code>active</code>, <code>displayName</code> (also seeds its RNG), <code>color</code> (debug tint), <code>spacing</code>, <code>startDistance</code>, <code>chance</code>. <code>PadDefinition</code> (<code>BoostPad_Definition</code>: speedDelta 30, size 0.75, floating orb) defines the orb's look; the actual boost comes from GameSettings × tier.</p>
+
+  <div class="tw"><div class="cap"><strong>GameSettings — Power-ups · Boost QTE</strong> <span class="b b-so">SO</span> toggle group <code>boostQte</code> (ON)</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>powerUpSpeedBoost</code></td><td>0–100</td><td>42.6</td><td>Base orb gain (m/s) before tier.</td></tr>
+    <tr><td><code>boostRumble</code></td><td>low, high, s</td><td>0.15, 0.55, 0.15</td><td>Base boost rumble.</td></tr>
+    <tr><td><code>boostQteShowSeconds</code></td><td>0.2–3</td><td>1</td><td>Prompt lead time.</td></tr>
+    <tr><td><code>boostQteWindowSeconds</code></td><td>0.05–1</td><td>0.15</td><td>Graded window each side of the crossing.</td></tr>
+    <tr><td><code>boostQtePerfectSeconds</code></td><td>0–0.2</td><td>0.02</td><td>"Perfect" zone.</td></tr>
+    <tr><td><code>boostQteMultiplierBand</code></td><td>1–3</td><td>1.1–1.5</td><td>Edge → perfect multiplier.</td></tr>
+    <tr><td><code>boostQteFalloff</code></td><td>curve</td><td>linear</td><td>Accuracy → share of the band.</td></tr>
+    <tr><td><code>boostQteWarpAtPerfect</code></td><td>1–3</td><td>1.8</td><td>Lens warp kick on perfect.</td></tr>
+    <tr><td><code>boostQteRumbleAtPerfect</code></td><td>—</td><td>0.7, 1, 0.4</td><td>Rumble on perfect.</td></tr>
+    <tr><td><code>boostQteGlyphSize</code></td><td>0.1–1</td><td>0.45</td><td>Prompt size vs. orb ring.</td></tr>
+    <tr><td><code>boostQteMiss/Mid/PerfectColor</code></td><td>colour</td><td>red/yellow/green</td><td>Grade colours.</td></tr>
+    <tr><td><code>repairOrbHealFraction</code></td><td>0.05–0.5</td><td>0.15</td><td>Hull share per repair orb.</td></tr>
+    <tr><td><code>boostTextLeadMeters</code></td><td>0–500</td><td>60</td><td>Where "+N" popups spawn ahead.</td></tr>
+  </tbody></table></div>
+
+  <h4>In the DEBUG menu</h4>
+  <div class="tw"><div class="cap"><strong class="dbg">DEBUG — MULTIPLIERS</strong> <span class="b b-clone">DEBUG · CLONE</span> saved to TrackDebug · <span class="b b-live">LIVE</span> for new orbs</div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td>GREEN × · BLUE × · PURPLE ×</td><td>0.1–10, 0.1</td><td>tier multiplier (× powerUpSpeedBoost)</td></tr>
+  </tbody></table></div>
+  <p class="prose">Densities and tier % live on <span class="dbg">DEBUG — CORE SETTINGS</span>. There is no QTE page.</p>
+  <details class="hood"><summary>Under the hood — pickups</summary><div>
+    <ul>
+      <li><code>SpeedOrbSpawner</code>, <code>SpeedPad</code>, <code>OrbHover</code>, <code>BurstSpin</code> · <code>RepairOrbSpawner</code>, <code>RepairOrb</code> (an <code>IShipPickup</code> only — invisible to the patrol) · <code>Collectible</code> + <code>CollectibleManager</code>.</li>
+      <li><code>BoostQte</code> (<code>Runner/GameFlow/</code>) + <code>BoostQtePrompt</code> (<code>Runner/HUD/</code>). Disabled while OffTrack, Respawning or duel-locked. HUD verdict words TOO FAST / TOO LATE / SWEET / PERFECT show only when pressed.</li>
+      <li>Pickups are found by <code>ShipPickupSweeper</code> box-casting the tick path — never by triggers.</li>
+      <li><code>PadSpawnEntry</code> tiers have their probabilities auto-normalized to 100 %.</li>
+    </ul>
+  </div></details>
+</section>
+
+<!-- ================================================================ PATROL -->
+<section class="doc" id="patrol">
+  <div class="eyebrow">System</div>
+  <h2>The patrol</h2>
+  <p class="prose lede">One police cruiser that drives the same physics as your ship, rubber-bands to your speed, and never gives up — outrun it and a fresh, faster one cuts in.</p>
+
+  <h3>Rules &amp; decisions</h3>
+  <ul class="prose">
+    <li><b>Same physics as the ship</b> (a <code>TrackBody</code> driven by <code>PatrolDriver</code>). It steers for you, brakes for flat sweeps it can't hold, goes round ramps or jumps them, takes loops perfectly, keeps 6 m inside open edges — and can fall off. <span class="why">the chase reads as a rival pilot, not a scripted threat.</span></li>
+    <li><b>Rubber band</b>: target speed = max(floor, your speed × <code>rubberBand</code>). The floor starts at <code>baseSpeed</code> and rises by <code>ramp</code> per second.</li>
+    <li><b>Boost share</b>: it takes <code>boostShare</code> of every boost you collect, and <code>orbBoostShare</code> of orbs it picks up itself (which it uses up).</li>
+    <li><b>Redeploy</b>: outrun it past the retire gap and a fresh cruiser drops in behind you at your speed × <code>patrolRedeploySpeedFactor</code>, which becomes the new floor and bumps escalation. <span class="why">coasting can never shake it.</span> A fall, a laser kill or ending up too far ahead also redeploys, without raising the floor.</li>
+    <li><b>The end of the track</b> takes every patrol that reaches it, for good.</li>
+    <li><b>Arrest</b>: only sitting on your tail inside <code>catchDistance</code> without committing, for <code>sustainedCatchSeconds</code>. The fuse is held (not cleared) through the whole duel cycle; a cruiser ahead of you builds no tail time. With the duel off, the old proximity catch (within <code>alongsideLateral</code>) returns.</li>
+    <li>It freezes while you fall/respawn, while paused, and once you leave the end.</li>
+  </ul>
+
+  <h3>How to tune it</h3>
+  <div class="tw"><table class="want"><thead><tr><th>I want to…</th><th>Change</th></tr></thead><tbody>
+    <tr><td>Patrol keeps up better</td><td><code>rubberBand</code> ↑, <code>catchUpAccel</code> ↑, <code>boostShare</code> ↑</td></tr>
+    <tr><td>Easier to escape</td><td><code>patrolRedeployBand</code> Y (retire gap) ↓, <code>patrolRedeploySpeedFactor</code> ↓</td></tr>
+    <tr><td>More time before arrest</td><td><code>sustainedCatchSeconds</code> (PatrolDebug forces 1.5 today)</td></tr>
+    <tr><td>Bigger head start</td><td><code>startGap</code></td></tr>
+    <tr><td>Patrol bigger on screen</td><td><code>PatrolVisualSettings.modelScale</code></td></tr>
+    <tr><td>No patrol at all</td><td><code>GameSettings.patrolEnabled</code> OFF</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>PatrolDefinition — Chase · Handling · Driver · Distances</strong> <span class="b b-so">SO</span> <code>04.Data/FiniteRunner/Police_PatrolDefinition.asset</code> · cloned in <code>Init</code></div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>baseSpeed</code></td><td>1–600</td><td>33.06</td><td>Launch speed and rubber-band floor (m/s).</td></tr>
+    <tr><td><code>ramp</code></td><td>0–15</td><td>0.083</td><td>Floor growth per second.</td></tr>
+    <tr><td><code>rubberBand</code></td><td>0.5–2</td><td>0.95</td><td>Chases your speed × this.</td></tr>
+    <tr><td><code>catchUpAccel</code></td><td>0.5–150</td><td>3.33</td><td>How fast it adapts to the target speed.</td></tr>
+    <tr><td><code>boostShare</code></td><td>0–1.5</td><td>0.156</td><td>Share of your boosts it also gets.</td></tr>
+    <tr><td><code>lateralSpeed</code></td><td>0–100</td><td>22 <span class="ov">[12]</span></td><td>Sideways speed.</td></tr>
+    <tr><td><code>handlingResponse</code></td><td>0.01–30</td><td>6</td><td>Steering snap.</td></tr>
+    <tr><td><code>gripBase</code> / <code>gripPerSpeed</code></td><td>0–500 / 0–3</td><td>50 <span class="ov">[130]</span> / 0.5</td><td>Flat-sweep grip.</td></tr>
+    <tr><td><code>brakeDecel</code></td><td>0–500</td><td>140</td><td>Braking.</td></tr>
+    <tr><td><code>curveLookaheadSeconds</code></td><td>0.5–10</td><td>4</td><td>Look-ahead for flat sweeps to brake for.</td></tr>
+    <tr><td><code>orbLookaheadSeconds</code> / <code>orbSeekWeight</code></td><td>0–10 / 0–1</td><td>2.5 / 0.6</td><td>How far and how hard it goes for orbs.</td></tr>
+    <tr><td><code>orbBoostShare</code></td><td>0–1.5</td><td>0.5</td><td>Share of an orb it collects itself.</td></tr>
+    <tr><td><code>rampLookaheadSeconds</code></td><td>0.5–10</td><td>2.5</td><td>Decides round-or-jump for ramps.</td></tr>
+    <tr><td><code>startGap</code></td><td>0–1000</td><td>548</td><td>Launch distance behind you.</td></tr>
+    <tr><td><code>catchDistance</code></td><td>0–100</td><td>10</td><td>Tail distance that counts toward arrest.</td></tr>
+    <tr><td><code>alongsideLateral</code></td><td>0–60</td><td>18</td><td>Alongside band width.</td></tr>
+    <tr><td><code>sustainedCatchSeconds</code></td><td>0–20</td><td>7 <span class="ov">[1.5]</span></td><td>Arrest fuse.</td></tr>
+    <tr><td><code>warnDistance</code></td><td>0–500</td><td>130</td><td>Proximity rumble / warning / laser-kill range.</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>GameSettings — Police patrol</strong> <span class="b b-so">SO</span> toggle group <code>patrolEnabled</code> (ON)</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>minimapRangeMeters</code></td><td>50–2000</td><td>1012</td><td>Gap at which the patrol leaves the minimap.</td></tr>
+    <tr><td><code>patrolRedeploys</code></td><td>bool</td><td>ON</td><td>Retire an outrun patrol and cut in a fresh one.</td></tr>
+    <tr><td><code>patrolRedeployBand</code></td><td>50–2000</td><td>692 / 1372</td><td>X = drop-in distance behind you · Y = gap that retires the old one.</td></tr>
+    <tr><td><code>patrolRedeploySpeedFactor</code></td><td>1–3</td><td>1.15</td><td>Fresh patrol speed × your speed (new floor).</td></tr>
+    <tr><td><code>showPatrolAlert</code> / <code>showPatrolWarnings</code></td><td>bool</td><td>OFF / OFF</td><td>"Patrol inbound" and proximity RPG lines.</td></tr>
+    <tr><td><code>patrolProximityRumble</code></td><td>bool</td><td>ON</td><td>Rumble as it closes.</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>PatrolVisualSettings</strong> <span class="b b-so">SO</span> <code>Police_PatrolVisual</code> · read once at Init</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>modelPrefab</code></td><td>prefab</td><td>PF_PatrolCarModel</td><td>The air-car model.</td></tr>
+    <tr><td><code>modelScale</code></td><td>0.1–5</td><td>2.3</td><td>THE size knob.</td></tr>
+    <tr><td><code>modelYawOffset</code> / <code>modelLocalOffset</code></td><td>—</td><td>−90 / 0</td><td>Model alignment.</td></tr>
+    <tr><td>materials, <code>lightPosition</code>, <code>lightDiameter</code></td><td>—</td><td>—, (0.55,1.6,−0.4), 0.7</td><td>Body/trim/red/blue light look.</td></tr>
+  </tbody></table></div>
+
+  <h4>In the DEBUG menu</h4>
+  <div class="grid2">
+  <div class="tw" style="margin:0"><div class="cap"><strong class="dbg">DEBUG — PATROL</strong> <span class="b b-clone">DEBUG · CLONE</span> saved to PatrolDebug</div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td>BASE SPEED</td><td>1–600, 1</td><td>baseSpeed</td></tr>
+    <tr><td>SPEED RAMP</td><td>0–15, 0.05</td><td>ramp</td></tr>
+    <tr><td>RUBBER BAND</td><td>0.5–2, 0.05</td><td>rubberBand</td></tr>
+    <tr><td>CATCH-UP ACCEL</td><td>0.5–150, 0.5</td><td>catchUpAccel</td></tr>
+    <tr><td>BOOST SHARE</td><td>0–1.5, 0.05</td><td>boostShare</td></tr>
+    <tr><td>START GAP <span class="b b-reload">RELOAD</span></td><td>0–1000, 25</td><td>startGap</td></tr>
+    <tr><td>CATCH DISTANCE</td><td>0–100, 5</td><td>catchDistance</td></tr>
+    <tr><td>WARN DISTANCE</td><td>0–500, 10</td><td>warnDistance</td></tr>
+    <tr><td>ALONGSIDE WIDTH</td><td>0–60, 1</td><td>alongsideLateral</td></tr>
+    <tr><td>TAIL CATCH TIME</td><td>0–20, 0.25</td><td>sustainedCatchSeconds</td></tr>
+  </tbody></table></div>
+  <div class="tw" style="margin:0"><div class="cap"><strong class="dbg">PATROL DRIVER</strong> <span class="b b-clone">DEBUG · CLONE</span> <span class="b b-live">LIVE</span></div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td>LATERAL SPEED</td><td>0–100, 1</td><td>lateralSpeed</td></tr>
+    <tr><td>STEER RESPONSE</td><td>0.5–30, 0.5</td><td>handlingResponse</td></tr>
+    <tr><td>GRIP</td><td>0–500, 5</td><td>gripBase</td></tr>
+    <tr><td>GRIP PER SPEED</td><td>0–3, 0.05</td><td>gripPerSpeed</td></tr>
+    <tr><td>BRAKE POWER</td><td>0–500, 10</td><td>brakeDecel</td></tr>
+    <tr><td>CURVE LOOKAHEAD</td><td>0.5–10, 0.25</td><td>curveLookaheadSeconds</td></tr>
+    <tr><td>ORB LOOKAHEAD</td><td>0–10, 0.25</td><td>orbLookaheadSeconds</td></tr>
+    <tr><td>ORB SEEKING</td><td>0–1, 0.05</td><td>orbSeekWeight</td></tr>
+    <tr><td>ORB BOOST SHARE</td><td>0–1.5, 0.05</td><td>orbBoostShare</td></tr>
+    <tr><td>RAMP LOOKAHEAD</td><td>0.5–10, 0.25</td><td>rampLookaheadSeconds</td></tr>
+  </tbody></table></div>
+  </div>
+</section>
+
+<!-- ================================================================ DUEL -->
+<section class="doc" id="duel">
+  <div class="eyebrow">System</div>
+  <h2>The duel</h2>
+  <p class="prose lede">The patrol hunts you: it holds a standoff, commits to an attack run on your flank, takes your controls for a tug of war, and either shoves you off or gets destroyed by one shoulder press.</p>
+
+  <div class="svgwrap" role="img" aria-label="Duel state machine">
+  <svg viewBox="0 0 1000 330" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z"/></marker></defs>
+    <!-- arrows -->
+    <path class="ar" d="M150 160 H186"/>
+    <path class="ar" d="M320 160 H356"/>
+    <path class="ar" d="M490 160 H526"/>
+    <path class="ar good" d="M660 150 L706 78"/>
+    <path class="ar hot" d="M660 170 L706 242"/>
+    <path class="ar good" d="M840 62 L856 36"/>
+    <path class="ar" d="M840 80 L856 102"/>
+    <path class="ar hot" d="M840 250 H856"/>
+    <path class="ar" d="M858 262 L494 296"/>
+    <path class="ar" d="M860 118 L500 284"/>
+    <path class="ar" d="M358 300 H85 V184"/>
+    <path class="ar" d="M80 138 V84"/>
+    <path class="ar" d="M92 84 V138"/>
+    <path class="ar" style="stroke:var(--orb);stroke-dasharray:5 4" d="M425 138 C 425 40, 600 40, 706 64"/>
+    <path class="ar" style="stroke-dasharray:4 4" d="M255 182 L400 278"/>
+    <path class="ar" style="stroke-dasharray:4 4" d="M425 182 V278"/>
+    <!-- states -->
+    <rect class="st calm" x="20" y="140" width="130" height="40" rx="8"/><text x="85" y="165" text-anchor="middle">CRUISING</text>
+    <rect class="st" x="190" y="140" width="130" height="40" rx="8"/><text x="255" y="165" text-anchor="middle">COMMITTING</text>
+    <rect class="st" x="360" y="140" width="130" height="40" rx="8"/><text x="425" y="165" text-anchor="middle">ALONGSIDE</text>
+    <rect class="st hot" x="530" y="140" width="130" height="40" rx="8"/><text x="595" y="165" text-anchor="middle">TUG OF WAR</text>
+    <rect class="st good" x="710" y="50" width="130" height="40" rx="8"/><text x="775" y="75" text-anchor="middle">FINISHER</text>
+    <rect class="st hot" x="710" y="230" width="130" height="40" rx="8"/><text x="775" y="255" text-anchor="middle">SHOVE</text>
+    <rect class="st good" x="860" y="10" width="120" height="36" rx="8"/><text x="920" y="33" text-anchor="middle">KILL</text>
+    <rect class="st" x="860" y="88" width="120" height="36" rx="8"/><text x="920" y="111" text-anchor="middle">MISSBRAKING</text>
+    <rect class="st" x="860" y="232" width="120" height="36" rx="8"/><text x="920" y="255" text-anchor="middle">BREAKINGOFF</text>
+    <rect class="st calm" x="360" y="280" width="130" height="40" rx="8"/><text x="425" y="305" text-anchor="middle">COOLDOWN</text>
+    <rect class="st" x="20" y="40" width="130" height="40" rx="8"/><text x="85" y="65" text-anchor="middle">OVERSHOOTING</text>
+    <!-- labels -->
+    <text class="s" x="168" y="150" text-anchor="middle">due</text>
+    <text class="s" x="338" y="150" text-anchor="middle">flank</text>
+    <text class="s" x="508" y="150" text-anchor="middle">lock</text>
+    <text class="s" x="640" y="110">bar → 0</text>
+    <text class="s" x="640" y="222">bar → 1</text>
+    <text class="s" x="920" y="62" text-anchor="middle">fresh cruiser, tier +1</text>
+    <text class="s" x="560" y="46" style="fill:var(--orb)">armed: skip the tug</text>
+    <text class="s" x="300" y="238">abort</text>
+    <text class="s" x="432" y="240">abort</text>
+    <text class="s" x="160" y="115">you brake</text>
+  </svg></div>
+
+  <div class="tw"><table>
+    <thead><tr><th>State</th><th>What happens</th><th>Key numbers</th></tr></thead>
+    <tbody>
+      <tr><td><b>Cruising</b></td><td>Holds the standoff behind you (braking-limited approach). When an attack is due, it closes at ship speed + closing rate and commits once the gap is within reach, you're steady and the road ahead is clear. It picks the flank that leaves <b>you</b> between it and an open edge.</td><td>standoff 45 m · every 12 s ÷ tier · reach ≤ 70 m · 220 m clear road</td></tr>
+      <tr><td><b>Committing</b></td><td>Overdrive burst onto your flank; the chase camera dollies in. Aborts for free if you escape, the ground goes bad, or it times out.</td><td>overdrive 1.15× · flank 9.5 m · timeout 15 s</td></tr>
+      <tr><td><b>Alongside</b></td><td>Holds your flank. Out-steer it (beyond 18 m for 0.4 s) or get past to abort. <b>If you're armed</b>, skip straight to the Finisher.</td><td>hold 1.2 s · gap 12 m</td></tr>
+      <tr><td><b>Tug of war</b></td><td><b>It takes your controls</b> (stick, throttle, brake, dash locked). A bar starts at 0.5: it pushes, you mash <b>X</b> back. The bar <i>is</i> your position — you're walked toward the edge as it goes its way. Sparks and slams every 0.7 s. World slows to 0.3×; the bar and countdown run on real time.</td><td>push 0.15/s · press 0.08 · push room 60 %</td></tr>
+      <tr><td><b>Shove</b> (bar → 1)</td><td>You're shoved 10 m into the wall or off the road (wall-slam or fall damage). Then it breaks off.</td><td>shove 10 m</td></tr>
+      <tr><td><b>Finisher</b> (bar → 0)</td><td>The cruiser peels out 4 m and a <b>kill prompt</b> opens on its shoulder. ONE press of that dash shoulder destroys it — no dash, no meter cost. Wrong shoulder or no press = miss.</td><td>window 1.5 s (real) · hit-stop 0.12 s</td></tr>
+      <tr><td><b>Kill</b></td><td>Explosion; a fresh cruiser is recycled behind you at a higher floor and escalation tier.</td><td>redeploy gap</td></tr>
+      <tr><td><b>MissBraking</b></td><td>It brakes hard and falls away before coming back.</td><td>0.65× ship speed for 1.5 s</td></tr>
+      <tr><td><b>BreakingOff → Cooldown</b></td><td>Capped below your speed briefly, then a cooldown while it returns to the standoff. Cadence runs from the end of the run.</td><td>0.85× for 1 s · cooldown 8 s</td></tr>
+      <tr><td><b>Overshooting</b></td><td><b>Brake with it in its standoff</b> and it swerves to a flank, sails past on held speed, then drops back. While ahead it's an obstacle you can <b>ram from behind</b>.</td><td>hold 2.5 s · brake ≥ 0.5 or ≥ 25 m/s²</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Rules &amp; decisions</h3>
+  <ul class="prose">
+    <li><b>Forbidden ground</b>: it never commits on a ramp or its landing, a loop, a tube, or the final run-up. Laser gates are deliberately allowed. <span class="why">the exchange must be about the duel, not a feature killing you.</span></li>
+    <li><b>Rear ram</b>: from behind, within 8 m, 6 m across, closing &gt; 15 m/s. Costs you 8 % speed (never hull), takes one point off its damage pool (max 3), which only weakens its next push — the pool never kills. A fresh cruiser arrives with a full pool.</li>
+    <li><b>Laser kill</b>: a beam destroys the cruiser (within warn distance). No escalation.</li>
+    <li><b>Armed</b>: a blue or purple orb arms you for 3 s (sparkle trail). The next exchange started inside the window skips the bar and goes straight to the kill. One orb, one finisher.</li>
+    <li><b>Escalation</b>: tier scale = 1 + 0.15 × tier (cap 2). It divides the attack interval and multiplies the push (cap 1.8). Rises only on a kill or an outrun; resets on launch.</li>
+    <li><b>Slow-mo buys perception, not time</b>: the countdown uses real time during the tug.</li>
+    <li>The mash button is fixed (gamepad X / key X). The finisher shows your own dash-shoulder binding.</li>
+    <li>The RPG message queue is held while an attack run is in progress.</li>
+  </ul>
+
+  <h3>How to tune it</h3>
+  <div class="tw"><table class="want"><thead><tr><th>I want to…</th><th>Change</th></tr></thead><tbody>
+    <tr><td>More frequent attacks</td><td><code>commitIntervalSeconds</code> ↓, <code>attackRunCooldownSeconds</code> ↓</td></tr>
+    <tr><td>Tug easier to win</td><td><code>tugPressValue</code> ↑ or <code>tugPatrolForce</code> ↓</td></tr>
+    <tr><td>Losing the tug less deadly</td><td><code>tugPushFraction</code> ↓, <code>shoveMeters</code> ↓</td></tr>
+    <tr><td>Longer kill window</td><td><code>GameSettings.finisherWindowSeconds</code></td></tr>
+    <tr><td>Less slow-mo</td><td><code>GameSettings.duelTimeScale</code> ↑ (1 = none)</td></tr>
+    <tr><td>Later cruisers much harder</td><td><code>tierScalePerKill</code>, <code>tierScaleMax</code>, <code>tugForceMaxScale</code></td></tr>
+    <tr><td>Old proximity chase only</td><td><code>GameSettings.patrolDuelEnabled</code> OFF</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>PatrolDefinition — Duel</strong> <span class="b b-so">SO</span> <code>Police_PatrolDefinition</code></div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>attackRunOverdrive</code></td><td>1–2</td><td>1.15</td><td>Speed × ship during the commit.</td></tr>
+    <tr><td><code>minClosingSpeed</code></td><td>0–60</td><td>12</td><td>Minimum closing rate.</td></tr>
+    <tr><td><code>commitFromDistance</code></td><td>20–1500</td><td>70</td><td>Max reach to start a run.</td></tr>
+    <tr><td><code>commitIntervalSeconds</code></td><td>2–60</td><td>12</td><td>Cadence (÷ escalation).</td></tr>
+    <tr><td><code>commitTimeoutSeconds</code></td><td>2–60</td><td>15</td><td>Give up if not alongside by then.</td></tr>
+    <tr><td><code>alongsideDistance</code> / <code>flankOffsetMeters</code></td><td>0–60 / 0–30</td><td>12 / 9.5</td><td>Where it sits alongside.</td></tr>
+    <tr><td><code>alongsideHoldSeconds</code></td><td>0–5</td><td>1.2</td><td>Hold before the lock.</td></tr>
+    <tr><td><code>abortGraceSeconds</code></td><td>0–3</td><td>0.4</td><td>How long out-steered before it aborts.</td></tr>
+    <tr><td><code>breakOffSpeedFactor</code> / <code>breakOffSeconds</code></td><td>0.5–1 / 0–5</td><td>0.85 / 1</td><td>Fall-back after a run.</td></tr>
+    <tr><td><code>attackRunCooldownSeconds</code></td><td>0–60</td><td>8</td><td>Pause between runs.</td></tr>
+    <tr><td><code>encounterLookaheadMeters</code> / <code>encounterAbortMeters</code></td><td>50–1000 / 20–400</td><td>220 / 70</td><td>Clear road needed to start / to continue.</td></tr>
+    <tr><td><code>killTeleportGap</code></td><td>0–1500</td><td>0</td><td>Respawn gap after a kill (0 = redeploy gap).</td></tr>
+    <tr><td><code>standoffDistance</code> / <code>stationAccel</code></td><td>0–200 / 0–300</td><td>45 / 60</td><td>Standoff distance and how it holds it.</td></tr>
+    <tr><td><code>tugPatrolForce</code></td><td>0–1</td><td>0.15</td><td>Bar per second it pushes.</td></tr>
+    <tr><td><code>tugPressValue</code></td><td>0.01–0.5</td><td>0.08</td><td>Bar per press you push back.</td></tr>
+    <tr><td><code>tugPushFraction</code> / <code>tugPushGain</code></td><td>0–0.85 / 0.25–8</td><td>0.6 / 2.5</td><td>Share of room to the edge the bar walks you, and autopilot force.</td></tr>
+    <tr><td><code>tugSlamIntervalSeconds</code> · <code>YawDegrees</code> · <code>KickMeters</code></td><td>—</td><td>0.7 · 18 · 0.9</td><td>Grinding slams during the tug.</td></tr>
+    <tr><td><code>shoveMeters</code></td><td>0–40</td><td>10</td><td>How far a lost tug shoves you.</td></tr>
+    <tr><td><code>damagePoolMax</code></td><td>1–10</td><td>3</td><td>Ram hits that weaken its push.</td></tr>
+    <tr><td><code>ramContactDistance</code> · <code>ramContactLateral</code> · <code>ramClosingSpeedThreshold</code></td><td>—</td><td>8 · 6 · 15</td><td>What counts as a rear ram.</td></tr>
+    <tr><td><code>tierScalePerKill</code> / <code>tierScaleMax</code> / <code>tugForceMaxScale</code></td><td>0–1 / 1–5 / 1–3</td><td>0.15 / 2 / 1.8</td><td>Escalation.</td></tr>
+    <tr><td><code>overshootHoldSeconds</code> · <code>BrakeThreshold</code> · <code>DecelThreshold</code> · <code>TriggerMargin</code></td><td>—</td><td>2.5 · 0.5 · 25 · 20</td><td>The brake-and-let-it-pass trick.</td></tr>
+    <tr><td><code>finisherSeparationMeters</code></td><td>0–15</td><td>4</td><td>How far it peels out for the kill prompt.</td></tr>
+    <tr><td><code>finisherMissBrakeSeconds</code> / <code>…SpeedFactor</code></td><td>0–5 / 0.2–1</td><td>1.5 / 0.65</td><td>Brake-away after a miss.</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>GameSettings — Duel</strong> <span class="b b-so">SO</span> toggle <code>patrolDuelEnabled</code> (ON)</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>duelTimeScale</code> / <code>duelTimeBlendSeconds</code></td><td>0.1–1 / 0–1</td><td>0.3 / 0.15</td><td>Slow-mo during the tug.</td></tr>
+    <tr><td><code>duelAssistStrength</code></td><td>0–1</td><td>0.5</td><td>Dormant — controls are locked now.</td></tr>
+    <tr><td><code>finisherWindowSeconds</code></td><td>0.2–3</td><td>1.5</td><td>Kill prompt time.</td></tr>
+    <tr><td><code>duelHitStopSeconds</code></td><td>0–0.5</td><td>0.12</td><td>Freeze on the kill.</td></tr>
+    <tr><td><code>armedWindowSeconds</code> / <code>armingOrbTiers</code></td><td>0.5–10 / list</td><td>3 / Blue, Purple</td><td>Armed state.</td></tr>
+    <tr><td><code>ramSpeedCost</code></td><td>0–0.5</td><td>0.08</td><td>Speed share a rear ram costs you.</td></tr>
+    <tr><td><code>patrolExplosionScale</code></td><td>0.1–3</td><td>0.8</td><td>Kill fireball size.</td></tr>
+    <tr><td><code>duelBarColor</code> · <code>duelSparkColor</code> · <code>duelSparkScale</code> · <code>armedTellColor</code></td><td>—</td><td>—</td><td>Look.</td></tr>
+    <tr><td><code>duelDebugReadout</code></td><td>bool</td><td>OFF</td><td>On-screen attack-run state (see <a href="#cheats">debug aids</a>).</td></tr>
+  </tbody></table></div>
+
+  <h4>In the DEBUG menu</h4>
+  <div class="tw"><div class="cap"><strong class="dbg">PATROL DUEL</strong> three groups, three persistence rules</div>
+  <table class="k"><thead><tr><th>Row</th><th>Range, step</th><th>Field</th></tr></thead><tbody>
+    <tr><td colspan="3"><span class="b b-clone">A · DEBUG · CLONE</span> PatrolDefinition clone → PatrolDebug · raises reload prompt · live next substep</td></tr>
+    <tr><td>ATTACK OVERDRIVE</td><td>1–2, 0.01</td><td>attackRunOverdrive</td></tr>
+    <tr><td>COMMIT FROM</td><td>50–1500, 25</td><td>commitFromDistance</td></tr>
+    <tr><td>ATTACK INTERVAL · ATTACK TIMEOUT</td><td>2–60, 0.5</td><td>commitIntervalSeconds · commitTimeoutSeconds</td></tr>
+    <tr><td>ALONGSIDE GAP · FLANK OFFSET · FLANK HOLD</td><td>0–60 · 0–30 · 0–5</td><td>alongsideDistance · flankOffsetMeters · alongsideHoldSeconds</td></tr>
+    <tr><td>ESCAPE GRACE · BREAK OFF TIME · BACK OFF SPEED</td><td>0–3 · 0–5 · 0.5–1</td><td>abortGraceSeconds · breakOffSeconds · breakOffSpeedFactor</td></tr>
+    <tr><td>ATTACK COOLDOWN · CLEAR ROAD AHEAD · ABORT LOOKAHEAD</td><td>0–60 · 50–1000 · 20–400</td><td>attackRunCooldownSeconds · encounterLookaheadMeters · encounterAbortMeters</td></tr>
+    <tr><td>SHOVE DISTANCE · PATROL PUSH · PRESS VALUE</td><td>0–40 · 0–1 · 0.01–0.5</td><td>shoveMeters · tugPatrolForce · tugPressValue</td></tr>
+    <tr><td>STANDOFF · KILL RESPAWN GAP · DUEL ACCEL</td><td>0–200 · 0–1500 · 0–300</td><td>standoffDistance · killTeleportGap · stationAccel</td></tr>
+    <tr><td>PATROL HITS · RAM REACH · RAM WIDTH · RAM SPEED NEEDED</td><td>1–10 · 0–30 · 0–20 · 0–100</td><td>damagePoolMax · ramContact* · ramClosingSpeedThreshold</td></tr>
+    <tr><td>ESCALATION / KILL · ESCALATION CAP · PUSH CAP</td><td>0–1 · 1–5 · 1–3</td><td>tierScalePerKill · tierScaleMax · tugForceMaxScale</td></tr>
+    <tr><td>MIN CLOSING SPEED</td><td>0–60, 1</td><td>minClosingSpeed</td></tr>
+    <tr><td>OVERSHOOT HOLD · ON BRAKE · DECEL · RANGE</td><td>0–6 · 0–1 · 0–200 · 0–100</td><td>overshoot*</td></tr>
+    <tr><td>TUG PUSH ROOM · TUG PUSH FORCE</td><td>0–0.85 · 0.25–8</td><td>tugPushFraction · tugPushGain</td></tr>
+    <tr><td>FINISHER GAP · MISS BRAKE TIME · MISS BRAKE SPEED</td><td>0–15 · 0–5 · 0.2–1</td><td>finisherSeparationMeters · finisherMissBrake*</td></tr>
+    <tr><td colspan="3"><span class="b b-asset">B · DEBUG · ASSET</span> GameSettings directly · live · marked dirty (saved on next project save)</td></tr>
+    <tr><td>DUEL TIME SCALE</td><td>0.1–1, 0.05</td><td>duelTimeScale</td></tr>
+    <tr><td>DUEL STEER ASSIST</td><td>0–1, 0.05</td><td>duelAssistStrength</td></tr>
+    <tr><td>FINISHER WINDOW</td><td>0.2–3, 0.05</td><td>finisherWindowSeconds</td></tr>
+    <tr><td>HIT STOP</td><td>0–0.5, 0.01</td><td>duelHitStopSeconds</td></tr>
+    <tr><td>RAM SPEED COST</td><td>0–0.5, 0.01</td><td>ramSpeedCost</td></tr>
+    <tr><td>ARMED WINDOW</td><td>0.5–10, 0.25</td><td>armedWindowSeconds</td></tr>
+    <tr><td colspan="3"><span class="b b-asset">C · DEBUG · ASSET</span> Fighter_CameraSettings directly · live</td></tr>
+    <tr><td>DUEL CAM DISTANCE · HEIGHT · PITCH · BLEND</td><td>1.5–80 · 0–12 · 0–60 · 0.05–2</td><td>duelDistance · duelLookHeight · duelPitch · duelBlendSeconds</td></tr>
+  </tbody></table></div>
+
+  <details class="hood"><summary>Under the hood — duel code</summary><div>
+    <ul>
+      <li><code>PatrolEncounter.cs</code> (state machine, reads <code>ctx.Def</code>), <code>PolicePatrol.cs</code>, <code>PatrolDriver.cs</code>, <code>DuelSlowMo</code>, <code>DuelMashInput</code>, <code>DuelBarHud</code> (sort order 12), <code>ShipArmed</code>, <code>DuelContactSparks</code>.</li>
+      <li>The control lock uses <code>HoverShip</code>'s autopilot toward a target lateral; <code>DashLocked</code> also disables the QTE.</li>
+      <li>GameManager pushes <code>DuelCloseness</code> (0–1) to the camera every frame, so no exit path can forget to release it.</li>
+      <li>Lane rule: within 5 m across, the two ships are kept 1 m apart; a cruiser out on a flank isn't blocked.</li>
+      <li>Design history: <code>PatrolDuelPRD.md</code> (D38 supersedes "a kill drains the dash meter").</li>
+    </ul>
+  </div></details>
+</section>
+
+<!-- ================================================================ HULL -->
+<section class="doc" id="hull">
+  <div class="eyebrow">System</div>
+  <h2>Hull &amp; lives</h2>
+  <p class="prose lede">A life bar under the speed wedge, a ×N lives count, and a mission forfeited if you lose the last life.</p>
+  <div class="grid2">
+    <div class="tile"><h4>Damage</h4>
+      <table><tbody>
+        <tr><td>Dash wall slam / ramp side</td><td class="n">25</td></tr>
+        <tr><td>Wall scrape (pushing into it)</td><td class="n">10</td></tr>
+        <tr><td>Falling off the track</td><td class="n">30</td></tr>
+        <tr><td>Laser beam</td><td class="n">30</td></tr>
+        <tr><td>Brake pad (retired)</td><td class="n">20</td></tr>
+        <tr><td>Max hull (ShipDefinition)</td><td class="n">300</td></tr>
+      </tbody></table>
+    </div>
+    <div class="tile"><h4>Rules</h4><ul>
+      <li>Every hit blinks you invulnerable for 1 s. Nothing hurts while falling, respawning, paused, during an ending or a rolling-start shield. (A fall's damage is forced through.)</li>
+      <li>Only repair orbs heal (15 %, capped at max).</li>
+      <li>Hull 0 → explosion → <code>LoseDestroyed</code>.</li>
+      <li><b>Every failed run costs a life.</b> A fresh set (<code>startingLives</code>) each time the runner is entered; kept across retries.</li>
+      <li><b>GAME OVER</b> on the last life: no retry, wallet reset to the mission-start snapshot, the city clear dropped. Cleared missions and bought upgrades are kept. The forfeit happens at once so quitting can't dodge it.</li>
+    </ul></div>
+  </div>
+  <div class="tw"><div class="cap"><strong>GameSettings — Hull and lives</strong> <span class="b b-so">SO</span> toggle group <code>hullEnabled</code> (ON) · no debug page</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>startingLives</code></td><td>1–20</td><td>10</td><td>Failed runs a mission forgives.</td></tr>
+    <tr><td><code>wallSlamDamage</code> · <code>wallScrapeDamage</code> · <code>fallDamage</code> · <code>laserDamage</code> · <code>brakePadDamage</code></td><td>0–200</td><td>25 · 10 · 30 · 30 · 20</td><td>Hull cost per event.</td></tr>
+    <tr><td><code>hitInvulnerabilitySeconds</code></td><td>0–5</td><td>1</td><td>Blink after a hit.</td></tr>
+    <tr><td><code>repairOrbHealFraction</code></td><td>0.05–0.5</td><td>0.15</td><td>Heal per repair orb.</td></tr>
+    <tr><td><code>hullHitGlitchStrength</code></td><td>0–1</td><td>0.35</td><td>Glitch per hit.</td></tr>
+    <tr><td><code>explosionScale</code> · <code>Lifetime</code> · <code>Particles</code> · <code>GlitchStrength</code></td><td>—</td><td>14 · 1.4 · 24 · 1</td><td>Ship explosion.</td></tr>
+    <tr><td><code>laserHitShake</code> · <code>scrapeShake</code> · <code>explosionShake</code></td><td>shake SO</td><td>BrakeShake</td><td>Camera shake per event.</td></tr>
+  </tbody></table></div>
+  <p class="prose">Turning <code>hullEnabled</code> off hides the life bar, stops lives being spent and stops repair orbs spawning. Code: <code>Runner/Ship/ShipHealth.cs</code>, lives and forfeit in <code>GameManager</code> / <code>PlayerStats.ForfeitMission</code>.</p>
+</section>
+
+<!-- ================================================================ HUD -->
+<section class="doc" id="hud">
+  <div class="eyebrow">System</div>
+  <h2>HUD &amp; end screens</h2>
+  <div class="grid2">
+    <div class="tile"><h4>RaceHud</h4><ul>
+      <li>Speed wedge — 20 segments coloured by share of Light Speed — plus km/h.</li>
+      <li>LIGHT SPEED line turns the win colour once latched; extra objective lines under it.</li>
+      <li>MM:SS countdown; life bar with ×N lives (hidden when hull is off); "+N" boost popups; QTE verdict.</li>
+      <li>Every element is placed by hand in the prefab — code never moves them.</li>
+    </ul></div>
+    <div class="tile"><h4>Chase minimap</h4><ul>
+      <li>A vertical strip for the whole track: the ship climbs it, km left above, patrol gap in metres below (red inside warn distance).</li>
+      <li>The patrol icon uses a zoomed scale (<code>minimapRangeMeters</code> = <code>chaseSpan</code> px).</li>
+      <li>Style: <code>ChaseMinimapSettings</code> (<code>ChaseMinimap_Style</code>) — icon sprites, sizes, colours, blink.</li>
+    </ul></div>
+    <div class="tile"><h4>Duel bar, dash meter, prompts</h4><ul>
+      <li><code>DuelBarHud</code>: small, low, centred mirrored bar, mash glyph, finisher prompt.</li>
+      <li><code>DashMeterUI</code> on the ship; <code>DashPromptController</code> hint after 10 s without a dash.</li>
+      <li>RPG lines (<code>RpgMessageStyle</code>): only purple orbs and patrol taunts; held during attack runs.</li>
+    </ul></div>
+    <div class="tile"><h4>End screens</h4><ul>
+      <li><b>Banner</b> (<code>MissionAccomplishedBanner</code>): letters slam in with glitch and tear — reused for MISSION FAILED and GAME OVER.</li>
+      <li><b>GameOverScreen</b>: MISSION FAILED, localized reason, RETRY? YES / NO (NO = main menu). Final version: PRESS ANY BUTTON → Store.</li>
+      <li><b>MissionCompleteScreen</b>: rows = city objectives + run objectives + challenges, typed then counted up. TOTAL = (base + Σ rewards) × Π challenge multipliers. The RANK slam pays the whole mission (every completion) and latches it complete. NEXT / RETRY / EXIT; hold A/Enter to skip.</li>
+    </ul></div>
+  </div>
+  <div class="tw"><div class="cap"><strong>GameSettings — Mission complete · failed · messages</strong> <span class="b b-so">SO</span></div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>winCameraHoldSeconds</code></td><td>0–5</td><td>2</td><td>Planted fly-past shot.</td></tr>
+    <tr><td><code>winGlitchRampSeconds</code> / <code>winGlitchHoldSeconds</code></td><td>0.1–3 / 0–2</td><td>0.8 / 0.4</td><td>Glitch before the panel.</td></tr>
+    <tr><td><code>winBannerDelaySeconds</code> · <code>LetterStaggerSeconds</code> · <code>LetterSlamSeconds</code></td><td>—</td><td>0.2 · 0.045 · 0.32</td><td>Banner animation.</td></tr>
+    <tr><td><code>winBannerGlitchPunch</code> / <code>winBannerShake</code></td><td>0–1 / SO</td><td>0.4 / BrakeShake</td><td>Banner impact.</td></tr>
+    <tr><td><code>failBannerHoldSeconds</code> / <code>failBannerDismissSeconds</code> / <code>failBannerColor</code></td><td>—</td><td>2 / 0.5 / red</td><td>Fail banner.</td></tr>
+    <tr><td><code>messageHoldSeconds</code></td><td>0–10</td><td>2.5</td><td>RPG line hold.</td></tr>
+    <tr><td><code>messageOrbTierName</code> / <code>purpleOrbMessage</code></td><td>—</td><td>Purple / placeholder text</td><td>Which orb speaks and what it says.</td></tr>
+    <tr><td><code>patrolInboundMessage</code> / <code>patrolWarningMessage</code></td><td>text</td><td>—</td><td><code>{0}</code> = patrol number / metres.</td></tr>
+    <tr><td><code>pilotMessageColor</code> / <code>patrolMessageColor</code></td><td>colour</td><td>cyan / red</td><td>Speaker colours.</td></tr>
+  </tbody></table></div>
+  <p class="prose">All player-facing strings are <code>MenuTextId</code> entries in <code>MenuTextLibrary</code>, in four languages. Menu plates auto-fit their text — never hardcode a width.</p>
+</section>
+
+<!-- ================================================================ MISSIONS -->
+<section class="doc" id="missions">
+  <div class="eyebrow">System</div>
+  <h2>Missions &amp; Store</h2>
+  <h3>Campaign</h3>
+  <p class="prose">Missions are authored in a <b>campaign catalog</b>: worlds → missions, each a city level + a runner level. START MISSION always plays the first uncompleted mission (the frontier); the main menu's MISSIONS map replays cleared ones.</p>
+  <div class="tw"><table class="k"><thead><tr><th>Asset</th><th>Id</th><th>Name</th><th>Runner objective</th></tr></thead><tbody>
+    <tr><td>Mission_01</td><td>m1_downtown</td><td>FIRST RUN</td><td>Reach 3423 km/h ($500) · challenge: 3 jumps ×2</td></tr>
+    <tr><td>Mission_02</td><td>m2_downtown</td><td>HOT PURSUIT</td><td>Reach 7500 km/h ($750)</td></tr>
+    <tr><td>Mission_03</td><td>m3_downtown</td><td>JumpLand</td><td>10 jumps ($750)</td></tr>
+  </tbody></table></div>
+  <p class="prose"><code>Resources/Campaign/CampaignCatalog</code> → <code>World_01</code> (DOWNTOWN, scene CarTest) → missions. Runner scene: <code>FiniteRunner_Test</code>.</p>
+
+  <div class="tw"><div class="cap"><strong>RunnerLevelDefinition</strong> <span class="b b-so">SO</span> <code>FiniteRunner_LevelDefinition</code>, <code>Campaign/FiniteRunner_Level_02/03</code> · read live</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Mission 1</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>levelName</code> / <code>nextSceneName</code></td><td>text</td><td>Escape Run / Store</td><td>Shown on Mission Complete / NEXT MISSION target in direct play.</td></tr>
+    <tr><td><code>trackLengthMeters</code></td><td>0–100000</td><td>0</td><td>0 = GameSettings length.</td></tr>
+    <tr><td><code>objectives[]</code></td><td>ReachSpeed / JumpCount</td><td>ReachSpeed 3423</td><td>All mandatory; the first ReachSpeed is the HUD's Light Speed. Each has a <code>reward</code>.</td></tr>
+    <tr><td><code>optionalChallenges[]</code></td><td>+ multiplier 1–20</td><td>JumpCount 3 ×2</td><td>Live from launch; only completed ones multiply the payout.</td></tr>
+    <tr><td><code>rankTable</code></td><td>money</td><td>S 10000 · A 5000 · B 2500 · C 1000</td><td>Mission total per rank.</td></tr>
+    <tr><td><code>completeVideo</code></td><td>clip</td><td>—</td><td>Mission Complete video.</td></tr>
+  </tbody></table></div>
+
+  <h3>Store upgrades (ship)</h3>
+  <p class="prose">Four categories, ten levels each. Buying is one press, saved immediately, no refunds. The profile stores levels, not multipliers. Data: <code>Assets/04.Data/Resources/Store/</code>.</p>
+  <div class="tw"><table><thead><tr><th>Level</th><th class="n">1</th><th class="n">2</th><th class="n">3</th><th class="n">4</th><th class="n">5</th><th class="n">6</th><th class="n">7</th><th class="n">8</th><th class="n">9</th><th class="n">10</th></tr></thead><tbody>
+    <tr><td>Cost $</td><td class="n">1500</td><td class="n">2250</td><td class="n">3375</td><td class="n">5062</td><td class="n">7594</td><td class="n">11391</td><td class="n">17086</td><td class="n">25629</td><td class="n">38443</td><td class="n">57665</td></tr>
+    <tr><td>Multiplier</td><td class="n">×1.05</td><td class="n">×1.10</td><td class="n">×1.15</td><td class="n">×1.20</td><td class="n">×1.25</td><td class="n">×1.30</td><td class="n">×1.35</td><td class="n">×1.40</td><td class="n">×1.45</td><td class="n">×1.50</td></tr>
+  </tbody></table></div>
+  <div class="tw"><table><thead><tr><th>Upgrade</th><th>Multiplies (via <code>ShipUpgradeApplier</code>)</th><th>Today</th></tr></thead><tbody>
+    <tr><td>Handling</td><td>lateralSpeed, handlingResponse, gripBase, gripPerSpeed</td><td class="ov">mostly overwritten by ShipDebug</td></tr>
+    <tr><td>Dash Power</td><td>dashDistance</td><td class="ov">overwritten by ShipDebug</td></tr>
+    <tr><td>Speed Multiplier</td><td>cruiseSpeed ×, passiveDeceleration ÷</td><td class="ov">bleed overwritten; cruise works</td></tr>
+    <tr><td>Jump Strength</td><td>jumpStrength</td><td>works</td></tr>
+  </tbody></table></div>
+  <p class="prose">Each <code>UpgradeDefinition</code> row: <code>cost</code>, <code>multiplier</code> (0.25–4), video, image. Store look/feel is in <code>StoreSettings</code> (model spin, wallet punch). <code>GameSettings.useTuningScreen</code> (OFF) swaps the Store upgrades for a pre-run point-allocation screen.</p>
+</section>
+
+<!-- ================================================================ CAMERA -->
+<section class="doc" id="camera">
+  <div class="eyebrow">System</div>
+  <h2>Camera &amp; feel</h2>
+  <ul class="prose">
+    <li><b>OrbitCameraRig</b> with <code>Fighter_CameraSettings</code> (via <code>GameSettings.cameraSettings</code>): the camera's up follows the ship; Far / Close / First person on Tab.</li>
+    <li><b>Cinematic planted shot</b> for loops, falls (after 0.5 s following), the win fly-past, and an off-the-end loss.</li>
+    <li><b>Duel framing</b>: the camera dollies in as the attack run commits (<code>DuelCloseness</code> 0–1).</li>
+    <li>A jump forces the Far view and hands the previous view back on landing.</li>
+    <li><b>Speed FOV</b> widens with km/h. <b>Lens warp</b> kicks on boosts, scaled by the QTE grade.</li>
+    <li><b>Shakes</b> are <code>CameraShakeSettings</code> profiles; every GameSettings shake slot currently points at <code>BrakeShake_Settings</code> (0.5 s, pos 0.6, rot 3°, 13 Hz); <code>slideShake</code> is empty. Boost pads use <code>BoostShake_Settings</code> (0.3 s, 0.3, 1.5°, 24 Hz).</li>
+    <li><b>Haptics</b> have no SO: rumble amounts are GameSettings fields (<code>boostRumble</code>, <code>boostQteRumbleAtPerfect</code>, <code>patrolProximityRumble</code>) and <code>HapticsSystem</code> inspector fields (chase max low 0.45 / high 0.1).</li>
+  </ul>
+  <div class="tw"><div class="cap"><strong>OrbitCameraSettings</strong> <span class="b b-so">SO</span> <code>04.Data/FiniteRunner/Fighter_CameraSettings.asset</code></div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>distance</code> · <code>lookHeight</code> · <code>defaultPitch</code></td><td>3–60 · 0–12 · 0–60</td><td>60 · 12 · 12</td><td>Far view framing.</td></tr>
+    <tr><td><code>pitchRange</code> · <code>positionDamping</code> · <code>rollLagSeconds</code></td><td>—</td><td>2–55 · 0 · 0.15</td><td>Limits and smoothing.</td></tr>
+    <tr><td><code>upBinding</code></td><td>WorldUp / TargetUp</td><td>TargetUp</td><td>Camera up follows the ship.</td></tr>
+    <tr><td><code>defaultMode</code> · <code>modeBlendSeconds</code></td><td>—</td><td>Far · 0.35</td><td>Start view and blend.</td></tr>
+    <tr><td><code>closeDistance</code> · <code>closeLookHeight</code> · <code>closePitch</code></td><td>—</td><td>23.5 · 3.5 · 8</td><td>Close view.</td></tr>
+    <tr><td><code>firstPersonEyeOffset</code> · <code>firstPersonNearClip</code></td><td>—</td><td>(0,5,5) · 1</td><td>Cockpit view.</td></tr>
+    <tr><td><code>autoRecenter</code> · <code>recenterDelay</code> · <code>recenterSpeed</code></td><td>—</td><td>ON · 1.5 · 120</td><td>Snap back behind the ship.</td></tr>
+    <tr><td><code>lookBack</code></td><td>toggle</td><td>OFF</td><td>Look-behind button.</td></tr>
+    <tr><td><code>cinematicPlanted</code> · <code>Distance</code> · <code>Height</code> · <code>Lead</code> · <code>Fov</code></td><td>—</td><td>ON · 451 · 100 · 100 · 55</td><td>The planted side shot.</td></tr>
+    <tr><td><code>cinematicDamping</code> · <code>AimDamping</code> · <code>BlendSeconds</code></td><td>—</td><td>0.6 · 1.2 · 0.1</td><td>Cinematic motion.</td></tr>
+    <tr><td><code>duelDistance</code> · <code>duelLookHeight</code> · <code>duelPitch</code> · <code>duelBlendSeconds</code></td><td>—</td><td>32 · 5 · 10 · 0.6</td><td>Duel framing (also on the PATROL DUEL page).</td></tr>
+    <tr><td><code>baseFov</code> · <code>fovPerKmh</code> · <code>maxFovBoost</code></td><td>40–90 · 0–0.3 · 0–40</td><td>71 · 0.005 · 15</td><td>Speed FOV.</td></tr>
+    <tr><td><code>mouseSensitivity</code> · <code>stickSpeed</code> · <code>invertY</code></td><td>—</td><td>0.12 · 180 · OFF</td><td>Manual orbit input.</td></tr>
+  </tbody></table></div>
+  <div class="tw"><div class="cap"><strong>CameraShakeSettings</strong> <span class="b b-so">SO</span> one profile per event</div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Brake / Boost</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>duration</code></td><td>≥ 0.05</td><td>0.5 / 0.3</td><td>Length.</td></tr>
+    <tr><td><code>positionAmplitude</code> · <code>rotationAmplitude</code></td><td>≥ 0</td><td>0.6, 3 / 0.3, 1.5</td><td>Strength.</td></tr>
+    <tr><td><code>frequency</code> · <code>falloff</code></td><td>≥ 0.1 · curve</td><td>13 / 24</td><td>Buzziness and decay.</td></tr>
+  </tbody></table></div>
+  <p class="prose">GameSettings also has <code>landingShake</code>, <code>wallHitShake</code>, <code>landingSparkleCount/Scale/Color</code> (45, 3, gold) and the loop cinematic flags.</p>
+</section>
+
+<!-- ================================================================ FX -->
+<section class="doc" id="fx">
+  <div class="eyebrow">System</div>
+  <h2>FX &amp; audio</h2>
+  <p class="prose">Full-screen effects are hand-placed drivers under <code>===LIGHTING===/Filters</code>, rendered in this order: GlitchSilhouette → DistanceFog → SpeedLines → GlitchPost → PsxLook → VhsTape → CrtScreen. GameSettings has an enable toggle and an optional override asset for each; a null override means the Resources asset is used. A driver switched off gets no debug page. A shared material written by a driver is restored on disable (<code>_Intensity</code> zeroed). The player's own SETTINGS → VIDEO dials scale PSX, VHS and CRT only.</p>
+  <div class="callout note"><p><b>Keep fog end below <code>aheadDistance</code> (1600 m)</b>, or the end of the generated road pops into view. Runner fog: 1000–1500 m, far glitch from 1150 m.</p></div>
+
+  <div class="tw"><div class="cap"><strong>FX debug pages</strong> <span class="b b-asset">DEBUG · ASSET</span> all six write their settings asset directly · <span class="b b-live">LIVE</span> · saved at commit points</div>
+  <table class="k"><thead><tr><th>Page · asset</th><th>Rows</th><th>Range highlights</th></tr></thead><tbody>
+    <tr><td><span class="dbg">DEBUG — WEATHER</span><br><code>Resources/FiniteRunner_Rain</code></td><td>RAIN INTENSITY · DROPS PER SECOND · FALL SPEED · DROP SIZE · STREAK LENGTH · WIND SPEED · WIND DIRECTION · RAIN RADIUS · THUNDER RATE · FLASH STRENGTH</td><td>drops 200–20000 · wind 0–40 · radius 5–150</td></tr>
+    <tr><td><span class="dbg">DEBUG — FOG</span><br><code>FiniteRunner/FiniteRunner_RunnerFog</code></td><td>FOG INTENSITY · FOG START · FOG END · FOG THICKNESS · SKY FOG · HEIGHT FALLOFF · GLITCH START · GLITCH STRENGTH · GLITCH RATE</td><td>start 0–2000 · end 50–3000 · thickness 0.5–6</td></tr>
+    <tr><td><span class="dbg">DEBUG — SPEED LINES</span><br><code>Resources/FiniteRunner_SpeedLines</code></td><td>LINES INTENSITY · START SPEED · FULL SPEED · LINE DENSITY · LINE WIDTH · CLEAR RADIUS (SLOW/FAST) · FLICKER RATE · RESPONSE</td><td>start/full are fractions of Light Speed (0.5–1)</td></tr>
+    <tr><td><span class="dbg">DEBUG — VHS TAPE</span><br><code>Resources/FiniteRunner_VhsTape</code></td><td>TAPE INTENSITY · COLOR BLEED · COLOR LAG · LINE JITTER · TRACKING · TAPE NOISE · SCANLINES · WASHED OUT · VIGNETTE</td><td>bleed 0–40 px · jitter 0–12</td></tr>
+    <tr><td><span class="dbg">DEBUG — PSX LOOK</span><br><code>Resources/FiniteRunner_PsxLook</code></td><td>PSX INTENSITY · RESOLUTION (ROWS) · COLOR BITS · DITHER · VERTEX WOBBLE · POLYGON SIZE · TEXTURE SWIM · JITTER RATE · DEPTH FALLOFF</td><td>rows 120–480 · bits 3–8</td></tr>
+    <tr><td><span class="dbg">DEBUG — CRT SCREEN</span><br><code>Resources/FiniteRunner_CrtScreen</code></td><td>CRT INTENSITY · CURVATURE · CORNER RADIUS · SCANLINES · PHOSPHOR BLEED · HALATION · APERTURE GRILLE · CONVERGENCE · REFRESH FLICKER</td><td>bleed 0–8 · convergence 0–4</td></tr>
+  </tbody></table></div>
+
+  <div class="tw"><div class="cap"><strong>GameSettings — Weather / FX / audio toggles</strong> <span class="b b-so">SO</span></div>
+  <table class="k"><thead><tr><th>Setting</th><th>Range</th><th>Shipped</th><th>What it does</th></tr></thead><tbody>
+    <tr><td><code>rainEnabled</code> / <code>rainSettings</code></td><td>bool / SO</td><td>ON / null</td><td>Rain + thunder (RainSystem created at runtime).</td></tr>
+    <tr><td><code>speedLinesEnabled</code> / <code>speedLinesSettings</code></td><td>bool / SO</td><td>ON / null</td><td>Anime speed lines by share of Light Speed.</td></tr>
+    <tr><td><code>boostPulseStrength</code> / <code>boostPulseSeconds</code></td><td>0–1 / 0.05–2</td><td>0.4 / 0.6</td><td>Speed-line pulse on a boost (scaled by tier).</td></tr>
+    <tr><td><code>vhsEnabled</code> · <code>psxEnabled</code> · <code>crtEnabled</code></td><td>bool</td><td>ON · ON · ON</td><td>Retro filters.</td></tr>
+    <tr><td><code>musicEnabled</code> / <code>musicSettings</code></td><td>bool / SO</td><td>ON / null → <code>FiniteRunner_Music</code></td><td>Clip, volume 0.8, fade in 2 s / out 1.5 s.</td></tr>
+    <tr><td><code>sfxEnabled</code> / <code>sfxSettings</code></td><td>bool / SO</td><td>ON / <code>FiniteRunner_Sfx</code></td><td>Power-up pitch band 1–1.5 (green→purple), engine volume 0.25–0.9 &amp; pitch 0.8–2 from standstill to Light Speed, jump, dash, barrel roll, explosion, laser-hit clips.</td></tr>
+  </tbody></table></div>
+  <details class="hood"><summary>Under the hood — FX</summary><div>
+    <ul>
+      <li>Drivers are <code>[ExecuteAlways]</code>; <code>GameManager.Apply</code> finds each and parks it when disabled. Every full-screen feature self-gates on its material's <code>_Intensity</code>; only the last instance standing cleans it (the city→runner handoff has two drivers alive).</li>
+      <li>Other FX: glitch pulses (hits, falls, loop fails, win ramp), <code>SmokeVfx</code> after a laser hit, <code>ExplosionVfx</code>, <code>SparkleVfx</code> (landings, rams, armed tell), <code>DuelContactSparks</code>. Speed lines are off in the cinematic shot.</li>
+      <li>Two fog assets exist: <code>FiniteRunner_RunnerFog</code> (runner prefab) and <code>Resources/FiniteRunner_DistanceFog</code> (CarTest / fallback).</li>
+    </ul>
+  </div></details>
+</section>
+
+<!-- ================================================================ DEBUG -->
+<section class="doc" id="debug">
+  <div class="eyebrow">Tool</div>
+  <h2>Debug menu reference</h2>
+  <div class="grid2">
+    <div class="tile"><h4>Opening it</h4>
+      <table><tbody>
+        <tr><td>Pause (active gameplay only)</td><td><b>Esc</b> / <b>Start</b></td></tr>
+        <tr><td>Open DEBUG</td><td>arrows + Enter / stick + A</td></tr>
+        <tr><td>Next / previous tab</td><td><b>E</b> / <b>Q</b> · <b>RB</b> / <b>LB</b></td></tr>
+        <tr><td>Move / change</td><td>Up-Down / Left-Right</td></tr>
+        <tr><td>Back out</td><td>Esc / B or Start</td></tr>
+      </tbody></table>
+    </div>
+    <div class="tile"><h4>Good to know</h4><ul>
+      <li>Pause is refused over menus, result screens, during an ending, or while the city map is open.</li>
+      <li>DEBUG only appears if <code>PauseMenu.debug</code> is on (it is, in <code>PauseMenu.prefab</code>) and a page has something to edit.</li>
+      <li>Sliders re-read live values each time the menu opens; confirm does nothing on a slider.</li>
+      <li>After changing a reload-type row, backing out asks <b>"DO YOU WANT TO RELOAD THE SCENE?"</b> (default NO).</li>
+    </ul></div>
+  </div>
+
+  <h3>All pages, in tab order</h3>
+  <div class="tw"><table class="k"><thead><tr><th>#</th><th>Page</th><th>Edits</th><th>Persistence</th></tr></thead><tbody>
+    <tr><td>1</td><td><span class="dbg">DEBUG — CORE SETTINGS</span></td><td>track generator, shape clone, spawner clones</td><td><span class="b b-clone">CLONE → TrackDebug</span> <a href="#track">details</a></td></tr>
+    <tr><td>2</td><td><span class="dbg">DEBUG — MULTIPLIERS</span></td><td>orb tier multipliers</td><td><span class="b b-clone">CLONE → TrackDebug</span> <a href="#pickups">details</a></td></tr>
+    <tr><td>3</td><td><span class="dbg">FEATURES</span></td><td>feature table + jump/loop/tube clones</td><td><span class="b b-clone">CLONE → FeatureDebug</span> <a href="#features">details</a></td></tr>
+    <tr><td>4–7</td><td><span class="dbg">SHIP SPEED / HANDLING / DASH / HOVER</span></td><td>ShipDefinition clone</td><td><span class="b b-clone">CLONE → ShipDebug</span> <a href="#ship">details</a></td></tr>
+    <tr><td>8</td><td><span class="dbg">FALL &amp; RESPAWN</span></td><td>GameSettings</td><td><span class="b b-asset">ASSET</span> <a href="#ship">details</a></td></tr>
+    <tr><td>9</td><td><span class="dbg">DEBUG — PATROL</span></td><td>PatrolDefinition clone</td><td><span class="b b-clone">CLONE → PatrolDebug</span> <a href="#patrol">details</a></td></tr>
+    <tr><td>10</td><td><span class="dbg">PATROL DRIVER</span></td><td>PatrolDefinition clone</td><td><span class="b b-clone">CLONE → PatrolDebug</span> <a href="#patrol">details</a></td></tr>
+    <tr><td>11</td><td><span class="dbg">PATROL DUEL</span></td><td>clone + GameSettings + camera</td><td><span class="b b-clone">A</span> <span class="b b-asset">B, C</span> <a href="#duel">details</a></td></tr>
+    <tr><td>12–17</td><td><span class="dbg">WEATHER · FOG · SPEED LINES · VHS TAPE · PSX LOOK · CRT SCREEN</span></td><td>FX settings assets</td><td><span class="b b-asset">ASSET</span> <a href="#fx">details</a></td></tr>
+  </tbody></table></div>
+  <p class="prose">There is <b>no</b> page for lasers (only a density row), hull/lives, haptics, the QTE or the general chase camera.</p>
+
+  <h3>What persists</h3>
+  <div class="grid2">
+    <div class="tile"><h4><span class="b b-clone">DEBUG · CLONE</span> pages</h4><ul>
+      <li>Sliders edit runtime clones; the authored SOs are never touched.</li>
+      <li>Each change is captured into an override asset in <code>04.Data/Resources/</code> and sets <code>applyOnLoad = true</code>.</li>
+      <li>Written to disk at <b>commit points</b>: Resume, RELOAD SCENE, YES on the reload prompt, and leaving play mode.</li>
+      <li>Re-applied every play: survives reloads, play-mode exits and editor restarts. Untick <code>applyOnLoad</code> to go back to authored values.</li>
+      <li>In a build: session only.</li>
+    </ul></div>
+    <div class="tile"><h4><span class="b b-asset">DEBUG · ASSET</span> pages</h4><ul>
+      <li>Sliders write straight into the SO; the game reads it every frame.</li>
+      <li>Stays after play mode ends — the asset itself changed. <b>No undo switch</b>: edit it back by hand (or use version control).</li>
+      <li>Fall &amp; Respawn and the FX pages save at commit points; Duel groups B and C only mark dirty (saved on next project save).</li>
+      <li>In a build: session only.</li>
+    </ul></div>
+  </div>
+  <div class="tw"><table class="k"><thead><tr><th>Override asset</th><th>Applied in</th><th>applyOnLoad</th></tr></thead><tbody>
+    <tr><td>FiniteRunner_TrackDebug</td><td>TrackGenerator.Generate</td><td class="ov">ON</td></tr>
+    <tr><td>FiniteRunner_FeatureDebug</td><td>TrackGenerator.Generate</td><td>OFF</td></tr>
+    <tr><td>FiniteRunner_ShipDebug</td><td>TuningScreen.StartRun · ShipUpgradeApplier (after Store upgrades)</td><td class="ov">ON</td></tr>
+    <tr><td>FiniteRunner_PatrolDebug</td><td>PolicePatrol.Init</td><td class="ov">ON</td></tr>
+  </tbody></table></div>
+  <details class="hood"><summary>Under the hood — debug menu code</summary><div>
+    <ul>
+      <li><code>Runner/Screens/PauseMenu.cs</code> (<code>BuildDebugTabs</code>, <code>ReloadScene</code>, <code>OnDestroy</code>), <code>Runner/Screens/DebugMenuFactory.cs</code> (tab builders), <code>UI/DebugMenu.cs</code>, <code>UI/DebugSliderRow.cs</code>, <code>Runner/Screens/FallRespawnDebugPage.cs</code>, FX pages next to each effect in <code>01.Scripts/FX/</code>.</li>
+      <li>Later-added override fields use a −1 sentinel meaning "leave the definition alone".</li>
+      <li>Adding a knob: put it on the SO (Odin <code>[PropertyRange]</code>), add a row in the factory, and a field in the matching <code>*DebugSettings</code> with capture/apply.</li>
+    </ul>
+  </div></details>
+</section>
+
+<!-- ================================================================ CHEATS -->
+<section class="doc" id="cheats">
+  <div class="eyebrow">Tool</div>
+  <h2>Cheats &amp; debug aids</h2>
+  <p class="prose">Enter codes on <b>Main Menu → CHEATS</b>. Every press counts (a rolling 12-press buffer, so earlier wrong presses don't matter); B / Esc backs out. With a pad connected only the pad is read. Codes live in <code>Resources/FiniteRunner_Cheats</code>.</p>
+  <div class="tw"><table class="k"><thead><tr><th>Id</th><th>Keyboard</th><th>Gamepad</th><th>Effect</th></tr></thead><tbody>
+    <tr><td>MegaCar</td><td>RUMRUM</td><td>↑ ↓ ↑ ↓ X A X</td><td>City player car ×4. <b>No effect in the runner.</b></td></tr>
+    <tr><td>DebugON</td><td>ARRAYKING</td><td>↓ → LB RB X Y X A</td><td>Sets a flag nothing reads — <b>does nothing today.</b></td></tr>
+  </tbody></table></div>
+  <p class="prose why">Also: the static activated set is cleared when a later scene's placed CheatManager self-destructs, and the prefab's event wiring names an old type — worth one play-test before relying on cheats.</p>
+  <h3>Debug aids that work in the runner</h3>
+  <div class="tw"><table><thead><tr><th>Aid</th><th>How</th><th>Shows</th></tr></thead><tbody>
+    <tr><td>Duel readout</td><td><code>GameSettings.duelDebugReadout</code> ON</td><td>Attack-run state, gap, lateral, damage pool, tier, and commit gates.</td></tr>
+    <tr><td>Collider meshes</td><td><code>TrackColliderBuilder.showMeshes</code></td><td>The invisible track collision.</td></tr>
+    <tr><td>Scene gizmos</td><td>Gizmos toggle</td><td>Collectible triggers, magnet volumes (blue/yellow), kill volumes (red).</td></tr>
+    <tr><td>Inspector Debug groups</td><td>Select in play</td><td>Read-only values on GlitchController, SpeedLines, VhsTape, PsxLook, CrtScreen.</td></tr>
+  </tbody></table></div>
+  <p class="prose">The <code>DebugManager</code> visualizers (road graph, AI paths) are city-only. <code>ShipDebugOverlay</code> (F1–F12 stations, 1/2/3/0 speed) exists only in the ShipSandbox scene.</p>
+</section>
+
+<!-- ================================================================ RECIPES -->
+<section class="doc" id="recipes">
+  <div class="eyebrow">Tool</div>
+  <h2>Tuning recipes</h2>
+  <p class="prose">Start every session by deciding whether the <a href="#reality">debug overrides</a> should be on. Then:</p>
+  <div class="grid2">
+    <div class="tile"><h4>Easier run</h4><ul>
+      <li><code>timeLimitSeconds</code> ↑</li>
+      <li>Level's ReachSpeed target ↓</li>
+      <li><code>powerUpSpeedBoost</code> ↑ or <code>passiveDeceleration</code> ↓</li>
+      <li><code>endRampGapMeters</code> ↓</li>
+    </ul></div>
+    <div class="tile"><h4>Harder run</h4><ul>
+      <li>Speed orb spacing ↑ (fewer orbs)</li>
+      <li><code>passiveDeceleration</code> ↑</li>
+      <li><code>openStraightChance</code> ↑, <code>straightness</code> ↓ with <code>unbankedSweepChance</code> ↑</li>
+      <li>Laser density ↑, <code>coverageBand</code> ↑</li>
+    </ul></div>
+    <div class="tile"><h4>More duels, more drama</h4><ul>
+      <li><code>commitIntervalSeconds</code> ↓, <code>attackRunCooldownSeconds</code> ↓</li>
+      <li><code>encounterLookaheadMeters</code> ↓ (commits on shorter clear road)</li>
+      <li><code>duelTimeScale</code> ↓ (deeper slow-mo)</li>
+    </ul></div>
+    <div class="tile"><h4>Kinder patrol</h4><ul>
+      <li><code>sustainedCatchSeconds</code> ↑ (and check PatrolDebug)</li>
+      <li><code>tugPressValue</code> ↑, <code>tugPushFraction</code> ↓</li>
+      <li><code>finisherWindowSeconds</code> ↑</li>
+      <li><code>boostShare</code> ↓</li>
+    </ul></div>
+    <div class="tile"><h4>Longer / shorter mission</h4><ul>
+      <li><code>RunnerLevelDefinition.trackLengthMeters</code></li>
+      <li>Scale <code>timeLimitSeconds</code> with it</li>
+      <li>Untick TrackDebug's <code>applyOnLoad</code> or its 48 km wins</li>
+    </ul></div>
+    <div class="tile"><h4>Bring back the showpieces</h4><ul>
+      <li>Feature table: Loop / Full Tube probability &gt; 0</li>
+      <li><code>straightness</code> &lt; 100 for sweeps and banking</li>
+      <li>Loop gate: <code>loopSpeedFloorKmh</code> within reach of cruise</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ================================================================ DRIFT -->
+<section class="doc" id="drift">
+  <div class="eyebrow">Maintenance</div>
+  <h2>Known doc drift</h2>
+  <p class="prose">Places where <code>.claude/rules/*.md</code>, CLAUDE.md or the PRD disagree with the shipped code or assets, as of this handbook.</p>
+  <div class="tw"><table><thead><tr><th>Doc says</th><th>Code / asset says</th></tr></thead><tbody>
+    <tr><td>Rule files don't mention the applyOnLoad overrides</td><td>ShipDebug, PatrolDebug and TrackDebug are live and cancel Store upgrades</td></tr>
+    <tr><td>runner-track.md: TrackDebug pins straightness 60; openStraightChance 0.5</td><td>100; 1.0</td></tr>
+    <tr><td>Loops and tubes are live features</td><td>Feature table 0 %</td></tr>
+    <tr><td>Tube length 3–7 km</td><td>1.1–3.6 km</td></tr>
+    <tr><td>runner-ship.md: <code>tugPushFraction</code> 0.8; <code>tugPushGain</code> undocumented</td><td>0.6; 2.5</td></tr>
+    <tr><td>Arrest fuse 7 s, patrol lateral 22</td><td>1.5 s, 12 (PatrolDebug)</td></tr>
+    <tr><td>PatrolDuelPRD: M4 armed window not done; a kill drains the dash meter</td><td><code>ShipArmed</code> is implemented; finisher spends no meter (D38)</td></tr>
+    <tr><td><code>dashSinglePress</code> off by default</td><td>ON in GameSettings</td></tr>
+    <tr><td>C# defaults (lives 3, time 60, redeploy 1.25, minimap 400, boost 15, finisher 1.0)</td><td>Asset: 10, 180, 1.15, 1012, 42.6, 1.5</td></tr>
+    <tr><td>GameManager summary: bleeding to a standstill is a loss</td><td>Removed 2026-09-25 — a standstill is never a loss</td></tr>
+    <tr><td>runner-hud-screens.md: Mission Complete once the ship is grounded</td><td>Ship never lands; panel follows the glitch ramp</td></tr>
+    <tr><td>fx-rendering.md: RainSystem is hand-placed</td><td>Created at runtime</td></tr>
+    <tr><td>CLAUDE.md: <code>===NPC===</code> runtime header</td><td>Patrol hand-placed at <code>===SYSTEMS===/NPC/Patrol</code></td></tr>
+    <tr><td>CLAUDE.md: boost orbs size 0.3</td><td><code>BoostPad_Definition.sizeMultiplier</code> 0.75</td></tr>
+    <tr><td>QTE off "while falling"</td><td>Excluded for OffTrack/Respawning, not Falling (failed loop drop)</td></tr>
+    <tr><td>ui-menus.md: missing PATROL DRIVER, FALL &amp; RESPAWN, VHS/PSX/CRT pages; Duel tab has 4 GameSettings rows</td><td>All exist; Duel has 6 GameSettings + 4 camera rows</td></tr>
+    <tr><td>cheats.md: cheats work</td><td>Neither affects the runner</td></tr>
+    <tr><td>Mission 1 targets "Light Speed"</td><td>3423 km/h, below cruise</td></tr>
+  </tbody></table></div>
+  <p class="prose">Also flagged: <code>purpleOrbMessage</code> in GameSettings holds placeholder text.</p>
+</section>
+
+<footer>
+  Finite Runner Handbook · Unity 6000.7.0a3 · compiled 2026-09-26 from <code>.claude/rules/</code>, <code>CLAUDE.md</code>, <code>PatrolDuelPRD.md</code>, the scripts in <code>Assets/01.Scripts/</code> and the shipped assets in <code>Assets/04.Data/</code>. When a number here and the Inspector disagree, the Inspector wins — then update this file.
+</footer>
+</main>
+</div>
+
+<script>
+(function(){
+  // Speed-wedge scroll gauge: 20 segments like the HUD.
+  var wedge=document.getElementById('wedge'), lbl=document.getElementById('wedgeLbl'), segs=[];
+  for(var i=0;i<20;i++){var s=document.createElement('i'); s.style.height=(6+i*0.6)+'px'; wedge.appendChild(s); segs.push(s);}
+  function gauge(){
+    var h=document.documentElement, max=h.scrollHeight-h.clientHeight, f=max>0?Math.min(1,h.scrollTop/max):0;
+    var n=Math.round(f*20);
+    segs.forEach(function(s,k){s.className=k<n?(k>=17?'on hot':'on'):'';});
+    lbl.textContent=f>=0.995?'LIGHT SPEED':Math.round(f*6500).toLocaleString('en-US')+' km/h';
+  }
+  addEventListener('scroll',gauge,{passive:true}); addEventListener('resize',gauge); gauge();
+
+  // Active section in the TOC.
+  var links={}; document.querySelectorAll('#tocList a').forEach(function(a){links[a.getAttribute('href').slice(1)]=a;});
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){
+      if(e.isIntersecting){Object.values(links).forEach(function(a){a.classList.remove('active');}); var a=links[e.target.id]; if(a)a.classList.add('active');}
+    });},{rootMargin:'-20% 0px -70% 0px'});
+    document.querySelectorAll('section.doc').forEach(function(s){io.observe(s);});
+  }
+  // Close the mobile TOC after a pick.
+  document.querySelectorAll('#tocList a').forEach(function(a){a.addEventListener('click',function(){
+    if(matchMedia('(max-width:900px)').matches){a.closest('details').open=false;}
+  });});
+
+  // Settings filter across every table, with match navigation.
+  var q=document.getElementById('q'), out=document.getElementById('qcount'), nav=document.getElementById('qnav');
+  var pick=document.getElementById('qpick'), prevB=document.getElementById('qprev'), nextB=document.getElementById('qnext');
+  var wraps=[].slice.call(document.querySelectorAll('main .tw'));
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var matches=[], idx=-1;
+  function clip(txt,n){txt=txt.replace(/\s+/g,' ').trim(); return txt.length>n?txt.slice(0,n-1)+'…':txt;}
+  function labelFor(r){
+    var sec=r.closest('section.doc'), h=sec&&sec.querySelector('h2,h1');
+    var cap=r.closest('.tw').querySelector('.cap strong');
+    var first=r.querySelector('td');
+    return {group:h?clip(h.textContent,40):'', text:(cap?clip(cap.textContent,34)+' › ':'')+clip(first?first.textContent:r.textContent,60)};
+  }
+  function status(){
+    if(!matches.length){out.textContent='0 matches';}
+    else{out.textContent=idx<0?(matches.length+' match'+(matches.length===1?'':'es')):((idx+1)+' / '+matches.length);}
+  }
+  function buildPicker(){
+    pick.innerHTML='';
+    var ph=document.createElement('option'); ph.value=''; ph.textContent=matches.length?'Jump to a match…':'No matches'; pick.appendChild(ph);
+    var grp=null, last=null;
+    matches.forEach(function(r,i){
+      var l=labelFor(r);
+      if(l.group!==last){grp=document.createElement('optgroup'); grp.label=l.group; pick.appendChild(grp); last=l.group;}
+      var o=document.createElement('option'); o.value=String(i); o.textContent=l.text; grp.appendChild(o);
+    });
+    pick.disabled=prevB.disabled=nextB.disabled=!matches.length;
+  }
+  function go(i){
+    if(!matches.length)return;
+    if(idx>=0&&matches[idx])matches[idx].classList.remove('qcur');
+    idx=(i+matches.length)%matches.length;
+    var r=matches[idx]; r.classList.add('qcur');
+    r.scrollIntoView({block:'center',behavior:reduce?'auto':'smooth'});
+    pick.value=String(idx); status();
+  }
+  function filter(){
+    var t=q.value.trim().toLowerCase();
+    if(idx>=0&&matches[idx])matches[idx].classList.remove('qcur');
+    matches=[]; idx=-1;
+    wraps.forEach(function(w){
+      var rows=[].slice.call(w.querySelectorAll('tbody tr')), capTxt=(w.querySelector('.cap')||{}).textContent||'';
+      var capHit=t&&capTxt.toLowerCase().indexOf(t)>=0, any=0;
+      rows.forEach(function(r){
+        var head=!!r.querySelector('td[colspan]');
+        var hit=!t||capHit||head||r.textContent.toLowerCase().indexOf(t)>=0;
+        r.classList.toggle('hidden-by-search',!hit);
+        if(hit&&!head&&t){any++; matches.push(r);}
+      });
+      w.classList.toggle('hidden-by-search',!!t&&any===0);
+    });
+    nav.hidden=!t;
+    if(t){buildPicker(); status();}
+  }
+  q.addEventListener('input',filter);
+  q.addEventListener('keydown',function(e){ if(e.key==='Enter'&&matches.length){e.preventDefault(); go(e.shiftKey?idx-1:idx+1);} });
+  prevB.addEventListener('click',function(){go(idx<0?matches.length-1:idx-1);});
+  nextB.addEventListener('click',function(){go(idx+1);});
+  pick.addEventListener('change',function(){ if(pick.value!=='')go(parseInt(pick.value,10)); });
+  addEventListener('keydown',function(e){
+    var typing=/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement||{}).tagName||'');
+    if(e.key==='/'&&!typing){e.preventDefault();q.focus();}
+    if(e.key==='Escape'&&document.activeElement===q){q.value='';filter();q.blur();}
+  });
+})();
+</script>
+</body>
+</html>
