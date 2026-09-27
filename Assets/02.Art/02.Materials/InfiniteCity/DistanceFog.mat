@@ -35,7 +35,7 @@ Material:
     - _GlitchStrength: 0.6
     - _HeightBase: 0
     - _HeightFalloff: 0
-    - _Intensity: 1
+    - _Intensity: 0
     - _ScanlineStrength: 0.3
     - _SkyFogAmount: 0
     - _SliceStrength: 0.08
