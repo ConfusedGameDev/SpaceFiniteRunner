@@ -110,31 +110,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         [Tooltip("Skip the mission-brief screen and launch straight into the run — no challenges accepted, base reward.")]
         public bool skipMissionBrief;
 
-        [TitleGroup("Damage")]
-        [Tooltip("Glitch pulse on any hard impact.")]
-        [PropertyRange(0f, 1f)]
-        public float collisionPulse = 0.4f;
-
-        [TitleGroup("Damage")]
-        [Tooltip("Permanent glitch added per police hit — at full corruption the level reboots. Default: three hits and you're out.")]
-        [PropertyRange(0.05f, 1f)]
-        public float policeHitIntensity = 0.34f;
-
-        [TitleGroup("Damage")]
-        [Tooltip("Impacts slower than this are scrapes: no pulse, no damage.")]
-        [PropertyRange(0f, 10f), SuffixLabel("m/s", true)]
-        public float minImpactSpeed = 3f;
-
-        [TitleGroup("Damage")]
-        [Tooltip("Impact speed at which the crash rumble hits full strength; between the scrape threshold and this it scales up with how hard you hit.")]
-        [PropertyRange(5f, 40f), SuffixLabel("m/s", true)]
-        public float crashRumbleFullSpeed = 20f;
-
-        [TitleGroup("Damage")]
-        [Tooltip("How long a full-strength crash rumble lasts (lighter hits are shorter).")]
-        [PropertyRange(0.05f, 1f), SuffixLabel("s", true)]
-        public float crashRumbleDuration = 0.4f;
-
+        // The player's damage knobs (impact floor, pulses, police hit, rumbles)
+        // live on VehicleHealthSettings; the meter is PlayerHealthMeter.
         [TitleGroup("Damage")]
         [Tooltip("How long the screen holds at full corruption before the level reboots.")]
         [PropertyRange(0.2f, 4f), SuffixLabel("s", true)]
@@ -172,7 +149,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         bool loading;
         bool resetting;
         bool timedOut;
-        string lastDamageReason; // what last filled the corruption meter — a police hit makes the reboot an arrest
+        PlayerHealthMeter health; // the player car's damage meter, hand-placed beside this manager
         bool warnedEmpty;
 
         public LevelDefinition Level => level;
@@ -338,7 +315,15 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             }
             SyncStates();
             ObjectiveHud.Spawn(this);
+
+            // The player's health: the meter takes damage only while the run is
+            // live, and a full meter is the level's reboot.
+            health = PlayerHealthMeter.Ensure(this);
+            health.Gate = () => !resetting && !Completed && !cinemaOpen;
+            health.Depleted += OnHealthDepleted;
         }
+
+        void OnHealthDepleted() => RequestReboot("full corruption");
 
         // The brief goes up in Start, after every Awake (city boot, HUD, menu
         // singletons) has run — it freezes scaled time itself, so the whole
@@ -946,7 +931,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             // Every accepted reboot is a death; one the police caused — the
             // meter filled by a shunt — is also an arrest. The city AI has no
             // capture state, so the last damage source is the best signal.
-            PlayerStats.RecordDeath(arrested: reason == "full corruption" && lastDamageReason == "police hit");
+            PlayerStats.RecordDeath(arrested: reason == "full corruption" && health != null && health.LastDamageReason == "police hit");
             PlayerProfileStore.SaveIfDirty();
             StartCoroutine(ResetLevel());
             return true;
@@ -1007,7 +992,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                 GlitchController.Instance.Release(this);
                 GlitchController.Instance.SetBaseIntensity(0f);
             }
-            lastDamageReason = null;
+            if (health != null) health.ResetForRun();
             CameraShake.Clear();
 
             // The world: fleets gone (they refill on their next tick around
@@ -1064,76 +1049,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         // game over the trip goes under the loading curtain.
         void ExitToMainMenu() => LoadingScreen.LoadMainMenu();
 
-        /// <summary>
-        /// Player impact, relayed by the sensor: hard hits rumble the pad and
-        /// pulse the glitch, police hits also add permanent corruption — the
-        /// damage meter. The rumble scales with impact speed (a kerb tap is a
-        /// tick, a wall at speed is a slam) and fires before the glitch check,
-        /// so a scene without a glitch controller still shakes the pad.
-        /// </summary>
-        void OnPlayerImpact(Collision collision)
-        {
-            if (resetting || Completed || cinemaOpen) return;
-            float impactSpeed = collision.relativeVelocity.magnitude;
-            if (impactSpeed < minImpactSpeed) return;
-
-            RumbleCrash(impactSpeed);
-
-            var glitch = GlitchController.Instance;
-            if (glitch == null) return;
-            glitch.Pulse(collisionPulse);
-
-            bool policeHit = collision.rigidbody != null
-                && collision.rigidbody.GetComponent<PoliceCarInput>() != null;
-            if (policeHit) ApplyDamage(policeHitIntensity, "police hit");
-        }
-
-        /// <summary>
-        /// Crash rumble: 0..1 off how far the impact sits between the scrape
-        /// threshold and <see cref="crashRumbleFullSpeed"/>. The heavy motor
-        /// carries the thud, the light one a shorter rattle on top; overlapping
-        /// pulses keep the strongest, so a pile-up never stacks into a buzz.
-        /// </summary>
-        void RumbleCrash(float impactSpeed)
-        {
-            var haptics = HapticsSystem.Instance;
-            if (haptics == null) return;
-
-            float t = Mathf.InverseLerp(minImpactSpeed, Mathf.Max(minImpactSpeed + 0.01f, crashRumbleFullSpeed), impactSpeed);
-            float strength = Mathf.Lerp(0.25f, 1f, t);
-            haptics.Pulse(strength, strength * 0.6f, Mathf.Lerp(0.12f, crashRumbleDuration, t));
-        }
-
-        /// <summary>
-        /// Permanent corruption from anything that is not a police shunt — an
-        /// exploding barrel today, a scripted hazard tomorrow. One entry point
-        /// so every source fills the same meter and trips the same reboot at
-        /// full. Returns false when the hit was swallowed (the run is already
-        /// ending, or there is no glitch controller in the scene), so a caller
-        /// knows not to expect a reaction.
-        /// </summary>
-        public bool ApplyDamage(float amount, string reason)
-        {
-            if (resetting || Completed || cinemaOpen) return false;
-
-            var glitch = GlitchController.Instance;
-            if (glitch == null) return false;
-            lastDamageReason = reason;
-
-            // Resistance: the Store's car upgrade divides every hit the player
-            // takes. This is the one entry point, so police shunts, blasts and
-            // splashes all pay the same discount.
-            amount /= Mathf.Max(0.01f, StoreUpgrades.Multiplier(StoreSectionKind.Car, UpgradeIds.CarResistance));
-
-            // Never quieter than the hit is heavy: a barrel to the face should
-            // white out the feed even if the collision pulse is tuned gentle.
-            glitch.Pulse(Mathf.Max(collisionPulse, amount));
-            glitch.SetBaseIntensity(glitch.baseIntensity + amount);
-            Debug.Log($"[Level] {reason} — corruption {glitch.baseIntensity:F2}", this);
-            if (glitch.baseIntensity >= 0.999f) RequestReboot("full corruption");
-            return true;
-        }
-
         /// <summary>Player and patrols come and go at runtime (spawn managers), so re-find them on a slow tick instead of every frame.</summary>
         void RefreshTargets(float dt)
         {
@@ -1145,16 +1060,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         }
 
         /// <summary>
-        /// Take a car as the player. It is spawned from a prefab at runtime —
-        /// the impact sensor is bolted on when we first see it (survives
-        /// respawns of the same object; a fresh instance gets a fresh one).
+        /// Take a car as the player (spawned from a prefab at runtime). Its
+        /// impact sensor is the health meter's.
         /// </summary>
-        void BindPlayer(CarController car)
-        {
-            player = car;
-            if (player != null && player.GetComponent<PlayerImpactSensor>() == null)
-                player.gameObject.AddComponent<PlayerImpactSensor>().Impacted += OnPlayerImpact;
-        }
+        void BindPlayer(CarController car) => player = car;
 
         /// <summary>"Hunting" means Chase or Search — the player has only escaped once every patrol is back on Patrol.</summary>
         bool AnyPatrolHunting()
@@ -1164,17 +1073,5 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
                     return true;
             return false;
         }
-    }
-
-    /// <summary>
-    /// Tiny relay the LevelManager bolts onto the player car at runtime:
-    /// collision callbacks only land on the rigidbody's own object, and the
-    /// car is a prefab the level shouldn't own — so this forwards them out.
-    /// </summary>
-    public class PlayerImpactSensor : MonoBehaviour
-    {
-        public event System.Action<Collision> Impacted;
-
-        void OnCollisionEnter(Collision collision) => Impacted?.Invoke(collision);
     }
 }

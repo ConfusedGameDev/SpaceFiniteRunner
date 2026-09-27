@@ -142,8 +142,32 @@ fires the moment a challenge lands.)
 ## Completion and advance
 
 Completion = completion line → (after it disappears) glitch slammed to max, held
-`completionGlitchHoldSeconds`, then the additive scene handoff. Damage/reboot knobs stay on the
-manager.
+`completionGlitchHoldSeconds`, then the additive scene handoff. Only `resetDelaySeconds` (the beat at
+full glitch before the game-over screen) stays on the manager.
+
+## The player's health (`PlayerHealthMeter`)
+
+Refactor Step 9.2 took the health OUT of the glitch. It used to be `GlitchController.baseIntensity`:
+`LevelManager.ApplyDamage` raised it, the glitch's own fade healed it, and the speedometer read it
+back off the post effect. Now `PlayerHealthMeter` (hand-placed beside the `LevelManager` on
+`===SYSTEMS===/==Managers==/LevelManager`, `Ensure`d in `Awake`) owns `Damage` (0..1) and `Health`:
+- **Sources**: the impact sensor it bolts on the player car (`PlayerImpactSensor`; hits at or above
+  `VehicleHealthSettings.minImpactSpeed` — the ONE impact floor, NPCs share it — rumble and pulse, a
+  police car's also fills `playerPoliceHitDamage`), blasts (`PlayerDamageReceiver` →
+  `ApplyBlast`, × `playerBlastDamageScale`) and water (`WaterSplashZone` → `ApplySplash`).
+  `ApplyDamage(amount, reason)` is the one entry point: the Store resistance divides it, it pulses
+  the glitch (never below `playerCollisionPulse`) and fires `Depleted` once at full.
+- **Healing**: `playerHealPerSecond` (0.05, the rate the city's glitch fade used to heal at),
+  unscaled, only while the gate is open.
+- **The gate** is the `LevelManager`'s: no damage or healing while resetting, completed or frozen by
+  a cinema. `Depleted` → `RequestReboot("full corruption")`; the arrest test reads
+  `LastDamageReason`; `RestartLevel` calls `ResetForRun`.
+- **The glitch only displays it**: `GlitchController.SetFloor(meter, Damage)` — a floor that, unlike
+  a hold, neither suspends the base fade nor writes the base. The death and the handoff still
+  `Hold` at 1.
+- **Every knob is on `VehicleHealthSettings`' Player group** (collision pulse, police hit, heal
+  rate, blast plating, crash rumble light/full + full speed, blast and splash rumbles), beside the
+  NPC damage model. They were fields on the `LevelManager` and `PlayerDamageReceiver`.
 
 **Every objective (challenges included) can carry a completion message and a delay**: the
 `Completion message` `[ToggleGroup]` (`hasCompletionMessage` + `completionPages`, same
@@ -247,11 +271,11 @@ alpha is the lit channel, no Image writes unless something changed). Geometry is
 the gauge (`Build`/`TearDown`, the Rebuild Preview button), colours apply live. All knobs sit in
 `ToggleGroup`s on `SpeedometerSettings` ("Life Ring") and `MinimapSettings` ("Chase Ring").
 
-- **Life ring (speedometer)** = `1 − GlitchController.baseIntensity`, the corruption meter
-  `LevelManager.ApplyDamage` raises (three police hits end the run). There is no damage event, so
+- **Life ring (speedometer)** = `PlayerHealthMeter.Health` (three police hits end the run). There
+  is no damage event, so
   a DROP between frames is the hit: the ring punches (`lifeHitPunch`) and flashes white, then
   settles on the colour of what remains (full → mid → low over the two halves of life); under
-  `lifeLowFraction` it blinks. A rising value (the opening glitch healing) is not a hit.
+  `lifeLowFraction` it blinks. A rising value (the meter healing) is not a hit.
 - **Chase ring (minimap)** = the fleet's worst cruiser: a CHASING one scores `1 − safety`, safety
   being the search disc's own read-out (`InverseLerp(searchDiscBlendStart, 1, distance/range)` or
   `LoseSightProgress`, whichever is safer); a SEARCHING one scores `SearchRemaining ×

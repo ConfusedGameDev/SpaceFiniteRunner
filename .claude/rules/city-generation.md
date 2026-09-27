@@ -206,7 +206,8 @@ weight 1.5 against the cone's 6 so a street is never lined with them. Any car ab
 `detonationSpeed` sets it off, and **detonation is positional, not about who touched it**:
 everything inside `blastRadius` is caught. That is what makes leading a cruiser past one worth
 doing, and standing next to the one you just clipped a mistake. The player takes
-`explosionDamage` (0.35) through `LevelManager.ApplyDamage(amount, reason)`; a caught police car
+`blastDamage` × `VehicleHealthSettings.playerBlastDamageScale` (0.35) through `PlayerDamageReceiver` →
+`PlayerHealthMeter.ApplyBlast`; a caught police car
 is destroyed outright and the `PatrolManager`'s next maintenance tick cuts a replacement in at its
 spawn band, away from the player. The fireball is a code-built burst off one randomly-picked
 sprite from `02.Art/05.Particles/SmokeAndExplosions/Explosion` (nine complete variants, not

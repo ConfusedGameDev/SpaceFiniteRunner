@@ -85,17 +85,19 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             player = Vehicles.PlayerCars.Current;
         }
 
-        // The life ring: what is left of the car, off the glitch corruption
-        // meter (LevelManager.ApplyDamage raises it; full = the run ends).
+        // The life ring: what is left of the car, off its health meter
+        // (PlayerHealthMeter; full damage = the run ends).
         // There is no damage event, so a DROP between frames is the hit: the
         // ring punches and flashes white, then settles on the colour of what
         // remains. Under lifeLowFraction it blinks. A rising value (the scene's
         // opening glitch healing, the meter's own fade) is not a hit.
+        PlayerHealthMeter healthMeter;
+
         void UpdateLifeRing(float dt)
         {
             if (lifeRing == null) return;
-            GlitchController glitch = GlitchController.Instance;
-            float life = glitch != null ? 1f - Mathf.Clamp01(glitch.baseIntensity) : 1f;
+            if (healthMeter == null) healthMeter = FindAnyObjectByType<PlayerHealthMeter>();
+            float life = healthMeter != null ? healthMeter.Health : 1f;
             if (lastLife >= 0f && life < lastLife - 0.01f) hitFlash = 1f;
             lastLife = life;
 

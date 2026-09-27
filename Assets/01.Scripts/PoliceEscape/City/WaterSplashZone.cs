@@ -78,11 +78,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (Time.time - lastPlayerSplash < PlayerCooldown) return;
             lastPlayerSplash = Time.time;
 
-            if (HapticsSystem.Instance != null) HapticsSystem.Instance.Pulse(0.8f, 0.5f, 0.4f);
-
-            var level = Object.FindAnyObjectByType<LevelManager>();
-            if (level != null) level.ApplyDamage(damage, "splash");
-            else if (GlitchController.Instance != null) GlitchController.Instance.Pulse(1f);
+            var meter = Object.FindAnyObjectByType<PlayerHealthMeter>();
+            if (meter != null) meter.ApplySplash(damage);
+            else
+            {
+                if (HapticsSystem.Instance != null) HapticsSystem.Instance.Pulse(Vehicles.VehicleHealthSettings.Load().playerSplashRumble);
+                if (GlitchController.Instance != null) GlitchController.Instance.Pulse(1f);
+            }
 
             var respawner = car.GetComponent<Vehicles.CarRespawner>();
             if (respawner != null)

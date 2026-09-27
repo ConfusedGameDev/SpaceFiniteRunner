@@ -163,7 +163,7 @@ CarHealth strips this component — `OnDisable` just drops the lights back to id
 ## Body damage (`Vehicles/CarDeformation.cs`) — EVP backend only
 
 Cosmetic crumpling for every city car (player, police, traffic, authored EVP demo cars included)
-through EVP5's `VehicleDamage`. The gameplay damage (`LevelManager.ApplyDamage`, `CarHealth`) is
+through EVP5's `VehicleDamage`. The gameplay damage (`PlayerHealthMeter`, `CarHealth`) is
 untouched, and built-in mode shows no dents.
 
 `VehicleDamage` `[RequireComponent]`s the `VehicleController` and reads its `onImpact`, so

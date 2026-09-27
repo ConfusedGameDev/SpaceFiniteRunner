@@ -312,8 +312,10 @@ installer had stamped every renderer in the project.
   holds, the picture shows at least the held level and the fade is suspended; a release leaves the
   base at the held level and the fade takes it from there. Nobody writes `baseFadePerSecond` at
   runtime any more, so nobody has to remember and restore it. A holder destroyed without
-  releasing is dropped. Pulses and `SetBaseIntensity` are unchanged (the city's damage meter
-  still lives in `baseIntensity` until refactor Step 9).
+  releasing is dropped. Pulses and `SetBaseIntensity` are unchanged. **Floors** (`SetFloor(owner,
+  level)` / `ClearFloor(owner)`, refactor Step 9.2) show a value another system OWNS — the city's
+  `PlayerHealthMeter` damage — without suspending the fade or writing the base; dead owners are
+  dropped like holders. The glitch no longer stores anyone's health.
 - `RendererFeatureAudit` (`Rendering/`) warns from `GlitchController.Awake` /
   `DistanceFog.OnEnable` (play mode) when no renderer of the active pipeline asset carries a
   feature driving their material — one warning naming the pipeline asset and quality level.

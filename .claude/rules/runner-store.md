@@ -95,8 +95,8 @@ games. Anything unresolvable reads ×1.
   Weight → `mass`, heavier; Handling → `maxSteerAngle`, `steerResponse`, `sideStiffness`,
   `evpTireFriction`) so police, traffic and the debug pages keep the asset — **the debug pages
   edit the asset and never see the clone**.
-- **Resistance** divides `amount` at the top of `LevelManager.ApplyDamage`, the one player-damage
-  entry point.
+- **Resistance** divides `amount` at the top of `PlayerHealthMeter.ApplyDamage`, the one
+  player-damage entry point.
 
 Every store string is a `MenuTextId` (`Store*`, `Upgrade*`, `StartMission`, `Max`, `HintBuy`…).
 Category labels are kept short because the purchase row's reserve is wide.

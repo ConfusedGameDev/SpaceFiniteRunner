@@ -1258,13 +1258,9 @@ MonoBehaviour:
   mapSettings: {fileID: 11400000, guid: d690dbff0ec45426d96f3f6d4641091c, type: 2}
   speedMotionBlur: 1
   rain: 1
-  rainSettings: {fileID: 11400000, guid: 9d4b2c7e1f8a4356b0e9d2c5a7f13b64, type: 2}
   vhs: 1
-  vhsSettings: {fileID: 0}
   psx: 1
-  psxSettings: {fileID: 0}
   crt: 1
-  crtSettings: {fileID: 0}
 --- !u!4 &323002108
 Transform:
   m_ObjectHideFlags: 0
@@ -9568,6 +9564,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1740920374}
   - component: {fileID: 1740920373}
+  - component: {fileID: 1740920375}
   m_Layer: 0
   m_Name: LevelManager
   m_TagString: Untagged
@@ -9589,11 +9586,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.LevelManager
   level: {fileID: 11400000, guid: 3f9a6c1e5b2d4a7f8c0e1d2b3a4f5e6d, type: 2}
   skipMissionBrief: 0
-  collisionPulse: 0.4
-  policeHitIntensity: 0.34
-  minImpactSpeed: 3
-  crashRumbleFullSpeed: 20
-  crashRumbleDuration: 0.4
   resetDelaySeconds: 1.2
 --- !u!4 &1740920374
 Transform:
@@ -9610,6 +9602,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1539414887}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1740920375
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1740920372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8331ed7d984e7b4dbcd0e923c756427, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.PlayerHealthMeter
 --- !u!1001 &1752941111
 PrefabInstance:
   m_ObjectHideFlags: 0

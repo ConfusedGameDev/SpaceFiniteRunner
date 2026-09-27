@@ -135,8 +135,8 @@ Knobs live in the settings' **"Water"** group: `waterLevel` −2, `seaFloorDepth
 `WaterSplashZone.Splash` is the one entry point for anything that drives in (`[SerializeField]`
 damage, because it is baked):
 
-- **The player** takes `splashDamage` through `LevelManager.ApplyDamage` (glitch-pulse fallback
-  without a manager) and is put back on the nearest road by their `CarRespawner` (1 s cooldown
+- **The player** takes `splashDamage` through `PlayerHealthMeter.ApplySplash` (the splash rumble,
+  `VehicleHealthSettings.playerSplashRumble`; a glitch-pulse fallback without a meter) and is put back on the nearest road by their `CarRespawner` (1 s cooldown
   against double hits). **No barrier walls — the shore is a real drop.**
 - **AI cars die** through `CarHealth` (fuse → explosion → wreck, exactly like a barrel kill; a car
   with no health component is destroyed) and the `PatrolManager`'s next tick replaces them — the

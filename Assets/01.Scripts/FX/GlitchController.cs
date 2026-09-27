@@ -58,13 +58,14 @@ namespace ConfusedGameDev.FiniteRunner.FX
         public float pulseDecayPerSecond = 2f;
 
         [TitleGroup("Debug"), ShowInInspector, ReadOnly]
-        public float CurrentIntensity => Mathf.Clamp01(Mathf.Max(baseIntensity, HeldLevel) + pulse);
+        public float CurrentIntensity => Mathf.Clamp01(Mathf.Max(baseIntensity, Mathf.Max(HeldLevel, FloorLevel)) + pulse);
 
         /// <summary>True while any owner holds the picture.</summary>
         public bool IsHeld => holds.Count > 0;
 
         float pulse;
         readonly Dictionary<object, float> holds = new();
+        readonly Dictionary<object, float> floors = new();
         readonly List<object> deadHolders = new();
 
         float HeldLevel
@@ -73,6 +74,16 @@ namespace ConfusedGameDev.FiniteRunner.FX
             {
                 float level = 0f;
                 foreach (var hold in holds.Values) level = Mathf.Max(level, hold);
+                return level;
+            }
+        }
+
+        float FloorLevel
+        {
+            get
+            {
+                float level = 0f;
+                foreach (var floor in floors.Values) level = Mathf.Max(level, floor);
                 return level;
             }
         }
@@ -128,6 +139,24 @@ namespace ConfusedGameDev.FiniteRunner.FX
             holds[owner] = Mathf.Clamp01(level);
         }
 
+        /// <summary>
+        /// Shows a level some system OWNS (the city's damage meter) without
+        /// taking the picture over: unlike <see cref="Hold"/> it leaves the
+        /// base fade running and never writes the base, so the value stays the
+        /// owner's and the glitch only displays it. Call again to move it.
+        /// </summary>
+        public void SetFloor(object owner, float level)
+        {
+            if (owner == null) return;
+            floors[owner] = Mathf.Clamp01(level);
+        }
+
+        /// <summary>Removes <paramref name="owner"/>'s floor. Idempotent.</summary>
+        public void ClearFloor(object owner)
+        {
+            if (owner != null) floors.Remove(owner);
+        }
+
         /// <summary>Ends <paramref name="owner"/>'s hold: the base keeps the held level and, once nobody holds, the fade takes it from there. Idempotent.</summary>
         public void Release(object owner)
         {
@@ -140,11 +169,13 @@ namespace ConfusedGameDev.FiniteRunner.FX
         // freeze the picture forever.
         void DropDeadHolders()
         {
-            if (holds.Count == 0) return;
+            if (holds.Count == 0 && floors.Count == 0) return;
             deadHolders.Clear();
             foreach (var owner in holds.Keys)
                 if (owner is Object unityObject && unityObject == null) deadHolders.Add(owner);
-            foreach (var owner in deadHolders) holds.Remove(owner);
+            foreach (var owner in floors.Keys)
+                if (owner is Object unityObject && unityObject == null) deadHolders.Add(owner);
+            foreach (var owner in deadHolders) { holds.Remove(owner); floors.Remove(owner); }
         }
 
         void Apply(float value)
