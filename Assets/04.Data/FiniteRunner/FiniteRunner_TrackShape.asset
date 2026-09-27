@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FiniteRunner_TrackShape
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.TrackShapeSettings
   trackWidth: 120
-  straightness: 100
+  straightness: 70
   featureTable:
   - name: Jump
     prefab: {fileID: 0}
@@ -36,7 +36,7 @@ MonoBehaviour:
     minSpacing: 600
     multiplier: 0
     color: {r: 0.9, g: 0.5, b: 1, a: 1}
-  featureSpacing: {x: 1500, y: 3000}
+  featureSpacing: {x: 1500, y: 3241.0256}
   elevationEnabled: 1
   elevationBand: 60
   maxGrade: 1
@@ -47,8 +47,8 @@ MonoBehaviour:
   minStraightKnots: 1
   alternateTurnChance: 0.7
   maxHeadingDrift: 150
-  unbankedSweepChance: 0.3
-  openStraightChance: 1
+  unbankedSweepChance: 0.45
+  openStraightChance: 0.9
   bankEnabled: 1
   maxBankAngle: 78
   bankPerDegreeOfTurn: 8

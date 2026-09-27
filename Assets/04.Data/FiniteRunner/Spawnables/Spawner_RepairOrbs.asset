@@ -15,7 +15,7 @@ MonoBehaviour:
   active: 1
   displayName: Repair Orbs
   color: {r: 0.2, g: 1, b: 0.35, a: 1}
-  spacing: {x: 400, y: 700}
+  spacing: {x: 800, y: 1400}
   startDistance: 200
   chance: 0.58
   prefab: {fileID: 0}
