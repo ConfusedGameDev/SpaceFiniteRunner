@@ -65,7 +65,7 @@ Preview** (Odin button) draws the segments in edit mode. Do not add position/siz
 ## `DuelBarHud` (`Runner/HUD/`) — the tug of war and the kill prompt
 
 Spawned by `GameManager` on its own overlay canvas at sorting **12** (with the dash prompt: above the
-HUD, below the RPG box). `Spawn` returns null for a missing patrol or `patrolDuelEnabled` off, so the
+HUD, below the RPG box). `Spawn` returns null for a missing patrol or `PatrolDefinition.duelEnabled` off, so the
 caller never checks.
 
 - **The bar is small, low and centred** (D32), because the bar is the contest but the ROAD is the
@@ -88,7 +88,7 @@ caller never checks.
   because it is only called from the menus and its value is stale during a run.
 - **The diagnostic line is parented to the CANVAS, not the bar holder**, so it survives the bar being
   hidden — the whole reason it exists is to explain a contest that never opened. On
-  `GameSettings.duelDebugReadout`, it prints `PolicePatrol.EncounterDebug()`: the state, gap, lateral,
+  `PatrolDefinition.duelDebugReadout`, it prints `PolicePatrol.EncounterDebug()`: the state, gap, lateral,
   damage pool, escalation tier and — while Cruising — the three gates that are invisible when they
   refuse (`commit in`, `reach`, `ground`). All three of those hid real bugs during the build.
 - Hidden whenever `motor.Paused`.

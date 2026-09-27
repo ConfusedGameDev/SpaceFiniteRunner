@@ -112,7 +112,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 city.mapSettings = CreateOrLoad<UI.CityMapSettings>(MapSettingsPath); // the M / d-pad Up city map, placed below
                 city.speedometerSettings = speedometerSettings;
                 city.trafficSettings = trafficSettings;  // the TrafficManager, placed below
-                city.rainSettings = AssetDatabase.LoadAssetAtPath<RainSettings>(RainSettingsPath);
 
                 // Managers, HUD, chase camera rig and EventSystem go into the
                 // scene now, under ===SYSTEMS===, wired off the manager; play

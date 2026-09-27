@@ -54,11 +54,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public readonly bool ShipSteady;
         /// <summary>Real seconds this substep took — the bar is integrated against these, never the slowed clock.</summary>
         public readonly float UnscaledDt;
-        /// <summary>Share of full steering authority the assist may use (GameSettings.duelAssistStrength).</summary>
+        /// <summary>Share of full steering authority the assist may use (PatrolDefinition.duelAssistStrength).</summary>
         public readonly float AssistStrength;
         /// <summary>Mash presses counted since the last substep.</summary>
         public readonly int Presses;
-        /// <summary>How long the kill prompt stays open (GameSettings.finisherWindowSeconds).</summary>
+        /// <summary>How long the kill prompt stays open (PatrolDefinition.finisherWindowSeconds).</summary>
         public readonly float FinisherWindowSeconds;
         /// <summary>What the cruiser's remaining damage pool leaves of its push: 1 at full, less for every rear ram it has taken.</summary>
         public readonly float PushScale;

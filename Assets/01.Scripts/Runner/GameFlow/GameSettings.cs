@@ -116,7 +116,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // ------------------------------------------------------------- patrol
         // The chase tunables (speeds, rubber band, distances) moved to the
         // PatrolDefinition asset on the scene's PolicePatrol object — this
-        // section only keeps the run-level rules: on/off, minimap, redeploy.
+        // section only keeps the run-level rules: on/off, minimap, alerts. The
+        // redeploy rule and the duel's rules live on the PatrolDefinition too.
         [ToggleGroup("patrolEnabled", "Police patrol")]
         [Tooltip("Enable the chasing patrol (the scene object the GameManager references; its chase tunables live on its PatrolDefinition asset).")]
         public bool patrolEnabled = true;
@@ -125,82 +126,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Gap beyond which the patrol is off the track map; at this gap its icon hangs a full chase span (ChaseMinimapSettings.chaseSpan) under the ship.")]
         [PropertyRange(50f, 2000f), SuffixLabel("m", true)]
         public float minimapRangeMeters = 400f;
-
-        [ToggleGroup("patrolEnabled"), Title("Duel")]
-        [Tooltip("The patrol hunts you: it commits to an attack run, pulls onto a flank and shoves you into the wall or off the edge, then breaks off. " +
-                 "Off returns the old chase exactly, proximity arrest included. The run's tunables live on the PatrolDefinition asset.")]
-        public bool patrolDuelEnabled = true;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("World timescale during a tug of war. Slow-mo buys PERCEPTION, not advantage: the bar runs on real seconds and the run's countdown keeps full pace, so an exchange still costs you mission time.")]
-        [PropertyRange(0.1f, 1f), EnableIf("patrolDuelEnabled")]
-        public float duelTimeScale = 0.3f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("How long the world clock takes to ease into and out of the duel's slow motion.")]
-        [PropertyRange(0f, 1f), SuffixLabel("s", true), EnableIf("patrolDuelEnabled")]
-        public float duelTimeBlendSeconds = 0.15f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("DORMANT since the cinematic duel (2026-09-25): the exchange now LOCKS the ship's controls outright (see PatrolEncounterIntent.ShipLateralTarget), so no soft assist is added. Kept for the old soft-assist path and the debug row; it does nothing today.")]
-        [PropertyRange(0f, 1f), EnableIf("patrolDuelEnabled")]
-        public float duelAssistStrength = 0.5f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("How long the kill prompt stays open after you win the bar. Generous on purpose: missing it costs nothing but the kill.")]
-        [PropertyRange(0.2f, 3f), SuffixLabel("s", true), EnableIf("patrolDuelEnabled")]
-        public float finisherWindowSeconds = 1.5f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("The deeper dip the world takes on the kill's connect, before it snaps back to full speed. The transition out of the exchange, not an effect in itself.")]
-        [PropertyRange(0f, 0.5f), SuffixLabel("s", true), EnableIf("patrolDuelEnabled")]
-        public float duelHitStopSeconds = 0.12f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("How long a strong boost orb leaves the ship ARMED: an exchange that draws level inside this skips the tug of war and goes straight to the kill prompt. " +
-                 "Long enough to reach a cruiser you can already see, short enough that it is not a standing state.")]
-        [PropertyRange(0.5f, 10f), SuffixLabel("s", true), EnableIf("patrolDuelEnabled")]
-        public float armedWindowSeconds = 3f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Which orb tiers arm the ship, by their name in the generator's spawn table. Green is 46% of spawns and would make the window permanent; purple alone is 3% and would make it a rumour.")]
-        [EnableIf("patrolDuelEnabled")]
-        public List<string> armingOrbTiers = new() { "Blue", "Purple" };
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Colour of the sparks streaming off an ARMED ship. The tell is on the ship, not the HUD: the player's eyes are on the road and the cruiser.")]
-        [EnableIf("patrolDuelEnabled")]
-        public Color armedTellColor = new(0.75f, 0.45f, 1f, 1f);
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("What a rear ram costs the SHIP, as a share of its current forward speed — so the price scales with how fast you arrive. Speed is the run's currency, which is why the aggressive option is priced in it and not in hull.")]
-        [PropertyRange(0f, 0.5f), SuffixLabel("x speed", true), EnableIf("patrolDuelEnabled")]
-        public float ramSpeedCost = 0.08f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Size of the fireball a killed patrol leaves, as a multiple of the ship's own explosion. It reuses the same textures.")]
-        [PropertyRange(0.1f, 3f), SuffixLabel("x ship blast", true), EnableIf("patrolDuelEnabled")]
-        public float patrolExplosionScale = 0.8f;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Print the attack run's state, gap and gates on screen. Both things that stop a run starting — the cadence and the clear-road test — are invisible when they work, so this is the only way to tell 'it decided not to' from 'it is broken'.")]
-        [EnableIf("patrolDuelEnabled")]
-        public bool duelDebugReadout = false;
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("The colour the PATROL pushes the tug-of-war bar with. Your side uses the dash meter's colour.")]
-        [EnableIf("patrolDuelEnabled")]
-        public Color duelBarColor = new(1f, 0.32f, 0.28f, 1f);
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Tint of the sparks grinding between the hulls in a tug of war (each spark rolls between this and white, so keep it saturated — the seam itself reads white-hot). The glow between the cars takes it too.")]
-        [EnableIf("patrolDuelEnabled")]
-        public Color duelSparkColor = new(1f, 0.5f, 0.8f, 1f);
-
-        [ToggleGroup("patrolEnabled")]
-        [Tooltip("Size of the contact-spark rig: scales the spark rates, their size and the glow's brightness together. 1 = the authored look; 0.5 = a hiss; 2 = a firework.")]
-        [PropertyRange(0.25f, 3f), SuffixLabel("x", true), EnableIf("patrolDuelEnabled")]
-        public float duelSparkScale = 1f;
 
         [ToggleGroup("patrolEnabled"), Title("Alerts")]
         [Tooltip("Announce every fresh patrol with the 'Patrol inbound' story line (RPG dialogue box). Off by default — the minimap and the rumble already show it arriving.")]
@@ -621,18 +546,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Spawn the rain over the run. The downpour's own knobs live on the RainSettings asset below — this is only the on/off for this scene.")]
         public bool rainEnabled = true;
 
-        [ToggleGroup("rainEnabled"), InlineEditor]
-        [Tooltip("Override asset pushed onto the scene's RainSystem on boot. Empty = leave that system with the asset it was authored with (the shipped FiniteRunner_Rain from Resources).")]
-        public RainSettings rainSettings;
-
         // -------------------------------------------------------- speed lines
         [ToggleGroup("speedLinesEnabled", "Speed lines")]
         [Tooltip("Manga speed lines over the picture as the ship nears Light Speed. The look and the speed band (a fraction of Light Speed) live on the asset below — this is only the on/off for this scene.")]
         public bool speedLinesEnabled = true;
-
-        [ToggleGroup("speedLinesEnabled"), InlineEditor]
-        [Tooltip("Speed lines asset pushed onto the driver on boot. Empty = the shipped FiniteRunner_SpeedLines from Resources.")]
-        public SpeedLinesSettings speedLinesSettings;
 
         [ToggleGroup("speedLinesEnabled")]
         [Tooltip("Burst of lines on a green (1×) orb pickup; blue and purple scale it by their tier (2.5× / 10×, clamped to full). 0 = no burst.")]
@@ -649,27 +566,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Play the run back as a worn VHS tape: chroma bleed, row jitter, a crawling tracking band, grain and scanlines over the finished picture. The look lives on the asset below — this is only the on/off for this scene.")]
         public bool vhsEnabled = true;
 
-        [ToggleGroup("vhsEnabled"), InlineEditor]
-        [Tooltip("VHS tape asset pushed onto the scene's VhsTape driver on boot. Empty = leave the driver with the asset it was authored with (the shipped FiniteRunner_VhsTape from Resources).")]
-        public VhsTapeSettings vhsSettings;
-
         // ------------------------------------------------------------ PSX look
         [ToggleGroup("psxEnabled", "PSX look")]
         [Tooltip("Show the run as a PlayStation-1 console would: a 240-row picture with square pixels, vertex wobble and texture swim per polygon-sized block, 15-bit colour under a Bayer dither. The look lives on the asset below — this is only the on/off for this scene.")]
         public bool psxEnabled = true;
 
-        [ToggleGroup("psxEnabled"), InlineEditor]
-        [Tooltip("PSX look asset pushed onto the scene's PsxLook driver on boot. Empty = leave the driver with the asset it was authored with (the shipped FiniteRunner_PsxLook from Resources).")]
-        public PsxLookSettings psxSettings;
-
         // ---------------------------------------------------------- CRT screen
         [ToggleGroup("crtEnabled", "CRT screen")]
         [Tooltip("Show the run on a curved CRT tube: barrel curvature with rounded corners, phosphor bleed and colour convergence that grow toward the edges, scanlines, an aperture grille and refresh flicker over the finished picture — the last pass, the display the console and the tape play on. The look lives on the asset below — this is only the on/off for this scene; the player has their own dial on the VIDEO settings page.")]
         public bool crtEnabled = true;
-
-        [ToggleGroup("crtEnabled"), InlineEditor]
-        [Tooltip("CRT screen asset pushed onto the scene's CrtScreen driver on boot. Empty = leave the driver with the asset it was authored with (the shipped FiniteRunner_CrtScreen from Resources).")]
-        public CrtScreenSettings crtSettings;
 
         // --------------------------------------------------------------- music
         [ToggleGroup("musicEnabled", "Music")]

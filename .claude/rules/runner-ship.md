@@ -422,7 +422,13 @@ minimap range, redeploy) stay on `GameSettings`.
   patrol that fraction of the ship's actual gain (after weight) in the same frame. A +100 km/h orb
   is +70 km/h for the patrol, so boosts stop buying the gap. Brakes are never shared and the floor
   is untouched.
-- **The attack run** (`PatrolEncounter`, on `GameSettings.patrolDuelEnabled`) — M0 of the patrol
+- **The duel's rules all live on `PatrolDefinition`** (refactor Step 4): the Duel group now also
+  holds the run-wide knobs that were on GameSettings — `duelEnabled`, `duelTimeScale` /
+  `duelTimeBlendSeconds`, `finisherWindowSeconds`, `duelHitStopSeconds`, `armedWindowSeconds` /
+  `armingOrbTiers` / `armedTellColor`, `ramSpeedCost`, `killExplosionScale`, the bar and spark
+  colours, `duelSparkScale`, `duelDebugReadout`. `ShipArmed`, `DuelSlowMo` and `DuelBarHud` read the
+  patrol's live definition.
+- **The attack run** (`PatrolEncounter`, on `PatrolDefinition.duelEnabled`) — M0 of the patrol
   duel. An explicit state machine the patrol owns and ticks per substep
   (`Cruising → Committing → Alongside → TugOfWar → Finisher → BreakingOff → Cooldown`; the two
   middle states are M1's mash contest and M2's kill prompt — this paragraph describes M0's spine
@@ -523,7 +529,7 @@ minimap range, redeploy) stay on `GameSettings`.
   and ARRIVING at more than `ramClosingSpeedThreshold` (15 m/s) of closing speed — drifting into
   its bumper is a nudge and costs nobody anything. Coming out of contact is what re-arms it, so one
   approach is one ram (otherwise the lane clamp shunts the cruiser along and the closing speed
-  never drops). It costs the SHIP `GameSettings.ramSpeedCost` (8 %) of its forward speed at once
+  never drops). It costs the SHIP `PatrolDefinition.ramSpeedCost` (8 %) of its forward speed at once
   (`ShipMotor.ApplyImpactSpeedLoss` → `HoverShip` → `body.ForwardSpeed *=`, the wall hit's own
   pattern) and **never hull** — speed is the run's currency, so that is what the aggressive option
   is priced in, and it also stays out of the hull's blink. It takes one point off `damagePool`

@@ -267,7 +267,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // The duel's armed window rides the ship too: it is a state OF
                 // the ship (a strong orb leaves it carrying a kill), and it
                 // gates itself on the duel's master switch.
-                ShipArmed.Ensure(motor).Configure(settings);
+                ShipArmed.Ensure(motor).Configure(patrol);
 
                 // The ship's own components live below the runner and speak
                 // ShipSettings: the ship's live clone is the one home of the
@@ -349,7 +349,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol.Redeployed += OnPatrolRedeployed;
                 patrol.Warned += OnPatrolWarned;
                 patrol.ProximityRumble = settings.patrolProximityRumble;
-                patrol.DuelEnabled = settings.patrolDuelEnabled;
             }
             else
             {
@@ -369,10 +368,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // runs under. Both no-op without a patrol or with the duel off.
             // The slow-mo rides the ship like the loop's does, so the two share
             // one clock-ownership contract and settle against each other.
-            if (motor != null && patrol != null && settings.patrolDuelEnabled)
+            if (motor != null && patrol != null && patrol.Definition != null && patrol.Definition.duelEnabled)
             {
-                DuelSlowMo.Ensure(motor).Configure(settings, patrol);
-                DuelBarHud.Spawn(motor, patrol, settings);
+                DuelSlowMo.Ensure(motor).Configure(patrol);
+                DuelBarHud.Spawn(motor, patrol);
             }
 
             // The chase camera: the shared Cinemachine rig, attached to the ship
@@ -386,7 +385,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // system the same way the patrol tab binds to the patrol. Apply,
             // not spawn: the scene's own RainSystem is the one the designer
             // tuned before play, and switching the weather off has to park it.
-            RainSystem.Apply(settings.rainEnabled, settings.rainSettings);
+            RainSystem.Apply(settings.rainEnabled);
 
             // Speed lines: the scene's hand-placed SpeedLines object (next to
             // the fog and the rain — tuned before play, never spawned here).
@@ -395,23 +394,23 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // takes the ship root as its focus, a km/h reader and Light Speed
             // as the reference its band is a fraction of; Update pushes the
             // camera mode each frame.
-            speedLines = SpeedLines.Apply(settings.speedLinesEnabled, settings.speedLinesSettings);
+            speedLines = SpeedLines.Apply(settings.speedLinesEnabled);
             if (speedLines != null && motor != null)
                 speedLines.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, LightSpeedKmh);
 
             // VHS tape: the scene's hand-placed VhsTape object, found and
             // parked the same way. It needs nothing from the run — the whole
             // picture, glitch included, is played back off the tape.
-            VhsTape.Apply(settings.vhsEnabled, settings.vhsSettings);
+            VhsTape.Apply(settings.vhsEnabled);
 
             // PSX look: the console the tape records — same rule, the scene's
             // hand-placed PsxLook object, found and parked.
-            PsxLook.Apply(settings.psxEnabled, settings.psxSettings);
+            PsxLook.Apply(settings.psxEnabled);
 
             // CRT screen: the tube the console and the tape are shown on —
             // same rule, the scene's hand-placed CrtScreen object, found and
             // parked.
-            CrtScreen.Apply(settings.crtEnabled, settings.crtSettings);
+            CrtScreen.Apply(settings.crtEnabled);
 
             // Music: the scene's hand-placed Music object under ===SYSTEMS===,
             // found and parked the same way — never spawned. Its own Start

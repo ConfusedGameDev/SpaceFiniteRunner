@@ -38,6 +38,23 @@ MonoBehaviour:
   alongsideLateral: 18
   sustainedCatchSeconds: 1.5
   warnDistance: 130
+  duelEnabled: 1
+  duelTimeScale: 0.3
+  duelTimeBlendSeconds: 0.15
+  duelAssistStrength: 0.5
+  finisherWindowSeconds: 1.5
+  duelHitStopSeconds: 0.12
+  armedWindowSeconds: 3
+  armingOrbTiers:
+  - Blue
+  - Purple
+  armedTellColor: {r: 0.75, g: 0.45, b: 1, a: 1}
+  ramSpeedCost: 0.08
+  killExplosionScale: 0.8
+  duelDebugReadout: 0
+  duelBarColor: {r: 1, g: 0.32, b: 0.28, a: 1}
+  duelSparkColor: {r: 1, g: 0.5, b: 0.8, a: 1}
+  duelSparkScale: 1
   attackRunOverdrive: 1.15
   minClosingSpeed: 12
   commitFromDistance: 70

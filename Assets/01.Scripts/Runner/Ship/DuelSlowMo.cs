@@ -6,7 +6,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// <summary>
     /// Slow motion for the patrol duel: while the patrol has the ship in a tug
     /// of war (or, later, the finisher prompt) the world clock eases down to
-    /// <see cref="GameSettings.duelTimeScale"/> and eases back when the
+    /// <see cref="PatrolDefinition.duelTimeScale"/> and eases back when the
     /// exchange ends.
     ///
     /// What slow-mo buys here is PERCEPTION, not advantage. The bar is
@@ -30,8 +30,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     public class DuelSlowMo : MonoBehaviour
     {
         ShipMotor motor;
-        GameSettings settings;
         PolicePatrol patrol;
+        PatrolDefinition Rules => patrol != null ? patrol.Definition : null; // the duel's rules: the patrol's live definition
         float baseFixedDelta;
         float blend;            // 0 normal clock .. 1 full slow-mo, unscaled seconds
         bool owning;            // we wrote the clock last, and it still reads our value
@@ -59,10 +59,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public static DuelSlowMo Ensure(ShipMotor motor) =>
             motor.GetComponent<DuelSlowMo>() ?? motor.gameObject.AddComponent<DuelSlowMo>();
 
-        /// <summary>The run's settings asset (read live) and the patrol whose exchange drives the window.</summary>
-        public void Configure(GameSettings runSettings, PolicePatrol runPatrol)
+        /// <summary>The patrol whose exchange drives the window; its definition holds the duel's clock.</summary>
+        public void Configure(PolicePatrol runPatrol)
         {
-            settings = runSettings;
             patrol = runPatrol;
         }
 
@@ -74,7 +73,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void Update()
         {
-            if (settings == null || !settings.patrolDuelEnabled || motor == null || patrol == null)
+            if (Rules == null || !Rules.duelEnabled || motor == null || patrol == null)
             {
                 hitStopLeft = 0f;
                 Drop();
@@ -110,7 +109,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 }
             }
 
-            float seconds = Mathf.Max(settings.duelTimeBlendSeconds, 0f);
+            float seconds = Mathf.Max(Rules.duelTimeBlendSeconds, 0f);
             float target = inExchange ? 1f : 0f;
             blend = seconds > 0f ? Mathf.MoveTowards(blend, target, Time.unscaledDeltaTime / seconds) : target;
 
@@ -121,7 +120,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
                 return;
             }
 
-            float resting = Mathf.Clamp(settings.duelTimeScale, 0.05f, 1f);
+            float resting = Mathf.Clamp(Rules.duelTimeScale, 0.05f, 1f);
             // The dip goes UNDER the exchange's own scale and ignores the
             // blend, so the connect is felt as a hit rather than a fade.
             if (hitStopLeft > 0f) resting = Mathf.Clamp(resting * 0.25f, 0.02f, 1f);

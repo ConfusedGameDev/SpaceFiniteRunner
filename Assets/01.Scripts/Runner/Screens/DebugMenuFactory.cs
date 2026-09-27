@@ -631,29 +631,27 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelMissBrakeSpeed,
                           0.2f, 1f, 0.05f, "0.00", d => d.finisherMissBrakeSpeedFactor, (d, v) => d.finisherMissBrakeSpeedFactor = v);
 
-            // The clock and the assist live on GameSettings, which the run
-            // reads LIVE and never clones — so these two edit the asset itself,
-            // the fall/respawn page's rule, not the patrol tabs'. They are the
-            // first two dials to reach for if an exchange feels detached:
-            // take the timescale UP before you add any more help.
+            // The duel's clock, windows and ram price (moved off GameSettings
+            // onto the patrol's definition in refactor Step 4). Take the
+            // timescale UP before you add any more help.
+            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelTimeScale,
+                          0.1f, 1f, 0.05f, "0.00", d => d.duelTimeScale, (d, v) => d.duelTimeScale = v);
+            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelAssist,
+                          0f, 1f, 0.05f, "0.00", d => d.duelAssistStrength, (d, v) => d.duelAssistStrength = v);
+            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelFinisherWindow,
+                          0.2f, 3f, 0.05f, "0.00", d => d.finisherWindowSeconds, (d, v) => d.finisherWindowSeconds = v);
+            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelHitStop,
+                          0f, 0.5f, 0.01f, "0.00", d => d.duelHitStopSeconds, (d, v) => d.duelHitStopSeconds = v);
+            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelRamCost,
+                          0f, 0.5f, 0.01f, "0.00", d => d.ramSpeedCost, (d, v) => d.ramSpeedCost = v);
+            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelArmedWindow,
+                          0.5f, 10f, 0.25f, "0.00", d => d.armedWindowSeconds, (d, v) => d.armedWindowSeconds = v);
+
             if (runRules != null)
             {
-                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelTimeScale,
-                           0.1f, 1f, 0.05f, "0.00", r => r.duelTimeScale, (r, v) => r.duelTimeScale = v);
-                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelAssist,
-                           0f, 1f, 0.05f, "0.00", r => r.duelAssistStrength, (r, v) => r.duelAssistStrength = v);
-                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelFinisherWindow,
-                           0.2f, 3f, 0.05f, "0.00", r => r.finisherWindowSeconds, (r, v) => r.finisherWindowSeconds = v);
-                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelHitStop,
-                           0f, 0.5f, 0.01f, "0.00", r => r.duelHitStopSeconds, (r, v) => r.duelHitStopSeconds = v);
-                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelRamCost,
-                           0f, 0.5f, 0.01f, "0.00", r => r.ramSpeedCost, (r, v) => r.ramSpeedCost = v);
-                AddRunStat(screen, runRules, refreshers, MenuTextId.DuelArmedWindow,
-                           0.5f, 10f, 0.25f, "0.00", r => r.armedWindowSeconds, (r, v) => r.armedWindowSeconds = v);
-
                 // The duel camera framing lives on the camera settings asset,
-                // which the rig re-applies live every frame — same edit-the-asset
-                // rule as the four rows above.
+                // which the rig re-applies live every frame, so these rows edit
+                // that asset directly (nothing to mirror).
                 var cam = runRules.cameraSettings;
                 if (cam != null)
                 {
@@ -671,7 +669,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             return screen;
         }
 
-        /// <summary>A live-asset slider over the camera settings, the <see cref="AddRunStat"/> rule for a different asset.</summary>
+        /// <summary>A slider over the camera settings asset, which the rig reads live — so it edits the asset alone.</summary>
         static void AddCameraStat(MenuScreen screen, OrbitCameraSettings settings, List<System.Action> refreshers,
                                   MenuTextId label, float min, float max, float step, string format,
                                   System.Func<OrbitCameraSettings, float> get, System.Action<OrbitCameraSettings, float> set)
@@ -680,28 +678,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             row.Configure(min, max, step, get(settings), format, v =>
             {
                 set(settings, v);
-#if UNITY_EDITOR
-                if (settings != null && UnityEditor.EditorUtility.IsPersistent(settings))
-                    UnityEditor.EditorUtility.SetDirty(settings);
-#endif
-            });
-            refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
-        }
-
-        // A GameSettings row: the asset is read live by the run, so the edit
-        // lands at once and is kept dirty for the menu's commit point.
-        static void AddRunStat(MenuScreen screen, GameSettings settings, List<System.Action> refreshers,
-                               MenuTextId label, float min, float max, float step, string format,
-                               System.Func<GameSettings, float> get, System.Action<GameSettings, float> set)
-        {
-            var row = screen.AddRow<DebugSliderRow>(label);
-            row.Configure(min, max, step, get(settings), format, v =>
-            {
-                set(settings, v);
-#if UNITY_EDITOR
-                if (settings != null && UnityEditor.EditorUtility.IsPersistent(settings))
-                    UnityEditor.EditorUtility.SetDirty(settings);
-#endif
+                DebugAssetEdits.Touch(settings);
             });
             refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
         }

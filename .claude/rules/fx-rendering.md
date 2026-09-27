@@ -112,8 +112,8 @@ object under `===LIGHTING===/Filters` beside its `DistanceFog` and the other ful
 material and asset wired; `SpeedLines.Apply(enabled, settings)` only **finds** it (an error when
 missing) and parks it when off.
 
-Runner wiring: `GameSettings` "Speed lines" toggle group (`speedLinesSettings`,
-`boostPulseStrength` / `boostPulseSeconds`); `GameManager.Awake` → `SpeedLines.Apply` +
+Runner wiring: `GameSettings` "Speed lines" toggle group (on/off,
+`boostPulseStrength` / `boostPulseSeconds`; the look is the driver's own asset); `GameManager.Awake` → `SpeedLines.Apply` +
 `SetTarget(motor, km/h, lightSpeedKmh)`; `Update` pushes `cameraRig.Mode`; `OnPadImpulse` pulses on
 boosts scaled by tier (`rawMagnitude / powerUpSpeedBoost`); `Restart` clears the pulse.
 
@@ -157,9 +157,10 @@ the shared material each frame under the standard contract (`HasDriver`, last-on
 gameplay's ramp, `TrackingPulse(strength, seconds)` is a max-wins burst on the tracking band for a
 hit or a story beat, `ClearPulse()` on restart.
 
-Owner wiring: the runner's `GameSettings` "VHS tape" toggle group (`vhsEnabled`, `vhsSettings`) →
-`GameManager.Awake` → `VhsTape.Apply`; the city's `CityManager` "VHS tape" group (`vhs`,
-`vhsSettings`) → `VhsTape.Apply` after the rain. `Apply` only **finds** the scene object (an error
+Owner wiring: the runner's `GameSettings.vhsEnabled` → `GameManager.Awake` → `VhsTape.Apply`;
+the city's `CityManager.vhs` → `VhsTape.Apply` after the rain. **The look is the driver's own asset**
+(runner `Runner_VhsTape` on `PF_VhsTape`, city the Resources one) — the owners only switch it on
+or off (refactor Step 4 removed their override slots). `Apply` only **finds** the scene object (an error
 when missing) and parks it when off.
 
 `Tools → FiniteRunner → Install VHS Tape Feature` (`VhsTapeInstaller`, material at
@@ -214,9 +215,9 @@ The driver is **`PsxLook`** (FX), a hand-placed `[ExecuteAlways]` object beside 
 the shared material each frame under the standard contract (`HasDriver`, last-one-standing zeroes
 `_Intensity`, `preview` for the Scene view). Its only drive is `SetIntensity(0..1)`.
 
-Owner wiring: the runner's `GameSettings` "PSX look" toggle group (`psxEnabled`, `psxSettings`) →
-`GameManager.Awake` → `PsxLook.Apply`; the city's `CityManager` "PSX look" group (`psx`,
-`psxSettings`) → `PsxLook.Apply` after the tape. `Apply` only **finds** the scene object (an error
+Owner wiring: the runner's `GameSettings.psxEnabled` → `GameManager.Awake` → `PsxLook.Apply`; the
+city's `CityManager.psx` → `PsxLook.Apply` after the tape. The look is the driver's own asset
+(`Runner_PsxLook` / the Resources one); the owners only switch it. `Apply` only **finds** the scene object (an error
 when missing) and parks it when off.
 
 `Tools → FiniteRunner → Install PSX Look Feature` (`PsxLookInstaller`, material at
@@ -265,9 +266,9 @@ The driver is **`CrtScreen`** (FX), a hand-placed `[ExecuteAlways]` object besid
 into the shared material each frame under the standard contract (`HasDriver`, last-one-standing
 zeroes `_Intensity`, `preview` for the Scene view). Its only drive is `SetIntensity(0..1)`.
 
-Owner wiring: the runner's `GameSettings` "CRT screen" toggle group (`crtEnabled`, `crtSettings`)
-→ `GameManager.Awake` → `CrtScreen.Apply`; the city's `CityManager` "CRT screen" group (`crt`,
-`crtSettings`) → `CrtScreen.Apply` after the console. `Apply` only **finds** the scene object (an
+Owner wiring: the runner's `GameSettings.crtEnabled` → `GameManager.Awake` → `CrtScreen.Apply`;
+the city's `CityManager.crt` → `CrtScreen.Apply` after the console. The look is the driver's own
+asset (`Runner_CrtScreen` / the Resources one); the owners only switch it. `Apply` only **finds** the scene object (an
 error when missing) and parks it when off.
 
 `Tools → FiniteRunner → Install CRT Screen Feature` (`CrtScreenInstaller`, material at
@@ -362,9 +363,11 @@ editor preview.
   recompile, so the scene file only ever holds the one component, and **the volume follows the
   camera by moving that child, never the root** — an editor preview must not leave the scene
   permanently dirty.
-- `RainSystem.Apply(enabled, override)` is what the scene owners call on boot
+- `RainSystem.Apply(enabled)` is what the scene owners call on boot
   (`GameSettings.rainEnabled` in the runner, `CityManager.rain` in the city): the hand-placed
-  object always wins, and switching the weather off *parks* it rather than ignoring it.
+  object always wins, and switching the weather off *parks* it rather than ignoring it. Each
+  scene's RainSystem carries its own asset — the runner's is hand-placed in `PF_Filters` with
+  `Runner_Rain` (refactor Step 4; it used to be spawned and fed through a GameSettings slot).
   `SetIntensity(0..1)` is gameplay's ramp on top of the asset's `intensity`.
 - `RainDebugPage` lives here with the system, not in either game's factory, because both scenes
   spawn the same `RainSystem`. It is added whenever the scene is raining: eight downpour rows,

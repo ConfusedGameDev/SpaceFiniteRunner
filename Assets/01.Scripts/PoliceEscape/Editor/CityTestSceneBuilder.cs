@@ -243,7 +243,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             manager.mapSettings = AssetDatabase.LoadAssetAtPath<UI.CityMapSettings>(DataFolder + "/TestCityMapSettings.asset");
             manager.speedometerSettings = AssetDatabase.LoadAssetAtPath<UI.SpeedometerSettings>(DataFolder + "/TestSpeedometerSettings.asset");
             manager.trafficSettings = AssetDatabase.LoadAssetAtPath<AI.TrafficSettings>(DataFolder + "/TestTrafficSettings.asset");
-            manager.rainSettings = AssetDatabase.LoadAssetAtPath<FX.RainSettings>(RainSettingsPath);
 
             // Scene-lifetime systems in the scene before play (see SceneSystemsPlacer).
             SceneSystemsPlacer.PlaceMissing(manager);

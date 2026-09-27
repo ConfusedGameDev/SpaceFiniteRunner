@@ -154,6 +154,84 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0f, 500f), SuffixLabel("m", true)]
         public float warnDistance = 130f;
 
+        // ------------------------------------------------------------- duel run
+        // The duel's run-wide rules (on/off, the clock, the windows, what a ram
+        // costs, the look of the bar and sparks) — moved here off GameSettings
+        // in refactor Step 4 so the whole duel is tuned on this one asset.
+        [TitleGroup("Duel")]
+        [Tooltip("The patrol hunts you: it commits to an attack run, pulls onto a flank and shoves you into the wall or off the edge, then breaks off. Off returns the old chase exactly, proximity arrest included.")]
+        public bool duelEnabled = true;
+
+        [TitleGroup("Duel")]
+        [Tooltip("World timescale during a tug of war. Slow-mo buys PERCEPTION, not advantage: the bar runs on real seconds and the run's countdown keeps full pace, so an exchange still costs you mission time.")]
+        [PropertyRange(0.1f, 1f), EnableIf("duelEnabled")]
+        public float duelTimeScale = 0.3f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How long the world clock takes to ease into and out of the duel's slow motion.")]
+        [PropertyRange(0f, 1f), SuffixLabel("s", true), EnableIf("duelEnabled")]
+        public float duelTimeBlendSeconds = 0.15f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("DORMANT since the cinematic duel (2026-09-25): the exchange LOCKS the ship's controls outright (see PatrolEncounterIntent.ShipLateralTarget), so no soft assist is added. Kept for the old soft-assist path and the debug row; it does nothing today.")]
+        [PropertyRange(0f, 1f), EnableIf("duelEnabled")]
+        public float duelAssistStrength = 0.5f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How long the kill prompt stays open after you win the bar. Generous on purpose: missing it costs nothing but the kill.")]
+        [PropertyRange(0.2f, 3f), SuffixLabel("s", true), EnableIf("duelEnabled")]
+        public float finisherWindowSeconds = 1.5f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("The deeper dip the world takes on the kill's connect, before it snaps back to full speed.")]
+        [PropertyRange(0f, 0.5f), SuffixLabel("s", true), EnableIf("duelEnabled")]
+        public float duelHitStopSeconds = 0.12f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("How long a strong boost orb leaves the ship ARMED: an exchange that draws level inside this skips the tug of war and goes straight to the kill prompt.")]
+        [PropertyRange(0.5f, 10f), SuffixLabel("s", true), EnableIf("duelEnabled")]
+        public float armedWindowSeconds = 3f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("Which orb tiers arm the ship, by their name in the orb spawner's tiers. Green would make the window permanent; purple alone would make it a rumour.")]
+        [EnableIf("duelEnabled")]
+        public System.Collections.Generic.List<string> armingOrbTiers = new() { "Blue", "Purple" };
+
+        [TitleGroup("Duel")]
+        [Tooltip("Colour of the sparks streaming off an ARMED ship. The tell is on the ship, not the HUD.")]
+        [EnableIf("duelEnabled")]
+        public Color armedTellColor = new(0.75f, 0.45f, 1f, 1f);
+
+        [TitleGroup("Duel")]
+        [Tooltip("What a rear ram costs the SHIP, as a share of its current forward speed — so the price scales with how fast you arrive.")]
+        [PropertyRange(0f, 0.5f), SuffixLabel("x speed", true), EnableIf("duelEnabled")]
+        public float ramSpeedCost = 0.08f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("Size of the fireball a killed cruiser leaves, as a multiple of the ship's own explosion (GameSettings). It reuses the same textures.")]
+        [PropertyRange(0.1f, 3f), SuffixLabel("x ship blast", true), EnableIf("duelEnabled")]
+        public float killExplosionScale = 0.8f;
+
+        [TitleGroup("Duel")]
+        [Tooltip("Print the attack run's state, gap and gates on screen — the only way to tell 'it decided not to' from 'it is broken'.")]
+        [EnableIf("duelEnabled")]
+        public bool duelDebugReadout = false;
+
+        [TitleGroup("Duel")]
+        [Tooltip("The colour the PATROL pushes the tug-of-war bar with. Your side uses the dash meter's colour.")]
+        [EnableIf("duelEnabled")]
+        public Color duelBarColor = new(1f, 0.32f, 0.28f, 1f);
+
+        [TitleGroup("Duel")]
+        [Tooltip("Tint of the sparks grinding between the hulls in a tug of war (each spark rolls between this and white). The glow between the cars takes it too.")]
+        [EnableIf("duelEnabled")]
+        public Color duelSparkColor = new(1f, 0.5f, 0.8f, 1f);
+
+        [TitleGroup("Duel")]
+        [Tooltip("Size of the contact-spark rig: scales the spark rates, their size and the glow's brightness together. 1 = the authored look.")]
+        [PropertyRange(0.25f, 3f), SuffixLabel("x", true), EnableIf("duelEnabled")]
+        public float duelSparkScale = 1f;
+
         [TitleGroup("Duel")]
         [Tooltip("How much FASTER than the ship the patrol drives while committing to an attack run. This burst is what closes the gap — and it is the telegraph, so keep it visible.")]
         [PropertyRange(1f, 2f), SuffixLabel("x ship speed", true)]

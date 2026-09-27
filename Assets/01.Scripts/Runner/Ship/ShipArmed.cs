@@ -25,14 +25,15 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// It rides the ship like <see cref="RespawnBlink"/> and
     /// <see cref="DuelSlowMo"/> do: <see cref="Ensure"/> + <see cref="Configure"/>
     /// from <c>GameManager.Awake</c>, gating itself on
-    /// <see cref="GameSettings.patrolDuelEnabled"/> so the duel's master switch
+    /// <see cref="PatrolDefinition.duelEnabled"/> so the duel's master switch
     /// turns the whole idea off.
     /// </summary>
     [DisallowMultipleComponent]
     public class ShipArmed : MonoBehaviour
     {
         ShipMotor motor;
-        GameSettings settings;
+        PolicePatrol patrol;
+        PatrolDefinition Rules => patrol != null ? patrol.Definition : null; // the duel's rules: the patrol's live definition
         float armedLeft;
         float sparkleTimer;
 
@@ -52,10 +53,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public static ShipArmed Ensure(ShipMotor ship) =>
             ship.GetComponent<ShipArmed>() ?? ship.gameObject.AddComponent<ShipArmed>();
 
-        /// <summary>The run's settings asset, read live like every other duel knob.</summary>
-        public void Configure(GameSettings runSettings)
+        /// <summary>The run's patrol: its definition holds the armed window, the arming tiers and the tell, read live like every other duel knob.</summary>
+        public void Configure(PolicePatrol runPatrol)
         {
-            settings = runSettings;
+            patrol = runPatrol;
             armedLeft = 0f;
         }
 
@@ -68,25 +69,25 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>
         /// A strong orb arms the ship. Which tiers count is authored
-        /// (<see cref="GameSettings.armingOrbTiers"/>, Blue and Purple by
+        /// (<see cref="PatrolDefinition.armingOrbTiers"/>, Blue and Purple by
         /// default): green is 46 % of spawns and would make the window
         /// permanent, purple alone is 3 % and would make it a rumour (D10).
         /// A brake pad is a negative delta and never arms anything.
         /// </summary>
         void OnPadCollected(SpeedPad pad, IShip collector)
         {
-            if (motor == null || settings == null || pad == null) return;
-            if (!settings.patrolDuelEnabled || !motor.Is(collector)) return;
+            if (motor == null || Rules == null || pad == null) return;
+            if (!Rules.duelEnabled || !motor.Is(collector)) return;
             if (!pad.IsBoostOrb || !Arms(pad.TierName)) return;
 
-            armedLeft = Mathf.Max(armedLeft, settings.armedWindowSeconds);
+            armedLeft = Mathf.Max(armedLeft, Rules.armedWindowSeconds);
             sparkleTimer = 0f;
             Spark(2f); // one bright burst on the pickup, then the trail below
         }
 
         bool Arms(string tierName)
         {
-            List<string> tiers = settings.armingOrbTiers;
+            List<string> tiers = Rules.armingOrbTiers;
             if (string.IsNullOrEmpty(tierName) || tiers == null) return false;
             for (int i = 0; i < tiers.Count; i++)
                 if (string.Equals(tiers[i], tierName, System.StringComparison.OrdinalIgnoreCase)) return true;
@@ -119,9 +120,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void Spark(float scale)
         {
-            if (settings == null) return;
+            if (Rules == null) return;
             SparkleVfx.SpawnBurst(transform.position, transform.up,
-                                  settings.armedTellColor, 4f * scale, (int)(10f * scale));
+                                  Rules.armedTellColor, 4f * scale, (int)(10f * scale));
         }
     }
 }

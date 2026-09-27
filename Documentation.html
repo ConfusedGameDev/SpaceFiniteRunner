@@ -199,10 +199,10 @@
   <div class="facts">
     <span>Unity <b>6000.7.0a3</b> · URP 17.7</span>
     <span>Branch <b class="mono">refactor/single-source-tuning</b></span>
-    <span>Refactor <b>4 of 12 steps</b> done</span>
+    <span>Refactor <b>5 of 12 steps</b> done</span>
   </div>
   <div class="legend" aria-label="Change markers">
-    <span><span class="tag done">Changed · Step 3</span> already changed on the branch</span>
+    <span><span class="tag done">Changed · Step 4</span> already changed on the branch</span>
     <span><span class="tag plan">Step 3</span> planned, with the step that does it</span>
     <span><span class="tag drift">Shipped ≠ authored</span> the value that runs is not the value in the inspector</span>
     <span><span class="tag retired">Retired</span> kept in code, no longer used</span>
@@ -316,16 +316,16 @@ flowchart BT
   <p>One row per asset. The last column shows what the refactor has done or will do to it.</p>
   <div class="scroll"><table class="wide">
     <tr><th>Tune</th><th>Asset</th><th>Key knobs (shipped)</th><th>Status</th></tr>
-    <tr><td>Run rules</td><td><code>FiniteRunner_GameSettings</code></td><td class="num">time limit 180 s · track 48 km · 10 lives · laser −10 % speed · QTE window 0.15 s</td><td><span class="tag done">Changed · Step 3</span> the ship's dash / fall / respawn rules and the patrol redeploy moved out · <span class="tag plan">Step 4</span> split into <code>RunRules</code>, <code>DuelSettings</code>, <code>CameraFeedbackSettings</code></td></tr>
+    <tr><td>Run rules</td><td><code>FiniteRunner_GameSettings</code></td><td class="num">time limit 180 s · track 48 km · 10 lives · laser −10 % speed · QTE window 0.15 s</td><td><span class="tag done">Changed · Steps 3–4</span> the ship's rules, the patrol redeploy, the duel's rules and the filter asset slots moved out; what is left is the run: timer, lives, hull, win and lose, feedback</td></tr>
     <tr><td>Ship stats</td><td><code>Fighter_ShipDefinition</code></td><td class="num">cruise 1000 m/s · brake 3.94 · lateral 29.71 · grip 2 · weight 133.3 · hull 300</td><td><span class="tag done">Changed · Step 2</span> live values baked in; Store upgrades apply again</td></tr>
     <tr><td>Ship rules and feel</td><td><code>Runner_ShipSettings</code></td><td class="num">4 m substeps · guide assist 0.18 · dash cost 0.5 · fall 30 m/s² · respawn wait 3 s</td><td><span class="tag done">Changed · Step 3</span> the one home of the dash, ghost, trail, fall and respawn rules (the per-frame copy from GameSettings is deleted) and of the guide assist</td></tr>
-    <tr><td>Patrol and duel</td><td><code>Police_PatrolDefinition</code></td><td class="num">rubber band 0.95 · standoff 45 m · commit every 12 s · catch fuse 1.5 s</td><td><span class="tag done">Changed · Step 2</span> live values baked in · <span class="tag done">Step 3</span> redeploy band and body handling moved here · <span class="tag plan">Step 4</span> duel knobs to <code>DuelSettings</code></td></tr>
+    <tr><td>Patrol and duel</td><td><code>Police_PatrolDefinition</code></td><td class="num">rubber band 0.95 · standoff 45 m · commit every 12 s · catch fuse 1.5 s</td><td><span class="tag done">Changed · Steps 2–4</span> live values baked in; redeploy and body handling moved here; the whole duel (clock, windows, ram cost, armed state, bar and sparks) is its Duel group</td></tr>
     <tr><td>Track layout</td><td><code>FiniteRunner_TrackShape</code> (the one track asset)</td><td class="num">width 120 m · straightness 100 % · max grade 1° · feature table + spacing 1500–3000 m</td><td><span class="tag done">Changed · Step 2</span> width, straightness and the feature table moved here off the scene's <code>TrackGenerator</code></td></tr>
     <tr><td>Features</td><td><code>Jump_Definition</code>, <code>Loop_Definition</code>, <code>FullTube_Definition</code>, <code>LaserGate_Definition</code></td><td class="num">ramp 60 m / 20° · loop radius 100 · lasers cover 20–30 %</td><td>The feature table (now on <code>FiniteRunner_TrackShape</code>) weights Jump 100, Loop 0, Tube 0, so only ramps spawn today.</td></tr>
     <tr><td>Pickups</td><td><code>Spawner_SpeedOrbs</code>, <code>Spawner_RepairOrbs</code>, <code>Spawner_LaserGates</code></td><td class="num">orbs every 513–897 m · green 74 % ×2 / blue 22 % / purple 4 % · lasers every 1200–2400 m</td><td><span class="tag done">Changed · Step 2</span> green ×2 and laser spacing baked in · <span class="tag retired">Spawner_BrakePads</span></td></tr>
     <tr><td>Level</td><td><code>FiniteRunner_LevelDefinition</code></td><td class="num">Light Speed 3423 km/h · reward 500 · ranks S 10k / A 5k / B 2.5k</td><td></td></tr>
     <tr><td>Camera shakes</td><td><code>LandingShake_Settings</code> … <code>ExplosionShake_Settings</code></td><td>one asset per event: landing, wall hit, win banner, laser hit, scrape, explosion</td><td><span class="tag done">Changed · Step 1</span> was one shared asset</td></tr>
-    <tr><td>Screen filters</td><td><code>Runner_VhsTape</code>, <code>Runner_PsxLook</code>, <code>Runner_CrtScreen</code>, <code>Runner_Rain</code></td><td>the runner's own copies</td><td><span class="tag done">Changed · Step 1</span> were shared with the city</td></tr>
+    <tr><td>Screen filters and rain</td><td><code>Runner_VhsTape</code>, <code>Runner_PsxLook</code>, <code>Runner_CrtScreen</code>, <code>Runner_Rain</code>, each on its driver in <code>PF_Filters</code></td><td>the runner's own copies; GameSettings only switches them on or off</td><td><span class="tag done">Changed · Steps 1 + 4</span> split from the city; owner slots removed; the runner's rain is hand-placed</td></tr>
   </table></div>
 
   <div class="note done">
@@ -450,7 +450,7 @@ flowchart LR
     <tr><td>Physics backend</td><td><code>Resources/PoliceEscape_VehiclePhysics</code></td><td>built-in wheels or EVP5, EVP effects</td><td><span class="tag done">Changed · Step 1</span> tooltip no longer says a reload is needed</td></tr>
     <tr><td>City layout (bake)</td><td><code>CityDefinition</code>, <code>CityTestSettings</code>, <code>BlockSettings</code>, <code>DistrictDefinition</code></td><td>grid, seed, arterials, features, water, stream distances</td><td>A change needs a rebake. <span class="tag plan">Step 9</span> cell size read from the bake, not the live asset</td></tr>
     <tr><td>HUD and camera</td><td><code>TestSpeedometerSettings</code>, <code>TestMinimapSettings</code>, <code>TestCityMapSettings</code>, <code>TestOrbitCameraSettings</code></td><td>gauge, radar, map, framing, speed FOV</td><td></td></tr>
-    <tr><td>Screen filters</td><td><code>Resources/FiniteRunner_VhsTape</code>, <code>_PsxLook</code>, <code>_CrtScreen</code>, <code>_Rain</code></td><td>now the city's own; the runner has copies</td><td><span class="tag done">Changed · Step 1</span></td></tr>
+    <tr><td>Screen filters</td><td><code>Resources/FiniteRunner_VhsTape</code>, <code>_PsxLook</code>, <code>_CrtScreen</code>, <code>_Rain</code>, on the scene's drivers</td><td>the city's own; <code>CityManager</code> only switches them on or off</td><td><span class="tag done">Changed · Steps 1 + 4</span></td></tr>
   </table></div>
 
   <div class="note done">
@@ -523,7 +523,7 @@ flowchart LR
       <dl><dt>Status</dt><dd><span class="tag done">Changed · Step 1</span> runner shakes split per event · <span class="tag plan">Step 10</span> far clip injected instead of read from fog</dd></dl></div>
     <div class="sys"><h4>Screen FX <span class="tag game shared">FX asm</span></h4>
       <p>Hand-placed drivers write shared materials: <code>DistanceFog</code>, <code>SpeedLines</code> (runner), <code>VhsTape</code>, <code>PsxLook</code>, <code>CrtScreen</code>, <code>RainSystem</code>, <code>GlitchController</code>.</p>
-      <dl><dt>Status</dt><dd><span class="tag done">Changed · Step 1</span> per-game assets · <span class="tag plan">Step 4</span> one settings slot per driver · <span class="tag plan">Step 8</span> glitch request API</dd></dl></div>
+      <dl><dt>Status</dt><dd><span class="tag done">Changed · Steps 1 + 4</span> per-game assets, each owned by its driver alone · <span class="tag plan">Step 8</span> glitch request API</dd></dl></div>
     <div class="sys"><h4>Audio</h4>
       <p>One mixer: Master → Gameplay → Music / FX / Voice, plus UI, pause and loading buses. <code>GameAudio</code> snapshots duck for pause, loading and cinemas. Player volumes use separate exposed parameters.</p></div>
     <div class="sys"><h4>Haptics, cheats, save data</h4>
@@ -547,8 +547,8 @@ flowchart LR
     <li class="is-done"><span class="st">Step 1<br/>done</span><div><b>Live bugs and shared-asset splits</b><span class="d">Car debug sliders, per-event shakes, per-game filter assets, stale default and tooltip. Commit <code>4aeb096</code>.</span></div></li>
     <li class="is-done"><span class="st">Step 2<br/>done</span><div><b>Bake the debug overrides into the definitions</b><span class="d">The values that ran became the authored values; the four debug mirror assets are deleted; every runner debug row writes the asset and refreshes the clone; the track's layout knobs moved onto the shape asset.</span></div></li>
     <li class="is-done"><span class="st">Step 3<br/>done</span><div><b>Remove runtime copies</b><span class="d">The per-frame GameSettings → ShipSettings sync is deleted; hover height, guide assist, patrol handling and redeploy each have one owner; fallback literals point at class defaults; the ship prefab holds one definition reference.</span></div></li>
-    <li class="is-next"><span class="st">Step 4<br/>next</span><div><b>Split GameSettings</b><span class="d">Into run rules, duel settings, camera feedback; FX settings move onto their drivers.</span></div></li>
-    <li><span class="st">Step 5</span><div><b>Contracts assembly and composition root</b><span class="d">Interfaces below every game assembly; old paths keep working.</span></div></li>
+    <li class="is-done"><span class="st">Step 4<br/>done</span><div><b>Take the other systems' knobs off GameSettings</b><span class="d">The duel's run-wide rules joined the patrol's Duel group; the filter and rain slots were removed so each driver owns its asset; the runner's rain is hand-placed. The planned DuelSettings and CameraFeedbackSettings wrappers and the RunRules rename were dropped as churn without a tuning gain.</span></div></li>
+    <li class="is-next"><span class="st">Step 5<br/>next</span><div><b>Contracts assembly and composition root</b><span class="d">Interfaces below every game assembly; old paths keep working.</span></div></li>
     <li><span class="st">Step 6</span><div><b>Track stops knowing the ship</b><span class="d">Stream focus, run config and speed model handed in.</span></div></li>
     <li><span class="st">Step 7</span><div><b>Patrol stops reaching into the ship</b><span class="d">Chase target and control takeover interfaces; full duel check.</span></div></li>
     <li><span class="st">Step 8</span><div><b>Split GameManager</b><span class="d">Installer, run controller, feedback responders; haptic profiles; glitch requests.</span></div></li>
@@ -586,6 +586,8 @@ flowchart LR
     <tr data-g="runner"><td>3</td><td><span class="tag game runner">Runner</span></td><td><code>PatrolDefinition</code> (redeploy, slide, wall cooldown)</td><td>Redeploy on GameSettings; slide 4, loss 0.1, cooldown 0.5 hardcoded in <code>PolicePatrol</code></td><td>Fields on the patrol's definition</td><td>none</td></tr>
     <tr data-g="runner"><td>3</td><td><span class="tag game runner">Runner</span></td><td><code>GameSettings.Default</code>, <code>ShipSettings.Default</code></td><td>Literal fallbacks (30, 120, 15, 1200, 10, 8) repeating asset defaults</td><td>Fallbacks read the class defaults</td><td>none</td></tr>
     <tr data-g="runner"><td>3</td><td><span class="tag game runner">Runner</span></td><td><code>ShipMotor.definition</code>, <code>TuningScreen.baseDefinition</code></td><td>Three serialized references to one definition</td><td>One, on <code>HoverShip</code></td><td>none</td></tr>
+    <tr data-g="runner"><td>4</td><td><span class="tag game runner">Runner</span></td><td><code>GameSettings</code> → <code>Police_PatrolDefinition</code> (Duel group)</td><td>15 duel knobs on GameSettings, the rest of the duel on the patrol</td><td>The whole duel on the patrol's definition; <code>ShipArmed</code>, <code>DuelSlowMo</code>, <code>DuelBarHud</code> read it; debug rows mirror onto its clone</td><td>none (dump-verified)</td></tr>
+    <tr data-g="shared"><td>4</td><td><span class="tag game shared">Shared</span></td><td><code>GameSettings</code> / <code>CityManager</code> filter slots; <code>PF_Filters</code> RainSystem</td><td>Filter assets resolved through owner override slots; the runner's rain spawned at runtime and fed through a slot</td><td>Each driver owns its asset; owners pass only on/off; the runner's rain is hand-placed with <code>Runner_Rain</code></td><td>none</td></tr>
   </table></div>
 
   <h3 id="changes-register">Duplication register</h3>
@@ -608,14 +610,14 @@ flowchart LR
     <tr data-g="runner fixed"><td>D5</td><td><span class="tag game runner">Runner</span></td><td>Hover height</td><td>Definition → <code>visualLift</code> + collider sink</td><td><code>ShipDefinition</code></td><td><span class="tag done">Fixed · Step 3</span></td></tr>
     <tr data-g="runner fixed"><td>D6</td><td><span class="tag game runner">Runner</span></td><td>Guide assist</td><td><code>ShipSettings</code> × <code>TrackGuide</code></td><td><code>ShipSettings</code></td><td><span class="tag done">Fixed · Step 3</span></td></tr>
     <tr data-g="runner fixed"><td>D7</td><td><span class="tag game runner">Runner</span></td><td>Patrol handling</td><td>Repeats ship handling; 3 hardcoded values</td><td><code>PatrolDefinition</code></td><td><span class="tag done">Fixed · Step 3</span></td></tr>
-    <tr data-g="runner open"><td>D8</td><td><span class="tag game runner">Runner</span></td><td>Duel knobs</td><td>Split between <code>GameSettings</code> and <code>PatrolDefinition</code></td><td><code>DuelSettings</code></td><td><span class="tag plan">Step 4</span></td></tr>
+    <tr data-g="runner fixed"><td>D8</td><td><span class="tag game runner">Runner</span></td><td>Duel knobs</td><td><code>PatrolDefinition</code> Duel group only</td><td><code>PatrolDefinition</code></td><td><span class="tag done">Fixed · Step 4</span> on <code>PatrolDefinition</code></td></tr>
     <tr data-g="runner fixed"><td>D9</td><td><span class="tag game runner">Runner</span></td><td>Patrol redeploy</td><td>Band on <code>GameSettings</code>, gap on the patrol</td><td><code>PatrolDefinition</code></td><td><span class="tag done">Fixed · Step 3</span></td></tr>
     <tr data-g="runner fixed"><td>D10</td><td><span class="tag game runner">Runner</span></td><td>Hardcoded fallbacks</td><td>Fall gravity, boost, run-up, ramp gap, autopilot reach 6 vs 10</td><td>Asset defaults</td><td><span class="tag done">Fixed · Step 3</span></td></tr>
     <tr data-g="runner open"><td>D11</td><td><span class="tag game runner">Runner</span></td><td>Speed model</td><td>Re-implemented in <code>TrackGenerator.LoopReachable</code></td><td>Injected speed model</td><td><span class="tag plan">Step 6</span></td></tr>
     <tr data-g="runner fixed"><td>D12</td><td><span class="tag game runner">Runner</span></td><td>Ship definition refs</td><td><code>ShipMotor</code>, <code>HoverShip</code>, <code>TuningScreen</code></td><td>One loadout ref</td><td><span class="tag done">Fixed · Step 3</span></td></tr>
-    <tr data-g="runner fixed"><td>D13</td><td><span class="tag game runner">Runner</span></td><td>Camera shakes</td><td>One asset per event</td><td>Per-event assets</td><td><span class="tag done">Fixed · Step 1</span> <span class="tag plan">Step 4</span> move to <code>CameraFeedbackSettings</code></td></tr>
+    <tr data-g="runner fixed"><td>D13</td><td><span class="tag game runner">Runner</span></td><td>Camera shakes</td><td>One asset per event</td><td>Per-event assets</td><td><span class="tag done">Fixed · Step 1</span></td></tr>
     <tr data-g="shared open"><td>D14</td><td><span class="tag game shared">Shared</span></td><td>Orbit camera settings</td><td>Held in 4–5 places</td><td>Passed by the installer</td><td><span class="tag plan">Step 9</span></td></tr>
-    <tr data-g="shared fixed"><td>D15</td><td><span class="tag game shared">Shared</span></td><td>Filter settings</td><td>Per-game assets now; still resolved in 3 layers</td><td>One asset per game, on the driver</td><td><span class="tag done">Partly · Step 1</span> <span class="tag plan">Step 4</span></td></tr>
+    <tr data-g="shared fixed"><td>D15</td><td><span class="tag game shared">Shared</span></td><td>Filter settings</td><td>Per-game assets now; still resolved in 3 layers</td><td>One asset per game, on the driver</td><td><span class="tag done">Fixed · Steps 1 + 4</span></td></tr>
     <tr data-g="shared open"><td>D16</td><td><span class="tag game shared">Shared</span></td><td>Fog</td><td>Fog asset + rain atmosphere + far clip</td><td><code>DistanceFogSettings</code></td><td><span class="tag plan">Step 10</span></td></tr>
     <tr data-g="shared open"><td>D17</td><td><span class="tag game shared">Shared</span></td><td>Glitch base intensity</td><td>Written by several owners; city health</td><td>Glitch request API</td><td><span class="tag plan">Step 8</span></td></tr>
     <tr data-g="shared open"><td>D18</td><td><span class="tag game shared">Shared</span></td><td>Haptic pulses</td><td>~30 literals in code</td><td><code>HapticsProfile</code></td><td><span class="tag plan">Step 8</span></td></tr>
@@ -628,7 +630,7 @@ flowchart LR
     <tr data-g="city open"><td>D25</td><td><span class="tag game city">City</span></td><td>Splash and blast damage</td><td>Baked copy, const, runtime field, two blast blocks</td><td><code>BlastProfile</code></td><td><span class="tag plan">Step 9</span></td></tr>
     <tr data-g="city open"><td>D26</td><td><span class="tag game city">City</span></td><td>Cell size</td><td>Live asset vs bake vs 20 m fallback ×4</td><td>Baked <code>CityRoot</code></td><td><span class="tag plan">Step 9</span></td></tr>
     <tr data-g="city open"><td>D27</td><td><span class="tag game city">City</span></td><td>Patrol despawn formula</td><td><code>PatrolManager</code> + <code>CityStreamer</code></td><td>One helper</td><td><span class="tag plan">Step 9</span></td></tr>
-    <tr data-g="city fixed"><td>D28</td><td><span class="tag game city">City</span></td><td>Live pushes and stale tooltip</td><td>Tooltip fixed; FX pushes from <code>CityManager</code> remain</td><td>Removed</td><td><span class="tag done">Partly · Step 1</span> <span class="tag plan">Step 4</span></td></tr>
+    <tr data-g="city fixed"><td>D28</td><td><span class="tag game city">City</span></td><td>Live pushes and stale tooltip</td><td>Tooltip fixed; FX pushes from <code>CityManager</code> remain</td><td>Removed</td><td><span class="tag done">Fixed · Steps 1 + 4</span></td></tr>
     <tr data-g="shared open"><td>D29</td><td><span class="tag game shared">Shared</span></td><td>Cheat state</td><td>Static set + dead instance bools</td><td><code>IsActive(id)</code></td><td><span class="tag plan">Step 10</span></td></tr>
     <tr data-g="shared open"><td>D30</td><td><span class="tag game shared">Shared</span></td><td>Glitch fade save and restore</td><td><code>LevelManager</code> + <code>GameManager</code></td><td>Glitch request API</td><td><span class="tag plan">Step 8</span></td></tr>
     <tr data-g="shared open"><td>D31</td><td><span class="tag game shared">Shared</span></td><td>FX debug pages</td><td>6 near-identical pages, flushed 3×</td><td>One generic page</td><td><span class="tag plan">Step 10</span></td></tr>
@@ -653,7 +655,7 @@ flowchart LR
 </main>
 
 <footer class="wrap">
-  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 3, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
+  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 4, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
 </footer>
 
 <script>

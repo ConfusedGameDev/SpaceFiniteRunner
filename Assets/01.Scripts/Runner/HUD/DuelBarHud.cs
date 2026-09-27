@@ -41,7 +41,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         PolicePatrol patrol;
         ShipMotor motor;
-        GameSettings settings;
+        PatrolDefinition Rules => patrol != null ? patrol.Definition : null; // the duel's rules and look: the patrol's live definition
         MenuTheme theme;
         ControlGlyphSet glyphs;
 
@@ -68,14 +68,13 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         /// Spawns the bar under its own overlay canvas. Null patrol or a
         /// disabled duel simply means no bar — the caller need not check.
         /// </summary>
-        public static DuelBarHud Spawn(ShipMotor motor, PolicePatrol patrol, GameSettings settings)
+        public static DuelBarHud Spawn(ShipMotor motor, PolicePatrol patrol)
         {
-            if (motor == null || patrol == null || settings == null || !settings.patrolDuelEnabled) return null;
+            if (motor == null || patrol == null || patrol.Definition == null || !patrol.Definition.duelEnabled) return null;
             var go = new GameObject("DuelBarHud");
             var hud = go.AddComponent<DuelBarHud>();
             hud.motor = motor;
             hud.patrol = patrol;
-            hud.settings = settings;
             hud.Build();
             return hud;
         }
@@ -113,7 +112,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             fill.pivot = new Vector2(0.5f, 0.5f);
             fill.sizeDelta = new Vector2(0f, BarHeight);
             fillImage = fillGo.AddComponent<Image>();
-            fillImage.color = settings.duelBarColor;
+            fillImage.color = Rules.duelBarColor;
             fillImage.raycastTarget = false;
 
             glyphImage = MenuScreen.MakeImage("Glyph", rect, Vector2.zero, new Vector2(GlyphSize, GlyphSize),
@@ -174,15 +173,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void Update()
         {
-            if (patrol == null || motor == null || settings == null) return;
+            if (patrol == null || motor == null || Rules == null) return;
 
-            bool debug = settings.duelDebugReadout && !motor.Paused;
+            bool debug = Rules.duelDebugReadout && !motor.Paused;
             if (readout.enabled != debug) readout.enabled = debug;
             if (debug) readout.text = patrol.EncounterDebug();
 
             UpdateFinisher();
 
-            bool visible = patrol.InTugOfWar && !motor.Paused && settings.patrolDuelEnabled;
+            bool visible = patrol.InTugOfWar && !motor.Paused && Rules.duelEnabled;
             group.alpha = visible ? 1f : 0f;
             if (!visible)
             {
@@ -211,7 +210,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         void UpdateFinisher()
         {
             bool show = patrol.EncounterState == PatrolEncounterState.Finisher
-                        && !motor.Paused && settings.patrolDuelEnabled;
+                        && !motor.Paused && Rules.duelEnabled;
             if (!show)
             {
                 if (finisherGroup.alpha != 0f) finisherGroup.alpha = 0f;

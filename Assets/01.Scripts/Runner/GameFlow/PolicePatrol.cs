@@ -36,7 +36,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// rendered values (minimap) and the catch is judged on the ticks' own.
     ///
     /// <b>The attack run</b> (<see cref="PatrolEncounter"/>, on
-    /// <see cref="GameSettings.patrolDuelEnabled"/>): on a cadence the patrol
+    /// <see cref="PatrolDefinition.duelEnabled"/>): on a cadence the patrol
     /// overdrives past the ship's speed and pulls onto a flank while the camera
     /// dollies in; alongside, it TAKES THE SHIP'S CONTROLS (the ship flies
     /// itself, autopilot-style, to a lateral the exchange dictates) and the tug
@@ -237,8 +237,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         /// <summary>
         /// The whole duel, on or off. Off restores the old chase exactly,
-        /// proximity arrest included — the GameManager wires this from
-        /// <see cref="GameSettings.patrolDuelEnabled"/>.
+        /// proximity arrest included — set from
+        /// <see cref="PatrolDefinition.duelEnabled"/> at Init.
         /// </summary>
         public bool DuelEnabled
         {
@@ -373,6 +373,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 definition = ScriptableObject.CreateInstance<PatrolDefinition>();
             }
             runtimeDef = Instantiate(definition);
+            DuelEnabled = runtimeDef.duelEnabled;
 
             // The body is this component's own object: its events die with it.
             body = track != null ? new TrackBody(track) : null;
@@ -388,10 +389,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // a kill's teleport and the sparks must be free to die out on their own.
             if (sparks == null)
             {
-                GameSettings rules = target != null ? target.DashSettings : null;
                 sparks = DuelContactSparks.Create(transform, "DuelSparks",
-                                                  rules != null ? rules.duelSparkColor : Color.white,
-                                                  rules != null ? rules.duelSparkScale : 1f);
+                                                  runtimeDef.duelSparkColor, runtimeDef.duelSparkScale);
             }
             Launch();
         }
@@ -548,12 +547,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             Vector3 origin = visual != null ? visual.position : transform.position;
             if (rules != null && rules.explosionTextures != null && rules.explosionTextures.Count > 0)
                 ExplosionVfx.SpawnFireball(origin, rules.explosionTextures,
-                                           rules.explosionScale * rules.patrolExplosionScale,
+                                           rules.explosionScale * runtimeDef.killExplosionScale,
                                            rules.explosionLifetime, rules.explosionParticles);
 
             HapticsSystem.Instance.Pulse(1f, 1f, 0.5f);
             CameraShake.Shake(rules != null ? rules.explosionShake : default);
-            if (rules != null) DuelSlowMo.RequestHitStop(rules.duelHitStopSeconds);
+            DuelSlowMo.RequestHitStop(runtimeDef.duelHitStopSeconds);
             if (spendsDashMeter) target.DrainDashMeter();
             ReleaseControl(); // the player has the ship back the frame the cruiser goes
             target.SteerAssist = 0f;
@@ -749,9 +748,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 var ctx = new PatrolEncounterContext(gap, AcrossToShip(), target.Body.Lateral,
                                                      target.Body.Distance, runtimeDef, track, generator,
                                                      ShipSteady, unscaledStep,
-                                                     rules != null ? rules.duelAssistStrength : 0f,
+                                                     runtimeDef.duelAssistStrength,
                                                      pendingPresses,
-                                                     rules != null ? rules.finisherWindowSeconds : 1f,
+                                                     runtimeDef.finisherWindowSeconds,
                                                      PushScale, target.CurrentSpeed, body.ForwardSpeed,
                                                      armed != null && armed.IsArmed, TierScale,
                                                      target.BrakeInput, shipAccel);
@@ -1001,14 +1000,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             ramCooldown = RamCooldownSeconds;
             ramKickLeft = RamKickSeconds;
 
-            if (rules != null) target.ApplyImpactSpeedLoss(rules.ramSpeedCost);
+            target.ApplyImpactSpeedLoss(runtimeDef.ramSpeedCost);
 
             // Sparks off the cruiser's BACK, where the two actually met — a
             // couple of metres behind its centre, lifted to bumper height.
             track.GetPoseAtDistance(body.Distance, body.Lateral, out Vector3 pose, out Quaternion rotation);
             pose += rotation * (Vector3.up * (body.Height + 1.5f) + Vector3.back * 2.5f);
             SparkleVfx.SpawnBurst(pose, rotation * Vector3.up,
-                                  rules != null ? rules.duelBarColor : Color.white, 6f, 24);
+                                  runtimeDef.duelBarColor, 6f, 24);
 
             HapticsSystem.Instance.Pulse(0.9f, 0.6f, 0.25f);
             if (rules != null) CameraShake.Shake(rules.wallHitShake);
