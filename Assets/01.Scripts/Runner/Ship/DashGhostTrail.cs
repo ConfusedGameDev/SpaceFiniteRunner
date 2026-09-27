@@ -43,7 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (this.motor != null) this.motor.Launched -= ClearGhosts;
             this.motor = motor;
             this.settings = settings;
-            track = motor.Track != null ? motor.Track : FindFirstObjectByType<TrackManager>();
+            track = motor.Track; // the motor holds the track; LateUpdate picks it up if the motor has not bound it yet
             sourceMeshes = motor.Visual != null
                 ? motor.Visual.GetComponentsInChildren<MeshFilter>()
                 : new MeshFilter[0];
@@ -70,6 +70,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         // ship's new distance when the ghosts under it are rendered.
         void LateUpdate()
         {
+            if (track == null && motor != null) track = motor.Track;
             if (motor == null || track == null || frame == null) return;
 
             // The frame: the flight line at the ship's distance, lateral 0.

@@ -145,6 +145,10 @@ Hand-placed beside the manager in both scenes: the top-right counter on its own 
 sorting 10 (the city gauges' recipe), one legacy-font `$1,234` label (`StatFormat.Money`) that
 counts up toward `RunMoney` with a scale punch per pickup and hides under
 `RpgMessageSystem.HudSuppressed`. The Store uses it with a `ValueSource` for the wallet instead.
+It reads the manager through `CollectibleManager.Current` — the quiet lookup: with no manager it
+shows $0 and says nothing. `CollectibleManager.Instance` keeps its "the scene has no
+CollectibleManager" error for the systems that RECORD pickups (refactor Step 11: the HUD alone in its
+sandbox scene logged it).
 
 `Tools → FiniteRunner → Place Scene Systems` (`RunnerSceneSystemsPlacer`) and the city's
 `SceneSystemsPlacer` place both objects when missing.

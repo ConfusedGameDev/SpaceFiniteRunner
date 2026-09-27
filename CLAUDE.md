@@ -21,7 +21,8 @@ city level + a runner level); the Store's START MISSION always plays the first u
 the main menu's MISSIONS map replays cleared ones. See `campaign.md`.
 
 There is no CLI build or test tooling — all iteration happens through the Unity Editor.
-Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainMenu`, `Store`.
+Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainMenu`, `Store`, plus one
+`05.Scenes/Sandboxes/Sandbox_<System>` per system (see "Systems stay independent").
 
 ## Runner game design
 
@@ -118,7 +119,7 @@ runner's rules on top. See `ship-standalone.md`.
 | `Assets/02.Art/` | models, materials, shaders, particles |
 | `Assets/03.Prefabs/PoliceEscape/` | city + vehicle prefabs, `City.prefab` |
 | `Assets/04.Data/` | ScriptableObjects; city assets under `InfiniteCity/`, Resources-loaded ones under `Resources/` |
-| `Assets/05.Scenes/` | `CarTest`, `CityTest`, `FiniteRunner_Test`, `MainMenu`, `Store` |
+| `Assets/05.Scenes/` | `CarTest`, `CityTest`, `FiniteRunner_Test`, `MainMenu`, `Store`; `Sandboxes/` (one per system) |
 | `Assets/07.Audio/` | music, UI and SFX clips |
 | `Assets/00.Plugins/EVP5/` | Edy's Vehicle Physics 5 (own `EVP5` asmdef) |
 | `Assets/Plugins/Sirenix/` | Odin Inspector |
@@ -175,6 +176,15 @@ These hold everywhere. Break one and something else quietly stops working.
   (`TrackGuide`); `ShipMotor` in physics mode mirrors the ship back into track coordinates for
   everything that reads them. Laser gates stay analytic (no colliders).
 - **Distance from the track start is the authoritative coordinate**, not spline `t`.
+- **Systems stay independent** — any single system dropped into an empty scene must boot and idle,
+  hide or fall back, never throw. Systems reach each other through `Contracts` interfaces, `Bind`
+  calls from a composition root (`GameManager`, `LevelManager`), registries (`PlayerCars`,
+  `DebugPages`) or events — not by searching the scene for another system's type. **Tools → Refactor
+  → Validate System Independence** flags every cross-system `Find*Object*<T>` that is not on its
+  reasoned accept list (`Runner/Editor/SystemIndependenceValidator.cs`); **Build System Sandboxes**
+  and **Run Sandbox Smoke Test** (`SystemSandboxes.cs`) play each system alone and report errors to
+  `Temp/SandboxSmoke.txt`. A new system gets a sandbox entry; a new cross-system search gets a
+  contract or a reason.
 
 ## Conventions
 
@@ -226,15 +236,3 @@ Loaded automatically by path. Listed here so you know what exists.
 | `save-data.md` | `PlayerProfile`, `PlayerStats`, the LOG screen |
 | `cheats.md` | Cheat codes and the cheats page |
 | `debug-visualizers.md` | `DebugManager`, road graph and AI overlays |
-
-## Known drift
-
-Resolve these against the code when you next touch them:
-
-- The old doc claimed core runner scripts live in `Assets/99.Test/Jorge/FiniteRunner/Scripts/`
-  and the test scene at `Assets/99.Test/Jorge/FiniteRunner/Scenes/FiniteRunner_Test.unity`, while
-  also stating `Assets/99.Test/` holds no code and scenes live in `Assets/05.Scenes/`. This file
-  assumes `Assets/01.Scripts/` and `Assets/05.Scenes/`. Confirm, and correct the rule files if the
-  scripts actually sit elsewhere.
-- The old doc stated the win condition twice, once as the `RunnerLevelDefinition` objectives and
-  once as "speed reaches `lightSpeedKmh`". The objectives version is treated as current here.

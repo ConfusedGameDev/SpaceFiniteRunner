@@ -199,10 +199,10 @@
   <div class="facts">
     <span>Unity <b>6000.7.0a3</b> · URP 17.7</span>
     <span>Branch <b class="mono">refactor/single-source-tuning</b></span>
-    <span>Refactor <b>11 of 12 steps</b> done</span>
+    <span>Refactor <b>12 of 12 steps</b> done</span>
   </div>
   <div class="legend" aria-label="Change markers">
-    <span><span class="tag done">Changed · Step 10.3</span> already changed on the branch</span>
+    <span><span class="tag done">Changed · Step 11</span> already changed on the branch</span>
     <span><span class="tag plan">Step 3</span> planned, with the step that does it</span>
     <span><span class="tag drift">Shipped ≠ authored</span> the value that runs is not the value in the inspector</span>
     <span><span class="tag retired">Retired</span> kept in code, no longer used</span>
@@ -558,9 +558,11 @@ flowchart LR
     <li class="is-done"><span class="st">Step 8<br/>done</span><div><b>Split GameManager</b><span class="d">8.1 glitch holds · 8.2 rumbles on the settings assets · 8.3 hand-placed ship components · 8.4 HUD on a run-state interface · 8.5 <code>RunFeedback</code> + <code>RunCameraDirector</code> split out of the rules.</span></div></li>
     <li class="is-done"><span class="st">Step 9<br/>done</span><div><b>City</b><span class="d">9.1 player registry <b>done</b> · 9.2 player health meter off the glitch, one impact floor, city rumbles on the asset <b>done</b> · 9.3 one home per city value (blast, splash, cell size, despawn reach) <b>done</b> · 9.4 each system owns its references (police, traffic, spawner, camera, HUD) <b>done</b> · 9.5 EVP suspension and centre of mass into CarConfig + a shared AI driving profile <b>done</b>.</span></div></li>
     <li class="is-done"><span class="st">Step 10<br/>done</span><div><b>Shared assemblies</b><span class="d">10.1 debug page registry + one generic settings page + one flush <b>done</b> · 10.2 cheat state, the last literal rumbles, debug statics <b>done</b> · 10.3 the camera rig owns its settings; the fog far-clip per scene <b>done</b>.</span></div></li>
-    <li class="is-next"><span class="st">Step 11<br/>next</span><div><b>Independence proof and docs</b><span class="d">One sandbox scene per system, a validator against cross-system lookups, rule files updated.</span></div></li>
+    <li class="is-done"><span class="st">Step 11<br/>done</span><div><b>Independence proof and docs</b><span class="d">The independence checker (43 cross-system searches, every one accepted with a written reason, a new one fails) and 32 sandbox scenes, one per system, each played alone by a smoke test: <b>32 / 32 pass</b>. CLAUDE.md gains the "systems stay independent" invariant; the known-drift notes are resolved.</span></div></li>
   </ol>
 
+  <h3 id="independence">Independence proof</h3>
+  <p>Two tools under <b>Tools → Refactor</b> keep the third goal honest. <b>Validate System Independence</b> scans the game code for a scene search (<code>Find…Object…&lt;T&gt;</code>) whose type belongs to another system. Today there are 43, every one accepted with a reason: composition roots that wire their scene (<code>LevelManager</code>, <code>PauseMenu</code>), debug tools, the city's road network and level flow looked up by the systems that idle without them, the player's health meter, documented fallbacks, and the runner's ship adapter binding the ship to the track. A new one fails the check. <b>Build System Sandboxes</b> writes one scene per system under <code>05.Scenes/Sandboxes/</code> holding that system alone; <b>Run Sandbox Smoke Test</b> plays each for 4 s and reports errors. <b>All 32 pass.</b> The composition roots (<code>GameManager</code>, <code>LevelManager</code>) and the runner's <code>ShipMotor</code> have no sandbox: wiring the others is their job, so alone they have nothing to do.</p>
   <h3 id="changes-log">Change log</h3>
   <div class="filters" data-for="log" role="group" aria-label="Filter the change log">
     <button type="button" data-f="all" aria-pressed="true">All</button>
@@ -611,6 +613,7 @@ flowchart LR
     <tr data-g="shared"><td>10.1</td><td><span class="tag game shared">Shared</span></td><td><code>UI/DebugPages.cs</code> (new: <code>DebugPages</code>, <code>SettingsDebugPage&lt;T&gt;</code>), the six FX pages, <code>PauseMenu</code>, <code>CityDebugMenuFactory</code>, <code>DebugMenuHooks</code></td><td>Six FX pages each carried a copy of the row helper and of the touched / SetDirty / Flush persistence (a seventh in the city factory); the pause menu named every FX page to discover, count, build and flush it, three times over</td><td>Each system registers one provider; FX pages are a row list on the generic page; every page marks through <code>DebugAssetEdits</code>; the menu flushes once and names no system</td><td>none (CarTest builds the same 14 tabs, the runner the same 17; no errors)</td></tr>
     <tr data-g="shared"><td>10.2</td><td><span class="tag game shared">Shared</span></td><td><code>CheatManager</code>, <code>PlayerScaleController</code>, <code>CheatManager.prefab</code>, <code>CheatDefinition</code> / <code>CheatConsole</code>, <code>MenuTheme</code> + 7 menu screens, <code>PatrolDefinition</code> / <code>DuelBarHud</code>, <code>DebugManager</code></td><td>MegaCar read an instance bool set only through a prefab UnityEvent whose target type had gone stale; a scene's duplicate manager discarding itself wiped every unlock; no statics reset at play entry; the cheat burst, the menu cursor tick (9 copies), the rank slam and the duel bar's rumble were literals; <code>DebugManager</code> kept last session's instance and visualizers</td><td>One static cheat set, read by <code>IsActive</code>; only the session's manager clears it; statics reset; rumbles are values on their assets; the debug statics reset</td><td>A MegaCar code pushed in play unlocks and survives a duplicate manager discarding itself (it used to be wiped); no errors</td></tr>
     <tr data-g="shared"><td>10.3</td><td><span class="tag game shared">Shared</span></td><td><code>CameraRigInstaller</code>, <code>RunCameraDirector</code>, <code>GameSettings</code> (+ asset), <code>DebugMenuFactory</code> / <code>CityDebugMenuFactory</code> (<code>AddCameraStat</code> → <code>SettingsDebugPage.AddSlider</code>), <code>DistanceFog</code>, <code>OrbitCameraRig</code></td><td><code>Attach</code> overwrote the placed rig's asset with the caller's copy (<code>GameSettings.cameraSettings</code> duplicated the runner rig's own); the rig clamped its far clip to the global fog <code>Instance</code>, which can be the other scene's during the handoff; <code>AddCameraStat</code> written twice</td><td>A placed rig's own asset always wins; the runner attaches with none; the far clip follows the rig's own scene's fog (<code>DistanceFog.For</code>); one asset-slider helper</td><td>none (runner: Fighter settings, far clip 1800; CarTest: Test settings, far clip 630; no errors)</td></tr>
+    <tr data-g="shared"><td>11</td><td><span class="tag game shared">Shared</span></td><td><code>Runner/Editor/SystemIndependenceValidator.cs</code>, <code>Runner/Editor/SystemSandboxes.cs</code> (new), <code>05.Scenes/Sandboxes/</code> (32 scenes), <code>DashGhostTrail</code>, <code>CollectibleManager</code> / <code>MoneyHud</code>, <code>CLAUDE.md</code></td><td>Nothing proved a system could stand alone, and nothing stopped a new hidden dependency; the ghost trail searched for the track the motor already holds; the money HUD alone logged the manager's missing error</td><td>A checker for cross-system scene searches with a reasoned accept list; one sandbox scene per system and a smoke test playing each alone; the trail reads the motor's track; readers use a quiet lookup</td><td><b>32 / 32 sandboxes pass</b> (one failed on the first run — the money HUD — and was fixed); the checker reports 43 accepted, 0 new</td></tr>
   </table></div>
 
   <h3 id="changes-register">Duplication register</h3>
@@ -678,7 +681,7 @@ flowchart LR
 </main>
 
 <footer class="wrap">
-  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 10.3, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
+  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 11, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
 </footer>
 
 <script>

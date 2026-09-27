@@ -98,7 +98,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             }
             else if (Application.isPlaying)
             {
-                CollectibleManager manager = CollectibleManager.Instance;
+                CollectibleManager manager = CollectibleManager.Current; // $0 without one, no complaint
                 if (manager != null) target = manager.RunMoney;
             }
 

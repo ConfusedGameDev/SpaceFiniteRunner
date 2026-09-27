@@ -52,6 +52,16 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
             }
         }
 
+        /// <summary>
+        /// The scene's manager WITHOUT the missing-manager error — for readers
+        /// that just show nothing without one (the money HUD shows $0). A
+        /// system that records pickups uses <see cref="Instance"/>, which says
+        /// so when the scene forgot to place one. (Refactor Step 11: the HUD
+        /// alone in a sandbox scene logged that error.)
+        /// </summary>
+        public static CollectibleManager Current =>
+            instance != null ? instance : instance = FindAnyObjectByType<CollectibleManager>(FindObjectsInactive.Include);
+
         /// <summary>Dollars picked up this run (since the scene loaded or the last <see cref="ResetRun"/>).</summary>
         public int RunMoney { get; private set; }
 
