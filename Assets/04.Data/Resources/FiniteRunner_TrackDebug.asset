@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   applyOnLoad: 1
   trackWidth: 120
-  straightness: 100
+  straightness: 70
   entries:
   - name: Green
-    probability: 58
+    probability: 57.358974
     multiplier: 2.0000002
   - name: Blue
-    probability: 17
+    probability: 36.244865
     multiplier: 2.5
   - name: Purple
-    probability: 3
+    probability: 6.3961544
     multiplier: 10
   elevationEnabled: 1
   elevationBand: 60
@@ -35,9 +35,13 @@ MonoBehaviour:
   bankPerDegreeOfTurn: 8
   maxBankStepPerKnot: 45
   levelLeadDistance: 200
-  unbankedSweepChance: 0.3
-  openStraightChance: 1
-  trackLength: 48000
+  unbankedSweepChance: 0.45
+  openStraightChance: 0.9
+  trackLength: 33000
   densities:
   - name: Laser Gates
+    density: 2.75
+  - name: Speed Orbs
+    density: 3.75
+  - name: Repair Orbs
     density: 0.5

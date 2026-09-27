@@ -55,12 +55,12 @@ Material:
     m_Floats:
     - _AlphaClip: 0
     - _AlphaToMask: 0
-    - _Blend: 0
+    - _Blend: 2.47
     - _CastShadows: 1
-    - _ColorPower: 0.52
+    - _ColorPower: 0.71
     - _Cull: 0
-    - _DstBlend: 10
-    - _DstBlendAlpha: 10
+    - _DstBlend: 1
+    - _DstBlendAlpha: 1
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ScreenSpaceReflectionsContributeTransparent: 1
@@ -71,7 +71,7 @@ Material:
     - _ZTest: 4
     - _ZWrite: 0
     - _ZWriteControl: 0
-    - _fresnelPower: -0.73
+    - _fresnelPower: -3.66
     m_Colors:
     - _ScanLinesSpeed: {r: 0, g: 0.1, b: 0, a: 0}
     - _ScanLinesTiling: {r: 0, g: 37.48, b: 0, a: 0}
