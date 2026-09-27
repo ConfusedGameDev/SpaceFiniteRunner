@@ -40,7 +40,9 @@ city's rig and brain, which the unload then destroyed ("A CinemachineBrain is re
 scene"). The rig remembers that camera as its `outputCamera` for the authored far clip and the
 brain's default blend.
 
-The city calls it from `CarFactory.Spawn`, the runner from `RunCameraDirector.Bind` (called by `GameManager.Awake`) with
+The city calls it from `CarFactory.Spawn` with NO settings — the scene rig keeps its own asset
+(`TestOrbitCameraSettings` in `CarTest`; refactor Step 9.4 removed the spawner's and the
+`CityManager`'s copies) — the runner from `RunCameraDirector.Bind` (called by `GameManager.Awake`) with
 `GameSettings.cameraSettings` (`Data/Fighter_CameraSettings.asset`; empty = the scene keeps its
 camera). `CameraRigInstaller.Warp` is what `CarFactory.Teleport` tells about a teleport.
 

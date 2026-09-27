@@ -14,7 +14,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     public static class CarFactory
     {
         /// <summary>Spawn the car on a road cell, facing <paramref name="yaw"/> degrees (0 = +Z), already rolling.</summary>
-        public static CarController Spawn(GameObject carPrefab, OrbitCameraSettings cameraSettings, Vector3 roadCenter, float yaw)
+        public static CarController Spawn(GameObject carPrefab, Vector3 roadCenter, float yaw)
         {
             if (carPrefab == null)
             {
@@ -74,7 +74,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             if (body != null && config != null)
                 body.linearVelocity = rotation * Vector3.forward * (config.spawnSpeedKmh / 3.6f);
 
-            AttachOrbitCamera(car, cameraSettings);
+            AttachOrbitCamera(car);
             return car;
         }
 
@@ -106,9 +106,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         }
 
         /// <summary>Attach the shared chase rig to the car (brain on the main camera, rig found or created).</summary>
-        public static void AttachOrbitCamera(CarController car, OrbitCameraSettings cameraSettings)
+        public static void AttachOrbitCamera(CarController car)
         {
-            if (car != null) CameraRigInstaller.Attach(car, cameraSettings);
+            // The scene's rig keeps its OWN settings asset (refactor Step 9.4):
+            // nothing hands it a second copy to overwrite it with.
+            if (car != null) CameraRigInstaller.Attach(car, null);
         }
     }
 }

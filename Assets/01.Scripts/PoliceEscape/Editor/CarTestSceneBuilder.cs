@@ -105,18 +105,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 city.settings = citySettings;
                 city.cityRoot = cityRoot;
                 city.carPrefab = carPrefab;              // enables the Create Car button
-                city.orbitCameraSettings = cameraSettings;
-                city.policeCarPrefab = policeCarPrefab;  // wired police fields: the PatrolManager is placed below
-                city.pursuitSettings = pursuitSettings;
-                city.minimapSettings = minimapSettings;  // the radar, placed below
-                city.mapSettings = CreateOrLoad<UI.CityMapSettings>(MapSettingsPath); // the M / d-pad Up city map, placed below
-                city.speedometerSettings = speedometerSettings;
-                city.trafficSettings = trafficSettings;  // the TrafficManager, placed below
 
                 // Managers, HUD, chase camera rig and EventSystem go into the
-                // scene now, under ===SYSTEMS===, wired off the manager; play
-                // mode then spawns only what is per run (cars).
-                SceneSystemsPlacer.PlaceMissing(city);
+                // scene now, under ===SYSTEMS===, each wired with its own
+                // asset; play mode then spawns only what is per run (cars).
+                SceneSystemsPlacer.PlaceMissing(city, new CitySystemAssets
+                {
+                    policeCarPrefab = policeCarPrefab,
+                    pursuit = pursuitSettings,
+                    traffic = trafficSettings,
+                    minimap = minimapSettings,
+                    speedometer = speedometerSettings,
+                    map = CreateOrLoad<UI.CityMapSettings>(MapSettingsPath),
+                    camera = cameraSettings,
+                });
             }
             else
             {
@@ -135,7 +137,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             spawnerGo.transform.position = cityCenter;
             var spawner = spawnerGo.AddComponent<PlayerCarSpawner>();
             spawner.carPrefab = carPrefab;
-            spawner.cameraSettings = cameraSettings;
 
             // Objective flow, as data: the level asset lists the steps (by
             // default reach the hack speed, then shake the police) and the

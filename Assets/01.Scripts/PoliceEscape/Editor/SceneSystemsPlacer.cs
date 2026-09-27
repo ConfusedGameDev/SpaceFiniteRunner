@@ -45,6 +45,37 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     /// builders call it after wiring the CityManager; Tools → Police Escape
     /// → Place Scene Systems runs it on the open scene.
     /// </summary>
+    /// <summary>
+    /// The assets the placer wires into the systems it creates. Each placed
+    /// system keeps its own reference from then on — nothing else holds a
+    /// copy (refactor Step 9.4 took the second copies off the CityManager).
+    /// <see cref="LoadDefaults"/> is the project's city test set.
+    /// </summary>
+    public sealed class CitySystemAssets
+    {
+        const string DataFolder = "Assets/04.Data/InfiniteCity";
+        const string PrefabFolder = "Assets/03.Prefabs/PoliceEscape";
+
+        public GameObject policeCarPrefab;
+        public PursuitSettings pursuit;
+        public TrafficSettings traffic;
+        public MinimapSettings minimap;
+        public SpeedometerSettings speedometer;
+        public CityMapSettings map;
+        public OrbitCameraSettings camera;
+
+        public static CitySystemAssets LoadDefaults() => new()
+        {
+            policeCarPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabFolder + "/TestPoliceCar.prefab"),
+            pursuit = AssetDatabase.LoadAssetAtPath<PursuitSettings>(DataFolder + "/TestPursuitSettings.asset"),
+            traffic = AssetDatabase.LoadAssetAtPath<TrafficSettings>(DataFolder + "/TestTrafficSettings.asset"),
+            minimap = AssetDatabase.LoadAssetAtPath<MinimapSettings>(DataFolder + "/TestMinimapSettings.asset"),
+            speedometer = AssetDatabase.LoadAssetAtPath<SpeedometerSettings>(DataFolder + "/TestSpeedometerSettings.asset"),
+            map = AssetDatabase.LoadAssetAtPath<CityMapSettings>(DataFolder + "/TestCityMapSettings.asset"),
+            camera = AssetDatabase.LoadAssetAtPath<OrbitCameraSettings>(DataFolder + "/TestOrbitCameraSettings.asset"),
+        };
+    }
+
     public static class SceneSystemsPlacer
     {
         [MenuItem("Tools/Police Escape/Place Scene Systems")]
@@ -58,10 +89,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             var city = Object.FindAnyObjectByType<CityManager>(FindObjectsInactive.Include);
             if (city == null)
             {
-                Debug.LogWarning("SceneSystemsPlacer: the open scene has no CityManager to read the systems' settings from.");
+                Debug.LogWarning("SceneSystemsPlacer: the open scene has no CityManager (the systems are placed for a city scene).");
                 return;
             }
-            int placed = PlaceMissing(city);
+            int placed = PlaceMissing(city, CitySystemAssets.LoadDefaults());
             if (placed > 0) EditorSceneManager.MarkSceneDirty(city.gameObject.scene);
             Debug.Log($"SceneSystemsPlacer: {placed} object(s) placed in '{city.gameObject.scene.name}' — save the scene to keep them.");
         }
@@ -71,7 +102,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         /// the scene lacks, wired from the manager's own fields. Returns how
         /// many objects were created.
         /// </summary>
-        public static int PlaceMissing(CityManager city)
+        public static int PlaceMissing(CityManager city, CitySystemAssets assets)
         {
             Scene scene = city.gameObject.scene;
             int placed = 0;
@@ -85,26 +116,27 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             SceneHierarchy.Police(scene);
             SceneHierarchy.Traffic(scene);
 
-            if (city.policeCarPrefab != null && city.pursuitSettings != null)
+            // Each system is placed wired with ITS asset — the placed object is
+            // the one home of that reference from then on.
+            if (assets.policeCarPrefab != null && assets.pursuit != null)
                 placed += Place<PatrolManager>("PatrolManager", parent, m =>
                 {
-                    m.settings = city.pursuitSettings;
-                    m.policeCarPrefab = city.policeCarPrefab;
+                    m.settings = assets.pursuit;
+                    m.policeCarPrefab = assets.policeCarPrefab;
                 });
-            if (city.trafficSettings != null)
-                placed += Place<TrafficManager>("TrafficManager", parent, m => m.settings = city.trafficSettings);
-            if (city.minimapSettings != null)
-                placed += Place<Minimap>("Minimap", parent, m => m.settings = city.minimapSettings);
-            if (city.speedometerSettings != null)
-                placed += Place<Speedometer>("Speedometer", parent, s => s.settings = city.speedometerSettings);
-            if (city.mapSettings != null)
-                placed += Place<CityMapScreen>("CityMap", parent, m => m.settings = city.mapSettings);
-            if (city.speedMotionBlur)
-                placed += Place<SpeedMotionBlur>("SpeedMotionBlur", parent, null);
+            if (assets.traffic != null)
+                placed += Place<TrafficManager>("TrafficManager", parent, m => m.settings = assets.traffic);
+            if (assets.minimap != null)
+                placed += Place<Minimap>("Minimap", parent, m => m.settings = assets.minimap);
+            if (assets.speedometer != null)
+                placed += Place<Speedometer>("Speedometer", parent, s => s.settings = assets.speedometer);
+            if (assets.map != null)
+                placed += Place<CityMapScreen>("CityMap", parent, m => m.settings = assets.map);
+            placed += Place<SpeedMotionBlur>("SpeedMotionBlur", parent, null);
 
-            if (city.orbitCameraSettings != null)
+            if (assets.camera != null)
             {
-                placed += Place<OrbitCameraRig>("OrbitCameraRig", parent, r => r.settings = city.orbitCameraSettings);
+                placed += Place<OrbitCameraRig>("OrbitCameraRig", parent, r => r.settings = assets.camera);
                 // The first-person vcam must be the rig's SIBLING (see
                 // OrbitCameraRig.Build); the rig adds its Cinemachine
                 // components when it is first targeted, so an empty object is

@@ -178,14 +178,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         {
             warned = true;
             float reach = 0f;
-            CityManager city = FindAnyObjectByType<CityManager>();
-            if (city != null)
-            {
-                if (city.pursuitSettings != null)
-                    reach = Mathf.Max(reach, city.pursuitSettings.DespawnReach);
-                if (city.trafficSettings != null)
-                    reach = Mathf.Max(reach, city.trafficSettings.DespawnReach);
-            }
+            // The fleets' own settings (each manager owns its asset).
+            var patrols = FindAnyObjectByType<AI.PatrolManager>();
+            if (patrols != null && patrols.settings != null) reach = Mathf.Max(reach, patrols.settings.DespawnReach);
+            var traffic = FindAnyObjectByType<AI.TrafficManager>();
+            if (traffic != null && traffic.settings != null) reach = Mathf.Max(reach, traffic.settings.DespawnReach);
             if (reach > root.streamEnterDistance)
                 Debug.LogWarning($"CityStreamer: streamEnterDistance ({root.streamEnterDistance:0} m) is shorter than the NPC reach ({reach:0} m): " +
                                  "police or traffic can drive on unloaded blocks whose ramp and deck colliders are switched off. Raise it on the City prefab's CityRoot.", this);

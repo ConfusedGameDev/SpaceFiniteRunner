@@ -307,8 +307,18 @@ a nudged header would offset every spawn, wrap and graph lookup under it.
 Both scene builders run the placer, and **Tools → Police Escape → Place Scene Systems** adds
 whatever an open scene is missing (idempotent, creates all the headers when absent).
 
-`CityManager.Awake` keeps its find-or-create fallback for old scenes and counts an *inactive*
-placed system as present — **disabling one is how it is switched off**.
+**Each placed system owns its references — nothing else holds a copy** (refactor Step 9.4). The
+`PatrolManager` owns its `PursuitSettings` and police prefab, the `TrafficManager` its
+`TrafficSettings`, the `PlayerCarSpawner` the player's car prefab, the scene's `OrbitCameraRig` its
+`OrbitCameraSettings` (`CarFactory.Spawn(prefab, pose)` attaches the rig with `null`, so the rig's own
+asset is never overwritten), and each HUD piece its own settings. The `CityManager` used to carry a
+second copy of all of them to spawn a missing system at play; those fields and that fallback are
+gone — it holds only the city (plus the sandbox **Create Car** button's prefab). The placer takes a
+`CitySystemAssets` bundle (`LoadDefaults()` = the project's Test* set, or what a scene builder just
+created) and wires each system it creates with its asset. A scene missing a system simply runs
+without it — run **Place Scene Systems**. An *inactive* placed system counts as present:
+**disabling one is how it is switched off**. `CityStreamer`'s reach check asks the placed fleet
+managers for their settings; the city debug menu reads the `PatrolManager`'s and the rig's.
 
 `OrbitCameraRig.Build` adopts a pre-placed sibling named `OrbitCameraRig.FirstPersonName` (adding
 the Cinemachine components it lacks) and only destroys a first-person object it created itself.

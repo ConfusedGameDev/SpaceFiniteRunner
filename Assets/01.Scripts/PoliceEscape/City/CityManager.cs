@@ -25,43 +25,18 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
         [Tooltip("The baked city this scene runs on. Empty = found in the scene at Awake.")]
         public CityRoot cityRoot;
 
-        [TitleGroup("Player car")]
+        // Each system owns its own settings and prefabs (refactor Step 9.4):
+        // the PatrolManager its pursuit settings and police prefab, the
+        // TrafficManager its traffic settings, the PlayerCarSpawner the
+        // player's car, the OrbitCameraRig its camera settings, each HUD piece
+        // its own asset. This manager held a second copy of every one of them
+        // to spawn missing systems at play — they are hand-placed now
+        // (SceneSystemsPlacer), so it holds only the city.
+
+        [TitleGroup("Sandbox")]
         [AssetsOnly]
-        [Tooltip("Car prefab dropped by Create Car — needs a CarController and an ICarInput on its root.")]
+        [Tooltip("Car prefab dropped by the Create Car button (a sandbox tool — the level's own car comes from the PlayerCarSpawner). Needs a CarController and an ICarInput on its root.")]
         public GameObject carPrefab;
-
-        [TitleGroup("Player car")]
-        [Tooltip("Camera-feel settings for the Cinemachine orbit rig set up when the car spawns.")]
-        public Cameras.OrbitCameraSettings orbitCameraSettings;
-
-        [TitleGroup("Police")]
-        [AssetsOnly]
-        [Tooltip("Police car prefab — needs a CarController and a PoliceCarInput on its root. When both police fields are wired, a PatrolManager is spawned at play start.")]
-        public GameObject policeCarPrefab;
-
-        [TitleGroup("Police")]
-        [Tooltip("All pursuit tunables (fleet size, detection, driving) live on this asset.")]
-        public AI.PursuitSettings pursuitSettings;
-
-        [TitleGroup("Traffic")]
-        [Tooltip("Civilian traffic tunables — when assigned, a TrafficManager is spawned at play start (vehicles exist only within its active radius of the player).")]
-        public AI.TrafficSettings trafficSettings;
-
-        [TitleGroup("UI")]
-        [Tooltip("Circular radar settings — when assigned, a minimap is spawned at play start (bottom-right, GTA-style).")]
-        public UI.MinimapSettings minimapSettings;
-
-        [TitleGroup("UI")]
-        [Tooltip("Speedometer settings — when assigned, an analog gauge is spawned at play start (bottom-left).")]
-        public UI.SpeedometerSettings speedometerSettings;
-
-        [TitleGroup("UI")]
-        [Tooltip("Full-screen city map settings — when assigned, the Tab/Back map screen is spawned at play start.")]
-        public UI.CityMapSettings mapSettings;
-
-        [TitleGroup("Camera FX")]
-        [Tooltip("Speed-driven motion blur: fades in past 100 km/h by default. Tuning (speed band, intensity) lives on the spawned SpeedMotionBlur — hand-place one in the scene to change it.")]
-        public bool speedMotionBlur = true;
 
         [ToggleGroup("rain", "Weather")]
         [Tooltip("Spawn the rain over the chase. The downpour's own knobs live on the RainSettings asset below — this is only the on/off for this scene.")]
@@ -130,47 +105,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             if (Root == null)
                 Debug.LogWarning("CityManager: no CityRoot in the scene — drop the baked city prefab in (Tools → Police Escape → City Designer bakes one).", this);
 
-            // Scene-lifetime systems are HAND-PLACED: the scene builders run
-            // SceneSystemsPlacer (so does Tools -> Police Escape -> Place Scene
-            // Systems), and what follows is only the fallback for a scene
-            // that lacks one. Inactive counts as present: disabling a placed
-            // system is how it is switched off, not a request for a spare.
-            if (FindAnyObjectByType<AI.PatrolManager>(FindObjectsInactive.Include) == null && policeCarPrefab != null && pursuitSettings != null)
-            {
-                var managerGo = new GameObject("PatrolManager");
-                var patrolManager = managerGo.AddComponent<AI.PatrolManager>();
-                patrolManager.settings = pursuitSettings;
-                patrolManager.policeCarPrefab = policeCarPrefab;
-            }
-
-            // Civilian traffic: same scene-first pattern as the police.
-            if (FindAnyObjectByType<AI.TrafficManager>(FindObjectsInactive.Include) == null && trafficSettings != null)
-            {
-                var trafficGo = new GameObject("TrafficManager");
-                trafficGo.AddComponent<AI.TrafficManager>().settings = trafficSettings;
-            }
-
-            // HUD pieces: same deal — spawned when wired, each builds its own canvas.
-            if (FindAnyObjectByType<UI.Minimap>(FindObjectsInactive.Include) == null && minimapSettings != null)
-            {
-                var minimapGo = new GameObject("Minimap");
-                minimapGo.AddComponent<UI.Minimap>().settings = minimapSettings;
-            }
-            if (FindAnyObjectByType<UI.Speedometer>(FindObjectsInactive.Include) == null && speedometerSettings != null)
-            {
-                var speedometerGo = new GameObject("Speedometer");
-                speedometerGo.AddComponent<UI.Speedometer>().settings = speedometerSettings;
-            }
-            if (FindAnyObjectByType<UI.CityMapScreen>(FindObjectsInactive.Include) == null && mapSettings != null) UI.CityMapScreen.Spawn(this, mapSettings);
-
-            // Camera FX: scene-first like everything above — a hand-placed
-            // SpeedMotionBlur keeps its tuning, this only fills the gap.
-            if (speedMotionBlur && FindAnyObjectByType<Vehicles.SpeedMotionBlur>(FindObjectsInactive.Include) == null)
-                new GameObject("SpeedMotionBlur").AddComponent<Vehicles.SpeedMotionBlur>();
-
-            // Save-data recorder: same scene-first rule, needs no wiring.
-            if (FindAnyObjectByType<Stats.CityStatsRecorder>(FindObjectsInactive.Include) == null)
-                new GameObject("StatsRecorder").AddComponent<Stats.CityStatsRecorder>();
+            // Scene-lifetime systems are HAND-PLACED (the scene builders run
+            // SceneSystemsPlacer; so does Tools -> Police Escape -> Place Scene
+            // Systems): the fleets, the HUD, the motion blur and the stats
+            // recorder are never spawned here. The full-screen drivers below
+            // are found and parked, never spawned.
 
             // Weather: a camera-sized volume, so it needs neither the city nor
             // the car — it just has to exist before the first frame is drawn.
@@ -224,7 +163,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 Debug.LogWarning($"CityManager: no straight stretch with {SpawnRunwayCells()} clear cells ahead — spawning on a random road cell instead.");
             }
 
-            Vehicles.CarFactory.Spawn(carPrefab, orbitCameraSettings, center, yaw);
+            Vehicles.CarFactory.Spawn(carPrefab, center, yaw);
         }
 
         /// <summary>Runway length demanded by the car prefab's config (CarConfig.spawnRunwayCells), with a safe default when unwired.</summary>

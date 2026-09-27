@@ -75,7 +75,7 @@ loading curtain sets 1 but flags `PlayerStats.SuspendPlayTime`.
 (`SpeedDelta > 0` = power-up).
 
 **City (`CityStatsRecorder`, `PoliceEscape/Stats/`)** — a hand-placed scene system
-(`SceneSystemsPlacer` + the `CityManager.Awake` fallback). It subscribes `CarHealth.Died` in
+(placed by `SceneSystemsPlacer`; never spawned at play since refactor Step 9.4). It subscribes `CarHealth.Died` in
 `OnEnable`/`OnDisable` — **never a static initializer, handlers would stack across play sessions** —
 to count totaled cars (police = a `PoliceCarInput` on the car; label from
 `VehicleIdentity.Describe`), samples the player car's speed, and measures jumps itself (horizontal

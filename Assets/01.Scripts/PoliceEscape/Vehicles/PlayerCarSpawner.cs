@@ -23,10 +23,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [Tooltip("Car prefab with CarController + an ICarInput on the root.")]
         public GameObject carPrefab;
 
-        [Required, InlineEditor]
-        [Tooltip("Camera-feel tunables for the Cinemachine orbit rig this spawner sets up.")]
-        public OrbitCameraSettings cameraSettings;
-
         [ShowInInspector, System.NonSerialized, PropertyOrder(10)]
         [Tooltip("Debug: a PlayerSpawnPoint id for the button below. Empty = random.")]
         [LabelText("Debug Spawn Point Id")]
@@ -59,8 +55,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             var city = FindAnyObjectByType<CityManager>();
             ResolveSpawnPose(city, spawnPointId, out Vector3 position, out float yaw);
 
-            // The factory enforces the single-car rule and wires the camera.
-            SpawnedCar = CarFactory.Spawn(carPrefab, cameraSettings, position, yaw);
+            // The factory enforces the single-car rule and points the scene's rig (and its own settings) at the car.
+            SpawnedCar = CarFactory.Spawn(carPrefab, position, yaw);
         }
 
         void ResolveSpawnPose(CityManager city, string spawnPointId, out Vector3 position, out float yaw)

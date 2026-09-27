@@ -93,26 +93,16 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             return null;
         }
 
-        /// <summary>The chase camera's settings, from whoever owns the rig — the spawner, or the rig itself once it exists.</summary>
+        /// <summary>The chase camera's settings: the scene rig's own asset (the rig owns it).</summary>
         static OrbitCameraSettings FindCameraSettings()
         {
-            var spawner = Object.FindFirstObjectByType<PlayerCarSpawner>();
-            if (spawner != null && spawner.cameraSettings != null) return spawner.cameraSettings;
-
             var rig = Object.FindFirstObjectByType<OrbitCameraRig>();
             return rig != null ? rig.settings : null;
         }
 
-        /// <summary>
-        /// The police pursuit settings, from the CityManager that hands them
-        /// to the fleet at play start — the PatrolManager it spawns does not
-        /// exist yet when the menu is built, so it is only the fallback.
-        /// </summary>
+        /// <summary>The police pursuit settings: the hand-placed PatrolManager's own asset (else a patrol car's).</summary>
         static PursuitSettings FindPursuitSettings()
         {
-            var city = Object.FindFirstObjectByType<CityManager>();
-            if (city != null && city.pursuitSettings != null) return city.pursuitSettings;
-
             var manager = Object.FindFirstObjectByType<PatrolManager>();
             if (manager != null && manager.settings != null) return manager.settings;
 

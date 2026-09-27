@@ -1249,14 +1249,6 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: c9332aaf5c158de489354c3081458a2c, type: 2}
   cityRoot: {fileID: 1064124112}
   carPrefab: {fileID: 6741745091234793338, guid: 10b95a29a29686047a3e501a223ca310, type: 3}
-  orbitCameraSettings: {fileID: 11400000, guid: 0e2f1dc811848429e88685cc4952eac4, type: 2}
-  policeCarPrefab: {fileID: 4422194666387442274, guid: d113efac9df5244789745575e0cd3872, type: 3}
-  pursuitSettings: {fileID: 11400000, guid: dc8d3fee454084eae9be06c4e1d761a6, type: 2}
-  trafficSettings: {fileID: 11400000, guid: fde82596462774cdb8170cc2c127354b, type: 2}
-  minimapSettings: {fileID: 11400000, guid: 43b08e7108a854584b63ebb5831d3e22, type: 2}
-  speedometerSettings: {fileID: 11400000, guid: 2e35f956724754cd485670624868b7bc, type: 2}
-  mapSettings: {fileID: 11400000, guid: d690dbff0ec45426d96f3f6d4641091c, type: 2}
-  speedMotionBlur: 1
   rain: 1
   vhs: 1
   psx: 1
@@ -1603,6 +1595,7 @@ Transform:
   - {fileID: 526696353}
   - {fileID: 1780000001}
   - {fileID: 1790000001}
+  - {fileID: 1322480021}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &372632917
@@ -3208,7 +3201,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.PoliceEscape::ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles.PlayerCarSpawner
   carPrefab: {fileID: 2862266193195909051, guid: cf44c16b0189644089abc1830c09fe3c, type: 3}
-  cameraSettings: {fileID: 11400000, guid: 0e2f1dc811848429e88685cc4952eac4, type: 2}
 --- !u!4 &729163629
 Transform:
   m_ObjectHideFlags: 0
@@ -6600,6 +6592,37 @@ Sprite:
   m_Bones: []
   m_ScriptableObjects: []
   m_SpriteID: 
+--- !u!1 &1322480020
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1322480021}
+  m_Layer: 0
+  m_Name: CinematicCamera
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1322480021
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1322480020}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 366956391}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1330002276
 GameObject:
   m_ObjectHideFlags: 0
