@@ -306,6 +306,14 @@ installer had stamped every renderer in the project.
 
 - `DistanceFogInstaller` / `GlitchSilhouetteInstaller` only touch renderers under
   `Assets/04.Data/` (`DistanceFogInstaller.IsProjectRendererAsset`).
+- **Glitch holds** (refactor Step 8.1): a sequence that must keep the picture corrupted (the
+  runner's win ramp, the city's death screen and scene handoff) calls `GlitchController.Hold(owner,
+  level)` — call again to move the level, a ramp — and `Release(owner)` when done. While any owner
+  holds, the picture shows at least the held level and the fade is suspended; a release leaves the
+  base at the held level and the fade takes it from there. Nobody writes `baseFadePerSecond` at
+  runtime any more, so nobody has to remember and restore it. A holder destroyed without
+  releasing is dropped. Pulses and `SetBaseIntensity` are unchanged (the city's damage meter
+  still lives in `baseIntensity` until refactor Step 9).
 - `RendererFeatureAudit` (`Rendering/`) warns from `GlitchController.Awake` /
   `DistanceFog.OnEnable` (play mode) when no renderer of the active pipeline asset carries a
   feature driving their material — one warning naming the pipeline asset and quality level.

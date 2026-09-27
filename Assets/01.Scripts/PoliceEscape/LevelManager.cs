@@ -174,7 +174,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         bool timedOut;
         string lastDamageReason; // what last filled the corruption meter — a police hit makes the reboot an arrest
         bool warnedEmpty;
-        float glitchFadeBeforeReset = -1f; // the glitch's healing rate, taken while the death screen holds at max; -1 = not held
 
         public LevelDefinition Level => level;
         public CarController Player => player;
@@ -902,11 +901,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         /// <summary>Slam the corruption to max, hold it a beat, then swap scenes behind it.</summary>
         IEnumerator GlitchHandoff()
         {
-            // Healing stops here: the transition must hold at full glitch.
+            // A hold: the transition must stay at full glitch until the scene goes.
             if (GlitchController.Instance != null)
             {
-                GlitchController.Instance.baseFadePerSecond = 0f;
-                GlitchController.Instance.SetBaseIntensity(1f);
+                GlitchController.Instance.Hold(this, 1f);
                 GlitchController.Instance.Pulse(1f);
             }
             yield return new WaitForSeconds(level.completionGlitchHoldSeconds);
@@ -964,14 +962,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
         IEnumerator ResetLevel()
         {
             resetting = true;
-            // Healing stops here: the death screen must hold at full glitch.
-            // The rate is remembered so the retry can hand it back — a reload
-            // used to restore it for free.
+            // A hold: the death screen stays at full glitch until the retry
+            // releases it (the healing fade resumes on its own then).
             if (GlitchController.Instance != null)
             {
-                if (glitchFadeBeforeReset < 0f) glitchFadeBeforeReset = GlitchController.Instance.baseFadePerSecond;
-                GlitchController.Instance.baseFadePerSecond = 0f;
-                GlitchController.Instance.SetBaseIntensity(1f);
+                GlitchController.Instance.Hold(this, 1f);
                 GlitchController.Instance.Pulse(1f);
             }
             yield return new WaitForSeconds(resetDelaySeconds);
@@ -1007,8 +1002,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             cinemaPlaying = false;
             RpgMessageSystem.Instance.ClearMessages();
 
-            RestoreGlitchFade();
-            if (GlitchController.Instance != null) GlitchController.Instance.SetBaseIntensity(0f);
+            if (GlitchController.Instance != null)
+            {
+                GlitchController.Instance.Release(this);
+                GlitchController.Instance.SetBaseIntensity(0f);
+            }
             lastDamageReason = null;
             CameraShake.Clear();
 
@@ -1052,15 +1050,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
 
             CollectibleManager.Instance?.ResetRun();
             BeginRun();
-        }
-
-        // Hands the GlitchController its healing rate back once the death
-        // hold is over. Idempotent.
-        void RestoreGlitchFade()
-        {
-            if (glitchFadeBeforeReset < 0f) return;
-            if (GlitchController.Instance != null) GlitchController.Instance.baseFadePerSecond = glitchFadeBeforeReset;
-            glitchFadeBeforeReset = -1f;
         }
 
         // The fallback when an in-place restart is impossible: the whole scene

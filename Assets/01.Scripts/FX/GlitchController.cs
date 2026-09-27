@@ -1,5 +1,6 @@
 using ConfusedGameDev.FiniteRunner.Rendering;
 using Sirenix.OdinInspector;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ConfusedGameDev.FiniteRunner.FX
@@ -12,7 +13,13 @@ namespace ConfusedGameDev.FiniteRunner.FX
     /// calls the static Instance — <see cref="Pulse"/> for one-shot bursts
     /// (getting spotted, collisions, messages) and
     /// <see cref="SetBaseIntensity"/> for sustained states (being chased,
-    /// hack in progress). The material is a shared asset used by every scene's
+    /// hack in progress), and <see cref="Hold"/> / <see cref="Release"/> for
+    /// a sequence that must keep the picture corrupted (an ending's ramp, a
+    /// death screen, a scene handoff): while any owner holds, the base shows
+    /// at least the held level and the fade is suspended; releasing leaves
+    /// the level where it was held and the fade takes it from there. Owners
+    /// never touch the fade rate, so nobody has to remember and restore it.
+    /// The material is a shared asset used by every scene's
     /// renderer, so OnDisable always resets it to a clean feed — a scene
     /// without this controller must never inherit someone else's glitch.
     /// Runs on unscaled time so pulses decay through pause screens. Awake
@@ -51,9 +58,24 @@ namespace ConfusedGameDev.FiniteRunner.FX
         public float pulseDecayPerSecond = 2f;
 
         [TitleGroup("Debug"), ShowInInspector, ReadOnly]
-        public float CurrentIntensity => Mathf.Clamp01(baseIntensity + pulse);
+        public float CurrentIntensity => Mathf.Clamp01(Mathf.Max(baseIntensity, HeldLevel) + pulse);
+
+        /// <summary>True while any owner holds the picture.</summary>
+        public bool IsHeld => holds.Count > 0;
 
         float pulse;
+        readonly Dictionary<object, float> holds = new();
+        readonly List<object> deadHolders = new();
+
+        float HeldLevel
+        {
+            get
+            {
+                float level = 0f;
+                foreach (var hold in holds.Values) level = Mathf.Max(level, hold);
+                return level;
+            }
+        }
 
         void Awake()
         {
@@ -73,7 +95,8 @@ namespace ConfusedGameDev.FiniteRunner.FX
 
         void Update()
         {
-            if (baseFadePerSecond > 0f)
+            DropDeadHolders();
+            if (holds.Count == 0 && baseFadePerSecond > 0f)
                 baseIntensity = Mathf.MoveTowards(baseIntensity, 0f, baseFadePerSecond * Time.unscaledDeltaTime);
             pulse = Mathf.MoveTowards(pulse, 0f, pulseDecayPerSecond * Time.unscaledDeltaTime);
             Apply(CurrentIntensity);
@@ -93,6 +116,36 @@ namespace ConfusedGameDev.FiniteRunner.FX
 
         /// <summary>Sustained glitch level for ongoing states; call with 0 to return to a clean feed.</summary>
         public void SetBaseIntensity(float value) => baseIntensity = Mathf.Clamp01(value);
+
+        /// <summary>
+        /// Keeps the picture at least at <paramref name="level"/> for
+        /// <paramref name="owner"/>, with the fade suspended, until it calls
+        /// <see cref="Release"/>. Call again to move the level (a ramp).
+        /// </summary>
+        public void Hold(object owner, float level)
+        {
+            if (owner == null) return;
+            holds[owner] = Mathf.Clamp01(level);
+        }
+
+        /// <summary>Ends <paramref name="owner"/>'s hold: the base keeps the held level and, once nobody holds, the fade takes it from there. Idempotent.</summary>
+        public void Release(object owner)
+        {
+            if (owner == null || !holds.TryGetValue(owner, out float level)) return;
+            holds.Remove(owner);
+            baseIntensity = Mathf.Max(baseIntensity, level);
+        }
+
+        // A holder destroyed without releasing (its scene unloaded) must not
+        // freeze the picture forever.
+        void DropDeadHolders()
+        {
+            if (holds.Count == 0) return;
+            deadHolders.Clear();
+            foreach (var owner in holds.Keys)
+                if (owner is Object unityObject && unityObject == null) deadHolders.Add(owner);
+            foreach (var owner in deadHolders) holds.Remove(owner);
+        }
 
         void Apply(float value)
         {

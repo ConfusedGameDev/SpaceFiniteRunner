@@ -94,7 +94,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // The loss wind-down: MISSION FAILED slams in, then the retry panel.
         Coroutine failRoutine;
         MissionAccomplishedBanner banner; // the MISSION ACCOMPLISHED / MISSION FAILED slam; killed before the panel
-        float glitchFadeBeforeWin = -1f; // the GlitchController's fade rate to restore; < 0 = nothing remembered
 
         // The run's objective state: latched per entry (speed bleeds after the
         // peak while a jump goal may still be open), reset with the run.
@@ -716,16 +715,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             GlitchController glitch = GlitchController.Instance;
             if (glitch != null)
             {
-                glitchFadeBeforeWin = glitch.baseFadePerSecond;
-                glitch.baseFadePerSecond = 0f; // healing stops: the ramp must reach and hold max
+                // A hold: the ramp must reach and keep max, whatever the fade.
                 float from = glitch.baseIntensity;
                 float ramp = Mathf.Max(0.01f, settings.winGlitchRampSeconds);
                 for (float t = 0f; t < ramp; t += Time.unscaledDeltaTime)
                 {
-                    glitch.SetBaseIntensity(Mathf.Lerp(from, 1f, t / ramp));
+                    glitch.Hold(this, Mathf.Lerp(from, 1f, t / ramp));
                     yield return null;
                 }
-                glitch.SetBaseIntensity(1f);
+                glitch.Hold(this, 1f);
                 glitch.Pulse(1f);
             }
 
@@ -741,7 +739,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 cameraRig.hasPlayerControl = true;
             }
             EndRun(RunOutcome.Escaped);
-            RestoreGlitchFade();
+            ReleaseGlitch();
         }
 
         // Drops the MISSION ACCOMPLISHED banner this frame, mid-tear or not.
@@ -752,14 +750,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             banner = null;
         }
 
-        // Hands the GlitchController its fade rate back so a held max decays
-        // again (behind the panel, or on a retry). Idempotent.
-        void RestoreGlitchFade()
+        // Lets go of the ending's glitch hold so the held max decays again
+        // (behind the panel, or on a retry). Idempotent.
+        void ReleaseGlitch()
         {
-            if (glitchFadeBeforeWin < 0f) return;
-            GlitchController glitch = GlitchController.Instance;
-            if (glitch != null) glitch.baseFadePerSecond = glitchFadeBeforeWin;
-            glitchFadeBeforeWin = -1f;
+            if (GlitchController.Instance != null) GlitchController.Instance.Release(this);
         }
 
         /// <summary>
@@ -1189,7 +1184,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (winRoutine != null) { StopCoroutine(winRoutine); winRoutine = null; }
             if (failRoutine != null) { StopCoroutine(failRoutine); failRoutine = null; }
             KillBanner(); // a retry mid-beat must not leave the word over the new run
-            RestoreGlitchFade();
+            ReleaseGlitch();
             if (GlitchController.Instance != null) GlitchController.Instance.SetBaseIntensity(0f);
             // A retry from inside a loop must not leave the shot armed — nor one mid-fall.
             EndLoopCinematic();

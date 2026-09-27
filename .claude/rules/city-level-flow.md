@@ -162,14 +162,14 @@ and an All-Must-Hold regression bumps `advanceToken` to cancel the pending advan
 
 `RequestReboot(reason)` is the one lose funnel (full corruption, a Complete Within deadline, the
 car wrecked on its roof). It records the death, holds the glitch at max for `resetDelaySeconds`
-(remembering the glitch's healing rate) and raises the shared `GameOverScreen`. **RETRY never
+(`GlitchController.Hold(this, 1)` — the fade is suspended while any owner holds) and raises the shared `GameOverScreen`. **RETRY never
 reloads the scene** — the baked city takes seconds — it calls **`LevelManager.RestartLevel`**,
 which resets in this order:
 
 1. `StopAllCoroutines`, `advanceToken++`, `CinemaSystem.Cancel()` (unconditional — a
    `CinemaTrigger`'s running-world cinema may be up), `RpgMessageSystem.ClearMessages()` (drops a
    queued time-up / completion line WITHOUT its callback).
-2. Glitch: healing rate handed back, base intensity 0; `CameraShake.Clear()`.
+2. Glitch: `Release(this)` (the healing fade resumes on its own), base intensity 0; `CameraShake.Clear()`.
 3. Fleets: `PatrolManager.Clear()` / `TrafficManager.Clear()` sweep the `==Police==` /
    `==TrafficNPC==` headers (wrecks and the cull-exempt escape car included) and refill on their
    next tick; `TrafficCarInput.ClearEscapeRegistry()`.
