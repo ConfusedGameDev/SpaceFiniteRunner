@@ -48,6 +48,31 @@ namespace ConfusedGameDev.FiniteRunner.Track
     [CreateAssetMenu(fileName = "FiniteRunner_TrackShape", menuName = "FiniteRunner/Track Shape Settings")]
     public class TrackShapeSettings : ScriptableObject
     {
+        // ------------------------------------------------------------ layout
+        [TitleGroup("Layout")]
+        [Tooltip("Full width of the track in meters. Drives the ship's steering clamp, the pad placement bounds and the road meshes (which are authored for 60 m and stretch proportionally). Regenerate to see it.")]
+        [PropertyRange(10f, 120f), SuffixLabel("m", true)]
+        public float trackWidth = 60f;
+
+        [TitleGroup("Layout")]
+        [Tooltip("Chance that a straight knot starts a banked sweep: 100% = a dead straight line, 0% = a sweep at every chance the features leave room for. The sweeps' rate, arc and bank live below. Regenerate to see it.")]
+        [PropertyRange(0f, 100f), SuffixLabel("%", true)]
+        public float straightness = 100f;
+
+        // ---------------------------------------------------------- features
+        [TitleGroup("Features")]
+        [Tooltip("One entry per track feature kind (jump ramps, loops, tubes). Every feature step draws one entry by probability; the sliders auto-rebalance to always total 100%.")]
+        [OnValueChanged(nameof(NormalizeFeatureProbabilities), true)]
+        public TrackGenerator.FeatureSpawnEntry[] featureTable = System.Array.Empty<TrackGenerator.FeatureSpawnEntry>();
+
+        [TitleGroup("Features")]
+        [Tooltip("Metres of track between feature steps (min, max), before each entry's own minimum spacing, footprint and exclusion are added.")]
+        [MinMaxSlider(100f, 5000f, true), SuffixLabel("m", true)]
+        public Vector2 featureSpacing = new(600f, 1200f);
+
+        [System.NonSerialized] float[] lastFeatureProbabilities;
+        void NormalizeFeatureProbabilities() => WeightedTable.Normalize(featureTable, ref lastFeatureProbabilities);
+
         [ToggleGroup("elevationEnabled", "Elevation")]
         [Tooltip("Let the road rise and fall. Off = the flat track (and no random draws, so a seed reproduces the flat layout exactly).")]
         public bool elevationEnabled = true;

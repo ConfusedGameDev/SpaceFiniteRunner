@@ -19,9 +19,9 @@ game-assembly references** (Odin's runtime attributes are auto-referenced, so it
 
 ## The file
 
-**JSON at `Application.persistentDataPath/profile.json`, never a ScriptableObject** — every
-`*DebugSettings.Flush` in the project is `#if UNITY_EDITOR`, so an asset write would keep nothing in
-a build.
+**JSON at `Application.persistentDataPath/profile.json`, never a ScriptableObject** — asset
+writes (`UI/DebugAssetEdits.Flush`, the debug pages' saves) are `#if UNITY_EDITOR`, so an asset
+write would keep nothing in a build.
 
 `PlayerProfile` is the `[Serializable]` model, under JsonUtility rules: public fields, nested
 `[Serializable]` sections `global` / `lastLevel` / `runner`, `List<CountEntry>` for the per-vehicle

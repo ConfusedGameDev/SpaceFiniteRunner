@@ -204,15 +204,17 @@ developer pages in `Scripts/UI/DebugMenu.cs`: each tab is a normal compact-row `
 
 **Runner pages:**
 
-- **Core Settings** — the generator's width/straightness/probability sliders (probabilities
-  live-rebalance to always total 100%) plus a RELOAD SCENE row.
+- **Core Settings** — the track shape's width / straightness / elevation / banking rows, TRACK
+  LENGTH, one spacing row per spawner and the orb-tier probabilities (live-rebalance to always
+  total 100%), plus a RELOAD SCENE row.
 - **Multipliers** — the per-entry boost multipliers (0.1–10).
 - **Features** (`BuildFeaturesTab`) — the feature spacing band (one slider slides the band, keeping
   its spread), per-entry probability / min spacing / boost rows, and the jump definition's knobs.
-  Edits the runtime clone, captured into `FeatureDebugSettings`
-  (`Data/Resources/FiniteRunner_FeatureDebug.asset`, applied onto the clones in `Generate`).
+  The table lives on the track shape asset; rows write it (and the definition assets) and mirror
+  onto the run's clones.
 - **Four ship tabs** (Speed / Handling / Dash / Hover — only when the menu was spawned with a
-  `ShipMotor`) edit the motor's live `ShipDefinition` clone.
+  `ShipMotor`) write the ship's `ShipDefinition` asset and rebuild the run's clone from it
+  (`ShipUpgradeApplier.Refresh`, Store levels re-applied).
 - **Duel** (`DebugMenuFactory.BuildDuelTab`, only with a patrol) — the whole patrol-duel surface: the
   attack run's overdrive / commit distance / interval / timeout, the flank and its hold, the abort
   grace, the break-off and cooldown, the ground lookahead and abort window, the standoff and the
@@ -220,25 +222,21 @@ developer pages in `Scripts/UI/DebugMenu.cs`: each tab is a normal compact-row `
   pool and the three rear-ram windows, the escalation knobs and the kill respawn gap — plus four rows
   that edit `GameSettings` LIVE rather than the patrol's clone (duel timescale, steer assist, the
   finisher window, the hit-stop, the ram's speed cost, the armed window), because that asset is read
-  live and never cloned. **Every new `PatrolDefinition` row must also get a `-1` sentinel in
-  `PatrolDebugSettings`** or an armed debug asset silently stamps a made-up default over the authored
-  value — the same trap as the ship and track assets.
-- **Patrol** (only when the GameManager's patrol is initialized) edits the patrol's live
-  `PatrolDefinition` clone.
+  live and never cloned.
+- **Patrol** (only when the GameManager's patrol is initialized) writes the patrol's
+  `PatrolDefinition` asset and mirrors onto its live clone.
 
 Every slider row re-reads its live value every time the menu opens (the `debugRefreshers` list the
 tab builders fill): the menu is built in the GameManager's Awake, before the tuning clone, the
 generator's own Awake and the saved debug assets have landed, so a row configured at build time
 would show the authored value over the applied one. A new slider row registers a refresher.
 
-**Persistence**: track changes → `TrackDebugSettings` (`Data/Resources/FiniteRunner_TrackDebug.asset`),
-ship → `ShipDebugSettings` (`Data/Resources/FiniteRunner_ShipDebug.asset`, applied on top of the
-tuning clone in `TuningScreen.StartRun`), patrol → `PatrolDebugSettings`
-(`Data/Resources/FiniteRunner_PatrolDebug.asset`, applied onto the patrol clone in
-`PolicePatrol.Init`). All flushed to disk on
-resume/reload and re-applied in play mode while their `applyOnLoad` is on — so debug tweaks survive
-scene reloads, play-mode exits and editor restarts. **Untick `applyOnLoad` on an asset to return to
-the authored values.**
+**Persistence** (refactor Step 2): one rule for every runner page — gameplay never writes a
+settings asset, the debug menu does. A row writes the ASSET, marks it with
+`UI/DebugAssetEdits.Touch`, then mirrors the value onto the run's clone; the pause menu calls
+`DebugAssetEdits.Flush` on resume / reload, so a tweak is an ordinary asset edit (undo with git).
+There are no mirror assets and no `applyOnLoad`: what the inspector shows is what runs. In a build
+nothing can be saved, so edits last for the session.
 
 ### City pages (`CityDebugMenuFactory`, `InfiniteCity/Scripts/UI/`)
 

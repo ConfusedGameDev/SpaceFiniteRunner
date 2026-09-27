@@ -294,6 +294,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>The live chase tunables — the runtime clone, so the debug menu can edit them mid-run. Null until <see cref="Init"/>.</summary>
         public PatrolDefinition Definition => runtimeDef;
 
+        /// <summary>The authored asset the run's clone was made from — what the debug pages edit (then mirror onto <see cref="Definition"/>).</summary>
+        public PatrolDefinition DefinitionAsset => definition;
+
         /// <summary>
         /// A fresh patrol just cut in behind the ship; the argument is its
         /// number. The patrol only rumbles here — the story line announcing it
@@ -347,8 +350,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool ProximityRumble { get; set; } = true;
 
         /// <summary>
-        /// Wires the scene patrol up for a run: clones its definition (with
-        /// any armed <see cref="PatrolDebugSettings"/> overrides on top),
+        /// Wires the scene patrol up for a run: clones its definition,
         /// builds the cruiser visual and launches the chase. Called by the
         /// GameManager in Awake; the object stays inert without it.
         /// </summary>
@@ -374,7 +376,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 definition = ScriptableObject.CreateInstance<PatrolDefinition>();
             }
             runtimeDef = Instantiate(definition);
-            PatrolDebugSettings.Load().ApplyTo(runtimeDef);
 
             // The body is this component's own object: its events die with it.
             body = track != null ? new TrackBody(track) : null;

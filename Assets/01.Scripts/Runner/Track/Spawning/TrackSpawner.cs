@@ -22,18 +22,18 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// own (seeded off the layout's seed and its name), so adding or removing
     /// one never moves any other. Each step rolls <see cref="chance"/>, asks
     /// the subclass to <see cref="Step"/> — place one here, or say where the
-    /// ground is free again — then moves on by <see cref="spacing"/> divided
-    /// by the debug <see cref="Density"/>.
+    /// ground is free again — then moves on by <see cref="spacing"/>.
     /// </para>
-    /// In play the generator runs a runtime CLONE of each asset (the debug
-    /// menu edits the clone); the cursor, stream and density are runtime-only.
+    /// In play the generator runs a runtime CLONE of each asset; the debug
+    /// menu writes the asset and mirrors onto the clone. The cursor and the
+    /// stream are runtime-only.
     /// </summary>
     public abstract class TrackSpawner : ScriptableObject
     {
         [Tooltip("Off = listed but never spawned.")]
         [SerializeField] bool active = true;
 
-        [Tooltip("Name shown in the debug menu and used to seed this spawner's random stream (so renaming reshuffles its layout) and to match saved debug values.")]
+        [Tooltip("Name shown in the debug menu and used to seed this spawner's random stream (so renaming reshuffles its layout).")]
         public string displayName = "Spawner";
 
         [Tooltip("Tint of this spawner's debug rows.")]
@@ -50,10 +50,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Chance that a step spawns anything at all. 1 = every step.")]
         [PropertyRange(0f, 1f)]
         public float chance = 1f;
-
-        /// <summary>Debug multiplier on the density (the debug menu's DENSITY row): 0 = none, 1 = the authored spacing, 2 = twice as many. Affects streaming immediately.</summary>
-        public float Density { get => density; set => density = Mathf.Max(0f, value); }
-        [System.NonSerialized] float density = 1f;
 
         /// <summary>This spawner's own random stream. Subclasses draw from it only, so a seed's layout of every other spawner never depends on this one.</summary>
         protected Unity.Mathematics.Random Rng;
@@ -80,7 +76,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>Places every step up to <paramref name="limit"/> (the settled track); the cursor resumes there next pass.</summary>
         public void PlaceUpTo(TrackSpawnContext ctx, float limit)
         {
-            if (!IsActive(ctx) || density <= 0f)
+            if (!IsActive(ctx))
             {
                 cursor = Mathf.Max(cursor, limit);
                 return;
@@ -101,7 +97,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
         }
 
-        void Advance() => cursor += Rng.NextFloat(spacing.x, spacing.y) / density;
+        void Advance() => cursor += Rng.NextFloat(spacing.x, spacing.y);
 
         /// <summary>Per-run setup after the stream is seeded: clone nested definitions, reset caches.</summary>
         protected virtual void OnBegin(TrackSpawnContext ctx) { }

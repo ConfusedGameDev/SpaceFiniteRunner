@@ -12,9 +12,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f2e6cabdfb443148170683d3a81c3fe, type: 3}
   m_Name: FiniteRunner_TrackShape
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.TrackShapeSettings
+  trackWidth: 120
+  straightness: 100
+  featureTable:
+  - name: Jump
+    prefab: {fileID: 0}
+    definition: {fileID: 11400000, guid: 036070dea45c4920a5d5fd439400a3b5, type: 2}
+    probability: 100
+    minSpacing: 300
+    multiplier: 1
+    color: {r: 1, g: 0.8, b: 0.2, a: 1}
+  - name: Loop
+    prefab: {fileID: 0}
+    definition: {fileID: 11400000, guid: 3f0b83579a6c4c04a2533aa02a053cb9, type: 2}
+    probability: 0
+    minSpacing: 600
+    multiplier: 0
+    color: {r: 0.35, g: 0.85, b: 1, a: 1}
+  - name: Full Tube
+    prefab: {fileID: 0}
+    definition: {fileID: 11400000, guid: 796af27969ac451e838bde8366476334, type: 2}
+    probability: 0
+    minSpacing: 600
+    multiplier: 0
+    color: {r: 0.9, g: 0.5, b: 1, a: 1}
+  featureSpacing: {x: 1500, y: 3000}
   elevationEnabled: 1
   elevationBand: 60
-  maxGrade: 6
+  maxGrade: 1
   maxGradeStepPerKnot: 3
   baselinePull: 0.5
   turnRateRange: {x: 6, y: 13}
@@ -25,7 +50,7 @@ MonoBehaviour:
   unbankedSweepChance: 0.3
   openStraightChance: 1
   bankEnabled: 1
-  maxBankAngle: 80
+  maxBankAngle: 78
   bankPerDegreeOfTurn: 8
   maxBankStepPerKnot: 45
   levelLeadDistance: 200

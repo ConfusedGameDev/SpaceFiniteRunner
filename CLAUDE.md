@@ -135,10 +135,14 @@ modified: `Assets/Scenes/` (Cockpit, Garden, Oasis, Terminal) and `Assets/Shared
 
 These hold everywhere. Break one and something else quietly stops working.
 
-- **Never mutate a ScriptableObject asset at runtime.** Gameplay takes a runtime *clone*
-  (`ShipDefinition`, `PatrolDefinition`, feature definitions); the debug menu edits the clone.
-  The exceptions are deliberate and documented per system (the city's settings assets and
-  `LevelDefinition` are read live, so their debug pages edit the assets themselves).
+- **Gameplay never writes a settings asset; the debug menu does.** Gameplay takes a runtime
+  *clone* where it changes values (`ShipDefinition` with Store upgrades, `PatrolDefinition`,
+  track shape, spawners, feature definitions). A debug row writes the ASSET
+  (`UI/DebugAssetEdits.Touch`, saved at the pause menu's commit points) and then mirrors the
+  value onto the live clone — the ship's clone is rebuilt from its asset
+  (`ShipUpgradeApplier.Refresh`) so upgrades stay applied. There are no debug mirror assets and
+  no `applyOnLoad` overrides: what the inspector shows is what runs. City settings assets and
+  `LevelDefinition` are read live, so their pages edit the asset with nothing to mirror.
 - **Tunables live in ScriptableObjects** (the runner's in `FiniteRunner/Data/` — `GameSettings`,
   `ShipDefinition`, `PadDefinition`, `CameraShakeSettings`), not as fields on managers. Add new
   knobs to the settings asset, not to the component that reads it.

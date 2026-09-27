@@ -16,6 +16,29 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     [CreateAssetMenu(fileName = "ShipDefinition", menuName = "FiniteRunner/Ship Definition")]
     public class ShipDefinition : ScriptableObject
     {
+        /// <summary>The asset a runtime clone was built from (null on an asset). The runner's debug pages edit this asset and rebuild the clone from it.</summary>
+        public ShipDefinition Source { get; private set; }
+
+        /// <summary>A runtime clone of this asset that remembers where it came from.</summary>
+        public ShipDefinition CloneForRun(string suffix = " (run)")
+        {
+            var clone = Instantiate(this);
+            clone.name = name + suffix;
+            clone.Source = Source != null ? Source : this;
+            return clone;
+        }
+
+        /// <summary>Re-copies a clone from its <see cref="Source"/> asset (no-op on an asset). Callers re-apply their own modifiers after.</summary>
+        public void CopyFromSource()
+        {
+            if (Source == null) return;
+            var source = Source;
+            string keepName = name;
+            JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(source), this);
+            name = keepName;
+            Source = source;
+        }
+
         [TitleGroup("Identity")]
         public string displayName = "Fighter";
         [TitleGroup("Identity"), MultiLineProperty(3), HideLabel]

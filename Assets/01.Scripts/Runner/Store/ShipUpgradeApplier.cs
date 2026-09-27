@@ -9,22 +9,31 @@ namespace ConfusedGameDev.FiniteRunner.Store
     /// clone (never the asset, never a clone already multiplied), so a
     /// restart can't compound levels: the <c>GameManager</c> builds the run's
     /// definition here when the tuning screen is off, and the tuning screen
-    /// applies it on top of its points when it is on. Mapping — Handling:
+    /// applies it on top of its points when it is on. A run definition is
+    /// always "asset × levels": the debug pages edit the asset and call
+    /// <see cref="Refresh"/> to rebuild the clone from it. Mapping — Handling:
     /// lateral speed and response; Dash Power: dash distance; Speed
     /// Multiplier: the passive speed bleed DIVIDED, so the ship keeps its
     /// speed longer; Jump Strength: the takeoff boost and arc.
     /// </summary>
     public static class ShipUpgradeApplier
     {
-        /// <summary>Clone + store multipliers + the armed ship debug overrides — the definition a run flies on.</summary>
+        /// <summary>Clone + store multipliers — the definition a run flies on. Handed a clone, it clones that clone's asset, so levels never compound.</summary>
         public static ShipDefinition BuildRunDefinition(ShipDefinition baseDefinition)
         {
             if (baseDefinition == null) return null;
-            ShipDefinition run = Object.Instantiate(baseDefinition);
-            run.name = baseDefinition.name + " (run)";
+            ShipDefinition run = baseDefinition.CloneForRun();
+            if (baseDefinition.Source != null) run.CopyFromSource();
             Apply(run);
-            ShipDebugSettings.Load().ApplyTo(run); // debug values win, same rule as the tuning screen
             return run;
+        }
+
+        /// <summary>Rebuilds a run definition from its asset and multiplies the levels in again. No-op on an asset.</summary>
+        public static void Refresh(ShipDefinition runDefinition)
+        {
+            if (runDefinition == null || runDefinition.Source == null) return;
+            runDefinition.CopyFromSource();
+            Apply(runDefinition);
         }
 
         /// <summary>Multiplies the store's levels into <paramref name="freshClone"/> in place.</summary>

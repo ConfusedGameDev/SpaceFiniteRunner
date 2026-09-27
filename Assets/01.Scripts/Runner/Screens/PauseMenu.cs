@@ -50,10 +50,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         MenuTheme theme;
         MenuNavigator nav;
         DebugMenu debugMenu;
-        TrackDebugSettings debugSettings;
-        ShipDebugSettings shipDebugSettings;
-        PatrolDebugSettings patrolDebugSettings;
-        Track.Features.FeatureDebugSettings featureDebugSettings;
         readonly System.Collections.Generic.List<System.Action> debugRefreshers = new();
 
         GameObject panel;
@@ -242,11 +238,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             panel.SetActive(false);
             GameAudio.SetPaused(false, theme.PauseAudioFade);
             pauseMusicStopTime = Time.unscaledTime + theme.PauseAudioFade; // stop only once the fade has hidden it
-            debugSettings?.Flush();     // commit any debug tweaks to disk
-            shipDebugSettings?.Flush();
-            patrolDebugSettings?.Flush();
+            DebugAssetEdits.Flush();     // commit the debug tweaks written to assets
             FallRespawnDebugPage.Flush();
-            featureDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
@@ -333,11 +326,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // paused (exit to menu, debug reload) must hand the next scene a
             // gameplay mix, not a muted one.
             if (isPaused) GameAudio.SetPaused(false, 0f);
-            debugSettings?.Flush();
-            shipDebugSettings?.Flush();
-            patrolDebugSettings?.Flush();
+            DebugAssetEdits.Flush();     // commit the debug tweaks written to assets
             FallRespawnDebugPage.Flush();
-            featureDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();
@@ -516,39 +506,35 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             if (generator != null)
             {
-                debugSettings = TrackDebugSettings.Load();
                 debugMenu.AddTab(DebugMenuFactory.BuildCoreSettingsTab(
-                    panelRect, theme, generator, debugSettings, ReloadScene, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, generator, gameManager, ReloadScene, changed, debugRefreshers, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildMultipliersTab(
-                    panelRect, theme, generator, debugSettings, changed, debugRefreshers, tab++, tabCount));
-                featureDebugSettings = Track.Features.FeatureDebugSettings.Load();
+                    panelRect, theme, generator, changed, debugRefreshers, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildFeaturesTab(
-                    panelRect, theme, generator, featureDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, generator, changed, debugRefreshers, tab++, tabCount));
             }
             if (shipReady)
             {
-                shipDebugSettings = ShipDebugSettings.Load();
                 debugMenu.AddTab(DebugMenuFactory.BuildShipSpeedTab(
-                    panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, motor, changed, debugRefreshers, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildShipHandlingTab(
-                    panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, motor, changed, debugRefreshers, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildShipDashTab(
-                    panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, motor, changed, debugRefreshers, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildShipHoverTab(
-                    panelRect, theme, motor, shipDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, motor, changed, debugRefreshers, tab++, tabCount));
             }
             // No `changed`: the run reads these live off the asset, nothing to reload.
             if (runRules != null)
                 debugMenu.AddTab(FallRespawnDebugPage.Build(panelRect, theme, runRules, debugRefreshers, tab++, tabCount));
             if (patrolReady)
             {
-                patrolDebugSettings = PatrolDebugSettings.Load();
                 debugMenu.AddTab(DebugMenuFactory.BuildPatrolTab(
-                    panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, patrol, changed, debugRefreshers, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildPatrolDriverTab(
-                    panelRect, theme, patrol, patrolDebugSettings, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, patrol, changed, debugRefreshers, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildDuelTab(
-                    panelRect, theme, patrol, patrolDebugSettings, runRules, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, patrol, runRules, changed, debugRefreshers, tab++, tabCount));
             }
 
             // No `changed` for the city pages: every car and camera knob they
@@ -573,16 +559,13 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 debugMenu.AddTab(CrtScreenDebugPage.Build(panelRect, theme, crt, debugRefreshers, tab++, tabCount));
         }
 
-        // The debug sliders saved their values into the TrackDebugSettings
-        // asset as they moved — commit it to disk, then reload; the fresh
-        // TrackGenerator re-applies the asset in Generate().
+        // The debug sliders wrote their values into the settings assets as
+        // they moved — commit them to disk, then reload; the fresh
+        // TrackGenerator clones those assets in Generate().
         void ReloadScene()
         {
-            debugSettings?.Flush();
-            shipDebugSettings?.Flush();
-            patrolDebugSettings?.Flush();
+            DebugAssetEdits.Flush();     // commit the debug tweaks written to assets
             FallRespawnDebugPage.Flush();
-            featureDebugSettings?.Flush();
             DebugMenuHooks.Flush?.Invoke();
             RainDebugPage.Flush();
             DistanceFogDebugPage.Flush();

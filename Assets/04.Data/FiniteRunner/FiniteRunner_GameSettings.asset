@@ -30,7 +30,7 @@ MonoBehaviour:
   respawnMinPatrolGap: 150
   lightSpeedKmh: 6500
   timeLimitSeconds: 180
-  trackLengthMeters: 40000
+  trackLengthMeters: 48000
   endRunUpMeters: 1200
   endRampGapMeters: 10
   endRampSideGapMeters: 0

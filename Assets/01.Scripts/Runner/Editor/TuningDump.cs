@@ -16,8 +16,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// per object, so two dumps taken before and after a change diff line by
     /// line. Two kinds of entry: <b>effective</b> — the objects a run really
     /// flies on, resolved exactly as the runtime resolves them (ship
-    /// definition: clone → store upgrades → debug stamp; ship settings: clone
-    /// → the GameSettings sync; patrol: clone → debug stamp) — and <b>raw</b>
+    /// definition: clone → store upgrades; ship settings: clone → the
+    /// GameSettings sync; patrol: clone) — and <b>raw</b>
     /// — every ScriptableObject under <c>Assets/04.Data</c> as authored.
     /// Nothing is played, nothing is saved: every clone is destroyed.
     /// </summary>
@@ -57,7 +57,6 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             foreach (var def in Find<PatrolDefinition>())
             {
                 var run = Object.Instantiate(def);
-                PatrolDebugSettings.Load().ApplyTo(run);
                 count += Write(dir, "effective", "PatrolDefinition", def, run);
                 Object.DestroyImmediate(run);
             }

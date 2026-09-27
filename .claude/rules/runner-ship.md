@@ -134,11 +134,13 @@ longer used by the win — the run is won by LEAVING the track — but the capab
 **Debug menu** (`DebugMenuFactory`, `runner` tabs of the pause menu): SHIP SPEED has cruise /
 thrust / brake / coast drag / the over-cruise bleed / key throttle ramp, SHIP HANDLING the grip and
 slide rows, CORE SETTINGS the flat-curve and open-straight percentages, PATROL + PATROL DRIVER the
-patrol's. Those edit runtime clones and persist through `ShipDebugSettings` /
-`TrackDebugSettings` / `PatrolDebugSettings`. **Every key added to a debug-settings asset after
-it was first saved defaults to −1 = "never captured, leave the definition alone"** — the shipped
-ship and track debug assets have `applyOnLoad` ON, and a real default would silently stamp a
-made-up number over the authored one (it did, for `unbankedSweepChance`). FALL & RESPAWN
+patrol's. **Every runner debug row writes the ASSET, then mirrors onto the run's clone**
+(refactor Step 2, 2026-09-27): the ship rows write the definition the run was built from
+(`motor.Definition.Source`) and rebuild the clone with `ShipUpgradeApplier.Refresh` (asset ×
+Store levels); patrol rows write `PolicePatrol.DefinitionAsset` and the clone; track rows write
+`TrackGenerator.ShapeAsset` / the spawner and feature assets and their clones. Edits are saved at
+the menu's commit points through `UI/DebugAssetEdits`. The old `*DebugSettings` mirror assets and
+their `applyOnLoad` stamping are gone — their live values were baked into the definitions. FALL & RESPAWN
 (`Screens/FallRespawnDebugPage`) is different: `GameSettings` is read live and never cloned, so
 that page edits the ASSET, like the fog and rain pages — applies at once, no reload, flushed at
 the pause menu's commit points.
@@ -414,7 +416,7 @@ minimap range, redeploy) stay on `GameSettings`.
   derived force-against-drag steering as the ship; below the ship's 30 so the player can
   out-dodge it), `gripBase`, `gripPerSpeed`, `brakeDecel`, and the Driver group above. The
   debug menu has them on the PATROL tab (catch width / tail catch time) and the PATROL DRIVER
-  tab, persisted by `PatrolDebugSettings`.
+  tab, written to the definition asset and mirrored onto the clone.
 - **Boost share** (`PatrolDefinition.boostShare`, 0.156 on the asset): every speed-up the ship collects — orbs,
   ramp takeoffs, anything through `ShipMotor.AddSpeedImpulse`, heard via `PadImpulse` — gives the
   patrol that fraction of the ship's actual gain (after weight) in the same frame. A +100 km/h orb
@@ -654,8 +656,7 @@ minimap range, redeploy) stay on `GameSettings`.
   - **Duel camera**: `PatrolEncounter.DuelCloseness` (0 → 1 across `Committing`, 1 alongside/tug/
     finisher, else 0) → `PolicePatrol.DuelCloseness` → `GameManager.Update` →
     `OrbitCameraRig.SetDuelFraming` every frame (see `cameras.md`).
-  - Knobs on `PatrolDefinition` (Duel group, with `-1` sentinels in `PatrolDebugSettings` and rows on
-    the PATROL DUEL tab): `overshootHoldSeconds`, `overshootBrakeThreshold`, `overshootDecelThreshold`,
+  - Knobs on `PatrolDefinition` (Duel group, with rows on the PATROL DUEL tab): `overshootHoldSeconds`, `overshootBrakeThreshold`, `overshootDecelThreshold`,
     `overshootTriggerMargin`, `tugPushFraction`, `finisherSeparationMeters`, `finisherMissBrakeSeconds`,
     `finisherMissBrakeSpeedFactor`. `EncounterDebug` prints the lock target, the held speed and the
     brake / accel inputs.

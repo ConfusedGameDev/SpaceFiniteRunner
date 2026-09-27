@@ -17,9 +17,9 @@ MonoBehaviour:
   rubberBand: 0.95
   catchUpAccel: 3.33
   boostShare: 0.156
-  lateralSpeed: 22
+  lateralSpeed: 12
   handlingResponse: 6
-  gripBase: 50
+  gripBase: 130
   gripPerSpeed: 0.5
   brakeDecel: 140
   curveLookaheadSeconds: 4
@@ -30,7 +30,7 @@ MonoBehaviour:
   startGap: 548
   catchDistance: 10
   alongsideLateral: 18
-  sustainedCatchSeconds: 7
+  sustainedCatchSeconds: 1.5
   warnDistance: 130
   attackRunOverdrive: 1.15
   minClosingSpeed: 12

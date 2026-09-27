@@ -76,29 +76,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         // ------------------------------------------------------ Core Settings
         [TitleGroup("Core Settings")]
-        [Tooltip("Full width of the track in meters. Drives the ship's steering clamp, the pad placement bounds and the road meshes (which are authored for 60 m and stretch proportionally). Regenerate to see it.")]
-        [PropertyRange(10f, 120f), SuffixLabel("m", true)]
-        [SerializeField] float trackWidth = 60f;
-
-        [TitleGroup("Core Settings")]
-        [Tooltip("Chance that a straight knot starts a banked sweep: 100% = a dead straight line, 0% = a sweep at every chance the features leave room for. The sweeps' rate, arc and bank live on the Track Shape asset. Regenerate to see it.")]
-        [PropertyRange(0f, 100f), SuffixLabel("%", true)]
-        [SerializeField] float straightness = 100f;
-
-        [TitleGroup("Core Settings")]
-        [Tooltip("Shape of the road itself — the elevation swells (and, later, banking). One settings asset so the road's feel is tuned in one place; play mode runs on a runtime clone the debug menu edits. Regenerate to see it.")]
+        [Tooltip("The track's one tuning asset: width, straightness, the feature table and spacing, elevation, sweeps and banking. Play mode runs on a runtime clone; the debug menu edits this asset and mirrors onto the clone. Regenerate to see it.")]
         [InlineEditor(InlineEditorObjectFieldModes.Foldout)]
         [SerializeField] TrackShapeSettings trackShape;
-
-        [TitleGroup("Core Settings")]
-        [Tooltip("One entry per track feature kind (jump ramps). Every feature step draws one entry by probability; the sliders auto-rebalance to always total 100%.")]
-        [OnValueChanged(nameof(NormalizeFeatureProbabilities), true)]
-        [SerializeField] FeatureSpawnEntry[] featureTable = System.Array.Empty<FeatureSpawnEntry>();
-
-        [TitleGroup("Core Settings")]
-        [Tooltip("Metres of track between feature steps (min, max), before each entry's own minimum spacing, footprint and exclusion are added.")]
-        [MinMaxSlider(100f, 5000f, true), SuffixLabel("m", true)]
-        [SerializeField] Vector2 featureSpacing = new(600f, 1200f);
 
         [TitleGroup("Core Settings")]
         [Tooltip("The three ramps the track ends in. Its definition is a JumpDefinition of its own (entry margin 0, so the whole ramp counts); left empty, Resources/FiniteRunner_EndRamp is loaded, else built-in defaults. Width and lateral come from the track width and the GameSettings gaps, never from the definition's width fraction; there is no boost and no arc. Probability and spacing are unused.")]
@@ -203,13 +183,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         public bool Randomize => randomize;
 
-        // Live access for the pause menu's debug tab. Width/straightness only
-        // take effect on the next Generate (the debug tab reloads the scene);
-        // spawner edits affect streaming immediately.
-        public float TrackWidth { get => trackWidth; set => trackWidth = Mathf.Clamp(value, 10f, 120f); }
-        public float Straightness { get => straightness; set => straightness = Mathf.Clamp(value, 0f, 100f); }
-        public FeatureSpawnEntry[] FeatureTable => featureTable;
-        public Vector2 FeatureSpacing { get => featureSpacing; set => featureSpacing = new Vector2(Mathf.Max(100f, value.x), Mathf.Max(Mathf.Max(100f, value.x), value.y)); }
+        // Layout knobs, read off the shape in force. Width, straightness and
+        // the feature table take effect on the next Generate.
+        public float TrackWidth => Mathf.Clamp(Shape.trackWidth, 10f, 120f);
+        public float Straightness => Mathf.Clamp(Shape.straightness, 0f, 100f);
+        public FeatureSpawnEntry[] FeatureTable => Shape.featureTable;
+        public Vector2 FeatureSpacing => new(Mathf.Max(100f, Shape.featureSpacing.x), Mathf.Max(Mathf.Max(100f, Shape.featureSpacing.x), Shape.featureSpacing.y));
+
+        /// <summary>The authored shape asset — what the debug pages edit (then mirror onto <see cref="Shape"/>). Null when none is wired.</summary>
+        public TrackShapeSettings ShapeAsset => trackShape;
 
         /// <summary>The authored spawn set (the assets). Null when none is wired.</summary>
         public TrackSpawnSet SpawnSet => spawnSet;
@@ -232,9 +214,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>Resources path of the end ramps' definition, used when the scene wires none.</summary>
         public const string EndRampResourcePath = "FiniteRunner_EndRamp";
 
-        /// <summary>Debug override of the run's track length, metres (the debug menu's TRACK LENGTH row). Below 0 = none. Takes effect on the next Generate.</summary>
-        public float TrackLengthOverride { get; set; } = -1f;
-
         /// <summary>The track length this run was generated for, metres; 0 on an endless track.</summary>
         public float TargetLength => targetLength;
 
@@ -254,7 +233,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>
         /// The shape knobs in force: the runtime clone in play, the asset in
         /// edit-mode previews, a throwaway default when nothing is wired. The
-        /// debug menu edits this, never the asset. Takes effect on the next Generate.
+        /// debug menu edits the asset and mirrors onto this. Takes effect on the next Generate.
         /// </summary>
         public TrackShapeSettings Shape
         {
@@ -265,8 +244,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
         }
 
-        // The shape asset is never mutated in play: a clone per Generate, like
-        // the feature definitions, so the debug menu edits the run's own copy.
+        // Gameplay never writes the shape asset: a clone per Generate, like the
+        // feature definitions. The debug menu writes the asset, then the clone.
         void PrepareShape()
         {
             if (shapeRuntime != null && shapeRuntime != trackShape)
@@ -330,7 +309,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
         readonly List<(float start, float end)> featureKeepOuts = new(); // every feature's ground + what lies ahead of it (a ramp's landing), and the end zone
         Dictionary<FeatureSpawnEntry, Material> featureMaterials;
         Material collectibleMaterial;
-        float[] lastFeatureProbabilities;
 
         // AutoSmooth reshapes the curves around the previous knot every time a
         // new one lands, so the last two segments are never safe to build on.
@@ -370,30 +348,29 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         public void Generate()
         {
-            // Debug-tab tweaks (saved to the TrackDebugSettings asset) override
-            // the scene's Core Settings — play mode only, so edit-mode previews
-            // and the inspector always reflect the authored scene values.
-            PrepareShape(); // the debug values land on the fresh clones
-            PrepareSpawners();
-            if (Application.isPlaying) TrackDebugSettings.Load().ApplyTo(this);
+            // Last run's feature clones live on last run's shape clone, which
+            // PrepareShape is about to replace.
+            if (Application.isPlaying && shapeRuntime != null && shapeRuntime.featureTable != null)
+                foreach (var old in shapeRuntime.featureTable)
+                    if (old.Runtime != null && old.Runtime != old.definition) Destroy(old.Runtime);
 
-            // Features play a runtime clone of their definition asset (the
-            // debug menu edits the clone, never the asset); edit-mode previews
-            // read the asset as is. Debug tweaks land on the clones.
-            if (featureTable != null)
-                foreach (var entry in featureTable)
-                {
-                    if (Application.isPlaying && entry.Runtime != null && entry.Runtime != entry.definition)
-                        Destroy(entry.Runtime); // last run's clone
+            // Fresh clones of the shape and the spawners, straight from their
+            // assets (the debug menu writes the assets, so a reload keeps its
+            // edits); edit-mode previews read the assets as they are.
+            PrepareShape();
+            PrepareSpawners();
+
+            // Features play a runtime clone of their definition asset; edit-mode
+            // previews read the asset as is.
+            if (FeatureTable != null)
+                foreach (var entry in FeatureTable)
                     entry.Runtime = entry.definition != null && Application.isPlaying
                         ? Instantiate(entry.definition)
                         : entry.definition;
-                }
-            if (Application.isPlaying) FeatureDebugSettings.Load().ApplyTo(this);
 
             // One width knob for everything: steering clamp, pad bounds, meshes.
-            if (track != null) track.SetWidth(trackWidth);
-            if (decorator != null) decorator.SetTrackWidth(trackWidth);
+            if (track != null) track.SetWidth(TrackWidth);
+            if (decorator != null) decorator.SetTrackWidth(TrackWidth);
 
             rng = seed == 0
                 ? new Unity.Mathematics.Random((uint)System.Environment.TickCount)
@@ -445,7 +422,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             foreach (var spawner in runtimeSpawners)
                 if (spawner != null) spawner.Begin(spawnContext);
             collectibleCursor = rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
-            featureCursor = rng.NextFloat(featureSpacing.x, featureSpacing.y);
+            featureCursor = rng.NextFloat(FeatureSpacing.x, FeatureSpacing.y);
             pendingRamps.Clear();
             straightUntil = 0f;
 
@@ -457,8 +434,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             trackComplete = false;
             if (Application.isPlaying && endless)
             {
-                if (TrackLengthOverride > 0f) targetLength = TrackLengthOverride;
-                else if (gameManager != null) targetLength = gameManager.TrackLengthMeters;
+                if (gameManager != null) targetLength = gameManager.TrackLengthMeters;
             }
             // (Only asked of the manager in a finite play run: the getter
             // resolves the run's data, which an edit-mode preview must not.)
@@ -541,7 +517,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 featureCursor = float.MaxValue;
 
             float remaining = featureCursor - track.Length;
-            SpotKind spotKind = featureTable != null && featureTable.Length > 0 && remaining <= segmentLength.y
+            SpotKind spotKind = FeatureTable != null && FeatureTable.Length > 0 && remaining <= segmentLength.y
                 ? SpotKind.Feature
                 : SpotKind.None;
 
@@ -577,7 +553,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // straight for a few. Straightness is the chance a straight knot
             // starts a sweep — one draw per straight knot, so 100% never
             // turns and still consumes the flat track's draws.
-            float curviness = 1f - straightness / 100f;
+            float curviness = 1f - Straightness / 100f;
             float previousHeading = heading;
             // A ramp's landing zone: straight, level and flat until the
             // longest jump the ship can make has landed — no sweep, no bank,
@@ -831,19 +807,19 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             float spot = track.Length; // the knot that just landed, at its true track distance
             featureCursor = spot;
-            if (featureTable == null || featureTable.Length == 0)
+            if (FeatureTable == null || FeatureTable.Length == 0)
             {
-                featureCursor = spot + rng.NextFloat(featureSpacing.x, featureSpacing.y);
+                featureCursor = spot + rng.NextFloat(FeatureSpacing.x, FeatureSpacing.y);
                 return;
             }
 
             float roll = rng.NextFloat(0f, 1f);
-            var entry = WeightedTable.Pick(featureTable, roll) as FeatureSpawnEntry;
+            var entry = WeightedTable.Pick(FeatureTable, roll) as FeatureSpawnEntry;
             if (entry != null && !LoopReachable(entry, spot))
-                entry = WeightedTable.Pick(featureTable, roll, exclude: entry) as FeatureSpawnEntry;
+                entry = WeightedTable.Pick(FeatureTable, roll, exclude: entry) as FeatureSpawnEntry;
             if (entry == null || entry.Runtime == null)
             {
-                featureCursor = spot + rng.NextFloat(featureSpacing.x, featureSpacing.y);
+                featureCursor = spot + rng.NextFloat(FeatureSpacing.x, FeatureSpacing.y);
                 return;
             }
 
@@ -866,7 +842,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // later, shorter draw may still fit.
             if (IsFinite && spot + footprint + exclusion > endZoneTarget)
             {
-                featureCursor = spot + rng.NextFloat(featureSpacing.x, featureSpacing.y);
+                featureCursor = spot + rng.NextFloat(FeatureSpacing.x, FeatureSpacing.y);
                 return;
             }
 
@@ -895,7 +871,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
 
             featureCursor = spot + footprint + exclusion
-                          + Mathf.Max(rng.NextFloat(featureSpacing.x, featureSpacing.y), entry.minSpacing);
+                          + Mathf.Max(rng.NextFloat(FeatureSpacing.x, FeatureSpacing.y), entry.minSpacing);
         }
 
         /// <summary>
@@ -1179,9 +1155,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         // Keeps the feature probability sliders honest: whichever slider the
         // designer just moved keeps its value, the others rebalance
         // proportionally so the table always totals 100%.
-        void NormalizeFeatureProbabilities() => WeightedTable.Normalize(featureTable, ref lastFeatureProbabilities);
 
-        void OnValidate() => NormalizeFeatureProbabilities();
 
         // The code-built coin's gold: one recolored boost-material instance,
         // play mode only: edit-mode previews would leak the instance into the scene.

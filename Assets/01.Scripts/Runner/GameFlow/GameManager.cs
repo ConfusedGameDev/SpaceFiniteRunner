@@ -176,6 +176,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             }
         }
 
+        /// <summary>
+        /// The debug menu's TRACK LENGTH row: writes the length this run
+        /// resolves to — the level's own when it sets one, else the
+        /// GameSettings fallback — on the asset that holds it. Takes effect on
+        /// the next Generate (the menu offers the reload).
+        /// </summary>
+        public void SetTrackLengthFromDebug(float meters)
+        {
+            ResolveRunData();
+            if (level.trackLengthMeters > 0f) { level.trackLengthMeters = meters; DebugAssetEdits.Touch(level); }
+            else { settings.trackLengthMeters = meters; DebugAssetEdits.Touch(settings); }
+        }
+
         /// <summary>Length of the straight, featureless run-up to the end ramps, metres.</summary>
         public float EndRunUpMeters { get { ResolveRunData(); return settings.endRunUpMeters; } }
         /// <summary>Gap between two end ramps, metres.</summary>

@@ -67,8 +67,7 @@ Stretches of track distance laid over the flat spline with their own pose functi
   OuterSide). One object answers both the physics (grip is tested only inside one) and the
   decorator (`IsEdgeOpen` = the OUTER side of a flat sweep, nowhere else, never inside a
   section), so a missing wall is always a real drop. `TrackShapeSettings.unbankedSweepChance`
-  (0.3; a CORE SETTINGS debug row, mirrored in `TrackDebugSettings` with a −1 "never captured"
-  default — a real default silently overrode the asset through `applyOnLoad`) is rolled once per sweep in `StartTurn` — no draw at 0,
+  (0.3; a CORE SETTINGS debug row) is rolled once per sweep in `StartTurn` — no draw at 0,
   so that reproduces the all-banked layout. A flat sweep must stand on level road: rolled while
   the last bank is still unwinding it is DEFERRED (`deferredFlatKnots`, started by `AddSegment`
   at the first level knot, dropped if the road ahead gets claimed) rather than lost. It has no
@@ -122,8 +121,8 @@ and a scene with no `GameManager` stay endless.
 
 ### The finite track (`IsFinite`, `EndDistance`, `TargetLength`)
 
-- `Generate` PULLS the run's length: `TrackLengthOverride` (the debug row, −1 = none) else
-  `gameManager.TrackLengthMeters` — play mode only. `endZoneTarget = length − EndRunUpMeters`.
+- `Generate` PULLS the run's length: `gameManager.TrackLengthMeters` (the level's own, else
+  `GameSettings.trackLengthMeters`) — play mode only. `endZoneTarget = length − EndRunUpMeters`.
 - **The last knot cannot be placed at an authored distance** (a chord is only arc length where
   the knots are collinear, and loops insert distance), so the END ZONE START is a pinned
   pseudo-spot — `AddSegment` returns a `SpotKind` (`None / Feature / EndZoneStart / End`) and
@@ -152,8 +151,8 @@ and a scene with no `GameManager` stay endless.
   `Resources/FiniteRunner_EndRamp` (a `JumpDefinition`: `entryMargin` 0, length 120, 15°, side hit
   0.05 — width fraction and arc knobs unused), else built-in numbers; cloned in play.
   `BuildRamp` is the one ramp builder, shared with `CreateJump`.
-- Debug: CORE SETTINGS → TRACK LENGTH (0 = the level's own), persisted as
-  `TrackDebugSettings.trackLength` with the −1 "never captured" rule.
+- Debug: CORE SETTINGS → TRACK LENGTH, written by `GameManager.SetTrackLengthFromDebug` to the
+  asset the run resolves it from (the level's own length when it sets one, else `GameSettings`).
 
 **Invariants:**
 
@@ -172,15 +171,20 @@ and a scene with no `GameManager` stay endless.
 
 ### Core Settings (Odin region)
 
-- `trackWidth` — pushed into `TrackManager.SetWidth` and `TrackDecorator.SetTrackWidth` on every
+**The track's one tuning asset is `TrackShapeSettings`** (refactor Step 2): width, straightness,
+the feature table and feature spacing moved there off the generator component, next to the
+shape knobs, so the whole track is tuned in one asset. The generator reads them through
+`TrackWidth` / `Straightness` / `FeatureTable` / `FeatureSpacing` off `Shape` (the clone in play).
+
+- `trackWidth` (on the shape asset) — pushed into `TrackManager.SetWidth` and `TrackDecorator.SetTrackWidth` on every
   `Generate`. One width knob drives the steering clamp, pad bounds and road meshes, which are
   authored for 60 m and stretch proportionally.
-- `straightness` — 100% = dead straight; scales the Shape section's turn/heading limits down.
+- `straightness` (on the shape asset) — 100% = dead straight; scales the Shape section's turn/heading limits down.
 - `trackShape` — a `TrackShapeSettings` asset (`Data/FiniteRunner/FiniteRunner_TrackShape.asset`,
   drawn inline) holding the road's own shape: the **elevation walk** (`elevationEnabled`,
   `elevationBand` ±60 m, `maxGrade` 6°, `maxGradeStepPerKnot` 3°, `baselinePull` 0.5). Play runs
   on a runtime clone (`Shape`, made in `PrepareShape` at the top of `Generate`); the Core Settings
-  debug tab edits the clone and `TrackDebugSettings` captures/re-applies it like straightness.
+  debug tab writes the asset (`ShapeAsset`) and mirrors onto the clone.
   `AddSegment` keeps a `pitch` state: a random step per knot, leaned home in proportion to the
   height already gained, forced home outside the band, clamped to the grade — and it draws
   nothing while disabled, so a seed reproduces the flat track exactly. Knots go in through
@@ -194,8 +198,8 @@ and a scene with no `GameManager` stay endless.
   drifted past the cap — and the sweep then holds that rate per knot. `TurnFits` refuses a sweep
   whose shortest run + the full bank's unwind + the lead would not fit before `featureCursor`;
   `LevelRequired` ends one early if a feature closes in. The generator's old `maxTurnPerSegment`
-  / `maxHeading` are gone. The live `Resources/FiniteRunner_TrackDebug.asset` pins straightness
-  at 60 (it was 100 = dead straight until M2) and the scene's `featureSpacing` is 1500–3000 m so
+  / `maxHeading` are gone. Straightness is 100 (dead straight) on the shape asset as shipped —
+  the value the old track debug asset had been stamping — and `featureSpacing` is 1500–3000 m so
   a sweep has room between features.
   **The rate band is set by the grip math, not by taste.** A sweep's radius is the knot length
   (`segmentLength` 300–420 m) divided by the rate in radians, and a FLAT sweep holds only while
@@ -220,8 +224,7 @@ and a scene with no `GameManager` stay endless.
   **Features need level road** (`LevelRequired`): the target is 0 while the spline end is under a
   `TubeSection` or within `levelLeadDistance` + the knots the current bank needs to unwind of the
   next `featureCursor`, so every loop stands upright, every tube curls from a flat pose and every
-  ramp rides its rails. `TrackDebugSettings`' bank defaults must equal the asset's — the shipped
-  debug asset has `applyOnLoad` on, so a key it lacks applies the C# default.
+  ramp rides its rails.
 - `spawnSet` — the `TrackSpawnSet` of everything that streams onto the track (see Spawnables).
 
 The custom inspector is an `OdinEditor` (so Odin attributes render) and adds the
@@ -229,7 +232,7 @@ The custom inspector is an `OdinEditor` (so Odin attributes render) and adds the
 
 ### Track features (`Track/Features/`)
 
-A second seeded table, `featureTable` of `FeatureSpawnEntry` (name, optional unit prefab, a
+A second seeded table, `featureTable` on the track shape asset, of `FeatureSpawnEntry` (name, optional unit prefab, a
 `TrackFeatureDefinition` asset, probability with the same rebalancing rule via `IWeightedEntry`,
 `minSpacing`, boost `multiplier`, colour). The roadmap for these lives in `TrackFeaturesPlan.md`:
 jumps (1), loops (2), cylinder sections (3) are built; multi-path is the one left.
@@ -278,8 +281,8 @@ the clone, never the asset.
 
 Loop knobs (`radius`, `exitClearance`, `fallGravity`, `fallSpeedLoss`, gate colours) live on
 `Loop_Definition.asset`. The debug Features tab edits radius / gravity / loss through the generic
-`AddStat<T>`, and per-tube radius / band / curl through `FeatureDebugSettings.tubes`, matched by
-entry name.
+`AddStat<T>` (per tube entry: radius / band / curl), each written to the definition asset and
+mirrored onto the entry's runtime clone.
 
 ### Spawnables (`Track/Spawning/`)
 
@@ -316,8 +319,7 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
   `PadMargin`, and `CreatePad` (the one `SpeedPad` builder: prefab with colliders forced to
   triggers, or a code-built orb / slab; boosts = `powerUpSpeedBoost` × multiplier, a brake keeps
   its own delta).
-- **Runtime clones**: `Generate` clones each set entry (`PrepareSpawners`, before
-  `TrackDebugSettings.ApplyTo`), index for index — `generator.Spawners`, `GetSpawner<T>()` — and
+- **Runtime clones**: `Generate` clones each set entry (`PrepareSpawners`), index for index — `generator.Spawners`, `GetSpawner<T>()` — and
   calls `Begin`; last run's clones are `Cleanup()`-ed (nested definition clones, tint materials)
   and destroyed. Edit-mode previews run the assets themselves.
 - **`SpeedOrbSpawner`**: `tiers` of `PadSpawnEntry` (Green / Blue / Purple — prefab,
@@ -337,11 +339,11 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
 - **`LaserGateSpawner`**: see Laser gates.
 - **`BrakePadSpawner`**: one `PadSpawnEntry`, the brake material, the pad sign; 1800–3200 m
   (about the old one-in-2.5 km).
-- Debug: CORE SETTINGS → one `{NAME} DENSITY` row per spawner (`MenuTextId.SpawnDensity`) and a
-  `%` row per orb tier; MULTIPLIERS → a `×` row per tier. Rows are built from the set's ASSETS
-  (the menu can be built before the first `Generate`) and edit the runtime clones.
-  `TrackDebugSettings` stores `densities` (by spawner name) and `entries` (orb tiers by name,
-  renormalized on apply — a saved "Brake" entry is ignored).
+- Debug: CORE SETTINGS → one `{NAME} SPACING` row per spawner (slides the `spacing` band, keeping
+  its spread) and a `%` row per orb tier; MULTIPLIERS → a `×` row per tier. Rows are built from the
+  set's ASSETS (the menu can be built before the first `Generate`), write the asset and mirror onto
+  the runtime clone index for index. The old runtime-only density multiplier is gone (the laser
+  gates' 0.5 was baked in as a 1200–2400 m spacing).
 
 ### Repair orbs (`Track/RepairOrb.cs`)
 
@@ -428,7 +430,7 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   blink) calls `FX/SmokeVfx.SpawnTrail` on the ship's ROOT, simulating in its local space so the
   plume stays on the ship at any speed and never rolls with a barrel roll. Knobs:
   `GameSettings.laserSmoke*` (textures = the Black smoke sprites; empty = no smoke).
-- Debug: CORE SETTINGS → LASER GATES DENSITY (the spawner's density row, 0 = none, live).
+- Debug: CORE SETTINGS → LASER GATES SPACING (the spawner's spacing band, live).
 
 ### Analytic pickups (`Simulation/PickupRegistry.cs`)
 

@@ -135,7 +135,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // applied in place, and applying them twice to one clone would
             // compound the upgrade on every restart.
             if (tunedDefinition != null) Destroy(tunedDefinition);
-            tunedDefinition = Instantiate(baseDefinition);
+            tunedDefinition = baseDefinition.CloneForRun(" (tuned)");
 
             tunedDefinition.initialImpulse = baseDefinition.initialImpulse + points[(int)Stat.LaunchSpeed] * maxSpeedPerPoint;
             tunedDefinition.acceleration = baseDefinition.acceleration + points[(int)Stat.Acceleration] * accelerationPerPoint;
@@ -144,10 +144,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             // The Store's bought levels multiply the pointed values.
             ShipUpgradeApplier.Apply(tunedDefinition);
-
-            // Armed ship debug values win over the point allocation, same rule
-            // as the track debug asset — untick applyOnLoad to get tuning back.
-            ShipDebugSettings.Load().ApplyTo(tunedDefinition);
 
             motor.SetDefinition(tunedDefinition);
             motor.Launch();

@@ -199,10 +199,10 @@
   <div class="facts">
     <span>Unity <b>6000.7.0a3</b> · URP 17.7</span>
     <span>Branch <b class="mono">refactor/single-source-tuning</b></span>
-    <span>Refactor <b>2 of 12 steps</b> done</span>
+    <span>Refactor <b>3 of 12 steps</b> done</span>
   </div>
   <div class="legend" aria-label="Change markers">
-    <span><span class="tag done">Changed · Step 1</span> already changed on the branch</span>
+    <span><span class="tag done">Changed · Step 2</span> already changed on the branch</span>
     <span><span class="tag plan">Step 3</span> planned, with the step that does it</span>
     <span><span class="tag drift">Shipped ≠ authored</span> the value that runs is not the value in the inspector</span>
     <span><span class="tag retired">Retired</span> kept in code, no longer used</span>
@@ -284,7 +284,7 @@ flowchart BT
 
   <h3>Rules that hold everywhere</h3>
   <ul>
-    <li><b>Never change a ScriptableObject asset at runtime.</b> Gameplay takes a runtime clone. The city's settings assets and <code>LevelDefinition</code> are the documented exception: they are read live, so the city debug pages edit the assets themselves.</li>
+    <li><b>Gameplay never writes a settings asset; the debug menu does.</b> Gameplay takes a runtime clone where it changes values. A debug row writes the asset, then mirrors the value onto the live clone. What the inspector shows is what runs. <span class="tag done">Changed · Step 2</span></li>
     <li><b>Tunables live in ScriptableObjects</b>, drawn with Odin sliders and inlined into the component that uses them.</li>
     <li><b>Scene-lifetime systems are hand-placed</b> under <code>===SYSTEMS===</code>. Code only finds or parks them.</li>
     <li><b>Domain reload is off.</b> Static state and event subscriptions survive between play sessions.</li>
@@ -316,34 +316,36 @@ flowchart BT
   <p>One row per asset. The last column shows what the refactor has done or will do to it.</p>
   <div class="scroll"><table class="wide">
     <tr><th>Tune</th><th>Asset</th><th>Key knobs (shipped)</th><th>Status</th></tr>
-    <tr><td>Run rules</td><td><code>FiniteRunner_GameSettings</code></td><td class="num">time limit 180 s · track 40 km · 10 lives · laser −10 % speed · QTE window 0.15 s</td><td><span class="tag plan">Step 4</span> split into <code>RunRules</code>, <code>DuelSettings</code>, <code>CameraFeedbackSettings</code></td></tr>
-    <tr><td>Ship stats</td><td><code>Fighter_ShipDefinition</code></td><td class="num">cruise 1000 m/s · thrust 60 · brake 284 · lateral 58.3 · weight 0.57 · hull 300</td><td><span class="tag drift">Shipped ≠ authored</span> <span class="tag plan">Step 2</span></td></tr>
+    <tr><td>Run rules</td><td><code>FiniteRunner_GameSettings</code></td><td class="num">time limit 180 s · track 48 km · 10 lives · laser −10 % speed · QTE window 0.15 s</td><td><span class="tag plan">Step 4</span> split into <code>RunRules</code>, <code>DuelSettings</code>, <code>CameraFeedbackSettings</code></td></tr>
+    <tr><td>Ship stats</td><td><code>Fighter_ShipDefinition</code></td><td class="num">cruise 1000 m/s · brake 3.94 · lateral 29.71 · grip 2 · weight 133.3 · hull 300</td><td><span class="tag done">Changed · Step 2</span> live values baked in; Store upgrades apply again</td></tr>
     <tr><td>Ship physics feel</td><td><code>Runner_ShipSettings</code></td><td class="num">4 m substeps · guide assist 1 · dash cost 0.5</td><td><span class="tag drift">22 fields overwritten every frame</span> <span class="tag plan">Step 3</span></td></tr>
-    <tr><td>Patrol and duel</td><td><code>Police_PatrolDefinition</code></td><td class="num">rubber band 0.95 · standoff 45 m · commit every 12 s · catch fuse 7 s</td><td><span class="tag drift">Shipped ≠ authored</span> <span class="tag plan">Step 2</span> <span class="tag plan">Step 4</span></td></tr>
-    <tr><td>Track shape</td><td><code>FiniteRunner_TrackShape</code> + <code>TrackGenerator</code> on <code>PF_Track</code></td><td class="num">width 104.4 m · 30 % flat sweeps · open straights 100 %</td><td><span class="tag drift">debug forces 100 % straight</span> <span class="tag plan">Step 2</span></td></tr>
-    <tr><td>Features</td><td><code>Jump_Definition</code>, <code>Loop_Definition</code>, <code>FullTube_Definition</code>, <code>LaserGate_Definition</code></td><td class="num">ramp 60 m / 20° · loop radius 100 · lasers cover 20–30 %</td><td>The <code>PF_Track</code> feature table weights Jump 100, Loop 0, Tube 0, so only ramps spawn today.</td></tr>
-    <tr><td>Pickups</td><td><code>Spawner_SpeedOrbs</code>, <code>Spawner_RepairOrbs</code>, <code>Spawner_LaserGates</code></td><td class="num">orbs every 513–897 m · green 74 % / blue 22 % / purple 4 %</td><td><span class="tag retired">Spawner_BrakePads</span> not in the spawn set</td></tr>
+    <tr><td>Patrol and duel</td><td><code>Police_PatrolDefinition</code></td><td class="num">rubber band 0.95 · standoff 45 m · commit every 12 s · catch fuse 1.5 s</td><td><span class="tag done">Changed · Step 2</span> live values baked in · <span class="tag plan">Step 4</span> duel knobs to <code>DuelSettings</code></td></tr>
+    <tr><td>Track layout</td><td><code>FiniteRunner_TrackShape</code> (the one track asset)</td><td class="num">width 120 m · straightness 100 % · max grade 1° · feature table + spacing 1500–3000 m</td><td><span class="tag done">Changed · Step 2</span> width, straightness and the feature table moved here off the scene's <code>TrackGenerator</code></td></tr>
+    <tr><td>Features</td><td><code>Jump_Definition</code>, <code>Loop_Definition</code>, <code>FullTube_Definition</code>, <code>LaserGate_Definition</code></td><td class="num">ramp 60 m / 20° · loop radius 100 · lasers cover 20–30 %</td><td>The feature table (now on <code>FiniteRunner_TrackShape</code>) weights Jump 100, Loop 0, Tube 0, so only ramps spawn today.</td></tr>
+    <tr><td>Pickups</td><td><code>Spawner_SpeedOrbs</code>, <code>Spawner_RepairOrbs</code>, <code>Spawner_LaserGates</code></td><td class="num">orbs every 513–897 m · green 74 % ×2 / blue 22 % / purple 4 % · lasers every 1200–2400 m</td><td><span class="tag done">Changed · Step 2</span> green ×2 and laser spacing baked in · <span class="tag retired">Spawner_BrakePads</span></td></tr>
     <tr><td>Level</td><td><code>FiniteRunner_LevelDefinition</code></td><td class="num">Light Speed 3423 km/h · reward 500 · ranks S 10k / A 5k / B 2.5k</td><td></td></tr>
     <tr><td>Camera shakes</td><td><code>LandingShake_Settings</code> … <code>ExplosionShake_Settings</code></td><td>one asset per event: landing, wall hit, win banner, laser hit, scrape, explosion</td><td><span class="tag done">Changed · Step 1</span> was one shared asset</td></tr>
     <tr><td>Screen filters</td><td><code>Runner_VhsTape</code>, <code>Runner_PsxLook</code>, <code>Runner_CrtScreen</code>, <code>Runner_Rain</code></td><td>the runner's own copies</td><td><span class="tag done">Changed · Step 1</span> were shared with the city</td></tr>
   </table></div>
 
-  <div class="note drift">
-    <b>What actually runs today is not what the inspector shows</b>
-    Three debug assets in <code>04.Data/Resources/</code> have <code>applyOnLoad</code> on and stamp saved debug-menu values over the definitions at play start. The ship stamp runs <i>after</i> the Store upgrades, so Handling, Dash and Speed upgrades are overwritten every run. The tuning dump (Step 0) measured this:
+  <div class="note done">
+    <b>Fixed in Step 2: the inspector now shows what runs</b>
+    Three debug assets had <code>applyOnLoad</code> on and stamped saved debug-menu values over the definitions at play start, after the Store upgrades. Step 2 copied the values that were running into the definitions, so the game plays the same, and deleted the stamping (<code>ShipDebugSettings</code>, <code>PatrolDebugSettings</code>, <code>TrackDebugSettings</code>, <code>FeatureDebugSettings</code>, 797 lines and 4 assets). The tuning dump confirmed the ship, patrol and ship settings run on identical values before and after.
     <div class="scroll"><table>
-      <tr><th>Asset · field</th><th>Inspector</th><th>Runs as</th></tr>
-      <tr><td>Ship · <code>weight</code></td><td class="num">0.57</td><td class="num now">133.3</td></tr>
-      <tr><td>Ship · <code>acceleration</code></td><td class="num">113</td><td class="num now">−50</td></tr>
-      <tr><td>Ship · <code>gripBase</code></td><td class="num">50</td><td class="num now">2</td></tr>
-      <tr><td>Ship · <code>brakeDecel</code></td><td class="num">284</td><td class="num now">3.94</td></tr>
-      <tr><td>Ship · <code>lateralSpeed</code></td><td class="num">58.3</td><td class="num now">29.71</td></tr>
-      <tr><td>Ship · <code>hoverHeight</code></td><td class="num">3.5</td><td class="num now">3.75</td></tr>
-      <tr><td>Patrol · <code>sustainedCatchSeconds</code></td><td class="num">7</td><td class="num now">1.5</td></tr>
-      <tr><td>Patrol · <code>lateralSpeed</code> / <code>gripBase</code></td><td class="num">22 / 50</td><td class="num now">12 / 130</td></tr>
-      <tr><td>Track · straightness / length</td><td class="num">scene / 40 km</td><td class="num now">100 % / 48 km</td></tr>
+      <tr><th>Asset · field</th><th>Inspector before</th><th>Inspector now = runs</th></tr>
+      <tr><td>Ship · <code>weight</code></td><td class="num was">0.57</td><td class="num now">133.3</td></tr>
+      <tr><td>Ship · <code>acceleration</code></td><td class="num was">113</td><td class="num now">−50</td></tr>
+      <tr><td>Ship · <code>gripBase</code></td><td class="num was">50</td><td class="num now">2</td></tr>
+      <tr><td>Ship · <code>brakeDecel</code></td><td class="num was">284</td><td class="num now">3.94</td></tr>
+      <tr><td>Ship · <code>lateralSpeed</code></td><td class="num was">58.3</td><td class="num now">29.71</td></tr>
+      <tr><td>Patrol · <code>sustainedCatchSeconds</code></td><td class="num was">7</td><td class="num now">1.5</td></tr>
+      <tr><td>Patrol · <code>lateralSpeed</code> / <code>gripBase</code></td><td class="num was">22 / 50</td><td class="num now">12 / 130</td></tr>
+      <tr><td>Track · width / straightness</td><td class="num was">104.4 / scene</td><td class="num now">120 / 100 %</td></tr>
+      <tr><td>Track · length</td><td class="num was">40 km</td><td class="num now">48 km</td></tr>
+      <tr><td>Green orb multiplier</td><td class="num was">×1</td><td class="num now">×2</td></tr>
+      <tr><td>Laser gate spacing</td><td class="num was">600–1200 m (density 0.5)</td><td class="num now">1200–2400 m</td></tr>
     </table></div>
-    Step 2 copies the values that run today into the definitions, so the game feels the same, then removes the stamping. After that step the Store upgrades apply again.
+    One change you will feel: the Store's ship upgrades (Handling, Dash, Speed) now apply, because nothing overwrites them after the upgrade step.
   </div>
 
   <h3 id="runner-arch">How it is built</h3>
@@ -357,7 +359,7 @@ flowchart BT
       <dl><dt>Coupling today</dt><dd>finds <code>TrackGuide</code> and <code>TrackColliderBuilder</code> in the scene, writes the collider sink, pokes <code>HoverShip</code> internals.</dd><dt>Plan</dt><dd><span class="tag plan">Step 5</span> <span class="tag plan">Step 6</span> injected guide, public verbs only</dd></dl></div>
     <div class="sys"><h4><code>TrackGenerator</code> and the track</h4>
       <p><code>TrackManager</code> owns the spline, and distance from the start is the authoritative coordinate. The generator streams road, colliders (<code>TrackColliderBuilder</code>), features and pickups ahead of the ship, and builds the end ramps.</p>
-      <dl><dt>Coupling today</dt><dd>finds <code>ShipMotor</code> and <code>GameManager</code>, reads the ship's speed model, calls <code>BoostQte.Instance</code>.</dd><dt>Plan</dt><dd><span class="tag plan">Step 6</span> a stream focus + run config handed in</dd></dl></div>
+      <dl><dt>Coupling today</dt><dd>finds <code>ShipMotor</code> and <code>GameManager</code>, reads the ship's speed model, calls <code>BoostQte.Instance</code>.</dd><dt>Status</dt><dd><span class="tag done">Changed · Step 2</span> layout read off the shape asset; no more track length override · <span class="tag plan">Step 6</span> a stream focus + run config handed in</dd></dl></div>
     <div class="sys"><h4><code>PolicePatrol</code> + the duel</h4>
       <p>Drives a <code>TrackBody</code> through <code>PatrolDriver</code> and runs the <code>PatrolEncounter</code> state machine: Cruising → Committing → Alongside → TugOfWar → Finisher → BreakingOff → Cooldown, plus Overshooting and MissBraking.</p>
       <dl><dt>Coupling today</dt><dd>reads the ship's internal <code>TrackBody</code>, gets run rules through <code>target.DashSettings</code>, writes about 9 ship controls.</dd><dt>Plan</dt><dd><span class="tag plan">Step 7</span> <code>IChaseTarget</code> + <code>IControlTakeover</code></dd></dl></div>
@@ -401,8 +403,8 @@ flowchart LR
 
   <h3 id="runner-flow">A run from boot to retry</h3>
   <ol>
-    <li><code>TrackGenerator.Awake</code> builds the first stretch and applies the track and feature debug assets.</li>
-    <li><code>GameManager.Awake</code> subscribes to events, adds the ship components, builds the run definition (clone → Store upgrades → ship debug stamp), deals the lives, inits the patrol (clone → patrol debug stamp), attaches the camera and applies FX and music.</li>
+    <li><code>TrackGenerator.Awake</code> clones the shape and spawner assets and builds the first stretch.</li>
+    <li><code>GameManager.Awake</code> subscribes to events, adds the ship components, builds the run definition (clone → Store upgrades), deals the lives, inits the patrol (clone), attaches the camera and applies FX and music.</li>
     <li><code>ShipMotor.Start</code> launches from the track's start pose.</li>
     <li>Each tick: the ship steps, the motor mirrors it and applies runner rules, the patrol steps its body and the duel, <code>GameManager</code> ticks the countdown and objectives, the generator streams and culls.</li>
     <li><b>Win:</b> the ship reaches the end on a ramp with objectives met → banner → glitch → <code>MissionCompleteScreen</code> pays and offers NEXT MISSION / RETRY / EXIT.</li>
@@ -514,7 +516,7 @@ flowchart LR
     <div class="sys"><h4>Campaign <span class="tag game shared">Campaign asm</span></h4>
       <p><code>CampaignCatalog</code> (worlds → missions, each a city level + a runner level). The frontier is the first uncompleted mission. <code>MissionSession</code> swaps the session's level assets into <code>LevelManager</code> and <code>GameManager</code>. The MISSIONS map replays cleared missions.</p></div>
     <div class="sys"><h4>Menus and debug pages <span class="tag game shared">UI asm</span></h4>
-      <p>Code-built, auto-fitting plates across four languages. <code>PauseMenu</code> hosts runner debug tabs (<code>DebugMenuFactory</code>) and city tabs through <code>DebugMenuHooks</code>, which keeps UI from referencing the city.</p>
+      <p>Code-built, auto-fitting plates across four languages. <code>PauseMenu</code> hosts runner debug tabs (<code>DebugMenuFactory</code>) and city tabs through <code>DebugMenuHooks</code>, which keeps UI from referencing the city. Runner debug rows write the asset and mirror onto the clone; <code>DebugAssetEdits</code> saves them at resume and reload.</p>
       <dl><dt>Plan</dt><dd><span class="tag plan">Step 10</span> a page registry; one generic settings page replaces 6 copies</dd></dl></div>
     <div class="sys"><h4>Cameras <span class="tag game shared">Cameras asm</span></h4>
       <p><code>OrbitCameraRig</code> follows any <code>ICameraTarget</code>: far, close and first-person views, look-back, cinematic shot, duel framing. <code>CameraShake</code> is a static bank.</p>
@@ -543,8 +545,8 @@ flowchart LR
   <ol class="steps">
     <li class="is-done"><span class="st">Step 0<br/>done</span><div><b>Tuning dump safety net</b><span class="d">Tools → Refactor → Dump Effective Tuning writes the values a run really uses; Compare Last Two diffs them. Commit <code>dabeffe</code>.</span></div></li>
     <li class="is-done"><span class="st">Step 1<br/>done</span><div><b>Live bugs and shared-asset splits</b><span class="d">Car debug sliders, per-event shakes, per-game filter assets, stale default and tooltip. Commit <code>4aeb096</code>.</span></div></li>
-    <li class="is-next"><span class="st">Step 2<br/>next</span><div><b>Bake the debug overrides into the definitions</b><span class="d">The values that run today become the authored values; the stamping is removed. The Store's ship upgrades start working.</span></div></li>
-    <li><span class="st">Step 3</span><div><b>Remove runtime copies</b><span class="d">The 22-field per-frame sync, hover height in three places, guide assist twice, hardcoded fallbacks.</span></div></li>
+    <li class="is-done"><span class="st">Step 2<br/>done</span><div><b>Bake the debug overrides into the definitions</b><span class="d">The values that ran became the authored values; the four debug mirror assets are deleted; every runner debug row writes the asset and refreshes the clone; the track's layout knobs moved onto the shape asset.</span></div></li>
+    <li class="is-next"><span class="st">Step 3<br/>next</span><div><b>Remove runtime copies</b><span class="d">The 22-field per-frame sync, hover height in three places, guide assist twice, hardcoded fallbacks.</span></div></li>
     <li><span class="st">Step 4</span><div><b>Split GameSettings</b><span class="d">Into run rules, duel settings, camera feedback; FX settings move onto their drivers.</span></div></li>
     <li><span class="st">Step 5</span><div><b>Contracts assembly and composition root</b><span class="d">Interfaces below every game assembly; old paths keep working.</span></div></li>
     <li><span class="st">Step 6</span><div><b>Track stops knowing the ship</b><span class="d">Stream focus, run config and speed model handed in.</span></div></li>
@@ -571,6 +573,12 @@ flowchart LR
     <tr data-g="runner"><td>1</td><td><span class="tag game runner">Runner</span></td><td><code>PF_VhsTape</code>, <code>PF_PsxLook</code>, <code>PF_CrtScreen</code>, <code>GameSettings.rainSettings</code></td><td>Runner and city tuned the same four filter assets</td><td>Runner uses <code>Runner_VhsTape</code>, <code>Runner_PsxLook</code>, <code>Runner_CrtScreen</code>, <code>Runner_Rain</code></td><td>none</td></tr>
     <tr data-g="runner"><td>1</td><td><span class="tag game runner">Runner</span></td><td><code>GameSettings.finisherWindowSeconds</code></td><td>Code default 1 s, asset 1.5 s</td><td>Default 1.5 s</td><td>none</td></tr>
     <tr data-g="city"><td>1</td><td><span class="tag game city">City</span></td><td><code>VehiclePhysicsSettings.backend</code> tooltip</td><td>Said a reload was needed</td><td>Points at Apply To Live Cars</td><td>none</td></tr>
+    <tr data-g="runner"><td>2</td><td><span class="tag game runner">Runner</span></td><td><code>Fighter_ShipDefinition</code>, <code>Police_PatrolDefinition</code>, <code>FiniteRunner_TrackShape</code>, <code>Spawner_SpeedOrbs</code>, <code>Spawner_LaserGates</code>, <code>GameSettings.trackLengthMeters</code></td><td>Debug assets stamped their values over these at play start</td><td>The values that ran are the authored values</td><td>none (dump-verified)</td></tr>
+    <tr data-g="runner"><td>2</td><td><span class="tag game runner">Runner</span></td><td><code>ShipDebugSettings</code>, <code>PatrolDebugSettings</code>, <code>TrackDebugSettings</code>, <code>FeatureDebugSettings</code> + 4 Resources assets</td><td>797 lines of mirror code, every knob kept twice</td><td>Deleted</td><td>none</td></tr>
+    <tr data-g="runner"><td>2</td><td><span class="tag game runner">Runner</span></td><td><code>ShipUpgradeApplier</code>, <code>ShipDefinition.Source</code></td><td>Debug stamp overwrote the Store upgrades</td><td>Run definition = asset × upgrades; <code>Refresh</code> rebuilds it after a debug edit</td><td><b>Store ship upgrades apply again</b></td></tr>
+    <tr data-g="runner"><td>2</td><td><span class="tag game runner">Runner</span></td><td><code>TrackGenerator</code> → <code>TrackShapeSettings</code></td><td>Width, straightness, feature table and spacing on the scene component (lost on reload unless mirrored)</td><td>On the shape asset, the track's one tuning asset</td><td>none</td></tr>
+    <tr data-g="runner"><td>2</td><td><span class="tag game runner">Runner</span></td><td><code>TrackSpawner.Density</code>, <code>TrackGenerator.TrackLengthOverride</code></td><td>Runtime-only debug multipliers</td><td>Removed; debug rows edit spacing and the real track length</td><td>first laser window 1500–2700 m (was 1500–2100)</td></tr>
+    <tr data-g="shared"><td>2</td><td><span class="tag game shared">Shared</span></td><td><code>UI/DebugAssetEdits.cs</code>, <code>DebugMenuFactory</code>, <code>PauseMenu</code></td><td>Debug rows edited clones and captured into mirror assets</td><td>Rows write the asset, mirror onto the clone, saved at resume/reload</td><td>debug only</td></tr>
   </table></div>
 
   <h3 id="changes-register">Duplication register</h3>
@@ -587,9 +595,9 @@ flowchart LR
   <div class="scroll"><table class="wide" id="reg">
     <tr><th>#</th><th>Game</th><th>Value</th><th>Where it lives now</th><th>Single owner after</th><th>Status</th></tr>
     <tr data-g="runner open"><td>D1</td><td><span class="tag game runner">Runner</span></td><td>22 dash, ghost, trail, fall and respawn fields</td><td><code>GameSettings</code> copied into <code>ShipSettings</code> every frame</td><td><code>ShipSettings</code></td><td><span class="tag plan">Step 3</span></td></tr>
-    <tr data-g="runner open"><td>D2</td><td><span class="tag game runner">Runner</span></td><td>Ship stats</td><td>Debug asset stamped after Store upgrades</td><td><code>ShipDefinition</code></td><td><span class="tag plan">Step 2</span></td></tr>
-    <tr data-g="runner open"><td>D3</td><td><span class="tag game runner">Runner</span></td><td>Patrol stats</td><td>Debug asset over <code>PatrolDefinition</code></td><td><code>PatrolDefinition</code></td><td><span class="tag plan">Step 2</span></td></tr>
-    <tr data-g="runner open"><td>D4</td><td><span class="tag game runner">Runner</span></td><td>Track shape, width, length</td><td>Track + feature debug assets; generator width overwrites <code>TrackManager</code></td><td><code>TrackShapeSettings</code> / level</td><td><span class="tag plan">Step 2</span></td></tr>
+    <tr data-g="runner fixed"><td>D2</td><td><span class="tag game runner">Runner</span></td><td>Ship stats</td><td><code>ShipDefinition</code> only</td><td><code>ShipDefinition</code></td><td><span class="tag done">Fixed · Step 2</span></td></tr>
+    <tr data-g="runner fixed"><td>D3</td><td><span class="tag game runner">Runner</span></td><td>Patrol stats</td><td><code>PatrolDefinition</code> only</td><td><code>PatrolDefinition</code></td><td><span class="tag done">Fixed · Step 2</span></td></tr>
+    <tr data-g="runner fixed"><td>D4</td><td><span class="tag game runner">Runner</span></td><td>Track shape, width, length</td><td><code>TrackShapeSettings</code> + level / <code>GameSettings</code>; generator still pushes width into <code>TrackManager</code></td><td><code>TrackShapeSettings</code> / level</td><td><span class="tag done">Fixed · Step 2</span></td></tr>
     <tr data-g="runner open"><td>D5</td><td><span class="tag game runner">Runner</span></td><td>Hover height</td><td>Definition → <code>visualLift</code> + collider sink</td><td><code>ShipDefinition</code></td><td><span class="tag plan">Step 3</span></td></tr>
     <tr data-g="runner open"><td>D6</td><td><span class="tag game runner">Runner</span></td><td>Guide assist</td><td><code>ShipSettings</code> × <code>TrackGuide</code></td><td><code>ShipSettings</code></td><td><span class="tag plan">Step 3</span></td></tr>
     <tr data-g="runner open"><td>D7</td><td><span class="tag game runner">Runner</span></td><td>Patrol handling</td><td>Repeats ship handling; 3 hardcoded values</td><td><code>PatrolDefinition</code></td><td><span class="tag plan">Step 3</span></td></tr>
@@ -638,7 +646,7 @@ flowchart LR
 </main>
 
 <footer class="wrap">
-  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> at <code>4aeb096</code>, and the Step 0 tuning dump. Where the rule files and the shipped assets disagree, this document follows the assets.
+  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 2, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
 </footer>
 
 <script>
