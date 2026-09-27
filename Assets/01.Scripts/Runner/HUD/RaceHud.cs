@@ -5,6 +5,7 @@ using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 using ConfusedGameDev.FiniteRunner.Collectibles;
+using ConfusedGameDev.FiniteRunner.Contracts;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Screens;
 using ConfusedGameDev.FiniteRunner.Ship;
@@ -33,8 +34,27 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// </summary>
     public class RaceHud : MonoBehaviour
     {
-        [SerializeField] ShipMotor motor;
-        [SerializeField] GameManager gameManager;
+        // What the HUD reads, by contract (refactor Step 8.4): the run through
+        // IRunState, the ship through IChaseTarget. The scene wires the objects;
+        // left empty, they are discovered by interface — and with no run in the
+        // scene the HUD shows nothing live.
+        [Tooltip("The run to show (anything implementing IRunState — the GameManager). Empty = found in the scene.")]
+        [FormerlySerializedAs("run"), SerializeField] MonoBehaviour runSource;
+        [Tooltip("The ship to show (anything implementing IChaseTarget — the ShipMotor). Empty = found in the scene.")]
+        [FormerlySerializedAs("motor"), SerializeField] MonoBehaviour shipSource;
+
+        IRunState run;
+        IChaseTarget ship;
+
+        void ResolveSources()
+        {
+            run ??= runSource as IRunState ?? ContractLookup.Find<IRunState>();
+            ship ??= shipSource as IChaseTarget ?? ContractLookup.Find<IChaseTarget>();
+        }
+
+        // A collector is ours when it lives on the ship's object (the pickup names the HoverShip beside the motor).
+        bool IsMine(object collector) =>
+            collector is Component c && ship is Component mine && c != null && mine != null && c.gameObject == mine.gameObject;
 
         [Header("Widgets")]
         [SerializeField] Text speedText;
@@ -156,15 +176,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             if (objectiveLineTemplate != null) objectiveLineTemplate.gameObject.SetActive(false);
             BuildGauge();
             BuildLifeBar();
-            if (gameManager == null || targetText == null || gameManager.Level == null) return;
+            if (run == null || targetText == null || run.Level == null) return;
             targetColor = targetText.color;
-            RunnerLevelDefinition level = gameManager.Level;
+            RunnerLevelDefinition level = run.Level;
             int slot = 0;
             for (int i = 0; i < level.Count; i++)
             {
                 RunnerObjective step = level.objectives[i];
                 // The goal line above already shows the Light Speed target.
-                if (step.type == RunnerObjectiveType.ReachSpeed && Mathf.Approximately(step.targetSpeedKmh, gameManager.LightSpeedKmh)) continue;
+                if (step.type == RunnerObjectiveType.ReachSpeed && Mathf.Approximately(step.targetSpeedKmh, run.LightSpeedKmh)) continue;
                 Text line = MakeObjectiveLine(slot++);
                 if (line != null) objectiveLines.Add((step, false, i, line));
             }
@@ -185,7 +205,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         // the bar and the count are hidden where they stand.
         void BuildLifeBar()
         {
-            bool hull = gameManager != null && gameManager.HullEnabled && gameManager.ShipHealth != null;
+            bool hull = run != null && run.HullEnabled && run.HullFraction >= 0f;
             if (lifeBarRect != null) lifeBarRect.gameObject.SetActive(hull);
             if (livesText != null) livesText.gameObject.SetActive(hull);
             if (!hull || lifeBarRect == null) return;
@@ -199,7 +219,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         {
             if (lifeBar == null) return;
 
-            float life = gameManager.ShipHealth.Fraction;
+            float life = run.HullFraction;
             if (life < lastLife - 1e-4f)
             {
                 lifeFlash = 1f;
@@ -226,7 +246,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             float shown = Mathf.Ceil(life * cells - 1e-4f) / cells;
             lifeBar.SetFill(shown, _ => color);
 
-            int lives = gameManager.LivesLeft;
+            int lives = run.LivesLeft;
             if (lives != shownLives)
             {
                 if (shownLives >= 0) livesPunch = lifeHitPunch * 1.2f;
@@ -264,7 +284,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void OnEnable()
         {
-            if (motor != null) motor.PadImpulse += OnPadImpulse;
+            ResolveSources();
+            if (ship != null) ship.Boosted += OnPadImpulse;
             CollectibleManager.MoneyChanged += OnMoneyChanged;
             RepairOrb.Collected += OnRepairOrb;
             BoostQte.Graded += OnQteGraded; // static: paired below — domain reload is off
@@ -272,7 +293,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void OnDisable()
         {
-            if (motor != null) motor.PadImpulse -= OnPadImpulse;
+            if (ship != null) ship.Boosted -= OnPadImpulse;
             CollectibleManager.MoneyChanged -= OnMoneyChanged;
             RepairOrb.Collected -= OnRepairOrb;
             BoostQte.Graded -= OnQteGraded;
@@ -319,10 +340,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         // A reset (delta 0) and a finished run show nothing.
         void OnMoneyChanged(int total, int delta)
         {
-            if (!spawnBoostText || delta <= 0 || gameManager == null || gameManager.RunOver) return;
+            if (!spawnBoostText || delta <= 0 || run == null || run.RunOver) return;
             FloatingTextSystem.Instance.DisplayText(
                 $"+${delta}", moneyTextColor, 1f,
-                gameManager.BoostTextLeadMeters, boostTextSize);
+                run.BoostTextLeadMeters, boostTextSize);
         }
 
         // A repair orb: the bar flashes green and punches, and "+N" (hull
@@ -331,13 +352,13 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         // fraction rising — a restart refills it too.
         void OnRepairOrb(RepairOrb orb, IShip collector, float healed)
         {
-            if (motor == null || !motor.Is(collector)) return;
+            if (ship == null || !IsMine(collector)) return;
             healFlash = 1f;
             lifePunch = lifeHitPunch;
-            if (spawnBoostText && healed >= 0.5f && gameManager != null && !gameManager.RunOver)
+            if (spawnBoostText && healed >= 0.5f && run != null && !run.RunOver)
                 FloatingTextSystem.Instance.DisplayText(
                     $"+{healed:0}", repairColor, 1f,
-                    gameManager.BoostTextLeadMeters, boostTextSize);
+                    run.BoostTextLeadMeters, boostTextSize);
         }
 
         void OnPadImpulse(float magnitude)
@@ -347,19 +368,19 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             // Juice: floating text for every booster hit, spawned ahead of the
             // ship (GameSettings.boostTextLeadMeters) so it isn't left behind
             // instantly at speed.
-            if (spawnBoostText && magnitude > 0f && gameManager != null)
+            if (spawnBoostText && magnitude > 0f && run != null)
                 FloatingTextSystem.Instance.DisplayText(
                     $"+{magnitude:0}", boostTextColor, 1f,
-                    gameManager.BoostTextLeadMeters, boostTextSize);
+                    run.BoostTextLeadMeters, boostTextSize);
         }
 
         void Update()
         {
             UpdateQteResult();
-            if (motor == null) return;
+            if (ship == null) return;
 
-            float kmh = motor.CurrentSpeed * 3.6f;
-            float lightSpeed = gameManager != null ? gameManager.LightSpeedKmh : 0f;
+            float kmh = ship.Speed * 3.6f;
+            float lightSpeed = run != null ? run.LightSpeedKmh : 0f;
 
             if (speedText != null)
             {
@@ -381,15 +402,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 targetText.text = $"LIGHT SPEED  {lightSpeed:0} KM/H";
                 // Reached once is reached: the goal line stays done while the
                 // ship still has to make it to an end ramp.
-                if (gameManager != null && gameManager.Level != null)
-                    targetText.color = gameManager.LightSpeedReached ? winColor : targetColor;
+                if (run != null && run.Level != null)
+                    targetText.color = run.LightSpeedReached ? winColor : targetColor;
             }
 
             foreach (var line in objectiveLines)
             {
-                bool done = line.challenge ? gameManager.IsChallengeDone(line.index) : gameManager.IsObjectiveDone(line.index);
+                bool done = line.challenge ? run.IsChallengeDone(line.index) : run.IsObjectiveDone(line.index);
                 string label = line.step.Summary;
-                string progress = line.step.Progress(kmh, gameManager.JumpCount);
+                string progress = line.step.Progress(kmh, run.JumpCount);
                 if (progress.Length > 0) label += "  " + progress;
                 if (line.step is RunnerOptionalChallenge challenge) label += $"  \u00d7{challenge.multiplier}";
                 line.text.text = label;
@@ -401,10 +422,10 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         void UpdateCountdown()
         {
-            if (gameManager == null || timeText == null) return;
+            if (run == null || timeText == null) return;
 
             // Whole seconds, rounded up so 00:00 is the moment the clock runs out.
-            int seconds = Mathf.CeilToInt(Mathf.Max(0f, gameManager.TimeRemaining));
+            int seconds = Mathf.CeilToInt(Mathf.Max(0f, run.TimeRemaining));
             if (seconds == shownSeconds) return;
             shownSeconds = seconds;
             timeText.text = $"{seconds / 60:00}:{seconds % 60:00}";

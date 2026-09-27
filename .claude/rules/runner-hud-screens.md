@@ -17,6 +17,16 @@ paths:
 
 The runner's scene-wired HUD on the `RaceHUD` canvas object.
 
+**It reads the run and the ship by contract** (refactor Step 8.4): the run through
+`GameFlow/IRunState` (clock, lives, hull fraction, Light Speed, objectives, boost-text lead, track
+end — the `GameManager` implements it; it lives in the Runner assembly because it hands out the
+runner's level types) and the ship through `Contracts.IChaseTarget` (speed, the `Boosted` event).
+The serialized `runSource` / `shipSource` (renamed from `gameManager` / `motor` with
+`FormerlySerializedAs`) name the objects; left empty they are discovered by interface. The
+`ChaseMinimap` binds the same two contracts. `DuelBarHud` and `BoostQte` are hand-placed in
+`PF_UI` like the dash prompt and the pause menu — their `Spawn` finds and binds them (the bar
+builds its canvas once).
+
 **The layout is the designer's: code never moves, resizes, re-anchors or re-fonts a HUD element.**
 Every element is a hand-placed scene object — `SpeedText`, `SpeedGauge` (a rect, `gaugeRect`),
 `LifeBar` (`lifeBarRect`), `Lives`, `KmhLabel`, `TargetText`, `Objectives` (a

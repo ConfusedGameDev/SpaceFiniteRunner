@@ -65,22 +65,29 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         float rumbleCooldown;
 
         /// <summary>
-        /// Spawns the bar under its own overlay canvas. Null patrol or a
-        /// disabled duel simply means no bar — the caller need not check.
+        /// Binds the scene's hand-placed bar (found; created only when the
+        /// scene has none) and builds it under its own overlay canvas once.
+        /// Null patrol or a disabled duel simply means no bar — the caller
+        /// need not check.
         /// </summary>
         public static DuelBarHud Spawn(ShipMotor motor, PolicePatrol patrol)
         {
             if (motor == null || patrol == null || patrol.Definition == null || !patrol.Definition.duelEnabled) return null;
-            var go = new GameObject("DuelBarHud");
-            var hud = go.AddComponent<DuelBarHud>();
+            var hud = FindFirstObjectByType<DuelBarHud>(FindObjectsInactive.Include);
+            if (hud == null) hud = new GameObject("DuelBarHud").AddComponent<DuelBarHud>();
+            if (!hud.gameObject.activeSelf) hud.gameObject.SetActive(true);
             hud.motor = motor;
             hud.patrol = patrol;
             hud.Build();
             return hud;
         }
 
+        bool built;
+
         void Build()
         {
+            if (built) return; // a restart re-binds; the canvas is built once
+            built = true;
             theme = MenuTheme.Load();
             glyphs = ControlGlyphSet.Load();
 

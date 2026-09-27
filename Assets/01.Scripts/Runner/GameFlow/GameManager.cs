@@ -37,7 +37,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// Holds no tunables itself — every balance knob lives on the
     /// <see cref="GameSettings"/> asset, drawn inline here for the designers.
     /// </summary>
-    public class GameManager : MonoBehaviour, Contracts.ITrackRunRules
+    public class GameManager : MonoBehaviour, Contracts.ITrackRunRules, IRunState
     {
         [Title("Scene references")]
         [SerializeField, Required] ShipMotor motor;
@@ -157,6 +157,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool HullEnabled => settings != null && settings.hullEnabled;
         /// <summary>The ship's hull, for the HUD's life bar. Null without a ship.</summary>
         public ShipHealth ShipHealth => shipHealth;
+
+        /// <summary>The hull's fill for views (<see cref="IRunState"/>): 0..1, below 0 without a hull.</summary>
+        public float HullFraction => shipHealth != null ? shipHealth.Fraction : -1f;
         /// <summary>Failed runs this mission still forgives — the HUD's ×N. Every failed run takes one; the run that takes the last is GAME OVER. Survives <see cref="Restart"/>.</summary>
         public int LivesLeft { get; private set; }
 

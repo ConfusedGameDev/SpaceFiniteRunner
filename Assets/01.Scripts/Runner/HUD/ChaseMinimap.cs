@@ -2,6 +2,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
+using ConfusedGameDev.FiniteRunner.Contracts;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
 namespace ConfusedGameDev.FiniteRunner.HUD
@@ -44,9 +45,9 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Tooltip("Patrol gap.")]
         [SerializeField] Text distanceText;
 
-        ShipMotor motor;
+        IChaseTarget motor;   // the ship, by contract
         PolicePatrol patrol;     // null on a chase-less run: the map still shows the track
-        GameManager gameManager;
+        IRunState gameManager; // the run, by contract
         float rangeMeters; // gap beyond which the patrol is off the map; at it the icon hangs a full chaseSpan under the ship
         float warnMeters;  // gap below which the readout turns red
 
@@ -65,7 +66,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         ChaseMinimapSettings Style => style != null ? style : style = ScriptableObject.CreateInstance<ChaseMinimapSettings>();
 
-        public static ChaseMinimap Spawn(ShipMotor motor, PolicePatrol patrol, GameManager gameManager, float rangeMeters, float warnMeters)
+        public static ChaseMinimap Spawn(IChaseTarget motor, PolicePatrol patrol, IRunState gameManager, float rangeMeters, float warnMeters)
         {
             var map = FindFirstObjectByType<ChaseMinimap>();
             if (map == null) map = new GameObject("ChaseMinimap").AddComponent<ChaseMinimap>();
@@ -248,7 +249,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             // track has no end to climb to — the ship stays pinned at the top.
             bool finite = gameManager != null && gameManager.HasTrackEnd;
             float remaining = finite ? gameManager.DistanceRemaining : 0f;
-            float travelled = Mathf.Max(0f, motor.DistanceTravelled);
+            float travelled = Mathf.Max(0f, motor.DisplayDistance);
             float length = travelled + remaining;
             float shipY = (finite && length > 0f ? Mathf.Clamp01(travelled / length) : 1f) * bar.rect.height;
             shipIcon.anchoredPosition = new Vector2(shipIcon.anchoredPosition.x, shipY);

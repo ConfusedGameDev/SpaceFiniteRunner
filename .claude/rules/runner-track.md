@@ -539,7 +539,7 @@ visual carries are only a picture.
   plane in bursts (one fast eased turn, a pause, again). Written in world space in `LateUpdate`, so
   `OrbHover`'s slow spin of the root never leaks into it. `SpeedPad.ApplyColor` tints EVERY renderer, so the ring wears the
   tier colour.
-- **The boost QTE** (`GameFlow/BoostQte.cs`, spawned by `GameManager` when
+- **The boost QTE** (`GameFlow/BoostQte.cs`, hand-placed in `PF_UI`, bound by `GameManager` when
   `GameSettings.boostQte`): press Boost (`GameAction.ShipBoost`, A / Space) as the ship crosses a
   boost orb and the boost is multiplied by the accuracy. Taking an orb without a press is unchanged.
   Graded in **time** — `(orb.TrackDistance − ship distance) / speed` — so the window feels the
