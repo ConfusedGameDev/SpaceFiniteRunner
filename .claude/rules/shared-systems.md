@@ -86,7 +86,13 @@ completion lines. **Neither runner ending speaks** — win and loss raise their 
 
 Singleton gamepad rumble, auto-created like `FloatingTextSystem`.
 
-- `Pulse(low, high, duration)` for one-shots.
+- `Pulse(low, high, duration)` for one-shots, and `Pulse(Vector3)` — **every gameplay rumble is
+  authored as a `Vector3` (low motor, high motor, seconds) on the settings asset of its event**
+  (refactor Step 8.2): the runner's in the `GameSettings` "Haptics" group beside `boostRumble`
+  (busted, escape, end fail, hull hit, explosion, repair, brake, dash, loop fail, landing, fall,
+  slide, wall hit, laser hit, win banner), the duel's on `PatrolDefinition` (kill, ram, shove,
+  redeploy, the tug slam's band). Menus take theirs from `MenuTheme`. The city's water splash and
+  player damage rumbles are still literals until refactor Step 9.
 - `SetChaseIntensity(0..1)` is a continuous channel the patrol refreshes each frame while close;
   **it self-fades when the calls stop**, so stale rumble can't persist.
 

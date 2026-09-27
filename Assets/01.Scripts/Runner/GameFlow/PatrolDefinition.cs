@@ -233,6 +233,31 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float duelSparkScale = 1f;
 
         [TitleGroup("Duel")]
+        [Tooltip("The kill: the cruiser destroyed. (low motor, high motor, seconds)")]
+        public Vector3 killRumble = new(1f, 1f, 0.5f);
+
+        [TitleGroup("Duel")]
+        [Tooltip("Ramming the cruiser from behind. (low motor, high motor, seconds)")]
+        public Vector3 ramRumble = new(0.9f, 0.6f, 0.25f);
+
+        [TitleGroup("Duel")]
+        [Tooltip("A lost tug of war: the shove into the wall or off the road. (low motor, high motor, seconds)")]
+        public Vector3 shoveRumble = new(1f, 0.8f, 0.5f);
+
+        [TitleGroup("Duel")]
+        [Tooltip("A fresh cruiser cutting in behind you. (low motor, high motor, seconds)")]
+        public Vector3 redeployRumble = new(0.6f, 0.4f, 0.4f);
+
+        [TitleGroup("Duel")]
+        [Tooltip("A slam in the tug of war at the weakest (X) and hardest (Y) push: the low motor rides between them by the slam's strength. (low motor, high motor, seconds) for the weakest; only the low motor changes.")]
+        public Vector3 tugSlamRumble = new(0.4f, 0.5f, 0.12f);
+
+        [TitleGroup("Duel")]
+        [Tooltip("The low motor of the hardest slam (the weakest is tugSlamRumble.x).")]
+        [PropertyRange(0f, 1f)]
+        public float tugSlamRumbleMax = 0.9f;
+
+        [TitleGroup("Duel")]
         [Tooltip("How much FASTER than the ship the patrol drives while committing to an attack run. This burst is what closes the gap — and it is the telegraph, so keep it visible.")]
         [PropertyRange(1f, 2f), SuffixLabel("x ship speed", true)]
         public float attackRunOverdrive = 1.15f;

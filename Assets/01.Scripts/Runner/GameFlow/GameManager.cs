@@ -481,7 +481,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             if (patrol != null && patrol.HasCaught)
             {
-                HapticsSystem.Instance.Pulse(1f, 0.7f, 1.5f); // long busted rumble
+                HapticsSystem.Instance.Pulse(settings.bustedRumble);
                 BeginFail(RunOutcome.Caught);
                 return;
             }
@@ -522,12 +522,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             {
                 HasWon = true; // from here on nothing can be lost
                 motor.BeginEscape();
-                HapticsSystem.Instance.Pulse(0.7f, 0.9f, 0.6f);
+                HapticsSystem.Instance.Pulse(settings.escapeRumble);
                 winRoutine = StartCoroutine(FinishWin());
                 return;
             }
 
-            HapticsSystem.Instance.Pulse(1f, 0.5f, 0.8f);
+            HapticsSystem.Instance.Pulse(settings.endFailRumble);
             if (GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(settings.fallGlitchStrength);
             BeginFail(ObjectivesMet ? RunOutcome.MissedRamp : RunOutcome.TooSlow);
@@ -558,7 +558,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(settings.hullHitGlitchStrength);
             if (hard) return;
-            HapticsSystem.Instance.Pulse(0.5f, 0.3f, 0.15f);
+            HapticsSystem.Instance.Pulse(settings.hullHitRumble);
             CameraShake.Shake(settings.scrapeShake);
         }
 
@@ -572,7 +572,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                            settings.explosionLifetime, settings.explosionParticles);
             if (shipHealth != null) shipHealth.SetShipVisible(false);
 
-            HapticsSystem.Instance.Pulse(1f, 1f, 0.8f);
+            HapticsSystem.Instance.Pulse(settings.explosionRumble);
             CameraShake.Shake(settings.explosionShake);
             if (GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(settings.explosionGlitchStrength);
@@ -908,7 +908,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void OnRepairOrb(RepairOrb orb, IShip collector, float healed)
         {
             if (motor == null || !motor.Is(collector) || RunOver || IsEnding) return;
-            HapticsSystem.Instance.Pulse(0.3f, 0.3f, 0.2f);
+            HapticsSystem.Instance.Pulse(settings.repairRumble);
         }
 
         // Story beat: the fresh patrol announces itself — a dialogue line, not
@@ -941,7 +941,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 Vector3 rumble = Vector3.Lerp(settings.boostRumble, settings.boostQteRumbleAtPerfect, BoostQte.FeedbackScale);
                 HapticsSystem.Instance.Pulse(rumble.x, rumble.y, rumble.z);
             }
-            else HapticsSystem.Instance.Pulse(0.65f, 0.2f, 0.25f);
+            else HapticsSystem.Instance.Pulse(settings.brakeRumble);
 
             // A burst of speed lines per boost, scaled by the orb's tier
             // (rawMagnitude is tier × powerUpSpeedBoost; a ramp takeoff's
@@ -954,7 +954,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // Dash feel: a short kick in the hands.
         void OnDashPerformed(int direction)
         {
-            HapticsSystem.Instance.Pulse(0.3f, 0.6f, 0.12f);
+            HapticsSystem.Instance.Pulse(settings.dashRumble);
         }
 
         // A jump: the camera pulls out to the Far framing for the arc and
@@ -1028,7 +1028,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // and a long rumble; the landing below rides the ordinary Landed path.
         void OnLoopFailed()
         {
-            HapticsSystem.Instance.Pulse(0.9f, 0.5f, 0.5f);
+            HapticsSystem.Instance.Pulse(settings.loopFailRumble);
             if (GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(settings.loopFallGlitchStrength);
         }
@@ -1037,7 +1037,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // sparkles at the touchdown point, no speed change.
         void OnLanded()
         {
-            HapticsSystem.Instance.Pulse(0.5f, 0.3f, 0.2f);
+            HapticsSystem.Instance.Pulse(settings.landingRumble);
             CameraShake.Shake(settings.landingShake);
             SparkleVfx.SpawnBurst(motor.transform.position, motor.transform.up,
                                   settings.landingSparkleColor, settings.landingSparkleScale,
@@ -1054,7 +1054,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void OnFellOff()
         {
             if (patrol != null) patrol.SetHold(true);
-            HapticsSystem.Instance.Pulse(1f, 0.5f, 0.8f);
+            HapticsSystem.Instance.Pulse(settings.fallRumble);
             if (GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(settings.fallGlitchStrength);
             fallCameraLeft = Mathf.Max(0f, settings.fallCameraFollowSeconds);
@@ -1096,13 +1096,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // long low rumble rather than the wall's sharp knock.
         void OnSliding(float excess)
         {
-            HapticsSystem.Instance.Pulse(0.6f, 0.2f, 0.5f);
+            HapticsSystem.Instance.Pulse(settings.slideRumble);
             CameraShake.Shake(settings.slideShake);
         }
 
         void OnWallHit(float impactSpeed)
         {
-            HapticsSystem.Instance.Pulse(0.8f, 0.4f, 0.2f);
+            HapticsSystem.Instance.Pulse(settings.wallHitRumble);
             CameraShake.Shake(settings.wallHitShake);
             if (GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(settings.dashWallGlitchStrength);
@@ -1128,7 +1128,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             SmokeVfx.SpawnTrail(motor.transform, smokeAt, settings.laserSmokeTextures, settings.laserSmokeScale,
                                 settings.laserSmokeSeconds, settings.laserSmokeRate, settings.laserSmokeBurst);
 
-            HapticsSystem.Instance.Pulse(1f, 0.7f, 0.8f);
+            HapticsSystem.Instance.Pulse(settings.laserHitRumble);
             CameraShake.Shake(settings.laserHitShake);
             var shipAudio = motor.GetComponent<ShipAudio>();
             if (shipAudio != null) shipAudio.PlayLaserHit();

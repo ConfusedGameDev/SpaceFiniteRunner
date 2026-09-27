@@ -65,6 +65,9 @@ namespace ConfusedGameDev.FiniteRunner.Haptics
             pulseTimeLeft = Mathf.Max(pulseTimeLeft, duration);
         }
 
+        /// <summary>One-shot rumble authored as one value: (low motor, high motor, seconds) — how every settings asset stores a rumble.</summary>
+        public void Pulse(Vector3 rumble) => Pulse(rumble.x, rumble.y, rumble.z);
+
         /// <summary>
         /// Continuous proximity rumble, 0..1. Call every frame while the danger
         /// lasts — it decays on its own shortly after the calls stop.

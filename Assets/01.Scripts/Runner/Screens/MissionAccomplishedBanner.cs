@@ -459,7 +459,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 if (settings.winBannerGlitchPunch > 0f && GlitchController.Instance != null)
                     GlitchController.Instance.Pulse(settings.winBannerGlitchPunch);
             }
-            HapticsSystem.Instance.Pulse(0.7f, 1f, 0.25f);
+            HapticsSystem.Instance.Pulse(settings != null ? settings.winBannerRumble : GameSettings.Default.winBannerRumble);
         }
     }
 }

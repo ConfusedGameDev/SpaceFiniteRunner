@@ -149,6 +149,70 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Base boost rumble (low motor, high motor, seconds) — a boost orb taken without a timed press, and every non-orb boost (a ramp takeoff).")]
         public Vector3 boostRumble = new(0.15f, 0.55f, 0.15f);
 
+        // ------------------------------------------------------------- haptics
+        // One rumble per run event, beside the event's shake and glitch
+        // strengths on this asset (moved here in refactor Step 8.2 — they were
+        // literals in the GameManager). Each is (low motor, high motor, seconds).
+        [TitleGroup("Haptics")]
+        [Tooltip("The arrest (the patrol sat on your tail too long): a long heavy rumble. (low motor, high motor, seconds)")]
+        public Vector3 bustedRumble = new(1f, 0.7f, 1.5f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("Leaving the track off an end ramp with the objectives met — the win latching. (low motor, high motor, seconds)")]
+        public Vector3 escapeRumble = new(0.7f, 0.9f, 0.6f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("Reaching the end without the win (an objective open, or through a gap into the void). (low motor, high motor, seconds)")]
+        public Vector3 endFailRumble = new(1f, 0.5f, 0.8f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("A hull hit whose cause has no rumble of its own. (low motor, high motor, seconds)")]
+        public Vector3 hullHitRumble = new(0.5f, 0.3f, 0.15f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("The hull reaching 0 and the ship exploding. (low motor, high motor, seconds)")]
+        public Vector3 explosionRumble = new(1f, 1f, 0.8f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("Taking a repair orb: a soft, even pulse — neither a boost\'s kick nor a hit\'s rumble. (low motor, high motor, seconds)")]
+        public Vector3 repairRumble = new(0.3f, 0.3f, 0.2f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("A speed LOSS impulse (a brake pad): a heavier thud than a boost. (low motor, high motor, seconds)")]
+        public Vector3 brakeRumble = new(0.65f, 0.2f, 0.25f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("A dash: a short kick in the hands. (low motor, high motor, seconds)")]
+        public Vector3 dashRumble = new(0.3f, 0.6f, 0.12f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("Too slow for a loop: the drop off its top. (low motor, high motor, seconds)")]
+        public Vector3 loopFailRumble = new(0.9f, 0.5f, 0.5f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("Touching down after a jump. (low motor, high motor, seconds)")]
+        public Vector3 landingRumble = new(0.5f, 0.3f, 0.2f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("Going over an open edge. (low motor, high motor, seconds)")]
+        public Vector3 fallRumble = new(1f, 0.5f, 0.8f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("Losing grip on a flat sweep: a long low rumble rather than the wall\'s sharp knock. (low motor, high motor, seconds)")]
+        public Vector3 slideRumble = new(0.6f, 0.2f, 0.5f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("A hard wall hit. (low motor, high motor, seconds)")]
+        public Vector3 wallHitRumble = new(0.8f, 0.4f, 0.2f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("Flying through a laser beam. (low motor, high motor, seconds)")]
+        public Vector3 laserHitRumble = new(1f, 0.7f, 0.8f);
+
+        [TitleGroup("Haptics")]
+        [Tooltip("The MISSION ACCOMPLISHED / FAILED banner slamming in. (low motor, high motor, seconds)")]
+        public Vector3 winBannerRumble = new(0.7f, 1f, 0.25f);
+
         // ----------------------------------------------------------- boost QTE
         [ToggleGroup("boostQte", "Boost QTE")]
         [Tooltip("Timed boost: press Boost (A / Space) as the ship crosses a boost orb and the boost is multiplied by how close the press was. " +

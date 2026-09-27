@@ -558,7 +558,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                                            rules.explosionScale * runtimeDef.killExplosionScale,
                                            rules.explosionLifetime, rules.explosionParticles);
 
-            HapticsSystem.Instance.Pulse(1f, 1f, 0.5f);
+            HapticsSystem.Instance.Pulse(runtimeDef.killRumble);
             CameraShake.Shake(rules != null ? rules.explosionShake : default);
             DuelSlowMo.RequestHitStop(runtimeDef.duelHitStopSeconds);
             if (spendsDashMeter) control.DrainDashMeter();
@@ -1014,7 +1014,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             SparkleVfx.SpawnBurst(pose, rotation * Vector3.up,
                                   runtimeDef.duelBarColor, 6f, 24);
 
-            HapticsSystem.Instance.Pulse(0.9f, 0.6f, 0.25f);
+            HapticsSystem.Instance.Pulse(runtimeDef.ramRumble);
             if (rules != null) CameraShake.Shake(rules.wallHitShake);
         }
 
@@ -1092,7 +1092,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             slamKickLeft = SlamKickSeconds;
             sparks.Slam(strength);
             if (encounter.Side != 0) control.VisualKick(-encounter.Side * runtimeDef.tugSlamKickMeters * Mathf.Lerp(0.6f, 1f, strength));
-            HapticsSystem.Instance.Pulse(Mathf.Lerp(0.4f, 0.9f, strength), 0.5f, 0.12f);
+            HapticsSystem.Instance.Pulse(Mathf.Lerp(runtimeDef.tugSlamRumble.x, runtimeDef.tugSlamRumbleMax, strength), runtimeDef.tugSlamRumble.y, runtimeDef.tugSlamRumble.z);
             GameSettings rules = runRules;
             if (rules != null) CameraShake.Shake(rules.wallHitShake);
         }
@@ -1129,7 +1129,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             float drag = target.HandlingResponse;
             control.AddLateralShove(-side * runtimeDef.shoveMeters * drag);
-            HapticsSystem.Instance.Pulse(1f, 0.8f, 0.5f);
+            HapticsSystem.Instance.Pulse(runtimeDef.shoveRumble);
         }
 
         // Tailing the ship inside the catch distance for long enough is an
@@ -1186,7 +1186,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             encounter.Reset();  // a teleport is not an attack run
             ApplyPose(1f);
 
-            HapticsSystem.Instance.Pulse(0.6f, 0.4f, 0.4f);
+            HapticsSystem.Instance.Pulse(runtimeDef.redeployRumble);
             Redeployed?.Invoke(PatrolNumber);
         }
 
