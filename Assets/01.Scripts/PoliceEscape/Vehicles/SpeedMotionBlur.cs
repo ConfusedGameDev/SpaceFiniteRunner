@@ -108,7 +108,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             refreshTimer -= Time.deltaTime;
             if (player != null && refreshTimer > 0f) return;
             refreshTimer = 1f;
-            player = AI.PatrolManager.FindPlayerCar();
+            player = PlayerCars.Current;
         }
 
         void OnDisable()

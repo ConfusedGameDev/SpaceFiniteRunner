@@ -48,7 +48,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             if (city == null) city = FindAnyObjectByType<CityManager>();
             if (city == null || city.Graph == null || city.Graph.Count == 0) return;
 
-            CarController player = FindPlayerCar();
+            CarController player = PlayerCars.Current;
             if (player == null) return; // nothing to hunt yet — fleet waits for the player spawn
 
             patrols.RemoveAll(patrol => patrol == null);
@@ -103,15 +103,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 Destroy(header.GetChild(i).gameObject);
             patrols.Clear();
             maintenanceTimer = 0f;
-        }
-
-        /// <summary>The player's car: the one driven by a CarInput. Null while no player car exists.</summary>
-        public static CarController FindPlayerCar()
-        {
-            foreach (var car in FindObjectsByType<CarController>(FindObjectsSortMode.None))
-                if (car.GetComponent<CarInput>() != null)
-                    return car;
-            return null;
         }
 
         bool TrySpawnPatrol(CarController player)

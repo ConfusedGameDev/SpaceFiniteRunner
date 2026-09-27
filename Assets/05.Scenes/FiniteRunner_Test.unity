@@ -1124,6 +1124,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1092581442}
     - target: {fileID: 8186802981804223418, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
+      propertyPath: shipSource
+      value: 
+      objectReference: {fileID: 1092581442}
+    - target: {fileID: 8186802981804223418, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
       propertyPath: gameManager
       value: 
       objectReference: {fileID: 1221762356}

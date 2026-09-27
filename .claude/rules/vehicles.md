@@ -32,8 +32,17 @@ paths (player prefab, police prefab, traffic rigs) are covered with no spawn-sit
 In EVP mode `EvpCarBackend.Install` adds an `EVP.VehicleController` over the **same rigidbody,
 WheelColliders and wheel pivots** — the object is briefly deactivated so EVP's `OnEnable` sees a
 filled wheel list, and velocities are carried across by hand. `CarController` stops simulating but
-**stays as the car's identity**: `FindPlayerCar`, camera, HUD, AI perception and health all keep
+**stays as the car's identity**: `PlayerCars`, camera, HUD, AI perception and health all keep
 reading it.
+
+**Which car is the player's** is answered by `Vehicles/PlayerCars` (refactor Step 9.1): every
+`CarInput` registers itself in `Awake` and leaves in `OnDestroy`, so `PlayerCars.Current` is the
+newest active player car (a replacement spawned the frame the old one is destroyed already wins) and
+`PlayerCars.All()` the snapshot `CarFactory` clears before a spawn. It replaced
+`PatrolManager.FindPlayerCar`, a scene scan that put the police manager in the middle of the HUD,
+the streamer, the stats and the level flow. Per-object "is this the player" tests
+(`GetComponent<CarInput>()` on a collision) stay as they are — they ask about one object, not
+search for one.
 
 The backend bridges the unchanged `ICarInput` drivers into EVP's separate throttle/brake inputs
 (the same speed-aware forward/reverse rule as EVP's `VehicleStandardInput`) and re-applies the

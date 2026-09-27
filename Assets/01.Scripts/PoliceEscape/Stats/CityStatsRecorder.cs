@@ -77,7 +77,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Stats
             if (player == null || retargetTimer <= 0f)
             {
                 retargetTimer = RetargetSeconds;
-                var found = PatrolManager.FindPlayerCar();
+                var found = Vehicles.PlayerCars.Current;
                 if (found != player)
                 {
                     player = found;

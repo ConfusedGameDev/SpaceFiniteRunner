@@ -255,7 +255,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             refreshTimer -= Time.unscaledDeltaTime;
             if (refreshTimer > 0f && player != null) return;
             refreshTimer = 1f;
-            player = PatrolManager.FindPlayerCar();
+            player = Vehicles.PlayerCars.Current;
             if (level == null) level = FindFirstObjectByType<LevelManager>();
         }
 

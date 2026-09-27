@@ -141,7 +141,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Debugging
         Vector3 FocusPosition()
         {
             if (focus != null) return focus.position;
-            CarController player = PatrolManager.FindPlayerCar();
+            CarController player = Vehicles.PlayerCars.Current;
             if (player != null) return player.transform.position;
             Camera camera = Camera.main;
             return camera != null ? camera.transform.position : transform.position;

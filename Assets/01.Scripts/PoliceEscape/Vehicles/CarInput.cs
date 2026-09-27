@@ -48,6 +48,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         public bool Burnout { get; private set; }
         public bool RespawnPressed { get; private set; }
 
+        // The player registry: this component IS the player marker.
+        void Awake() => PlayerCars.Register(this);
+        void OnDestroy() => PlayerCars.Unregister(this);
+
         void Update()
         {
             Steer = ControlBindings.Axis(GameAction.CarSteerLeft, GameAction.CarSteerRight, 0.1f);

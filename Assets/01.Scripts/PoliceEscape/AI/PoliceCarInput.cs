@@ -796,7 +796,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             retargetTimer -= dt;
             if (player != null && retargetTimer > 0f) return;
             retargetTimer = 1f;
-            player = PatrolManager.FindPlayerCar();
+            player = Vehicles.PlayerCars.Current;
         }
 
         bool EnsureCity()

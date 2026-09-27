@@ -82,7 +82,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             refreshTimer -= Time.deltaTime;
             if (player != null && refreshTimer > 0f) return;
             refreshTimer = 1f;
-            player = PatrolManager.FindPlayerCar();
+            player = Vehicles.PlayerCars.Current;
         }
 
         // The life ring: what is left of the car, off the glitch corruption

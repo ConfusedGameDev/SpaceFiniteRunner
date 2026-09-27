@@ -87,8 +87,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 if (prefabController != null && prefabController.config != null) return prefabController.config;
             }
 
-            foreach (var car in Object.FindObjectsByType<CarController>(FindObjectsSortMode.None))
-                if (car.config != null && car.GetComponent<CarInput>() != null) return car.config;
+            var player = Vehicles.PlayerCars.Current;
+            if (player != null && player.config != null) return player.config;
 
             return null;
         }

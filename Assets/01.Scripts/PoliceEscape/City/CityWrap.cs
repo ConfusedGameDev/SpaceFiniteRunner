@@ -42,7 +42,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
                 playerRefreshTimer -= Time.fixedDeltaTime;
                 if (playerRefreshTimer > 0f) return;
                 playerRefreshTimer = 1f;
-                player = AI.PatrolManager.FindPlayerCar();
+                player = Vehicles.PlayerCars.Current;
                 if (player == null) return;
             }
 

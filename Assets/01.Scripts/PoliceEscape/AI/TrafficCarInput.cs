@@ -354,7 +354,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             if (playerRefreshTimer <= 0f || playerCar == null)
             {
                 playerRefreshTimer = 1f;
-                playerCar = PatrolManager.FindPlayerCar();
+                playerCar = Vehicles.PlayerCars.Current;
             }
             Stopped = playerCar != null
                 && FlatDistance(transform.position, playerCar.transform.position) > settings.fleeHoldDistance;

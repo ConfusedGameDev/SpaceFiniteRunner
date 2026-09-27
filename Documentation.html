@@ -202,7 +202,7 @@
     <span>Refactor <b>9 of 12 steps</b> done</span>
   </div>
   <div class="legend" aria-label="Change markers">
-    <span><span class="tag done">Changed · Step 8.5</span> already changed on the branch</span>
+    <span><span class="tag done">Changed · Step 9.1</span> already changed on the branch</span>
     <span><span class="tag plan">Step 3</span> planned, with the step that does it</span>
     <span><span class="tag drift">Shipped ≠ authored</span> the value that runs is not the value in the inspector</span>
     <span><span class="tag retired">Retired</span> kept in code, no longer used</span>
@@ -556,7 +556,7 @@ flowchart LR
     <li class="is-done"><span class="st">Step 6<br/>done</span><div><b>Track stops knowing the ship</b><span class="d">The generator, spawners and pickups hold contracts only; ShipMotor, GameManager and ShipHealth implement them; the QTE registers a timing hook.</span></div></li>
     <li class="is-done"><span class="st">Step 7<br/>done</span><div><b>Patrol stops reaching into the ship</b><span class="d">IChaseTarget and IControlTakeover; run rules and track through Init. Hands-off soak: 12 km, a duel, a redeploy, no errors.</span></div></li>
     <li class="is-done"><span class="st">Step 8<br/>done</span><div><b>Split GameManager</b><span class="d">8.1 glitch holds · 8.2 rumbles on the settings assets · 8.3 hand-placed ship components · 8.4 HUD on a run-state interface · 8.5 <code>RunFeedback</code> + <code>RunCameraDirector</code> split out of the rules.</span></div></li>
-    <li class="is-next"><span class="st">Step 9<br/>next</span><div><b>City</b><span class="d">Player registry, LevelManager split with a health meter, EVP values into CarConfig, shared AI driving profile.</span></div></li>
+    <li class="is-next"><span class="st">Step 9<br/>in progress</span><div><b>City</b><span class="d">9.1 player registry <b>done</b> · 9.2 one home per city value (impact floor, blast, splash, cell size, despawn reach, rumbles) · 9.3 player health meter off the glitch · 9.4 each system owns its references (police, traffic, spawner, camera) · 9.5 EVP numbers into CarConfig + a shared AI driving profile.</span></div></li>
     <li><span class="st">Step 10</span><div><b>Shared assemblies</b><span class="d">Debug page registry, camera far-clip source, cheats, fog and rain merge.</span></div></li>
     <li><span class="st">Step 11</span><div><b>Independence proof and docs</b><span class="d">One sandbox scene per system, a validator against cross-system lookups, rule files updated.</span></div></li>
   </ol>
@@ -603,6 +603,7 @@ flowchart LR
     <tr data-g="runner"><td>8.3</td><td><span class="tag game runner">Runner</span></td><td><code>PF_Ship</code></td><td>Seven ship components were added to the ship at play start by <code>GameManager.Awake</code></td><td>Hand-placed on the prefab (visible and tunable before play); <code>GameManager</code> finds and configures them</td><td>none (one of each in play, hull configured, no errors)</td></tr>
     <tr data-g="runner"><td>8.4</td><td><span class="tag game runner">Runner</span></td><td><code>GameFlow/IRunState.cs</code>, <code>RaceHud</code>, <code>ChaseMinimap</code>, <code>DuelBarHud</code>, <code>PF_UI</code></td><td>The HUD held <code>ShipMotor</code> and <code>GameManager</code>; the duel bar was created at run start</td><td>The HUD reads <code>IRunState</code> + <code>IChaseTarget</code> (discovered by interface if unwired); the duel bar and the boost QTE are placed in <code>PF_UI</code></td><td>none (HUD speed, lives, timer, objectives and minimap live in play; no errors)</td></tr>
     <tr data-g="runner"><td>8.5</td><td><span class="tag game runner">Runner</span></td><td><code>GameFlow/RunFeedback.cs</code>, <code>GameFlow/RunCameraDirector.cs</code>, <code>GameManager</code>, <code>IRunState</code>, <code>PF_Systems</code></td><td><code>GameManager</code> held the rules, ~15 feedback handlers, the camera's loop / fall / jump / duel / ending shots and the speed lines in one 1,234-line class</td><td>Feedback and camera are two components hand-placed beside it, bound in <code>Awake</code>, reading <code>IRunState</code> (which gained <code>IsEnding</code>); endings ask the director to <code>PlantEndingShot</code> / <code>ReleaseEndingShot</code>, retry calls each one's <code>ResetForRun</code></td><td>none (play: jump pulls to Far and back, jump counted, boosts rumble, a hull-destroyed ending and a retry run clean; no errors). Loops and falls were not hit in the soak.</td></tr>
+    <tr data-g="city"><td>9.1</td><td><span class="tag game city">City</span></td><td><code>Vehicles/PlayerCars.cs</code> (new), <code>CarInput</code>, 16 callers, <code>CarFactory</code>, <code>CityDebugMenuFactory</code></td><td><code>PatrolManager.FindPlayerCar</code> scanned every car in the scene; the HUD, streamer, stats, map, blur and level flow all called the police manager to find the player</td><td>Every <code>CarInput</code> registers itself; <code>PlayerCars.Current</code> / <code>All()</code> answer. No system reaches the police manager to find the player</td><td>none (CarTest: player found, police and traffic spawn, a level restart hands over to the new car in the same frame; no errors)</td></tr>
   </table></div>
 
   <h3 id="changes-register">Duplication register</h3>
@@ -670,7 +671,7 @@ flowchart LR
 </main>
 
 <footer class="wrap">
-  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 8.5, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
+  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 9.1, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
 </footer>
 
 <script>

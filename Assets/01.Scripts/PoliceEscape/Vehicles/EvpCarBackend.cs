@@ -11,7 +11,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     /// rigidbody, WheelColliders and wheel pivots the built-in sim uses, so
     /// the two backends drive identical cars and differ only in tire model.
     /// CarController stays on the object as the identity every other system
-    /// keys on (FindPlayerCar, camera, HUD, AI perception, health) and keeps
+    /// keys on (PlayerCars, camera, HUD, AI perception, health) and keeps
     /// serving its read-only surface — it just stops simulating. This bridge
     /// then does the two jobs the built-in sim did itself: it re-applies the
     /// CarConfig mapping every physics step (so the debug sliders stay live),

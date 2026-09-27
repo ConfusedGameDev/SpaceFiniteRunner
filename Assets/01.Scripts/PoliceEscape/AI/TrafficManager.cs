@@ -41,7 +41,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             if (city == null) city = FindAnyObjectByType<CityManager>();
             if (city == null || city.Graph == null || city.Graph.Count == 0) return;
 
-            CarController player = PatrolManager.FindPlayerCar();
+            CarController player = Vehicles.PlayerCars.Current;
             if (player == null) return; // traffic waits for the player spawn
 
             vehicles.RemoveAll(vehicle => vehicle == null);

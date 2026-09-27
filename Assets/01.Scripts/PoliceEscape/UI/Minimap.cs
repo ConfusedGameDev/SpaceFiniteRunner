@@ -232,7 +232,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             refreshTimer -= Time.deltaTime;
             if (refreshTimer > 0f && player != null) return;
             refreshTimer = 1f;
-            player = PatrolManager.FindPlayerCar();
+            player = Vehicles.PlayerCars.Current;
             police.Clear();
             police.AddRange(FindObjectsByType<PoliceCarInput>(FindObjectsSortMode.None));
             TrafficCarInput.GetEscaping(escapees);

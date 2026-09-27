@@ -1140,7 +1140,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape
             retargetTimer -= dt;
             if (player != null && retargetTimer > 0f) return;
             retargetTimer = 1f;
-            BindPlayer(PatrolManager.FindPlayerCar());
+            BindPlayer(Vehicles.PlayerCars.Current);
             patrols = FindObjectsByType<PoliceCarInput>(FindObjectsSortMode.None);
         }
 

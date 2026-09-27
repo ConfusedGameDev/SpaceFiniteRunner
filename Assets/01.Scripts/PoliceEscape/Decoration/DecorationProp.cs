@@ -117,7 +117,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Decoration
 
             // Only the player's car moves a prop — AI cars just bump into a
             // static obstacle. CarInput sits on the car root beside its
-            // rigidbody, which is exactly what PatrolManager.FindPlayerCar
+            // rigidbody, which is exactly what the PlayerCars registry
             // keys on too.
             Rigidbody other = collision.rigidbody;
             if (other == null || other.GetComponent<Vehicles.CarInput>() == null) return;

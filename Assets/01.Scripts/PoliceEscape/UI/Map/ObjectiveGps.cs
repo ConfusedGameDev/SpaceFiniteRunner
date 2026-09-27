@@ -75,7 +75,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
                 refreshTimer = 1f;
                 if (level == null) level = FindFirstObjectByType<LevelManager>();
                 if (city == null) city = FindAnyObjectByType<CityManager>();
-                player = PatrolManager.FindPlayerCar();
+                player = Vehicles.PlayerCars.Current;
             }
 
             if (player == null || !TryGetObjectiveGoal(out Vector3 goal))

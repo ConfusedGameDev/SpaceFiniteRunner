@@ -25,9 +25,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // Single-PLAYER-car rule: only cars with a player driver (CarInput)
             // are replaced — AI cars carry their own driver component and are
             // owned by the PatrolManager.
-            foreach (var existing in Object.FindObjectsByType<CarController>(FindObjectsSortMode.None))
-                if (existing.GetComponent<CarInput>() != null)
-                    Object.Destroy(existing.gameObject);
+            foreach (var existing in PlayerCars.All())
+                Object.Destroy(existing.gameObject);
 
             // Read the config off the prefab so the car can be instantiated
             // directly at its spawn pose. Never teleport it after Instantiate:

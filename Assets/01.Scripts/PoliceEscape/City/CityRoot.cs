@@ -126,7 +126,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.City
             boundsTimer -= Time.deltaTime;
             if (boundsTimer > 0f) return;
             boundsTimer = 1f;
-            if (trackedPlayer == null) trackedPlayer = AI.PatrolManager.FindPlayerCar();
+            if (trackedPlayer == null) trackedPlayer = Vehicles.PlayerCars.Current;
             if (trackedPlayer == null) return;
             Bounds.Tick(trackedPlayer.transform.position);
             // Same cadence, same player: the visual ring follows the NPC ring.
