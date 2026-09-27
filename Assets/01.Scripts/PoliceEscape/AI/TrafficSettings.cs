@@ -61,49 +61,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
         // ------------------------------------------------------------- driving
         [TitleGroup("Driving")]
+        [Tooltip("The driving core shared with the police (AiDrivingProfile): corners, pedal, waypoints, lanes, junctions, braking and the stuck recovery. Traffic's own driving (cruise band, yield whiskers) follows.")]
+        [InlineProperty, HideLabel]
+        public AiDrivingProfile driving = AiDrivingProfile.TrafficDefaults();
+
+        [TitleGroup("Driving")]
         [Tooltip("Each vehicle picks its personal cruise speed from this band at spawn — traffic that isn't lockstep.")]
         [MinMaxSlider(5f, 80f, true), SuffixLabel("km/h", true)]
         public Vector2 cruiseSpeedBand = new(25f, 40f);
-
-        [TitleGroup("Driving")]
-        [Tooltip("Speed civilians slow to for sharp turns.")]
-        [PropertyRange(5f, 40f), SuffixLabel("km/h", true)]
-        public float cornerSpeedKmh = 14f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Throttle per km/h of speed error — civilians are gentle on the pedal.")]
-        [PropertyRange(0.02f, 1f)]
-        public float throttleGain = 0.12f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("A waypoint counts as reached inside this radius.")]
-        [PropertyRange(2f, 20f), SuffixLabel("m", true)]
-        public float waypointReachDistance = 6f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Right-hand lane discipline: fraction of a cell each car keeps to the right of the road center, so two-way traffic passes instead of meeting head-on. 0 = everyone drives the center line.")]
-        [PropertyRange(0f, 0.35f)]
-        public float laneOffsetFraction = 0.18f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Absolute cap on the lane offset — keeps very wide cells from pushing the lane onto the sidewalk. On the city's ~37 m cells the fraction above lands under this cap.")]
-        [PropertyRange(1f, 12f), SuffixLabel("m", true)]
-        public float laneOffsetMaxMeters = 8f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Chance a wandering car carries straight on through a junction when it can — the rest of the time it turns. Reverse is never picked outside dead ends, so traffic can't U-turn into its own lane's oncoming side.")]
-        [PropertyRange(0f, 1f)]
-        public float straightBias = 0.55f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Brake to a stop when another car sits within this distance dead ahead — this is what makes traffic queue instead of pile up.")]
-        [PropertyRange(3f, 30f), SuffixLabel("m", true)]
-        public float forwardBrakeDistance = 10f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Emergency wall brake: stop only when a static obstacle sits closer than this on the forward ray (head-on and while not mid-turn) — smaller than the vehicle brake distance so buildings at junctions don't stall traffic.")]
-        [PropertyRange(1f, 8f), SuffixLabel("m", true)]
-        public float wallBrakeDistance = 3.5f;
 
         [TitleGroup("Driving")]
         [Tooltip("Junction yield: a whisker ray this far right of forward sees crossing traffic the forward ray can't. Right-only = priority to the right — of two converging cars, exactly one yields.")]
@@ -144,22 +109,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float StopEveryMax => stopEveryBand.y;
         public float StopDurationMin => stopDurationBand.x;
         public float StopDurationMax => stopDurationBand.y;
-
-        // ------------------------------------------------------------ recovery
-        [TitleGroup("Recovery")]
-        [Tooltip("Seconds of wanting to move while standing still before a vehicle decides it is stuck and backs out.")]
-        [PropertyRange(0.5f, 6f), SuffixLabel("s", true)]
-        public float stuckSeconds = 2f;
-
-        [TitleGroup("Recovery")]
-        [Tooltip("How long a stuck vehicle reverses before replanning.")]
-        [PropertyRange(0.5f, 4f), SuffixLabel("s", true)]
-        public float reverseSeconds = 1.2f;
-
-        [TitleGroup("Recovery")]
-        [Tooltip("Last resort: a civilian that has made no net progress this long (reverse-crash loops included, deliberate stops excluded) is snapped onto the nearest road cell. Ambient traffic heals; nobody notices.")]
-        [PropertyRange(5f, 30f), SuffixLabel("s", true)]
-        public float hardRecoverSeconds = 12f;
 
         // --------------------------------------------------------------- debug
         [TitleGroup("Debug")]

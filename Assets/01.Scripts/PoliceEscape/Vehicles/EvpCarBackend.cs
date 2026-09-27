@@ -380,7 +380,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // CoM height is the number-one rollover dial. (The debug CENTER OF
             // MASS slider is a different scale and only moves the built-in sim.)
             vehicle.centerOfMassMode = VehicleController.CenterOfMassMode.Parametric;
-            vehicle.centerOfMassPosition = 0.569f;
+            vehicle.centerOfMassPosition = config.evpCenterOfMassPosition;
             vehicle.centerOfMassHeightOffset = Mathf.Clamp(config.evpCenterOfMassHeight, -1f, 0f);
 
             if (vehicle.enabled && gameObject.activeInHierarchy)
@@ -476,21 +476,24 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         /// wheel rig lands on the WheelColliders once here — EVP keeps
         /// whatever suspension the colliders carry (only raising the spring to
         /// its computed minimum) and zeroes their friction to run its own.
-        /// L200 values, not the config's: its 1500 N·s/m damper against the
-        /// config's 4500 is most of the difference between the demo's lively
-        /// body motion and an overdamped kart.
+        /// The EVP values on the config (<c>CarConfig.evpSuspensionDistance</c>
+        /// and siblings — the L200 reference), not its built-in Suspension group:
+        /// the 1500 N·s/m damper against the built-in 4500 is most of the
+        /// difference between the demo's lively body and an overdamped kart.
         /// </summary>
         static void ApplySuspension(CarController car)
         {
+            CarConfig config = car.config;
+            if (config == null) return; // no config, no EVP numbers: the rig keeps its own
             foreach (var wheel in new[] { car.frontLeft, car.frontRight, car.rearLeft, car.rearRight })
             {
                 if (wheel == null) continue;
-                wheel.suspensionDistance = 0.3f;
-                wheel.mass = 20f;
-                wheel.wheelDampingRate = 0.25f;
+                wheel.suspensionDistance = config.evpSuspensionDistance;
+                wheel.mass = config.evpWheelMass;
+                wheel.wheelDampingRate = config.evpWheelDampingRate;
                 JointSpring spring = wheel.suspensionSpring;
-                spring.spring = 35000f;
-                spring.damper = 1500f;
+                spring.spring = config.evpSpringForce;
+                spring.damper = config.evpDamperForce;
                 wheel.suspensionSpring = spring;
             }
         }

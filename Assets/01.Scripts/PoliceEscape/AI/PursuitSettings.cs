@@ -59,6 +59,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
 
         // ------------------------------------------------------------- driving
         [TitleGroup("Driving")]
+        [Tooltip("The driving core shared with the traffic (AiDrivingProfile): corners, pedal, waypoints, lanes, junctions, braking and the stuck recovery. The police's own driving (patrol and chase speeds, repath, lead) follows.")]
+        [InlineProperty, HideLabel]
+        public AiDrivingProfile driving = AiDrivingProfile.PursuitDefaults();
+
+        [TitleGroup("Driving")]
         [Tooltip("Cruise speed while wandering on Patrol.")]
         [PropertyRange(10f, 100f), SuffixLabel("km/h", true)]
         public float patrolSpeedKmh = 35f;
@@ -69,36 +74,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float chaseSpeedKmh = 90f;
 
         [TitleGroup("Driving")]
-        [Tooltip("Speed the AI slows to for sharp turns — the 'slow into corners' dial.")]
-        [PropertyRange(5f, 80f), SuffixLabel("km/h", true)]
-        public float cornerSpeedKmh = 18f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Throttle per km/h of speed error. Higher = twitchier pedal work.")]
-        [PropertyRange(0.02f, 1f)]
-        public float throttleGain = 0.15f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("A waypoint counts as reached inside this radius.")]
-        [PropertyRange(2f, 20f), SuffixLabel("m", true)]
-        public float waypointReachDistance = 6f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Right-hand lane discipline while patrolling/searching: fraction of a cell kept to the right of the road center, so cruisers pass oncoming traffic instead of blocking it. Chase ignores lanes.")]
-        [PropertyRange(0f, 0.35f)]
-        public float laneOffsetFraction = 0.18f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Absolute cap on the lane offset — keeps very wide cells from pushing the lane onto the sidewalk. On the city's ~37 m cells the fraction above lands under this cap.")]
-        [PropertyRange(1f, 12f), SuffixLabel("m", true)]
-        public float laneOffsetMaxMeters = 8f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Chance a patrolling cruiser carries straight on through a junction when it can — the rest of the time it turns. Reverse is never picked outside dead ends. Lower than traffic's, so patrols roam more corners.")]
-        [PropertyRange(0f, 1f)]
-        public float straightBias = 0.45f;
-
-        [TitleGroup("Driving")]
         [Tooltip("Seconds between route recomputations while chasing.")]
         [PropertyRange(0.2f, 5f), SuffixLabel("s", true)]
         public float repathInterval = 1f;
@@ -107,16 +82,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         [Tooltip("Seconds of player velocity added to the chase target — aim where the player is going, not where they are.")]
         [PropertyRange(0f, 2f), SuffixLabel("s", true)]
         public float predictionLead = 0.6f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Brake when another car sits within this distance dead ahead — the v1 anti-pileup rule (proper avoidance comes later).")]
-        [PropertyRange(2f, 30f), SuffixLabel("m", true)]
-        public float forwardBrakeDistance = 9f;
-
-        [TitleGroup("Driving")]
-        [Tooltip("Emergency wall brake: stop only when a static obstacle sits closer than this on the forward ray (head-on and while not mid-turn) — smaller than the vehicle brake distance so buildings at junctions don't stall the cruiser.")]
-        [PropertyRange(1f, 8f), SuffixLabel("m", true)]
-        public float wallBrakeDistance = 3.5f;
 
         // ------------------------------------------------------------- ramming
         [TitleGroup("Ramming")]
@@ -143,22 +108,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         public float RamContactDistance => ramBackoffBand.x;
         /// <summary>A backing-off cruiser reverses until it is this far from the player, then charges again.</summary>
         public float RamBackoffDistance => ramBackoffBand.y;
-
-        // ------------------------------------------------------------ recovery
-        [TitleGroup("Recovery")]
-        [Tooltip("Seconds of wanting to move while standing still before the patrol decides it is stuck.")]
-        [PropertyRange(0.5f, 5f), SuffixLabel("s", true)]
-        public float stuckSeconds = 1.5f;
-
-        [TitleGroup("Recovery")]
-        [Tooltip("How long a stuck patrol reverses (with opposite steering) before replanning.")]
-        [PropertyRange(0.5f, 4f), SuffixLabel("s", true)]
-        public float reverseSeconds = 1.4f;
-
-        [TitleGroup("Recovery")]
-        [Tooltip("Last resort outside Chase: a patrol that has made no net progress this long (reverse-crash loops included) is snapped onto the nearest road cell instead of grinding forever.")]
-        [PropertyRange(5f, 30f), SuffixLabel("s", true)]
-        public float hardRecoverSeconds = 15f;
 
         // --------------------------------------------------------------- siren
         [ToggleGroup("sirenEnabled", "Siren")]

@@ -55,9 +55,13 @@ in the config's **"EVP (comparison backend)"** section.
 
 (`00.Plugins/EVP5/Prefabs/L200-Red.prefab`.) The config's EVP defaults are its numbers, and
 everything with no config knob — curve shapes, slip limits, brake/handbrake modes, balance, all
-four driving aids, the parametric center of mass (0.569 / −0.116, so the debug CENTER OF MASS
-slider only moves the built-in sim) and the wheel rig (spring 35000, damper 1500, travel 0.3) — is
-the fixed `ApplyL200Baseline` / `ApplySuspension` baseline stamped at install.
+four driving aids — is the fixed `ApplyL200Baseline` baseline stamped at install. **The
+centre-of-mass position and the wheel rig are config knobs** since refactor Step 9.5 (they were
+literals in `EvpCarBackend`): `evpCenterOfMassPosition` (0.569; the height is `evpCenterOfMassHeight`,
+so the debug CENTER OF MASS slider only moves the built-in sim) and `evpSuspensionDistance` (0.3),
+`evpSpringForce` (35000), `evpDamperForce` (1500), `evpWheelMass` (20), `evpWheelDampingRate` (0.25),
+stamped by `ApplyChassis` / `ApplySuspension`. EVP ignores the built-in Suspension group — the two
+blocks are separate on purpose, and now visibly so instead of one silently overriding the other.
 
 **Two deliberate departures from the demo truck:**
 
@@ -327,6 +331,17 @@ Per-run objects stay runtime-spawned on purpose (but land under the headers abov
 and NPCs (spawn cells come from the live road graph), `MissionBriefScreen` (a modal that destroys
 itself on accept) and `EVP Ground Effects` (backend-conditional; its `TireMarksRenderer` builds its
 mesh in `OnEnable`, so an edit-mode copy would bake runtime state into the scene).
+
+## The shared driving core (`AI/AiDrivingProfile.cs`)
+
+Police and traffic drive with the same 11 knobs — corner speed, throttle gain, waypoint reach, lane
+offset (fraction + cap, `LaneOffset(cellSize)`), straight bias, forward and wall brake distances, and
+the stuck / reverse / hard-recover timers. They live once, as `AiDrivingProfile`, embedded in each
+fleet's settings (`PursuitSettings.driving`, `TrafficSettings.driving`) with that fleet's values
+(refactor Step 9.5 — the fields were declared twice, once per class, and the lane formula written in
+both drivers and both managers). What only one fleet has stays on its own settings. The two drivers'
+driving LOGIC is still two copies of the same code with a few different literals (steer clamp,
+waypoint pop, corner slowdown, stuck detection) — sharing it is a behaviour change and was left out.
 
 ## Police pursuit AI (`AI/PoliceCarInput.cs`, `AI/PursuitSettings.cs`)
 

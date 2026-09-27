@@ -382,7 +382,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceChaseSpeed,
                            20f, 250f, 5f, "0", s => s.chaseSpeedKmh, (s, v) => s.chaseSpeedKmh = v);
             AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceCornerSpeed,
-                           5f, 80f, 1f, "0", s => s.cornerSpeedKmh, (s, v) => s.cornerSpeedKmh = v);
+                           5f, 80f, 1f, "0", s => s.driving.cornerSpeedKmh, (s, v) => s.driving.cornerSpeedKmh = v);
             AddPursuitStat(screen, settings, refreshers, MenuTextId.PoliceRamSpeed,
                            10f, 120f, 5f, "0", s => s.ramMinSpeedKmh, (s, v) => s.ramMinSpeedKmh = v);
             // The run-up distance is the high end of the asset's back-off band;

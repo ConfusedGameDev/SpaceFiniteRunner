@@ -146,7 +146,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             float cellSize = city.CellSize;
             float lane = graph.IsCenterLineOnly(pickedNode)
                 ? 0f
-                : Mathf.Min(cellSize * settings.laneOffsetFraction, settings.laneOffsetMaxMeters);
+                : settings.driving.LaneOffset(cellSize);
 
             // Instantiate at the spawn pose — never move it afterwards (see CarFactory).
             var go = Instantiate(policeCarPrefab,

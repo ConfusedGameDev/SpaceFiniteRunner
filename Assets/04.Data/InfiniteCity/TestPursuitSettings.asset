@@ -18,25 +18,26 @@ MonoBehaviour:
   detectionRange: 180
   loseSightSeconds: 3
   searchDuration: 15
+  driving:
+    cornerSpeedKmh: 25
+    throttleGain: 0.15
+    waypointReachDistance: 6
+    laneOffsetFraction: 0.18
+    laneOffsetMaxMeters: 8
+    straightBias: 0.45
+    forwardBrakeDistance: 9
+    wallBrakeDistance: 3.5
+    stuckSeconds: 1.5
+    reverseSeconds: 1.4
+    hardRecoverSeconds: 15
   patrolSpeedKmh: 65
   chaseSpeedKmh: 90
-  cornerSpeedKmh: 25
-  throttleGain: 0.15
-  waypointReachDistance: 6
-  laneOffsetFraction: 0.18
-  laneOffsetMaxMeters: 8
-  straightBias: 0.45
   repathInterval: 1
   predictionLead: 0.6
-  forwardBrakeDistance: 9
-  wallBrakeDistance: 3.5
   ramMinSpeedKmh: 45
   ramBackoffBand: {x: 8, y: 18}
   ramStallSpeedKmh: 12
   ramBackoffMaxSeconds: 2.5
-  stuckSeconds: 1.5
-  reverseSeconds: 1.4
-  hardRecoverSeconds: 15
   sirenEnabled: 1
   sirenClip: {fileID: 8300000, guid: c74bb532680b00c4db62f4511aa603f1, type: 3}
   sirenVolume: 0.7

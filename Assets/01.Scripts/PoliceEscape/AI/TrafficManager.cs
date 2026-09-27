@@ -132,7 +132,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             float cellSize = city.CellSize;
             float lane = graph.IsCenterLineOnly(pickedNode)
                 ? 0f
-                : Mathf.Min(cellSize * settings.laneOffsetFraction, settings.laneOffsetMaxMeters);
+                : settings.driving.LaneOffset(cellSize);
 
             Vector3 spawnPosition = graph.Center(pickedNode) + LaneRules.RightOf(direction) * lane;
             Quaternion spawnRotation = Quaternion.Euler(0f, direction * 90f, 0f);

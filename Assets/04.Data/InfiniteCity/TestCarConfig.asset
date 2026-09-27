@@ -49,6 +49,9 @@ MonoBehaviour:
   handbrakeTorque: 6000
   handbrakeGrip: 0.5
   hillRollbackSlope: 3
+  burnoutTorqueFactor: 1.5
+  burnoutRearGrip: 0.35
+  burnoutMaxSpeedKmh: 15
   brakeLightIdleIntensity: -10
   brakeLightBrakingIntensity: 5
   brakeLightFadeSeconds: 0.05
@@ -104,6 +107,12 @@ MonoBehaviour:
   evpCenterOfMassHeight: -0.45
   evpAeroDownforce: 1
   evpRollingResistance: 0.1
+  evpCenterOfMassPosition: 0.569
+  evpSuspensionDistance: 0.3
+  evpSpringForce: 35000
+  evpDamperForce: 1500
+  evpWheelMass: 20
+  evpWheelDampingRate: 0.25
   evpDamage: 1
   evpDamageWheels: 1
   evpDamageMinSpeed: 2.25

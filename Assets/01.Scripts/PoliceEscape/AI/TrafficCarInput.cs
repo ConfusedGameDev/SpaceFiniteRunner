@@ -296,7 +296,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             // patience, not stuckness — don't teleport a car out of a queue.
             else if (lastObstacle != ObstacleKind.Vehicle || recentContactTimer > 0f)
                 noProgressTime += dt;
-            if (noProgressTime >= settings.hardRecoverSeconds && HardRecover())
+            if (noProgressTime >= settings.driving.hardRecoverSeconds && HardRecover())
                 return;
 
             if (Fleeing) UpdateFleeHold(dt);
@@ -393,7 +393,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             // against the SAME lane-offset point we steer at: popping against
             // the raw cell center while aiming beside it is exactly how a
             // never-satisfied waypoint becomes an orbit center.
-            float reach = Mathf.Min(settings.waypointReachDistance, CellSize * 0.4f);
+            float reach = Mathf.Min(settings.driving.waypointReachDistance, CellSize * 0.4f);
             while (waypoints.Count > 0)
             {
                 Vector3? next = waypoints.Count >= 2 ? waypoints[1] : (Vector3?)null;
@@ -432,14 +432,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                 if (turnAhead > 30f)
                     approachFactor = Mathf.Clamp01(FlatDistance(transform.position, waypoints[0]) / (CellSize * 1.2f));
             }
-            float cornerSpeed = Fleeing ? settings.fleeCornerSpeedKmh : settings.cornerSpeedKmh;
+            float cornerSpeed = Fleeing ? settings.fleeCornerSpeedKmh : settings.driving.cornerSpeedKmh;
             float desired = Mathf.Lerp(cornerSpeed, cruiseSpeedKmh, Mathf.Min(steerFactor, approachFactor));
             if (offRoad) desired = Mathf.Min(desired, cornerSpeed); // creep back onto the road
             ObstacleKind obstacle = ObstacleAhead();
             lastObstacle = obstacle;
             if (obstacle != ObstacleKind.None) desired = 0f; // queue politely / don't wedge into the wall
             if (health != null) desired *= health.SpeedFactor; // a wounded engine can't hold cruise speed
-            Throttle = Mathf.Clamp((desired - car.SpeedKmh) * settings.throttleGain, -1f, 1f);
+            Throttle = Mathf.Clamp((desired - car.SpeedKmh) * settings.driving.throttleGain, -1f, 1f);
 
             // Stuck escalation while standing still: walls escalate fast (we're
             // wedged, back out), a vehicle ahead is waited on patiently (it's
@@ -454,13 +454,13 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             stuckTimer = standing && (wedged || queued) ? stuckTimer + dt : 0f;
             if (stuckTimer > 0f && !wasStuck) queuedPatienceFactor = Random.Range(1.5f, 3f);
             float patience = recentContactTimer > 0f ? 1f : queuedPatienceFactor;
-            float escalation = queued ? settings.stuckSeconds * patience : settings.stuckSeconds;
+            float escalation = queued ? settings.driving.stuckSeconds * patience : settings.driving.stuckSeconds;
             if (stuckTimer >= escalation)
             {
                 if (settings.logTrafficEvents)
                     Debug.Log($"[Traffic] stuck escalation ({(queued ? "queued" : "wedged")}) at {transform.position}", this);
                 stuckTimer = 0f;
-                reverseTimer = settings.reverseSeconds * Random.Range(0.7f, 1.8f);
+                reverseTimer = settings.driving.reverseSeconds * Random.Range(0.7f, 1.8f);
                 // Reverse steering TOWARD the obstacle side swings the nose
                 // away from it (front-steer kinematics reverse the yaw).
                 reverseSteer = obstacleHitSide != 0f
@@ -473,7 +473,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
         }
 
         /// <summary>Lane offset in metres: the designer fraction of a cell under an absolute cap, so wide cells can't push the lane onto the sidewalk.</summary>
-        float LaneOffset => Mathf.Min(CellSize * settings.laneOffsetFraction, settings.laneOffsetMaxMeters);
+        float LaneOffset => settings.driving.LaneOffset(CellSize);
 
         /// <summary>
         /// The point we actually steer at: the waypoint pushed into the
@@ -569,7 +569,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             {
                 Vector3 rayOrigin = origin + transform.right * ((i - 1) * 0.85f);
                 bool blocked = Physics.Raycast(rayOrigin, transform.forward, out RaycastHit hit,
-                                   settings.forwardBrakeDistance, ~0, QueryTriggerInteraction.Ignore)
+                                   settings.driving.forwardBrakeDistance, ~0, QueryTriggerInteraction.Ignore)
                                && !hit.transform.IsChildOf(transform);
                 ObstacleKind verdict = ObstacleKind.None;
                 if (blocked)
@@ -587,14 +587,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
                         bool headOn = Vector3.Dot(hit.normal, transform.forward) < -0.5f;
                         if (hit.normal.y > 0.35f) verdict = ObstacleKind.None;
                         else if (hit.distance < 1.2f) verdict = ObstacleKind.Wall;
-                        else if (hit.distance < settings.wallBrakeDistance && headOn && Mathf.Abs(Steer) < 0.5f)
+                        else if (hit.distance < settings.driving.wallBrakeDistance && headOn && Mathf.Abs(Steer) < 0.5f)
                             verdict = ObstacleKind.Wall;
                     }
                     if (verdict == ObstacleKind.None) obstacleHitSide = 0f;
                 }
                 if (log)
                     probeLog.Add(i == 1 ? AiProbeRole.Forward : AiProbeRole.Fender, rayOrigin, transform.forward,
-                        settings.forwardBrakeDistance, blocked, hit.point, verdict);
+                        settings.driving.forwardBrakeDistance, blocked, hit.point, verdict);
                 if (verdict != ObstacleKind.None) return verdict;
             }
 
@@ -684,7 +684,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.AI
             }
             // No straight bias on a roundabout: "straight" there is "keep
             // circling", and a fleet that prefers it laps the ring forever.
-            if (!flee && straightSeen && graph.Roundabout(from) == RoundaboutRole.None && Random.value < settings.straightBias) pick = straightPick;
+            if (!flee && straightSeen && graph.Roundabout(from) == RoundaboutRole.None && Random.value < settings.driving.straightBias) pick = straightPick;
             if (seen == 0)
             {
                 // Dead end (or everything else filtered): the U-turn is the

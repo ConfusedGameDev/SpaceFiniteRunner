@@ -299,6 +299,41 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [PropertyRange(0f, 1f)]
         public float evpRollingResistance = 0.05f;
 
+        // EVP runs its own suspension on the shared WheelColliders and ignores
+        // the built-in Suspension group above — these are what it stamps (the
+        // L200 reference; they were literals in EvpCarBackend until refactor
+        // Step 9.5). Its 1500 N·s/m damper against the built-in 4500 is most of
+        // the difference between the demo's lively body and an overdamped kart.
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP fore-aft centre-of-mass position (parametric, 0 = rear axle, 1 = front axle). The L200's weight distribution.")]
+        [PropertyRange(0f, 1f)]
+        public float evpCenterOfMassPosition = 0.569f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP suspension travel per wheel.")]
+        [PropertyRange(0.05f, 1f), SuffixLabel("m", true)]
+        public float evpSuspensionDistance = 0.3f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP suspension spring force.")]
+        [PropertyRange(5000f, 100000f), SuffixLabel("N/m", true)]
+        public float evpSpringForce = 35000f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("EVP suspension damper — lower = livelier body motion.")]
+        [PropertyRange(100f, 10000f), SuffixLabel("N·s/m", true)]
+        public float evpDamperForce = 1500f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("Mass of each wheel under EVP.")]
+        [PropertyRange(5f, 100f), SuffixLabel("kg", true)]
+        public float evpWheelMass = 20f;
+
+        [TitleGroup("EVP (comparison backend)")]
+        [Tooltip("Wheel damping rate under EVP.")]
+        [PropertyRange(0f, 2f)]
+        public float evpWheelDampingRate = 0.25f;
+
         // --------------------------------------------------------- damage (EVP)
         // Cosmetic body damage through EVP's VehicleDamage (see CarDeformation):
         // EVP backend only, and shared by every car on this config — player,
