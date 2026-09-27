@@ -110,14 +110,23 @@ namespace ConfusedGameDev.FiniteRunner.UI
         public SettingsDebugPage<T> Slider(MenuTextId label, float min, float max, float step, string format,
                                            Func<T, float> get, Action<T, float> set)
         {
-            var row = Screen.AddRow<DebugSliderRow>(label);
+            AddSlider(Screen, asset, refreshers, label, min, max, step, format, get, set);
+            return this;
+        }
+
+        /// <summary>The same asset slider on any screen — for a tab that mixes asset rows with others (the camera rows on the duel and city tabs).</summary>
+        public static DebugSliderRow AddSlider(MenuScreen screen, T asset, List<Action> refreshers, MenuTextId label,
+                                               float min, float max, float step, string format,
+                                               Func<T, float> get, Action<T, float> set)
+        {
+            var row = screen.AddRow<DebugSliderRow>(label);
             row.Configure(min, max, step, get(asset), format, v =>
             {
                 set(asset, v);
                 DebugAssetEdits.Touch(asset);
             });
             refreshers?.Add(() => row.SetWithoutNotify(get(asset)));
-            return this;
+            return row;
         }
     }
 }

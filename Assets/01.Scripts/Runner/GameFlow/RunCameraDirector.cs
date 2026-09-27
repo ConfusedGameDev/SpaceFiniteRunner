@@ -13,8 +13,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// happens, this decides how it is framed. Hand-placed beside the
     /// GameManager in <c>PF_Systems</c> and bound by it in Awake; it reads the
     /// run only through <see cref="IRunState"/>, and every knob it uses lives on
-    /// <see cref="GameSettings"/> (the camera's own on its camera asset).
-    /// Without a camera asset it does nothing and the scene keeps its camera.
+    /// <see cref="GameSettings"/> (the camera's own on the placed rig's asset).
+    /// Without a placed rig it does nothing and the scene keeps its camera.
     /// </summary>
     public class RunCameraDirector : MonoBehaviour
     {
@@ -53,11 +53,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             settings = runSettings;
             run = runState;
 
-            // The chase camera: the shared Cinemachine rig, attached to the ship
-            // root with the ship's own settings asset (Far framing, target-up
-            // roll binding). Without an asset the scene keeps its camera as is.
-            if (motor != null && settings != null && settings.cameraSettings != null)
-                cameraRig = CameraRigInstaller.Attach(motor, settings.cameraSettings);
+            // The chase camera: the scene's hand-placed rig (PF_CameraController,
+            // carrying its own settings asset — Fighter_CameraSettings), pointed
+            // at the ship root. A scene without a rig keeps its camera as is.
+            // (Refactor Step 10.3: GameSettings no longer holds a second copy of
+            // the rig's asset to hand it.)
+            if (motor != null && CameraRigInstaller.FindRig(motor.gameObject.scene) != null)
+                cameraRig = CameraRigInstaller.Attach(motor, null);
 
             if (motor == null) return;
             motor.TookOff += OnTookOff;

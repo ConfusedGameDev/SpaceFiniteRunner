@@ -28,6 +28,33 @@ namespace ConfusedGameDev.FiniteRunner.FX
     {
         public static DistanceFog Instance { get; private set; }
 
+        static readonly System.Collections.Generic.List<DistanceFog> active = new();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            active.Clear();
+            Instance = null;
+        }
+
+        /// <summary>
+        /// The fog of <paramref name="scene"/>, or null when that scene has
+        /// none. The chase camera clamps its far clip to its OWN scene's fog
+        /// (refactor Step 10.3): during the additive city→runner handoff both
+        /// scenes have a fog, and the global <see cref="Instance"/> could hand
+        /// the runner's camera the city's 630 m clip, or the city's the
+        /// runner's 1800 m.
+        /// </summary>
+        public static DistanceFog For(UnityEngine.SceneManagement.Scene scene)
+        {
+            for (int i = active.Count - 1; i >= 0; i--)
+            {
+                DistanceFog fog = active[i];
+                if (fog != null && fog.gameObject.scene == scene) return fog;
+            }
+            return null;
+        }
+
         static readonly int IntensityId = Shader.PropertyToID("_Intensity");
         static readonly int FogStartId = Shader.PropertyToID("_FogStart");
         static readonly int FogEndId = Shader.PropertyToID("_FogEnd");
@@ -77,6 +104,7 @@ namespace ConfusedGameDev.FiniteRunner.FX
         void OnEnable()
         {
             Instance = this;
+            if (!active.Contains(this)) active.Add(this);
             Rendering.DistanceFogFeature.HasDriver = true;
             if (settings == null) settings = DistanceFogSettings.Load();
             if (Application.isPlaying) RendererFeatureAudit.WarnIfMissing(fogMaterial, nameof(DistanceFog), this);
@@ -90,6 +118,7 @@ namespace ConfusedGameDev.FiniteRunner.FX
 
         void OnDisable()
         {
+            active.Remove(this);
             // Only the last fog standing cleans the shared material — during
             // an additive scene handoff the incoming scene's fog has already
             // claimed Instance, and zeroing here would blink the picture.

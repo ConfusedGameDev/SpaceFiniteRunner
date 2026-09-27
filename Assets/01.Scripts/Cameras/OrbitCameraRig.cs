@@ -818,8 +818,10 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             // Far clip follows the distance fog: past the solid fog there is
             // nothing to draw. Cinemachine pushes the lens clip planes onto the
             // camera every frame, so the clamp has to live on the lens, not on
-            // Camera.main. Back to the authored default when the fog is off.
-            float? fogFar = DistanceFog.Instance != null ? DistanceFog.Instance.FarClipPlane : null;
+            // Camera.main. Back to the authored default when the fog is off. The
+            // rig's OWN scene's fog: the additive handoff has two alive.
+            DistanceFog fog = DistanceFog.For(gameObject.scene);
+            float? fogFar = fog != null ? fog.FarClipPlane : null;
             cinemachineCamera.Lens.FarClipPlane = fogFar ?? defaultFarClip;
             firstPersonCamera.Lens.FarClipPlane = fogFar ?? defaultFarClip;
             cinematicCamera.Lens.FarClipPlane = fogFar ?? defaultFarClip;

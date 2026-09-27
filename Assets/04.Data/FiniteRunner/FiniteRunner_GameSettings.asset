@@ -33,6 +33,21 @@ MonoBehaviour:
   patrolProximityRumble: 1
   powerUpSpeedBoost: 42.6
   boostRumble: {x: 0.15, y: 0.55, z: 0.15}
+  bustedRumble: {x: 1, y: 0.7, z: 1.5}
+  escapeRumble: {x: 0.7, y: 0.9, z: 0.6}
+  endFailRumble: {x: 1, y: 0.5, z: 0.8}
+  hullHitRumble: {x: 0.5, y: 0.3, z: 0.15}
+  explosionRumble: {x: 1, y: 1, z: 0.8}
+  repairRumble: {x: 0.3, y: 0.3, z: 0.2}
+  brakeRumble: {x: 0.65, y: 0.2, z: 0.25}
+  dashRumble: {x: 0.3, y: 0.6, z: 0.12}
+  loopFailRumble: {x: 0.9, y: 0.5, z: 0.5}
+  landingRumble: {x: 0.5, y: 0.3, z: 0.2}
+  fallRumble: {x: 1, y: 0.5, z: 0.8}
+  slideRumble: {x: 0.6, y: 0.2, z: 0.5}
+  wallHitRumble: {x: 0.8, y: 0.4, z: 0.2}
+  laserHitRumble: {x: 1, y: 0.7, z: 0.8}
+  winBannerRumble: {x: 0.7, y: 1, z: 0.25}
   boostQte: 1
   boostQteShowSeconds: 1
   boostQteWindowSeconds: 0.15
@@ -151,7 +166,6 @@ MonoBehaviour:
   patrolWarningMessage: "Right on your tail, hotshot \u2014 {0} m and closing."
   pilotMessageColor: {r: 0.35, g: 0.9, b: 1, a: 1}
   patrolMessageColor: {r: 1, g: 0.4, b: 0.35, a: 1}
-  cameraSettings: {fileID: 11400000, guid: 05b1a15e86e040b4b019f922869e7b71, type: 2}
   rainEnabled: 1
   speedLinesEnabled: 1
   boostPulseStrength: 0.4

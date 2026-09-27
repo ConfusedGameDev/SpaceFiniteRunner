@@ -42,9 +42,13 @@ brain's default blend.
 
 The city calls it from `CarFactory.Spawn` with NO settings — the scene rig keeps its own asset
 (`TestOrbitCameraSettings` in `CarTest`; refactor Step 9.4 removed the spawner's and the
-`CityManager`'s copies) — the runner from `RunCameraDirector.Bind` (called by `GameManager.Awake`) with
-`GameSettings.cameraSettings` (`Data/Fighter_CameraSettings.asset`; empty = the scene keeps its
-camera). `CameraRigInstaller.Warp` is what `CarFactory.Teleport` tells about a teleport.
+`CityManager`'s copies) — and the runner from `RunCameraDirector.Bind` (called by `GameManager.Awake`),
+also with none: the runner's placed rig (`PF_CameraController`) carries `Fighter_CameraSettings`
+itself, and a scene with no rig keeps its camera. **A placed rig's own asset always wins**
+(refactor Step 10.3): `Attach(target, settings)` only fills a rig that has NO asset (a created rig,
+the ship sandboxes' empty rigs — `ShipCameraAttach` passes the standalone ship's), never overwrites
+one. `GameSettings.cameraSettings` is gone; the runner's duel-camera debug rows and the city's
+camera pages edit the scene rig's asset. `CameraRigInstaller.Warp` is what `CarFactory.Teleport` tells about a teleport.
 
 **`SetTarget` on a rig that already follows something is a cut**: the anchor and mount are
 persistent objects, so re-seating them on a vehicle far from the last one (the city's in-place

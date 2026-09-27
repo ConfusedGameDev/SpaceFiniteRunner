@@ -599,12 +599,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [TitleGroup("Story messages")]
         public Color patrolMessageColor = new(1f, 0.4f, 0.35f);
 
-        // ------------------------------------------------------------- camera
-        [TitleGroup("Camera")]
-        [Tooltip("The ship's chase-camera feel (framing, modes, roll binding, FOV kick). The shared Cinemachine rig is attached to the ship with this asset on boot; empty = the scene keeps whatever camera it has.")]
-        [InlineEditor]
-        public Cameras.OrbitCameraSettings cameraSettings;
-
         // ------------------------------------------------------------ weather
         [ToggleGroup("rainEnabled", "Weather")]
         [Tooltip("Spawn the rain over the run. The downpour's own knobs live on the RainSettings asset below — this is only the on/off for this scene.")]

@@ -23,7 +23,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
     /// </summary>
     public static class CameraRigInstaller
     {
-        /// <summary>Attach the chase camera to <paramref name="target"/>. Returns the rig, or null without a main camera.</summary>
+        /// <summary>Attach the chase camera to <paramref name="target"/>. <paramref name="settings"/> is only a fallback for a rig with no asset of its own. Returns the rig, or null without a main camera.</summary>
         public static OrbitCameraRig Attach(ICameraTarget target, OrbitCameraSettings settings)
         {
             if (target == null || target.Transform == null) return null;
@@ -43,7 +43,11 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
                 rig = new GameObject("OrbitCameraRig").AddComponent<OrbitCameraRig>();
                 if (scene.IsValid() && scene.isLoaded) SceneManager.MoveGameObjectToScene(rig.gameObject, scene);
             }
-            if (settings != null) rig.settings = settings;
+            // The rig's OWN asset wins (refactor Step 10.3): a caller's settings
+            // only fill a rig that has none (a created one, a sandbox rig left
+            // empty). Overwriting a hand-placed rig's asset made the caller's
+            // copy the silent truth and the rig's inspector a lie.
+            if (settings != null && rig.settings == null) rig.settings = settings;
             rig.SetOutputCamera(camera);
             rig.SetTarget(target);
             return rig;

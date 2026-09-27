@@ -57,12 +57,17 @@ The scene side is a hand-placed `[ExecuteAlways]` **`DistanceFog`** object (crea
 (`04.Data/Resources/FiniteRunner_DistanceFog.asset`, `Load()` falls back to an in-memory default).
 `SetIntensity(0..1)` is gameplay's ramp.
 
-**The far-clip clamp lives on the Cinemachine lens** — `OrbitCameraRig` reads
-`DistanceFog.Instance.FarClipPlane` (= `fogEnd + farClipMargin`) and restores the authored default
+**The far-clip clamp lives on the Cinemachine lens** — `OrbitCameraRig` reads its OWN scene's fog,
+`DistanceFog.For(scene).FarClipPlane` (= `fogEnd + farClipMargin`; refactor Step 10.3 — the global
+`Instance` could hand the runner's camera the city's 630 m clip during the additive handoff), and
+restores the authored default
 when the fog is off — because the brain pushes lens clip planes onto the camera every frame, so a
 `Camera.main` write would be overwritten.
 
-`RainSystem.atmosphere`'s legacy `RenderSettings.fog` is independent and stacks.
+`RainSystem.atmosphere`'s legacy `RenderSettings.fog` is independent and stacks. **It is the one
+second fog definition left** (its own colour and density, no distances, never the far clip) and it
+is OFF in both rain assets today — deleting that path or folding it into `DistanceFogSettings` is an
+open design call, not a refactor.
 
 `Tools → Police Escape → Install Distance Fog Feature` (`DistanceFogInstaller`) creates the
 material + settings asset (never overwriting) and **inserts** the feature before the `GlitchPost`

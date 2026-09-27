@@ -600,16 +600,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         static void AddCameraStat(MenuScreen screen, OrbitCameraSettings settings, List<System.Action> refreshers,
                                   MenuTextId label, float min, float max, float step, string format,
                                   System.Func<OrbitCameraSettings, float> get,
-                                  System.Action<OrbitCameraSettings, float> set)
-        {
-            var row = screen.AddRow<DebugSliderRow>(label);
-            row.Configure(min, max, step, get(settings), format, v =>
-            {
-                set(settings, v);
-                DebugAssetEdits.Touch(settings);
-            });
-            refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
-        }
+                                  System.Action<OrbitCameraSettings, float> set) =>
+            SettingsDebugPage<OrbitCameraSettings>.AddSlider(screen, settings, refreshers, label, min, max, step, format, get, set);
 
         /// <summary>Returns the row, so paired knobs (the spawn band) can nudge each other's readout.</summary>
         static DebugSliderRow AddPursuitStat(MenuScreen screen, PursuitSettings settings, List<System.Action> refreshers,

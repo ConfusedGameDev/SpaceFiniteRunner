@@ -647,12 +647,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelArmedWindow,
                           0.5f, 10f, 0.25f, "0.00", d => d.armedWindowSeconds, (d, v) => d.armedWindowSeconds = v);
 
-            if (runRules != null)
             {
-                // The duel camera framing lives on the camera settings asset,
-                // which the rig re-applies live every frame, so these rows edit
-                // that asset directly (nothing to mirror).
-                var cam = runRules.cameraSettings;
+                // The duel camera framing lives on the scene rig's own settings
+                // asset, which the rig re-applies live every frame, so these
+                // rows edit that asset directly (nothing to mirror).
+                OrbitCameraRig rig = CameraRigInstaller.FindRig(patrol.gameObject.scene);
+                var cam = rig != null ? rig.settings : null;
                 if (cam != null)
                 {
                     AddCameraStat(screen, cam, refreshers, MenuTextId.CamDuelDistance,
@@ -672,16 +672,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         /// <summary>A slider over the camera settings asset, which the rig reads live — so it edits the asset alone.</summary>
         static void AddCameraStat(MenuScreen screen, OrbitCameraSettings settings, List<System.Action> refreshers,
                                   MenuTextId label, float min, float max, float step, string format,
-                                  System.Func<OrbitCameraSettings, float> get, System.Action<OrbitCameraSettings, float> set)
-        {
-            var row = screen.AddRow<DebugSliderRow>(label);
-            row.Configure(min, max, step, get(settings), format, v =>
-            {
-                set(settings, v);
-                DebugAssetEdits.Touch(settings);
-            });
-            refreshers?.Add(() => row.SetWithoutNotify(get(settings)));
-        }
+                                  System.Func<OrbitCameraSettings, float> get, System.Action<OrbitCameraSettings, float> set) =>
+            SettingsDebugPage<OrbitCameraSettings>.AddSlider(screen, settings, refreshers, label, min, max, step, format, get, set);
 
         /// <summary>
         /// Patrol driver tab: how the cruiser handles (the ship's own steering
