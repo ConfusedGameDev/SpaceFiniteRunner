@@ -50,7 +50,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             // The player's config is a per-spawn CLONE with the Store's bought
             // levels multiplied in — the asset stays the shared truth for the
             // police, the traffic and the debug pages (which edit the asset
-            // and so never see this clone). Assigned before CarController.Start
+            // and then rebuild this clone from it, CarUpgradeApplier.Refresh). Assigned before CarController.Start
             // bakes the mass, and before the rolling start below reads
             // spawnSpeedKmh off it.
             if (car != null && config != null)

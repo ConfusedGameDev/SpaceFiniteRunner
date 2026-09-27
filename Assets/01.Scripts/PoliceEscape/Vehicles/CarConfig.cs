@@ -17,6 +17,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
     {
         public enum Drivetrain { RearWheelDrive, FrontWheelDrive, AllWheelDrive }
 
+        /// <summary>The asset a runtime upgraded clone was made from (<see cref="CarUpgradeApplier"/>); null on an asset.</summary>
+        public CarConfig UpgradeSource => upgradeSource;
+        [System.NonSerialized] internal CarConfig upgradeSource;
+
         // ------------------------------------------------------------- chassis
         [TitleGroup("Chassis")]
         [Tooltip("Rigidbody mass. Heavier = steadier and harder to shove around, but slower to accelerate and stop.")]

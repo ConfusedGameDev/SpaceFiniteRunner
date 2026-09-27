@@ -98,8 +98,8 @@ MonoBehaviour:
   boostQteMidColor: {r: 1, g: 0.85, b: 0.1, a: 1}
   boostQtePerfectColor: {r: 0.2, g: 1, b: 0.3, a: 1}
   airLaneHeight: 30
-  landingShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
-  wallHitShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  landingShake: {fileID: 11400000, guid: 408b45efec3b4c198db77479e94c0f1e, type: 2}
+  wallHitShake: {fileID: 11400000, guid: 44c068e10d0145fca926982d0fab124b, type: 2}
   laserSpeedLoss: 0.1
   laserSmokeTextures:
   - {fileID: 2800000, guid: 6bd4792093f9c4229805e4ffc689be94, type: 3}
@@ -136,7 +136,7 @@ MonoBehaviour:
   winBannerLetterStaggerSeconds: 0.045
   winBannerLetterSlamSeconds: 0.32
   winBannerGlitchPunch: 0.4
-  winBannerShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  winBannerShake: {fileID: 11400000, guid: a10c269e790746fc8b55a1da9c318571, type: 2}
   failBannerHoldSeconds: 2
   failBannerDismissSeconds: 0.5
   failBannerColor: {r: 1, g: 0.22, b: 0.25, a: 1}
@@ -147,10 +147,10 @@ MonoBehaviour:
   wallScrapeDamage: 10
   fallDamage: 30
   laserDamage: 30
-  laserHitShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  laserHitShake: {fileID: 11400000, guid: 39ad17b857a24976817bf109a3d733e0, type: 2}
   hitInvulnerabilitySeconds: 1
   repairOrbHealFraction: 0.15
-  scrapeShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  scrapeShake: {fileID: 11400000, guid: 9c67e4d768c04e718db3a061535ad375, type: 2}
   hullHitGlitchStrength: 0.35
   explosionTextures:
   - {fileID: 2800000, guid: a96c4488e59bb435d8aaa0cff43270fe, type: 3}
@@ -165,7 +165,7 @@ MonoBehaviour:
   explosionScale: 14
   explosionLifetime: 1.4
   explosionParticles: 24
-  explosionShake: {fileID: 11400000, guid: 8d6fedf63db8f44f3b8a04960a59a3f1, type: 2}
+  explosionShake: {fileID: 11400000, guid: 376af27b460b4f3996d714ef0a0fed88, type: 2}
   explosionGlitchStrength: 1
   dashEnabled: 1
   dashCost: 0.5
@@ -196,7 +196,7 @@ MonoBehaviour:
   patrolMessageColor: {r: 1, g: 0.4, b: 0.35, a: 1}
   cameraSettings: {fileID: 11400000, guid: 05b1a15e86e040b4b019f922869e7b71, type: 2}
   rainEnabled: 1
-  rainSettings: {fileID: 0}
+  rainSettings: {fileID: 11400000, guid: e32799353e484ccbb8336dfa99c33f2e, type: 2}
   speedLinesEnabled: 1
   speedLinesSettings: {fileID: 0}
   boostPulseStrength: 0.4

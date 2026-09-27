@@ -20,8 +20,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
     ///
     /// One rule differs from the runner's ship/patrol tabs: the city's cars
     /// and camera rig read their settings assets LIVE every step (that is the
-    /// point of the inline inspector workflow — there is no runtime clone to
-    /// catch), so these sliders edit the assets themselves. Which makes
+    /// point of the inline inspector workflow), so these sliders edit the
+    /// assets themselves. The one runtime clone — the player's upgraded
+    /// <see cref="CarConfig"/> — is rebuilt from the asset after every car
+    /// edit (<see cref="PushToLiveCars"/>), so the player's car follows the
+    /// sliders with its Store upgrades still applied. Which makes
     /// persistence exact: the edited asset is kept dirty and written to disk
     /// at the pause menu's commit points (resume, reload scene) via
     /// <see cref="Flush"/>, so a tweak survives exiting play mode with no
@@ -580,7 +583,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             row.Configure(min, max, step, get(config), format, v =>
             {
                 set(config, v);
-                if (chassis) ReapplyChassis(config);
+                PushToLiveCars(config, chassis);
                 MarkDirty(config);
             });
             refreshers?.Add(() => row.SetWithoutNotify(get(config)));
@@ -594,6 +597,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
             void OnChanged(bool v)
             {
                 set(config, v);
+                PushToLiveCars(config, false);
                 MarkDirty(config);
             }
             row.Configure(get(config), OnChanged);
@@ -631,15 +635,23 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.UI
         }
 
         /// <summary>
-        /// Re-runs the one-time chassis setup on every car sharing this config
-        /// — mass, dropped center of mass and wheel substeps are pushed to the
-        /// rigidbody once, not per physics step, so the slider would otherwise
-        /// do nothing until the next spawn.
+        /// Carries an asset edit to every live car driving it. The player's
+        /// upgraded clone is rebuilt from the asset (upgrades re-applied), so
+        /// the edit reaches the car the player is actually driving. For a
+        /// chassis knob the one-time chassis setup is re-run too — mass,
+        /// dropped center of mass and wheel substeps are pushed to the
+        /// rigidbody once, not per physics step, so the slider would
+        /// otherwise do nothing until the next spawn.
         /// </summary>
-        static void ReapplyChassis(CarConfig config)
+        static void PushToLiveCars(CarConfig config, bool chassis)
         {
             foreach (var car in Object.FindObjectsByType<CarController>(FindObjectsSortMode.None))
-                if (car.config == config) car.ApplyConfig();
+            {
+                if (car.config == null) continue;
+                bool clone = car.config.UpgradeSource == config;
+                if (clone) CarUpgradeApplier.Refresh(car.config);
+                if (chassis && (clone || car.config == config)) car.ApplyConfig();
+            }
         }
 
         // -------------------------------------------------------- persistence

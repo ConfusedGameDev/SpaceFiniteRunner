@@ -20,8 +20,8 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         public enum Backend { BuiltIn, EdyVehiclePhysics }
 
         [Tooltip("Which physics sim drives every car. Built In = the project's own WheelCollider code; " +
-                 "Edy Vehicle Physics = the EVP5 plugin on the same wheels. Applied to cars as they spawn — " +
-                 "reload the scene to convert cars already on the road.")]
+                 "Edy Vehicle Physics = the EVP5 plugin on the same wheels. Applied to cars as they spawn; " +
+                 "press Apply To Live Cars (or use the debug row) to convert cars already on the road.")]
         [EnumToggleButtons]
         public Backend backend = Backend.BuiltIn;
 

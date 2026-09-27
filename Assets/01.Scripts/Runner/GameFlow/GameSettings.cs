@@ -191,7 +191,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [ToggleGroup("patrolEnabled")]
         [Tooltip("How long the kill prompt stays open after you win the bar. Generous on purpose: missing it costs nothing but the kill.")]
         [PropertyRange(0.2f, 3f), SuffixLabel("s", true), EnableIf("patrolDuelEnabled")]
-        public float finisherWindowSeconds = 1f;
+        public float finisherWindowSeconds = 1.5f;
 
         [ToggleGroup("patrolEnabled")]
         [Tooltip("The deeper dip the world takes on the kill's connect, before it snaps back to full speed. The transition out of the exchange, not an effect in itself.")]
