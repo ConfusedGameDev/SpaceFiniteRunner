@@ -2,6 +2,7 @@
     "name": "ConfusedGameDev.FiniteRunner.PoliceEscape.Editor",
     "rootNamespace": "ConfusedGameDev.FiniteRunner.PoliceEscape.Editor",
     "references": [
+        "ConfusedGameDev.FiniteRunner.Contracts",
         "ConfusedGameDev.FiniteRunner.PoliceEscape",
         "ConfusedGameDev.FiniteRunner.Runner",
         "ConfusedGameDev.FiniteRunner.Campaign",

@@ -33,7 +33,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [System.NonSerialized] Material shellMaterial, crossMaterial; // the code-built orb's, play mode only
 
         public override bool IsActive(TrackSpawnContext ctx) =>
-            base.IsActive(ctx) && (ctx.GameManager == null || ctx.GameManager.HullEnabled);
+            base.IsActive(ctx) && (ctx.Rules == null || ctx.Rules.HullEnabled);
 
         protected override float Step(TrackSpawnContext ctx, float distance, float limit)
         {

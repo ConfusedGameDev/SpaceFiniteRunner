@@ -2,6 +2,7 @@
     "name": "ConfusedGameDev.FiniteRunner.Runner.Editor",
     "rootNamespace": "ConfusedGameDev.FiniteRunner.EditorTools",
     "references": [
+        "ConfusedGameDev.FiniteRunner.Contracts",
         "ConfusedGameDev.FiniteRunner.Runner",
         "ConfusedGameDev.FiniteRunner.Ship",
         "ConfusedGameDev.FiniteRunner.Campaign",

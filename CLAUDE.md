@@ -106,7 +106,8 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 
 All game code is in **`Assets/01.Scripts/`**, namespace root `ConfusedGameDev.FiniteRunner`,
 split into asmdefs: `Runner`, `PoliceEscape`, `Ship`, `UI`, `FX`, `Cheats`, `Debugging`, `Haptics`,
-`Rendering`, `Cameras`, `SaveData`, `Campaign`, plus `Runner/Editor`, `Ship/Editor` and
+`Rendering`, `Cameras`, `SaveData`, `Campaign`, `Contracts` (interfaces only, no references — the
+seams systems talk through, e.g. the track's `IStreamFocus` / `ITrackRunRules`), plus `Runner/Editor`, `Ship/Editor` and
 `PoliceEscape/Editor`. `Ship` (`Assets/01.Scripts/Ship/`) is the standalone hover ship — a prefab
 that flies any collider surface, with an optional guide spline; `Runner` references it and puts the
 runner's rules on top. See `ship-standalone.md`.

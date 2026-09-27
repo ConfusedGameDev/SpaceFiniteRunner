@@ -29,7 +29,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// <see cref="RepairOrb"/> (<see cref="Heal"/>), and it is a no-op at full hull.
     /// </summary>
     [DisallowMultipleComponent]
-    public class ShipHealth : MonoBehaviour
+    public class ShipHealth : MonoBehaviour, Contracts.IRepairable
     {
         ShipMotor motor;
         GameSettings settings;
@@ -215,6 +215,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>A <see cref="RepairOrb"/> was flown through: <see cref="Heal"/> by <see cref="GameSettings.repairOrbHealFraction"/>. Returns the points restored, 0 when it did nothing (full hull).</summary>
         public float HealFromRepairOrb() => settings != null ? HealPoints(settings.repairOrbHealFraction) : 0f;
+
+        float Contracts.IRepairable.RepairFromPickup() => HealFromRepairOrb();
 
         float HealPoints(float fraction)
         {

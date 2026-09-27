@@ -156,7 +156,7 @@ it hit finds what to heal; the patrol has none.
 Three sources, one `ApplyDamage`: `SpeedPad.Collected` with a negative delta (`brakePadDamage`),
 `ShipMotor.WallHit` — the dash slam / ramp side (`wallSlamDamage`) — and the polled
 `ShipMotor.IsTouchingWall` (`wallScrapeDamage`) — plus a laser beam (`laserDamage`, a fall's 30 by
-default): `LaserGate.Hit` is heard by the GAMEMANAGER (`OnLaserHit`), which calls the public
+default): `LaserGate.Hit` (it names the hit `Component`) is heard by the GAMEMANAGER (`OnLaserHit`, which checks it is its motor), which calls the public
 `ShipHealth.ApplyLaserHit()` and only when the hit landed (the blink shields it) cuts
 `GameSettings.laserSpeedLoss` (0.1) of the forward speed at once (`ShipMotor.ApplyImpactSpeedLoss`,
 the rear ram's jolt) and plays the heavy

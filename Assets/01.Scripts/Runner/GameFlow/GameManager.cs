@@ -37,7 +37,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// Holds no tunables itself — every balance knob lives on the
     /// <see cref="GameSettings"/> asset, drawn inline here for the designers.
     /// </summary>
-    public class GameManager : MonoBehaviour
+    public class GameManager : MonoBehaviour, Contracts.ITrackRunRules
     {
         [Title("Scene references")]
         [SerializeField, Required] ShipMotor motor;
@@ -1114,9 +1114,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // shields it, and then nothing plays), a share of the speed gone at
         // once, and the heaviest rumble short of the explosion's. The hull's
         // own Damaged handler adds the glitch.
-        void OnLaserHit(LaserGate gate, ShipMotor hitMotor)
+        void OnLaserHit(LaserGate gate, Component hit)
         {
-            if (hitMotor != motor || IsEnding || RunOver) return;
+            if (hit != motor || IsEnding || RunOver) return;
             bool hullOn = settings.hullEnabled && shipHealth != null;
             if (hullOn && !shipHealth.ApplyLaserHit()) return;
 

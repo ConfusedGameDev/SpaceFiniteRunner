@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using ConfusedGameDev.FiniteRunner.GameFlow;
+using ConfusedGameDev.FiniteRunner.Contracts;
 namespace ConfusedGameDev.FiniteRunner.Track
 {
     /// <summary>
@@ -20,7 +21,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         readonly List<(float start, float end)> featureKeepOuts;
 
         public TrackManager Track { get; }
-        public GameManager GameManager { get; }
+        /// <summary>The run's rules (Contracts); null in a scene without a game flow — the spawners then use the defaults.</summary>
+        public ITrackRunRules Rules { get; }
         /// <summary>Parent of everything spawned (null = the scene root).</summary>
         public Transform Parent { get; }
         /// <summary>Pad footprint (width, thickness, length): the unit orbs and pads scale from, and how far pickups keep apart.</summary>
@@ -32,13 +34,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>Where the visible road surface sits along the track's up, relative to the flight line (negative = below). A floating pickup's lowest point must stay above it.</summary>
         public float RoadSurfaceOffset { get; }
 
-        public TrackSpawnContext(TrackManager track, GameManager gameManager, Transform parent,
+        public TrackSpawnContext(TrackManager track, ITrackRunRules rules, Transform parent,
                                  Vector3 padSize, Material boostMaterial, uint layoutSeed, float roadSurfaceOffset,
                                  List<(float, GameObject)> spawned, List<(float, float)> claims,
                                  List<float> pickupDistances, List<(float, float)> featureKeepOuts)
         {
             Track = track;
-            GameManager = gameManager;
+            Rules = rules;
             Parent = parent;
             PadSize = padSize;
             BoostMaterial = boostMaterial;
@@ -51,10 +53,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         /// <summary>Height of the air lane above the flight line, from GameSettings (its class default without a manager).</summary>
-        public float AirLaneHeight => GameManager != null ? GameManager.AirLaneHeight : GameSettings.Default.airLaneHeight;
+        public float AirLaneHeight => Rules != null ? Rules.AirLaneHeight : GameSettings.Default.airLaneHeight;
 
         /// <summary>GameSettings.powerUpSpeedBoost — the base every boost tier multiplies (its class default without a manager).</summary>
-        public float BaseBoost => GameManager != null ? GameManager.PowerUpSpeedBoost : GameSettings.Default.powerUpSpeedBoost;
+        public float BaseBoost => Rules != null ? Rules.PowerUpSpeedBoost : GameSettings.Default.powerUpSpeedBoost;
 
         /// <summary>End of the claimed stretch covering <paramref name="distance"/> (widened by a pad length), or -1 when it is free.</summary>
         public float ClaimEnd(float distance)

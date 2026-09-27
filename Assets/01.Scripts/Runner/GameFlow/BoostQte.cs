@@ -126,11 +126,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             Graded = null;
         }
 
-        void OnEnable() => Instance = this;
+        void OnEnable()
+        {
+            Instance = this;
+            SpeedPad.BoostTiming = OnOrbCollected; // the pad asks the hook, never this class
+            SpeedPad.BoostApplied += EndImpulse;
+        }
 
         void OnDisable()
         {
             if (Instance == this) Instance = null;
+            if (SpeedPad.BoostTiming == (System.Func<SpeedPad, float>)OnOrbCollected) SpeedPad.BoostTiming = null;
+            SpeedPad.BoostApplied -= EndImpulse;
             FeedbackScale = 0f;
             MenuNavigator.DialogueAdvanceSuppressed = false;
             Clear();

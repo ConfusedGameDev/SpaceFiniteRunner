@@ -2,6 +2,7 @@
     "name": "ConfusedGameDev.FiniteRunner.Runner",
     "rootNamespace": "ConfusedGameDev.FiniteRunner",
     "references": [
+        "ConfusedGameDev.FiniteRunner.Contracts",
         "ConfusedGameDev.FiniteRunner.UI",
         "ConfusedGameDev.FiniteRunner.SaveData",
         "ConfusedGameDev.FiniteRunner.Campaign",

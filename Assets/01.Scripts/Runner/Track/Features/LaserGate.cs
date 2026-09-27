@@ -48,8 +48,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             public LaserBeam visual;
         }
 
-        /// <summary>Raised when the player's ship flies through a beam. Static, like SpeedPad.Collected, so listeners need no per-gate wiring.</summary>
-        public static event System.Action<LaserGate, ShipMotor> Hit;
+        /// <summary>Raised when the player's ship flies through a beam, naming the component that was hit (the track does not know what it is — the listener compares it with its own ship). Static, like SpeedPad.Collected, so listeners need no per-gate wiring.</summary>
+        public static event System.Action<LaserGate, Component> Hit;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => Hit = null; // domain reload is off
 
         readonly List<Beam> beams = new();
         LaserGateDefinition definition;
@@ -225,11 +228,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         }
 
         /// <summary>The ship went through a beam: tell the listeners, once per pass.</summary>
-        public void RaiseHit(ShipMotor motor)
+        public void RaiseHit(Component rider)
         {
-            if (motor == null) return;
+            if (rider == null) return;
             lastHitTime = Time.time;
-            Hit?.Invoke(this, motor);
+            Hit?.Invoke(this, rider);
         }
 
         // Closest approach of two segments, squared (Ericson, Real-Time

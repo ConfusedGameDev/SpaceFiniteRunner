@@ -2,6 +2,7 @@
     "name": "ConfusedGameDev.FiniteRunner.PoliceEscape",
     "rootNamespace": "ConfusedGameDev.FiniteRunner.PoliceEscape",
     "references": [
+        "ConfusedGameDev.FiniteRunner.Contracts",
         "ConfusedGameDev.FiniteRunner.Runner",
         "ConfusedGameDev.FiniteRunner.UI",
         "ConfusedGameDev.FiniteRunner.SaveData",

@@ -39,6 +39,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>Raised whenever any pad or orb is collected by a ship. Static so listeners (GameManager story messages) need no per-pad wiring.</summary>
         public static event System.Action<SpeedPad, IShip> Collected;
 
+        /// <summary>A boost orb's timing hook: asked for a multiplier as the orb is collected (1 = none). The timed-boost QTE registers itself here; the pad never names it.</summary>
+        public static System.Func<SpeedPad, float> BoostTiming;
+
+        /// <summary>Raised once the collected orb's impulse has gone out (the QTE resets its feedback here).</summary>
+        public static event System.Action BoostApplied;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetTimingHooks() { BoostTiming = null; BoostApplied = null; } // domain reload is off
+
         public PadDefinition Definition => definition;
 
         /// <summary>Orb tier this pad was spawned from (see TrackGenerator.orbTiers); null for untiered pads.</summary>
@@ -103,18 +112,19 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         /// <summary>
         /// A ship went through it: apply the speed change, tell the listeners,
-        /// use an orb up. A boost orb asks the <see cref="BoostQte"/> first —
-        /// a timed press banked before the crossing multiplies the boost here,
-        /// in the one impulse, so every listener sees the real amount.
+        /// use an orb up. A boost orb asks the <see cref="BoostTiming"/> hook
+        /// first (the timed-boost QTE registers there) — a timed press banked
+        /// before the crossing multiplies the boost here, in the one impulse,
+        /// so every listener sees the real amount.
         /// </summary>
         public void Collect(IShip motor)
         {
             if (!Available || motor == null) return;
             taken = true;
-            float multiplier = IsBoostOrb && BoostQte.Instance != null ? BoostQte.Instance.OnOrbCollected(this) : 1f;
+            float multiplier = IsBoostOrb && BoostTiming != null ? BoostTiming(this) : 1f;
             motor.AddSpeedImpulse(SpeedDelta * multiplier);
             Collected?.Invoke(this, motor);
-            BoostQte.EndImpulse();
+            BoostApplied?.Invoke();
             if (definition.floatingOrb) gameObject.SetActive(false); // OnDisable drops it from the registry
         }
 

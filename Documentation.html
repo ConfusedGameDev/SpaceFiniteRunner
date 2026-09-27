@@ -199,10 +199,10 @@
   <div class="facts">
     <span>Unity <b>6000.7.0a3</b> · URP 17.7</span>
     <span>Branch <b class="mono">refactor/single-source-tuning</b></span>
-    <span>Refactor <b>5 of 12 steps</b> done</span>
+    <span>Refactor <b>7 of 12 steps</b> done</span>
   </div>
   <div class="legend" aria-label="Change markers">
-    <span><span class="tag done">Changed · Step 4</span> already changed on the branch</span>
+    <span><span class="tag done">Changed · Step 6</span> already changed on the branch</span>
     <span><span class="tag plan">Step 3</span> planned, with the step that does it</span>
     <span><span class="tag drift">Shipped ≠ authored</span> the value that runs is not the value in the inspector</span>
     <span><span class="tag retired">Retired</span> kept in code, no longer used</span>
@@ -253,11 +253,11 @@ flowchart LR
   </table></div>
 
   <h3>Assemblies</h3>
-  <p>All code is in <code>Assets/01.Scripts/</code>, one folder per assembly. References only point downward. The city depends on the runner and never the reverse, which is why shared screens and pickups sit in the Runner assembly today.</p>
+  <p>All code is in <code>Assets/01.Scripts/</code>, one folder per assembly. References only point downward. <span class="tag done">Step 5</span> added <code>Contracts</code>: interfaces only, no references of its own — the seams systems talk through instead of naming each other. The city depends on the runner and never the reverse, which is why shared screens and pickups sit in the Runner assembly today.</p>
   <div class="diagram">
 <pre class="mermaid">
 flowchart BT
-  SD["SaveData"]; DBG["Debugging"]; HAP["Haptics"]; REN["Rendering"]
+  SD["SaveData"]; DBG["Debugging"]; HAP["Haptics"]; REN["Rendering"]; CON["Contracts<br/>interfaces only"]
   CAMP["Campaign"] --> SD
   UI["UI"] --> SD
   FX["FX"] --> UI
@@ -270,14 +270,17 @@ flowchart BT
   SHIP["Ship"] --> UI
   SHIP --> CAM
   RUN["Runner"] --> SHIP
+  RUN --> CON
   RUN --> CAMP
   RUN --> CHT
   RUN --> CAM
   PE["PoliceEscape"] --> RUN
   PE --> DBG
+  PE --> CON
   style RUN fill:#e7eefc,stroke:#2350c8
   style SHIP fill:#e7eefc,stroke:#2350c8
   style PE fill:#e2f4f1,stroke:#0c7d73
+  style CON fill:#fcefd9,stroke:#a35c00
 </pre>
     <div class="cap">Simplified: every game assembly also references <code>UI</code>, <code>FX</code> and <code>Haptics</code>. <code>PoliceEscape</code> also uses EVP5 (vehicle physics) and Cinemachine. Editor assemblies (<code>Runner.Editor</code>, <code>Ship.Editor</code>, <code>PoliceEscape.Editor</code>, <code>SaveData.Editor</code>) are left out.</div>
   </div>
@@ -359,7 +362,7 @@ flowchart BT
       <dl><dt>Coupling today</dt><dd>finds <code>TrackGuide</code> and <code>TrackColliderBuilder</code> in the scene, hands the collider builder its sink, pokes <code>HoverShip</code> internals. No longer carries a definition field or a settings sync <span class="tag done">Step 3</span>.</dd><dt>Plan</dt><dd><span class="tag plan">Step 5</span> <span class="tag plan">Step 6</span> injected guide, public verbs only</dd></dl></div>
     <div class="sys"><h4><code>TrackGenerator</code> and the track</h4>
       <p><code>TrackManager</code> owns the spline, and distance from the start is the authoritative coordinate. The generator streams road, colliders (<code>TrackColliderBuilder</code>), features and pickups ahead of the ship, and builds the end ramps.</p>
-      <dl><dt>Coupling today</dt><dd>finds <code>ShipMotor</code> and <code>GameManager</code>, reads the ship's speed model, calls <code>BoostQte.Instance</code>.</dd><dt>Status</dt><dd><span class="tag done">Changed · Step 2</span> layout read off the shape asset; no more track length override · <span class="tag plan">Step 6</span> a stream focus + run config handed in</dd></dl></div>
+      <dl><dt>Coupling</dt><dd>none to the ship or the game flow: it holds <code>IStreamFocus</code>, <code>IShipPerformance</code> and <code>ITrackRunRules</code> (Contracts), handed in by <code>Bind</code> or discovered by interface. Laser hits name a <code>Component</code>; boost orbs ask a timing hook; repair orbs look for <code>IRepairable</code>.</dd><dt>Status</dt><dd><span class="tag done">Changed · Steps 2 + 6</span></dd></dl></div>
     <div class="sys"><h4><code>PolicePatrol</code> + the duel</h4>
       <p>Drives a <code>TrackBody</code> through <code>PatrolDriver</code> and runs the <code>PatrolEncounter</code> state machine: Cruising → Committing → Alongside → TugOfWar → Finisher → BreakingOff → Cooldown, plus Overshooting and MissBraking.</p>
       <dl><dt>Coupling today</dt><dd>reads the ship's internal <code>TrackBody</code>, gets run rules through <code>target.DashSettings</code>, writes about 9 ship controls.</dd><dt>Plan</dt><dd><span class="tag plan">Step 7</span> <code>IChaseTarget</code> + <code>IControlTakeover</code></dd></dl></div>
@@ -379,14 +382,15 @@ flowchart LR
   GM --> PP["PolicePatrol"]
   SM --> HS["HoverShip (Ship asm)"]
   HS -. "IShipGuide" .-> TGU["TrackGuide"]
-  TG -. "finds, reads speed model" .-> SM
-  TG -. "finds, reads run rules" .-> GM
+  TG -. "IStreamFocus + IShipPerformance<br/>(Contracts)" .-> SM
+  TG -. "ITrackRunRules (Contracts)" .-> GM
   SM -. "finds, writes sink" .-> TCB["TrackColliderBuilder"]
   PP -. "reads TrackBody,<br/>writes controls" .-> SM
   PP -. "run rules via DashSettings" .-> GM
-  linkStyle 5,6,7,8,9 stroke:#b3261e,stroke-dasharray:4 3
+  linkStyle 5,6 stroke:#a35c00
+  linkStyle 7,8,9 stroke:#b3261e,stroke-dasharray:4 3
 </pre>
-    <div class="cap">Solid = wiring by the composition root (stays). Red dashed = couplings Steps 5–8 remove. The only clean seam today is <code>HoverShip</code> → <code>IShipGuide</code>.</div>
+    <div class="cap">Solid = wiring by the composition root (stays). Amber = contract seams (Step 6: the track now reaches the ship and the game flow only through Contracts interfaces). Red dashed = couplings Steps 7–8 remove.</div>
   </div>
 
   <h3 id="runner-scene">Scene wiring</h3>
@@ -548,9 +552,9 @@ flowchart LR
     <li class="is-done"><span class="st">Step 2<br/>done</span><div><b>Bake the debug overrides into the definitions</b><span class="d">The values that ran became the authored values; the four debug mirror assets are deleted; every runner debug row writes the asset and refreshes the clone; the track's layout knobs moved onto the shape asset.</span></div></li>
     <li class="is-done"><span class="st">Step 3<br/>done</span><div><b>Remove runtime copies</b><span class="d">The per-frame GameSettings → ShipSettings sync is deleted; hover height, guide assist, patrol handling and redeploy each have one owner; fallback literals point at class defaults; the ship prefab holds one definition reference.</span></div></li>
     <li class="is-done"><span class="st">Step 4<br/>done</span><div><b>Take the other systems' knobs off GameSettings</b><span class="d">The duel's run-wide rules joined the patrol's Duel group; the filter and rain slots were removed so each driver owns its asset; the runner's rain is hand-placed. The planned DuelSettings and CameraFeedbackSettings wrappers and the RunRules rename were dropped as churn without a tuning gain.</span></div></li>
-    <li class="is-next"><span class="st">Step 5<br/>next</span><div><b>Contracts assembly and composition root</b><span class="d">Interfaces below every game assembly; old paths keep working.</span></div></li>
-    <li><span class="st">Step 6</span><div><b>Track stops knowing the ship</b><span class="d">Stream focus, run config and speed model handed in.</span></div></li>
-    <li><span class="st">Step 7</span><div><b>Patrol stops reaching into the ship</b><span class="d">Chase target and control takeover interfaces; full duel check.</span></div></li>
+    <li class="is-done"><span class="st">Step 5<br/>done</span><div><b>Contracts assembly</b><span class="d">Interfaces only, no references; built together with its first consumer (the track) rather than up front.</span></div></li>
+    <li class="is-done"><span class="st">Step 6<br/>done</span><div><b>Track stops knowing the ship</b><span class="d">The generator, spawners and pickups hold contracts only; ShipMotor, GameManager and ShipHealth implement them; the QTE registers a timing hook.</span></div></li>
+    <li class="is-next"><span class="st">Step 7<br/>next</span><div><b>Patrol stops reaching into the ship</b><span class="d">Chase target and control takeover interfaces; full duel check.</span></div></li>
     <li><span class="st">Step 8</span><div><b>Split GameManager</b><span class="d">Installer, run controller, feedback responders; haptic profiles; glitch requests.</span></div></li>
     <li><span class="st">Step 9</span><div><b>City</b><span class="d">Player registry, LevelManager split with a health meter, EVP values into CarConfig, shared AI driving profile.</span></div></li>
     <li><span class="st">Step 10</span><div><b>Shared assemblies</b><span class="d">Debug page registry, camera far-clip source, cheats, fog and rain merge.</span></div></li>
@@ -588,6 +592,10 @@ flowchart LR
     <tr data-g="runner"><td>3</td><td><span class="tag game runner">Runner</span></td><td><code>ShipMotor.definition</code>, <code>TuningScreen.baseDefinition</code></td><td>Three serialized references to one definition</td><td>One, on <code>HoverShip</code></td><td>none</td></tr>
     <tr data-g="runner"><td>4</td><td><span class="tag game runner">Runner</span></td><td><code>GameSettings</code> → <code>Police_PatrolDefinition</code> (Duel group)</td><td>15 duel knobs on GameSettings, the rest of the duel on the patrol</td><td>The whole duel on the patrol's definition; <code>ShipArmed</code>, <code>DuelSlowMo</code>, <code>DuelBarHud</code> read it; debug rows mirror onto its clone</td><td>none (dump-verified)</td></tr>
     <tr data-g="shared"><td>4</td><td><span class="tag game shared">Shared</span></td><td><code>GameSettings</code> / <code>CityManager</code> filter slots; <code>PF_Filters</code> RainSystem</td><td>Filter assets resolved through owner override slots; the runner's rain spawned at runtime and fed through a slot</td><td>Each driver owns its asset; owners pass only on/off; the runner's rain is hand-placed with <code>Runner_Rain</code></td><td>none</td></tr>
+    <tr data-g="shared"><td>5</td><td><span class="tag game shared">Shared</span></td><td><code>01.Scripts/Contracts</code> (new assembly)</td><td>Systems named each other's concrete types</td><td><code>IStreamFocus</code>, <code>IShipPerformance</code>, <code>ITrackRunRules</code>, <code>IRepairable</code>, <code>ContractLookup</code></td><td>none</td></tr>
+    <tr data-g="runner"><td>6</td><td><span class="tag game runner">Runner</span></td><td><code>TrackGenerator</code>, <code>TrackSpawnContext</code>, <code>RepairOrbSpawner</code></td><td>Found <code>ShipMotor</code> and <code>GameManager</code>; re-implemented the ship's speed model</td><td>Hold the contracts; <code>Bind</code> for a composition root, discovery by interface otherwise, defaults with none</td><td>none (play-verified)</td></tr>
+    <tr data-g="runner"><td>6</td><td><span class="tag game runner">Runner</span></td><td><code>LaserGate.Hit</code>, <code>RepairOrb</code>, <code>SpeedPad</code> ↔ <code>BoostQte</code></td><td>Typed on <code>ShipMotor</code>; called <code>ShipHealth.For</code>; called <code>BoostQte.Instance</code></td><td>Hit names a <code>Component</code>; repair finds <code>IRepairable</code>; the QTE registers <code>SpeedPad.BoostTiming</code></td><td>none (play-verified: laser −30 hull)</td></tr>
+    <tr data-g="runner"><td>6</td><td><span class="tag game runner">Runner</span></td><td><code>TrackGuideValidator</code></td><td>In the track folder, naming the motor</td><td>Moved beside the ship code: it validates the ship against the guide</td><td>none</td></tr>
   </table></div>
 
   <h3 id="changes-register">Duplication register</h3>
@@ -613,7 +621,7 @@ flowchart LR
     <tr data-g="runner fixed"><td>D8</td><td><span class="tag game runner">Runner</span></td><td>Duel knobs</td><td><code>PatrolDefinition</code> Duel group only</td><td><code>PatrolDefinition</code></td><td><span class="tag done">Fixed · Step 4</span> on <code>PatrolDefinition</code></td></tr>
     <tr data-g="runner fixed"><td>D9</td><td><span class="tag game runner">Runner</span></td><td>Patrol redeploy</td><td>Band on <code>GameSettings</code>, gap on the patrol</td><td><code>PatrolDefinition</code></td><td><span class="tag done">Fixed · Step 3</span></td></tr>
     <tr data-g="runner fixed"><td>D10</td><td><span class="tag game runner">Runner</span></td><td>Hardcoded fallbacks</td><td>Fall gravity, boost, run-up, ramp gap, autopilot reach 6 vs 10</td><td>Asset defaults</td><td><span class="tag done">Fixed · Step 3</span></td></tr>
-    <tr data-g="runner open"><td>D11</td><td><span class="tag game runner">Runner</span></td><td>Speed model</td><td>Re-implemented in <code>TrackGenerator.LoopReachable</code></td><td>Injected speed model</td><td><span class="tag plan">Step 6</span></td></tr>
+    <tr data-g="runner fixed"><td>D11</td><td><span class="tag game runner">Runner</span></td><td>Speed model</td><td>Re-implemented in <code>TrackGenerator.LoopReachable</code></td><td>Injected speed model</td><td><span class="tag done">Fixed · Step 6</span></td></tr>
     <tr data-g="runner fixed"><td>D12</td><td><span class="tag game runner">Runner</span></td><td>Ship definition refs</td><td><code>ShipMotor</code>, <code>HoverShip</code>, <code>TuningScreen</code></td><td>One loadout ref</td><td><span class="tag done">Fixed · Step 3</span></td></tr>
     <tr data-g="runner fixed"><td>D13</td><td><span class="tag game runner">Runner</span></td><td>Camera shakes</td><td>One asset per event</td><td>Per-event assets</td><td><span class="tag done">Fixed · Step 1</span></td></tr>
     <tr data-g="shared open"><td>D14</td><td><span class="tag game shared">Shared</span></td><td>Orbit camera settings</td><td>Held in 4–5 places</td><td>Passed by the installer</td><td><span class="tag plan">Step 9</span></td></tr>
@@ -655,7 +663,7 @@ flowchart LR
 </main>
 
 <footer class="wrap">
-  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 4, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
+  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 6, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
 </footer>
 
 <script>

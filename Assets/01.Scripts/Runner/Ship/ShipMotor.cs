@@ -39,7 +39,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// only in the body itself, which the patrol still drives.
     /// </summary>
     [RequireComponent(typeof(HoverShip))]
-    public partial class ShipMotor : MonoBehaviour, IRunnerShip, ICameraTarget, ICollector
+    public partial class ShipMotor : MonoBehaviour, IRunnerShip, ICameraTarget, ICollector,
+                                     Contracts.IStreamFocus, Contracts.IShipPerformance
     {
         // The run's definition: the HoverShip's asset until the GameManager hands
         // in the run's clone (SetDefinition). The asset itself is referenced and
@@ -239,6 +240,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>The run-level rules pushed in by the GameManager; null while unconfigured.</summary>
         public GameSettings DashSettings => dashSettings;
+
+        // The track's view of the ship (Contracts): where it is, how fast, and the
+        // few stats that shape what gets built ahead of it.
+        float Contracts.IStreamFocus.Distance => DistanceTravelled;
+        float Contracts.IStreamFocus.Speed => CurrentSpeed;
+        float Contracts.IShipPerformance.CruiseSpeed => Definition != null ? Definition.cruiseSpeed : 0f;
+        float Contracts.IShipPerformance.PassiveDeceleration => Definition != null ? Definition.passiveDeceleration : 0f;
+        float Contracts.IShipPerformance.JumpStrength => Definition != null ? Definition.jumpStrength : 1f;
 
         /// <summary>The ship's live settings (the HoverShip's runtime clone of its ShipSettings asset): the one home of the dash, ghost, fall and respawn rules. <see cref="ShipSettings.Default"/> before the ship has woken.</summary>
         public ShipSettings ShipSettings => physicsShip != null && physicsShip.Settings != null ? physicsShip.Settings : ShipSettings.Default;

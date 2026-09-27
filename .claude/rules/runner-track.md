@@ -121,7 +121,15 @@ and a scene with no `GameManager` stay endless.
 
 ### The finite track (`IsFinite`, `EndDistance`, `TargetLength`)
 
-- `Generate` PULLS the run's length: `gameManager.TrackLengthMeters` (the level's own, else
+- **The track knows neither the ship nor the game flow** (refactor Steps 5–6). Its collaborators are
+  contracts from the `Contracts` assembly: `IStreamFocus` (distance + speed it streams ahead of —
+  the ship's motor implements it), `IShipPerformance` (cruise, bleed, jump strength for loop
+  reachability and ramp arcs) and `ITrackRunRules` (length, run-up, ramp gaps, base boost, air
+  lane, hull on/off, the loop gate's speed — `GameManager` implements it). A composition root hands
+  them in with `TrackGenerator.Bind`; otherwise `Awake` discovers them by interface
+  (`ContractLookup.Find<T>`), and with none present the generator runs on its own defaults (an
+  endless preview).
+- `Generate` PULLS the run's length: `ITrackRunRules.TrackLengthMeters` (the level's own, else
   `GameSettings.trackLengthMeters`) — play mode only. `endZoneTarget = length − EndRunUpMeters`.
 - **The last knot cannot be placed at an authored distance** (a chord is only arc length where
   the knots are collinear, and loops insert distance), so the END ZONE START is a pinned
@@ -312,7 +320,7 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
 - **Phases**: `ClaimsGround` spawners (laser gates) run first in every pass and `Claim` their
   stretch; `Pickup` spawners run after, **in set order** — each keeps off the pickups recorded
   before it (`NearPickup`), which is why repair orbs are listed after speed orbs. Then coins.
-- **`TrackSpawnContext`** is all a spawner touches: the track, the GameManager, the parent,
+- **`TrackSpawnContext`** is all a spawner touches: the track, the run's rules (`ITrackRunRules`, null without a game flow), the parent,
   `padSize`, `boostMaterial`, `ClaimEnd` / `Claim`, `NearPickup` / `RecordPickup`
   (`padDistances`), `Register(endDistance, go)` for the cull (**keyed on the END**),
   `KeepOutUntil` (the feature keep-outs, flat sweeps, sections, open edges), `RandomLateral`,
@@ -349,7 +357,7 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
 
 `RepairOrb` is an `IShipPickup` only — never a `SpeedPad`, never an `ITrackPickup` — so it stays
 out of the `PickupRegistry` and the patrol neither seeks nor takes it, and it raises no speed
-impulse. `PickUp` calls `ShipHealth.For(ship)?.HealFromRepairOrb()` (capped at the max hull) and
+impulse. `PickUp` looks for a `Contracts.IRepairable` on the collector (the ship's `ShipHealth` implements it; capped at the max hull) and
 the orb is ALWAYS taken — at full hull it heals 0 but is still used up. Taken, it raises the static
 `RepairOrb.Collected(orb, ship, healed)` (RaceHud green flash + "+N" — skipped when `healed` is 0,
 ShipAudio green-orb clip, GameManager soft haptic) and deactivates.
@@ -399,7 +407,7 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   (x lateral, y height, z along), in a space squashed by the ship's reach + `beamRadius`. One
   test for all four variants. The rotor's angle is a pure function of `Time.time`, shared by the
   picture and the test, so a pause freezes both. A gate is never used up; `RehitSeconds` makes one
-  pass one hit. `LaserGate.Hit` (static) is the player's event; the patrol's body finds gates and
+  pass one hit. `LaserGate.Hit` (static, `Action<LaserGate, Component>` — the track names the hit component, never the motor; the listener compares) is the player's event; the patrol's body finds gates and
   ignores them (`PolicePatrol.OnPickedUp` only knows `SpeedPad`).
 - **`LaserBeam` is the picture only**, authored ON the prefab with its four references
   (`Tools → FiniteRunner → Install Laser Gate Assets` adds and wires it by name, and creates
@@ -538,7 +546,9 @@ visual carries are only a picture.
   same at every speed: within `boostQtePerfectSeconds` = PERFECT (the top of
   `boostQteMultiplierBand`, 1.5), falling along `boostQteFalloff` to the bottom (1.1) at
   `boostQteWindowSeconds` either side, beyond = a miss. **An early press is banked** and applied
-  by `Collect` in the ONE impulse (`OnOrbCollected` → `SpeedDelta × mult`), so speed lines, "+N",
+  by `Collect` in the ONE impulse (the pad asks its static `SpeedPad.BoostTiming` hook, which the
+  QTE registers in `OnEnable` — the track never names the QTE — → `SpeedDelta × mult`; `SpeedPad.BoostApplied`
+  then resets the feedback), so speed lines, "+N",
   audio and the patrol's `boostShare` all scale; **a late press tops up** with a second impulse of
   `SpeedDelta × (mult − 1)`. One press per orb — a press outside the window locks it as a miss, and
   a window that closes unpressed on a taken orb is a miss too. The target is the nearest boost orb

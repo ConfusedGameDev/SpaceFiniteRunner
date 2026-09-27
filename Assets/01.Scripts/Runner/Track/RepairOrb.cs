@@ -31,10 +31,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public void PickUp(IShip ship)
         {
             if (taken) return;
-            var health = ShipHealth.For(ship);
-            if (health == null) return; // no hull on it: never the patrol's
+            // Whatever carries a hull on the collector's object (Contracts.IRepairable);
+            // nothing repairable = never the patrol's.
+            var repairable = ship is Component body ? body.GetComponent<Contracts.IRepairable>() : null;
+            if (repairable == null) return;
 
-            float healed = health.HealFromRepairOrb(); // capped at the max hull: 0 when it was full
+            float healed = repairable.RepairFromPickup(); // capped at the max hull: 0 when it was full
 
             taken = true;
             Collected?.Invoke(this, ship, healed);

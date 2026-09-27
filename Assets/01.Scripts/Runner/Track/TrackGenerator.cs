@@ -9,6 +9,7 @@ using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Store;
 using ConfusedGameDev.FiniteRunner.Track.Features;
+using ConfusedGameDev.FiniteRunner.Contracts;
 namespace ConfusedGameDev.FiniteRunner.Track
 {
     /// <summary>
@@ -86,11 +87,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         [SerializeField] TrackManager track;
 
-        [Tooltip("Source of powerUpSpeedBoost, the base boost the orb tiers multiply. Auto-found at runtime if left empty.")]
-        [SerializeField] GameManager gameManager;
-
-        [Tooltip("Ship the streamer keeps track generated ahead of. Auto-found at runtime if left empty.")]
-        [SerializeField] ShipMotor ship;
+        // Collaborators, by contract only (the track never names the ship or the
+        // game flow): what it streams ahead of, the vehicle stats that shape
+        // loops and ramps, and the run's rules (length, end, boosts). A
+        // composition root hands them in with Bind; otherwise Awake discovers
+        // them by interface, and with none present the track runs on its own
+        // defaults (an endless preview).
+        IStreamFocus focus;
+        IShipPerformance performance;
+        ITrackRunRules rules;
 
         [Tooltip("Stream the track ahead of the ship instead of building it all at once. In play the streamed track is still FINITE: it stops at the run's track length (RunnerLevelDefinition / GameSettings) in a straight run-up and three end ramps.")]
         [SerializeField] bool endless = true;
@@ -316,25 +321,38 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         void Awake()
         {
-            if (endless && ship == null) ship = FindFirstObjectByType<ShipMotor>();
-            if (gameManager == null) gameManager = FindFirstObjectByType<GameManager>();
+            if (endless) focus ??= ContractLookup.Find<IStreamFocus>();
+            performance ??= ContractLookup.Find<IShipPerformance>();
+            rules ??= ContractLookup.Find<ITrackRunRules>();
             if (randomize || endless) Generate();
+        }
+
+        /// <summary>
+        /// The composition root's hook: hands the track what it streams for,
+        /// the vehicle stats and the run's rules. Any may be null (that part
+        /// falls back to the defaults). Takes effect on the next Generate.
+        /// </summary>
+        public void Bind(IStreamFocus streamFocus, IShipPerformance shipPerformance, ITrackRunRules runRules)
+        {
+            focus = streamFocus;
+            performance = shipPerformance;
+            rules = runRules;
         }
 
         /// <summary>Track distance that is finished — nothing past it may be built on: AutoSmooth still reshapes the trailing curves when the next knot lands.</summary>
         public float SettledDistance => track != null ? Mathf.Max(0f, track.Length - (endless && !trackComplete ? SettleMargin : 0f)) : 0f;
 
         /// <summary>Everything that ENDS before this distance is behind the ship and may go.</summary>
-        public float CullDistance => endless && ship != null ? ship.DistanceTravelled - behindDistance : float.NegativeInfinity;
+        public float CullDistance => endless && focus != null ? focus.Distance - behindDistance : float.NegativeInfinity;
 
         /// <summary>The track was thrown away and is being rebuilt: whatever was built along it (the streamed colliders) must go too.</summary>
         public event System.Action Regenerated;
 
         void Update()
         {
-            if (!endless || ship == null || track == null) return;
-            StreamTo(ship.DistanceTravelled + aheadDistance);
-            CullBehind(ship.DistanceTravelled - behindDistance);
+            if (!endless || focus == null || track == null) return;
+            StreamTo(focus.Distance + aheadDistance);
+            CullBehind(focus.Distance - behindDistance);
         }
 
         /// <summary>Full rebuild for a new run. Endless runs always rebuild — the old stretch behind the start was culled.</summary>
@@ -416,7 +434,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // plenty of track, placing everything on a one-knot spline.
             track.Recalculate();
 
-            spawnContext = new TrackSpawnContext(track, gameManager, padsParent, padSize, boostMaterial, layoutSeed,
+            spawnContext = new TrackSpawnContext(track, rules, padsParent, padSize, boostMaterial, layoutSeed,
                                                  decorator != null ? decorator.RoadYOffset : -1.2f,
                                                  spawned, claims, padDistances, featureKeepOuts);
             foreach (var spawner in runtimeSpawners)
@@ -434,11 +452,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             trackComplete = false;
             if (Application.isPlaying && endless)
             {
-                if (gameManager != null) targetLength = gameManager.TrackLengthMeters;
+                if (rules != null) targetLength = rules.TrackLengthMeters;
             }
             // (Only asked of the manager in a finite play run: the getter
             // resolves the run's data, which an edit-mode preview must not.)
-            endRunUp = IsFinite && gameManager != null ? gameManager.EndRunUpMeters : GameSettings.Default.endRunUpMeters;
+            endRunUp = IsFinite && rules != null ? rules.EndRunUpMeters : GameSettings.Default.endRunUpMeters;
             // Never a run-up that eats the whole track.
             endRunUp = Mathf.Min(endRunUp, targetLength * 0.5f);
             endZoneTarget = targetLength - endRunUp;
@@ -887,7 +905,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             get
             {
                 if (!Application.isPlaying) return 1f;
-                float fromShip = ship != null && ship.Definition != null ? ship.Definition.jumpStrength : 1f;
+                float fromShip = performance != null ? performance.JumpStrength : 1f;
                 float fromStore = StoreUpgrades.Multiplier(StoreSectionKind.Ship, UpgradeIds.ShipJumpStrength);
                 return Mathf.Max(1f, fromShip, fromStore);
             }
@@ -991,8 +1009,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             if (!(endRamp?.Runtime is JumpDefinition def)) return;
 
-            float gap = gameManager != null ? gameManager.EndRampGapMeters : GameSettings.Default.endRampGapMeters;
-            float sideGap = gameManager != null ? gameManager.EndRampSideGapMeters : 0f;
+            float gap = rules != null ? rules.EndRampGapMeters : GameSettings.Default.endRampGapMeters;
+            float sideGap = rules != null ? rules.EndRampSideGapMeters : 0f;
             float width = Mathf.Max(2f, (track.HalfWidth * 2f - 2f * gap - 2f * sideGap) / 3f);
             float start = track.EndDistance - def.length;
 
@@ -1141,14 +1159,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// </summary>
         bool LoopReachable(FeatureSpawnEntry entry, float distance)
         {
-            if (!Application.isPlaying || !endless || ship == null || gameManager == null) return true;
+            if (!Application.isPlaying || !endless || focus == null || performance == null || rules == null) return true;
             if (entry.Runtime is not LoopDefinition loop) return true;
 
-            float speed = ship.CurrentSpeed;
-            float gap = Mathf.Max(0f, distance - ship.DistanceTravelled);
-            float bled = speed - ship.Definition.passiveDeceleration * gap / Mathf.Max(speed, 1f);
-            float predicted = Mathf.Max(bled, Mathf.Min(speed, ship.Definition.cruiseSpeed));
-            float required = gameManager.LoopRequiredSpeed(distance) * (1f + Mathf.Max(0f, loop.gateHeadroom));
+            float speed = focus.Speed;
+            float gap = Mathf.Max(0f, distance - focus.Distance);
+            float bled = speed - performance.PassiveDeceleration * gap / Mathf.Max(speed, 1f);
+            float predicted = Mathf.Max(bled, Mathf.Min(speed, performance.CruiseSpeed));
+            float required = rules.LoopRequiredSpeed(distance) * (1f + Mathf.Max(0f, loop.gateHeadroom));
             return predicted >= required;
         }
 
@@ -1213,7 +1231,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float rampHalf = track.HalfWidth * Mathf.Clamp01(def.widthFraction);
             float maxLat = Mathf.Max(0f, track.HalfWidth - rampHalf - 2f);
             float lateral = rng.NextFloat(-maxLat, maxLat);
-            float baseBoost = gameManager != null ? gameManager.PowerUpSpeedBoost : GameSettings.Default.powerUpSpeedBoost;
+            float baseBoost = rules != null ? rules.PowerUpSpeedBoost : GameSettings.Default.powerUpSpeedBoost;
             BuildRamp(distance, lateral, rampHalf, entry, def, baseBoost * entry.multiplier, isEndRamp: false);
         }
 
@@ -1294,7 +1312,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             go.transform.SetPositionAndRotation(pos, rot);
 
             var loop = go.AddComponent<LoopFeature>();
-            float required = gameManager != null ? gameManager.LoopRequiredSpeed(distance) : 0f;
+            float required = rules != null ? rules.LoopRequiredSpeed(distance) : 0f;
             loop.Configure(def, section, required);
             float labelHeight = def.labelHeight;
 
