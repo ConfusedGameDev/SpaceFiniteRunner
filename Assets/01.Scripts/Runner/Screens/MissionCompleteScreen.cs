@@ -615,7 +615,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             rankLetter.text = RankTable.Letter(rank);
             rankLetter.color = RankColor(rank);
             slamTimer = 0f;
-            HapticsSystem.Instance.Pulse(0.9f, 0.6f, 0.4f);
+            HapticsSystem.Instance.Pulse(theme.RankSlamRumble);
             ui.pitch = 1f;
             Blip(theme.ConfirmClip);
 
@@ -739,7 +739,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 buttons.MoveFocus(-vertical); // rows run top-down, so up is index-1
                 ui.pitch = 1f;
                 Blip(theme.MoveClip);
-                HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
+                HapticsSystem.Instance.Pulse(theme.MoveRumblePulse);
             }
 
             if (MenuNavigator.ConfirmPressed()) buttons.Focused?.Activate();

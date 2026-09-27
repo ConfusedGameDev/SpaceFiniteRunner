@@ -368,7 +368,7 @@ namespace ConfusedGameDev.FiniteRunner.Store
             {
                 current.screen.MoveFocus(-vertical); // rows run top-down, so up is index-1
                 Blip(theme.MoveClip);
-                HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
+                HapticsSystem.Instance.Pulse(theme.MoveRumblePulse);
             }
 
             int horizontal = nav.StepHorizontal(dt);

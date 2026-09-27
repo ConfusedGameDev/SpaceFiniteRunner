@@ -28,8 +28,16 @@ deliberately not read.
 
 A rolling `bufferLength` (12) buffer of `CheatToken`s, tail-matched on every push. It exposes both a
 scene-wirable `UnityEvent<string>` (`onCheatActivated`) and a **static `CheatActivated`** for
-objects that spawn later. Unlocks live in a static set (`CheatManager.IsActive(id)`) so they survive
-the scene load out of the menu.
+objects that spawn later. Unlocks live in ONE static set (`CheatManager.IsActive(id)`) so they
+survive the scene load out of the menu — **gameplay reads that, never an instance flag**
+(`PlayerScaleController` checks `IsActive("MegaCar")`). Refactor Step 10.2 removed the instance bools
+`isMegaCarEnabled` / `isDebugEnabled` and their `OnCheatActivated` switch: they were set only by the
+prefab's UnityEvent, whose target type name had gone stale, and one was never read. The static set,
+the instance and `CheatActivated` are reset at `SubsystemRegistration` (domain reload is off), and
+**only the session's manager clears the unlocks on destroy** (`resetCheatsOnExit`): a scene's placed
+duplicate discarding itself in `Awake` (the Store, the runner's `PF_Systems`) used to wipe a code
+entered in the menu before its level started. The burst when a code lands reads
+`CheatDefinition.BurstGlitch` / `BurstRumble`.
 
 Auto-created like `FloatingTextSystem`, but **a hand-placed one always wins the singleton** so its
 inspector wiring is never destroyed.

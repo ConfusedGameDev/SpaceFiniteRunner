@@ -257,8 +257,8 @@ namespace ConfusedGameDev.FiniteRunner.Cheats
         void Burst()
         {
             glitch = glitchTotal = Mathf.Max(0.01f, definition.GlitchSeconds);
-            GlitchController.Instance?.Pulse(1f);
-            HapticsSystem.Instance.Pulse(0.9f, 0.6f, 0.18f);
+            GlitchController.Instance?.Pulse(definition.BurstGlitch);
+            HapticsSystem.Instance.Pulse(definition.BurstRumble);
         }
 
         // ------------------------------------------------------------ visuals

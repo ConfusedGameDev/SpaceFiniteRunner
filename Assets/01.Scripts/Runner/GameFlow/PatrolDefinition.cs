@@ -258,6 +258,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float tugSlamRumbleMax = 0.9f;
 
         [TitleGroup("Duel")]
+        [Tooltip("The tug-of-war bar's rumble with the bar even (the patrol's share at 0). (low motor, high motor, seconds)")]
+        public Vector3 duelBarRumbleEven = new(0.15f, 0.1f, 0.14f);
+
+        [TitleGroup("Duel")]
+        [Tooltip("The tug-of-war bar's rumble with the patrol winning outright (share 1); it rises from the even rumble with the share. (low motor, high motor, seconds)")]
+        public Vector3 duelBarRumbleLosing = new(0.65f, 0.45f, 0.14f);
+
+        [TitleGroup("Duel")]
         [Tooltip("How much FASTER than the ship the patrol drives while committing to an attack run. This burst is what closes the gap — and it is the telegraph, so keep it visible.")]
         [PropertyRange(1f, 2f), SuffixLabel("x ship speed", true)]
         public float attackRunOverdrive = 1.15f;

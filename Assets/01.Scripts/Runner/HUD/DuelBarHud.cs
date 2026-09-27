@@ -294,7 +294,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             rumbleCooldown -= Time.unscaledDeltaTime;
             if (rumbleCooldown > 0f) return;
             rumbleCooldown = 0.12f;
-            HapticsSystem.Instance.Pulse(0.15f + 0.5f * share, 0.1f + 0.35f * share, 0.14f);
+            HapticsSystem.Instance.Pulse(Vector3.Lerp(Rules.duelBarRumbleEven, Rules.duelBarRumbleLosing, share));
         }
 
     }

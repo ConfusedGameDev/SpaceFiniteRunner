@@ -232,14 +232,14 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             {
                 current.MoveFocus(-vertical); // rows run top-down, so up is index-1
                 Blip(theme.MoveClip);
-                HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
+                HapticsSystem.Instance.Pulse(theme.MoveRumblePulse);
             }
 
             int horizontal = nav.StepHorizontal(dt);
             if (horizontal != 0 && current.Focused != null && current.Focused.Adjust(horizontal))
             {
                 Blip(theme.AdjustClip);
-                HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
+                HapticsSystem.Instance.Pulse(theme.MoveRumblePulse);
             }
 
             if (MenuNavigator.ConfirmPressed()) current.Focused?.Activate();
@@ -610,7 +610,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             cheatConsole.TokenPushed += () =>
             {
                 Blip(theme.MoveClip);
-                HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
+                HapticsSystem.Instance.Pulse(theme.MoveRumblePulse);
             };
             cheatConsole.CheatRevealed += _ => Blip(theme.ConfirmClip);
         }

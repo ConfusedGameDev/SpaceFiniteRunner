@@ -155,6 +155,15 @@ namespace ConfusedGameDev.FiniteRunner.Cheats
         [PropertyRange(0, 12)]
         [SerializeField] int tearBars = 6;
 
+        [TitleGroup("Console — reveal")]
+        [Tooltip("Glitch pulse on the screen when a code lands, 0..1.")]
+        [PropertyRange(0f, 1f)]
+        [SerializeField] float burstGlitch = 1f;
+
+        [TitleGroup("Console — reveal")]
+        [Tooltip("Pad rumble when a code lands. (low motor, high motor, seconds)")]
+        [SerializeField] Vector3 burstRumble = new(0.9f, 0.6f, 0.18f);
+
         public IReadOnlyList<CheatEntry> Cheats => cheats;
         public int BufferLength => Mathf.Max(CheatEntry.MaxLength, bufferLength);
         public float GlyphSize => glyphSize;
@@ -163,6 +172,8 @@ namespace ConfusedGameDev.FiniteRunner.Cheats
         public float GlitchSeconds => glitchSeconds;
         public float ShakeAmplitude => shakeAmplitude;
         public int TearBars => tearBars;
+        public float BurstGlitch => burstGlitch;
+        public Vector3 BurstRumble => burstRumble;
 
         /// <summary>Replaces the whole cheat list. Used by the editor asset builder to seed the test codes.</summary>
         public void SetCheats(List<CheatEntry> entries) => cheats = entries;

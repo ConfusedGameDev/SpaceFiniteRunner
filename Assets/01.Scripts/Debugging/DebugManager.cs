@@ -59,6 +59,8 @@ namespace ConfusedGameDev.FiniteRunner.Debugging
         static void ResetStatics()
         {
             quitting = false;
+            instance = null;      // domain reload is off: last session's manager is gone
+            visualizers.Clear();  // and so are its visualizers — they re-register on enable
             Application.quitting -= OnQuitting;
             Application.quitting += OnQuitting;
         }

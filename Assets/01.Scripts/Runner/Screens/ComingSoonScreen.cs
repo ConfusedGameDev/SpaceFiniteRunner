@@ -114,7 +114,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             {
                 screen.MoveFocus(-vertical);
                 Blip(theme.MoveClip);
-                HapticsSystem.Instance.Pulse(0f, theme.MoveRumble, 0.05f);
+                HapticsSystem.Instance.Pulse(theme.MoveRumblePulse);
             }
 
             if (MenuNavigator.ConfirmPressed()) screen.Focused?.Activate();

@@ -281,6 +281,15 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [PropertyRange(0f, 1f)]
         [SerializeField] float confirmRumble = 0.4f;
 
+        [TitleGroup("Haptics")]
+        [Tooltip("How long the cursor-move tick lasts (its strength is moveRumble, on the light motor only).")]
+        [PropertyRange(0.01f, 0.3f), SuffixLabel("s", true)]
+        [SerializeField] float moveRumbleSeconds = 0.05f;
+
+        [TitleGroup("Haptics")]
+        [Tooltip("The mission-complete rank letter slamming down. (low motor, high motor, seconds)")]
+        [SerializeField] Vector3 rankSlamRumble = new(0.9f, 0.6f, 0.4f);
+
         static MenuTheme cached;
         static Font legacyFont;
 
@@ -376,6 +385,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
 
         public float MoveRumble => moveRumble;
         public float ConfirmRumble => confirmRumble;
+        /// <summary>The cursor-move tick as one rumble value: (0, moveRumble, moveRumbleSeconds).</summary>
+        public Vector3 MoveRumblePulse => new(0f, moveRumble, moveRumbleSeconds);
+        public Vector3 RankSlamRumble => rankSlamRumble;
 
         /// <summary>Eased 0..1. Falls back to SmoothStep if the curve has been emptied in the inspector.</summary>
         public float Ease(float t)

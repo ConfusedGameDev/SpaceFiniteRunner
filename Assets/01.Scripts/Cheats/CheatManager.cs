@@ -30,10 +30,14 @@ namespace ConfusedGameDev.FiniteRunner.Cheats
 
         static CheatManager instance;
 
-        public bool isMegaCarEnabled;
-        public bool isDebugEnabled;
+        // Which cheats are on lives in ONE place, the static set behind
+        // IsActive(id) (refactor Step 10.2). The instance bools this class used
+        // to carry (isMegaCarEnabled, isDebugEnabled) were set only through a
+        // prefab UnityEvent whose target type name had gone stale, and
+        // isDebugEnabled was never read at all.
 
-        public bool resetCheatsOnExit=true;
+        [Tooltip("Forget every unlocked cheat when the session's manager goes away (leaving play mode, quitting). A duplicate manager discarding itself on a scene load never clears them.")]
+        public bool resetCheatsOnExit = true;
         /// <summary>
         /// The manager, auto-created on first use if the scene has none — the
         /// cheats page must work in the bare MainMenu scene. A hand-placed one
@@ -123,11 +127,22 @@ namespace ConfusedGameDev.FiniteRunner.Cheats
 
         void OnDestroy()
         {
-            if(resetCheatsOnExit)
-            {
-                ResetActivated();
-            }
-            if (instance == this) instance = null;
+            // Only the session's manager clears the unlocks: a scene's placed
+            // duplicate destroys itself in Awake the moment it loads (the Store,
+            // the runner's PF_Systems), and that used to wipe a cheat entered in
+            // the menu before the level it was for had even started.
+            if (instance != this) return;
+            if (resetCheatsOnExit) ResetActivated();
+            instance = null;
+        }
+
+        // Domain reload is off: nothing unlocked, and no manager, at play entry.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            activated.Clear();
+            instance = null;
+            CheatActivated = null;
         }
 
         /// <summary>
@@ -192,19 +207,5 @@ namespace ConfusedGameDev.FiniteRunner.Cheats
             return null;
         }
 
-        public void OnCheatActivated(string id)
-        {
-            switch(id)
-            {
-                 case "MegaCar":
-                 isMegaCarEnabled= true;
-                 break;
-                 case "DebugON": 
-                 isDebugEnabled=true;
-                 break;
-            }
-        }
-
-         
     }
 }

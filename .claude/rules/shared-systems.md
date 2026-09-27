@@ -91,8 +91,11 @@ Singleton gamepad rumble, auto-created like `FloatingTextSystem`.
   (refactor Step 8.2): the runner's in the `GameSettings` "Haptics" group beside `boostRumble`
   (busted, escape, end fail, hull hit, explosion, repair, brake, dash, loop fail, landing, fall,
   slide, wall hit, laser hit, win banner), the duel's on `PatrolDefinition` (kill, ram, shove,
-  redeploy, the tug slam's band). Menus take theirs from `MenuTheme`. The city's water splash and
-  player damage rumbles are still literals until refactor Step 9.
+  redeploy, the tug slam's band). The city's player damage (crash light/full, blast, splash) is on
+  `VehicleHealthSettings`' Player group (Step 9.2), the tug-of-war bar's even/losing pair on
+  `PatrolDefinition`, the cheat burst on `CheatDefinition`. Menus take theirs from `MenuTheme`: the
+  cursor tick is `theme.MoveRumblePulse` (nine screens), the rank slam `RankSlamRumble` (Step 10.2).
+  The menus' confirm pulses still carry their own durations (0.12–0.2 s) beside `ConfirmRumble`.
 - `SetChaseIntensity(0..1)` is a continuous channel the patrol refreshes each frame while close;
   **it self-fades when the calls stop**, so stale rumble can't persist.
 
