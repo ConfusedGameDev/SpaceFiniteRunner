@@ -202,7 +202,7 @@
     <span>Refactor <b>8 of 12 steps</b> done</span>
   </div>
   <div class="legend" aria-label="Change markers">
-    <span><span class="tag done">Changed · Step 8.2</span> already changed on the branch</span>
+    <span><span class="tag done">Changed · Step 8.3</span> already changed on the branch</span>
     <span><span class="tag plan">Step 3</span> planned, with the step that does it</span>
     <span><span class="tag drift">Shipped ≠ authored</span> the value that runs is not the value in the inspector</span>
     <span><span class="tag retired">Retired</span> kept in code, no longer used</span>
@@ -403,7 +403,7 @@ flowchart LR
     <tr><td><code>===UI===</code></td><td>RaceHUD, ChaseMinimap, DashPrompt, MoneyHud, PauseMenu</td></tr>
     <tr><td><code>===LIGHTING===</code></td><td>Volume, lights, and <code>Filters</code>: fog, glitch, speed lines, VHS, PSX, CRT</td></tr>
   </table></div>
-  <p>Still added at runtime by <code>GameManager.Awake</code>: <code>LoopSlowMo</code>, <code>ShipArmed</code>, <code>RespawnBlink</code>, <code>ShipAudio</code>, <code>BarrelRollTrail</code>, <code>BoostQte</code>, <code>ShipHealth</code>, <code>DuelSlowMo</code>, <code>DuelBarHud</code>. <span class="tag plan">Step 8</span> makes them hand-placed prefab components, per the no-runtime-systems rule. The runner's rain is also created at runtime because the scene has no rain object.</p>
+  <p><span class="tag done">Step 8.3</span> The ship's run components (<code>LoopSlowMo</code>, <code>ShipArmed</code>, <code>RespawnBlink</code>, <code>ShipAudio</code>, <code>BarrelRollTrail</code>, <code>ShipHealth</code>, <code>DuelSlowMo</code>, <code>DashGhostTrail</code>) are hand-placed on <code>PF_Ship</code>; <code>GameManager</code> finds and configures them. <span class="tag done">Step 4</span> The runner's rain is hand-placed in <code>PF_Filters</code>. Still spawned at runtime: the HUD pieces <code>DashPrompt</code>, <code>BoostQte</code>, <code>DuelBarHud</code> and the <code>PauseMenu</code> <span class="tag plan">Step 8.4</span>.</p>
 
   <h3 id="runner-flow">A run from boot to retry</h3>
   <ol>
@@ -555,7 +555,7 @@ flowchart LR
     <li class="is-done"><span class="st">Step 5<br/>done</span><div><b>Contracts assembly</b><span class="d">Interfaces only, no references; built together with its first consumer (the track) rather than up front.</span></div></li>
     <li class="is-done"><span class="st">Step 6<br/>done</span><div><b>Track stops knowing the ship</b><span class="d">The generator, spawners and pickups hold contracts only; ShipMotor, GameManager and ShipHealth implement them; the QTE registers a timing hook.</span></div></li>
     <li class="is-done"><span class="st">Step 7<br/>done</span><div><b>Patrol stops reaching into the ship</b><span class="d">IChaseTarget and IControlTakeover; run rules and track through Init. Hands-off soak: 12 km, a duel, a redeploy, no errors.</span></div></li>
-    <li class="is-next"><span class="st">Step 8<br/>in progress</span><div><b>Split GameManager</b><span class="d">8.1 glitch holds <b>done</b> · 8.2 rumbles on the settings assets <b>done</b> · 8.3 hand-placed ship components · 8.4 HUD on a run-state interface · 8.5 installer + run controller + feedback responders.</span></div></li>
+    <li class="is-next"><span class="st">Step 8<br/>in progress</span><div><b>Split GameManager</b><span class="d">8.1 glitch holds <b>done</b> · 8.2 rumbles on the settings assets <b>done</b> · 8.3 hand-placed ship components <b>done</b> · 8.4 HUD on a run-state interface · 8.5 installer + run controller + feedback responders.</span></div></li>
     <li><span class="st">Step 9</span><div><b>City</b><span class="d">Player registry, LevelManager split with a health meter, EVP values into CarConfig, shared AI driving profile.</span></div></li>
     <li><span class="st">Step 10</span><div><b>Shared assemblies</b><span class="d">Debug page registry, camera far-clip source, cheats, fog and rain merge.</span></div></li>
     <li><span class="st">Step 11</span><div><b>Independence proof and docs</b><span class="d">One sandbox scene per system, a validator against cross-system lookups, rule files updated.</span></div></li>
@@ -600,6 +600,7 @@ flowchart LR
     <tr data-g="runner"><td>7</td><td><span class="tag game runner">Runner</span></td><td><code>PolicePatrol</code>, <code>PatrolDriver</code>, <code>ShipMotor</code>, <code>Contracts/ChaseContracts.cs</code></td><td>The patrol held a <code>ShipMotor</code>: read its private <code>TrackBody</code> (13 sites), its definition, its run rules; wrote ~10 controls; found track and generator in the scene</td><td>Reads <code>IChaseTarget</code>, acts through <code>IControlTakeover</code>; rules and track through <code>Init</code>; the driver takes the ship's lateral as a float</td><td>none (hands-off soak: duel, redeploy, no errors)</td></tr>
     <tr data-g="shared"><td>8.1</td><td><span class="tag game shared">Shared</span></td><td><code>GlitchController.Hold</code> / <code>Release</code>; <code>GameManager</code>, <code>LevelManager</code></td><td>The runner's win ramp and the city's death screen and handoff zeroed the glitch's fade rate, remembered it and restored it by hand</td><td>They hold the picture and release it; the fade is suspended while anyone holds and resumes on its own</td><td>none (hold / release / fade verified in play)</td></tr>
     <tr data-g="runner"><td>8.2</td><td><span class="tag game runner">Runner</span></td><td><code>GameSettings</code> "Haptics" group, <code>PatrolDefinition</code> Duel group, <code>HapticsSystem.Pulse(Vector3)</code></td><td>20 rumbles were literals in <code>GameManager</code>, <code>PolicePatrol</code> and the banner</td><td>Each is a <code>Vector3</code> (low, high, seconds) on the asset of its event, beside its shake and glitch; defaults equal the old literals</td><td>none</td></tr>
+    <tr data-g="runner"><td>8.3</td><td><span class="tag game runner">Runner</span></td><td><code>PF_Ship</code></td><td>Seven ship components were added to the ship at play start by <code>GameManager.Awake</code></td><td>Hand-placed on the prefab (visible and tunable before play); <code>GameManager</code> finds and configures them</td><td>none (one of each in play, hull configured, no errors)</td></tr>
   </table></div>
 
   <h3 id="changes-register">Duplication register</h3>
@@ -667,7 +668,7 @@ flowchart LR
 </main>
 
 <footer class="wrap">
-  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 8.2, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
+  Sources: CLAUDE.md, the <code>.claude/rules</code> files, code and assets on branch <code>refactor/single-source-tuning</code> after Step 8.3, and the tuning dumps. Where the rule files and the shipped assets disagree, this document follows the assets.
 </footer>
 
 <script>
