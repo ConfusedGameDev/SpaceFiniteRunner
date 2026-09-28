@@ -147,6 +147,10 @@ the UI-assembly twin of the cheats' glyph set — **Cheats references UI, never 
 Strings are `MenuTextId` `Controls*` / `Action*` / `PressKey` / `SwappedWith` entries in all four
 languages.
 
+- **The hyperspace chord** (`runner-ship.md`): `ShipHyperspaceLeft` / `ShipHyperspaceRight` (Q / E, pad
+  None — LB / RB belong to the dash, and a Ship control is unique) are the keyboard half; the pad half
+  is the two dash shoulders held together. Both halves are read through the table, so rebinds move it.
+
 ## `LoadingScreen` (`UI/LoadingScreen.cs`)
 
 The PS1-style loading curtain that covers a scene trip: full backdrop, localized LOADING...

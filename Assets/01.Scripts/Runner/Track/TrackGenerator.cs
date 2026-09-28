@@ -1009,21 +1009,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             if (!(endRamp?.Runtime is JumpDefinition def)) return;
 
-            float gap = rules != null ? rules.EndRampGapMeters : GameSettings.Default.endRampGapMeters;
-            float sideGap = rules != null ? rules.EndRampSideGapMeters : 0f;
-            float width = Mathf.Max(2f, (track.HalfWidth * 2f - 2f * gap - 2f * sideGap) / 3f);
+            float gap = EndRampLayout(out float width, out _);
             float start = track.EndDistance - def.length;
 
             for (int i = -1; i <= 1; i++)
             {
-                float lateral = i * (width + gap);
-                float half = width * 0.5f;
-                // Flush against the wall: reach a little past it.
-                if (i != 0 && sideGap <= 0f)
-                {
-                    half += 0.25f;
-                    lateral += i * 0.25f;
-                }
+                float lateral = EndRampLateral(i, width, gap, out float half);
                 BuildRamp(start, lateral, half, endRamp, def, 0f, isEndRamp: true);
             }
 
@@ -1031,6 +1022,90 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (decorator != null)
                 foreach (float side in new[] { -1f, 1f })
                     decorator.StampEndMarker(start, side * (width + gap) * 0.5f, gap, def.length);
+        }
+
+        // The end ramps' widths and gaps — ONE rule, shared by the ramps
+        // themselves and by EndRampLaterals (the hyperspace autopilot aims at
+        // them before they exist, so the two must never disagree).
+        float EndRampLayout(out float width, out float sideGap)
+        {
+            float gap = rules != null ? rules.EndRampGapMeters : GameSettings.Default.endRampGapMeters;
+            sideGap = rules != null ? rules.EndRampSideGapMeters : 0f;
+            float halfWidth = track != null ? track.HalfWidth : 0f;
+            width = Mathf.Max(2f, (halfWidth * 2f - 2f * gap - 2f * sideGap) / 3f);
+            return gap;
+        }
+
+        // Ramp i (-1 left, 0 middle, 1 right): its centre lateral and half
+        // width. The outer ramps sit flush against the wall — they reach a
+        // little past it, so a ship pressed against it is on the ramp.
+        float EndRampLateral(int i, float width, float gap, out float half)
+        {
+            float lateral = i * (width + gap);
+            half = width * 0.5f;
+            EndRampLayout(out _, out float sideGap);
+            if (i != 0 && sideGap <= 0f)
+            {
+                half += 0.25f;
+                lateral += i * 0.25f;
+            }
+            return lateral;
+        }
+
+        /// <summary>
+        /// The centre laterals of the three end ramps (left, middle, right),
+        /// from the same layout rule that builds them — valid before the ramps
+        /// exist, which is what an autopilot lining the ship up needs.
+        /// </summary>
+        public float[] EndRampLaterals()
+        {
+            float gap = EndRampLayout(out float width, out _);
+            return new[]
+            {
+                EndRampLateral(-1, width, gap, out _),
+                EndRampLateral(0, width, gap, out _),
+                EndRampLateral(1, width, gap, out _)
+            };
+        }
+
+        /// <summary>
+        /// Brings the end of a finite track in NOW (the runner's hyperspace
+        /// jump): the final run-up starts where the road currently stops —
+        /// never inside road that is already built and dressed (the spline is
+        /// append-only; orbs, lasers, colliders and decoration already sit on
+        /// it) — plus whatever the road there still owes: the bank unwinding
+        /// to level, a sweep in progress, a section (tube, loop) it is inside.
+        /// Everything downstream is the ordinary end: the zone lands on its
+        /// spot, <see cref="FinishTrack"/> builds the three ramps, the
+        /// colliders, the patrol's end and the HUD's distance follow. Pending
+        /// jumps and a deferred flat sweep are dropped (they would otherwise
+        /// land in the run-up). The run-up is at least one ramp plus a
+        /// segment. False when the track is endless, already in its end zone,
+        /// or complete — nothing changes then.
+        /// </summary>
+        public bool ForceEndAhead(float runUpMeters)
+        {
+            if (!IsFinite || inEndZone || trackComplete || track == null) return false;
+            var shape = Shape;
+
+            float start = track.Length + segmentLength.x * 0.5f; // never a zero-length chord onto the spot
+            float step = Mathf.Max(shape.maxBankStepPerKnot, 0.01f);
+            float unwind = Mathf.Ceil(Mathf.Abs(bank) / step) * segmentLength.y;
+            if (unwind > 0f || turnKnotsLeft > 0)
+                start += turnKnotsLeft * segmentLength.y + unwind + shape.levelLeadDistance;
+            TrackSection section = track.SectionAt(track.Length);
+            if (section != null) start = Mathf.Max(start, section.EndDistance + segmentLength.x * 0.5f);
+            if (start >= endZoneTarget) return false; // the real end is already that close
+
+            pendingRamps.Clear();
+            deferredFlatKnots = 0;
+            featureCursor = float.MaxValue;
+
+            float rampLength = endRamp?.Runtime is JumpDefinition def ? def.length : 120f;
+            endRunUp = Mathf.Max(runUpMeters, rampLength + segmentLength.x * 0.5f);
+            endZoneTarget = start;
+            targetLength = start + endRunUp; // the HUD's distance left, until the built end takes over
+            return true;
         }
 
         /// <summary>Decided ramps land once the spline under their run-up is settled (AutoSmooth reshapes the last two segments as knots land).</summary>

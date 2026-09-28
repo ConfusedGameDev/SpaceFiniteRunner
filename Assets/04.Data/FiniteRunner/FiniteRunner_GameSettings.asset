@@ -126,6 +126,10 @@ MonoBehaviour:
   failBannerHoldSeconds: 2
   failBannerDismissSeconds: 0.5
   failBannerColor: {r: 1, g: 0.22, b: 0.25, a: 1}
+  failVideo: {fileID: 32900000, guid: 5cc8af7840f4d2349b50e771e6ef9ecc, type: 3}
+  failVideoSize: 420
+  failVideoOffsetY: -110
+  failVideoVolume: 1
   hullEnabled: 1
   startingLives: 10
   brakePadDamage: 20
@@ -170,6 +174,61 @@ MonoBehaviour:
   speedLinesEnabled: 1
   boostPulseStrength: 0.4
   boostPulseSeconds: 0.6
+  hyperspaceSkyEnabled: 1
+  lightSpeedWarpEnabled: 1
+  lightSpeedExitMargin: 0.03
+  lightSpeedWarpBlendSeconds: 0.6
+  lightSpeedLensIntensity: 0.5
+  lightSpeedMotionBlurIntensity: 0.8
+  lightSpeedMotionBlurClamp: 0.12
+  hyperspaceJumpEnabled: 1
+  hyperspacePromptDelaySeconds: 5
+  hyperspaceRunUpMeters: 600
+  escapeVanishEnabled: 1
+  escapeVanishDelaySeconds: 1
+  escapeTrailSeconds: 4
+  escapeTrailWidth: 8
+  escapeTrailIntensity: 2.5
+  escapeTrailGradient:
+    serializedVersion: 2
+    key0: {r: 1, g: 0.55, b: 0.1, a: 1}
+    key1: {r: 1, g: 0.38, b: 0.05, a: 1}
+    key2: {r: 0.8, g: 0.18, b: 0.03, a: 0}
+    key3: {r: 0, g: 0, b: 0, a: 0}
+    key4: {r: 0, g: 0, b: 0, a: 0}
+    key5: {r: 0, g: 0, b: 0, a: 0}
+    key6: {r: 0, g: 0, b: 0, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 0
+    ctime1: 32768
+    ctime2: 65535
+    ctime3: 0
+    ctime4: 0
+    ctime5: 0
+    ctime6: 0
+    ctime7: 0
+    atime0: 0
+    atime1: 45875
+    atime2: 65535
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 0
+    m_ColorSpace: -1
+    m_NumColorKeys: 3
+    m_NumAlphaKeys: 3
+  escapeTrailTexture: {fileID: 0}
+  escapeFlameTextures:
+  - {fileID: 2800000, guid: ba71cbb83e4c54ef78b015222befbab8, type: 3}
+  - {fileID: 2800000, guid: 6bd2758ba88644526a47d4aaa041283c, type: 3}
+  - {fileID: 2800000, guid: a7bb9dc623cb5413e9609cf1257058a6, type: 3}
+  escapeFlameSize: 5
+  escapeFlashColor: {r: 0.55, g: 0.8, b: 1, a: 1}
+  escapeFlashScale: 4
+  escapeFlashLight: 60
+  escapeFlashGlitch: 0.5
   vhsEnabled: 1
   psxEnabled: 1
   crtEnabled: 1

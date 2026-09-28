@@ -38,10 +38,15 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   is never a loss. At the lip the win latches, the
   ship flies on off the ramp (it never lands), MISSION ACCOMPLISHED slams in, the glitch ramps
   to max, then the Mission Complete panel opens.
+- **Hyperspace jump**: 5 s at Light Speed (objectives met) brings up HIT HYPERSPACE — LB + RB /
+  Q + E (the dash is off while it shows; losing Light Speed hides it). The chord brings the end run-up
+  and ramps in where the road currently stops (~2 s ahead), the autopilot flies onto a ramp, the
+  patrol is held, and from the press the run CANNOT be lost (no clock, no catch, no hull, no miss). **Every win** exits Back to the Future style: two fire trails,
+  and 1 s off the ramp the model vanishes in an electric flash.
 - **Lose**: the countdown hits 0, the patrol catches you, or it reaches the end of the track without the win — an objective still open (ramp or not), or
   through a gap between the ramps — and drops into the void — or the **hull reaches 0 and the ship
   explodes**. EVERY loss slams a MISSION FAILED banner in (the win banner's animation), then the
-  `GameOverScreen` retry panel: MISSION FAILED, the localized reason, RETRY? YES / NO (NO = main
+  `GameOverScreen` retry panel (the patrol stops where it is, and a reaction clip plays under the banner): MISSION FAILED, the localized reason, RETRY? YES / NO (NO = main
   menu).
 - **Hull and lives** (`GameSettings.hullEnabled`): the HUD's life bar sits under the speed wedge
   with a ×N lives count at its right end. Hard wall hits (a dash slam, a ramp's side),

@@ -26,6 +26,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float LightSpeedKmh { get; }
         /// <summary>Light Speed has been reached (it latches).</summary>
         bool LightSpeedReached { get; }
+        /// <summary>Every mandatory objective met (latched) — half the win; the other half is leaving by an end ramp.</summary>
+        bool ObjectivesMet { get; }
         /// <summary>Jumps taken this run (jump objectives count them).</summary>
         int JumpCount { get; }
         /// <summary>The run's level: its objectives and optional challenges.</summary>

@@ -168,6 +168,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         bool Quiet => run == null || run.RunOver || run.IsEnding;
 
         /// <summary>
+        /// True while the ship flies at Light Speed — the one state the
+        /// hyperspace sky, the warp and the hyperspace jump all follow: in at
+        /// Light Speed, out a small margin under it, and never while falling.
+        /// </summary>
+        public bool AtLightSpeed => atLightSpeed;
+
+        /// <summary>
         /// The Light Speed state, from the ship's CURRENT speed: in at Light
         /// Speed, out once it falls <see cref="GameSettings.lightSpeedExitMargin"/>
         /// under it — and never while the ship is falling (over an open edge

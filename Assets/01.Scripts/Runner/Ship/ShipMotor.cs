@@ -209,6 +209,17 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             set { if (physicsShip != null) physicsShip.DashLocked = value; }
         }
 
+        /// <summary>
+        /// Refuses every dash while set — independent of <see cref="DashLocked"/>
+        /// (the duel rewrites that every frame). Held by the hyperspace jump
+        /// while its LB + RB prompt is up.
+        /// </summary>
+        public bool DashSuppressed
+        {
+            get => physicsShip != null && physicsShip.DashSuppressed;
+            set { if (physicsShip != null) physicsShip.DashSuppressed = value; }
+        }
+
         /// <summary>Empties the dash meter — the duel's kill costs all of it, not one dash's worth.</summary>
         public void DrainDashMeter()
         {

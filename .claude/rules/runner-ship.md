@@ -398,6 +398,53 @@ The timer only ticks while the motor isn't paused. `Restart()` rebuilds the trac
 `ShipMotor.Launch()` fires up to three times per run, so it cannot be used to count attempts —
 `GameManager` counts one on the first frame the motor is unpaused.
 
+## The hyperspace jump and the escape vanish
+
+**`HyperspaceJump`** (`GameFlow/`, hand-placed beside the GameManager in `PF_GameManager`, `Ensure` +
+`Bind` in `Awake` after the feedback) is the shortcut to the ending. It counts scaled seconds while
+`RunFeedback.AtLightSpeed` (the hyperspace sky's state: exit margin, a fall drops it) AND
+`IRunState.ObjectivesMet` (a jump with an objective open would be a TooSlow loss) AND nothing is
+ending, paused or off the end; any gap resets the count. At `GameSettings.hyperspacePromptDelaySeconds`
+(5) the `HyperspacePrompt` comes up and **`ShipMotor.DashSuppressed`** is held — a dash gate of its
+own (`HoverShip.TryDash`), because the duel rewrites `DashLocked` every frame; releasing it drains
+the latched dash request (`ConsumeDashRequest`). **The chord**: both of `ShipDashLeft` +
+`ShipDashRight` (the pad's LB + RB; their keys N + M count too) or both of `ShipHyperspaceLeft` +
+`ShipHyperspaceRight` (Q + E), the second landing this frame, all through `ControlBindings`.
+`Engage()` (also an Odin test button):
+- HOLDS the patrol (`AbortEncounter` + `SetHold(true)`; its `Launch` releases it) — it stops moving,
+  catching and attacking, and the duel's lock lets go of the controls. **Never `DuelEnabled = false`**:
+  duel off restores the old proximity arrest, and the cruiser alongside arrested the ship the moment
+  the chord was pressed (the first build did exactly that)
+- shields the hull at once (`ShipHealth.Shielded`, re-asserted by the GameManager every Update)
+- `TrackGenerator.ForceEndAhead(hyperspaceRunUpMeters)` — the end comes in where the road currently
+  stops (see `runner-track.md`), ~2.5–4 km ahead, about 2 s at 6840 km/h
+- picks the end ramp nearest the ship's lateral ONCE (`TrackGenerator.EndRampLaterals`) and holds
+  `motor.Autopilot` + `AutopilotLateral` on it every frame until `HasLeftTrackEnd`
+- lights the escape fire (`EscapeVanish.Ignite`)
+**While `Jumping` the run CANNOT be lost**: the GameManager skips the countdown and the catch check,
+ignores `LaserGate.Hit`, keeps the hull `Shielded` (forced hits included), refuses `BeginFail`
+outright (the net under every path), keeps the patrol held through a respawn (`OnRespawned`), and
+`OnReachedTrackEnd` counts leaving the road as the win (`tookRamp` and `ObjectivesMet` forced) even
+through a gap. The ordinary escape then plays.
+
+**Every loss holds the patrol too** (`BeginFail` → `SetHold(true)`): the chase stops where it is under
+the MISSION FAILED banner; `Restart` → `Launch` releases it.
+
+**`EscapeVanish`** (`Runner/Ship/`, hand-placed on `PF_Ship` beside `ShipHealth`, `Ensure` +
+`Configure(settings, motor, hull)`) is EVERY win's exit, Back to the Future style: two fire trails
+(world-space `TrailRenderer`s + a world-space flame `ParticleSystem` each) off the wingtips —
+`BarrelRollTrail.MeasureVisual`'s spots — **parented to the ship ROOT, never the visual**, because
+`ShipHealth.SetShipVisible(false)` disables every renderer under the visual. `Ignite()` lights them
+(the jump engaging, so the lines run down the road and up the ramp); `Begin()` (the GameManager,
+beside `BeginEscape`) lights them if needed and starts the clock; `escapeVanishDelaySeconds` (1)
+later the model is hidden through the hull with a spark burst, a point-light flare and a glitch
+pulse, and the trails fly on. `motor.Launched` stops and clears everything and hands the model back.
+Materials are built at runtime (`ParticleMaterials.Unlit`, forced to URP additive `_Blend` 2) from
+`escapeTrailTexture` / `escapeFlameTextures[0]` (Kenney `trace_01_rotated`, `flame_*`), tinted
+`escapeTrailIntensity` (HDR). The escape flight climbs at the ramp's 15° and is ~3 km from the
+planted camera within 1.5 s, so the trails need width (`escapeTrailWidth`) and a long burn
+(`escapeTrailSeconds`) to read — the part of the line near the camera is the one on the road.
+
 ## `PolicePatrol`
 
 The chaser: a scene object whose chase tunables live on its `PatrolDefinition` asset
