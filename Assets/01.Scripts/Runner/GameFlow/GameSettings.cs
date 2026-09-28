@@ -619,6 +619,41 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(0.05f, 2f), SuffixLabel("s", true)]
         public float boostPulseSeconds = 0.6f;
 
+        // ---------------------------------------------------- hyperspace sky
+        [ToggleGroup("hyperspaceSkyEnabled", "Hyperspace sky")]
+        [Tooltip("While the ship flies at Light Speed, the sky is a hyperspace tunnel of cyan / green streaks instead of the scene's skybox; dropping below it fades the skybox back. The look lives on the HyperspaceSky object's asset — this is only the on/off for this scene.")]
+        public bool hyperspaceSkyEnabled = true;
+
+        // ---------------------------------------------------- light speed warp
+        [ToggleGroup("lightSpeedWarpEnabled", "Light Speed warp")]
+        [Tooltip("While the ship flies at Light Speed, the lens distortion and the motion blur are pushed up; dropping below it blends both back to their authored values (the lens controller's default, the volume profile's blur).")]
+        public bool lightSpeedWarpEnabled = true;
+
+        [ToggleGroup("lightSpeedWarpEnabled")]
+        [Tooltip("How far below Light Speed (fraction of it) the ship must fall before the warp and the hyperspace sky let go — stops them flickering while the speed hovers on the line. 0.03 = 3 % under.")]
+        [PropertyRange(0f, 0.2f)]
+        public float lightSpeedExitMargin = 0.03f;
+
+        [ToggleGroup("lightSpeedWarpEnabled")]
+        [Tooltip("Seconds the lens and the blur take to blend in on reaching Light Speed, and back out on losing it.")]
+        [PropertyRange(0f, 3f), SuffixLabel("s", true)]
+        public float lightSpeedWarpBlendSeconds = 0.6f;
+
+        [ToggleGroup("lightSpeedWarpEnabled")]
+        [Tooltip("Lens distortion intensity held at Light Speed (the lens controller rests at its own default otherwise; boost kicks still play on top).")]
+        [PropertyRange(-1f, 1f)]
+        public float lightSpeedLensIntensity = 0.5f;
+
+        [ToggleGroup("lightSpeedWarpEnabled")]
+        [Tooltip("Motion blur intensity held at Light Speed (the volume profile's own value otherwise).")]
+        [PropertyRange(0f, 1f)]
+        public float lightSpeedMotionBlurIntensity = 0.8f;
+
+        [ToggleGroup("lightSpeedWarpEnabled")]
+        [Tooltip("Motion blur clamp (the longest a blur streak may get, fraction of the screen) held at Light Speed.")]
+        [PropertyRange(0f, 0.2f)]
+        public float lightSpeedMotionBlurClamp = 0.12f;
+
         // ------------------------------------------------------------ VHS tape
         [ToggleGroup("vhsEnabled", "VHS tape")]
         [Tooltip("Play the run back as a worn VHS tape: chroma bleed, row jitter, a crawling tracking band, grain and scanlines over the finished picture. The look lives on the asset below — this is only the on/off for this scene.")]

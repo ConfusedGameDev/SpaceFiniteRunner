@@ -1,5 +1,9 @@
 using UnityEngine;
 
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+
+using ConfusedGameDev.FiniteRunner.CameraFX;
 using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.HUD;
@@ -13,7 +17,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// <summary>
     /// How the run FEELS: the rumble, shake, glitch pulse, speed-line burst,
     /// sparkles and story line each ship and patrol event plays, plus the loop
-    /// gates' tint and labels. Split out of the <see cref="GameManager"/>
+    /// gates' tint and labels, and the Light Speed state: while the ship flies
+    /// at Light Speed the hyperspace sky is held in and the lens distortion
+    /// and motion blur are pushed up; below it (past a small exit margin, so
+    /// it never flickers on the line) all three blend back to their authored
+    /// values. Split out of the <see cref="GameManager"/>
     /// (refactor Step 8.5), which keeps only the rules — an event whose
     /// feedback depends on a rule's outcome (a laser hit the blink shielded, a
     /// hull hit, the endings) stays there. Hand-placed beside the GameManager
@@ -30,6 +38,17 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         IRunState run;
         RunCameraDirector director;
         SpeedLines speedLines; // null when the speed lines are off on GameSettings
+        HyperspaceSky hyperspace; // null when the hyperspace sky is off on GameSettings
+
+        // Light Speed warp: true while at Light Speed (with the exit margin),
+        // and the lens / blur blend that follows it.
+        bool atLightSpeed;
+        bool falling; // FellOff → Respawned: over an open edge, the look lets go at once
+        float warpBlend;
+        LensDistortionController lens; // cached on the first warp, so teardown never creates one
+        MotionBlur motionBlur;   // the global volume's runtime-profile override, found lazily
+        float baseBlurIntensity; // its authored values, restored when the warp lets go
+        float baseBlurClamp;
 
         /// <summary>The scene's feedback (hand-placed beside the GameManager); added only when the scene has none.</summary>
         public static RunFeedback Ensure(Component host)
@@ -66,6 +85,13 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (speedLines != null && motor != null)
                 speedLines.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, run.LightSpeedKmh);
 
+            // Hyperspace sky: the scene's hand-placed HyperspaceSky beside the
+            // speed lines. It follows the ship's heading; Update holds it in
+            // while the ship is at Light Speed.
+            hyperspace = HyperspaceSky.Apply(settings.hyperspaceSkyEnabled);
+            if (hyperspace != null && motor != null)
+                hyperspace.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, run.LightSpeedKmh);
+
             SpeedPad.Collected += OnPadCollected;
             RepairOrb.Collected += OnRepairOrb;
             if (motor != null)
@@ -74,6 +100,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.WallHit += OnWallHit;
                 motor.Sliding += OnSliding;
                 motor.FellOff += OnFellOff;
+                motor.Respawned += OnRespawned;
                 motor.DashPerformed += OnDashPerformed;
                 motor.Landed += OnLanded;
                 motor.LoopFailed += OnLoopFailed;
@@ -95,6 +122,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 motor.WallHit -= OnWallHit;
                 motor.Sliding -= OnSliding;
                 motor.FellOff -= OnFellOff;
+                motor.Respawned -= OnRespawned;
                 motor.DashPerformed -= OnDashPerformed;
                 motor.Landed -= OnLanded;
                 motor.LoopFailed -= OnLoopFailed;
@@ -106,12 +134,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             }
         }
 
-        void OnDestroy() => Unsubscribe();
+        void OnDestroy()
+        {
+            Unsubscribe();
+            ClearWarp();
+        }
 
         /// <summary>A retry: no speed-line burst carried over (the speed term follows the relaunch on its own).</summary>
         public void ResetForRun()
         {
             if (speedLines != null) speedLines.ClearPulse();
+            if (hyperspace != null) hyperspace.ResetForRun();
+            ClearWarp();
         }
 
         void Update()
@@ -127,9 +161,87 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 speedLines.SetCameraMode(rig.Cinematic ? SpeedLines.CinematicMode : (int)rig.Mode);
 
             if (motor != null && !run.RunOver) UpdateLoops();
+
+            UpdateLightSpeed();
         }
 
         bool Quiet => run == null || run.RunOver || run.IsEnding;
+
+        /// <summary>
+        /// The Light Speed state, from the ship's CURRENT speed: in at Light
+        /// Speed, out once it falls <see cref="GameSettings.lightSpeedExitMargin"/>
+        /// under it — and never while the ship is falling (over an open edge
+        /// until it relaunches, or off the end of the track without the win):
+        /// the fall's speed would keep the warp up on a tumbling camera, so a
+        /// fall starts the blend back on its first frame. Holds the hyperspace
+        /// sky in (it fades itself) and blends
+        /// the lens distortion and motion blur toward their Light Speed values
+        /// over <see cref="GameSettings.lightSpeedWarpBlendSeconds"/>.
+        /// </summary>
+        void UpdateLightSpeed()
+        {
+            if (motor == null) return;
+            float kmh = motor.CurrentSpeed * 3.6f;
+            float light = run.LightSpeedKmh;
+            bool fallingNow = falling || (motor.HasLeftTrackEnd && !motor.IsEscaping);
+            atLightSpeed = !fallingNow && (atLightSpeed
+                ? kmh >= light * (1f - settings.lightSpeedExitMargin)
+                : kmh >= light);
+
+            if (hyperspace != null) hyperspace.SetEngaged(atLightSpeed);
+
+            if (!settings.lightSpeedWarpEnabled)
+            {
+                if (warpBlend > 0f) ClearWarp();
+                return;
+            }
+            float seconds = settings.lightSpeedWarpBlendSeconds;
+            warpBlend = Mathf.MoveTowards(warpBlend, atLightSpeed ? 1f : 0f,
+                                          seconds > 0f ? Time.deltaTime / seconds : 1f);
+            ApplyWarp();
+        }
+
+        // Lens through its controller's held layer (its boost kicks ride on
+        // top); blur straight on the global volume's runtime profile — the
+        // copy the lens controller already made, so the asset is never written.
+        void ApplyWarp()
+        {
+            if (lens == null) lens = LensDistortionController.Instance;
+            lens.SetHeld(warpBlend, settings.lightSpeedLensIntensity);
+
+            if (motionBlur == null)
+            {
+                if (warpBlend <= 0f || lens.volume == null) return;
+                VolumeProfile profile = lens.volume.profile; // the runtime copy
+                if (!profile.TryGet(out motionBlur))
+                {
+                    motionBlur = profile.Add<MotionBlur>();
+                    motionBlur.intensity.value = 0f;
+                    motionBlur.clamp.value = 0.05f;
+                }
+                motionBlur.active = true;
+                motionBlur.intensity.overrideState = true;
+                motionBlur.clamp.overrideState = true;
+                baseBlurIntensity = motionBlur.intensity.value;
+                baseBlurClamp = motionBlur.clamp.value;
+            }
+            motionBlur.intensity.value = Mathf.Lerp(baseBlurIntensity, settings.lightSpeedMotionBlurIntensity, warpBlend);
+            motionBlur.clamp.value = Mathf.Lerp(baseBlurClamp, settings.lightSpeedMotionBlurClamp, warpBlend);
+        }
+
+        // Back to the authored lens and blur at once (a retry, or teardown).
+        void ClearWarp()
+        {
+            atLightSpeed = false;
+            falling = false;
+            warpBlend = 0f;
+            if (lens != null) lens.SetHeld(0f, 0f);
+            if (motionBlur != null)
+            {
+                motionBlur.intensity.value = baseBlurIntensity;
+                motionBlur.clamp.value = baseBlurClamp;
+            }
+        }
 
         // Story beat: hype line every time the rare orb tier is grabbed.
         void OnPadCollected(SpeedPad pad, IShip collector)
@@ -235,10 +347,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // patrol's hold is the GameManager's rule, the fall shot the director's).
         void OnFellOff()
         {
+            falling = true; // the Light Speed look starts fading this frame (UpdateLightSpeed)
             HapticsSystem.Instance.Pulse(settings.fallRumble);
             if (GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(settings.fallGlitchStrength);
         }
+
+        // Back on the road after a fall: the Light Speed look may come back with the speed.
+        void OnRespawned() => falling = false;
 
         // Grip lost on a flat sweep: the warning before the edge, so it is a
         // long low rumble rather than the wall's sharp knock.

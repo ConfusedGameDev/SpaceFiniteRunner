@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79e59438ab20d0d40bb1cafdc85c0543, type: 3}
+  m_Name: FiniteRunner_HyperspaceSky
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.HyperspaceSkySettings
+  material: {fileID: 2100000, guid: d4cad6a43b21075469a980b3d79c2d58, type: 2}
+  fadeInSeconds: 0.6
+  flashStrength: 1.5
+  flashSeconds: 0.8
+  axisResponse: 3
+  scrollSpeed: 9
+  speedFactorBand: {x: 0.5, y: 2}
+  backgroundColor: {r: 0.015, g: 0.07, b: 0.08, a: 1}
+  coreColor: {r: 0, g: 0.01, b: 0.015, a: 1}
+  streakCyan: {r: 0.2, g: 1.6, b: 1.5, a: 1}
+  streakAqua: {r: 0.35, g: 1.1, b: 1.8, a: 1}
+  streakGreen: {r: 0.4, g: 1.8, b: 0.5, a: 1}
+  greenShare: 0.2
+  brightness: 1.6
+  columns: 72
+  density: 0.35
+  cellLength: 1.2
+  streakLength: 0.45
+  streakWidth: 0.55
+  coreRadius: 0.12

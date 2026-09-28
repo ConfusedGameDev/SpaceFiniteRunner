@@ -45,6 +45,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             // shared
             ("DistanceFog", "Assets/03.Prefabs/FiniteRunner/PF_DistanceFog.prefab"),
             ("SpeedLines", "Assets/03.Prefabs/FiniteRunner/PF_SpeedLines.prefab"),
+            ("HyperspaceSky", "Assets/03.Prefabs/FiniteRunner/PF_HyperspaceSky.prefab"),
             ("VhsTape", "Assets/03.Prefabs/FiniteRunner/PF_VhsTape.prefab"),
             ("PsxLook", "Assets/03.Prefabs/FiniteRunner/PF_PsxLook.prefab"),
             ("CrtScreen", "Assets/03.Prefabs/FiniteRunner/PF_CrtScreen.prefab"),
