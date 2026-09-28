@@ -450,6 +450,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Colour of the MISSION FAILED banner's letters and underline.")]
         public Color failBannerColor = new(1f, 0.22f, 0.25f, 1f);
 
+        [TitleGroup("Mission failed")]
+        [Tooltip("A reaction clip played once, with its sound, in a framed square under the MISSION FAILED banner. The banner holds at least as long as the clip. Empty = no clip.")]
+        public UnityEngine.Video.VideoClip failVideo;
+
+        [TitleGroup("Mission failed")]
+        [Tooltip("Height of the fail clip on the 1080p reference screen (its width follows the clip's aspect).")]
+        [PropertyRange(120f, 900f), SuffixLabel("px", true)]
+        public float failVideoSize = 420f;
+
+        [TitleGroup("Mission failed")]
+        [Tooltip("Vertical offset of the fail clip from the screen centre (negative = lower; the banner sits in the upper third).")]
+        [PropertyRange(-500f, 500f), SuffixLabel("px", true)]
+        public float failVideoOffsetY = -110f;
+
+        [TitleGroup("Mission failed")]
+        [Tooltip("Volume of the fail clip's own sound.")]
+        [PropertyRange(0f, 1f)]
+        public float failVideoVolume = 1f;
+
         // ----------------------------------------------------- hull and lives
         // The ship's hull points live on ShipDefinition (maxHull) — this
         // section holds the run-level rules: what hurts, how much, how many
@@ -618,6 +637,139 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("How long a boost burst takes to fade back to the speed-driven level.")]
         [PropertyRange(0.05f, 2f), SuffixLabel("s", true)]
         public float boostPulseSeconds = 0.6f;
+
+        // ---------------------------------------------------- hyperspace sky
+        [ToggleGroup("hyperspaceSkyEnabled", "Hyperspace sky")]
+        [Tooltip("While the ship flies at Light Speed, the sky is a hyperspace tunnel of cyan / green streaks instead of the scene's skybox; dropping below it fades the skybox back. The look lives on the HyperspaceSky object's asset — this is only the on/off for this scene.")]
+        public bool hyperspaceSkyEnabled = true;
+
+        // ---------------------------------------------------- light speed warp
+        [ToggleGroup("lightSpeedWarpEnabled", "Light Speed warp")]
+        [Tooltip("While the ship flies at Light Speed, the lens distortion and the motion blur are pushed up; dropping below it blends both back to their authored values (the lens controller's default, the volume profile's blur).")]
+        public bool lightSpeedWarpEnabled = true;
+
+        [ToggleGroup("lightSpeedWarpEnabled")]
+        [Tooltip("How far below Light Speed (fraction of it) the ship must fall before the warp and the hyperspace sky let go — stops them flickering while the speed hovers on the line. 0.03 = 3 % under.")]
+        [PropertyRange(0f, 0.2f)]
+        public float lightSpeedExitMargin = 0.03f;
+
+        [ToggleGroup("lightSpeedWarpEnabled")]
+        [Tooltip("Seconds the lens and the blur take to blend in on reaching Light Speed, and back out on losing it.")]
+        [PropertyRange(0f, 3f), SuffixLabel("s", true)]
+        public float lightSpeedWarpBlendSeconds = 0.6f;
+
+        [ToggleGroup("lightSpeedWarpEnabled")]
+        [Tooltip("Lens distortion intensity held at Light Speed (the lens controller rests at its own default otherwise; boost kicks still play on top).")]
+        [PropertyRange(-1f, 1f)]
+        public float lightSpeedLensIntensity = 0.5f;
+
+        [ToggleGroup("lightSpeedWarpEnabled")]
+        [Tooltip("Motion blur intensity held at Light Speed (the volume profile's own value otherwise).")]
+        [PropertyRange(0f, 1f)]
+        public float lightSpeedMotionBlurIntensity = 0.8f;
+
+        [ToggleGroup("lightSpeedWarpEnabled")]
+        [Tooltip("Motion blur clamp (the longest a blur streak may get, fraction of the screen) held at Light Speed.")]
+        [PropertyRange(0f, 0.2f)]
+        public float lightSpeedMotionBlurClamp = 0.12f;
+
+        // ---------------------------------------------------- hyperspace jump
+        [ToggleGroup("hyperspaceJumpEnabled", "Hyperspace jump")]
+        [Tooltip("After holding Light Speed a while (every objective met), HIT HYPERSPACE comes up: LB + RB on a pad, Q + E on the keyboard. Pressing it brings the end of the track in where the road currently stops and the autopilot lines the ship up on the nearest end ramp — the win, now. The dash is off while the prompt is up (the chord IS the two dash shoulders).")]
+        public bool hyperspaceJumpEnabled = true;
+
+        [ToggleGroup("hyperspaceJumpEnabled")]
+        [Tooltip("Seconds at Light Speed before the prompt comes up. Losing Light Speed hides it and starts the count over.")]
+        [PropertyRange(0f, 20f), SuffixLabel("s", true)]
+        public float hyperspacePromptDelaySeconds = 5f;
+
+        [ToggleGroup("hyperspaceJumpEnabled")]
+        [Tooltip("Length of the straight walled run-up the jump puts before the end ramps (it starts where the road currently stops, ~2.5 km ahead). Never shorter than a ramp plus one segment.")]
+        [PropertyRange(200f, 2000f), SuffixLabel("m", true)]
+        public float hyperspaceRunUpMeters = 600f;
+
+        // ------------------------------------------------------ escape vanish
+        [ToggleGroup("escapeVanishEnabled", "Escape vanish")]
+        [Tooltip("Every win: the ship leaves the end ramp trailing two fire lines, and a moment later the model vanishes in an electric flash — only the burning trails fly on (Back to the Future).")]
+        public bool escapeVanishEnabled = true;
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("Seconds of flight off the ramp before the model vanishes.")]
+        [PropertyRange(0.1f, 3f), SuffixLabel("s", true)]
+        public float escapeVanishDelaySeconds = 1f;
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("How long a point of the fire trail burns before it is gone — with the ship at Light Speed and the camera planted, this is how long the two lines stay on screen. A hyperspace jump lights them on the road already, so they must outlast the approach.")]
+        [PropertyRange(0.2f, 8f), SuffixLabel("s", true)]
+        public float escapeTrailSeconds = 4f;
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("Fire trail width at the ship, in metres (it tapers to nothing at the tail).")]
+        [PropertyRange(0.5f, 30f), SuffixLabel("m", true)]
+        public float escapeTrailWidth = 8f;
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("HDR brightness of the fire trails and flames (the material's tint): above 1 the bloom makes them burn.")]
+        [PropertyRange(0.5f, 12f)]
+        public float escapeTrailIntensity = 4f;
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("The fire trail's colour along its length: head (at the ship) → tail. Additive; Escape Trail Intensity is the brightness on top.")]
+        public Gradient escapeTrailGradient = DefaultFireGradient();
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("The fire trail's texture, stretched ONCE over the whole line (kilometres), so it must fill its width and length — a sprite with transparent margins becomes a hairline with a blank stretch behind the ship. Empty = the built-in fire band (a soft glow with a hot core), the default.")]
+        public Texture2D escapeTrailTexture;
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("Flame sprites licking off the trail heads (the Kenney flame_* / fire_* pack). Empty = no flames, just the trails.")]
+        public Texture2D[] escapeFlameTextures;
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("Size of the flame sprites, metres.")]
+        [PropertyRange(0.5f, 12f), SuffixLabel("m", true)]
+        public float escapeFlameSize = 5f;
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("Colour of the vanish's electric flash (sparks and the light burst).")]
+        public Color escapeFlashColor = new(0.55f, 0.8f, 1f);
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("Size of the vanish's spark burst (1 = the landing sparkle's).")]
+        [PropertyRange(0.5f, 10f)]
+        public float escapeFlashScale = 4f;
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("Peak intensity of the vanish's light burst, and its range in metres.")]
+        [PropertyRange(0f, 200f)]
+        public float escapeFlashLight = 60f;
+
+        [ToggleGroup("escapeVanishEnabled")]
+        [Tooltip("Glitch pulse on the vanish (0 = none).")]
+        [PropertyRange(0f, 1f)]
+        public float escapeFlashGlitch = 0.5f;
+
+        static Gradient DefaultFireGradient()
+        {
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[]
+                {
+                    // Orange end to end: a trail spans kilometres, so whatever sits
+                    // at a key's end of it is the ONLY colour the chase camera
+                    // (at the head) or the planted one (near the tail) ever sees.
+                    new GradientColorKey(new Color(1f, 0.55f, 0.1f), 0f),   // yellow-orange at the ship
+                    new GradientColorKey(new Color(1f, 0.38f, 0.05f), 0.5f), // orange
+                    new GradientColorKey(new Color(0.8f, 0.18f, 0.03f), 1f)  // deep orange embers
+                },
+                new[]
+                {
+                    new GradientAlphaKey(1f, 0f),
+                    new GradientAlphaKey(1f, 0.7f), // the line burns end to end, dying only at the tail
+                    new GradientAlphaKey(0f, 1f)
+                });
+            return gradient;
+        }
 
         // ------------------------------------------------------------ VHS tape
         [ToggleGroup("vhsEnabled", "VHS tape")]

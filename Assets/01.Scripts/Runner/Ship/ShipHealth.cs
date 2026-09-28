@@ -213,6 +213,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         public bool Heal(float fraction) => HealPoints(fraction) > 0f;
 
+        /// <summary>While set nothing hurts the hull, forced hits included — the hyperspace jump holds it: a win the player chose is not lost on the way.</summary>
+        public bool Shielded { get; set; }
+
         /// <summary>A <see cref="RepairOrb"/> was flown through: <see cref="Heal"/> by <see cref="GameSettings.repairOrbHealFraction"/>. Returns the points restored, 0 when it did nothing (full hull).</summary>
         public float HealFromRepairOrb() => settings != null ? HealPoints(settings.repairOrbHealFraction) : 0f;
 
@@ -248,7 +251,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         // forced = the fall's own hit: the blink and the off-track state do not shield it.
         bool CanBeHurt(bool forced)
         {
-            if (settings == null || !settings.hullEnabled) return false;
+            if (settings == null || !settings.hullEnabled || Shielded) return false;
             if (IsDestroyed || motor.Paused) return false;
             if (gameManager != null && (gameManager.IsEnding || gameManager.RunOver)) return false;
             if (forced) return true;

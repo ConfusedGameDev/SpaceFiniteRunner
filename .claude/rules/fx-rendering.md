@@ -133,6 +133,50 @@ boosts scaled by tier (`rawMagnitude / powerUpSpeedBoost`); `Restart` → `RunFe
 `SpeedLines` object in the open scene. `SpeedLinesDebugPage` (nine rows, `MenuTextId`
 `SpeedLines*`) is a pause-menu tab wherever a driver exists.
 
+## Hyperspace sky
+
+`01.Scripts/FX/Hyperspace/` + `02.Art/04.Shaders/FiniteRunner/SkyboxHyperspace.shader`
+(`Skybox/FiniteRunner/Hyperspace`, material `02.Materials/FiniteRunner/SkyboxHyperspace.mat`).
+
+While the ship flies at Light Speed the sky crossfades (`fadeInSeconds`, with a `flashStrength`
+burst when it starts from the plain sky) from the scene's skybox into a hyperspace tunnel: cyan / aqua / green streaks rushing out of a
+dark teal vanishing point on the ship's heading (smoothed, `axisResponse`). **Not a renderer
+feature — a skybox**: procedural, three nested cylinders round the axis cut into
+`columns` × `cellLength` cells, a hashed cell holds one streak or none. The driver accumulates
+`_Scroll` (distance flown, `scrollSpeed` × speed ÷ Light Speed clamped to `speedFactorBand`), so a
+speed change never jumps the pattern; behind the camera the tunnel recedes.
+
+**The scene's skybox is never edited.** `HyperspaceSky` (FX, hand-placed as `PF_HyperspaceSky`
+under `===LIGHTING===/Filters`, nested in `PF_Filters`) is held in by `SetEngaged(bool)`, fades out
+over `fadeOutSeconds` when released, and takes `RenderSettings.skybox` the first frame it engages — LAZILY, because in the additive city→runner handoff the runner scene is only
+made active after its Awake — copies its panorama (`_MainTex`, `_Tint`, `_Exposure`, `_Rotation`,
+the Skybox/Panoramic lat-long lookup) onto a runtime COPY of the asset's material and swaps that
+in; the blend reaching 0, `ResetForRun` and `OnDisable` put the original back (only if nobody replaced ours). Play mode
+only; `forceEngaged` forces it for tuning. The look is `HyperspaceSkySettings`
+(`04.Data/Resources/FiniteRunner_HyperspaceSky.asset`), re-read every frame.
+
+Runner wiring: `GameSettings` "Hyperspace sky" toggle (`hyperspaceSkyEnabled`) →
+`RunFeedback.Bind` → `HyperspaceSky.Apply` + `SetTarget(motor, km/h, lightSpeedKmh)`; its `Update`
+(`UpdateLightSpeed`) keeps ONE "at Light Speed" state off the ship's CURRENT speed — in at
+`LightSpeedKmh`, out `lightSpeedExitMargin` (3 %) under it, so it never flickers on the line — and
+feeds it to `SetEngaged` every frame; `Restart` → `ResetForRun`. The HUD's latched
+`LightSpeedReached` (the objective) is NOT what drives it: losing the speed loses the look.
+**A fall drops it on its first frame, whatever the speed**: `FellOff` → `Respawned` (the open-edge
+fall and the respawn wait) and a run off the END without the win (`HasLeftTrackEnd &&
+!IsEscaping`) hold the state off, because the fall keeps its speed and the tunnel over a tumbling
+camera looks wrong. The winning fly-off (`IsEscaping`) keeps it.
+
+**The Light Speed warp** rides the same state (`GameSettings` "Light Speed warp" group): over
+`lightSpeedWarpBlendSeconds` it blends the lens distortion to `lightSpeedLensIntensity` and the
+motion blur to `lightSpeedMotionBlurIntensity` / `lightSpeedMotionBlurClamp`, and back to the
+authored values on losing it. The lens goes through `LensDistortionController.SetHeld(blend,
+intensity)` — a HELD rest under its envelope (the controller rewrites the intensity every frame, so
+nothing else may write it); boost kicks rise from and settle to that rest, never dipping back past
+it. The blur is the `MotionBlur` override on the global volume's RUNTIME profile (the copy the lens
+controller made — added at 0 when the profile has none), its authored values captured on first
+use and restored by `ResetForRun` / teardown. The runner's road
+(`NeonRoad_Mat`, queue 3000) is see-through, so the tunnel shows through it too.
+
 ## VHS tape
 
 `01.Scripts/FX/Vhs/` + `Rendering/VhsTapeFeature.cs` +

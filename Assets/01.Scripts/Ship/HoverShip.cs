@@ -166,6 +166,15 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public bool DashLocked { get; set; }
 
         /// <summary>
+        /// A second, independent dash gate: refuses every dash while set. Kept
+        /// apart from <see cref="DashLocked"/> because the patrol duel rewrites
+        /// that one every frame. The runner's hyperspace jump holds it while
+        /// its prompt is up, so the dash shoulders (LB + RB) only ever mean
+        /// the jump chord there.
+        /// </summary>
+        public bool DashSuppressed { get; set; }
+
+        /// <summary>
         /// A visual-only sideways knock on the model — the patrol duel's slams,
         /// where the cruiser hits the ship's flank on a cadence and the ship
         /// has to be SEEN taking it. Positive is to the right, in metres at the
@@ -465,7 +474,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public bool TryDash(int direction)
         {
             if (direction == 0 || !settings.dashEnabled || IsDashing || dashMeter < settings.dashCost) return false;
-            if (DashLocked) return false;
+            if (DashLocked || DashSuppressed) return false;
             if (State == ShipState.OffTrack || State == ShipState.Respawning) return false;
             direction = direction > 0 ? 1 : -1;
             dashMeter -= settings.dashCost;

@@ -34,7 +34,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         CameraCycle, CameraLookBack,
         CameraPanLeft, CameraPanRight, CameraPanUp, CameraPanDown,
         ShipAccelerate, ShipBrake,
-        ShipBoost
+        ShipBoost,
+        // The keyboard half of the hyperspace chord (Q + E held together). The
+        // pad half is the two dash shoulders (LB + RB) — they already own those.
+        ShipHyperspaceLeft, ShipHyperspaceRight
     }
 
     /// <summary>
@@ -95,7 +98,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
             }
         }
 
-        // No default collides inside any context: Ship {A D N M W S Space}, Car {A D
+        // No default collides inside any context: Ship {A D N M W S Space Q E}, Car {A D
         // W S Space R M 5 6}, General {Tab RShift arrows} — and the pads
         // likewise. INDEXED BY THE ENUM VALUE: rows stay in enum order.
         static readonly Default[] Defaults =
@@ -121,7 +124,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             new(GameAction.CameraPanDown, BindingSection.General, Key.DownArrow, PadControl.RightStickDown),
             new(GameAction.ShipAccelerate, BindingSection.Ship, Key.W, PadControl.RightTrigger),
             new(GameAction.ShipBrake, BindingSection.Ship, Key.S, PadControl.LeftTrigger),
-            new(GameAction.ShipBoost, BindingSection.Ship, Key.Space, PadControl.ButtonSouth)
+            new(GameAction.ShipBoost, BindingSection.Ship, Key.Space, PadControl.ButtonSouth),
+            new(GameAction.ShipHyperspaceLeft, BindingSection.Ship, Key.Q, PadControl.None),
+            new(GameAction.ShipHyperspaceRight, BindingSection.Ship, Key.E, PadControl.None)
         };
 
         // Confirm (Enter / numpad Enter), Back (Esc / Backspace), the

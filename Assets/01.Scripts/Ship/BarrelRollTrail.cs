@@ -83,7 +83,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         // pushed through mesh → visual, corner by corner, so a ship that is
         // banked, upside down or mid-loop when the trail is built measures
         // the same as one sitting flat.
-        static Bounds MeasureVisual(Transform visual)
+        public static Bounds MeasureVisual(Transform visual)
         {
             var filters = visual.GetComponentsInChildren<MeshFilter>();
             bool any = false;

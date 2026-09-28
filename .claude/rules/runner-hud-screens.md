@@ -103,6 +103,18 @@ caller never checks.
   refuse (`commit in`, `reach`, `ground`). All three of those hid real bugs during the build.
 - Hidden whenever `motor.Paused`.
 
+## `HyperspacePrompt` (`Runner/HUD/`) — HIT HYPERSPACE
+
+The hyperspace jump's call (`runner-ship.md`): `MenuTextId.HyperspacePrompt` in the theme's accent
+title font over a glyph row LEFT + RIGHT, at `heightFromBottom` (300 — above the dash hint and the
+duel bar). Pad present (`DuelMashInput.UsingGamepad`, polled): the live `ShipDashLeft/Right` pad
+bindings (LB / RB); otherwise the `ShipHyperspaceLeft/Right` keys (Q / E) — Kenney glyphs off
+`ControlGlyphSet`, bracketed labels without art, re-read on `ControlBindings.Changed`. It holds no
+rule: `HyperspaceJump` calls `SetVisible`. Breathing attract pulse + a pop on arrival (unscaled),
+hidden while `motor.Paused`. The dash prompt's pattern: hand-placed in `PF_UI`
+(`PF_HyperspacePrompt`), `Spawn(motor)` finds, binds and builds it on its own overlay canvas (12);
+never spawned → `Awake` tears the baked preview down. Sandbox `HyperspacePrompt`.
+
 ## `BoostQtePrompt` (`Runner/HUD/`) — the boost orb's timing glyph
 
 The picture of the boost QTE (`BoostQte`, `runner-track.md`): the player's LIVE `ShipBoost`
@@ -188,6 +200,17 @@ with `GameSettings.failBannerColor` for the letters and the underline, raised by
 - Unscaled time throughout. Tunables (`winBannerDelaySeconds`, `winBannerLetterStaggerSeconds`,
   `winBannerLetterSlamSeconds`, `winBannerGlitchPunch`, `winBannerShake`) sit in `GameSettings`'
   "Mission complete" group next to the camera hold and glitch timings.
+
+## `MissionFailedVideo` (`Runner/Screens/`)
+
+The loss's reaction shot: `GameSettings.failVideo` (`02.Art/07.Videos/Cutscenes/mtch.mp4`, 2.8 s,
+with sound) played ONCE in a framed square (`failVideoSize`, `failVideoOffsetY`, the frame in
+`failBannerColor`) under the MISSION FAILED / GAME OVER banner. A picture of one ending like the
+banner, not a scene system: `GameManager.FinishFail` calls `Show(settings)` right after the banner
+and holds the wind-down for `max(failBannerHoldSeconds, clip length)`; `KillBanner()` (EndRun, Restart)
+kills both. Its own overlay canvas at sorting 21 (just under the banner's 22), a `VideoPlayer` into a
+RenderTexture on **unscaled** time with direct audio at `failVideoVolume`, a pop-in, and the last
+frame held. No clip → nothing shown.
 
 ## `MissionCompleteScreen` (`Runner/Screens/`)
 

@@ -457,6 +457,21 @@ which is why every spawned pickup gets a trigger), and laser gates by `ShipMotor
 over this registry. A swaying orb reports its live lateral through
 `OrbHover.SwayOffset`.
 
+### Forcing the end in (`ForceEndAhead`, the hyperspace jump)
+
+`TrackGenerator.ForceEndAhead(runUpMeters)` brings a finite track's end in NOW: the final run-up
+starts where the road currently stops (`track.Length` + half a segment), **never inside built
+road** — the spline is append-only and everything short of it already carries pads, lasers,
+colliders and decoration — plus what the road there still owes: the bank unwinding
+(`ceil(|bank|/maxBankStepPerKnot) × segmentLength.y + levelLeadDistance`), a sweep's remaining knots,
+the end of a section (tube, loop) the tip is inside. It sets `endZoneTarget`, `endRunUp` (≥ a ramp +
+half a segment) and `targetLength` (the HUD's distance until the built end takes over), clears
+`pendingRamps` / `deferredFlatKnots`, parks the feature cursor; the ordinary streaming then lands
+`EndZoneStart`, `FinishTrack` and `CreateEndRamps`. False (nothing changes) when endless, already in
+the zone, complete, or the real end is nearer. `EndRampLaterals()` returns the three ramps' centres
+from the SAME layout helper `CreateEndRamps` uses (`EndRampLayout` / `EndRampLateral`), valid before
+they exist.
+
 ## Feature geometry
 
 ### Loops

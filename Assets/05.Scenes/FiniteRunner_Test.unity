@@ -1015,14 +1015,6 @@ PrefabInstance:
       propertyPath: m_BlockingMask.m_Bits
       value: 2147485687
       objectReference: {fileID: 0}
-    - target: {fileID: 7007680350643780565, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 1824
-      objectReference: {fileID: 0}
-    - target: {fileID: 7007680350643780565, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: -750
-      objectReference: {fileID: 0}
     - target: {fileID: 7031157573452595784, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
       propertyPath: m_Name
       value: ===UI===

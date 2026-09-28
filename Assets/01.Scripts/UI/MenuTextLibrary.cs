@@ -159,7 +159,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         QteTooFast, QteTooLate, QteSweet, QtePerfect,
         // The customize-vehicle test scene: title, slider header, the three prompts, their CANCEL answer and the footer hints.
         Customize, AdjustColor, SavePrompt, RevertPrompt, ResetDefaultPrompt, Cancel,
-        HintSave, HintRevert, HintDefault, HintVehicle, HintZoom, HintResetView, HintSlider, HintHue
+        HintSave, HintRevert, HintDefault, HintVehicle, HintZoom, HintResetView, HintSlider, HintHue,
+        // The hyperspace jump: the in-run prompt and the CONTROLS rows of its keyboard chord.
+        HyperspacePrompt, ActionHyperspaceLeft, ActionHyperspaceRight
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -894,6 +896,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString hintHue = new("COLOR", "COLOR", "カラー", "COULEUR");
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString actionBoost = new("BOOST", "IMPULSO TURBO", "ブースト", "BOOST");
+        [SerializeField] LocalizedString actionHyperspaceLeft = new("HYPERSPACE (LEFT)", "HIPERESPACIO (IZQ.)", "ハイパースペース（左）", "HYPERESPACE (GAUCHE)");
+        [SerializeField] LocalizedString actionHyperspaceRight = new("HYPERSPACE (RIGHT)", "HIPERESPACIO (DER.)", "ハイパースペース（右）", "HYPERESPACE (DROITE)");
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString actionHandbrake = new("HANDBRAKE", "FRENO DE MANO", "ハンドブレーキ", "FREIN À MAIN");
         [TitleGroup("Controls")]
@@ -1117,6 +1121,7 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString duelAssist = new("DUEL STEER ASSIST", "AYUDA DE DIRECCIÓN", "決闘時の操舵補助", "ASSISTANCE DE DIRECTION");
         [SerializeField] LocalizedString duelMashPrompt = new("MASH", "APORREA", "連打", "MARTELEZ");
         [SerializeField] LocalizedString duelFinisherPrompt = new("TAKE THEM OUT", "ACÁBALOS", "とどめを刺せ", "ACHEVEZ-LES");
+        [SerializeField] LocalizedString hyperspacePrompt = new("HIT HYPERSPACE", "¡SALTA AL HIPERESPACIO!", "ハイパースペースへ", "PASSEZ EN HYPERESPACE");
         [SerializeField] LocalizedString duelAbortMeters = new("ABORT LOOKAHEAD", "MARGEN DE ABORTO", "中断の先読み", "ANTICIPATION D'ABANDON");
         [SerializeField] LocalizedString duelStandoff = new("STANDOFF", "DISTANCIA DE ESPERA", "待機距離", "DISTANCE D'ATTENTE");
         [SerializeField] LocalizedString duelKillGap = new("KILL RESPAWN GAP", "REAPARICIÓN TRAS MUERTE", "撃破後の復帰距離", "ÉCART APRÈS DESTRUCTION");
@@ -1647,6 +1652,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.HintResetView => hintResetView,
             MenuTextId.HintSlider => hintSlider,
             MenuTextId.HintHue => hintHue,
+            MenuTextId.HyperspacePrompt => hyperspacePrompt,
+            MenuTextId.ActionHyperspaceLeft => actionHyperspaceLeft,
+            MenuTextId.ActionHyperspaceRight => actionHyperspaceRight,
             _ => start
         };
     }

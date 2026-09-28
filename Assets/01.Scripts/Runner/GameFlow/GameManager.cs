@@ -65,6 +65,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // hand-placed on this object (PF_Systems) and bound in Awake.
         RunCameraDirector cameraDirector;  // framing: jumps, loops, falls, the duel dolly, the endings' shot
         RunFeedback feedback;              // feel: rumbles, shakes, glitch pulses, speed lines, story lines
+        HyperspaceJump hyperspace;         // the LB+RB / Q+E shortcut to the end ramps, once at Light Speed
+        EscapeVanish escapeVanish;         // every win's exit: fire trails, the model gone in a flash
         RunnerMusic music;                 // null when the music is off on GameSettings
 
         /// <summary>
@@ -91,6 +93,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // The loss wind-down: MISSION FAILED slams in, then the retry panel.
         Coroutine failRoutine;
         MissionAccomplishedBanner banner; // the MISSION ACCOMPLISHED / MISSION FAILED slam; killed before the panel
+        MissionFailedVideo failVideo;     // the loss's reaction clip under the banner; killed with it
 
         // The run's objective state: latched per entry (speed bleeds after the
         // peak while a jump goal may still be open), reset with the run.
@@ -322,6 +325,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 shipHealth.Configure(settings, this);
                 shipHealth.Damaged += OnHullDamaged;
                 shipHealth.Destroyed += OnShipDestroyed;
+
+                // The win's exit rides the ship too (hand-placed on PF_Ship); it
+                // hides the model through the hull, which owns the hide.
+                escapeVanish = EscapeVanish.Ensure(motor);
+                escapeVanish.Configure(settings, motor, shipHealth);
             }
 
             // Above the pause menu's canvas and holding timeScale at 0, so the
@@ -372,6 +380,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             cameraDirector.Bind(motor, patrol, settings, this);
             feedback = RunFeedback.Ensure(this);
             feedback.Bind(motor, patrol, settings, this, cameraDirector);
+
+            // The hyperspace jump follows the feedback's Light Speed state, so
+            // it binds after it. Its prompt is hand-placed in PF_UI like the
+            // dash prompt; off, the prompt is never bound and stays empty.
+            hyperspace = HyperspaceJump.Ensure(this);
+            HyperspacePrompt hyperspacePrompt = settings.hyperspaceJumpEnabled && motor != null
+                ? HyperspacePrompt.Spawn(motor) : null;
+            hyperspace.Bind(motor, generator, patrol, settings, this, feedback, hyperspacePrompt);
 
             // Weather rides with the camera and needs nothing from the run, so
             // it goes up before the menu — the debug page binds to the live
@@ -440,15 +456,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // Evaluated every frame either way, so a challenge can still latch.
             if (EvaluateObjectives(motor.CurrentSpeed * 3.6f)) ObjectivesMet = true;
 
-            if (patrol != null && patrol.HasCaught)
+            // Once the hyperspace jump is pressed nothing can lose the run: the
+            // hull is shielded and a catch is never read (the patrol is held).
+            bool jumping = hyperspace != null && hyperspace.Jumping;
+            if (shipHealth != null) shipHealth.Shielded = jumping;
+
+            if (!jumping && patrol != null && patrol.HasCaught)
             {
                 HapticsSystem.Instance.Pulse(settings.bustedRumble);
                 BeginFail(RunOutcome.Caught);
                 return;
             }
 
-            // Time only pressures the player while the ship is flying.
+            // Time only pressures the player while the ship is flying — and
+            // not once the hyperspace jump has committed it to the ending.
             if (motor.Paused) return;
+            if (hyperspace != null && hyperspace.Jumping) return;
 
             // The countdown rides the scaled clock like everything else, so a
             // LOOP simply plays longer in real time and costs the same mission
@@ -477,10 +500,20 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (RunOver || IsEnding) return;
             if (EvaluateObjectives(motor.CurrentSpeed * 3.6f)) ObjectivesMet = true;
 
+            // The hyperspace jump was only offered with every objective met,
+            // and pressing it is the win: off the end is the escape whether
+            // the autopilot put the ship on a ramp or through a gap.
+            if (hyperspace != null && hyperspace.Jumping)
+            {
+                tookRamp = true;
+                ObjectivesMet = true;
+            }
+
             if (tookRamp && ObjectivesMet)
             {
                 HasWon = true; // from here on nothing can be lost
                 motor.BeginEscape();
+                if (escapeVanish != null) escapeVanish.Begin();
                 HapticsSystem.Instance.Pulse(settings.escapeRumble);
                 winRoutine = StartCoroutine(FinishWin());
                 return;
@@ -498,8 +531,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void BeginFail(RunOutcome outcome)
         {
             if (RunOver || IsEnding) return;
-            // The run is over: no attack run gets to finish under the banner.
-            if (patrol != null) patrol.AbortEncounter();
+            // After the hyperspace jump the run cannot be lost (every path
+            // that could still end it is guarded; this is the net under them).
+            if (hyperspace != null && hyperspace.Jumping) return;
+            // The run is over: the chase stops where it is — no attack run
+            // finishes under the banner, no cruiser drives on past the wreck.
+            if (patrol != null)
+            {
+                patrol.AbortEncounter();
+                patrol.SetHold(true);
+            }
             if (HullEnabled)
             {
                 LivesLeft = Mathf.Max(0, LivesLeft - 1);
@@ -571,8 +612,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // The last life lost says so: GAME OVER, not MISSION FAILED.
             banner = MissionAccomplishedBanner.Show(settings, isGameOver ? MenuTextId.GameOver : MenuTextId.MissionFailed,
                                                     settings.failBannerColor, settings.failBannerColor);
-            if (settings.failBannerHoldSeconds > 0f)
-                yield return new WaitForSecondsRealtime(settings.failBannerHoldSeconds);
+            // The reaction clip under the banner; the banner holds for all of it.
+            failVideo = MissionFailedVideo.Show(settings);
+            float hold = Mathf.Max(settings.failBannerHoldSeconds, failVideo != null ? failVideo.Length : 0f);
+            if (hold > 0f)
+                yield return new WaitForSecondsRealtime(hold);
             float dismiss = Mathf.Max(0.01f, settings.failBannerDismissSeconds);
             if (banner != null) banner.Dismiss(dismiss);
             yield return new WaitForSecondsRealtime(dismiss);
@@ -684,6 +728,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             if (banner != null) banner.Kill();
             banner = null;
+            if (failVideo != null) failVideo.Kill();
+            failVideo = null;
         }
 
         // Lets go of the ending's glitch hold so the held max decays again
@@ -853,6 +899,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         void OnRespawned()
         {
+            // A jump or a loss holds the patrol for good; only the fall's own hold is released.
+            if (IsEnding || RunOver || (hyperspace != null && hyperspace.Jumping)) return;
             if (patrol != null) patrol.SetHold(false, settings.respawnMinPatrolGap);
         }
 
@@ -862,7 +910,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // own Damaged handler adds the glitch.
         void OnLaserHit(LaserGate gate, Component hit)
         {
-            if (hit != motor || IsEnding || RunOver) return;
+            // A jump the player chose is not lost to a gate on the way to the ramps.
+            if (hit != motor || IsEnding || RunOver || (hyperspace != null && hyperspace.Jumping)) return;
             bool hullOn = settings.hullEnabled && shipHealth != null;
             if (hullOn && !shipHealth.ApplyLaserHit()) return;
 
@@ -910,6 +959,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             RpgMessageSystem.Instance.ClearMessages();
             if (dashPrompt != null) dashPrompt.ResetForRun();
             if (feedback != null) feedback.ResetForRun();
+            if (hyperspace != null) hyperspace.ResetForRun();
             if (music != null) music.Play(); // every attempt is a fresh play: a new random point under a fade-in
 
             // A retry from the panel: the wind-down is over, but a RETRY pressed
