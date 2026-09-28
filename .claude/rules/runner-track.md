@@ -560,7 +560,9 @@ visual carries are only a picture.
   `BoostQtePrompt` (`runner-hud-screens.md`). The patrol's `Take()` never grades.
 - `floatingOrb` makes it a hovering sphere on the flight line, with an `OrbHover` bob/spin/sway
   component added at runtime. `OrbHover` bobs and sways along the **track's** up/right captured
-  at spawn, not world axes, so orbs survive loops and tubes.
+  at spawn, not world axes, so orbs survive loops and tubes. The spin rate is per tier
+  (`PadSpawnEntry.spinDegreesPerSecond`, 60 by default); Green's is 0 because its `Boost_v2`
+  model sits tilted inside the prefab and wobbles when spun.
 - **Tiered boost orbs override the definition's delta and colour per instance** via
   `SetDefinition(def, speedDelta, tint)` — the shared `PadDefinition` asset is never mutated.
   Three rarity tiers: green 1×, blue 2.5×, purple 10× of `GameManager.powerUpSpeedBoost`; the

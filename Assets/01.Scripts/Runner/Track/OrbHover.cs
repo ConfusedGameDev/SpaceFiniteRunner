@@ -33,11 +33,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>Metres the orb is swayed across the track right now, right positive (the track's right at the spawn pose).</summary>
         public float SwayOffset { get; private set; }
 
-        /// <summary>Tier setup from the TrackGenerator: how far and how fast the orb sways across the track.</summary>
-        public void Configure(float amplitude, float frequency)
+        /// <summary>Tier setup from the TrackGenerator: how far and how fast the orb sways across the track, and how fast it spins (0 = keeps its authored rotation).</summary>
+        public void Configure(float amplitude, float frequency, float spin)
         {
             swayAmplitude = amplitude;
             swayFrequency = frequency;
+            spinDegreesPerSecond = spin;
         }
 
         void Start()

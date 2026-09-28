@@ -41,6 +41,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Sway cycles per second.")]
         [Min(0f)] public float swayFrequency = 0.5f;
 
+        [Tooltip("Floating orbs only: how fast the orb turns about the track's up, degrees per second. 0 = holds the prefab's authored rotation (a model tilted inside its prefab wobbles when spun).")]
+        [PropertyRange(0f, 360f), SuffixLabel("°/s", true)]
+        public float spinDegreesPerSecond = 60f;
+
         [Tooltip("Ground = on the flight line. Air = GameSettings.airLaneHeight above it, where only a jump reaches — the future air lane, keep such entries at 0% until jumps ship them.")]
         public PadLane lane = PadLane.Ground;
 

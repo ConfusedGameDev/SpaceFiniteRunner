@@ -27,6 +27,7 @@ MonoBehaviour:
     color: {r: 0.1, g: 1, b: 0.3, a: 1}
     swayAmplitude: 0
     swayFrequency: 0
+    spinDegreesPerSecond: 0
     lane: 0
   - name: Blue
     prefab: {fileID: 2850359091044272792, guid: 8d0f2a4c6e8b0d2f4a6c8e0b2d4f6a8c, type: 3}
@@ -36,6 +37,7 @@ MonoBehaviour:
     color: {r: 0.25, g: 0.55, b: 1, a: 1}
     swayAmplitude: 0
     swayFrequency: 0
+    spinDegreesPerSecond: 60
     lane: 0
   - name: Purple
     prefab: {fileID: 2850359091044272792, guid: 4c6e8a0b2d4f6a8c0e2b4d6f8a0c2e4b, type: 3}
@@ -45,4 +47,5 @@ MonoBehaviour:
     color: {r: 0.75, g: 0.3, b: 1, a: 1}
     swayAmplitude: 0
     swayFrequency: 0
+    spinDegreesPerSecond: 60
     lane: 0

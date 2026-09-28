@@ -185,7 +185,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
 
             if (def.floatingOrb && Application.isPlaying)
-                pad.AddComponent<OrbHover>().Configure(entry.swayAmplitude, entry.swayFrequency);
+                pad.AddComponent<OrbHover>().Configure(entry.swayAmplitude, entry.swayFrequency, entry.spinDegreesPerSecond);
 
             pad.name = $"{entry.name}{def.displayName}Pad_{distance:00000}";
             // The prefabs carry a SpeedPad of their own (so they work dropped into any level); a second one would take twice.
