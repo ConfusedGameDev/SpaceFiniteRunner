@@ -85,6 +85,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float timeLimitSeconds = 60f;
 
         // ---------------------------------------------------------- track end
+        [TitleGroup("Track end")]
+        [Tooltip("Where on the track the ship launches, metres from its start. The road begins at 0, so a ship launched there has the chase camera hanging over the void behind it: this puts road under the camera too. The patrol's start gap is measured from here.")]
+        [PropertyRange(0f, 400f), SuffixLabel("m", true)]
+        public float launchDistanceMeters = 100f;
+
         // The track is finite: it ends in three ramps side by side over a
         // void. The run is won by leaving one of them with every objective
         // met; anything else that reaches the end falls.

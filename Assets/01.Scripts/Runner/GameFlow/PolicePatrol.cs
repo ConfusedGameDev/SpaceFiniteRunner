@@ -407,7 +407,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public void Launch()
         {
             if (runtimeDef == null || body == null) return; // scene object never Init'd (patrol disabled)
-            body.Reset(-runtimeDef.startGap, runtimeDef.baseSpeed);
+            // The start gap is behind where the SHIP launches, which is a little way into the track.
+            float shipStart = runRules != null ? Mathf.Max(0f, runRules.launchDistanceMeters) : 0f;
+            body.Reset(shipStart - runtimeDef.startGap, runtimeDef.baseSpeed);
             minSpeed = runtimeDef.baseSpeed;
             HasCaught = false;
             Hold = false;

@@ -20,20 +20,20 @@ MonoBehaviour:
     - vehicleId: ship.nabucodonosor
       materials:
       - slotId: PiezasUNOmat
-        hue: 0.038250975
+        hue: 0.014646806
         tinted: 1
       - slotId: vidrio
-        hue: 0.47268683
+        hue: 0.4746166
         tinted: 1
       - slotId: ESCAPES
-        hue: 0.0021636568
+        hue: 0.086003944
         tinted: 1
       - slotId: PROPULSORmat
-        hue: 0.16408238
+        hue: 0.9952961
         tinted: 1
       - slotId: PRINCIPALmat
-        hue: 0.9754078
+        hue: 0.9977361
         tinted: 1
       - slotId: PUNTAmat
-        hue: 0.16921744
+        hue: 0.9813193
         tinted: 1

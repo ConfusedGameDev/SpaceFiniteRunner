@@ -253,6 +253,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>The run-level rules pushed in by the GameManager; null while unconfigured.</summary>
         public GameSettings DashSettings => dashSettings;
 
+        /// <summary>Track distance the ship launches at (<see cref="GameSettings.launchDistanceMeters"/>, 0 while unconfigured), never past the built road.</summary>
+        public float LaunchDistance => dashSettings != null && track != null ? Mathf.Clamp(dashSettings.launchDistanceMeters, 0f, track.Length) : 0f;
+
         // The track's view of the ship (Contracts): where it is, how fast, and the
         // few stats that shape what gets built ahead of it.
         float Contracts.IStreamFocus.Distance => DistanceTravelled;

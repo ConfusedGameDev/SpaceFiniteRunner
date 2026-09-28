@@ -180,11 +180,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             var colliders = FindFirstObjectByType<TrackColliderBuilder>();
             if (colliders != null) colliders.BuildNow();
 
-            track.GetPoseAtDistance(0f, 0f, out Vector3 position, out Quaternion rotation);
+            // Launched a little way in, so the chase camera behind the ship has road under it, not the void before the start.
+            float start = LaunchDistance;
+            track.GetPoseAtDistance(start, 0f, out Vector3 position, out Quaternion rotation);
             physicsShip.SetDefinition(definition);
             physicsShip.Launch(position, rotation);
-            body.Reset(0f, definition.initialImpulse);
-            MirrorInto(0f, 0f, 0f);
+            body.Reset(start, definition.initialImpulse);
+            MirrorInto(start, 0f, 0f);
             body.SnapInterpolation();
             lastTickTime = Time.fixedTime;
             Launched?.Invoke();

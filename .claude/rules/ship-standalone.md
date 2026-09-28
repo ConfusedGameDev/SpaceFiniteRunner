@@ -315,7 +315,9 @@ GameObject, `ShipMotor` (`Runner/Ship/ShipMotor.Physics.cs`, a partial) stops si
 becomes what the runner sees of the standalone ship: every tick it mirrors the ship's guide
 coordinates into its own `TrackBody` (`TrackBody.Mirror` — distance, lateral, height, speed;
 `BeginTick` first so the render still blends) and its state, forwards the ship's events, and
-passes commands down (`Launch` from the track's start pose, `SetDefinition`, `AddSpeedImpulse`,
+passes commands down (`Launch` from the track's pose at `GameSettings.launchDistanceMeters` (100 m —
+at 0 the chase camera hung over the void before the road; the patrol's `startGap` counts back from
+the same point), `SetDefinition`, `AddSpeedImpulse`,
 `Paused`, `Autopilot`). **GameManager, TrackGenerator (streaming + `LoopReachable`), the HUD,
 `DashGhostTrail` and the track-space `PolicePatrol` all run unchanged** — the patrol chases the
 mirrored body, so a physics patrol (M8) is now optional. It is also the agreed end state: the
