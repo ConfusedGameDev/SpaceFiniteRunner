@@ -1,0 +1,14 @@
+{
+    "name": "ConfusedGameDev.FiniteRunner.Livery",
+    "rootNamespace": "ConfusedGameDev.FiniteRunner.Livery",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

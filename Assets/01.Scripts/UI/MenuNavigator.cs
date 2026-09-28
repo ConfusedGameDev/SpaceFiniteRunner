@@ -270,6 +270,12 @@ namespace ConfusedGameDev.FiniteRunner.UI
         /// <summary>Variant with its own question line (the debug menu's "reload the scene?").</summary>
         public static MenuScreen BuildConfirm(RectTransform parent, MenuTheme theme, MenuTextId titleId,
                                               MenuTextId questionId, System.Action onYes, System.Action onNo)
+            => BuildConfirm(parent, theme, titleId, questionId, MenuTextId.Yes, MenuTextId.No, onYes, onNo);
+
+        /// <summary>Variant with its own answer labels (the customize scene's YES / CANCEL). Focus still starts on the second, safe answer.</summary>
+        public static MenuScreen BuildConfirm(RectTransform parent, MenuTheme theme, MenuTextId titleId,
+                                              MenuTextId questionId, MenuTextId yesId, MenuTextId noId,
+                                              System.Action onYes, System.Action onNo)
         {
             var screen = MenuScreen.Create($"Confirm_{titleId}", parent, theme, 0f, 0f);
             screen.SetTitle(titleId);
@@ -277,8 +283,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
                             questionId, 36, theme.TextPrimary, theme.BodyFont,
                             TextAnchor.MiddleCenter, theme.TitleLead);
 
-            screen.AddRow<MenuRow>(MenuTextId.Yes).Activated += onYes;
-            screen.AddRow<MenuRow>(MenuTextId.No).Activated += onNo;
+            screen.AddRow<MenuRow>(yesId).Activated += onYes;
+            screen.AddRow<MenuRow>(noId).Activated += onNo;
             screen.SetFocus(1); // default to the safe answer
             return screen;
         }

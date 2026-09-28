@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d0790aa15135cc4aa753393ca13af01, type: 3}
+  m_Name: VehicleColorProfile
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Customize.VehicleColorProfile
+  minSaturation: 0.75
+  minValue: 0.55
+  data:
+    version: 1
+    vehicles:
+    - vehicleId: ship.nabucodonosor
+      materials:
+      - slotId: PiezasUNOmat
+        hue: 0.038250975
+        tinted: 1
+      - slotId: vidrio
+        hue: 0.47268683
+        tinted: 1
+      - slotId: ESCAPES
+        hue: 0.0021636568
+        tinted: 1
+      - slotId: PROPULSORmat
+        hue: 0.16408238
+        tinted: 1
+      - slotId: PRINCIPALmat
+        hue: 0.9754078
+        tinted: 1
+      - slotId: PUNTAmat
+        hue: 0.16921744
+        tinted: 1

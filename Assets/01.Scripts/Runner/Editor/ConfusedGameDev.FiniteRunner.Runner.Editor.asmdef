@@ -8,6 +8,7 @@
         "ConfusedGameDev.FiniteRunner.Campaign",
         "ConfusedGameDev.FiniteRunner.Cheats",
         "ConfusedGameDev.FiniteRunner.UI",
+        "ConfusedGameDev.FiniteRunner.Livery",
         "Unity.InputSystem"
     ],
     "includePlatforms": [

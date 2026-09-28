@@ -11,6 +11,7 @@
         "ConfusedGameDev.FiniteRunner.FX",
         "ConfusedGameDev.FiniteRunner.Cameras",
         "ConfusedGameDev.FiniteRunner.Ship",
+        "ConfusedGameDev.FiniteRunner.Livery",
         "Unity.InputSystem",
         "UnityEngine.UI",
         "Unity.Splines",

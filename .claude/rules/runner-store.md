@@ -12,6 +12,10 @@ paths:
   - "**/StoreSceneBuilder.cs"
   - "**/StoreStage.cs"
   - "**/StoreMediaPanel.cs"
+  - "Assets/01.Scripts/Runner/Customize/**"
+  - "**/CustomizeSceneBuilder.cs"
+  - "Assets/01.Scripts/Livery/**"
+  - "**/LiveryInstaller.cs"
 ---
 
 # Store
@@ -100,3 +104,37 @@ games. Anything unresolvable reads ×1.
 
 Every store string is a `MenuTextId` (`Store*`, `Upgrade*`, `StartMission`, `Max`, `HintBuy`…).
 Category labels are kept short because the purchase row's reserve is wide.
+
+## Customize vehicle scene (`Runner/Customize/`) and liveries (`Livery/`)
+
+`05.Scenes/CustomizeVehicle.unity`, built by `Tools → FiniteRunner → Create Customize Vehicle Scene`
+(`CustomizeSceneBuilder`, which also re-wires an existing scene's empty asset slots).
+
+- `CustomizeStage` (right of centre) spawns one vehicle at a time from `CustomizeSettings.vehicles`
+  (`Data/Customize/`), seated by its `StoreModel` via `StoreStage.PrepareInstance`. The ship entry
+  carries the Store scene's six RealToon materials as `slotOverrides`, so each part is its own slider.
+- `CustomizeScreen`: LS Y picks the slider, LS X slides its hue, D-pad ▲▼ swaps vehicle (the column
+  slides out left and back), RS X turns, RS Y zooms (the camera dollies on the line to the vehicle),
+  R3 resets the view. A SAVE? / B REVERT CHANGES? / Y RESET TO DEFAULT? — each YES / CANCEL
+  (`MenuScreenFactory.BuildConfirm` with answer ids), focus on CANCEL. Start/Esc → main menu.
+  RESET TO DEFAULT clears every vehicle's working colours but saves nothing until SAVE.
+
+**The `Livery` assembly** (no references — Runner references it, the Ship and city prefabs just
+carry its components) holds what every scene needs to wear a paint job:
+
+- `VehicleColorProfile` (`Data/Customize/VehicleColorProfile.asset`) — the save and the colour
+  rule. SAVE writes `persistentDataPath/vehicle_colors.json` and, in the Editor, the asset too;
+  `Load(fallback)` prefers the JSON. Only the player's SAVE writes it. A hue keeps the authored S/V
+  above its `minSaturation` / `minValue`, one rule for the preview and play.
+- `VehiclePaintTarget` clones one material instance per DISTINCT material on the model's mesh
+  renderers (never a property block — see `RespawnBlink`; trails and particles untouched) and tints
+  `_MainColor` (RealToon) else `_BaseColor`. Slots are keyed by the source material's NAME, so a
+  vehicle must wear the same materials in play as in the customize scene. The Quadron has one
+  texture-coloured material: one slider, a colour wash.
+- **`VehicleLivery`** is the in-game half: on Awake it puts `slotOverrides` on its `model`, makes it
+  paintable and applies the save for its `vehicleId`. **`Tools → FiniteRunner → Customize → Install
+  Ship Livery`** (`LiveryInstaller`) puts it on `PF_Ship` (the runner's, in `FiniteRunner_Test`) and
+  `HoverShip` (nested by `ShipSystem`) with the ship entry's materials from `CustomizeSettings` — so
+  the runner's ship wears the Store look (RealToon), not its old white/grey Lit materials. The
+  respawn blink reads the ship's materials when each blink begins (so it hands the painted ones
+  back) and the dash ghosts copy meshes only, drawn with their own ghost material.

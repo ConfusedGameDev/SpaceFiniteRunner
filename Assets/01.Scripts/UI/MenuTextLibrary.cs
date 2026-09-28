@@ -156,7 +156,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // The boost-orb timing press: its CONTROLS row.
         ActionBoost,
         // The boost QTE's HUD result label.
-        QteTooFast, QteTooLate, QteSweet, QtePerfect
+        QteTooFast, QteTooLate, QteSweet, QtePerfect,
+        // The customize-vehicle test scene: title, slider header, the three prompts, their CANCEL answer and the footer hints.
+        Customize, AdjustColor, SavePrompt, RevertPrompt, ResetDefaultPrompt, Cancel,
+        HintSave, HintRevert, HintDefault, HintVehicle, HintZoom, HintResetView, HintSlider, HintHue
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -860,6 +863,35 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Boost QTE")]
         [Tooltip("HUD result label: the perfect band.")]
         [SerializeField] LocalizedString qtePerfect = new("PERFECT!", "¡PERFECTO!", "パーフェクト！", "PARFAIT !");
+
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString customize = new("CUSTOMIZE", "PERSONALIZAR", "カスタマイズ", "PERSONNALISER");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString adjustColor = new("ADJUST COLOR", "AJUSTAR COLOR", "カラー調整", "RÉGLER LA COULEUR");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString savePrompt = new("SAVE?", "¿GUARDAR?", "保存しますか？", "SAUVEGARDER ?");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString revertPrompt = new("REVERT CHANGES?", "¿DESHACER CAMBIOS?", "変更を元に戻しますか？", "ANNULER LES MODIFICATIONS ?");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString resetDefaultPrompt = new("RESET TO DEFAULT?", "¿RESTABLECER POR DEFECTO?", "初期設定に戻しますか？", "RÉTABLIR PAR DÉFAUT ?");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString cancel = new("CANCEL", "CANCELAR", "キャンセル", "ANNULER");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString hintSave = new("SAVE", "GUARDAR", "保存", "SAUVER");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString hintRevert = new("REVERT", "DESHACER", "元に戻す", "ANNULER");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString hintDefault = new("DEFAULT", "POR DEFECTO", "初期設定", "DÉFAUT");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString hintVehicle = new("VEHICLE", "VEHÍCULO", "車両", "VÉHICULE");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString hintZoom = new("ZOOM", "ZOOM", "ズーム", "ZOOM");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString hintResetView = new("RESET VIEW", "REINICIAR VISTA", "視点リセット", "RÉINIT. VUE");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString hintSlider = new("PART", "PIEZA", "パーツ", "PIÈCE");
+        [TitleGroup("Customize")]
+        [SerializeField] LocalizedString hintHue = new("COLOR", "COLOR", "カラー", "COULEUR");
         [TitleGroup("Controls")]
         [SerializeField] LocalizedString actionBoost = new("BOOST", "IMPULSO TURBO", "ブースト", "BOOST");
         [TitleGroup("Controls")]
@@ -1601,6 +1633,20 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.QteTooLate => qteTooLate,
             MenuTextId.QteSweet => qteSweet,
             MenuTextId.QtePerfect => qtePerfect,
+            MenuTextId.Customize => customize,
+            MenuTextId.AdjustColor => adjustColor,
+            MenuTextId.SavePrompt => savePrompt,
+            MenuTextId.RevertPrompt => revertPrompt,
+            MenuTextId.ResetDefaultPrompt => resetDefaultPrompt,
+            MenuTextId.Cancel => cancel,
+            MenuTextId.HintSave => hintSave,
+            MenuTextId.HintRevert => hintRevert,
+            MenuTextId.HintDefault => hintDefault,
+            MenuTextId.HintVehicle => hintVehicle,
+            MenuTextId.HintZoom => hintZoom,
+            MenuTextId.HintResetView => hintResetView,
+            MenuTextId.HintSlider => hintSlider,
+            MenuTextId.HintHue => hintHue,
             _ => start
         };
     }
