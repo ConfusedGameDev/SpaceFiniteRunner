@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ef51a2a7b9c6b469dd3cbf7a3ae9f8, type: 3}
+  m_Name: CustomizeSettings
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Customize.CustomizeSettings
+  vehicles:
+  - model:
+      modelId: ship.nabucodonosor
+      displayName: NABUCODONOSOR
+      prefab: {fileID: 919132149155446097, guid: 0a6cffa004dd71c43901f8f8d1aa4fe2, type: 3}
+      previewScale: 0.10707424
+      previewOffset: {x: 0, y: 0.9, z: 0}
+    slotOverrides:
+    - {fileID: 2100000, guid: fa300260ed96f824db898165f7bf1746, type: 2}
+    - {fileID: 2100000, guid: 0e67102124f67214f9017190e1ed5f83, type: 2}
+    - {fileID: 2100000, guid: fcb7b78b558cc6840a80a4c9db9c0af3, type: 2}
+    - {fileID: 2100000, guid: fff7b742a2fe75745a68f83f413603c5, type: 2}
+    - {fileID: 2100000, guid: 215c680257911d54caba1b0a51eb40db, type: 2}
+    - {fileID: 2100000, guid: 6993319a50ce4bd46ad504fee8643ba6, type: 2}
+  - model:
+      modelId: car.quadron
+      displayName: QUADRON
+      prefab: {fileID: 3755038905665920760, guid: e4e6780fb9cfcfe47bca8f156bebc45e, type: 3}
+      previewScale: 0.6845263
+      previewOffset: {x: -0.009320895, y: 0.43406913, z: 0}
+    slotOverrides: []
+  stickDegreesPerSecond: 120
+  dragDegreesPerPixel: 0.25
+  autoSpinDegreesPerSecond: 12
+  idleResumeSeconds: 3
+  defaultYaw: -35
+  zoomBand: {x: 3.5, y: 11}
+  zoomSpeed: 6
+  zoomPerScrollNotch: 0.6
+  zoomSmoothing: 0.08
+  hueSpeed: 0.35
+  stickDeadZone: 0.25
+  minSaturation: 0.75
+  minValue: 0.55
+  swapSlideSeconds: 0.22
+  swapSlideDistance: 900
