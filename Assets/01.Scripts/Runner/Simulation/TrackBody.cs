@@ -363,11 +363,15 @@ namespace ConfusedGameDev.FiniteRunner.Simulation
         /// </summary>
         void StepSpeed(float dt, in BodyControls controls)
         {
-            // Blend queued pad effects in at the body's acceleration rate.
+            // Blend queued pad effects in at the body's acceleration rate. The rate
+            // is a MAGNITUDE: a negative one would flip the step against the
+            // pending change, bleeding speed instead of adding it and growing the
+            // remainder every tick (see the same guard in HoverBody).
             if (!Mathf.Approximately(PendingSpeedChange, 0f))
             {
+                float rate = Mathf.Max(0f, Params.impulseBlendRate);
                 float step = Mathf.Sign(PendingSpeedChange) *
-                             Mathf.Min(Mathf.Abs(PendingSpeedChange), Params.impulseBlendRate * dt);
+                             Mathf.Min(Mathf.Abs(PendingSpeedChange), rate * dt);
                 ForwardSpeed += step;
                 PendingSpeedChange -= step;
             }

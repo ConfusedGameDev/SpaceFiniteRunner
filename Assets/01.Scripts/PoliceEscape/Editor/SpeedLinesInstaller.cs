@@ -100,6 +100,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             }
 
             var go = new GameObject("SpeedLines");
+            // Full-screen filter drivers live under ===LIGHTING===/Filters, never as a loose
+            // scene root — that is where both games' scenes keep them.
+            go.transform.SetParent(SceneHierarchy.Filters(go.scene), false);
             var driver = go.AddComponent<SpeedLines>();
             driver.linesMaterial = material;
             driver.settings = settings;

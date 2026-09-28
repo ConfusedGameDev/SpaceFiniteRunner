@@ -117,6 +117,12 @@ object under `===LIGHTING===/Filters` beside its `DistanceFog` and the other ful
 material and asset wired; `SpeedLines.Apply(enabled, settings)` only **finds** it (an error when
 missing) and parks it when off.
 
+**`===LIGHTING===/Filters` is where a filter driver lives in BOTH scenes** — the city keeps its
+`GlitchController`, `DistanceFog`, `SpeedMotionBlur`, `PsxLook`, `VhsTape` and `CrtScreen` there,
+each a nested `PF_` prefab. The installers (`PsxLookInstaller` and friends) park a driver they
+create under that folder rather than at the scene root, which is where the city's three loose roots
+used to come from.
+
 Runner wiring: `GameSettings` "Speed lines" toggle group (on/off,
 `boostPulseStrength` / `boostPulseSeconds`; the look is the driver's own asset); `RunFeedback.Bind` (from `GameManager.Awake`) → `SpeedLines.Apply` +
 `SetTarget(motor, km/h, lightSpeedKmh)`; its `Update` pushes the director's `Rig.Mode`; `OnPadImpulse` pulses on

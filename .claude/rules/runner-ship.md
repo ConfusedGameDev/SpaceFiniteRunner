@@ -141,7 +141,10 @@ patrol's. **Every runner debug row writes the ASSET, then mirrors onto the run's
 Store levels); patrol rows write `PolicePatrol.DefinitionAsset` and the clone; track rows write
 `TrackGenerator.ShapeAsset` / the spawner and feature assets and their clones. Edits are saved at
 the menu's commit points through `UI/DebugAssetEdits`. The old `*DebugSettings` mirror assets and
-their `applyOnLoad` stamping are gone — their live values were baked into the definitions. FALL & RESPAWN
+their `applyOnLoad` stamping are gone — their live values were baked into the definitions.
+`HoverBody`/`TrackBody` clamp `impulseBlendRate` at the consumer (`Mathf.Max(0f, …)`): a negative
+rate flips the blend step against the pending change, so one orb bleeds speed for the rest of the
+run. FALL & RESPAWN
 (`Screens/FallRespawnDebugPage`) is different: `GameSettings` is read live and never cloned, so
 that page edits the ASSET, like the fog and rain pages — applies at once, no reload, flushed at
 the pause menu's commit points.

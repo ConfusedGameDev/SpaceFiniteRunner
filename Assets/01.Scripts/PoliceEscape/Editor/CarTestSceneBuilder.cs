@@ -86,6 +86,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // mode does zero generation.
             var citySettings = AssetDatabase.LoadAssetAtPath<CityGenerationSettings>(CitySettingsPath);
             CityRoot cityRoot = null;
+            GameObject cityInstance = null;
             if (citySettings != null)
             {
                 CityDefinition definition = CityBaker.EnsureDefinition(CityDefinitionPath, citySettings);
@@ -93,7 +94,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 if (cityPrefab == null) cityPrefab = CityBaker.BakeCity(definition);
                 if (cityPrefab != null)
                 {
-                    var cityInstance = (GameObject)PrefabUtility.InstantiatePrefab(cityPrefab);
+                    cityInstance = (GameObject)PrefabUtility.InstantiatePrefab(cityPrefab);
                     // The grid model is axis-aligned; keeping the root at the
                     // world origin keeps every cell/world conversion trivial.
                     cityInstance.transform.position = Vector3.zero;
@@ -107,8 +108,10 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 city.carPrefab = carPrefab;              // enables the Create Car button
 
                 // Managers, HUD, chase camera rig and EventSystem go into the
-                // scene now, under ===SYSTEMS===, each wired with its own
+                // scene now, each under its own header and wired with its own
                 // asset; play mode then spawns only what is per run (cars).
+                // This is also what creates every header the parking below
+                // parks into.
                 SceneSystemsPlacer.PlaceMissing(city, new CitySystemAssets
                 {
                     policeCarPrefab = policeCarPrefab,
@@ -119,6 +122,12 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                     map = CreateOrLoad<UI.CityMapSettings>(MapSettingsPath),
                     camera = cameraSettings,
                 });
+
+                SceneHierarchy.Adopt(cityGo, SceneHierarchy.Systems(scene));
+                // The baked city is ===ENV===, and it stays a SCENE object there
+                // rather than living inside PF_Env: its material overrides and its
+                // hand-placed AdditionalItems content are scene modifications.
+                if (cityInstance != null) SceneHierarchy.Adopt(cityInstance, SceneHierarchy.Env(scene));
             }
             else
             {
@@ -129,7 +138,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // safety net (and visual floor) beyond the city edge — props and
             // wrecks knocked past the perimeter still land on something.
             Vector3 cityCenter = CityCenter(cityRoot);
-            BuildGround(cityCenter);
+            SceneHierarchy.Adopt(BuildGround(cityCenter), SceneHierarchy.Env(scene));
 
             // Car + chase camera arrive at runtime: every play rolls a fresh
             // city, so the spawner picks the road cell nearest this position.
@@ -137,6 +146,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             spawnerGo.transform.position = cityCenter;
             var spawner = spawnerGo.AddComponent<PlayerCarSpawner>();
             spawner.carPrefab = carPrefab;
+            SceneHierarchy.Adopt(spawnerGo, SceneHierarchy.Systems(scene)); // keeps its world pose: it IS the spawn anchor
 
             // Objective flow, as data: the level asset lists the steps (by
             // default reach the hack speed, then shake the police) and the
@@ -144,11 +154,14 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // RpgMessageSystem, which builds its own canvas at runtime.
             var levelManager = new GameObject("LevelManager").AddComponent<LevelManager>();
             levelManager.level = levelDefinition;
+            SceneHierarchy.Adopt(levelManager.gameObject, SceneHierarchy.Systems(scene));
 
             // Pause menu shared with the runner — hand-placed here, it builds
             // itself in Start with no ship references and offers the city's
             // debug pages (car, camera, police, level).
-            new GameObject("PauseMenu") { layer = 5 }.AddComponent<global::ConfusedGameDev.FiniteRunner.Screens.PauseMenu>();
+            var pauseMenu = new GameObject("PauseMenu") { layer = 5 };
+            pauseMenu.AddComponent<global::ConfusedGameDev.FiniteRunner.Screens.PauseMenu>();
+            SceneHierarchy.Adopt(pauseMenu, SceneHierarchy.Ui(scene));
 
             // Fullscreen glitch dial — the renderer's GlitchPost feature runs
             // the shader; this controller is what gameplay events talk to.
@@ -159,6 +172,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 var glitch = new GameObject("GlitchController").AddComponent<FX.GlitchController>();
                 glitch.glitchMaterial = glitchMaterial;
                 glitch.baseFadePerSecond = 0.05f;
+                SceneHierarchy.Adopt(glitch.gameObject, SceneHierarchy.Filters(scene));
             }
 
             // Weather as a real scene object, so the downpour can be tuned (and
@@ -166,6 +180,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // it on and hands it an override asset.
             var rain = new GameObject("RainSystem").AddComponent<RainSystem>();
             rain.settings = AssetDatabase.LoadAssetAtPath<RainSettings>(RainSettingsPath);
+            SceneHierarchy.Adopt(rain.gameObject, SceneHierarchy.Env(scene)); // a world downpour, not a full-screen filter
 
             // Distance fog + far glitch: the renderer's DistanceFog feature runs
             // the shader, this object feeds it the settings asset every frame.
@@ -177,6 +192,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 var fog = new GameObject("DistanceFog").AddComponent<DistanceFog>();
                 fog.fogMaterial = fogMaterial;
                 fog.settings = AssetDatabase.LoadAssetAtPath<DistanceFogSettings>(DistanceFogSettingsPath);
+                SceneHierarchy.Adopt(fog.gameObject, SceneHierarchy.Filters(scene));
             }
 
             // Overhead vantage for edit mode; the ChaseCamera takes over in play.
@@ -186,11 +202,17 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 camera.transform.position = cityCenter + new Vector3(0f, 120f, -80f);
                 camera.transform.LookAt(cityCenter);
                 camera.farClipPlane = Mathf.Max(camera.farClipPlane, 4000f);
+                SceneHierarchy.Adopt(camera.gameObject, SceneHierarchy.Cameras(scene));
             }
+
+            // The default scene's sun goes with the rest of the lighting.
+            Light sun = Object.FindAnyObjectByType<Light>(FindObjectsInactive.Include);
+            if (sun != null && sun.type == LightType.Directional)
+                SceneHierarchy.Adopt(sun.gameObject, SceneHierarchy.Lighting(scene));
 
             Selection.activeGameObject = spawnerGo;
             EditorSceneManager.SaveScene(scene, ScenePath);
-            Debug.Log("CarTestSceneBuilder: car test scene ready — press Play and drive (WASD/arrows, Space handbrake, R respawn). Tune TestCarConfig live from the PlayerCar inspector.");
+            Debug.Log("CarTestSceneBuilder: car test scene ready — press Play and drive (WASD/arrows, Space handbrake, R respawn). Tune TestCarConfig live from the PlayerCar inspector. The objects it makes itself are plain: run Tools → Police Escape → Tidy City Scene Hierarchy to get them back into PF_ prefabs.");
         }
 
         /// <summary>World center of the baked city's ground rectangle.</summary>
@@ -387,7 +409,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 
         // -------------------------------------------------------------- scene
 
-        static void BuildGround(Vector3 center)
+        static GameObject BuildGround(Vector3 center)
         {
             Material groundMat = CreateOrUpdateMaterial("TestCar_Ground", new Color(0.14f, 0.15f, 0.14f));
             var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -397,6 +419,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             ground.transform.position = new Vector3(center.x, -0.51f, center.z);
             ground.transform.localScale = new Vector3(6000f, 1f, 6000f);
             ground.GetComponent<MeshRenderer>().sharedMaterial = groundMat;
+            return ground;
         }
 
         // ------------------------------------------------------------ helpers

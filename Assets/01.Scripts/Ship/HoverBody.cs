@@ -362,8 +362,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             if (!Mathf.Approximately(PendingSpeedChange, 0f))
             {
+                // The rate is a MAGNITUDE. A negative one makes Min pick it, which
+                // flips the step against the pending change: the boost subtracts
+                // speed and the remainder grows, so one orb bleeds speed for the
+                // rest of the run — bad enough to make impossible from here.
+                float rate = Mathf.Max(0f, Params.impulseBlendRate);
                 float step = Mathf.Sign(PendingSpeedChange) *
-                             Mathf.Min(Mathf.Abs(PendingSpeedChange), Params.impulseBlendRate * dt);
+                             Mathf.Min(Mathf.Abs(PendingSpeedChange), rate * dt);
                 ForwardSpeed += step;
                 PendingSpeedChange -= step;
             }

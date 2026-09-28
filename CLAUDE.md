@@ -153,9 +153,14 @@ These hold everywhere. Break one and something else quietly stops working.
   headers (`===PLAYER===`, `===NPC===`) that are forced back to the origin on every fetch.
   Every scene-root header sits at the origin; the runner scene is `===SYSTEMS===`, `===PLAYER===`,
   `===ENV===`, `===CAMERAS===`, `===UI===`, `===LIGHTING===` (full-screen filters under its
-  `Filters`). Each header and each object directly under it is a nested `PF_` prefab in
-  `03.Prefabs/FiniteRunner/`; the instances keep their scene names, since headers and the rig's
-  sibling cameras are found by name.
+  `Filters`), and the city scene is the same set plus `===NPC===` (with `==Police==` /
+  `==TrafficNPC==`). Each header and each object directly under it is a nested `PF_` prefab —
+  `03.Prefabs/FiniteRunner/` for the runner, `03.Prefabs/PoliceEscape/` for the city, which links
+  the runner's asset for the config-free systems both share; the instances keep their scene names,
+  since headers and the rig's sibling cameras are found by name. The baked `City` instance is the
+  one exception: it stays a SCENE object under `===ENV===`, because its material overrides and its
+  hand-placed `AdditionalItems` content are scene modifications. **Tools → Police Escape → Tidy
+  City Scene Hierarchy** (`CarTestHierarchyTidier`) is what authors that shape.
 - **Auto-created singletons** (`FloatingTextSystem`, `RpgMessageSystem`, `HapticsSystem`,
   `CheatManager`, `DebugManager`) follow one rule: a hand-placed instance always wins, because
   that is the copy carrying someone's inspector wiring.

@@ -297,10 +297,28 @@ knob — a tracking shot 16 m off the flank with the deoccluder on (buildings), 
 ## Scene-lifetime systems are hand-placed (`PoliceEscape/Editor/SceneSystemsPlacer.cs`)
 
 The city chase's managers and overlays that live as long as the scene sit in the scene **before
-play** under a `===SYSTEMS===` header, wired from the `CityManager`'s fields: `PatrolManager`,
-`TrafficManager`, `Minimap`, `Speedometer`, `CityMap`, `SpeedMotionBlur`, `OrbitCameraRig` + its
-`FirstPersonCamera` sibling, `CinemaSystem`, `Radio` (`RadioSystem`), `StatsRecorder`,
-`CollectibleManager` + `MoneyHud`, `EventSystem`.
+play**, each wired with its own asset and under the header it belongs in:
+
+| Header | Holds |
+|---|---|
+| `===SYSTEMS===` | `CityManager`, `LevelManager`, `PlayerCarSpawner`, `PatrolManager`, `TrafficManager`, `CinemaSystem`, `Radio` (`RadioSystem`), `StatsRecorder`, `CollectibleManager`, `EventSystem` |
+| `===UI===` | `Minimap`, `Speedometer`, `CityMap`, `PauseMenu`, `MoneyHud` |
+| `===CAMERAS===` | `Main Camera`, `OrbitCameraRig` + its `FirstPersonCamera` / `CinematicCamera` siblings |
+| `===ENV===` | the baked `City` instance, `Ground`, `RainSystem` |
+| `===LIGHTING===` | `Directional Light`, `GlobalVolume`, and `Filters` → `GlitchController`, `DistanceFog`, `SpeedMotionBlur`, `PsxLook`, `VhsTape`, `CrtScreen` |
+
+**Which header holds a system is only how the hierarchy reads** — every one of them is found by
+TYPE, never by path. The two exceptions are the rig's vcam siblings (found by name under the rig's
+own parent, so the four camera objects move together) and the headers themselves.
+
+Each header and each object directly under it is a nested `PF_` prefab in
+`03.Prefabs/PoliceEscape/`, the instance keeping its scene name — **Tools → Police Escape → Tidy
+City Scene Hierarchy** (`CarTestHierarchyTidier`) is what authors that, and it also strips the
+baked `MinimapCanvas` / `SpeedometerCanvas` trees (rebuilt at play, ~60 % of the old scene file),
+puts nudged headers back on the origin without moving what hangs off them, and re-asserts
+`CityManager.cityRoot` as an instance override, since a prefab asset cannot store a scene
+reference and the lazy `FindAnyObjectByType` fallback would hide the loss. `CollectibleManager`,
+`MoneyHud` and `EventSystem` link the runner's `PF_` assets — nothing on them can diverge.
 
 **Everything spawned at play is parented under a header too** (`SceneHierarchy`, runtime):
 `===SYSTEMS===` for the mission brief and the EVP ground effects, `===PLAYER===` for the car,
@@ -309,7 +327,9 @@ forced back to the origin on each fetch**, because the spawners set world poses 
 a nudged header would offset every spawn, wrap and graph lookup under it.
 
 Both scene builders run the placer, and **Tools → Police Escape → Place Scene Systems** adds
-whatever an open scene is missing (idempotent, creates all the headers when absent).
+whatever an open scene is missing (idempotent, creates all seven headers when absent, and instances
+a system's `PF_` prefab when the project has one — so a fresh placement produces the tidy scene
+too). `CarTestSceneBuilder` parks everything it makes itself into the same headers.
 
 **Each placed system owns its references — nothing else holds a copy** (refactor Step 9.4). The
 `PatrolManager` owns its `PursuitSettings` and police prefab, the `TrafficManager` its

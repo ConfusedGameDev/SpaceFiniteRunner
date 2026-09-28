@@ -37,11 +37,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
     /// placing it in edit mode would bake runtime state into the scene).
     /// Idempotent: only what is missing is created (a DISABLED hand-placed
     /// system counts as present — disabling one is how it is switched off),
-    /// each under the "===SYSTEMS===" header, and the play-mode headers
-    /// (===PLAYER===, ===NPC=== with ==Police== / ==TrafficNPC==) are
-    /// created too so the runtime spawners find them in place — all via
-    /// <see cref="SceneHierarchy"/>, which is what keeps every header at
-    /// the origin. Re-running on a hand-organised scene changes nothing. Both scene
+    /// each under the header it belongs in: the managers under
+    /// "===SYSTEMS===", the HUD screens under "===UI===", the chase rig and
+    /// its by-name vcam siblings under "===CAMERAS===", the full-screen
+    /// filter drivers under "===LIGHTING===/Filters". All seven headers are
+    /// created, including the play-mode ones (===PLAYER===, ===NPC=== with
+    /// ==Police== / ==TrafficNPC==) so the runtime spawners find them in
+    /// place — all via <see cref="SceneHierarchy"/>, which is what keeps
+    /// every header at the origin. Which header holds a system is only how
+    /// the hierarchy reads: every one of them is found by TYPE, never by
+    /// path. A system that has a <c>PF_</c> prefab (written by
+    /// <see cref="CarTestHierarchyTidier"/>, or the runner's for the
+    /// config-free ones both games share) is instanced from it, so the tidy
+    /// scene is what a fresh placement produces too.
+    /// Re-running on a hand-organised scene changes nothing. Both scene
     /// builders call it after wiring the CityManager; Tools → Police Escape
     /// → Place Scene Systems runs it on the open scene.
     /// </summary>
@@ -78,6 +87,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
 
     public static class SceneSystemsPlacer
     {
+        const string CityPrefabFolder = "Assets/03.Prefabs/PoliceEscape";
+        const string RunnerPrefabFolder = "Assets/03.Prefabs/FiniteRunner";
+
         [MenuItem("Tools/Police Escape/Place Scene Systems")]
         public static void PlaceInOpenScene()
         {
@@ -106,10 +118,24 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
         {
             Scene scene = city.gameObject.scene;
             int placed = 0;
-            foreach (string header in new[] { SceneHierarchy.SystemsName, SceneHierarchy.PlayerName, SceneHierarchy.NpcName })
+            // The full header set, the same one the runner scene uses — the three
+            // runtime ones plus the folders the hand-placed systems live in.
+            string[] headers =
+            {
+                SceneHierarchy.SystemsName, SceneHierarchy.PlayerName, SceneHierarchy.NpcName,
+                SceneHierarchy.EnvName, SceneHierarchy.CamerasName, SceneHierarchy.UiName,
+                SceneHierarchy.LightingName,
+            };
+            foreach (string header in headers)
                 if (!HasRoot(scene, header)) placed++;
             Transform parent = SceneHierarchy.Systems(scene);
             SceneHierarchy.Player(scene);
+            SceneHierarchy.Env(scene);
+            Transform cameras = SceneHierarchy.Cameras(scene);
+            Transform ui = SceneHierarchy.Ui(scene);
+            Transform lighting = SceneHierarchy.Lighting(scene);
+            if (lighting.Find(SceneHierarchy.FiltersName) == null) placed++;
+            Transform filters = SceneHierarchy.Filters(scene);
             Transform npc = SceneHierarchy.Npc(scene);
             if (npc.Find(SceneHierarchy.PoliceName) == null) placed++;
             if (npc.Find(SceneHierarchy.TrafficName) == null) placed++;
@@ -126,17 +152,20 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
                 });
             if (assets.traffic != null)
                 placed += Place<TrafficManager>("TrafficManager", parent, m => m.settings = assets.traffic);
+            // The HUD screens are ===UI===; the full-screen filter drivers are
+            // ===LIGHTING===/Filters. Every one of them is found by TYPE, so which
+            // header holds it is purely how the hierarchy reads.
             if (assets.minimap != null)
-                placed += Place<Minimap>("Minimap", parent, m => m.settings = assets.minimap);
+                placed += Place<Minimap>("Minimap", ui, m => m.settings = assets.minimap);
             if (assets.speedometer != null)
-                placed += Place<Speedometer>("Speedometer", parent, s => s.settings = assets.speedometer);
+                placed += Place<Speedometer>("Speedometer", ui, s => s.settings = assets.speedometer);
             if (assets.map != null)
-                placed += Place<CityMapScreen>("CityMap", parent, m => m.settings = assets.map);
-            placed += Place<SpeedMotionBlur>("SpeedMotionBlur", parent, null);
+                placed += Place<CityMapScreen>("CityMap", ui, m => m.settings = assets.map);
+            placed += Place<SpeedMotionBlur>("SpeedMotionBlur", filters, null);
 
             if (assets.camera != null)
             {
-                placed += Place<OrbitCameraRig>("OrbitCameraRig", parent, r => r.settings = assets.camera);
+                placed += Place<OrbitCameraRig>("OrbitCameraRig", cameras, r => r.settings = assets.camera);
                 // The first-person vcam must be the rig's SIBLING (see
                 // OrbitCameraRig.Build); the rig adds its Cinemachine
                 // components when it is first targeted, so an empty object is
@@ -174,31 +203,58 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // banks) and the top-right money counter, both shared with the
             // runner scene and needing no wiring.
             placed += Place<CollectibleManager>("CollectibleManager", parent, null);
-            placed += Place<MoneyHud>("MoneyHud", parent, null);
+            placed += Place<MoneyHud>("MoneyHud", ui, null);
 
             // Menus poll the EventSystem for mouse input; MenuScreenFactory
             // creates one on demand, so pre-placing it is what keeps that
             // code path idle.
-            if (Object.FindAnyObjectByType<EventSystem>(FindObjectsInactive.Include) == null)
+            placed += Place<EventSystem>("EventSystem", parent, e =>
             {
-                var go = new GameObject("EventSystem");
-                go.transform.SetParent(parent, false);
-                go.AddComponent<EventSystem>();
-                go.AddComponent<InputSystemUIInputModule>(); // no actions asset: the module falls back to the default UI actions, as the runtime path did
-                placed++;
-            }
+                // no actions asset: the module falls back to the default UI actions, as the runtime path did
+                if (e.GetComponent<InputSystemUIInputModule>() == null)
+                    e.gameObject.AddComponent<InputSystemUIInputModule>();
+            });
 
             return placed;
         }
 
+        /// <summary>
+        /// One system, under its header, as a <c>PF_</c> prefab instance when the
+        /// project has one — the city's own first, then the runner's for the
+        /// config-free pair both games share — and as a bare object + component
+        /// when it has none. The instance takes the plain <paramref name="name"/>,
+        /// never the asset's PF_ name, because that is the name the hierarchy (and
+        /// the camera rig's sibling lookup) reads.
+        /// </summary>
         static int Place<T>(string name, Transform parent, System.Action<T> wire) where T : Component
         {
             if (Object.FindAnyObjectByType<T>(FindObjectsInactive.Include) != null) return 0;
+            T component = InstantiatePrefab<T>(name, parent) ?? Create<T>(name, parent);
+            wire?.Invoke(component);
+            EditorUtility.SetDirty(component);
+            return 1;
+        }
+
+        static T Create<T>(string name, Transform parent) where T : Component
+        {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
-            T component = go.AddComponent<T>();
-            wire?.Invoke(component);
-            return 1;
+            return go.AddComponent<T>();
+        }
+
+        /// <summary>The <c>PF_&lt;name&gt;</c> prefab for a system, instanced under its header — null when neither folder has one.</summary>
+        static T InstantiatePrefab<T>(string name, Transform parent) where T : Component
+        {
+            foreach (string folder in new[] { CityPrefabFolder, RunnerPrefabFolder })
+            {
+                var asset = AssetDatabase.LoadAssetAtPath<GameObject>($"{folder}/PF_{name}.prefab");
+                if (asset == null || asset.GetComponent<T>() == null) continue;
+                var instance = (GameObject)PrefabUtility.InstantiatePrefab(asset, parent.gameObject.scene);
+                instance.name = name;
+                instance.transform.SetParent(parent, false);
+                return instance.GetComponent<T>();
+            }
+            return null;
         }
 
         static bool HasRoot(Scene scene, string name)

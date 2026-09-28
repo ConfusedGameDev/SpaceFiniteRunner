@@ -101,6 +101,9 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             }
 
             var go = new GameObject("VhsTape");
+            // Full-screen filter drivers live under ===LIGHTING===/Filters, never as a loose
+            // scene root — that is where both games' scenes keep them.
+            go.transform.SetParent(SceneHierarchy.Filters(go.scene), false);
             var driver = go.AddComponent<VhsTape>();
             driver.tapeMaterial = material;
             driver.settings = settings;

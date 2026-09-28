@@ -219,4 +219,7 @@ cannot coexist with a `CinemachineBrain`.
 **The runner's `Main Camera` sits under `===CAMERAS===` with a runtime-added brain, beside
 `CameraController` (the rig), `FirstPersonCamera` and `CinematicCamera` — the rig finds those two
 BY NAME under its own parent, so the four move together and keep their names. Never parent it under
-the ship again.**
+the ship again.** The city scene is laid out the same way: `Main Camera` (which keeps its overhead
+edit-mode vantage), `OrbitCameraRig`, `FirstPersonCamera` and `CinematicCamera` under
+`===CAMERAS===`, all four nested `PF_` prefabs. Pre-placing `CinematicCamera` matters: without it
+the rig adds one at play, i.e. a new child on the header's prefab instance every run.
