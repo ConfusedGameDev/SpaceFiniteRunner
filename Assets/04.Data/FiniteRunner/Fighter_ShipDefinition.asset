@@ -19,16 +19,17 @@ MonoBehaviour:
   thrust: 25
   brakeDecel: 123
   coastDrag: 52.3
-  passiveDeceleration: 50
+  launchCoastGraceSeconds: 2
+  passiveDeceleration: 29.8
   digitalThrottleRampSeconds: 0.15
   acceleration: 74
-  lateralSpeed: 29.71
+  lateralSpeed: 69.9
   handlingResponse: 24.8
   gripBase: 2
   gripPerSpeed: 0.5
   slideThreshold: 4
   slideSpeedLoss: 0.1
-  dashDistance: 13.700001
+  dashDistance: 18.3
   dashDuration: 0.128
   dashRechargeSeconds: 1
   dashGhostCount: 5

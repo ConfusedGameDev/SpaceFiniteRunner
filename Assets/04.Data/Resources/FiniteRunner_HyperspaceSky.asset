@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: FiniteRunner_HyperspaceSky
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.HyperspaceSkySettings
   material: {fileID: 2100000, guid: d4cad6a43b21075469a980b3d79c2d58, type: 2}
-  fadeInSeconds: 2.56
+  fadeInSeconds: 4.42
   fadeOutSeconds: 2.5
   flashStrength: 1.5
   flashSeconds: 0.8
   axisResponse: 3
-  scrollSpeed: 9
+  scrollSpeed: 1.7
   speedFactorBand: {x: 0.5, y: 2}
   backgroundColor: {r: 0.015, g: 0.07, b: 0.08, a: 1}
   coreColor: {r: 0, g: 0.01, b: 0.015, a: 1}
@@ -26,7 +26,7 @@ MonoBehaviour:
   streakAqua: {r: 0.35, g: 1.1, b: 1.8, a: 1}
   streakGreen: {r: 0.4, g: 1.8, b: 0.5, a: 1}
   greenShare: 0.2
-  brightness: 1.6
+  brightness: 4.99
   columns: 72
   density: 0.35
   cellLength: 1.2

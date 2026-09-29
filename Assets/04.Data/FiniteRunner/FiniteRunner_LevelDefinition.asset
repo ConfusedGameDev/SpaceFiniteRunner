@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   levelName: Escape Run
   nextSceneName: Store
-  trackLengthMeters: 0
+  trackLengthMeters: 41837
   completeVideo: {fileID: 0}
   rankTable:
     sThreshold: 10000
@@ -30,7 +30,7 @@ MonoBehaviour:
     multiplier: 2
   objectives:
   - type: 0
-    targetSpeedKmh: 3550
+    targetSpeedKmh: 3494
     jumpCount: 3
     reward: 500
     accent: {r: 0, g: 0, b: 0, a: 0}

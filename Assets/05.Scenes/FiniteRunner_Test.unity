@@ -316,6 +316,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: 091e24f2f1fe5af4e8f337fe7592e0c2, type: 2}
     - target: {fileID: 6667410384356866590, guid: 946e905b1a6044809bff60aeb6bd9158, type: 3}
+      propertyPath: barrierMaterialOverride
+      value: 
+      objectReference: {fileID: 2100000, guid: 38ea9ed7e7d02c943b6036dbad36d556, type: 2}
+    - target: {fileID: 6667410384356866590, guid: 946e905b1a6044809bff60aeb6bd9158, type: 3}
       propertyPath: placeholderWallMaterial
       value: 
       objectReference: {fileID: 2100000, guid: 091e24f2f1fe5af4e8f337fe7592e0c2, type: 2}
@@ -573,6 +577,14 @@ PrefabInstance:
     - target: {fileID: 1226012913247509320, guid: ff632413a4e6b4449b7708febb865493, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2562844685833056978, guid: ff632413a4e6b4449b7708febb865493, type: 3}
+      propertyPath: m_Size.x
+      value: 10.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2562844685833056978, guid: ff632413a4e6b4449b7708febb865493, type: 3}
+      propertyPath: m_Size.y
+      value: 6.5
       objectReference: {fileID: 0}
     - target: {fileID: 5594153518444709700, guid: ff632413a4e6b4449b7708febb865493, type: 3}
       propertyPath: m_Name
