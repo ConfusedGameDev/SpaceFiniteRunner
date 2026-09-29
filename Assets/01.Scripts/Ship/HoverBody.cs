@@ -131,6 +131,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float TotalLateralVelocity { get; private set; }
         public float VerticalVelocity { get; private set; }
         public float PendingSpeedChange { get; private set; }
+        /// <summary>
+        /// Seconds a released throttle still holds the speed (no coast drag), set
+        /// by the owner at a launch. Ends early the moment throttle or brake is
+        /// touched: a retry is started with a menu button, not the throttle, and
+        /// the coast drag used to take the whole launch speed before the player's
+        /// hand got back to the trigger. Zeroed by <see cref="Reset"/>.
+        /// </summary>
+        public float CoastGraceLeft { get; set; }
         /// <summary>Normalised lateral demand (steer + slip + dash), what the visual banks by.</summary>
         public float BankDemand { get; private set; }
         public bool IsSliding { get; private set; }
@@ -198,6 +206,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             LateralVelocity = ShoveVelocity = TotalLateralVelocity = VerticalVelocity = 0f;
             ReverseSpeed = 0f;
             PendingSpeedChange = 0f;
+            CoastGraceLeft = 0f;
             BankDemand = 0f;
             IsSliding = false;
             LateralBlocked = false;
@@ -375,11 +384,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
             float cruise = Params.cruiseSpeed;
             float throttle = Mathf.Clamp01(controls.throttle);
+            if (CoastGraceLeft > 0f)
+                CoastGraceLeft = throttle > ThrottleDeadzone || controls.brake > ThrottleDeadzone ? 0f : CoastGraceLeft - dt;
             if (ForwardSpeed > cruise)
                 ForwardSpeed = Mathf.Max(cruise, ForwardSpeed - Params.passiveDeceleration * dt);
             else if (throttle > ThrottleDeadzone)
                 ForwardSpeed = Mathf.Min(cruise, ForwardSpeed + Params.thrust * throttle * dt);
-            else
+            else if (CoastGraceLeft <= 0f)
                 ForwardSpeed -= Params.coastDrag * dt;
 
             ForwardSpeed = Mathf.Max(0f, ForwardSpeed - Params.brakeDecel * Mathf.Clamp01(controls.brake) * dt);

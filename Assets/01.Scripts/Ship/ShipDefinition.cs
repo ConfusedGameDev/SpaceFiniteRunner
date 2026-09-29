@@ -70,6 +70,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float coastDrag = 20f;
 
         [TitleGroup("Speed")]
+        [Tooltip("After a launch (the run's start or a retry), seconds a released throttle keeps the launch speed instead of coasting. Ends early the moment throttle or brake is touched. 0 = coast at once.")]
+        [PropertyRange(0f, 5f), SuffixLabel("s", true)]
+        public float launchCoastGraceSeconds = 2f;
+
+        [TitleGroup("Speed")]
         [Tooltip("Over-cruise bleed: speed lost per second ABOVE cruise, pulling a boosted ship back down to it. This is the core pressure of the game — boosts must be chained to climb.")]
         [PropertyRange(0f, 50f), SuffixLabel("m/s per s", true)]
         public float passiveDeceleration = 3f;

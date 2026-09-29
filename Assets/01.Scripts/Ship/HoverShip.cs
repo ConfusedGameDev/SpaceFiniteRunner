@@ -319,6 +319,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
             FillParams();
             body.Reset(position, rotation, definition.initialImpulse);
+            body.CoastGraceLeft = definition.launchCoastGraceSeconds;
             lastTickTime = Time.fixedTime;
             ApplyPose(1f);
             Launched?.Invoke();

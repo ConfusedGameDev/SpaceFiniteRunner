@@ -61,7 +61,11 @@ drop and landing), or shift the origin with the value (the tube's turn-unwinding
 impulses blend in first and are the ONLY thing that lifts speed past `cruiseSpeed`; above cruise
 `passiveDeceleration` (now the *over-cruise bleed*) pulls it back down to cruise, never through
 it; at or below cruise `thrust × throttle` accelerates up to cruise and no further, and a
-released throttle loses `coastDrag`; `brakeDecel × brake` works everywhere. Still no upper cap —
+released throttle loses `coastDrag`; `brakeDecel × brake` works everywhere. **Launch grace**
+(`HoverBody.CoastGraceLeft`, armed by `HoverShip.Launch` from `ShipDefinition.launchCoastGraceSeconds`,
+2 s): a released throttle keeps the launch speed until the grace runs out or throttle / brake is
+touched — a retry is started from a menu button, and at `coastDrag` 52 the whole 55 m/s launch
+impulse was gone in a second, so every retry read as a start from 0. Respawns don't get it. Still no upper cap —
 orbs are the way to Light Speed. `TrackGenerator.LoopReachable` predicts with the same rule (the
 bleed never takes the ship below cruise).
 
