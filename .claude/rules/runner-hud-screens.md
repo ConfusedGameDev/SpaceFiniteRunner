@@ -120,7 +120,9 @@ never spawned → `Awake` tears the baked preview down. Sandbox `HyperspacePromp
 The picture of the boost QTE (`BoostQte`, `runner-track.md`): the player's LIVE `ShipBoost`
 binding on a small **world-space canvas**, a full billboard (`LookRotation` from the camera,
 camera up) sitting at the centre of the orb's `Indicator` ring (its mesh bounds' centre), sized
-`GameSettings.boostQteGlyphSize` × the ring's width. **Never a child of the orb** — the orb is
+`GameSettings.boostQteGlyphSize` × the ring's width and lifted `boostQteGlyphLift` (0.5 m) along the orb's up — UNLESS the orb prefab carries a `BoostQteAnchor`
+(`PowerUp_Green` has one, `QtePrompt`): then the glyph sits at that child's world position at the width its preview
+`SpriteRenderer` draws (hidden in play), so it is placed and sized by hand in the prefab. **Never a child of the orb** — the orb is
 deactivated when taken (the verdict must outlive it) and `SpeedPad.ApplyColor` tints every
 renderer under it. The glyph is WHITE so `Image.color` tints true: the mono face buttons
 (`ControlGlyphSet.ForMono`, filled by `Build Control Glyphs`) on a pad, the key cap otherwise,

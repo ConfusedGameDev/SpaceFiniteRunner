@@ -157,7 +157,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 // only the definition's size multiplier scales it.
                 pad = Object.Instantiate(entry.prefab, padPos, rot, Parent);
                 pad.transform.localScale *= def.sizeMultiplier;
-                if (!ForceTriggers(pad))
+                if (ForceTriggers(pad)) ScaleColliders(pad, entry.pickupScale);
+                else
                 {
                     if (def.floatingOrb)
                     {
@@ -198,6 +199,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             Vector3 halfExtents = def.floatingOrb
                 ? Vector3.one * (PadSize.x * padScale * 0.5f)
                 : new Vector3(PadSize.x * padScale * 0.5f, 1f, PadSize.z * padScale * 0.5f);
+            halfExtents *= entry.pickupScale;
             speedPad.PlaceOnTrack(distance, lateral, entry.lane == PadLane.Air ? AirLaneHeight : 0f, halfExtents);
             // Boosts scale off the shared power-up base; brakes keep their
             // definition's own delta so dodging stays predictable.
@@ -215,6 +217,21 @@ namespace ConfusedGameDev.FiniteRunner.Track
             var colliders = go.GetComponentsInChildren<Collider>();
             foreach (var c in colliders) c.isTrigger = true;
             return colliders.Length > 0;
+        }
+
+        /// <summary>Grows every box / sphere / capsule collider under <paramref name="go"/> by <paramref name="scale"/> — the pickup volume only; the picture and the transform stay as they are.</summary>
+        static void ScaleColliders(GameObject go, float scale)
+        {
+            if (Mathf.Approximately(scale, 1f)) return;
+            foreach (var c in go.GetComponentsInChildren<Collider>())
+            {
+                switch (c)
+                {
+                    case BoxCollider box: box.size *= scale; break;
+                    case SphereCollider sphere: sphere.radius *= scale; break;
+                    case CapsuleCollider capsule: capsule.radius *= scale; capsule.height *= scale; break;
+                }
+            }
         }
 
         /// <summary>A recolored copy of <paramref name="source"/> — the SRP Batcher ignores per-renderer tints, so every tint is its own instance. Glow scales the emission.</summary>

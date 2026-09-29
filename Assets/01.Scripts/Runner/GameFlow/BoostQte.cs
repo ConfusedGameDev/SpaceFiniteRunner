@@ -102,6 +102,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // The orb the prompt is on, and what has happened to it.
         SpeedPad target;
         Transform targetRing;
+        BoostQteAnchor targetAnchor; // hand-placed glyph spot inside the orb prefab, if it has one
         Vector3 lastRingPosition;
         float lastRingSize;
         bool pressed;          // one press per orb
@@ -216,6 +217,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             target = best;
             targetRing = best.transform.Find("Indicator");
+            targetAnchor = best.GetComponentInChildren<BoostQteAnchor>(true);
             bankedMultiplier = 1f;
             UpdateRing();
         }
@@ -224,6 +226,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             target = null;
             targetRing = null;
+            targetAnchor = null;
             pressed = false;
             collected = false;
             bankedMultiplier = 1f;
@@ -237,18 +240,26 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void UpdateRing()
         {
             if (target == null || !target.gameObject.activeInHierarchy) return;
+            if (targetAnchor != null)
+            {
+                // The prefab says where the glyph goes and how big it is.
+                lastRingPosition = targetAnchor.transform.position;
+                lastRingSize = targetAnchor.WorldSize;
+                return;
+            }
             Transform ring = targetRing != null ? targetRing : target.transform;
+            Vector3 lift = target.transform.up * settings.boostQteGlyphLift;
             var filter = ring.GetComponentInChildren<MeshFilter>();
             if (filter != null && filter.sharedMesh != null)
             {
                 Bounds b = filter.sharedMesh.bounds;
                 Transform t = filter.transform;
-                lastRingPosition = t.TransformPoint(b.center);
+                lastRingPosition = t.TransformPoint(b.center) + lift;
                 lastRingSize = b.size.x * Mathf.Abs(t.lossyScale.x) * settings.boostQteGlyphSize;
             }
             else
             {
-                lastRingPosition = ring.position;
+                lastRingPosition = ring.position + lift;
                 lastRingSize = Mathf.Abs(ring.lossyScale.x) * settings.boostQteGlyphSize;
             }
         }

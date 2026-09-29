@@ -99,11 +99,29 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         void ForwardPadImpulse(float raw) => PadImpulse?.Invoke(raw);
         void ForwardDash(int direction) => DashPerformed?.Invoke(direction);
-        void ForwardRoll(int direction) => BarrelRollStarted?.Invoke(direction);
+        // The barrel-roll bonus of the ramp jump in flight (raw m/s, 0 = none): paid on LANDING, and only if the ship rolled.
+        float pendingRollBoost;
+        bool rolledThisFlight;
+
+        void ForwardRoll(int direction)
+        {
+            rolledThisFlight = true;
+            BarrelRollStarted?.Invoke(direction);
+        }
         void ForwardMeterFilled() => MeterFilled?.Invoke();
         void ForwardWallHit(float speed) => WallHit?.Invoke(speed);
         void ForwardSliding(float excess) => Sliding?.Invoke(excess);
-        void ForwardFellOff() => FellOff?.Invoke();
+        void ForwardFellOff()
+        {
+            ClearRollBonus(); // a fall is no landing
+            FellOff?.Invoke();
+        }
+
+        void ClearRollBonus()
+        {
+            pendingRollBoost = 0f;
+            rolledThisFlight = false;
+        }
         // The ship has just been put back on the road, possibly kilometres on (the respawn rule skips sections, sweeps and
         // ramps), and it stands there out of play — its guide sample frozen — for the whole wait. The runner must hear
         // where it is NOW: the generator streams road, and the colliders under it, off this distance, and a ship
@@ -119,7 +137,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             RespawnStarted?.Invoke(teleport);
         }
         void ForwardRespawned() => Respawned?.Invoke();
-        void ForwardLanded() => Landed?.Invoke();
+        void ForwardLanded()
+        {
+            // The jump paid its boost at the lip; a barrel roll in the flight pays the bonus now, on touchdown.
+            if (rolledThisFlight && pendingRollBoost != 0f && !physicsDropping) AddSpeedImpulse(pendingRollBoost);
+            ClearRollBonus();
+            Landed?.Invoke();
+        }
 
         // The takeoff boost rides the pad path, exactly as on the track-space ship: "+N", shake and rumble come free.
         void OnPhysicsTookOff()
@@ -129,11 +153,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             // (Said nothing here: the motor's own tick, later this same step, sees the ship past the road and ends the run.)
             if (NearTrackEnd(body.Distance)) return;
 
+            ClearRollBonus();
             JumpRamp ramp = RampAt(body.Distance, 40f);
             if (ramp != null && !physicsDropping)
             {
                 float boost = ramp.Boost * definition.jumpStrength;
                 if (boost != 0f) AddSpeedImpulse(boost);
+                pendingRollBoost = boost * ramp.RollBonus;
             }
             TookOff?.Invoke();
         }

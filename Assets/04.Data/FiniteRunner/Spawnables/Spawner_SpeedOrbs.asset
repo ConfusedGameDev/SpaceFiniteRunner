@@ -28,6 +28,7 @@ MonoBehaviour:
     swayAmplitude: 0
     swayFrequency: 0
     spinDegreesPerSecond: 0
+    pickupScale: 2
     lane: 0
   - name: Blue
     prefab: {fileID: 2850359091044272792, guid: 8d0f2a4c6e8b0d2f4a6c8e0b2d4f6a8c, type: 3}

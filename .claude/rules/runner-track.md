@@ -276,6 +276,11 @@ the clone, never the asset.
   with a rail per edge. Colliders stripped, `featureMaterial` tinted per entry.
   Shipped: both the Jump entry and `endRamp` use `03.Prefabs/FiniteRunner/PF_RampBase` (a unit wedge mesh + `Ramp_Mat`,
   made by **Tools → FiniteRunner → Create PF_RampBase**) — restyle the mesh/material there; size still comes from `JumpDefinition`.
+- **A jump's boost is authored on the ramp prefab** (`RampBoost` on `PF_RampBase`): `greenOrbShare` (0.8) × the base boost ×
+  the Green tier's multiplier is the takeoff (`JumpRamp.Boost`, paid by `ShipMotor.OnPhysicsTookOff`), and `barrelRollBonus`
+  (0.2) more of it is paid ON LANDING if the ship barrel-rolled in that flight (`JumpRamp.RollBonus` → `pendingRollBoost`,
+  `ForwardRoll` only marks the roll, `ForwardLanded` pays; cleared on takeoff and on a fall) — 100 % for the jump, 120 % with a roll. A prefab without `RampBoost` keeps
+  the entry's `multiplier`. End ramps stay 0.
 - **A loop** (`LoopDefinition.CreateSection(track, spot, ref rng)`) rolls drift, its side, carry,
   yaw, its side and turns — in that order — off the bands, builds the `LoopSection` from the
   pose at the spot knot, and `DecideFeature` appends the exit knot and continues the spline from
@@ -575,6 +580,7 @@ visual carries are only a picture.
   `LensDistortionController.Trigger(BoostQte.WarpScale)`, up to `boostQteWarpAtPerfect`) and the
   rumble (`RunFeedback.OnPadImpulse`, `boostRumble` → `boostQteRumbleAtPerfect`). The picture is
   `BoostQtePrompt` (`runner-hud-screens.md`). The patrol's `Take()` never grades.
+- `PadSpawnEntry.pickupScale` scales a tier's pickup volume (prefab colliders + the analytic box), never the picture — Green ships at 2.
 - `floatingOrb` makes it a hovering sphere on the flight line, with an `OrbHover` bob/spin/sway
   component added at runtime. `OrbHover` bobs and sways along the **track's** up/right captured
   at spawn, not world axes, so orbs survive loops and tubes. The spin rate is per tier

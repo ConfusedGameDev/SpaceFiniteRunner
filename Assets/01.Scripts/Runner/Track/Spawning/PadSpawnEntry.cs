@@ -45,6 +45,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [PropertyRange(0f, 360f), SuffixLabel("°/s", true)]
         public float spinDegreesPerSecond = 60f;
 
+        [Tooltip("Scales the pickup volume (the prefab's colliders and the analytic box) without touching the picture. 2 = twice as easy to hit.")]
+        [PropertyRange(0.5f, 4f)]
+        public float pickupScale = 1f;
+
         [Tooltip("Ground = on the flight line. Air = GameSettings.airLaneHeight above it, where only a jump reaches — the future air lane, keep such entries at 0% until jumps ship them.")]
         public PadLane lane = PadLane.Ground;
 

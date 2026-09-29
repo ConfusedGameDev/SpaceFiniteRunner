@@ -28,6 +28,9 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         /// <summary>Raw takeoff boost (m/s, before the ship's weight scaling).</summary>
         public float Boost { get; private set; }
 
+        /// <summary>Extra share of <see cref="Boost"/> a barrel roll in the flight earns, paid on landing (0.2 = 120 % for jump + roll).</summary>
+        public float RollBonus { get; private set; }
+
         /// <summary>
         /// One of the three ramps the track ENDS in: its lip is the end of the
         /// road, so there is no flight to solve and nothing to land on — the
@@ -40,7 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public float Length => Definition != null ? Definition.length : 0f;
         public float EndDistance => StartDistance + Length;
 
-        public void Configure(JumpDefinition definition, float startDistance, float lateral, float halfWidth, float boost, bool isEndRamp = false)
+        public void Configure(JumpDefinition definition, float startDistance, float lateral, float halfWidth, float boost, bool isEndRamp = false, float rollBonus = 0f)
         {
             Definition = definition;
             StartDistance = startDistance;
@@ -48,6 +51,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             HalfWidth = halfWidth;
             Boost = boost;
             IsEndRamp = isEndRamp;
+            RollBonus = rollBonus;
         }
 
         /// <summary>True while <paramref name="distance"/> lies on the run-up.</summary>

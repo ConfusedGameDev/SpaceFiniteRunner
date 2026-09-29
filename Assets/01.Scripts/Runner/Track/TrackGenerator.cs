@@ -1307,11 +1307,29 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float maxLat = Mathf.Max(0f, track.HalfWidth - rampHalf - 2f);
             float lateral = rng.NextFloat(-maxLat, maxLat);
             float baseBoost = rules != null ? rules.PowerUpSpeedBoost : GameSettings.Default.powerUpSpeedBoost;
-            BuildRamp(distance, lateral, rampHalf, entry, def, baseBoost * entry.multiplier, isEndRamp: false);
+            float boost = baseBoost * entry.multiplier, rollBonus = 0f;
+            // A ramp prefab that carries a RampBoost sets its takeoff as a share of a green orb's boost.
+            var authored = entry.prefab != null ? entry.prefab.GetComponent<RampBoost>() : null;
+            if (authored != null)
+            {
+                boost = baseBoost * GreenOrbMultiplier() * authored.GreenOrbShare;
+                rollBonus = authored.BarrelRollBonus;
+            }
+            BuildRamp(distance, lateral, rampHalf, entry, def, boost, isEndRamp: false, rollBonus);
+        }
+
+        // The green tier's multiplier of the base boost (the runtime spawner's), 1 with no orb spawner.
+        float GreenOrbMultiplier()
+        {
+            var orbs = GetSpawner<SpeedOrbSpawner>();
+            if (orbs == null || orbs.Tiers == null || orbs.Tiers.Length == 0) return 1f;
+            foreach (var tier in orbs.Tiers)
+                if (tier.name == "Green") return tier.multiplier;
+            return orbs.Tiers[0].multiplier;
         }
 
         // One ramp at a given lateral: the JumpRamp record and its picture.
-        void BuildRamp(float distance, float lateral, float rampHalf, FeatureSpawnEntry entry, JumpDefinition def, float boost, bool isEndRamp)
+        void BuildRamp(float distance, float lateral, float rampHalf, FeatureSpawnEntry entry, JumpDefinition def, float boost, bool isEndRamp, float rollBonus = 0f)
         {
             track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
 
@@ -1363,7 +1381,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
 
             var ramp = go.AddComponent<JumpRamp>();
-            ramp.Configure(def, distance, lateral, rampHalf, boost, isEndRamp);
+            ramp.Configure(def, distance, lateral, rampHalf, boost, isEndRamp, rollBonus);
             // An end ramp is keyed on its END for the cull: it must outlive
             // the ship's and the patrol's whole run-up.
             spawned.Add((isEndRamp ? distance + def.length : distance, go));

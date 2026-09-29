@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: FiniteRunner_HyperspaceSky
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.HyperspaceSkySettings
   material: {fileID: 2100000, guid: d4cad6a43b21075469a980b3d79c2d58, type: 2}
-  fadeInSeconds: 0.6
+  fadeInSeconds: 2.56
+  fadeOutSeconds: 2.5
   flashStrength: 1.5
   flashSeconds: 0.8
   axisResponse: 3
