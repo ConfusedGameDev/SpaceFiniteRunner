@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   levelName: Escape Run
   nextSceneName: Store
-  trackLengthMeters: 41837
+  trackLengthMeters: 70837
   completeVideo: {fileID: 0}
   rankTable:
     sThreshold: 10000

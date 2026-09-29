@@ -50,7 +50,7 @@ MonoBehaviour:
   unbankedSweepChance: 0.45
   openStraightChance: 0.9
   bankEnabled: 1
-  maxBankAngle: 78
+  maxBankAngle: 88
   bankPerDegreeOfTurn: 8
   maxBankStepPerKnot: 45
-  levelLeadDistance: 200
+  levelLeadDistance: 500

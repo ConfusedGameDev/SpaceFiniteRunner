@@ -15,15 +15,15 @@ MonoBehaviour:
   active: 1
   displayName: Speed Orbs
   color: {r: 0, g: 0, b: 0, a: 1}
-  spacing: {x: 136.8, y: 239.2}
+  spacing: {x: 386.8, y: 489.2}
   startDistance: 120
   chance: 1
   tiers:
   - name: Green
     prefab: {fileID: 2850359091044272792, guid: 2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a, type: 3}
     definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
-    probability: 57.35898
-    multiplier: 2.0000002
+    probability: 57.358974
+    multiplier: 1.7000002
     color: {r: 0.1, g: 1, b: 0.3, a: 1}
     swayAmplitude: 0
     swayFrequency: 0
@@ -33,20 +33,22 @@ MonoBehaviour:
   - name: Blue
     prefab: {fileID: 2850359091044272792, guid: 8d0f2a4c6e8b0d2f4a6c8e0b2d4f6a8c, type: 3}
     definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
-    probability: 36.24487
+    probability: 36.244865
     multiplier: 2.5
     color: {r: 0.25, g: 0.55, b: 1, a: 1}
     swayAmplitude: 0
     swayFrequency: 0
     spinDegreesPerSecond: 60
+    pickupScale: 1
     lane: 0
   - name: Purple
     prefab: {fileID: 2850359091044272792, guid: 4c6e8a0b2d4f6a8c0e2b4d6f8a0c2e4b, type: 3}
     definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
-    probability: 6.396155
-    multiplier: 10
+    probability: 6.3961544
+    multiplier: 9.399998
     color: {r: 0.75, g: 0.3, b: 1, a: 1}
     swayAmplitude: 0
     swayFrequency: 0
     spinDegreesPerSecond: 60
+    pickupScale: 1
     lane: 0

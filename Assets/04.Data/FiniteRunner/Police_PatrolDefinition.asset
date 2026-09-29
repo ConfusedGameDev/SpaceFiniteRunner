@@ -17,7 +17,7 @@ MonoBehaviour:
   rubberBand: 0.95
   catchUpAccel: 3.33
   boostShare: 0.156
-  lateralSpeed: 12
+  lateralSpeed: 14
   handlingResponse: 6
   gripBase: 130
   gripPerSpeed: 0.5
@@ -55,6 +55,14 @@ MonoBehaviour:
   duelBarColor: {r: 1, g: 0.32, b: 0.28, a: 1}
   duelSparkColor: {r: 1, g: 0.5, b: 0.8, a: 1}
   duelSparkScale: 1
+  killRumble: {x: 1, y: 1, z: 0.5}
+  ramRumble: {x: 0.9, y: 0.6, z: 0.25}
+  shoveRumble: {x: 1, y: 0.8, z: 0.5}
+  redeployRumble: {x: 0.6, y: 0.4, z: 0.4}
+  tugSlamRumble: {x: 0.4, y: 0.5, z: 0.12}
+  tugSlamRumbleMax: 0.9
+  duelBarRumbleEven: {x: 0.15, y: 0.1, z: 0.14}
+  duelBarRumbleLosing: {x: 0.65, y: 0.45, z: 0.14}
   attackRunOverdrive: 1.15
   minClosingSpeed: 12
   commitFromDistance: 70
