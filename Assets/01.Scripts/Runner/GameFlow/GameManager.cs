@@ -79,6 +79,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         enum RunOutcome { Escaped, Caught, TimedOut, MissedRamp, TooSlow, Destroyed }
 
         bool runCounted; // this run's "escape attempted" has been recorded
+        bool lostSpeedAtEnd; // Light Speed was latched but no longer held at the end of the track
 
         // Hull and lives. The lives are this SCENE's: the runner is entered
         // once per mission and retried in place, so Awake deals a fresh set
@@ -255,6 +256,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 // The loop's slow motion rides on the ship (the clock-owner
                 // contract lives there); the knobs are on the settings asset.
                 LoopSlowMo.Ensure(motor).Configure(settings);
+
+                // Debug utility: Y boosts the ship (GameSettings.debugBoostChord).
+                DebugBoostChord.Ensure(motor).Configure(settings);
 
                 // The duel's armed window rides the ship too: it is a state OF
                 // the ship (a strong orb leaves it carrying a kill), and it
@@ -491,7 +495,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// is the win: the drop becomes the escape flight and the wind-down
         /// starts. Anything else is a loss the fall itself plays out —
         /// objectives still open is TooSlow whether or not a ramp was taken,
-        /// the ramps missed is MissedRamp. Raised from the simulation tick, so
+        /// the ramps missed is MissedRamp. Without the hyperspace jump the ship
+        /// must also still be AT Light Speed on the lip — latched mid-run and
+        /// lost again is TooSlow. Raised from the simulation tick, so
         /// the objectives are read once more first: a goal met on this very
         /// step counts.
         /// </summary>
@@ -509,7 +515,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 ObjectivesMet = true;
             }
 
-            if (tookRamp && ObjectivesMet)
+            // Light Speed reached mid-run latches the objective, but without
+            // the hyperspace jump the ship must still HOLD it at the lip: a run
+            // that dropped back under it is too slow to escape.
+            lostSpeedAtEnd = ObjectivesMet && !(hyperspace != null && hyperspace.Jumping)
+                             && !HoldsSpeedGoals(motor.CurrentSpeed * 3.6f);
+            if (tookRamp && ObjectivesMet && !lostSpeedAtEnd)
             {
                 HasWon = true; // from here on nothing can be lost
                 motor.BeginEscape();
@@ -522,7 +533,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             HapticsSystem.Instance.Pulse(settings.endFailRumble);
             if (GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(settings.fallGlitchStrength);
-            BeginFail(ObjectivesMet ? RunOutcome.MissedRamp : RunOutcome.TooSlow);
+            BeginFail(ObjectivesMet && !lostSpeedAtEnd ? RunOutcome.MissedRamp : RunOutcome.TooSlow);
+        }
+
+        /// <summary>
+        /// True when <paramref name="speedKmh"/> is at or above every mandatory
+        /// Reach Speed target (the plain Light Speed test for a level with no
+        /// objectives) — what the lip asks of a run that did not jump.
+        /// </summary>
+        bool HoldsSpeedGoals(float speedKmh)
+        {
+            if (level == null || level.Count == 0) return speedKmh >= LightSpeedKmh;
+            for (int i = 0; i < level.Count; i++)
+                if (level.objectives[i] != null && level.objectives[i].type == RunnerObjectiveType.ReachSpeed
+                    && speedKmh < level.objectives[i].targetSpeedKmh)
+                    return false;
+            return true;
         }
 
         // Every loss goes through the MISSION FAILED wind-down, once.
@@ -756,7 +782,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 RunOutcome.MissedRamp => MenuTextId.LoseMissedRamp,
                 // The speed goal is the one the HUD is about; any other goal
                 // left open gets the general line.
-                RunOutcome.TooSlow => SpeedGoalOpen ? MenuTextId.LoseTooSlow : MenuTextId.LoseObjectivesIncomplete,
+                RunOutcome.TooSlow => SpeedGoalOpen || lostSpeedAtEnd ?MenuTextId.LoseTooSlow : MenuTextId.LoseObjectivesIncomplete,
                 _ => MenuTextId.LoseDestroyed
             };
 
@@ -977,6 +1003,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             RunOver = false;
             HasWon = false;
             ObjectivesMet = false;
+            lostSpeedAtEnd = false;
             runCounted = false;
             TimeRemaining = settings.timeLimitSeconds;
             ResetObjectives();

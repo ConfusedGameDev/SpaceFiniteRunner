@@ -227,6 +227,12 @@ developer pages in `Scripts/UI/DebugMenu.cs`: each tab is a normal compact-row `
   that edit `GameSettings` LIVE rather than the patrol's clone (duel timescale, steer assist, the
   finisher window, the hit-stop, the ram's speed cost, the armed window), because that asset is read
   live and never cloned.
+- **Debug Tools** (`Screens/DebugToolsPage`, beside FALL & RESPAWN, same `runRules` gate) — developer
+  utilities, not tuning: Y BOOST (`GameSettings.debugBoostChord`) and BOOST AMOUNT
+  (`debugBoostKmh`). `GameSettings` is read live, so the rows edit the asset alone, no reload prompt.
+  The button itself (`Ship/DebugBoostChord`, on `PF_Ship`) reads the pad's North (Y) RAW — a
+  developer tool, never bindable, like the menus (Y is only `CarRespawn`, unread in the runner). Its
+  inspector shows the same two values through the `GameSettings` asset the prefab references.
 - **Patrol** (only when the GameManager's patrol is initialized) writes the patrol's
   `PatrolDefinition` asset and mirrors onto its live clone.
 

@@ -263,6 +263,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float boostQteGlyphSize = 0.45f;
 
         [ToggleGroup("boostQte")]
+        [Tooltip("Metres the prompt glyph floats above the ring's centre, along the track's up.")]
+        [PropertyRange(0f, 3f)]
+        public float boostQteGlyphLift = 0.5f;
+
+        [ToggleGroup("boostQte")]
         [Tooltip("Prompt colour of a miss (pressed outside the window, or never pressed) and of the window's edge.")]
         public Color boostQteMissColor = new(1f, 0.15f, 0.12f);
 
@@ -692,6 +697,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Length of the straight walled run-up the jump puts before the end ramps (it starts where the road currently stops, ~2.5 km ahead). Never shorter than a ramp plus one segment.")]
         [PropertyRange(200f, 2000f), SuffixLabel("m", true)]
         public float hyperspaceRunUpMeters = 600f;
+
+        // ------------------------------------------------- debug boost chord
+        [ToggleGroup("debugBoostChord", "Debug boost (Y)")]
+        [Tooltip("Debug utility: pressing Y on the pad gives the ship a speed boost, as if it had taken an orb (the +N, rumble and the patrol's boost share included). Also shown on the ship's DebugBoostChord component and the pause menu's DEBUG TOOLS page.")]
+        public bool debugBoostChord = true;
+
+        [ToggleGroup("debugBoostChord")]
+        [Tooltip("Speed added per chord, before the ship's weight scales it (the same raw impulse an orb gives).")]
+        [PropertyRange(50f, 5000f), SuffixLabel("km/h", true)]
+        public float debugBoostKmh = 1000f;
 
         // ------------------------------------------------------ escape vanish
         [ToggleGroup("escapeVanishEnabled", "Escape vanish")]

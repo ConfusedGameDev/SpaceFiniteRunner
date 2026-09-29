@@ -33,7 +33,9 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   side by side over a void**, with gaps between them. The HUD shows the distance left.
 - **Win** = BOTH halves: every mandatory objective of the run's `RunnerLevelDefinition` is met
   (today one Reach Speed objective, whose target IS the HUD's "Light Speed" — reaching it ONCE
-  latches it, the HUD line turns done) AND the ship leaves the track by one of the end ramps.
+  latches it, the HUD line turns done) AND the ship leaves the track by one of the end ramps
+  STILL at Light Speed — latched mid-run and lost again is a loss at the lip (the hyperspace
+  jump is the one way that skips this check).
   Until the lip everything stays live: countdown, patrol. A standstill
   is never a loss. At the lip the win latches, the
   ship flies on off the ramp (it never lands), MISSION ACCOMPLISHED slams in, the glitch ramps
@@ -63,7 +65,7 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
 - **Speed** is the whole game: one launch impulse, then the throttle (W / RT) holds the ship up
   to its cruise speed and the brake (S / LT) slows it. Only boost orbs (small, 0.3, must be aimed
   for; green 1× / blue 2.5× / purple 10×) push past cruise, where a passive bleed pulls the speed
-  back down to it; laser beams take 10 % of it. No cap. (Brake pads are retired: the
+  back down to it; laser beams take 6.7 % of it. No cap. (Brake pads are retired: the
   `Spawner_BrakePads` asset is kept out of the track's spawn set — see `runner-track.md`.)
 - **Timed boost (QTE)**: a boost orb still boosts when you just fly through it, but pressing
   **Boost (A / Space)** right as you cross it multiplies the boost — ×1.5 dead on, down to ×1.1 at
@@ -103,7 +105,7 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   the one feature not yet built.
 - **Laser gates**: emitter pairs firing a beam across 20–30 % of the road — single horizontal,
   single vertical, three stacked, or a flat spinning rotor — steered round, never jumped. A beam
-  costs a fall's worth of hull and 10 % of the speed at once (`laserSpeedLoss`) with a heavy rumble. Never on or near a ramp, its landing, a loop,
+  costs a fall's worth of hull and 6.7 % of the speed at once (`laserSpeedLoss`) with a heavy rumble. Never on or near a ramp, its landing, a loop,
   a tube or the final run-up.
 - Time AND distance are the limits. The track is streamed ahead of the ship but finite.
 - Story beats are RPG dialogue lines on purple-orb pickups and patrol taunts only.

@@ -304,7 +304,10 @@ Win/lose and the countdown.
   with them — a level with no objectives latches the plain Light Speed test the same way.
   `LightSpeedReached` is the HUD's done flag. That alone wins nothing: the countdown and the
   catch stay live. (2) `OnReachedTrackEnd(tookRamp)` (from `ShipMotor.ReachedTrackEnd`,
-  in the sim tick; the objectives are read once more first): `tookRamp && ObjectivesMet` latches
+  in the sim tick; the objectives are read once more first): `tookRamp && ObjectivesMet` — and,
+  unless the hyperspace jump is on, the lip speed still at or above every Reach Speed target
+  (`HoldsSpeedGoals`; latched and lost again sets `lostSpeedAtEnd` → `TooSlow` /
+  `LoseTooSlow`) — latches
   `HasWon`, calls `motor.BeginEscape()` and starts `FinishWin` (unscaled time) — no wait for
   Grounded any more: the MISSION ACCOMPLISHED banner slams in
   (`MissionAccomplishedBanner`, see `runner-hud-screens.md`) over the planted fly-past shot
@@ -385,7 +388,9 @@ LightSpeedKmh)` while `GameSettings.sfxEnabled`); its engine gates on `motor.Pau
 endings and `Restart` need no audio hook.
 
 **The ship's run components are hand-placed on `PF_Ship`** (refactor Step 8.3): `LoopSlowMo`,
-`ShipArmed`, `RespawnBlink`, `ShipAudio`, `BarrelRollTrail`, `ShipHealth`, `DuelSlowMo` (and the
+`ShipArmed`, `RespawnBlink`, `ShipAudio`, `BarrelRollTrail`, `ShipHealth`, `DuelSlowMo`,
+`DebugBoostChord` (the Y debug boost, `GameSettings.debugBoostChord` / `debugBoostKmh` — shown on
+its inspector through the asset it references — raised through `AddSpeedImpulse` like an orb) (and the
 existing `DashGhostTrail`) sit on the prefab, so they are visible and tunable before play. The
 `GameManager`'s `Ensure(...)` calls now FIND them and only `Configure` them; each is inert until
 configured, so a feature switched off (dash, hull, sfx, duel) leaves its component idle, never

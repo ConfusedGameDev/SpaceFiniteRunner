@@ -161,7 +161,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         Customize, AdjustColor, SavePrompt, RevertPrompt, ResetDefaultPrompt, Cancel,
         HintSave, HintRevert, HintDefault, HintVehicle, HintZoom, HintResetView, HintSlider, HintHue,
         // The hyperspace jump: the in-run prompt and the CONTROLS rows of its keyboard chord.
-        HyperspacePrompt, ActionHyperspaceLeft, ActionHyperspaceRight
+        HyperspacePrompt, ActionHyperspaceLeft, ActionHyperspaceRight,
+        // The pause menu's DEBUG TOOLS page: the Y debug boost's switch and size.
+        DebugTabTools, DebugBoostChord, DebugBoostAmount
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1163,6 +1165,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString respawnSpeedPenalty = new("RESPAWN SPEED PENALTY", "PENALIZACIÓN DE VELOCIDAD", "リスポーン速度ペナルティ", "PÉNALITÉ DE VITESSE");
         [SerializeField] LocalizedString respawnClearance = new("RESPAWN CLEARANCE", "DESPEJE DE REAPARICIÓN", "リスポーン前方の余裕", "DÉGAGEMENT DE RETOUR");
         [SerializeField] LocalizedString respawnRollingStart = new("ROLLING RESPAWN", "REAPARICIÓN EN MARCHA", "走行中リスポーン", "RETOUR LANCÉ");
+        [SerializeField] LocalizedString debugTabTools = new("DEBUG TOOLS", "HERRAMIENTAS DEBUG", "デバッグツール", "OUTILS DE DEBUG");
+        [SerializeField] LocalizedString debugBoostChord = new("Y BOOST", "IMPULSO CON Y", "Y ブースト", "BOOST Y");
+        [SerializeField] LocalizedString debugBoostAmount = new("BOOST AMOUNT (KM/H)", "CANTIDAD DE IMPULSO (KM/H)", "ブースト量 (KM/H)", "VALEUR DU BOOST (KM/H)");
         [Tooltip("The debug menu's per-spawner density row. {0} = the spawner's name.")]
         [SerializeField] LocalizedString spawnDensity = new("{0} DENSITY", "DENSIDAD: {0}", "{0} 密度", "DENSITÉ : {0}");
         [SerializeField] LocalizedString respawnPatrolGap = new("RESPAWN PATROL GAP", "VENTAJA SOBRE LA PATRULLA", "リスポーン時のパトロール差", "AVANCE SUR LA PATROUILLE");
@@ -1655,6 +1660,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.HyperspacePrompt => hyperspacePrompt,
             MenuTextId.ActionHyperspaceLeft => actionHyperspaceLeft,
             MenuTextId.ActionHyperspaceRight => actionHyperspaceRight,
+            MenuTextId.DebugTabTools => debugTabTools,
+            MenuTextId.DebugBoostChord => debugBoostChord,
+            MenuTextId.DebugBoostAmount => debugBoostAmount,
             _ => start
         };
     }

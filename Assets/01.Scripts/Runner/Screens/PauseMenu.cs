@@ -469,7 +469,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // The run rules of falling off (GameSettings, edited live like the fog).
             GameSettings runRules = shipReady ? motor.DashSettings : null;
 
-            int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0) + (runRules != null ? 1 : 0)
+            int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0) + (runRules != null ? 2 : 0)
                          + (patrolReady ? 3 : 0) + registeredTabs;
             if (tabCount == 0) return;
 
@@ -499,7 +499,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             }
             // No `changed`: the run reads these live off the asset, nothing to reload.
             if (runRules != null)
+            {
                 debugMenu.AddTab(FallRespawnDebugPage.Build(panelRect, theme, runRules, motor.PhysicsShip, debugRefreshers, tab++, tabCount));
+                debugMenu.AddTab(DebugToolsPage.Build(panelRect, theme, runRules, debugRefreshers, tab++, tabCount));
+            }
             if (patrolReady)
             {
                 debugMenu.AddTab(DebugMenuFactory.BuildPatrolTab(
