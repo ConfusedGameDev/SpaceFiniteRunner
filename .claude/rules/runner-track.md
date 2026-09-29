@@ -274,6 +274,8 @@ the clone, never the asset.
   `HalfWidth × widthFraction`, boost = `powerUpSpeedBoost × multiplier`) with a picture only: the
   entry's unit prefab scaled to (width, lip, length), or a code-built slab pitched to `rampAngle`
   with a rail per edge. Colliders stripped, `featureMaterial` tinted per entry.
+  Shipped: both the Jump entry and `endRamp` use `03.Prefabs/FiniteRunner/PF_RampBase` (a unit wedge mesh + `Ramp_Mat`,
+  made by **Tools → FiniteRunner → Create PF_RampBase**) — restyle the mesh/material there; size still comes from `JumpDefinition`.
 - **A loop** (`LoopDefinition.CreateSection(track, spot, ref rng)`) rolls drift, its side, carry,
   yaw, its side and turns — in that order — off the bands, builds the `LoopSection` from the
   pose at the spot knot, and `DecideFeature` appends the exit knot and continues the spline from
