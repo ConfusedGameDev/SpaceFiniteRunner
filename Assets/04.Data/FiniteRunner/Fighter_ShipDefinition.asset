@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.ShipDefinition
   displayName: Fighter
   description: First feel-test ship. Throttle holds it at cruise; only orbs push past it.
-  initialImpulse: 6
+  initialImpulse: 55
   cruiseSpeed: 1000
-  thrust: 60
-  brakeDecel: 3.94
-  coastDrag: 32.6
-  passiveDeceleration: 9.8
+  thrust: 25
+  brakeDecel: 123
+  coastDrag: 52.3
+  passiveDeceleration: 50
   digitalThrottleRampSeconds: 0.15
-  acceleration: -50
+  acceleration: 74
   lateralSpeed: 29.71
   handlingResponse: 24.8
   gripBase: 2
@@ -29,8 +29,8 @@ MonoBehaviour:
   slideThreshold: 4
   slideSpeedLoss: 0.1
   dashDistance: 13.700001
-  dashDuration: 0.28099996
-  dashRechargeSeconds: 0.45
+  dashDuration: 0.128
+  dashRechargeSeconds: 1
   dashGhostCount: 5
   barrelRollSeconds: 0.45
   weight: 133.3
