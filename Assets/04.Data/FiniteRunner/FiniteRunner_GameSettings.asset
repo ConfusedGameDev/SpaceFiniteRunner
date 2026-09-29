@@ -22,7 +22,11 @@ MonoBehaviour:
   lightSpeedKmh: 6500
   timeLimitSeconds: 180
   launchDistanceMeters: 100
+<<<<<<< Updated upstream
   trackLengthMeters: 33000
+=======
+  trackLengthMeters: 63000
+>>>>>>> Stashed changes
   endRunUpMeters: 1200
   endRampGapMeters: 10
   endRampSideGapMeters: 0

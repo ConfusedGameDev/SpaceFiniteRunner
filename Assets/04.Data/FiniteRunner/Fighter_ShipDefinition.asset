@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.ShipDefinition
   displayName: Fighter
   description: First feel-test ship. Throttle holds it at cruise; only orbs push past it.
-  initialImpulse: 55
+  initialImpulse: 164
   cruiseSpeed: 1000
   thrust: 25
   brakeDecel: 123
