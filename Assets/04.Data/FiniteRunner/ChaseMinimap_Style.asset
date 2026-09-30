@@ -25,4 +25,20 @@ MonoBehaviour:
   shipIconSize: 20.5
   policeIconSize: 20
   chaseSpan: 120
+  showTrackMap: 1
+  showStrip: 0
+  mapStartAtBottom: 1
+  mapPadding: 0
+  mapSamples: 300
+  mapLineWidth: 4.67
+  mapLineColor: {r: 1, g: 1, b: 1, a: 0.55}
+  mapDrivenColor: {r: 0.48, g: 1, b: 0.4, a: 0.95}
+  mapBackground: {r: 0, g: 0, b: 0, a: 0}
+  markerSize: 2
+  rampMarkerColor: {r: 1, g: 0.8, b: 0.2, a: 1}
+  gateMarkerColor: {r: 1, g: 0.2, b: 0.2, a: 1}
+  finishMarkerColor: {r: 1, g: 0.25, b: 0.9, a: 1}
+  rampMarkerSprite: {fileID: 0}
+  gateMarkerSprite: {fileID: 0}
+  finishMarkerSprite: {fileID: 0}
   blinkInterval: 0.098

@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Runner Track Authoring</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#F2F5F8; --surface:#FFFFFF; --sunk:#E8EDF2; --ink:#132030; --muted:#56687B; --line:#D3DCE5;
+  --accent:#0A7CA3; --accent-soft:#DDF1F8;
+  --warn:#9A6212; --warn-soft:#FBEFD9; --good:#237A4B; --good-soft:#DDF2E5; --bad:#C9362C; --bad-soft:#FBE4E1;
+  /* The Scene-view gizmo colours, as drawn (TrackGizmos). */
+  --g-wall:#8A97A6; --g-open:#E0262B; --g-flat:#E07A00; --g-section:#0FA3B8; --g-runup:#C62DB8; --g-lane:#3E8FD6;
+  --g-knot:#8A97A6; --g-spot:#0FA3B8; --g-locked:#B7C1CC; --g-selected:#D4A800;
+  --f-head:"Avenir Next","Segoe UI Variable Display","Segoe UI","Helvetica Neue",system-ui,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#0A111A; --surface:#101A26; --sunk:#0D1620; --ink:#DCE6F0; --muted:#8FA0B2; --line:#223346;
+    --accent:#5CDDFF; --accent-soft:#0F2C3A;
+    --warn:#F2B650; --warn-soft:#352812; --good:#5FD394; --good-soft:#12301F; --bad:#FF6E61; --bad-soft:#3A1715;
+    --g-wall:#E6ECF2; --g-open:#FF3B3F; --g-flat:#FF8C0D; --g-section:#33FFFF; --g-runup:#FF40E6; --g-lane:#59BFFF;
+    --g-knot:#E6ECF2; --g-spot:#4DFFFF; --g-locked:#7F8A96; --g-selected:#FFE61A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0A111A; --surface:#101A26; --sunk:#0D1620; --ink:#DCE6F0; --muted:#8FA0B2; --line:#223346;
+  --accent:#5CDDFF; --accent-soft:#0F2C3A;
+  --warn:#F2B650; --warn-soft:#352812; --good:#5FD394; --good-soft:#12301F; --bad:#FF6E61; --bad-soft:#3A1715;
+  --g-wall:#E6ECF2; --g-open:#FF3B3F; --g-flat:#FF8C0D; --g-section:#33FFFF; --g-runup:#FF40E6; --g-lane:#59BFFF;
+  --g-knot:#E6ECF2; --g-spot:#4DFFFF; --g-locked:#7F8A96; --g-selected:#FFE61A;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:32px 80px;display:grid;grid-template-columns:1fr;gap:32px}
+@media (min-width:1000px){ .wrap{grid-template-columns:230px minmax(0,1fr);gap:48px} }
+
+/* ---------- header ---------- */
+header.doc{grid-column:1/-1;display:grid;gap:10px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.eyebrow{font:600 12px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 clamp(30px,4.6vw,46px)/1.08 var(--f-head);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.lede{font-size:18px;color:var(--muted);max-width:68ch;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;font:13px/1.4 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink);font-weight:600}
+
+/* ---------- toc ---------- */
+nav.toc{font-size:14px}
+nav.toc .label{font:600 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.toc a{display:block;padding:5px 10px;border-radius:6px;color:var(--ink);text-decoration:none}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sunk);outline:none}
+nav.toc a:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+@media (min-width:1000px){ nav.toc{position:sticky;top:calc(24px + env(safe-area-inset-top, 0px));align-self:start;max-height:calc(100vh - 48px);overflow:auto} }
+@media (max-width:999px){ nav.toc ol{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))} }
+
+/* ---------- content ---------- */
+main{min-width:0;display:grid;gap:56px}
+section{display:grid;gap:14px;scroll-margin-top:24px}
+h2{font:700 26px/1.2 var(--f-head);margin:0;text-wrap:balance}
+h3{font:650 18px/1.3 var(--f-head);margin:10px 0 0}
+p,li{max-width:72ch}
+p{margin:0}
+ul,ol{margin:0;padding-left:1.3em;display:grid;gap:6px}
+a{color:var(--accent)}
+code,kbd{font:0.88em/1.4 var(--f-mono);background:var(--sunk);padding:.1em .38em;border-radius:4px;white-space:nowrap}
+kbd{border:1px solid var(--line);border-bottom-width:2px}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+
+.callout{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;display:grid;gap:6px;max-width:78ch}
+.callout .tag{font:600 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase}
+.callout.note .tag{color:var(--accent)}
+.callout.warn{background:var(--warn-soft);border-color:transparent}
+.callout.warn .tag{color:var(--warn)}
+
+/* two ways a level gets a track */
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.mode{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:8px;align-content:start}
+.mode h3{margin:0}
+.mode .when{font:12px/1.4 var(--f-mono);color:var(--muted)}
+
+/* pipeline */
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px}
+.step{flex:1 1 150px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:4px;align-content:start}
+.step b{font:650 15px/1.3 var(--f-head)}
+.step span{font-size:13px;color:var(--muted)}
+.arrow{align-self:center;color:var(--muted);font:600 18px/1 var(--f-mono)}
+@media (max-width:640px){ .arrow{display:none} }
+
+/* tables */
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font:600 11px/1.3 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td.k{white-space:nowrap;font-family:var(--f-mono);font-size:13px}
+.yes{color:var(--good);font-weight:600}.no{color:var(--muted)}
+
+/* legend */
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px 20px}
+.swatch{display:flex;gap:10px;align-items:flex-start}
+.swatch i{flex:0 0 auto;width:26px;height:4px;border-radius:2px;margin-top:10px;background:var(--c)}
+.swatch i.dot{width:13px;height:13px;border-radius:50%;margin:5px 6px 0 7px}
+.swatch i.ring{width:13px;height:13px;border-radius:50%;background:none;border:2px solid var(--c);margin:5px 6px 0 7px}
+.swatch div{font-size:14px}.swatch b{display:block;font-weight:600}
+
+/* diagram */
+figure{margin:0;display:grid;gap:8px}
+figcaption{font-size:13px;color:var(--muted);max-width:72ch}
+.diagram{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px}
+.diagram svg{display:block;width:100%;min-width:640px;height:auto}
+.d-text{fill:var(--ink);font:12px var(--f-mono)}
+.d-muted{fill:var(--muted);font:11px var(--f-mono)}
+.d-decided{fill:var(--sunk);stroke:var(--line)}
+.d-built{fill:var(--accent-soft);stroke:var(--accent)}
+.d-culled{fill:none;stroke:var(--line);stroke-dasharray:4 4}
+.d-ship{fill:var(--accent)}
+.d-runup{fill:var(--g-runup);opacity:.35}
+.d-line{stroke:var(--muted);stroke-width:1}
+
+.steps{counter-reset:s;list-style:none;padding:0;display:grid;gap:10px}
+.steps li{counter-increment:s;position:relative;padding-left:40px}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font:700 13px/26px var(--f-mono);text-align:center}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <div class="eyebrow">SpaceFiniteRunner · Runner</div>
+  <h1>Runner Track Authoring</h1>
+  <p class="lede">How the runner's track is decided, saved, loaded, edited in the Scene view and shown on the chase minimap: the designer's workflow, then the rules and the code behind it.</p>
+  <div class="meta">
+    <span>Branch <b>feature/trackAuthoring</b></span>
+    <span>Milestones <b>M0–M7</b></span>
+    <span>Unity <b>6000.7.0a3</b></span>
+    <span>Updated <b>2026-09-30</b></span>
+    <span>Plan: <b>TrackAuthoringPRD.md</b></span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <div class="label">Contents</div>
+  <ol>
+    <li><a href="#two-ways">Two ways to get a track</a></li>
+    <li><a href="#run">How a run builds its track</a></li>
+    <li><a href="#quickstart">Make a track, start to finish</a></li>
+    <li><a href="#inspector">The generator inspector</a></li>
+    <li><a href="#road">Editing the road</a></li>
+    <li><a href="#placements">Editing placements</a></li>
+    <li><a href="#kinds">Placement kinds</a></li>
+    <li><a href="#powerups">Adding a power-up</a></li>
+    <li><a href="#scene">Reading the Scene view</a></li>
+    <li><a href="#minimap">The chase minimap</a></li>
+    <li><a href="#runtime">Runtime rules</a></li>
+    <li><a href="#data">Data model</a></li>
+    <li><a href="#code">Code map</a></li>
+    <li><a href="#invariants">Rules for changing the code</a></li>
+    <li><a href="#limits">Known limitations</a></li>
+    <li><a href="#verified">How it was verified</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ============================================================ -->
+<section id="two-ways">
+  <h2>Two ways to get a track</h2>
+  <p>A runner level (<code>RunnerLevelDefinition</code>) gets its track one of two ways. Which one is decided by a single field, <code>track</code>.</p>
+  <div class="modes">
+    <div class="mode">
+      <div class="when">track = empty</div>
+      <h3>Generated every run</h3>
+      <p>The <code>TrackGenerator</code> rolls a new track from its shape and spawn-set assets at the level's <code>trackLengthMeters</code> (0 = <code>GameSettings.trackLengthMeters</code>). Seed 0 means a new layout every run; any other seed repeats exactly.</p>
+    </div>
+    <div class="mode">
+      <div class="when">track = a TrackLayoutAsset</div>
+      <h3>A saved track</h3>
+      <p>The level plays exactly that track: its road, every orb, gate, ramp and coin, its length and, when it sets one, its own countdown. Made with <b>Generate Track</b> and reshaped by hand with <b>Edit Track</b>.</p>
+    </div>
+  </div>
+  <p>Either way the rest of the game can't tell the difference. The ship, the patrol, the colliders, the HUD and hyperspace all read the same track.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="run">
+  <h2>How a run builds its track</h2>
+  <p>The track is handled in two halves that never mix:</p>
+  <ul>
+    <li><b>Deciding.</b> The whole track is decided when the run starts: every knot, sweep, bank, feature and the end, plus every placement as a <code>TrackPlacement</code> record. About 200 knots and 700 records take a fraction of a second. A saved track skips this step: its records are loaded instead. <em>Every random draw happens here.</em></li>
+    <li><b>Building.</b> Records become GameObjects only inside the stream window around the ship. Road art, pickups, gates and colliders exist from the ship to <code>aheadDistance</code> ahead, and are culled <code>behindDistance</code> behind. Building draws no random numbers, so the same record always builds the same object.</li>
+  </ul>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 760 150" role="img" aria-labelledby="dg-title">
+        <title id="dg-title">The whole track is decided; only a window around the ship is built</title>
+        <text class="d-text" x="10" y="22">0 m</text>
+        <text class="d-text" x="690" y="22">end</text>
+        <rect class="d-decided" x="10" y="34" width="740" height="26" rx="4"/>
+        <rect class="d-runup" x="662" y="34" width="88" height="26" rx="4"/>
+        <text class="d-muted" x="14" y="51">decided at run start: every knot and record</text>
+        <text class="d-muted" x="668" y="80">final run-up</text>
+        <rect class="d-culled" x="120" y="92" width="100" height="22" rx="4"/>
+        <text class="d-muted" x="126" y="107">culled</text>
+        <rect class="d-built" x="220" y="92" width="250" height="22" rx="4"/>
+        <text class="d-text" x="290" y="107">built: objects + colliders</text>
+        <path class="d-ship" d="M268 86 l8 14 h-16 z"/>
+        <text class="d-text" x="250" y="136">ship</text>
+        <line class="d-line" x1="220" y1="122" x2="268" y2="122"/>
+        <text class="d-muted" x="222" y="146">behind</text>
+        <line class="d-line" x1="268" y1="122" x2="470" y2="122"/>
+        <text class="d-muted" x="330" y="146">aheadDistance (1 600 m on PF_Track)</text>
+      </svg>
+    </div>
+    <figcaption>The window slides with the ship. Only the chase minimap's track map ever shows the whole decided track.</figcaption>
+  </figure>
+  <ul>
+    <li><code>SettledDistance</code> is how far the track has been built. The colliders and the road art stream to it.</li>
+    <li>A restart rebuilds from the start of the track, never from where the ship last was.</li>
+    <li>An edit-mode preview, or a scene without a <code>GameManager</code>, stays an endless preview that decides as it streams.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="quickstart">
+  <h2>Make a track, start to finish</h2>
+  <ol class="steps">
+    <li>Open <code>FiniteRunner_Test</code> and select the <b>Track</b> object (it holds the <code>TrackGenerator</code>). The authoring tools are at the bottom of its inspector.</li>
+    <li>Click <b>Generate Track</b>. The track is decided in full with the scene's run rules: the level's length, the run-up and the end ramps. The status box shows its length, placement count and seed, and the first stretch appears in the scene.</li>
+    <li>Click <b>Save Track As…</b> and save the asset in <code>Assets/04.Data/FiniteRunner/Tracks/</code>. Replacing an existing track asks first.</li>
+    <li>Click <b>Set as Current Track</b>. This writes the asset into the scene level's <code>track</code> field.</li>
+    <li>Press <b>Play</b>. The run loads exactly that track, and the generator's inspector shows <i>saved: &lt;asset&gt;</i>.</li>
+    <li>To change the track, pick it in <b>Track asset</b>, click <b>Edit Track</b>, work in the <b>Road</b> and <b>Placements</b> tabs, then <b>Save</b>. Stop Editing with unsaved changes asks <i>Save, Discard or Keep Editing</i>.</li>
+    <li>Optionally, give the asset its own countdown in its inspector (<b>Time Limit Seconds</b>; 0 uses the GameSettings value).</li>
+  </ol>
+  <div class="callout note">
+    <div class="tag">Tip</div>
+    <p>To compare a saved track with a generated one, turn on <b>FORCE RUNTIME TRACK</b> in the debug menu's CORE SETTINGS and retry. Nothing is written to any asset.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="inspector">
+  <h2>The generator inspector</h2>
+  <h3>Edit mode: Track Authoring</h3>
+  <div class="table"><table>
+    <thead><tr><th>Control</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Level</td><td>The scene <code>GameManager</code>'s level (read-only). Needed for the run rules and for Set as Current.</td></tr>
+      <tr><td class="k">Track asset</td><td>The saved track the buttons act on. Defaults to the level's current track.</td></tr>
+      <tr><td class="k">Generate Track</td><td>Decides a whole finite track in edit mode, exactly as a play run would, and previews the first stretch. Disabled while editing.</td></tr>
+      <tr><td class="k">Save Track As…</td><td>Saves the generated track, or a <b>copy</b> of the saved track on show. Disabled while editing (use Save there).</td></tr>
+      <tr><td class="k">Set / Clear Current Track</td><td>Writes or clears the level's <code>track</code> field.</td></tr>
+      <tr><td class="k">Preview Saved Track</td><td>Loads the asset into the scene the way play would.</td></tr>
+      <tr><td class="k">Edit Track</td><td>Opens the Road and Placements tabs and the Scene-view handles. Saves anything pending first, then takes a snapshot of the track.</td></tr>
+      <tr><td class="k">Regenerate (endless preview)</td><td>The old quick look: an endless stretch with no end and no gates.</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Play mode</h3>
+  <p>The inspector shows the track on show (<i>saved: …</i> or <i>generated, seed …</i>). <b>Regenerate Track</b> runs <code>GameManager.Restart</code>, a full retry on a new layout (or the saved track again), with the ship and the patrol relaunched.</p>
+  <h3>Scene View switches</h3>
+  <p><b>Draw track</b>, <b>Detail radius</b> (500–20 000 m around the Scene camera), <b>Placements</b> and <b>Labels</b>. These are per-user preferences stored in EditorPrefs, not project data.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="road">
+  <h2>Editing the road</h2>
+  <p>In the <b>Road</b> tab of Edit Track, click a knot's sphere in the Scene view to select it.</p>
+  <ul>
+    <li><b>Move.</b> The position handle moves the knot. Dragging it up and down changes the grade.</li>
+    <li><b>Bank.</b> The disc around the knot's forward axis, or the <b>Bank (°)</b> slider. <b>Road bank (°)</b> next to it shows what the road actually leans there. The spline re-leans a sharply bent knot to its curve, so the two can differ by a few degrees.</li>
+    <li><b>Insert Knot After / Delete Knot / Previous / Frame / Next.</b> Moving or inserting a knot re-aims its neighbours; each keeps its own bank.</li>
+    <li><b>Spans.</b> Drag the dots at the ends of flat sweeps (orange) and open straights (red) along the road. The selected knot's segment gets buttons to add an <b>Open Straight</b>, add a <b>Flat Sweep</b> (with its outer side), or <b>Remove Spans Here</b>.</li>
+  </ul>
+  <p>After every edit the generator recomputes what the edit moved: every knot's track distance, the length, the start of the final run-up (the same knot as before), the end ramps (one ramp-length before the end) and the run-up's keep-out. <b>Every other placement keeps its distance</b> and slides with the road.</p>
+  <h3>Locked knots</h3>
+  <ul>
+    <li><b>Grey</b>: the first knot, and every knot of the final run-up, which stays a straight, walled, level run to the ramps.</li>
+    <li><b>Cyan</b>: a knot a ramp stands on. It keeps bank 0, its tangent turns with it, and it can't be deleted.</li>
+    <li>On a track with loops or tubes, knot editing is off, because moving road before a section would shift it. Spans can still be edited.</li>
+  </ul>
+  <h3>Dragging, saving and undo</h3>
+  <ul>
+    <li>While a handle is dragged, only the reshaped stretch rebuilds: two knots either side of a moved knot, or the stretch between a span end's old and new spot. That takes about 10 ms a frame. The whole preview rebuilds on release, in about 60 ms.</li>
+    <li>Nothing is written to disk while editing. The panel shows <b>● Unsaved changes</b> with <b>Save</b> and <b>Revert</b>.</li>
+    <li>Every change is undoable (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>), including Discard and the recomputed distances. An undo also redraws the track on show after editing stops.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="placements">
+  <h2>Editing placements</h2>
+  <p>The <b>Placements</b> tab of Edit Track works on the track's records: select, move, add, delete and check them.</p>
+  <ul>
+    <li><b>Select</b> a placement by clicking its dot, or from the list of the 25 placements nearest the Scene camera.</li>
+    <li><b>Move</b> it by dragging the circle along and across the road. It is projected back to a distance and a lateral, and clamped to the lane.</li>
+    <li><b>Edit</b> its numbers: distance, lateral, height (prefabs) and a variant control for its kind (orb tier, gate type, beam length, rotor speed, wave, catalog power-up, coin value). Or <b>Duplicate (+30 m)</b>, <b>Delete</b> or <b>Frame</b> it.</li>
+    <li><b>Place</b>: choose from <b>Place</b> (catalog power-ups, the four laser gate types, every ramp in the feature table, a coin, or any prefab), press <b>Click in Scene to Place</b>, and click the road. <kbd>Esc</kbd> stops.</li>
+    <li>End ramps (they follow the end of the road) and loops (they <i>are</i> their section) are not moved here.</li>
+  </ul>
+  <h3>Checks</h3>
+  <p>The generator's own placement rules, applied as warnings: a red ring in the Scene view and a <b>Go</b> button in the inspector.</p>
+  <div class="table"><table>
+    <thead><tr><th>Warning</th><th>Rule it comes from</th></tr></thead>
+    <tbody>
+      <tr><td>Laser gate within 150 m of a ramp, its landing or a feature</td><td>The gate spawner's clearance, kept against every keep-out</td></tr>
+      <tr><td>Laser gate near the final run-up</td><td>The run-up's keep-out</td></tr>
+      <tr><td>Within 20 m of another pickup</td><td>Pickups keep a pad length apart (<code>PadLength</code>)</td></tr>
+      <tr><td>Off the lane</td><td>The lane at that distance (<code>GetLateralBand</code>)</td></tr>
+      <tr><td>Ramp landing reaches the final run-up</td><td>The ramp's footprint plus its longest landing</td></tr>
+      <tr><td>In the final run-up / past the end</td><td>Nothing stands in the run-up; nothing past the road</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Reroll Placements</h3>
+  <p>Decides every speed orb, repair orb, laser gate and coin afresh, with a new seed, on the road as it stands. Ramps, loops, end ramps, catalog power-ups and custom prefabs stay, and the rerolled items keep clear of them by the generator's usual rules. It asks first and can be undone.</p>
+  <div class="callout warn">
+    <div class="tag">Ramps</div>
+    <p>A moved or added ramp takes its keep-out with it, so gates and the patrol duel stay clear of the new spot. It does <b>not</b> straighten the road under its landing. A ramp moved onto a curve lands wherever the road goes.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="kinds">
+  <h2>Placement kinds</h2>
+  <p>Every placement is a <code>TrackPlacement</code>: kind, distance, lateral, height, <code>variant</code> and <code>data</code>. The kind enum is serialized, so new values are only ever appended.</p>
+  <div class="table"><table>
+    <thead><tr><th>Kind</th><th>Built by</th><th>variant / data</th><th>Rerolled</th></tr></thead>
+    <tbody>
+      <tr><td class="k">SpeedOrb = 0</td><td><code>SpeedOrbSpawner</code></td><td>variant = tier (0 Green, 1 Blue, 2 Purple)</td><td class="yes">yes</td></tr>
+      <tr><td class="k">RepairOrb = 1</td><td><code>RepairOrbSpawner</code></td><td>—</td><td class="yes">yes</td></tr>
+      <tr><td class="k">LaserGate = 2</td><td><code>LaserGateSpawner</code> (in play only)</td><td>variant = Horizontal 0 · Vertical 1 · Triple 2 · Rotor 3; data = (beam length, rotor °/s, rotor phase, wave 0/1)</td><td class="yes">yes</td></tr>
+      <tr><td class="k">Ramp = 3</td><td>the generator</td><td>variant = feature-table entry</td><td class="no">no</td></tr>
+      <tr><td class="k">Collectible = 4</td><td>the generator</td><td>data.x = value in $</td><td class="yes">yes</td></tr>
+      <tr><td class="k">Pickup = 5</td><td>the generator, as a <code>SpeedPad</code></td><td>variant = placement-catalog entry</td><td class="no">no</td></tr>
+      <tr><td class="k">CustomPrefab = 6</td><td>the generator</td><td>variant = index into the asset's <code>customPrefabs</code>; height used</td><td class="no">no</td></tr>
+      <tr><td class="k">EndRamp = 7</td><td>the generator</td><td>variant = slot 0 left · 1 middle · 2 right</td><td class="no">no</td></tr>
+      <tr><td class="k">Loop = 8</td><td>the generator</td><td>variant = feature-table entry</td><td class="no">no</td></tr>
+      <tr><td class="k">BrakePad = 9</td><td><code>BrakePadSpawner</code></td><td>retired; generated only if its spawner is back in the set; not offered in the palette</td><td class="yes">yes</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================================================ -->
+<section id="powerups">
+  <h2>Adding a power-up</h2>
+  <p>The palette's power-ups come from the <b>placement catalog</b>, <code>Assets/04.Data/Resources/FiniteRunner_PlacementCatalog</code>, or from the generator's own <b>Placement Catalog</b> field if one is set. It ships with the Green, Blue and Purple orbs and the Repair orb. Adding a new one needs no code:</p>
+  <ol class="steps">
+    <li>Make a <code>PadDefinition</code> for what it does (speed change, orb or flat pad, size) and a prefab for how it looks.</li>
+    <li>Add an entry to the catalog and set <b>Built As</b> to <b>Pickup</b>.</li>
+    <li>Fill its <b>Pad</b>: prefab, definition, boost multiplier, colour, sway, spin and lane. Give it a <b>Display Name</b> and a <b>Color</b> for the palette and the gizmos.</li>
+    <li>It now appears under <b>Place → Power-up/…</b>, and is built and streamed like any orb.</li>
+  </ol>
+  <div class="callout warn">
+    <div class="tag">Keep the order</div>
+    <p>Pickup records point at catalog entries by index. Add new entries at the end; reordering or removing entries changes what saved tracks build.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="scene">
+  <h2>Reading the Scene view</h2>
+  <p>The generator draws the track whenever it's on show: after Generate Track, after Preview Saved Track, or during a run. It draws from the live track data, never from GameObjects. The whole centre line is always drawn; detail appears within the detail radius of the Scene camera. The drawing data is rebuilt once per track change (about 40 ms for 70 km); repaints only draw.</p>
+  <div class="legend">
+    <div class="swatch" style="--c:var(--g-wall)"><i></i><div><b>Walls</b>The road's outer lip and a line at wall height</div></div>
+    <div class="swatch" style="--c:var(--g-open)"><i></i><div><b>Open edge</b>No wall: a real drop</div></div>
+    <div class="swatch" style="--c:var(--g-flat)"><i></i><div><b>Flat sweep</b>Unbanked turn, grip tested</div></div>
+    <div class="swatch" style="--c:var(--g-section)"><i></i><div><b>Loop or tube</b>Plus a line at each end</div></div>
+    <div class="swatch" style="--c:var(--g-runup)"><i></i><div><b>Final run-up</b>Plus RUN-UP and END lines</div></div>
+    <div class="swatch" style="--c:var(--g-lane)"><i></i><div><b>Lane edges</b>Where the ship steers</div></div>
+    <div class="swatch" style="--c:var(--muted)"><i></i><div><b>Ticks</b>Across the road every 500 m, with km labels</div></div>
+    <div class="swatch" style="--c:var(--g-knot)"><i class="dot"></i><div><b>Knot</b>Editable (Edit Track, Road tab)</div></div>
+    <div class="swatch" style="--c:var(--g-spot)"><i class="dot"></i><div><b>Feature knot</b>A ramp stands on it</div></div>
+    <div class="swatch" style="--c:var(--g-locked)"><i class="dot"></i><div><b>Locked knot</b>The start or the final run-up</div></div>
+    <div class="swatch" style="--c:var(--g-selected)"><i class="dot"></i><div><b>Selected</b>Knot or placement</div></div>
+    <div class="swatch" style="--c:var(--bad)"><i class="ring"></i><div><b>Warning</b>A placement that breaks a check</div></div>
+  </div>
+  <p>Placements are marked in their spawner's colour (orb tiers use their own): ramps as their footprint, laser gates as their beam (rotors with their swept circle), repair orbs as a double ring, coins as small cubes.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="minimap">
+  <h2>The chase minimap</h2>
+  <p>The minimap draws the <b>whole track from above</b> in the hand-placed <b>TrackMap</b> rectangle of <code>ChaseMinimap.prefab</code>. The start is at the bottom, the finish at the top, and the aspect ratio is kept.</p>
+  <ul>
+    <li><b>Ship and patrol</b> are dots at their real distances along the line. The patrol sits at the ship's distance minus its gap, and hides whenever it's hidden from the map.</li>
+    <li>The <b>flown stretch</b> is tinted.</li>
+    <li><b>Markers</b> for every ramp, laser gate and the finish. Orbs are never marked.</li>
+    <li>The map <b>redraws</b> whenever the track changes: a restart, or hyperspace bringing the end in.</li>
+    <li>The old vertical <b>strip</b>'s bar and icons are hidden by default (<code>showStrip</code>). Its distance labels always stay.</li>
+  </ul>
+  <p><b>Layout is the designer's.</b> Place and size the <b>TrackMap</b> rectangle by hand in the prefab. <b>Rebuild UI</b> creates it, and anything else unwired, in a default spot; in edit mode it shows a sample curve so you can judge the look. Everything else lives in <code>ChaseMinimapSettings</code> under <b>Track map</b>: <code>showTrackMap</code>, <code>showStrip</code>, <code>mapStartAtBottom</code>, <code>mapPadding</code>, <code>mapSamples</code>, <code>mapLineWidth</code>, <code>mapLineColor</code>, <code>mapDrivenColor</code>, <code>mapBackground</code>, <code>markerSize</code>, and the ramp, gate and finish marker colours and sprites.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="runtime">
+  <h2>Runtime rules</h2>
+  <div class="table"><table>
+    <thead><tr><th>Rule</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td>One seed, one track</td><td>A non-zero seed gives the same track whether it streams in one pass or a pass per frame. The editor bake equals runtime generation on the same seed. <code>LastSeed</code> shows the seed that seed 0 rolled.</td></tr>
+      <tr><td>Ramp landing room</td><td>Sized for the <b>strongest</b> Store jump upgrade (<code>StoreUpgrades.MaxMultiplier</code>), never the player's own, so every player gets the same road and every jump lands on straight road.</td></tr>
+      <tr><td>Countdown</td><td><code>GameManager.TimeLimit</code>: the saved track's <b>Time Limit Seconds</b> when set, else <code>GameSettings.timeLimitSeconds</code>. The HUD, retries and run stats all use it.</td></tr>
+      <tr><td>FORCE RUNTIME TRACK</td><td>A debug row (0/1): ignore the level's saved track from the next restart. A runtime switch; no asset is written.</td></tr>
+      <tr><td>Hyperspace</td><td>Cuts the decided road back to one knot past the first knot at least 200 m beyond the built road, then lays the unwind, the run-up and the end ramps from there. Built road never changes, and a saved track asset is never touched (the run works on a copy).</td></tr>
+      <tr><td>Loops</td><td>Placed only when reachable, predicted from at least the cruise speed, since the track is decided with the ship standing on the start line.</td></tr>
+      <tr><td>Debug edits</td><td>Spawn spacing and tier-chance rows apply on the next Generate, not to road already decided. Values read at build time (a tier's multiplier or colour) still apply live.</td></tr>
+      <tr><td>Fog</td><td>Road art exists only inside the stream window, so the fog end must stay below <code>aheadDistance</code>. Move the two together.</td></tr>
+      <tr><td>Previews</td><td>Everything built in edit mode (pickups, road stamps, bent meshes) is flagged never to be saved into the scene, and the authoring buttons don't dirty the scene.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================================================ -->
+<section id="data">
+  <h2>Data model</h2>
+  <h3><code>TrackLayoutAsset</code> (ScriptableObject)</h3>
+  <div class="table"><table>
+    <thead><tr><th>Field</th><th>Contents</th></tr></thead>
+    <tbody>
+      <tr><td class="k">timeLimitSeconds</td><td>The run's countdown for this track (0 = GameSettings)</td></tr>
+      <tr><td class="k">shape, spawnSet</td><td>What it was generated with. A saved track builds its ramps and orbs with these, whatever the scene's generator holds</td></tr>
+      <tr><td class="k">customPrefabs</td><td>Prefabs placed by hand on this track</td></tr>
+      <tr><td class="k">layout</td><td>The <code>TrackLayout</code> below (hidden; the inspector shows a summary)</td></tr>
+    </tbody>
+  </table></div>
+  <h3><code>TrackLayout</code> (serializable)</h3>
+  <div class="table"><table>
+    <thead><tr><th>Field</th><th>Contents</th></tr></thead>
+    <tbody>
+      <tr><td class="k">formatVersion, seed, width, length</td><td>Header. A load checks the rebuilt length against <code>length</code></td></tr>
+      <tr><td class="k">endZoneStart, endDistance, endRunUp</td><td>The final run-up and the end</td></tr>
+      <tr><td class="k">knots</td><td>Position, rotation (carrying grade and bank), tangents and mode. Saved <b>as they were handed in</b>, so re-adding them in order rebuilds the spline exactly</td></tr>
+      <tr><td class="k">knotDistances</td><td>Track distance of every knot, in the same order as the knots</td></tr>
+      <tr><td class="k">sections</td><td>Loops and tubes: feature index, start, the random state they were rolled from (replayed, it rolls the same section), and a loop's bridge length</td></tr>
+      <tr><td class="k">flatSweeps, openStretches</td><td>Distance spans (a flat sweep also records its outer side)</td></tr>
+      <tr><td class="k">keepOuts</td><td>Ground gates and the patrol duel keep off (x = start, y = end)</td></tr>
+      <tr><td class="k">placements</td><td>Every <code>TrackPlacement</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================================================ -->
+<section id="code">
+  <h2>Code map</h2>
+  <div class="table"><table>
+    <thead><tr><th>File</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Runner/Track/TrackGenerator.cs</td><td>Deciding and building, loading a saved track (<code>LoadLayout</code>), bake and capture, edit re-derivation, live edits, reroll, the hyperspace cut-back</td></tr>
+      <tr><td class="k">Runner/Track/TrackManager.cs</td><td>The spline, knots as handed in, <code>KnotTrackDistance</code>, <code>TruncateKnots</code>, spans, and <code>Revision</code></td></tr>
+      <tr><td class="k">Runner/Track/Layout/</td><td><code>TrackPlacement</code>, <code>TrackLayout</code>, <code>TrackLayoutAsset</code>, <code>TrackPlacementCatalog</code></td></tr>
+      <tr><td class="k">Runner/Track/Spawning/</td><td>Spawners in two passes: <code>Step</code> decides, <code>Build</code> builds; <code>TrackSpawnContext.Emit</code></td></tr>
+      <tr><td class="k">Runner/Track/TrackDecorator.cs</td><td>Road art, each piece bent along the track; <code>Restamp</code> for live edits</td></tr>
+      <tr><td class="k">Runner/Track/TrackGuide.cs</td><td>Finds the ship on the track; with no hint it searches where a ship was last found, then the whole track</td></tr>
+      <tr><td class="k">Runner/HUD/ChaseMinimap.cs, TrackMapLine.cs</td><td>The top-down track map</td></tr>
+      <tr><td class="k">Runner/Editor/TrackGeneratorEditor*.cs</td><td>The inspector: authoring buttons, <code>.Editing</code> (road), <code>.Placements</code> (placements)</td></tr>
+      <tr><td class="k">Runner/Editor/TrackGizmos.cs, TrackGizmoSettings.cs</td><td>The Scene-view drawing and its per-user switches</td></tr>
+      <tr><td class="k">Contracts/TrackContracts.cs</td><td><code>ITrackRunRules.AuthoredTrack</code>: how a level's saved track reaches the generator</td></tr>
+      <tr><td class="k">Runner/GameFlow/GameManager.cs</td><td><code>AuthoredTrack</code>, <code>TimeLimit</code>, <code>ForceRuntimeTrack</code>; hands the generator to the minimap</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">Design rules for all of this live in <code>.claude/rules/runner-track.md</code>, <code>runner-ship.md</code> and <code>ship-standalone.md</code>; the plan and its decisions are in <code>TrackAuthoringPRD.md</code>.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="invariants">
+  <h2>Rules for changing the code</h2>
+  <p>Breaking one of these doesn't throw an error; the track just stops repeating or stops loading exactly.</p>
+  <ul>
+    <li><b>Random draws happen only while deciding, and the road's own stream is drawn only in road order</b> (segments, sweeps, features). Anything else draws from a stream of its own, hashed off the layout seed: coins, ramp laterals, each spawner.</li>
+    <li><b>Building draws nothing.</b> A new placement kind rolls everything in its decide step and stores the rolls in the record.</li>
+    <li><b>Placement is staged.</b> Laser gates go first, each pickup spawner stops one pad length short of the stage before it, and coins another pad length short, placing only whole rows. That way, whatever a placement keeps off is always decided before it.</li>
+    <li><b>Save knots as they were handed in</b> (<code>TrackManager.AppendedKnots</code>), never the spline's final knots. AutoSmooth re-leans knots when neighbours arrive, and saving the final ones leans them twice on load.</li>
+    <li><b>Knots are removed only past built road</b> (the hyperspace cut-back). Removing knots reshapes the segment ending at the last kept knot.</li>
+    <li><b>Caches along the track key on <code>TrackManager.Revision</code></b>, never on its length. A new track can be as long as the old one.</li>
+    <li><b>Gameplay never writes a track asset.</b> The generator copies its records; the editor writes the asset with Undo.</li>
+    <li><b>Distance from the track start is the coordinate.</b> Placements keep their distance when the road changes shape.</li>
+    <li><b>Don't edit scripts while in play mode.</b> Domain reload is off, and a mid-play recompile wipes the generator's in-memory state.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="limits">
+  <h2>Known limitations</h2>
+  <ul>
+    <li>A loop's or tube's rolled parameters can't be edited, and knots can't be edited on a track that has loops or tubes. Both are at 0 % in the shipped shape.</li>
+    <li>No tangent handles on feature knots.</li>
+    <li>A moved ramp doesn't straighten the road under its landing; the checks flag only a landing that reaches the run-up.</li>
+    <li>The generator is the only streamer. There's no Contracts interface between it and what it feeds (PRD R6.3).</li>
+    <li>Pickup records index the placement catalog, so reordering catalog entries changes saved tracks.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="verified">
+  <h2>How it was verified</h2>
+  <div class="table"><table>
+    <thead><tr><th>What</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Same seed, streamed in 1 pass vs 37 m vs 900 m steps</td><td class="num">Identical: 199 knots, 692 objects, same end</td></tr>
+      <tr><td>Decide-then-build (M1) vs the old streamed track (M0)</td><td class="num">Identical: 200 knots, 673 objects, end 70 837 m</td></tr>
+      <tr><td>Saved track, baked in the editor vs loaded in play</td><td class="num">Bit for bit: every knot's position, rotation and tangent, 672 placements, the end</td></tr>
+      <tr><td>Editor bake vs runtime generation on the same seed</td><td>Identical</td></tr>
+      <tr><td>Hyperspace on a generated and on a saved track</td><td class="num">End 70 837 → 20 431 m; built road unchanged; asset untouched</td></tr>
+      <tr><td>Knot moved 200 m and banked 20°</td><td>Length, run-up and end ramps followed; no other placement moved; play loads the edited road; its collision road follows</td></tr>
+      <tr><td>Undo / redo / discard</td><td>Knot and recomputed length restored; snapshot restored exactly</td></tr>
+      <tr><td>Catalog power-up, custom prefab, reroll</td><td class="num">All built where placed; reroll kept 19 ramps, re-decided 158 → 163 orbs</td></tr>
+      <tr><td>Chase minimap</td><td class="num">80 markers = 25 ramps + 54 gates + finish; redraws after hyperspace</td></tr>
+      <tr><td>Sandbox smoke test / independence validator</td><td class="num">32 of 32 passed / 0 new cross-system searches</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+</main>
+
+<footer>
+  Runner Track Authoring · SpaceFiniteRunner · the reference for <code>feature/trackAuthoring</code> (M0–M7). A companion to the Finite Runner Handbook (<code>Docs/FiniteRunner_Guide.html</code>).
+</footer>
+
+</div>
+</body>
+</html>

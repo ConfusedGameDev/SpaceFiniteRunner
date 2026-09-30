@@ -30,7 +30,14 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   or you get caught.
 - **The track is finite**: a fixed length per level (`RunnerLevelDefinition.trackLengthMeters`,
   0 = `GameSettings.trackLengthMeters`), ending in a straight walled run-up and **three ramps
-  side by side over a void**, with gaps between them. The HUD shows the distance left.
+  side by side over a void**, with gaps between them. The HUD shows the distance left and a
+  top-down map of the whole track.
+- **Tracks are generated or authored** (`TrackAuthoringPRD.md`): the whole track is decided at run
+  start and only BUILT round the ship. A level with a saved track (`RunnerLevelDefinition.track`, a
+  `TrackLayoutAsset`) plays exactly that track — made in the TrackGenerator inspector (Generate
+  Track, Save, Set as Current Track), reshaped and dressed by hand in the Scene view (Edit Track:
+  knots, bank, spans, placements, checks); an empty one generates a track every run. See
+  `runner-track.md`.
 - **Win** = BOTH halves: every mandatory objective of the run's `RunnerLevelDefinition` is met
   (today one Reach Speed objective, whose target IS the HUD's "Light Speed" — reaching it ONCE
   latches it, the HUD line turns done) AND the ship leaves the track by one of the end ramps
@@ -229,7 +236,7 @@ Loaded automatically by path. Listed here so you know what exists.
 
 | Rule | Covers |
 |---|---|
-| `runner-track.md` | `TrackManager`, sections, `TrackGenerator` streaming, features, pads/orbs, decorator |
+| `runner-track.md` | `TrackManager`, sections, `TrackGenerator` decide/build, saved tracks + the Scene-view authoring tools, features, pads/orbs, decorator |
 | `runner-ship.md` | `ShipMotor` (physics mode + the legacy track-space sim), `GameManager`, `PolicePatrol`, tuning |
 | `ship-standalone.md` | The `Ship` assembly: `HoverBody`, guides, recovery, pickups, prefab rig, the physics runner |
 | `runner-hud-screens.md` | `RaceHud`, `GameOverScreen`, `MissionCompleteScreen` |

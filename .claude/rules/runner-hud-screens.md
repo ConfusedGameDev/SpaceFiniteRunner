@@ -137,9 +137,10 @@ The runner scene carries its own hand-placed `DistanceFog` driver with its own s
 `Data/FiniteRunner_RunnerFog.asset` — fog 1000–1500 m in the scene's pale palette, sky untouched,
 far glitch from 1150 m, far clip clamped to 1800 m. The legacy `RenderSettings` fog is OFF.
 
-**That band is tied to the generator's `aheadDistance` (1600 m in the scene):** finished road
-exists only that far ahead, so the fog end must stay below it or the road's edge pops into view.
-Move both together.
+**That band is tied to the generator's `aheadDistance` (1600 m on `PF_Track`; a scene can
+override it):** the whole track is DECIDED at run start, but road art, pickups and colliders are
+BUILT only that far ahead, so the fog end must stay below it or the road's edge pops into view.
+Move both together. (The chase minimap's track map is the one thing that shows the whole track.)
 
 ## `GameOverScreen` (`Runner/Screens/`, namespace `…FiniteRunner.Screens`)
 

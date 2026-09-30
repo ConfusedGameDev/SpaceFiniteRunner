@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress. **M0 landed 2026-09-30. M1 landed 2026-09-30. M2 landed 2026-09-30. M3 landed 2026-09-30. M4 landed 2026-09-30. M5 landed 2026-09-30. main merged in (584ed151). M6 landed 2026-09-30.** Settled with the designer: D1–D3, and on 2026-09-30 the four open questions (D10–D13). D4–D9 are proposals open for review. |
+| **Status** | **M0–M7 landed 2026-09-30 and merged into main.** Reference: `Docs/TrackAuthoring.html`. Settled with the designer: D1–D3 and D10–D13. What was deferred is listed under "Left open" below. |
 | **Branch** | `feature/trackAuthoring`. |
 | **Scope** | Runner game only (`FiniteRunner_Test`, campaign runner levels). The city chase, `SaveData` and the Store are untouched. `Campaign` changes only through `RunnerLevelDefinition`. |
 | **Related** | `.claude/rules/runner-track.md`, `runner-hud-screens.md`, `campaign.md`, `ship-standalone.md`; `PatrolDuelPRD.md` (the patrol reads `IsGroundClear`) |
@@ -248,6 +248,19 @@ None at the moment. The four earlier questions were answered on 2026-09-30:
 - OQ2 → **D11**: no orbs on the minimap
 - OQ3 → **D12**: debug row to force runtime generation
 - OQ4 → **D13**: no brake pads; a data-driven catalog for future power-ups
+
+## Left open (deferred during M1–M5)
+
+- **R4.4** editing a loop's or tube's rolled parameters, and knot editing on tracks that have loops or tubes (moving road before a section would shift it). Loops and tubes are at 0 % in the shipped shape.
+- Tangent handles on feature (explicit-tangent) knots.
+- **R6.3** a Contracts seam for the streamer. The generator is still the only streamer (it also loads saved tracks), and its serialized references can't be interfaces.
+- Moving a ramp on a saved track moves its keep-out, but it doesn't re-straighten the road under its landing. The checks flag only a landing that reaches the run-up.
+
+**M7 as built:**
+- Updated `CLAUDE.md` (the "tracks are generated or authored" bullet and the rules index), `campaign.md` (a runner level names its track), and `runner-hud-screens.md` (the fog note now says only the stream window is built).
+- `runner-track.md`, `runner-ship.md` and `ship-standalone.md` were updated milestone by milestone.
+- No new cross-system searches (validator: 0 new), so no accept-list entries. The existing Track and ChaseMinimap sandboxes cover the changed systems.
+- Sandbox smoke test after M6: 32 of 32 passed (2026-09-30 16:30), and the scene file was left untouched.
 
 ## 12. Verification
 
