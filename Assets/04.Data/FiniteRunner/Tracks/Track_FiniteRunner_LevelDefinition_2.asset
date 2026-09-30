@@ -1,0 +1,5387 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69636f89d35a544d591881308bfd2441, type: 3}
+  m_Name: Track_FiniteRunner_LevelDefinition_2
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.TrackLayoutAsset
+  timeLimitSeconds: 0
+  shape: {fileID: 11400000, guid: ba50ea5278a64458aa28bc1c4e498c44, type: 2}
+  spawnSet: {fileID: 11400000, guid: 187ca9ce3d27497ea0408637f5a324a4, type: 2}
+  layout:
+    formatVersion: 1
+    seed: 61519489
+    width: 120
+    length: 70837
+    endZoneStart: 69637
+    endDistance: 70837
+    endRunUp: 1200
+    knots:
+    - position: {x: 0, y: 0, z: 0}
+      rotation: {x: 0, y: 0, z: 0, w: 1}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 0, y: 5.560466, z: 318.5589}
+      rotation: {x: -0.008726535, y: 0, z: 0, w: 0.999962}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 68.52912, y: 2.6632483, z: 726.8976}
+      rotation: {x: 0.0034864915, y: 0.08304111, z: -0.0002905274, w: 0.99653995}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 182.26007, y: 0.05559182, z: 1056.1937}
+      rotation: {x: 0.003690821, y: 0.16550845, z: -0.00061940914, w: 0.9862013}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 381.15527, y: 1.2134371, z: 1421.2886}
+      rotation: {x: -0.0013493659, y: 0.24683402, z: 0.00034370474, w: 0.96905667}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 605.5381, y: 7.559867, z: 1707.3789}
+      rotation: {x: -0.008248436, y: 0.32644144, z: 0.0028488112, w: 0.9451772}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 868.553, y: 13.773434, z: 1947.2568}
+      rotation: {x: -0.007983376, y: 0.40380296, z: 0.0035239346, w: 0.9148043}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 1163.0797, y: 19.892208, z: 2137.3499}
+      rotation: {x: -0.007663169, y: 0.4783751, z: 0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 1422.5735, y: 25.283176, z: 2304.832}
+      rotation: {x: -0.007663169, y: 0.4783751, z: 0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 1693.8954, y: 19.64648, z: 2479.9482}
+      rotation: {x: 0.007663169, y: 0.4783751, z: -0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0.0000038146973, y: 0.00000014901161, z: -107.65844}
+      tangentOut: {x: -0.0000038146973, y: -0.00000014901161, z: 107.65844}
+      mode: 3
+    - position: {x: 2014.9982, y: 12.975589, z: 2687.194}
+      rotation: {x: 0.007663169, y: 0.4783751, z: -0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 2328.887, y: 6.45457, z: 2889.7837}
+      rotation: {x: 0.007663169, y: 0.4783751, z: -0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 2612.55, y: 0.5614853, z: 3072.8652}
+      rotation: {x: 0.007663169, y: 0.4783751, z: -0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 2926.6724, y: -5.9643855, z: 3275.6057}
+      rotation: {x: 0.007663169, y: 0.4783751, z: -0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 3240.3757, y: -12.481553, z: 3478.0757}
+      rotation: {x: 0.007663169, y: 0.4783751, z: -0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 3546.322, y: -17.139381, z: 3675.539}
+      rotation: {x: 0.0056160353, y: 0.4783835, z: -0.0030594852, w: 0.8781277}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 3888.7495, y: -24.0279, z: 3896.5483}
+      rotation: {x: 0.0074204276, y: 0.47837624, z: -0.004042476, w: 0.87811434}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 4200.9375, y: -30.513586, z: 4098.0405}
+      rotation: {x: 0.007663169, y: 0.4783751, z: -0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 4479.2666, y: -26.082321, z: 4277.679}
+      rotation: {x: -0.0058729737, y: 0.47838262, z: 0.0031994598, w: 0.878126}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 4781.8433, y: -19.79631, z: 4472.968}
+      rotation: {x: -0.007663169, y: 0.4783751, z: 0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5033.8643, y: -14.560589, z: 4635.627}
+      rotation: {x: -0.007663169, y: 0.4783751, z: 0.0041747163, w: 0.87811226}
+      tangentIn: {x: -0, y: -0.000000029802322, z: -99.99999}
+      tangentOut: {x: 0, y: 0.000000029802322, z: 99.99999}
+      mode: 3
+    - position: {x: 5315.0635, y: -8.718695, z: 4817.118}
+      rotation: {x: -0.007663169, y: 0.4783751, z: 0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5645.0776, y: -1.862669, z: 5030.1157}
+      rotation: {x: -0.007663169, y: 0.4783751, z: 0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5975.297, y: 4.997617, z: 5243.2456}
+      rotation: {x: -0.007663169, y: 0.4783751, z: 0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6297.907, y: 11.699825, z: 5451.4644}
+      rotation: {x: -0.007663169, y: 0.4783751, z: 0.0041747163, w: 0.87811226}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6442.7686, y: 14.629596, z: 5745.046}
+      rotation: {x: -0.004357492, y: 0.22718425, z: 0.0010165449, w: 0.97384155}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6416.1914, y: 20.370378, z: 6072.8594}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6387.6646, y: 20.469414, z: 6424.7197}
+      rotation: {x: -0.00014015689, y: -0.04043776, z: -0.00000567227, w: 0.9991821}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6356.754, y: 27.146248, z: 6805.9844}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6329.9927, y: 32.9268, z: 7136.069}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6305.751, y: 30.210182, z: 7435.075}
+      rotation: {x: 0.004524038, y: -0.04043734, z: 0.00018309175, w: 0.9991718}
+      tangentIn: {x: -0.00000026635826, y: -0.00000022212043, z: -100}
+      tangentOut: {x: 0.00000026635826, y: 0.00000022212043, z: 100}
+      mode: 3
+    - position: {x: 6273.311, y: 26.574877, z: 7835.1978}
+      rotation: {x: 0.004524038, y: -0.04043734, z: 0.00018309175, w: 0.9991718}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6246.4893, y: 23.569145, z: 8166.026}
+      rotation: {x: 0.004524038, y: -0.04043734, z: 0.00018309175, w: 0.9991718}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6218.989, y: 20.487339, z: 8505.228}
+      rotation: {x: 0.004524038, y: -0.04043734, z: 0.00018309175, w: 0.9991718}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6189.7705, y: 17.213062, z: 8865.613}
+      rotation: {x: 0.004524038, y: -0.04043734, z: 0.00018309175, w: 0.9991718}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6165.2026, y: 11.906313, z: 9168.643}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6131.8184, y: 4.6952295, z: 9580.414}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6104.287, y: 0.85811496, z: 9919.996}
+      rotation: {x: 0.0056264107, y: -0.040437117, z: 0.00022770572, w: 0.9991662}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6077.1763, y: -4.3380756, z: 10254.392}
+      rotation: {x: 0.007737089, y: -0.04043655, z: 0.00031312666, w: 0.9991522}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6052.9336, y: -4.2915735, z: 10553.41}
+      rotation: {x: -0.000077440214, y: -0.04043776, z: -0.0000031340724, w: 0.9991821}
+      tangentIn: {x: 0.0000009369105, y: -0.0000000015807018, z: -100}
+      tangentOut: {x: -0.0000009369105, y: 0.0000000015807018, z: 100}
+      mode: 3
+    - position: {x: 6025.2085, y: -4.238392, z: 10895.379}
+      rotation: {x: -0.000077440214, y: -0.04043776, z: -0.0000031340724, w: 0.9991821}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5999.364, y: -4.1888165, z: 11214.157}
+      rotation: {x: -0.000077440214, y: -0.04043776, z: -0.0000031340724, w: 0.9991821}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5967.3887, y: -4.1274824, z: 11608.549}
+      rotation: {x: -0.000077440214, y: -0.04043776, z: -0.0000031340724, w: 0.9991821}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5939.179, y: -4.0733714, z: 11956.495}
+      rotation: {x: -0.000077440214, y: -0.04043776, z: -0.0000031340724, w: 0.9991821}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5905.2817, y: -11.395313, z: 12374.597}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5873.5537, y: -18.248613, z: 12765.9375}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5844.5435, y: -24.514896, z: 13123.759}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5819.1353, y: -30.003143, z: 13437.152}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5793.048, y: -29.006023, z: 13758.921}
+      rotation: {x: -0.0015431008, y: -0.040437717, z: -0.00006245063, w: 0.9991809}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5765.4717, y: -34.962578, z: 14099.056}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: -0.000000040978193, y: -0.0000001504086, z: -113.76757}
+      tangentOut: {x: 0.000000040978193, y: 0.0000001504086, z: 113.76757}
+      mode: 3
+    - position: {x: 5731.6865, y: -42.26028, z: 14515.773}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5700.218, y: -49.057613, z: 14903.919}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5666.289, y: -56.38631, z: 15322.406}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5635.327, y: -49.698395, z: 15704.304}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5602.235, y: -54.570026, z: 16112.476}
+      rotation: {x: 0.0059429193, y: -0.040437046, z: 0.00024051509, w: 0.99916434}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5568.7163, y: -47.32996, z: 16525.902}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5536.67, y: -40.40783, z: 16921.174}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0.0000004917383, y: -0.000000026077032, z: -132.20964}
+      tangentOut: {x: -0.0000004917383, y: 0.000000026077032, z: 132.20964}
+      mode: 3
+    - position: {x: 5505.96, y: -33.774364, z: 17299.963}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5476.799, y: -27.475456, z: 17659.646}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5444.022, y: -20.39551, z: 18063.93}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5418.862, y: -14.96084, z: 18374.264}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5386.498, y: -11.323671, z: 18773.45}
+      rotation: {x: -0.004536985, y: -0.04043735, z: -0.0001836157, w: 0.9991718}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5361.607, y: -5.9471045, z: 19080.465}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5328.722, y: -13.050337, z: 19486.078}
+      rotation: {x: 0.008719397, y: -0.040436216, z: 0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5301.2095, y: -14.243986, z: 19825.428}
+      rotation: {x: 0.001751533, y: -0.0404377, z: 0.00007088605, w: 0.99918056}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5268.796, y: -7.242572, z: 20225.227}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: -0.00000032410026, y: 0.0000000018626451, z: -133.72394}
+      tangentOut: {x: 0.00000032410026, y: -0.0000000018626451, z: 133.72394}
+      mode: 3
+    - position: {x: 5237.479, y: -0.477993, z: 20611.502}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5211.765, y: 5.0762386, z: 20928.662}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5183.6387, y: 11.15169, z: 21275.586}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5156.38, y: 17.039637, z: 21611.803}
+      rotation: {x: -0.008719397, y: -0.040436216, z: -0.00035288156, w: 0.99914396}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5331.6763, y: 10.432369, z: 21947.297}
+      rotation: {x: 0.00847487, y: 0.23841569, z: -0.0020806221, w: 0.971124}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5683.7705, y: 3.3220868, z: 22152.143}
+      rotation: {x: 0.0075646467, y: 0.4985402, z: -0.0043506944, w: 0.86682266}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 5995.115, y: 5.227216, z: 22333.281}
+      rotation: {x: -0.0022923881, y: 0.4985574, z: 0.001318433, w: 0.86685264}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6254.3867, y: 10.197659, z: 22484.123}
+      rotation: {x: -0.0071813418, y: 0.49854207, z: 0.004130242, w: 0.866826}
+      tangentIn: {x: -0.0000076293945, y: -0.00000023841858, z: -99.999985}
+      tangentOut: {x: 0.0000076293945, y: 0.00000023841858, z: 99.999985}
+      mode: 3
+    - position: {x: 6568.701, y: 16.223318, z: 22666.988}
+      rotation: {x: -0.0071813418, y: 0.49854207, z: 0.004130242, w: 0.866826}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 6926.916, y: 23.090578, z: 22875.395}
+      rotation: {x: -0.0071813418, y: 0.49854207, z: 0.004130242, w: 0.866826}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 7213.4067, y: 28.582829, z: 23042.072}
+      rotation: {x: -0.0071813418, y: 0.49854207, z: 0.004130242, w: 0.866826}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 7504.3125, y: 34.15972, z: 23211.32}
+      rotation: {x: -0.0071813418, y: 0.49854207, z: 0.004130242, w: 0.866826}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 7694.5713, y: 29.059862, z: 23576.012}
+      rotation: {x: 0.09668398, y: 0.2176836, z: 0.37030527, w: 0.89785296}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 7850.9146, y: 23.159832, z: 23875.693}
+      rotation: {x: 0.008475528, y: 0.23810828, z: -0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 7995.2124, y: 20.769722, z: 24152.287}
+      rotation: {x: 0.003720405, y: 0.23811562, z: -0.0009121291, w: 0.9712293}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 8140.6294, y: 26.25743, z: 24431.025}
+      rotation: {x: -0.008475528, y: 0.23810828, z: 0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 8319.541, y: 33.009125, z: 24773.967}
+      rotation: {x: -0.008475528, y: 0.23810828, z: 0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0.000011444092, y: 0.00000064074993, z: -128.95444}
+      tangentOut: {x: -0.000011444092, y: -0.00000064074993, z: 128.95444}
+      mode: 3
+    - position: {x: 8500.526, y: 39.83908, z: 25120.883}
+      rotation: {x: -0.008475528, y: 0.23810828, z: 0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 8682.727, y: 46.714912, z: 25470.129}
+      rotation: {x: -0.008475528, y: 0.23810828, z: 0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 8857.594, y: 53.31398, z: 25805.316}
+      rotation: {x: -0.008475528, y: 0.23810828, z: 0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 9027.494, y: 46.90232, z: 26130.986}
+      rotation: {x: 0.008475528, y: 0.23810828, z: -0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 9192.454, y: 40.677124, z: 26447.186}
+      rotation: {x: 0.008475528, y: 0.23810828, z: -0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 9344.797, y: 34.92805, z: 26739.2}
+      rotation: {x: 0.008475528, y: 0.23810828, z: -0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 9506.983, y: 39.60006, z: 27050.082}
+      rotation: {x: -0.006469958, y: 0.23811208, z: 0.0015862352, w: 0.97121483}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 9645.724, y: 34.364338, z: 27316.021}
+      rotation: {x: 0.008475528, y: 0.23810828, z: -0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0.000008106232, y: -0.00000040233135, z: -100}
+      tangentOut: {x: -0.000008106232, y: 0.00000040233135, z: 100}
+      mode: 3
+    - position: {x: 9795.091, y: 28.727573, z: 27602.332}
+      rotation: {x: 0.008475528, y: 0.23810828, z: -0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 9972.765, y: 22.022554, z: 27942.902}
+      rotation: {x: 0.008475528, y: 0.23810828, z: -0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 10147.542, y: 15.426875, z: 28277.918}
+      rotation: {x: 0.008475528, y: 0.23810828, z: -0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 10295.519, y: 9.842563, z: 28561.564}
+      rotation: {x: 0.008475528, y: 0.23810828, z: -0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 10487.772, y: 16.815365, z: 28930.082}
+      rotation: {x: -0.008145663, y: 0.238109, z: 0.0019970664, w: 0.9712022}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 10631.624, y: 11.3867445, z: 29205.82}
+      rotation: {x: 0.008475528, y: 0.23810828, z: -0.0020779395, w: 0.9711994}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 10883.739, y: 15.413998, z: 29398.94}
+      rotation: {x: -0.17464972, y: 0.40678576, z: -0.3405474, w: 0.8294879}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 11178.766, y: 20.687809, z: 29464.1}
+      rotation: {x: -0.43989506, y: 0.4457306, z: -0.5376293, w: 0.56459844}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 11533.278, y: 27.024977, z: 29542.398}
+      rotation: {x: -0.23583633, y: 0.58014196, z: -0.28064227, w: 0.7273628}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 11935.33, y: 34.211937, z: 29631.197}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 12331.271, y: 27.134195, z: 29718.646}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 12693.123, y: 20.665829, z: 29798.566}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: -0.0000076293945, y: 0.00000011920929, z: -123.54296}
+      tangentOut: {x: 0.0000076293945, y: -0.00000011920929, z: 123.54296}
+      mode: 3
+    - position: {x: 13049.8955, y: 14.2882595, z: 29877.365}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 13451.16, y: 7.11536, z: 29965.99}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 13782.869, y: 1.1858277, z: 30039.252}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 14095.061, y: -4.394827, z: 30108.203}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 14454.2705, y: -10.815969, z: 30187.54}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 14789.662, y: -11.927911, z: 30261.615}
+      rotation: {x: 0.0012619672, y: 0.62623155, z: -0.001013658, w: 0.7796355}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 15144.23, y: -8.087547, z: 30339.926}
+      rotation: {x: -0.004122626, y: 0.62622356, z: 0.0033114431, w: 0.7796256}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 15501.918, y: -1.6936154, z: 30418.926}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 15879.765, y: 5.06067, z: 30502.379}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: -0.0000076293945, y: -0.0000004172325, z: -129.0039}
+      tangentOut: {x: 0.0000076293945, y: 0.0000004172325, z: 129.0039}
+      mode: 3
+    - position: {x: 16268.711, y: 12.0133705, z: 30588.283}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 16563.58, y: 17.28438, z: 30653.408}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 16940.025, y: 24.01363, z: 30736.55}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 17262.691, y: 29.781532, z: 30807.816}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 17642.12, y: 36.56407, z: 30891.617}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 18029.33, y: 31.552097, z: 30977.139}
+      rotation: {x: 0.0049266885, y: 0.62621987, z: -0.0039572953, w: 0.7796209}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 18416.041, y: 24.639343, z: 31062.549}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 18763.055, y: 18.436237, z: 31139.191}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 19152.746, y: 23.399681, z: 31225.26}
+      rotation: {x: -0.0048479377, y: 0.6262203, z: 0.0038940397, w: 0.7796214}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 19445.678, y: 21.065598, z: 31289.957}
+      rotation: {x: 0.003032916, y: 0.6262276, z: -0.0024361485, w: 0.77963054}
+      tangentIn: {x: 0.000030517578, y: -0.00000014901161, z: -100.000015}
+      tangentOut: {x: -0.000030517578, y: 0.00000014901161, z: 100.000015}
+      mode: 3
+    - position: {x: 19777.979, y: 18.417814, z: 31363.35}
+      rotation: {x: 0.003032916, y: 0.6262276, z: -0.0024361485, w: 0.77963054}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 20124.477, y: 15.656912, z: 31439.879}
+      rotation: {x: 0.003032916, y: 0.6262276, z: -0.0024361485, w: 0.77963054}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 20438.145, y: 13.1576, z: 31509.156}
+      rotation: {x: 0.003032916, y: 0.6262276, z: -0.0024361485, w: 0.77963054}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 20823.846, y: 10.084324, z: 31594.344}
+      rotation: {x: 0.003032916, y: 0.6262276, z: -0.0024361485, w: 0.77963054}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 21189.762, y: 3.5432944, z: 31675.162}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 21485.842, y: -1.7493582, z: 31740.555}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 21814.785, y: 4.1307316, z: 31813.207}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 22125.84, y: 9.691063, z: 31881.908}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 22418.777, y: 8.390842, z: 31946.607}
+      rotation: {x: 0.0016895024, y: 0.62623084, z: -0.0013570697, w: 0.7796346}
+      tangentIn: {x: 0.0000076293945, y: -0.000000044703484, z: -100.00001}
+      tangentOut: {x: -0.0000076293945, y: 0.000000044703484, z: 100.00001}
+      mode: 3
+    - position: {x: 22717.479, y: 7.0650363, z: 32012.58}
+      rotation: {x: 0.0016895024, y: 0.62623084, z: -0.0013570697, w: 0.7796346}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 23089.441, y: 5.4140587, z: 32094.732}
+      rotation: {x: 0.0016895024, y: 0.62623084, z: -0.0013570697, w: 0.7796346}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 23436.951, y: 3.87162, z: 32171.484}
+      rotation: {x: 0.0016895024, y: 0.62623084, z: -0.0013570697, w: 0.7796346}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 23806.19, y: 2.2327356, z: 32253.035}
+      rotation: {x: 0.0016895024, y: 0.62623084, z: -0.0013570697, w: 0.7796346}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 24108.498, y: 6.3378925, z: 32319.805}
+      rotation: {x: -0.0051685725, y: 0.6262186, z: 0.0041515855, w: 0.7796193}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 24509.6, y: -0.83208275, z: 32408.393}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 24802.89, y: 4.2987623, z: 32473.17}
+      rotation: {x: -0.00665828, y: 0.62620956, z: 0.0053481716, w: 0.7796081}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 25157.498, y: 10.637614, z: 32551.49}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 25450.395, y: 5.4018927, z: 32616.18}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: -0.0000076293945, y: 0.00000029802322, z: -99.99999}
+      tangentOut: {x: 0.0000076293945, y: -0.00000029802322, z: 99.99999}
+      mode: 3
+    - position: {x: 25843.246, y: -1.6206298, z: 32702.947}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 26137.4, y: -6.878861, z: 32767.916}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 26526.01, y: -13.8255415, z: 32853.746}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 26830.736, y: -19.272762, z: 32921.05}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 27156.623, y: -17.02045, z: 32993.027}
+      rotation: {x: -0.0026307171, y: 0.6262288, z: 0.0021130876, w: 0.7796321}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 27470.828, y: -11.403795, z: 33062.426}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 27843.324, y: -4.7451663, z: 33144.695}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 28136.22, y: -9.980888, z: 33209.387}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: -0.0000076293945, y: 0.00000029802322, z: -99.99999}
+      tangentOut: {x: 0.0000076293945, y: -0.00000029802322, z: 99.99999}
+      mode: 3
+    - position: {x: 28530.893, y: -17.035952, z: 33296.555}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 28856.72, y: -22.860376, z: 33368.52}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29194.367, y: -28.896065, z: 33443.094}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29528.297, y: -34.865284, z: 33516.848}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29884.275, y: -41.22867, z: 33595.47}
+      rotation: {x: 0.006803525, y: 0.62620854, z: -0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30213.611, y: -35.341564, z: 33668.207}
+      rotation: {x: -0.006803525, y: 0.62620854, z: 0.005464839, w: 0.7796068}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30492.629, y: -29.381344, z: 33865.043}
+      rotation: {x: -0.0077476013, y: 0.46017125, z: 0.0040158536, w: 0.8877872}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30668.66, y: -23.591413, z: 34146.188}
+      rotation: {x: -0.008387396, y: 0.27606112, z: 0.002409149, w: 0.9611005}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30725.922, y: -26.675983, z: 34495.676}
+      rotation: {x: 0.0043404303, y: 0.08111114, z: -0.0003532244, w: 0.9966956}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30637.994, y: -20.073639, z: 34863.562}
+      rotation: {x: -0.008666566, y: -0.117029004, z: -0.0010212966, w: 0.99309015}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30541.48, y: -12.826534, z: 35267.375}
+      rotation: {x: -0.008666566, y: -0.117029004, z: -0.0010212966, w: 0.99309015}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30471.754, y: -7.5908127, z: 35559.113}
+      rotation: {x: -0.008666566, y: -0.117029004, z: -0.0010212966, w: 0.99309015}
+      tangentIn: {x: -0.000000834465, y: -0.000000037252903, z: -100}
+      tangentOut: {x: 0.000000834465, y: 0.000000037252903, z: 100}
+      mode: 3
+    - position: {x: 30389.102, y: -1.3845496, z: 35904.93}
+      rotation: {x: -0.008666566, y: -0.117029004, z: -0.0010212966, w: 0.99309015}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30296.676, y: 5.555626, z: 36291.64}
+      rotation: {x: -0.008666566, y: -0.117029004, z: -0.0010212966, w: 0.99309015}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30205.836, y: 12.376751, z: 36671.72}
+      rotation: {x: -0.008666566, y: -0.117029004, z: -0.0010212966, w: 0.99309015}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30135.396, y: 13.475713, z: 36966.434}
+      rotation: {x: -0.0018009038, y: -0.117033266, z: -0.00021222442, w: 0.99312633}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30053.596, y: 19.618109, z: 37308.69}
+      rotation: {x: -0.008666566, y: -0.117029004, z: -0.0010212966, w: 0.99309015}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29976.621, y: 13.838091, z: 37630.758}
+      rotation: {x: 0.008666566, y: -0.117029004, z: 0.0010212966, w: 0.99309015}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29882.768, y: 6.790764, z: 38023.438}
+      rotation: {x: 0.008666566, y: -0.117029004, z: 0.0010212966, w: 0.99309015}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29803.617, y: 0.8474622, z: 38354.6}
+      rotation: {x: 0.008666566, y: -0.117029004, z: 0.0010212966, w: 0.99309015}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29733.88, y: 2.7925358, z: 38646.38}
+      rotation: {x: -0.0032195284, y: -0.11703283, z: -0.0003793998, w: 0.9931227}
+      tangentIn: {x: -0.000002682209, y: 0.00000010058284, z: -100}
+      tangentOut: {x: 0.000002682209, y: -0.00000010058284, z: 100}
+      mode: 3
+    - position: {x: 29637.031, y: 5.493883, z: 39051.6}
+      rotation: {x: -0.0032195284, y: -0.11703283, z: -0.0003793998, w: 0.9931227}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29545.688, y: 8.041657, z: 39433.785}
+      rotation: {x: -0.0032195284, y: -0.11703283, z: -0.0003793998, w: 0.9931227}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29463.152, y: 10.3437395, z: 39779.113}
+      rotation: {x: -0.0032195284, y: -0.11703283, z: -0.0003793998, w: 0.9931227}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29389.887, y: 10.64108, z: 40085.656}
+      rotation: {x: -0.0004684613, y: -0.11703344, z: -0.00005520502, w: 0.9931279}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29362.201, y: 9.752591, z: 40423.07}
+      rotation: {x: 0.016871527, y: -0.037305385, z: -0.38231295, w: 0.9231254}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29390.432, y: 16.711536, z: 40820.746}
+      rotation: {x: -0.027465602, y: 0.024015047, z: -0.57301027, w: 0.8187357}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29479.072, y: 13.468219, z: 41210.53}
+      rotation: {x: -0.06069955, y: 0.093700044, z: -0.5704299, w: 0.81372327}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29557.498, y: 7.2948885, z: 41555.395}
+      rotation: {x: -0.01569032, y: 0.110797845, z: -0.21611238, w: 0.9699346}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29626.734, y: 1.844943, z: 41859.848}
+      rotation: {x: 0.00867205, y: 0.11156676, z: -0.00097362825, w: 0.9937186}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29698.219, y: 7.471874, z: 42174.188}
+      rotation: {x: -0.00867205, y: 0.11156676, z: 0.00097362825, w: 0.9937186}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29767.824, y: 5.625655, z: 42480.266}
+      rotation: {x: 0.0029224423, y: 0.11157052, z: -0.0003281084, w: 0.9937521}
+      tangentIn: {x: 0.000005185604, y: -0.00000014621764, z: -104.63281}
+      tangentOut: {x: -0.000005185604, y: 0.00000014621764, z: 104.63281}
+      mode: 3
+    - position: {x: 29847.518, y: 3.5118635, z: 42830.703}
+      rotation: {x: 0.0029224423, y: 0.11157052, z: -0.0003281084, w: 0.9937521}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29933.086, y: 1.2422464, z: 43206.977}
+      rotation: {x: 0.0029224423, y: 0.11157052, z: -0.0003281084, w: 0.9937521}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30000.977, y: -0.5584836, z: 43505.51}
+      rotation: {x: 0.0029224423, y: 0.11157052, z: -0.0003281084, w: 0.9937521}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30081.256, y: -2.6878364, z: 43858.53}
+      rotation: {x: 0.0029224423, y: 0.11157052, z: -0.0003281084, w: 0.9937521}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30168.357, y: -9.544123, z: 44241.547}
+      rotation: {x: 0.00867205, y: 0.11156676, z: -0.00097362825, w: 0.9937186}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30238.111, y: -6.2274723, z: 44548.28}
+      rotation: {x: -0.005238679, y: 0.11156945, z: 0.0005881568, w: 0.9937427}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30320.252, y: 0.23831224, z: 44909.484}
+      rotation: {x: -0.00867205, y: 0.11156676, z: 0.00097362825, w: 0.9937186}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30386.773, y: -2.5875232, z: 45202.004}
+      rotation: {x: 0.004680372, y: 0.111569755, z: -0.0005254746, w: 0.9937454}
+      tangentIn: {x: 0.000003695488, y: -0.000000070780516, z: -100}
+      tangentOut: {x: -0.000003695488, y: 0.000000070780516, z: 100}
+      mode: 3
+    - position: {x: 30456.682, y: -5.557181, z: 45509.41}
+      rotation: {x: 0.004680372, y: 0.111569755, z: -0.0005254746, w: 0.9937454}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30539.148, y: -9.060368, z: 45872.043}
+      rotation: {x: 0.004680372, y: 0.111569755, z: -0.0005254746, w: 0.9937454}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30611.596, y: -12.137893, z: 46190.613}
+      rotation: {x: 0.004680372, y: 0.111569755, z: -0.0005254746, w: 0.9937454}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30692.611, y: -15.579446, z: 46546.867}
+      rotation: {x: 0.004680372, y: 0.111569755, z: -0.0005254746, w: 0.9937454}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30680.389, y: -17.787699, z: 46900.836}
+      rotation: {x: 0.0031168966, y: -0.017258307, z: 0.000053800635, w: 0.99984616}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30564.13, y: -22.296228, z: 47286.695}
+      rotation: {x: 0.005533766, y: -0.14579843, z: 0.0008155419, w: 0.98929846}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30402.973, y: -25.853996, z: 47549.098}
+      rotation: {x: 0.0055588, y: -0.2719132, z: 0.0015707202, w: 0.9623044}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30284.984, y: -21.91875, z: 47741.207}
+      rotation: {x: -0.008397723, y: -0.2719074, z: -0.0023728998, w: 0.96228385}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 30166.996, y: -19.195824, z: 47933.32}
+      rotation: {x: -0.005810952, y: -0.27191278, z: -0.0016419694, w: 0.9623029}
+      tangentIn: {x: -0.000010967255, y: 0.00000011920929, z: -75.15625}
+      tangentOut: {x: 0.000010967255, y: -0.00000011920929, z: 75.15625}
+      mode: 3
+    - position: {x: 29978.312, y: -14.841409, z: 48240.54}
+      rotation: {x: -0.005810952, y: -0.27191278, z: -0.0016419694, w: 0.9623029}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29763.611, y: -9.8865795, z: 48590.12}
+      rotation: {x: -0.005810952, y: -0.27191278, z: -0.0016419694, w: 0.9623029}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29651.322, y: -7.295176, z: 48772.953}
+      rotation: {x: -0.005810952, y: -0.27191278, z: -0.0016419694, w: 0.9623029}
+      tangentIn: {x: 0, y: 0, z: 0}
+      tangentOut: {x: 0, y: 0, z: 0}
+      mode: 0
+    - position: {x: 29539.033, y: -4.7037725, z: 48955.785}
+      rotation: {x: -0.005810952, y: -0.27191278, z: -0.0016419694, w: 0.9623029}
+      tangentIn: {x: -0.000008583069, y: 0.00000015646219, z: -71.52603}
+      tangentOut: {x: 0.000008583069, y: -0.00000015646219, z: 71.52603}
+      mode: 3
+    knotDistances:
+    - 0
+    - 318.60745
+    - 732.99414
+    - 1081.8206
+    - 1498.0117
+    - 1862.1016
+    - 2218.5447
+    - 2569.5464
+    - 2878.4465
+    - 3201.4343
+    - 3583.6677
+    - 3957.3135
+    - 4294.9795
+    - 4668.9033
+    - 5042.3286
+    - 5406.494
+    - 5814.109
+    - 6185.7305
+    - 6517.037
+    - 6877.2183
+    - 7177.2183
+    - 7511.951
+    - 7904.7925
+    - 8297.878
+    - 8681.906
+    - 9012.428
+    - 9345.06
+    - 9698.129
+    - 10080.705
+    - 10411.923
+    - 10711.93
+    - 11113.382
+    - 11445.309
+    - 11785.638
+    - 12147.221
+    - 12451.291
+    - 12864.477
+    - 13205.194
+    - 13540.728
+    - 13840.7295
+    - 14183.82
+    - 14503.645
+    - 14899.33
+    - 15248.418
+    - 15667.959
+    - 16060.644
+    - 16419.693
+    - 16734.162
+    - 17056.994
+    - 17398.3
+    - 17816.45
+    - 18205.928
+    - 18625.852
+    - 19009.076
+    - 19418.623
+    - 19833.479
+    - 20230.107
+    - 20610.197
+    - 20971.115
+    - 21376.787
+    - 21688.188
+    - 22088.7
+    - 22396.77
+    - 22803.79
+    - 23144.256
+    - 23545.434
+    - 23933.035
+    - 24251.285
+    - 24599.4
+    - 24936.771
+    - 25318.773
+    - 25730.879
+    - 26091.158
+    - 26391.158
+    - 26754.848
+    - 27169.334
+    - 27500.828
+    - 27837.432
+    - 28252.352
+    - 28590.479
+    - 28902.459
+    - 29216.904
+    - 29603.768
+    - 29995.115
+    - 30389.092
+    - 30767.209
+    - 31134.604
+    - 31491.3
+    - 31820.715
+    - 32171.402
+    - 32471.412
+    - 32794.39
+    - 33178.58
+    - 33556.5
+    - 33876.473
+    - 34292.2
+    - 34603.26
+    - 34922.742
+    - 35227.26
+    - 35590.406
+    - 36002.21
+    - 36407.773
+    - 36778.402
+    - 37143.83
+    - 37554.824
+    - 37894.58
+    - 38214.344
+    - 38582.266
+    - 38925.746
+    - 39288.883
+    - 39655.25
+    - 40042.26
+    - 40440.64
+    - 40742.66
+    - 41128.24
+    - 41458.73
+    - 41847.363
+    - 42243.95
+    - 42640.04
+    - 42995.47
+    - 43394.598
+    - 43694.6
+    - 44034.92
+    - 44389.78
+    - 44711.02
+    - 45106.027
+    - 45480.82
+    - 45784.082
+    - 46121.02
+    - 46439.62
+    - 46739.625
+    - 47045.527
+    - 47426.457
+    - 47782.344
+    - 48160.484
+    - 48470.11
+    - 48880.95
+    - 49181.363
+    - 49544.57
+    - 49844.586
+    - 50246.965
+    - 50548.254
+    - 50946.29
+    - 51258.406
+    - 51592.16
+    - 51913.992
+    - 52295.523
+    - 52595.54
+    - 52999.785
+    - 53333.516
+    - 53679.35
+    - 54021.383
+    - 54385.996
+    - 54723.336
+    - 55066.527
+    - 55400.402
+    - 55756.715
+    - 56137.312
+    - 56552.594
+    - 56852.594
+    - 57208.203
+    - 57605.867
+    - 57996.71
+    - 58299.73
+    - 58651.684
+    - 58982.883
+    - 59386.684
+    - 59727.227
+    - 60027.234
+    - 60443.88
+    - 60836.836
+    - 61191.9
+    - 61507.074
+    - 61845.87
+    - 62244.96
+    - 62645.098
+    - 62998.83
+    - 63311.1
+    - 63633.53
+    - 63947.434
+    - 64306.824
+    - 64692.71
+    - 64998.875
+    - 65360.914
+    - 65753.766
+    - 66068.36
+    - 66438.84
+    - 66738.85
+    - 67054.12
+    - 67426.02
+    - 67752.74
+    - 68118.11
+    - 68473.06
+    - 68877.1
+    - 69186.03
+    - 69411.53
+    - 69637
+    - 69997.56
+    - 70407.84
+    - 70622.42
+    - 70837
+    sections: []
+    flatSweeps:
+    - start: 0
+      end: 2569.5464
+      outerSide: -1
+    - start: 8297.878
+      end: 9345.06
+      outerSide: 1
+    - start: 24599.4
+      end: 25730.879
+      outerSide: -1
+    - start: 54385.996
+      end: 56137.312
+      outerSide: 1
+    - start: 67752.74
+      end: 69186.03
+      outerSide: 1
+    openStretches:
+    - start: 4668.9033
+      end: 6517.037
+      outerSide: 0
+    - start: 9345.06
+      end: 10080.705
+      outerSide: 0
+    - start: 12147.221
+      end: 12864.477
+      outerSide: 0
+    - start: 18625.852
+      end: 19418.623
+      outerSide: 0
+    - start: 21376.787
+      end: 22803.79
+      outerSide: 0
+    - start: 28590.479
+      end: 28902.459
+      outerSide: 0
+    - start: 30767.209
+      end: 31491.3
+      outerSide: 0
+    - start: 33876.473
+      end: 34292.2
+      outerSide: 0
+    - start: 37894.58
+      end: 39288.883
+      outerSide: 0
+    - start: 41458.73
+      end: 42640.04
+      outerSide: 0
+    - start: 45106.027
+      end: 46121.02
+      outerSide: 0
+    - start: 48160.484
+      end: 49181.363
+      outerSide: 0
+    - start: 51258.406
+      end: 51913.992
+      outerSide: 0
+    - start: 54021.383
+      end: 54385.996
+      outerSide: 0
+    - start: 65360.914
+      end: 66068.36
+      outerSide: 0
+    keepOuts:
+    - {x: 3201.4343, y: 4311.4346}
+    - {x: 7177.2183, y: 8287.219}
+    - {x: 10711.93, y: 11821.93}
+    - {x: 13840.7295, y: 14950.7295}
+    - {x: 17398.3, y: 18508.3}
+    - {x: 20230.107, y: 21340.107}
+    - {x: 23545.434, y: 24655.434}
+    - {x: 26391.158, y: 27501.158}
+    - {x: 29603.768, y: 30713.768}
+    - {x: 32471.412, y: 33581.414}
+    - {x: 36778.402, y: 37888.402}
+    - {x: 40042.26, y: 41152.26}
+    - {x: 43694.6, y: 44804.6}
+    - {x: 46739.625, y: 47849.625}
+    - {x: 49844.586, y: 50954.586}
+    - {x: 52595.54, y: 53705.54}
+    - {x: 56852.594, y: 57962.594}
+    - {x: 60027.234, y: 61137.234}
+    - {x: 63947.434, y: 65057.434}
+    - {x: 66738.85, y: 67848.85}
+    - {x: 69637, y: Infinity}
+    placements:
+    - kind: 7
+      distance: 70717
+      lateral: -43.583332
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 7
+      distance: 70717
+      lateral: 0
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 7
+      distance: 70717
+      lateral: 43.583332
+      height: 0
+      variant: 2
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 3201.4343
+      lateral: 0.9836998
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 7177.2183
+      lateral: 35.310703
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 10711.93
+      lateral: 31.21543
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 13840.7295
+      lateral: -20.120419
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 17398.3
+      lateral: 7.962994
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 20230.107
+      lateral: -15.067363
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 23545.434
+      lateral: -6.706068
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 26391.158
+      lateral: -4.0777636
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 29603.768
+      lateral: 11.604965
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 32471.412
+      lateral: 10.433623
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 36778.402
+      lateral: -42.13718
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 40042.26
+      lateral: -6.3710327
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 43694.6
+      lateral: -22.736986
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 46739.625
+      lateral: 36.666294
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 49844.586
+      lateral: -14.120652
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 52595.54
+      lateral: 11.616888
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 56852.594
+      lateral: -35.551502
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 60027.234
+      lateral: -23.649578
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 63947.434
+      lateral: 1.251605
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 3
+      distance: 66738.85
+      lateral: 35.416607
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 2
+      distance: 1714.2231
+      lateral: 5.492822
+      height: 0
+      variant: 0
+      data: {x: 29.227741, y: -68.438866, z: 136.64319, w: 1}
+    - kind: 2
+      distance: 2971.5498
+      lateral: -15.871884
+      height: 0
+      variant: 0
+      data: {x: 32.987953, y: 64.42822, z: 18.217306, w: 1}
+    - kind: 2
+      distance: 4461.7046
+      lateral: -16.478157
+      height: 0
+      variant: 0
+      data: {x: 25.436941, y: -45.440533, z: 40.786186, w: 1}
+    - kind: 2
+      distance: 5753.233
+      lateral: -26.089746
+      height: 0
+      variant: 0
+      data: {x: 34.586956, y: 58.2424, z: 209.88359, w: 1}
+    - kind: 2
+      distance: 7003.6816
+      lateral: -31.810223
+      height: 0
+      variant: 0
+      data: {x: 27.665583, y: -62.60987, z: 255.80287, w: 1}
+    - kind: 2
+      distance: 8437.488
+      lateral: -35.900124
+      height: 0
+      variant: 2
+      data: {x: 28.160805, y: 49.124046, z: 27.68074, w: 1}
+    - kind: 2
+      distance: 9699.693
+      lateral: -18.519068
+      height: 0
+      variant: 3
+      data: {x: 27.479568, y: -88.574005, z: 8.567877, w: 1}
+    - kind: 2
+      distance: 11986.914
+      lateral: -5.189277
+      height: 0
+      variant: 2
+      data: {x: 25.658634, y: -89.29136, z: 123.42371, w: 1}
+    - kind: 2
+      distance: 13378.887
+      lateral: 5.214398
+      height: 0
+      variant: 2
+      data: {x: 34.772144, y: -83.22362, z: 131.87747, w: 1}
+    - kind: 2
+      distance: 15100.999
+      lateral: -4.8080115
+      height: 0
+      variant: 2
+      data: {x: 28.976536, y: 50.13534, z: 57.36271, w: 1}
+    - kind: 2
+      distance: 16429.201
+      lateral: -12.542038
+      height: 0
+      variant: 2
+      data: {x: 28.068851, y: -76.24885, z: 131.50781, w: 1}
+    - kind: 2
+      distance: 18683.588
+      lateral: -21.659998
+      height: 0
+      variant: 3
+      data: {x: 33.988075, y: 40.747673, z: 154.15762, w: 1}
+    - kind: 2
+      distance: 19952.08
+      lateral: 19.457003
+      height: 0
+      variant: 0
+      data: {x: 33.296974, y: -55.634964, z: 78.76365, w: 1}
+    - kind: 2
+      distance: 21506.734
+      lateral: 32.616314
+      height: 0
+      variant: 3
+      data: {x: 32.089706, y: -49.537487, z: 121.08543, w: 1}
+    - kind: 2
+      distance: 22800.523
+      lateral: -29.842054
+      height: 0
+      variant: 0
+      data: {x: 32.245045, y: 44.45879, z: 21.120872, w: 1}
+    - kind: 2
+      distance: 24831.018
+      lateral: 21.816174
+      height: 0
+      variant: 0
+      data: {x: 30.817091, y: -46.293434, z: 86.00248, w: 1}
+    - kind: 2
+      distance: 26219.15
+      lateral: 21.094383
+      height: 0
+      variant: 0
+      data: {x: 30.661755, y: -82.4889, z: 297.79614, w: 1}
+    - kind: 2
+      distance: 27668.994
+      lateral: -18.183794
+      height: 0
+      variant: 3
+      data: {x: 29.62631, y: -45.818714, z: 70.617714, w: 1}
+    - kind: 2
+      distance: 29144.53
+      lateral: 32.678234
+      height: 0
+      variant: 0
+      data: {x: 28.795881, y: -62.936268, z: 153.32164, w: 1}
+    - kind: 2
+      distance: 30879.26
+      lateral: 14.518311
+      height: 0
+      variant: 3
+      data: {x: 29.1941, y: -66.35281, z: 160.59528, w: 1}
+    - kind: 2
+      distance: 32176.703
+      lateral: 7.0503664
+      height: 0
+      variant: 0
+      data: {x: 29.76011, y: -50.752476, z: 236.61778, w: 1}
+    - kind: 2
+      distance: 33731.684
+      lateral: -4.4655275
+      height: 0
+      variant: 0
+      data: {x: 29.427052, y: -87.717026, z: 116.67794, w: 1}
+    - kind: 2
+      distance: 35175.67
+      lateral: -33.397087
+      height: 0
+      variant: 0
+      data: {x: 31.239084, y: -58.276756, z: 246.99832, w: 1}
+    - kind: 2
+      distance: 36415.168
+      lateral: -3.639432
+      height: 0
+      variant: 2
+      data: {x: 25.593592, y: -69.91153, z: 152.1937, w: 1}
+    - kind: 2
+      distance: 38038.67
+      lateral: -23.785284
+      height: 0
+      variant: 0
+      data: {x: 28.538992, y: -61.394463, z: 355.53397, w: 1}
+    - kind: 2
+      distance: 39410.684
+      lateral: 0.7000735
+      height: 0
+      variant: 2
+      data: {x: 34.31637, y: -65.37146, z: 345.23688, w: 1}
+    - kind: 2
+      distance: 41302.53
+      lateral: 15.688986
+      height: 0
+      variant: 2
+      data: {x: 35.055325, y: 72.25966, z: 89.49214, w: 1}
+    - kind: 2
+      distance: 42783.11
+      lateral: -7.7167068
+      height: 0
+      variant: 2
+      data: {x: 30.711208, y: 57.003788, z: 11.506891, w: 1}
+    - kind: 2
+      distance: 44954.87
+      lateral: -21.618774
+      height: 0
+      variant: 0
+      data: {x: 32.263866, y: 51.19818, z: 16.521378, w: 1}
+    - kind: 2
+      distance: 46182.94
+      lateral: 24.675587
+      height: 0
+      variant: 0
+      data: {x: 35.53303, y: -58.162422, z: 133.78632, w: 1}
+    - kind: 2
+      distance: 47999.895
+      lateral: -20.925077
+      height: 0
+      variant: 0
+      data: {x: 27.581186, y: 76.34899, z: 84.785614, w: 1}
+    - kind: 2
+      distance: 49375.184
+      lateral: 19.842333
+      height: 0
+      variant: 2
+      data: {x: 25.794863, y: -48.422928, z: 129.54889, w: 1}
+    - kind: 2
+      distance: 51121.93
+      lateral: 4.2885084
+      height: 0
+      variant: 0
+      data: {x: 27.096611, y: 42.254337, z: 118.45047, w: 1}
+    - kind: 2
+      distance: 53855.81
+      lateral: -20.382786
+      height: 0
+      variant: 0
+      data: {x: 27.163923, y: 82.48075, z: 342.41437, w: 1}
+    - kind: 2
+      distance: 55078.293
+      lateral: -3.0984318
+      height: 0
+      variant: 3
+      data: {x: 33.280117, y: 56.501106, z: 147.62917, w: 1}
+    - kind: 2
+      distance: 56382.9
+      lateral: 9.485321
+      height: 0
+      variant: 3
+      data: {x: 28.38448, y: 87.850876, z: 273.2021, w: 1}
+    - kind: 2
+      distance: 58128.227
+      lateral: 18.359488
+      height: 0
+      variant: 2
+      data: {x: 32.011044, y: 48.538723, z: 86.389275, w: 1}
+    - kind: 2
+      distance: 59533.676
+      lateral: 16.12746
+      height: 0
+      variant: 2
+      data: {x: 32.7482, y: 68.4468, z: 77.82406, w: 1}
+    - kind: 2
+      distance: 61287.504
+      lateral: -18.770779
+      height: 0
+      variant: 0
+      data: {x: 28.70029, y: 66.64163, z: 89.34331, w: 1}
+    - kind: 2
+      distance: 62586.54
+      lateral: -15.142815
+      height: 0
+      variant: 0
+      data: {x: 30.074661, y: -53.27225, z: 323.37338, w: 1}
+    - kind: 2
+      distance: 65223.266
+      lateral: 27.106983
+      height: 0
+      variant: 2
+      data: {x: 34.572056, y: 55.768772, z: 150.02269, w: 1}
+    - kind: 2
+      distance: 68013.125
+      lateral: 0.4020158
+      height: 0
+      variant: 0
+      data: {x: 27.58996, y: -76.7465, z: 305.57544, w: 1}
+    - kind: 2
+      distance: 69297.35
+      lateral: 6.814856
+      height: 0
+      variant: 0
+      data: {x: 27.303028, y: 83.36452, z: 66.092545, w: 1}
+    - kind: 0
+      distance: 488.70804
+      lateral: 20.1252
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 954.0473
+      lateral: -1.4373398
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 1429.9248
+      lateral: 10.740566
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 1843.2349
+      lateral: 45.398113
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 2236.4558
+      lateral: 40.31189
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 2633.8376
+      lateral: -21.348013
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 3065.62
+      lateral: -15.879068
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 3460.7563
+      lateral: -8.328453
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 3856.1326
+      lateral: 29.982994
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 4343.5854
+      lateral: -22.50679
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 4760.864
+      lateral: 44.635643
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 5234.915
+      lateral: -31.735321
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 5657.3057
+      lateral: 10.188431
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 6132.9766
+      lateral: -4.3120837
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 6526.9214
+      lateral: -38.104332
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 7023.9517
+      lateral: 39.726048
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 7420.06
+      lateral: 49.09189
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 7871.536
+      lateral: -48.872345
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 8289.203
+      lateral: 11.592504
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 8769.306
+      lateral: -24.873037
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 9159.205
+      lateral: 49.451046
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 9616.357
+      lateral: -44.406216
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 10064.159
+      lateral: 22.358551
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 10537.387
+      lateral: -11.674287
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 10966.115
+      lateral: 36.674133
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 11412.987
+      lateral: 37.434532
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 11818.285
+      lateral: 1.6596141
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 12251.064
+      lateral: -12.167791
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 12738.876
+      lateral: 44.676357
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 13182.992
+      lateral: 34.19115
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 13580.007
+      lateral: -0.20050609
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 14044.708
+      lateral: 9.728736
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 14494.835
+      lateral: 38.48717
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 14933.672
+      lateral: 6.5389795
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 15369.94
+      lateral: 1.984793
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 15821.101
+      lateral: 34.094444
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 16245.873
+      lateral: -29.635607
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 16656.555
+      lateral: -17.868866
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 17114.623
+      lateral: -51.474216
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 17581.184
+      lateral: 3.934004
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 18017.008
+      lateral: 33.01287
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 18450.615
+      lateral: 1.5852811
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 18879.43
+      lateral: -32.64577
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 19284.2
+      lateral: -9.19952
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 19673.26
+      lateral: 50.12554
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 20126.97
+      lateral: 7.235396
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 20590.25
+      lateral: 28.285831
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 21040.459
+      lateral: 32.90126
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 21543.049
+      lateral: -33.34563
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 22012.396
+      lateral: -36.080723
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 22497.916
+      lateral: -18.572397
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 22969.863
+      lateral: -20.444391
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 23362.64
+      lateral: -25.153542
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 23772.268
+      lateral: -37.513058
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 24243.354
+      lateral: 13.574684
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 24652.74
+      lateral: 22.406511
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 25076.66
+      lateral: 44.646027
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 25486.15
+      lateral: -47.409046
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 25958.715
+      lateral: -49.183826
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 26471.158
+      lateral: 30.118002
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 26913.596
+      lateral: 33.720592
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 27373.086
+      lateral: 30.114367
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 27771.248
+      lateral: 6.7351394
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 28201.71
+      lateral: 37.455475
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 28599.188
+      lateral: 53.62299
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 29046.887
+      lateral: 3.0683045
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 29490.604
+      lateral: 51.72483
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 29967.29
+      lateral: 20.486208
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 30385.115
+      lateral: 46.461693
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 30802.98
+      lateral: -14.528737
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 31229.637
+      lateral: -26.63694
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 31671.857
+      lateral: 1.378515
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 32097.658
+      lateral: 52.031384
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 32551.412
+      lateral: 27.194405
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 32968.48
+      lateral: 27.242468
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 33433.99
+      lateral: -43.771507
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 33921.355
+      lateral: -11.705316
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 34388.273
+      lateral: 28.015377
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 34829.11
+      lateral: 5.4882045
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 35283.01
+      lateral: -10.06985
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 35705.793
+      lateral: -37.267746
+      height: 0
+      variant: 2
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 36140.65
+      lateral: 15.4248705
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 36536.336
+      lateral: 24.610758
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 36996.92
+      lateral: 1.4334724
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 37456.363
+      lateral: 33.486652
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 37869.953
+      lateral: 51.617966
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 38289.85
+      lateral: 5.545477
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 38762.645
+      lateral: -50.037354
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 39171.816
+      lateral: 33.41748
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 39568.043
+      lateral: 45.891037
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 40019.145
+      lateral: -44.59795
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 40416.805
+      lateral: 20.607285
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 40904.047
+      lateral: -25.99398
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 41376.035
+      lateral: 17.772377
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 41781.49
+      lateral: -21.05508
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 42235.977
+      lateral: 21.027155
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 42643.355
+      lateral: 26.969519
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 43063.863
+      lateral: -31.574224
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 43532.65
+      lateral: -22.150763
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 43976.19
+      lateral: -15.884579
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 44372.574
+      lateral: 28.050571
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 44773.266
+      lateral: -15.7359
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 45164.85
+      lateral: 48.55824
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 45620.29
+      lateral: 38.932896
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 46098.16
+      lateral: 48.403156
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 46549.684
+      lateral: 51.043674
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 46971.55
+      lateral: -5.5208116
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 47391.066
+      lateral: -1.6859353
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 47867.55
+      lateral: 29.585474
+      height: 0
+      variant: 2
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 48260.098
+      lateral: -24.417845
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 48684.098
+      lateral: 32.09514
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 49149.04
+      lateral: -18.704443
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 49571.094
+      lateral: 32.287884
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 50001.08
+      lateral: -43.34949
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 50425.332
+      lateral: -9.108554
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 50851.3
+      lateral: 44.73261
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 51340.266
+      lateral: -27.695192
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 51776.965
+      lateral: -32.348442
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 52170.777
+      lateral: -1.5328071
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 52566.914
+      lateral: 7.965894
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 53010.34
+      lateral: 44.19778
+      height: 0
+      variant: 2
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 53493.293
+      lateral: 1.8352865
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 53949.87
+      lateral: -8.469863
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 54374.78
+      lateral: -10.118936
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 54810.074
+      lateral: -25.128824
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 55253.055
+      lateral: -37.893932
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 55678.56
+      lateral: -11.474001
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 56134.29
+      lateral: 15.477086
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 56568.973
+      lateral: 53.378754
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 57006.316
+      lateral: 2.3120413
+      height: 0
+      variant: 2
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 57462.816
+      lateral: -13.907002
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 57944.305
+      lateral: -18.028269
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 58362.707
+      lateral: -41.470963
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 58760.434
+      lateral: -28.8017
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 59162.73
+      lateral: 53.951233
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 59578.355
+      lateral: 11.586851
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 60107.234
+      lateral: -26.593056
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 60543.32
+      lateral: -39.68317
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 60950.02
+      lateral: -24.21254
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 61415.32
+      lateral: -4.9903536
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 61821.633
+      lateral: 27.31926
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 62232.836
+      lateral: -46.930984
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 62713.258
+      lateral: -49.182495
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 63158.01
+      lateral: -0.56267685
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 63610.387
+      lateral: 43.061718
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 64033.59
+      lateral: 45.78323
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 64469.76
+      lateral: 16.326708
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 64887.59
+      lateral: 9.964165
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 65285.23
+      lateral: -42.90031
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 65681.78
+      lateral: -31.95387
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 66154.55
+      lateral: 16.457642
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 66546.92
+      lateral: -35.00281
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 66941.41
+      lateral: 49.264484
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 67356.63
+      lateral: 33.528725
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 67814.125
+      lateral: -24.082111
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 68280.58
+      lateral: -6.019283
+      height: 0
+      variant: 1
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 68686.625
+      lateral: 11.265966
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 69097.5
+      lateral: 7.49408
+      height: 0
+      variant: 2
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 0
+      distance: 69505.57
+      lateral: 47.06501
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 769.7829
+      lateral: -37.009144
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 1600.5759
+      lateral: 36.433144
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 4961.3936
+      lateral: -48.512714
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 6863.3354
+      lateral: 41.702667
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 7676.998
+      lateral: -21.305819
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 11918.384
+      lateral: 9.769163
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 12947.651
+      lateral: -12.287431
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 16288.476
+      lateral: 40.446377
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 19226.145
+      lateral: 41.075752
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 23625.434
+      lateral: 0.36880147
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 25640.37
+      lateral: 14.217019
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 31360.035
+      lateral: 31.38817
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 32418.02
+      lateral: -3.4543757
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 33505.086
+      lateral: -20.997543
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 36951.375
+      lateral: 45.5885
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 38008.96
+      lateral: 14.413587
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 40350.51
+      lateral: 33.73141
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 41727.137
+      lateral: 23.154932
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 43942.76
+      lateral: -17.518208
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 45337.27
+      lateral: -47.028816
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 46706.094
+      lateral: -49.50375
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 47729.258
+      lateral: -28.590897
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 48530.51
+      lateral: -42.754505
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 49395.453
+      lateral: 22.915394
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 50679.387
+      lateral: 43.30686
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 56246.25
+      lateral: 42.85438
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 60396.812
+      lateral: -20.2934
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 62376.32
+      lateral: -7.321536
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 63762.55
+      lateral: 4.24929
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 67275.04
+      lateral: 33.840313
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 1
+      distance: 68465.97
+      lateral: -2.1205454
+      height: 0
+      variant: 0
+      data: {x: 0, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 458.89508
+      lateral: -45.134823
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 862.34656
+      lateral: 49.87961
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 1218.0474
+      lateral: -18.313395
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 1233.0474
+      lateral: -18.313395
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 1248.0474
+      lateral: -18.313395
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 1563.5076
+      lateral: -3.7085974
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 1578.5076
+      lateral: -3.7085974
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 1947.0032
+      lateral: 33.54405
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 1962.0032
+      lateral: 33.54405
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 1977.0032
+      lateral: 33.54405
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 2354.4626
+      lateral: 31.883947
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 2369.4626
+      lateral: 31.883947
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 2384.4626
+      lateral: 31.883947
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 2655.8542
+      lateral: 47.26324
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 2670.8542
+      lateral: 47.26324
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 2685.8542
+      lateral: 47.26324
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 2700.8542
+      lateral: 47.26324
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 3164.7297
+      lateral: -21.217936
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 3179.7297
+      lateral: -21.217936
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 3588.1807
+      lateral: 6.4149327
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 3603.1807
+      lateral: 6.4149327
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 3618.1807
+      lateral: 6.4149327
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 3955.0444
+      lateral: -19.598602
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 4308.763
+      lateral: 40.653397
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 4836.9033
+      lateral: 32.7003
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 4851.9033
+      lateral: 32.7003
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 4866.9033
+      lateral: 32.7003
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 4881.9033
+      lateral: 32.7003
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 5174.651
+      lateral: -25.936443
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 5490.281
+      lateral: -50.524033
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 5933.875
+      lateral: -3.8484886
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 5948.875
+      lateral: -3.8484886
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 5963.875
+      lateral: -3.8484886
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 6467.9575
+      lateral: -44.328438
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 6806.4946
+      lateral: 46.202385
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 6821.4946
+      lateral: 46.202385
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 6836.4946
+      lateral: 46.202385
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 7257.2183
+      lateral: -33.104607
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 7272.2183
+      lateral: -33.104607
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 7698.1934
+      lateral: 30.587996
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 7713.1934
+      lateral: 30.587996
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8005.1484
+      lateral: 11.026154
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8020.1484
+      lateral: 11.026154
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8035.1484
+      lateral: 11.026154
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8457.758
+      lateral: -5.023127
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8472.758
+      lateral: -5.023127
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8487.758
+      lateral: -5.023127
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8814.72
+      lateral: 5.2946525
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8829.72
+      lateral: 5.2946525
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8844.72
+      lateral: 5.2946525
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8859.72
+      lateral: 5.2946525
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 8874.72
+      lateral: 5.2946525
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 9292.052
+      lateral: 29.003225
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 9307.052
+      lateral: 29.003225
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 9322.052
+      lateral: 29.003225
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 9337.052
+      lateral: 29.003225
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 9733.703
+      lateral: -30.696104
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 9748.703
+      lateral: -30.696104
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 10157.662
+      lateral: -28.494087
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 10172.662
+      lateral: -28.494087
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 10187.662
+      lateral: -28.494087
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 10598.975
+      lateral: 43.289787
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 10613.975
+      lateral: 43.289787
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 10628.975
+      lateral: 43.289787
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 11026.414
+      lateral: -2.603362
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 11041.414
+      lateral: -2.603362
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 11056.414
+      lateral: -2.603362
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 11071.414
+      lateral: -2.603362
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 11451.626
+      lateral: 22.762758
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 11466.626
+      lateral: 22.762758
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 11481.626
+      lateral: 22.762758
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 11496.626
+      lateral: 22.762758
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 11939.792
+      lateral: -49.873272
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 11954.792
+      lateral: -49.873272
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 12433.919
+      lateral: 48.868378
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 12448.919
+      lateral: 48.868378
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 12463.919
+      lateral: 48.868378
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 12478.919
+      lateral: 48.868378
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 12781.331
+      lateral: -1.1673739
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 12796.331
+      lateral: -1.1673739
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 13065.537
+      lateral: 49.478634
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 13080.537
+      lateral: 49.478634
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 13095.537
+      lateral: 49.478634
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 13399.156
+      lateral: 22.712278
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 13414.156
+      lateral: 22.712278
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 13429.156
+      lateral: 22.712278
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 13444.156
+      lateral: 22.712278
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 13459.156
+      lateral: 22.712278
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 13920.7295
+      lateral: 40.553017
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 13935.7295
+      lateral: 40.553017
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 14319.309
+      lateral: -53.550865
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 14334.309
+      lateral: -53.550865
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 14349.309
+      lateral: -53.550865
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 14364.309
+      lateral: -53.550865
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 14716.076
+      lateral: -26.246302
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 15038.763
+      lateral: 32.73425
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 15053.763
+      lateral: 32.73425
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 15402.79
+      lateral: -51.0906
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 15900.248
+      lateral: -7.8051505
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 15915.248
+      lateral: -7.8051505
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 15930.248
+      lateral: -7.8051505
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 15945.248
+      lateral: -7.8051505
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 15960.248
+      lateral: -7.8051505
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 16400.9
+      lateral: -16.880714
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 16784.207
+      lateral: -47.545563
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 16799.207
+      lateral: -47.545563
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 16814.207
+      lateral: -47.545563
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 17212.098
+      lateral: 24.237993
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 17227.098
+      lateral: 24.237993
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 17608.75
+      lateral: -48.533787
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 17971.596
+      lateral: -33.240597
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 17986.596
+      lateral: -33.240597
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 18419.496
+      lateral: -46.678787
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 18479.496
+      lateral: -46.678787
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 18788.117
+      lateral: -21.206808
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 18803.117
+      lateral: -21.206808
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 18818.117
+      lateral: -21.206808
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 18833.117
+      lateral: -21.206808
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 18848.117
+      lateral: -21.206808
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 19347.135
+      lateral: 28.20294
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 19362.135
+      lateral: 28.20294
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 19377.135
+      lateral: 28.20294
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 19392.135
+      lateral: 28.20294
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 20096.988
+      lateral: -46.131542
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 20610.748
+      lateral: 9.430783
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 20625.748
+      lateral: 9.430783
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 21016.432
+      lateral: -35.63723
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 21061.432
+      lateral: -35.63723
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 21076.432
+      lateral: -35.63723
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 21439.562
+      lateral: 9.728336
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 21454.562
+      lateral: 9.728336
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 21469.562
+      lateral: 9.728336
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 21979.36
+      lateral: -11.612725
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 22459.193
+      lateral: -35.817825
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 22851.719
+      lateral: 7.322333
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 22866.719
+      lateral: 7.322333
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 22881.719
+      lateral: 7.322333
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 23383.336
+      lateral: -14.29511
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 23398.336
+      lateral: -14.29511
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 23866.908
+      lateral: 20.103834
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 24203.512
+      lateral: -43.401134
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 24218.512
+      lateral: -43.401134
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 24263.512
+      lateral: -43.401134
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 24724.041
+      lateral: -24.50797
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 24739.041
+      lateral: -24.50797
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 25146.715
+      lateral: 30.284515
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 25161.715
+      lateral: 30.284515
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 25994.945
+      lateral: 39.250065
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 26009.945
+      lateral: 39.250065
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 26501.158
+      lateral: 0.12452853
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 26934.365
+      lateral: -50.8876
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 26949.365
+      lateral: -50.8876
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 26964.365
+      lateral: -50.8876
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 26979.365
+      lateral: -50.8876
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 27268.527
+      lateral: 45.674686
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 27283.527
+      lateral: 45.674686
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 27298.527
+      lateral: 45.674686
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 27704.078
+      lateral: 41.1644
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 28638.32
+      lateral: -28.332258
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 28653.32
+      lateral: -28.332258
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 28668.32
+      lateral: -28.332258
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 28683.32
+      lateral: -28.332258
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 28698.32
+      lateral: -28.332258
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 29076.918
+      lateral: -14.281548
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 29091.918
+      lateral: -14.281548
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 29106.918
+      lateral: -14.281548
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 29683.768
+      lateral: -11.187918
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 29698.768
+      lateral: -11.187918
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 29713.768
+      lateral: -11.187918
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 29728.768
+      lateral: -11.187918
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 29743.768
+      lateral: -11.187918
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 30252.521
+      lateral: -5.363645
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 30267.521
+      lateral: -5.363645
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 30703.791
+      lateral: -0.74736965
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 31257.434
+      lateral: 3.000051
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 31558.84
+      lateral: -44.893505
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 31573.84
+      lateral: -44.893505
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 31588.84
+      lateral: -44.893505
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 31603.84
+      lateral: -44.893505
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 31618.84
+      lateral: -44.893505
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 31979.2
+      lateral: -31.323654
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 31994.2
+      lateral: -31.323654
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 32009.2
+      lateral: -31.323654
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 32932.363
+      lateral: 35.02774
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 33274.613
+      lateral: 7.092066
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 33578.805
+      lateral: -30.263714
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 34007.22
+      lateral: 48.946342
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 34022.22
+      lateral: 48.946342
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 34037.22
+      lateral: 48.946342
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 34525.625
+      lateral: 39.55667
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 34540.625
+      lateral: 39.55667
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 34886.07
+      lateral: -50.350082
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 34901.07
+      lateral: -50.350082
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 34916.07
+      lateral: -50.350082
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 34931.07
+      lateral: -50.350082
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 34946.07
+      lateral: -50.350082
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 35339.547
+      lateral: 34.36286
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 35611.152
+      lateral: -35.50839
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 35626.152
+      lateral: -35.50839
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 36060.87
+      lateral: -30.076742
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 36468.383
+      lateral: 0.14477384
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 36483.383
+      lateral: 0.14477384
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 36754.734
+      lateral: 10.844051
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 37056.902
+      lateral: -33.78653
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 37071.902
+      lateral: -33.78653
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 37086.902
+      lateral: -33.78653
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 37405.867
+      lateral: 0.7661859
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 37420.867
+      lateral: 0.7661859
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 37435.867
+      lateral: 0.7661859
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 37824.457
+      lateral: 7.4629254
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 37839.457
+      lateral: 7.4629254
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 38195.812
+      lateral: -30.45132
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 38603.617
+      lateral: -14.08182
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 38618.617
+      lateral: -14.08182
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 38633.617
+      lateral: -14.08182
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 38648.617
+      lateral: -14.08182
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 38663.617
+      lateral: -14.08182
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 39088.008
+      lateral: -14.000151
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 39103.008
+      lateral: -14.000151
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 39118.008
+      lateral: -14.000151
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 39133.008
+      lateral: -14.000151
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 39148.008
+      lateral: -14.000151
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 39492.18
+      lateral: 2.4942756
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 39507.18
+      lateral: 2.4942756
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 39802.266
+      lateral: -1.2672375
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 39817.266
+      lateral: -1.2672375
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 40290.21
+      lateral: 41.637466
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 40577.05
+      lateral: -49.05425
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 40592.05
+      lateral: -49.05425
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 40607.05
+      lateral: -49.05425
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 41024.09
+      lateral: -9.154997
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 41039.09
+      lateral: -9.154997
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 41054.09
+      lateral: -9.154997
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 41069.09
+      lateral: -9.154997
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 41576.82
+      lateral: -41.471085
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 41591.82
+      lateral: -41.471085
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 41866.125
+      lateral: 22.17444
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 42277.81
+      lateral: -13.713884
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 42292.81
+      lateral: -13.713884
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 42307.81
+      lateral: -13.713884
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 42322.81
+      lateral: -13.713884
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 42735.965
+      lateral: 17.378075
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 43115.527
+      lateral: 50.763496
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 43130.527
+      lateral: 50.763496
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 43145.527
+      lateral: 50.763496
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 43160.527
+      lateral: 50.763496
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 43175.527
+      lateral: 50.763496
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 43633.27
+      lateral: 15.928471
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 43648.27
+      lateral: 15.928471
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 43663.27
+      lateral: 15.928471
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 44082.15
+      lateral: 40.44925
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 44097.15
+      lateral: 40.44925
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 44509.246
+      lateral: 29.872675
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 44524.246
+      lateral: 29.872675
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 44539.246
+      lateral: 29.872675
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 44554.246
+      lateral: 29.872675
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 44569.246
+      lateral: 29.872675
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 44847
+      lateral: 18.231077
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 44862
+      lateral: 18.231077
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 45194.77
+      lateral: -25.941061
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 45557.39
+      lateral: 20.65206
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 45572.39
+      lateral: 20.65206
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 45587.39
+      lateral: 20.65206
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 45976.742
+      lateral: -51.347023
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 45991.742
+      lateral: -51.347023
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 46340.73
+      lateral: -6.486863
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 46355.73
+      lateral: -6.486863
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 46370.73
+      lateral: -6.486863
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 46385.73
+      lateral: -6.486863
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 46400.73
+      lateral: -6.486863
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 46819.625
+      lateral: -27.05577
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 46834.625
+      lateral: -27.05577
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 46849.625
+      lateral: -27.05577
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 46864.625
+      lateral: -27.05577
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 46879.625
+      lateral: -27.05577
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 47243.793
+      lateral: 6.1107106
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 47258.793
+      lateral: 6.1107106
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 47647.61
+      lateral: 23.502176
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 47662.61
+      lateral: 23.502176
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 47677.61
+      lateral: 23.502176
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 47692.61
+      lateral: 23.502176
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48027.22
+      lateral: -24.447447
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48042.22
+      lateral: -24.447447
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48057.22
+      lateral: -24.447447
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48072.22
+      lateral: -24.447447
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48087.22
+      lateral: -24.447447
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48568.566
+      lateral: 36.10184
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48583.566
+      lateral: 36.10184
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48598.566
+      lateral: 36.10184
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48613.566
+      lateral: 36.10184
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48628.566
+      lateral: 36.10184
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48948.25
+      lateral: 2.4735274
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 48963.25
+      lateral: 2.4735274
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 49425.453
+      lateral: 55.41051
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 49440.453
+      lateral: 55.41051
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 49455.453
+      lateral: 55.41051
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 49965.758
+      lateral: 7.8796616
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 49980.758
+      lateral: 7.8796616
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 50316.613
+      lateral: -25.314264
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 50331.613
+      lateral: -25.314264
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 50346.613
+      lateral: -25.314264
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 50361.613
+      lateral: -25.314264
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 50376.613
+      lateral: -25.314264
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 50779.066
+      lateral: 5.805787
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 50794.066
+      lateral: 5.805787
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 50809.066
+      lateral: 5.805787
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 50824.066
+      lateral: 5.805787
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 51142.2
+      lateral: -21.00872
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 51157.2
+      lateral: -21.00872
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 51172.2
+      lateral: -21.00872
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 51187.2
+      lateral: -21.00872
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 51202.2
+      lateral: -21.00872
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 51699.703
+      lateral: 15.48437
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 51714.703
+      lateral: 15.48437
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 51729.703
+      lateral: 15.48437
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 51744.703
+      lateral: 15.48437
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 52200.758
+      lateral: -6.1099825
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 52215.758
+      lateral: -6.1099825
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 52675.54
+      lateral: -17.040705
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 52690.54
+      lateral: -17.040705
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 52705.54
+      lateral: -17.040705
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 53030.676
+      lateral: 29.66272
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 53045.676
+      lateral: 29.66272
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 53514.21
+      lateral: -46.352676
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 53529.21
+      lateral: -46.352676
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 53813.59
+      lateral: 34.657978
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 54272.2
+      lateral: 30.015556
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 54287.2
+      lateral: 30.015556
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 54302.2
+      lateral: 30.015556
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 54662.824
+      lateral: -42.58845
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 54677.824
+      lateral: -42.58845
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 54692.824
+      lateral: -42.58845
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 54707.824
+      lateral: -42.58845
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 54722.824
+      lateral: -42.58845
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 55151.047
+      lateral: 17.589989
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 55166.047
+      lateral: 17.589989
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 55181.047
+      lateral: 17.589989
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 55630.574
+      lateral: -2.7355652
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 56645.926
+      lateral: -46.94065
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 56660.926
+      lateral: -46.94065
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 56933.363
+      lateral: 39.836227
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 57364.746
+      lateral: 43.757534
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 57379.746
+      lateral: 43.757534
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 57654.21
+      lateral: -34.006714
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 57669.21
+      lateral: -34.006714
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 57684.21
+      lateral: -34.006714
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 58148.496
+      lateral: 18.66987
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 58163.496
+      lateral: 18.66987
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 58178.496
+      lateral: 18.66987
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 58193.496
+      lateral: 18.66987
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 58208.496
+      lateral: 18.66987
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 58670.543
+      lateral: -2.8307843
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 58685.543
+      lateral: -2.8307843
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 58700.543
+      lateral: -2.8307843
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 58715.543
+      lateral: -2.8307843
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 59041.957
+      lateral: -11.460303
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 59056.957
+      lateral: -11.460303
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 59466.08
+      lateral: -5.950905
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 59481.08
+      lateral: -5.950905
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 59496.08
+      lateral: -5.950905
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 59511.08
+      lateral: -5.950905
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 59787.484
+      lateral: 38.972652
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 60182.227
+      lateral: -8.135546
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 60197.227
+      lateral: -8.135546
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 60212.227
+      lateral: -8.135546
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 60227.227
+      lateral: -8.135546
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 60242.227
+      lateral: -8.135546
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 60624.086
+      lateral: -3.051948
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 60639.086
+      lateral: -3.051948
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 60654.086
+      lateral: -3.051948
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 60669.086
+      lateral: -3.051948
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 61128.53
+      lateral: -16.230827
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 61632.043
+      lateral: -27.180855
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 61647.043
+      lateral: -27.180855
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 61662.043
+      lateral: -27.180855
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 62042.64
+      lateral: 50.154167
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 62057.64
+      lateral: 50.154167
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 62072.64
+      lateral: 50.154167
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 62341.67
+      lateral: 9.115764
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 62401.67
+      lateral: 9.115764
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 62815.81
+      lateral: -27.741175
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 63311.754
+      lateral: -18.049717
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 63326.754
+      lateral: -18.049717
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 63341.754
+      lateral: -18.049717
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 63664.08
+      lateral: -6.1519156
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 63679.08
+      lateral: -6.1519156
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 64076.28
+      lateral: -25.075832
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 64091.28
+      lateral: -25.075832
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 64574.55
+      lateral: -14.350579
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 64589.55
+      lateral: -14.350579
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 64604.55
+      lateral: -14.350579
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 64619.55
+      lateral: -14.350579
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 64970.527
+      lateral: 27.433617
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 64985.527
+      lateral: 27.433617
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 65000.527
+      lateral: 27.433617
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 65015.527
+      lateral: 27.433617
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 65333.312
+      lateral: -7.974629
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 65348.312
+      lateral: -7.974629
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 65363.312
+      lateral: -7.974629
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 65378.312
+      lateral: -7.974629
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 65850.21
+      lateral: -32.255203
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 65865.21
+      lateral: -32.255203
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 66290.836
+      lateral: -46.694256
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 66305.836
+      lateral: -46.694256
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 66320.836
+      lateral: -46.694256
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 66833.28
+      lateral: 30.108896
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 66848.28
+      lateral: 30.108896
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 66863.28
+      lateral: 30.108896
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 66878.28
+      lateral: 30.108896
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 66893.28
+      lateral: 30.108896
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 67307.39
+      lateral: 4.6145024
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 67322.39
+      lateral: 4.6145024
+      height: 0
+      variant: 0
+      data: {x: 5, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 67847.72
+      lateral: 5.5474143
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 67862.72
+      lateral: 5.5474143
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 68138.79
+      lateral: 29.007181
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 68153.79
+      lateral: 29.007181
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 68168.79
+      lateral: 29.007181
+      height: 0
+      variant: 0
+      data: {x: 3, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 68183.79
+      lateral: 29.007181
+      height: 0
+      variant: 0
+      data: {x: 2, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 68493.766
+      lateral: -42.586746
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 68889.41
+      lateral: -46.532013
+      height: 0
+      variant: 0
+      data: {x: 1, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 69317.625
+      lateral: 43.34323
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}
+    - kind: 4
+      distance: 69332.625
+      lateral: 43.34323
+      height: 0
+      variant: 0
+      data: {x: 4, y: 0, z: 0, w: 0}

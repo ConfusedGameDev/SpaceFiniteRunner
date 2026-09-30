@@ -15,6 +15,7 @@ MonoBehaviour:
   levelName: Escape Run
   nextSceneName: Store
   trackLengthMeters: 91837
+  track: {fileID: 11400000, guid: 5e868e0e072fa4c2d99a119ab474213c, type: 2}
   completeVideo: {fileID: 0}
   rankTable:
     sThreshold: 10000

@@ -42,7 +42,7 @@ MonoBehaviour:
   maxGrade: 1
   maxGradeStepPerKnot: 3
   baselinePull: 0.5
-  turnRateRange: {x: 6, y: 13}
+  turnRateRange: {x: 6, y: 36.741116}
   turnArcRange: {x: 25, y: 120}
   minStraightKnots: 1
   alternateTurnChance: 0.7
