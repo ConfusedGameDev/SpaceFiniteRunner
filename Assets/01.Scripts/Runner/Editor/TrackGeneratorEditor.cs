@@ -23,7 +23,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// the ship's body on the next frame).
     /// </summary>
     [CustomEditor(typeof(TrackGenerator))]
-    public class TrackGeneratorEditor : OdinEditor
+    public partial class TrackGeneratorEditor : OdinEditor
     {
         const string TracksFolder = "Assets/04.Data/FiniteRunner/Tracks";
 
@@ -100,15 +100,19 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             EditorGUILayout.LabelField("Level plays", level.track != null ? level.track.name : "a generated track (none set)");
 
             bool generated = generator.IsFinite && generator.LoadedTrack == null && generator.Track != null && generator.Track.HasEnd;
+            bool onShow = generated || generator.LoadedTrack != null; // a fresh track, or a saved one on show — either can be saved (as a copy)
 
-            if (GUILayout.Button("Generate Track", GUILayout.Height(28)))
+            using (new EditorGUI.DisabledScope(editingTrack)) // while editing, the edit panel's Save / Revert own the track on show
             {
-                Generate(generator, game);
-                generated = true;
-            }
+                if (GUILayout.Button("Generate Track", GUILayout.Height(28)))
+                {
+                    Generate(generator, game);
+                    onShow = true;
+                }
 
-            using (new EditorGUI.DisabledScope(!generated))
-                if (GUILayout.Button("Save Track As…")) SaveAs(generator, level);
+                using (new EditorGUI.DisabledScope(!onShow))
+                    if (GUILayout.Button(generator.LoadedTrack != null ? "Save Track As… (copy)" : "Save Track As…")) SaveAs(generator, level);
+            }
 
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -118,8 +122,10 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                     if (GUILayout.Button("Clear Current Track")) SetCurrent(level, null);
             }
 
-            using (new EditorGUI.DisabledScope(working == null || !working.IsValid))
+            using (new EditorGUI.DisabledScope(working == null || !working.IsValid || editingTrack))
                 if (GUILayout.Button("Preview Saved Track")) Preview(generator, working);
+
+            DrawEditPanel(generator);
 
             if (GUILayout.Button("Regenerate (endless preview)")) EndlessPreview(generator);
 
@@ -142,21 +148,29 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 Directory.CreateDirectory(TracksFolder);
                 AssetDatabase.Refresh();
             }
-            string suggested = working != null ? working.name : $"Track_{level.name}_{generator.LastSeed}";
+            TrackLayoutAsset shown = generator.LoadedTrack;
+            string suggested = shown != null ? shown.name + "_Copy" : working != null ? working.name : $"Track_{level.name}_{generator.LastSeed}";
             string path = EditorUtility.SaveFilePanelInProject("Save Track", suggested, "asset", "Where to save the generated track.", TracksFolder);
             if (string.IsNullOrEmpty(path)) return;
 
             var asset = AssetDatabase.LoadAssetAtPath<TrackLayoutAsset>(path);
             if (asset != null && asset.IsValid
                 && !EditorUtility.DisplayDialog("Overwrite track?",
-                    $"'{asset.name}' already holds a track. Replace it with the one just generated? Any edits made to it are lost.",
+                    $"'{asset.name}' already holds a track. Replace it with the one on show? Any edits made to it are lost.",
                     "Replace", "Cancel"))
                 return;
 
             bool created = asset == null;
             if (created) asset = ScriptableObject.CreateInstance<TrackLayoutAsset>();
             else Undo.RecordObject(asset, "Save Track");
-            asset.SetLayout(generator.CaptureLayout(), generator.ShapeAsset, generator.SpawnSet);
+            // A saved track on show is copied as it stands (edits included); a fresh one is captured from the generator.
+            if (shown != null)
+            {
+                if (shown == asset) return; // saving a track onto itself: nothing to do
+                asset.SetLayout(JsonUtility.FromJson<TrackLayout>(JsonUtility.ToJson(shown.Layout)), shown.shape, shown.spawnSet);
+                asset.timeLimitSeconds = shown.timeLimitSeconds;
+            }
+            else asset.SetLayout(generator.CaptureLayout(), generator.ShapeAsset, generator.SpawnSet);
             if (created) AssetDatabase.CreateAsset(asset, path);
             EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();

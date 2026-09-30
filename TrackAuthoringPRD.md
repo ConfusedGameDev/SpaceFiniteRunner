@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress. **M0 landed 2026-09-30. M1 landed 2026-09-30. M2 landed 2026-09-30. M3 landed 2026-09-30.** Settled with the designer: D1–D3, and on 2026-09-30 the four open questions (D10–D13). D4–D9 are proposals open for review. |
+| **Status** | In progress. **M0 landed 2026-09-30. M1 landed 2026-09-30. M2 landed 2026-09-30. M3 landed 2026-09-30. M4 landed 2026-09-30.** Settled with the designer: D1–D3, and on 2026-09-30 the four open questions (D10–D13). D4–D9 are proposals open for review. |
 | **Branch** | `feature/trackAuthoring`. |
 | **Scope** | Runner game only (`FiniteRunner_Test`, campaign runner levels). The city chase, `SaveData` and the Store are untouched. `Campaign` changes only through `RunnerLevelDefinition`. |
 | **Related** | `.claude/rules/runner-track.md`, `runner-hud-screens.md`, `campaign.md`, `ship-standalone.md`; `PatrolDuelPRD.md` (the patrol reads `IsGroundClear`) |
@@ -184,6 +184,20 @@ M0 can ship on its own. M1 is the risky one; every later milestone depends on it
 - The Scene-view drawing reads the live track, not the asset directly: it shows whatever the generator holds (a Generate Track bake, a Preview Saved Track, or the run in play). That covers "preview the edited asset", and M4's handles will edit the same live track.
 - Drawing is a `[DrawGizmo]` (no EditorTool yet; M4 brings the tool for handles). Switches live in the generator's inspector and are stored per user.
 - Cache rebuild: about 40 ms for 70 km, once per track change.
+
+**M4 as built:**
+- Edits go into the saved track asset (with Undo), not the scene. `ApplyEdit` reloads the asset and recomputes what moved: knot distances, length, run-up, end ramps. Every other placement keeps its distance and slides with the road.
+- Knots: select, move (up/down = grade), bank (disc and slider, with the road's actual bank shown next to it), insert after, delete. Spans: drag the ends, or add/remove them on the selected segment.
+- **Deferred:**
+  - R4.4, editing a loop's or tube's rolled parameters (none in the shipped shape).
+  - Tangent handles on feature knots.
+  - Knot editing on tracks with loops or tubes (locked: moving road before a section would shift it).
+- The final run-up and the first knot are locked (D9).
+- Added after the first check:
+  - Live drag: the reshaped stretch rebuilds while dragging.
+  - Explicit saving: snapshot on Edit Track, Save / Revert, and a Save / Discard / Keep Editing prompt on Stop Editing.
+  - Undo verified, including redo and discard.
+  - Save Track As… copies a saved or edited track.
 
 **Milestone gate (applies to every milestone, M0–M7):**
 1. When a milestone's code is done, work stops. Nothing is committed yet.

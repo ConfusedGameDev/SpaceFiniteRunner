@@ -307,6 +307,24 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         /// <summary>Spline distance for a track distance (inside an insert: the insert's start; past one: shifted by what it inserted, so a loop's exit maps to its exit knot).</summary>
+        /// <summary>
+        /// TRACK distance of knot <paramref name="index"/>: its spline distance
+        /// (the curve lengths before it) plus what every section starting
+        /// before it inserts. What a saved track re-derives after an edit
+        /// moved its knots.
+        /// </summary>
+        public float KnotTrackDistance(int index)
+        {
+            if (spline == null || index <= 0) return 0f;
+            var knots = spline.Spline;
+            float splineDistance = 0f;
+            for (int i = 0; i < index && i < knots.Count - 1; i++) splineDistance += knots.GetCurveLength(i);
+            float inserted = 0f;
+            foreach (var s in sections)
+                if (SplineDistanceOf(s.StartDistance) < splineDistance - 0.01f) inserted += s.InsertedLength;
+            return splineDistance + inserted;
+        }
+
         public float SplineDistanceOf(float distance)
         {
             float offset = 0f;

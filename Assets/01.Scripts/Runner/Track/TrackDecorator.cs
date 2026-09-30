@@ -414,6 +414,28 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
         }
 
+        /// <summary>
+        /// Takes down and re-stamps every piece whose stamp distance lies in
+        /// [<paramref name="from"/>, <paramref name="to"/>] (only what was
+        /// already stamped) — the road editor's live drag, where only that
+        /// stretch of road changed shape.
+        /// </summary>
+        public void Restamp(float from, float to)
+        {
+            if (track == null || decorParent == null) return;
+            for (int i = stamped.Count - 1; i >= 0; i--)
+            {
+                float d = stamped[i].distance;
+                if (d < from || d > to) continue;
+                if (stamped[i].go != null) SafeDestroy(stamped[i].go);
+                stamped.RemoveAt(i);
+            }
+            float first = roadSpacing * 0.5f;
+            int k = Mathf.Max(0, Mathf.CeilToInt((from - first) / roadSpacing));
+            for (float d = first + k * roadSpacing; d <= to && d < stampCursor; d += roadSpacing) StampAt(d);
+            if (!Application.isPlaying) MarkPreview();
+        }
+
         /// <summary>Flags every stamped piece as an edit-mode preview (never saved into the scene).</summary>
         public void MarkPreview() => TrackGenerator.MarkPreview(decorParent);
 

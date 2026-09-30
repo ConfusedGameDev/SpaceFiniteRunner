@@ -257,6 +257,37 @@ stay endless.
   track's `Revision`, `Length`, end and record count — ~40 ms for 70 km); a repaint only culls and
   draws. Per-user switches (`TrackGizmoSettings`, EditorPrefs) in the generator's inspector: draw,
   detail radius, placements, labels.
+- **Road editing** (`Runner/Editor/TrackGeneratorEditor.Editing.cs`, M4): Edit Track on the
+  inspector's track asset. Knots: click to select; the position handle moves one (up/down = grade),
+  a disc banks it; the inspector has numbers, insert-after, delete, previous/next/frame, and adds or
+  removes open straights and flat sweeps on the selected knot's segment. Span ends drag along the
+  road (projected back to a distance). Edits go into the ASSET with Undo; `TrackGenerator.ApplyEdit`
+  reloads it and `RederiveAfterEdit` rewrites the knot distances (`TrackManager.KnotTrackDistance`),
+  the length and end, the run-up start (same KNOT as before), the end ramps (one ramp before the end)
+  and the run-up keep-out; every other placement KEEPS its distance and slides with the road.
+  **Live drag** (`ApplyEditLive`): the road reloads (`LoadRoad`, no clearing) and only the stretch the
+  edit reshapes is rebuilt — two knots either side of a moved knot (AutoSmooth), or between a span
+  end's old and new place: the objects built from records there (`placedAt` remembers which record
+  built each object) and the road art (`TrackDecorator.Restamp`). Road past that is physically
+  unchanged, so what stands on it stays right; release does the full rebuild and saves the asset.
+  ~10 ms a drag frame against ~60 ms for the full rebuild; nothing vanishes or doubles.
+  **Saving is explicit**: Edit Track saves anything pending and snapshots the layout (JSON); edits
+  only mark the asset dirty; the panel shows Unsaved changes with Save / Revert; Stop Editing with
+  unsaved changes asks Save / Discard (back to the snapshot, undoable) / Keep Editing. Every change
+  is `Undo.RecordObject`-ed, the re-derived fields included (they are written in the same group), and
+  the undo hook lives as long as the inspector, redrawing the track on show even after editing
+  stops. Generate / Preview are disabled while editing; Save Track As… also copies a saved or edited
+  track on show.
+  - A knot's input rotation carries its bank (`WithBank`: look down the chord through its
+    neighbours, roll by the bank — the builder's own frame); moving a knot re-aims its neighbours'
+    frames, each keeping its bank. The road re-leans knots to the curve, so a sharply bent knot reads
+    a few degrees off the bank asked for — the inspector shows the road's own bank beside it.
+  - A feature's knot (Continuous, explicit tangent) keeps bank 0, its tangent turns with it, and it
+    cannot be deleted. **Locked**: the first knot, the final run-up (D9), and every knot on a track
+    with loops or tubes (moving road before a section would shift it).
+  - **Verified** on a copy of a saved track: a knot moved 200 m and banked 20° → length, run-up and
+    end ramps followed, knot distances stayed aligned, no other placement moved; play loaded the
+    edited road exactly and the collision road follows it.
 - **Previews never reach the scene file**: everything built in edit mode — pickups, road stamps,
   end markers — is flagged `DontSaveInEditor` (`TrackGenerator.MarkPreview`), bent meshes too, and
   the buttons neither record the spline as a prefab override nor dirty the scene.

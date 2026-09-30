@@ -359,6 +359,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         TrackLayoutAsset loadedAsset;                     // the saved track this Generate loaded, or null (decided here)
         bool baking;                                      // the editor's Generate Track: a finite track with play's rules, in edit mode
         bool shapeIsClone;                                // shapeRuntime is ours to destroy (a play clone or the fallback), never an asset
+        readonly Dictionary<GameObject, float> placedAt = new(); // built object → the distance of the record it came from (live edits rebuild a window)
         float builtTo;                                    // everything decided before this distance is built
         Dictionary<FeatureSpawnEntry, Material> featureMaterials;
         Material collectibleMaterial;
@@ -477,7 +478,82 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>Loads a saved track into the scene in edit mode, as play would, and builds its first stretch — a preview.</summary>
         public void PreviewSavedTrack(TrackLayoutAsset asset) => GenerateCore(asset);
 
-        void GenerateCore(TrackLayoutAsset preview)
+        /// <summary>
+        /// The editor's road editing (M4): reloads a saved track whose knots
+        /// were just changed and RE-DERIVES what the change moved — every
+        /// knot's track distance, the length, the final run-up's start, the
+        /// end, the end ramps (and the run-up's keep-out) — writing them back
+        /// into the asset's layout. Every other placement keeps its distance.
+        /// <paramref name="build"/> false reloads the road only (while a handle
+        /// is being dragged); true builds the preview too.
+        /// </summary>
+        public void ApplyEdit(TrackLayoutAsset asset, bool build)
+        {
+            editing = true;
+            try { GenerateCore(asset, build); }
+            finally { editing = false; }
+        }
+
+        bool editing; // ApplyEdit: re-derive the edited layout while loading it
+
+        /// <summary>
+        /// The road editor's DRAG: reloads only the road of the saved track
+        /// being edited (re-deriving distances, length and end as
+        /// <see cref="ApplyEdit"/> does) and rebuilds the built objects and road
+        /// art only on the stretch a moved knot reshapes — two knots either side
+        /// (AutoSmooth). Past that the road is physically unchanged, so what is
+        /// already built there still stands on it; it is re-keyed by the full
+        /// rebuild on release (<see cref="ApplyEdit"/>).
+        /// </summary>
+        public void ApplyEditLive(TrackLayoutAsset asset, int knot)
+        {
+            if (!ReloadRoadLive(asset)) return;
+            var distances = asset.Layout.knotDistances;
+            RebuildWindow(asset.Layout, distances[Mathf.Max(0, knot - 2)], distances[Mathf.Min(distances.Count - 1, knot + 2)]);
+        }
+
+        /// <summary>As <see cref="ApplyEditLive(TrackLayoutAsset, int)"/> for an edit that changes a known stretch (a span's end dragged along the road).</summary>
+        public void ApplyEditLive(TrackLayoutAsset asset, float from, float to)
+        {
+            if (ReloadRoadLive(asset)) RebuildWindow(asset.Layout, from, to);
+        }
+
+        // Road only, no clearing — or the full reload when this is not the track on show.
+        bool ReloadRoadLive(TrackLayoutAsset asset)
+        {
+            if (loadedAsset != asset || track == null || builtTo <= 0f)
+            {
+                ApplyEdit(asset, true);
+                return false;
+            }
+            editing = true;
+            try
+            {
+                sectionRecords.Clear();
+                LoadRoad(asset.Layout);
+            }
+            finally { editing = false; }
+            return true;
+        }
+
+        void RebuildWindow(TrackLayout layout, float from, float to)
+        {
+            for (int i = spawned.Count - 1; i >= 0; i--)
+            {
+                GameObject go = spawned[i].go;
+                if (go == null || !placedAt.TryGetValue(go, out float at) || at < from || at > to) continue;
+                placedAt.Remove(go);
+                DestroyObject(go);
+                spawned.RemoveAt(i);
+            }
+            foreach (TrackPlacement p in layout.placements)
+                if (p.distance >= from && p.distance <= to && p.distance < builtTo && p.kind != TrackPlacementKind.EndRamp)
+                    BuildTracked(p);
+            if (decorator != null) decorator.Restamp(from, to);
+            if (!Application.isPlaying) MarkPreview(padsParent);
+        }
+
+        void GenerateCore(TrackLayoutAsset preview, bool build = true)
         {
             if (track == null)
             {
@@ -539,6 +615,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             placementsQueued = 0;
             builtTo = 0f;
             sectionRecords.Clear();
+            placedAt.Clear();
             ClearChildren(padsParent);
             ClearChildren(markersParent);
             if (decorator != null) decorator.Clear();
@@ -605,7 +682,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (endless && loadedAsset != null)
             {
                 LoadLayout(loadedAsset.Layout);
-                BuildUpTo(aheadDistance);
+                if (build) BuildUpTo(aheadDistance);
                 return;
             }
 
@@ -689,7 +766,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             edge = Mathf.Min(edge, DecidedDistance);
             if (edge <= builtTo) return;
             int count = 0;
-            while (count < unbuilt.Count && unbuilt[count].distance < edge) Build(unbuilt[count++]);
+            while (count < unbuilt.Count && unbuilt[count].distance < edge) BuildTracked(unbuilt[count++]);
             unbuilt.RemoveRange(0, count);
             builtTo = edge;
             if (decorator != null) decorator.DecorateUpTo(edge);
@@ -711,6 +788,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
             foreach (Transform child in parent)
                 foreach (Transform t in child.GetComponentsInChildren<Transform>(true))
                     t.gameObject.hideFlags |= HideFlags.DontSaveInEditor;
+        }
+
+        // Builds a record and remembers which objects it made, so a live edit
+        // can take down and rebuild just the ones on the stretch it reshaped.
+        void BuildTracked(in TrackPlacement placement)
+        {
+            int before = spawned.Count;
+            Build(placement);
+            for (int i = before; i < spawned.Count; i++)
+                if (spawned[i].go != null) placedAt[spawned[i].go] = placement.distance;
         }
 
         // One record, built: the features the generator owns, else the spawner
@@ -1334,6 +1421,27 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// </summary>
         void LoadLayout(TrackLayout layout)
         {
+            LoadRoad(layout);
+            foreach (var keepOut in layout.keepOuts) featureKeepOuts.Add((keepOut.x, keepOut.y));
+            placements.AddRange(layout.placements);
+            unbuilt.AddRange(placements);
+            unbuilt.Sort((a, b) => a.distance.CompareTo(b.distance));
+            placementsQueued = placements.Count;
+
+            foreach (var spawner in runtimeSpawners)
+                if (spawner != null) spawner.Park();
+            collectibleCursor = float.MaxValue;
+            featureCursor = float.MaxValue;
+            pendingRamps.Clear();
+            endZoneTarget = layout.endZoneStart;
+            inEndZone = true;
+            trackComplete = true;
+        }
+
+        // The road of a saved track: knots, sections, spans, the end and every
+        // knot's distance (re-derived first when an edit moved knots).
+        void LoadRoad(TrackLayout layout)
+        {
             track.ClearKnots();
             foreach (var knot in layout.knots) track.AppendKnot(knot.ToBezier(), knot.mode);
             track.Recalculate();
@@ -1350,6 +1458,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 track.Recalculate();
                 sectionRecords.Add(record);
             }
+            if (editing) RederiveAfterEdit(layout);
             foreach (var span in layout.flatSweeps) track.AddFlatSweep(span.start, span.end, span.outerSide);
             foreach (var span in layout.openStretches) track.AddOpenStretch(span.start, span.end);
             if (layout.endZoneStart >= 0f) track.SetEndZone(layout.endZoneStart);
@@ -1359,20 +1468,40 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             knotDistances.Clear();
             knotDistances.AddRange(layout.knotDistances);
-            foreach (var keepOut in layout.keepOuts) featureKeepOuts.Add((keepOut.x, keepOut.y));
-            placements.AddRange(layout.placements);
-            unbuilt.AddRange(placements);
-            unbuilt.Sort((a, b) => a.distance.CompareTo(b.distance));
-            placementsQueued = placements.Count;
+        }
 
-            foreach (var spawner in runtimeSpawners)
-                if (spawner != null) spawner.Park();
-            collectibleCursor = float.MaxValue;
-            featureCursor = float.MaxValue;
-            pendingRamps.Clear();
-            endZoneTarget = layout.endZoneStart;
-            inEndZone = true;
-            trackComplete = true;
+        // After an edit moved knots: the knots' track distances, the length and
+        // the end follow the road; the run-up starts at the same KNOT it did
+        // (distances shift, knots do not), and the end ramps stand one ramp
+        // before the new end. knotDistances must still be index-aligned with
+        // the knots (the editor inserts / removes an entry with a knot).
+        void RederiveAfterEdit(TrackLayout layout)
+        {
+            int zoneKnot = -1;
+            float best = float.MaxValue;
+            for (int i = 0; i < layout.knotDistances.Count; i++)
+            {
+                float gap = Mathf.Abs(layout.knotDistances[i] - layout.endZoneStart);
+                if (gap < best) { best = gap; zoneKnot = i; }
+            }
+
+            layout.knotDistances.Clear();
+            for (int i = 0; i < track.Spline.Spline.Count; i++) layout.knotDistances.Add(track.KnotTrackDistance(i));
+            float oldZone = layout.endZoneStart;
+            layout.length = track.Length;
+            layout.endDistance = track.Length;
+            if (zoneKnot >= 0 && zoneKnot < layout.knotDistances.Count) layout.endZoneStart = layout.knotDistances[zoneKnot];
+
+            float rampStart = layout.endDistance - EndRampLength;
+            for (int i = 0; i < layout.placements.Count; i++)
+            {
+                if (layout.placements[i].kind != TrackPlacementKind.EndRamp) continue;
+                TrackPlacement p = layout.placements[i];
+                p.distance = rampStart;
+                layout.placements[i] = p;
+            }
+            for (int i = 0; i < layout.keepOuts.Count; i++)
+                if (Mathf.Approximately(layout.keepOuts[i].x, oldZone)) layout.keepOuts[i] = new Vector2(layout.endZoneStart, layout.keepOuts[i].y);
         }
 
         /// <summary>
@@ -1620,7 +1749,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             for (int i = spawned.Count - 1; i >= 0; i--)
             {
                 if (spawned[i].distance >= minDistance) continue;
-                if (spawned[i].go != null) Destroy(spawned[i].go);
+                if (spawned[i].go != null)
+                {
+                    placedAt.Remove(spawned[i].go);
+                    Destroy(spawned[i].go);
+                }
                 spawned.RemoveAt(i);
             }
             for (int i = claims.Count - 1; i >= 0; i--)
