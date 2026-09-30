@@ -200,7 +200,7 @@ namespace ConfusedGameDev.FiniteRunner.Audio
             // panels must not stall the smoothing or the fade.
             float dt = Time.unscaledDeltaTime;
             bool live = !motor.Paused && !motor.HasStopped;
-            float speed01 = Mathf.Clamp01(motor.CurrentSpeed * 3.6f / lightSpeedKmh); // clamped: the ship may pass Light Speed after the win latch
+            float speed01 = Mathf.Clamp01(motor.CurrentSpeed * (settings != null ? settings.speedDisplayMultiplier : 3.6f) / lightSpeedKmh); // clamped: the ship may pass Light Speed after the win latch
             smoothedSpeed = Mathf.Lerp(smoothedSpeed, speed01, 1f - Mathf.Exp(-sfx.engineResponse * dt));
             gate = Mathf.MoveTowards(gate, live ? 1f : 0f, dt / Mathf.Max(0.01f, sfx.engineFadeSeconds));
 

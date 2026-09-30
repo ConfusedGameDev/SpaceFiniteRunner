@@ -51,7 +51,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         [TitleGroup("Speed")]
         [Tooltip("Top speed the throttle alone can reach. Only orbs and pads go past it.")]
-        [PropertyRange(0f, 1000f), SuffixLabel("m/s", true)]
+        [PropertyRange(0f, 3500f), SuffixLabel("m/s", true)]
         public float cruiseSpeed = 250f;
 
         [TitleGroup("Speed")]

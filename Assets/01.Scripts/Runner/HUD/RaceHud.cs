@@ -379,7 +379,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             UpdateQteResult();
             if (ship == null) return;
 
-            float kmh = ship.Speed * 3.6f;
+            float kmh = ship.Speed * (run != null ? run.SpeedDisplayMultiplier : 3.6f);
             float lightSpeed = run != null ? run.LightSpeedKmh : 0f;
 
             if (speedText != null)

@@ -129,7 +129,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         {
             float min = Mathf.Clamp(settings.loopMinTimeScale, 0.01f, 1f);
             float max = Mathf.Clamp(settings.loopTimeScale, min, 1f);
-            float speedKmh = motor.CurrentSpeed * 3.6f;
+            float speedKmh = motor.CurrentSpeed * settings.speedDisplayMultiplier;
             if (speedKmh <= 1f) return max;
             return Mathf.Clamp(settings.loopApparentSpeedKmh / speedKmh, min, max);
         }

@@ -932,6 +932,83 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1001 &1755938430
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2.0164
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2.0164
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2.0164
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.2929373
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.0000017712155
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 111.389366
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_Name
+      value: Ultraboost
+      objectReference: {fileID: 0}
+    - target: {fileID: 7658229541096958892, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ed2f95cfded5007469dd3e9faf512a01, type: 2}
+    - target: {fileID: 8377019849141695582, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.5767
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 7a095432ffac14b44bb523610bb9abaf, type: 3}
 --- !u!1 &1801834256
 GameObject:
   m_ObjectHideFlags: 0
@@ -1083,3 +1160,4 @@ SceneRoots:
   - {fileID: 945378628}
   - {fileID: 330675493}
   - {fileID: 636338472}
+  - {fileID: 1755938430}

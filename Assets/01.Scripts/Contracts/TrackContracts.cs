@@ -53,6 +53,8 @@ namespace ConfusedGameDev.FiniteRunner.Contracts
         float AirLaneHeight { get; }
         /// <summary>Hull and repair are in play (repair orbs spawn only then).</summary>
         bool HullEnabled { get; }
+        /// <summary>m/s → the km/h the run shows (3.6 = true km/h).</summary>
+        float SpeedDisplayMultiplier { get; }
         /// <summary>The speed a loop's gate at <paramref name="distance"/> demands, m/s.</summary>
         float LoopRequiredSpeed(float distance);
         /// <summary>

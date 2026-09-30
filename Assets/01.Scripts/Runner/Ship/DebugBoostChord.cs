@@ -64,7 +64,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             if (!Enabled || motor == null || motor.Paused || Time.timeScale <= 0f) return;
             var pad = Gamepad.current;
             if (pad != null && pad.buttonNorth.wasPressedThisFrame)
-                motor.AddSpeedImpulse(settings.debugBoostKmh / 3.6f);
+                motor.AddSpeedImpulse(settings.debugBoostKmh / settings.speedDisplayMultiplier);
         }
     }
 }

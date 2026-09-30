@@ -80,6 +80,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float lightSpeedKmh = 6500f;
 
         [TitleGroup("Win condition")]
+        [Tooltip("Turns the ship's real speed (m/s) into the km/h the runner shows and judges: the HUD, Light Speed, loop gates, the speed FX and the top-speed stat all read speed × this. 3.6 is true km/h; raise it and the same flight reads (and reaches Light Speed) faster.")]
+        [PropertyRange(0.5f, 20f), SuffixLabel("×", true)]
+        public float speedDisplayMultiplier = 3.6f;
+
+        [TitleGroup("Win condition")]
         [Tooltip("Seconds to reach Light Speed AND leave the track by one of its end ramps before the chase is lost.")]
         [PropertyRange(10f, 300f), SuffixLabel("s", true)]
         public float timeLimitSeconds = 60f;

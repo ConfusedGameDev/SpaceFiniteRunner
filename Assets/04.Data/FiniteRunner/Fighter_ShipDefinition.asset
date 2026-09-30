@@ -17,8 +17,8 @@ MonoBehaviour:
   initialImpulse: 164
   cruiseSpeed: 1000
   thrust: 25
-  brakeDecel: 123
-  coastDrag: 52.3
+  brakeDecel: 134
+  coastDrag: 61.2
   launchCoastGraceSeconds: 2
   passiveDeceleration: 29.8
   digitalThrottleRampSeconds: 0.15
@@ -34,7 +34,7 @@ MonoBehaviour:
   dashRechargeSeconds: 1
   dashGhostCount: 5
   barrelRollSeconds: 0.45
-  weight: 133.3
+  weight: 2.67
   maxHull: 300
   jumpStrength: 1
   hoverHeight: 3.75
