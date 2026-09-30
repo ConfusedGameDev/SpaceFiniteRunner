@@ -61,7 +61,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         /// generator, hidden until the GameManager reveals it inside the
         /// alert lead, and tinted with the gate.
         /// </summary>
-        public void BuildLabel(float height, float characterSize)
+        public void BuildLabel(float height, float characterSize, float speedDisplayMultiplier)
         {
             if (label != null) Destroy(label.gameObject);
             var go = new GameObject("RequiredSpeedLabel");
@@ -73,7 +73,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             go.transform.localRotation = Quaternion.identity;
 
             label = go.AddComponent<TextMesh>();
-            label.text = $"{RequiredSpeed * 3.6f:0}";
+            label.text = $"{RequiredSpeed * speedDisplayMultiplier:0}";
             label.anchor = TextAnchor.LowerCenter;
             label.alignment = TextAlignment.Center;
             label.fontStyle = FontStyle.Bold;

@@ -83,14 +83,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // camera mode each frame.
             speedLines = SpeedLines.Apply(settings.speedLinesEnabled);
             if (speedLines != null && motor != null)
-                speedLines.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, run.LightSpeedKmh);
+                speedLines.SetTarget(motor.transform, () => motor.CurrentSpeed * run.SpeedDisplayMultiplier, run.LightSpeedKmh);
 
             // Hyperspace sky: the scene's hand-placed HyperspaceSky beside the
             // speed lines. It follows the ship's heading; Update holds it in
             // while the ship is at Light Speed.
             hyperspace = HyperspaceSky.Apply(settings.hyperspaceSkyEnabled);
             if (hyperspace != null && motor != null)
-                hyperspace.SetTarget(motor.transform, () => motor.CurrentSpeed * 3.6f, run.LightSpeedKmh);
+                hyperspace.SetTarget(motor.transform, () => motor.CurrentSpeed * run.SpeedDisplayMultiplier, run.LightSpeedKmh);
 
             SpeedPad.Collected += OnPadCollected;
             RepairOrb.Collected += OnRepairOrb;
@@ -188,7 +188,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void UpdateLightSpeed()
         {
             if (motor == null) return;
-            float kmh = motor.CurrentSpeed * 3.6f;
+            float kmh = motor.CurrentSpeed * run.SpeedDisplayMultiplier;
             float light = run.LightSpeedKmh;
             bool fallingNow = falling || (motor.HasLeftTrackEnd && !motor.IsEscaping);
             atLightSpeed = !fallingNow && (atLightSpeed

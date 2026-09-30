@@ -407,7 +407,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             AddShipStat(screen, motor, onChanged, refreshers, MenuTextId.LaunchSpeed,
                         0f, 1000f, 10f, "0", d => d.initialImpulse, (d, v) => d.initialImpulse = v);
             AddShipStat(screen, motor, onChanged, refreshers, MenuTextId.CruiseSpeed,
-                        0f, 1000f, 10f, "0", d => d.cruiseSpeed, (d, v) => d.cruiseSpeed = v);
+                        0f, 3500f, 10f, "0", d => d.cruiseSpeed, (d, v) => d.cruiseSpeed = v);
             AddShipStat(screen, motor, onChanged, refreshers, MenuTextId.Thrust,
                         0f, 300f, 5f, "0", d => d.thrust, (d, v) => d.thrust = v);
             AddShipStat(screen, motor, onChanged, refreshers, MenuTextId.BrakePower,

@@ -1448,7 +1448,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 loop.AddGateRenderer(barRenderer);
             }
             loop.SetGateColor(false);
-            loop.BuildLabel(labelHeight, def.labelSize);
+            loop.BuildLabel(labelHeight, def.labelSize, rules != null ? rules.SpeedDisplayMultiplier : 3.6f);
             // Culled by its EXIT, not its mouth: the loop is 2πR of track
             // (630 m at R = 100) and the cull line trails the ship by far
             // less, so keyed on the mouth it was destroyed with the ship

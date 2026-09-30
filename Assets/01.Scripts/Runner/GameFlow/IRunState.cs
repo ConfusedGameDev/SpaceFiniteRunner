@@ -24,6 +24,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         float HullFraction { get; }
         /// <summary>The run's Light Speed target, km/h.</summary>
         float LightSpeedKmh { get; }
+        /// <summary>m/s → the km/h the run shows (<see cref="GameSettings.speedDisplayMultiplier"/>).</summary>
+        float SpeedDisplayMultiplier { get; }
         /// <summary>Light Speed has been reached (it latches).</summary>
         bool LightSpeedReached { get; }
         /// <summary>Every mandatory objective met (latched) — half the win; the other half is leaving by an end ramp.</summary>

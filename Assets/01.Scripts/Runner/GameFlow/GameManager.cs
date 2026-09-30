@@ -110,12 +110,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>Height of the air lane above the flight line, metres.</summary>
         public float AirLaneHeight => settings.airLaneHeight;
 
+        /// <summary>m/s → the km/h the run shows and judges; 3.6 (true km/h) with no settings.</summary>
+        public float SpeedDisplayMultiplier => settings != null && settings.speedDisplayMultiplier > 0f ? settings.speedDisplayMultiplier : 3.6f;
+
         /// <summary>Entry speed (m/s) a loop at <paramref name="distance"/> demands: floor + ramp × distance, capped. Fixed per loop, so its gate never lies.</summary>
         public float LoopRequiredSpeed(float distance)
         {
             float kmh = Mathf.Min(settings.loopSpeedCapKmh,
                                   settings.loopSpeedFloorKmh + settings.loopSpeedRampKmhPer100m * distance / 100f);
-            return kmh / 3.6f;
+            return kmh / SpeedDisplayMultiplier;
         }
 
         public PolicePatrol Patrol => patrol;
@@ -446,7 +449,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     runCounted = true;
                     PlayerStats.RecordRunStarted();
                 }
-                PlayerStats.SampleShipSpeed(motor.CurrentSpeed * 3.6f);
+                PlayerStats.SampleShipSpeed(motor.CurrentSpeed * SpeedDisplayMultiplier);
             }
 
             // An ending is playing out (the win's fly-past, the MISSION FAILED
@@ -458,7 +461,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // ship still has to leave the track by one of its end ramps
             // (OnReachedTrackEnd), and until then everything below is live.
             // Evaluated every frame either way, so a challenge can still latch.
-            if (EvaluateObjectives(motor.CurrentSpeed * 3.6f)) ObjectivesMet = true;
+            if (EvaluateObjectives(motor.CurrentSpeed * SpeedDisplayMultiplier)) ObjectivesMet = true;
 
             // Once the hyperspace jump is pressed nothing can lose the run: the
             // hull is shielded and a catch is never read (the patrol is held).
@@ -504,7 +507,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void OnReachedTrackEnd(bool tookRamp)
         {
             if (RunOver || IsEnding) return;
-            if (EvaluateObjectives(motor.CurrentSpeed * 3.6f)) ObjectivesMet = true;
+            if (EvaluateObjectives(motor.CurrentSpeed * SpeedDisplayMultiplier)) ObjectivesMet = true;
 
             // The hyperspace jump was only offered with every objective met,
             // and pressing it is the win: off the end is the escape whether
@@ -519,7 +522,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // the hyperspace jump the ship must still HOLD it at the lip: a run
             // that dropped back under it is too slow to escape.
             lostSpeedAtEnd = ObjectivesMet && !(hyperspace != null && hyperspace.Jumping)
-                             && !HoldsSpeedGoals(motor.CurrentSpeed * 3.6f);
+                             && !HoldsSpeedGoals(motor.CurrentSpeed * SpeedDisplayMultiplier);
             if (tookRamp && ObjectivesMet && !lostSpeedAtEnd)
             {
                 HasWon = true; // from here on nothing can be lost
