@@ -24,7 +24,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         IRunState run;
 
         OrbitCameraRig cameraRig;          // null when GameSettings has no camera asset
-        CameraMode modeBeforeJump;         // the view a jump forced to Far hands back on landing
+        CameraMode modeBeforeJump;         // the view a jump forced to Far hands back on landing (or on a respawn)
+        bool jumpHoldsFar;                 // a takeoff forced Far and nothing has handed the view back yet
         float fallCameraLeft = -1f;        // seconds until the camera stops following an off-track fall, -1 = not counting
         bool fallCinematic;                // the rig is holding the planted shot for an off-track fall
         bool loopCinematic;                // the rig is holding the cinematic shot for a loop (and its fall)
@@ -125,9 +126,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             cameraRig.hasPlayerControl = true;
         }
 
-        /// <summary>A retry: no loop or fall shot left armed, no ending shot left planted.</summary>
+        /// <summary>A retry: no loop or fall shot left armed, no ending shot left planted, no jump's Far left forced.</summary>
         public void ResetForRun()
         {
+            RestoreJumpView(instant: true);
             EndLoopCinematic();
             EndFallCamera();
             ReleaseEndingShot();
@@ -137,18 +139,27 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         // A jump: the camera pulls out to the Far framing for the arc and
         // hands the player's view back on landing (a no-op if it was Far).
-        // The cycle is locked meanwhile — ShipMotor.BlockModeCycle.
+        // The cycle is locked meanwhile — ShipMotor.BlockModeCycle. Running
+        // off an open edge takes off the same way but never lands — the
+        // respawn teleports the ship back — so the respawn hands it back too.
+        // A second takeoff before the view is back keeps the first one's
+        // view, never the forced Far.
         void OnTookOff()
         {
             if (cameraRig == null) return;
-            modeBeforeJump = cameraRig.Mode;
+            if (!jumpHoldsFar) modeBeforeJump = cameraRig.Mode;
+            jumpHoldsFar = true;
             cameraRig.SetMode(CameraMode.Far, instant: false);
         }
 
-        void OnLanded()
+        void OnLanded() => RestoreJumpView(instant: false);
+
+        void RestoreJumpView(bool instant)
         {
+            if (!jumpHoldsFar) return;
+            jumpHoldsFar = false;
             if (cameraRig != null && modeBeforeJump != CameraMode.Far)
-                cameraRig.SetMode(modeBeforeJump, instant: false);
+                cameraRig.SetMode(modeBeforeJump, instant);
         }
 
         // ------------------------------------------------------------- loops
@@ -210,6 +221,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void OnRespawnStarted(Vector3 teleport)
         {
             EndFallCamera();
+            RestoreJumpView(instant: true);
             if (cameraRig != null) cameraRig.NotifyWarp(teleport);
         }
 
