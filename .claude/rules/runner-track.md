@@ -113,11 +113,31 @@ leaves at the end by `TrackBody`'s own rule (`runner-ship.md`), not by an open e
 
 ## `TrackGenerator` (+ `Editor/TrackGeneratorEditor`)
 
-Procedural builder **and** streamer. With `endless` on (default) it builds an initial
-stretch in `Awake`, then each `Update` keeps `aheadDistance` of finished track ahead of the ship
-(appending knots, placing pads, decorating) and culls spawned objects more than
-`behindDistance` behind. **In play the streamed track is FINITE** (below); an edit-mode preview
-and a scene with no `GameManager` stay endless.
+Procedural builder **and** streamer, in two halves that never mix (TrackAuthoring M1):
+
+- **Deciding** lays the road (knots, sweeps, banks, features, the end) and decides everything that
+  goes on it as `TrackPlacement` records (`Track/Layout/TrackPlacement.cs`: kind, distance,
+  lateral, height, `variant`, `data`). **Every random draw happens here.** A finite play track is
+  decided WHOLE in `Generate` (`Decide(+∞)`: ~200 knots and ~700 records, cheap), so the run knows
+  its full shape and length from the first frame (`Placements` exposes the records); an endless
+  preview decides as it streams (`Decide(focus + aheadDistance)`).
+- **Building** (`BuildUpTo(edge)`) turns records into GameObjects only inside the stream window —
+  the ship to `aheadDistance` ahead (16 km in the test scene) — in distance order, and draws
+  nothing, so the same records always build the same objects. `SettledDistance` is how far it has
+  BUILT; the colliders and the decoration follow it. `Build` routes generator kinds (Ramp, Loop,
+  EndRamp, Collectible) to the generator's builders and every other kind to the spawner whose
+  `Kind` it is. Objects are culled `behindDistance` behind.
+- `Generate` builds only the first stretch FROM THE START (`BuildUpTo(aheadDistance)`), never from
+  the focus: a restart regenerates before the ship relaunches, so the focus still holds last
+  run's distance.
+- **Verified equal**: seed 424242 decided-then-built produces exactly M0's streamed track (every
+  knot, every object, the end).
+- **Debug edits to spawn spacing / tier chances apply on the next Generate**, not to the road
+  ahead mid-run (it is already decided). What is read at BUILD time (a tier's multiplier, colour)
+  still applies live.
+
+**In play the track is FINITE** (below); an edit-mode preview and a scene with no `GameManager`
+stay endless.
 
 ### The finite track (`IsFinite`, `EndDistance`, `TargetLength`)
 
@@ -147,24 +167,25 @@ and a scene with no `GameManager` stay endless.
   (a loop, a 3–7 km tube, the longest landing off a ramp) would pass `endZoneTarget` — before the
   claim, `straightUntil` or `AddSection`, so nothing was registered — a feature cursor that the
   zone would swallow is parked, and one claim over the whole zone keeps pads and coins off.
-- `FinishTrack` sets the end, flags `trackComplete` (the `StreamTo` loop never appends again and
-  `settled` becomes `track.Length` — no trailing margin after the last knot, so the run-up and the
-  ramps are stamped at once; the end knot exists when the ship is still ≥ `aheadDistance` +
-  `SettleMargin` out) and calls `CreateEndRamps`.
-- **`CreateEndRamps`**: three `JumpRamp`s (`IsEndRamp`) side by side, lips ON the end of the
+- `FinishTrack` sets the end, flags `trackComplete` (the `Decide` loop never appends again and the
+  decided distance becomes `track.Length` — no trailing margin after the last knot) and calls
+  `CreateEndRamps`.
+- **`CreateEndRamps`** records (`EndRamp`, `variant` = slot 0/1/2) and `BuildEndRamp` builds three `JumpRamp`s (`IsEndRamp`) side by side, lips ON the end of the
   road, equal widths `(trackWidth − 2·gap − 2·sideGap) / 3` at laterals 0 and ±(width + gap)
   (`GameSettings.endRampGapMeters` / `endRampSideGapMeters`), boost 0, the outer two reaching
   0.5 m past a flush wall; a `TrackDecorator.StampEndMarker` strip marks each gap as a drop. They
   are keyed on their END for the cull. Their definition is `endRamp.definition`, else
   `Resources/FiniteRunner_EndRamp` (a `JumpDefinition`: `entryMargin` 0, length 120, 15°, side hit
   0.05 — width fraction and arc knobs unused), else built-in numbers; cloned in play.
-  `BuildRamp` is the one ramp builder, shared with `CreateJump`.
+  `BuildRamp` is the one ramp builder, shared with `BuildJump`; the middle slot stamps the gap markers.
 - Debug: CORE SETTINGS → TRACK LENGTH, written by `GameManager.SetTrackLengthFromDebug` to the
   asset the run resolves it from (the level's own length when it sets one, else `GameSettings`).
 
 **Invariants:**
 
-- **Knots are never removed**, so distances stay valid all run — only spawned objects are culled.
+- **Knots are never removed behind the built road**, so distances stay valid all run — only spawned
+  objects are culled. The one removal is `TrackManager.TruncateKnots`, the hyperspace cut-back,
+  and only past the built road (below).
 - **A spawned object that spans track is keyed on its END for the cull**, not its spawn point:
   a loop is 2πR of track (630 m at R = 100) against a `behindDistance` of 150 in the test scene,
   so keyed on its mouth the `LoopFeature` was destroyed with the ship still climbing it, and the
@@ -176,7 +197,7 @@ and a scene with no `GameManager` stay endless.
 - `RegenerateForRun()` fully rebuilds — endless restarts must, since the stretch behind the
   start was culled.
 - `seed == 0` means non-repeatable (`LastSeed` exposes the rolled seed; the inspector shows it).
-- **A non-zero seed gives the same track however it streams** (one `StreamTo` or one per frame —
+- **A non-zero seed gives the same track however it streams** (one `Decide` or one per frame —
   checked by diffing knot + object dumps). Keep it that way:
   - The layout `rng` is drawn ONLY in road order (`AddSegment`, `StartTurn`, `DecideFeature`,
     `CreateSection`). Anything placed later draws from its own stream hashed off the layout state,
@@ -263,7 +284,7 @@ jumps (1), loops (2), cylinder sections (3) are built; multi-path is the one lef
 **The builder is piece-sequenced (M3).** `featureCursor` is the next spot. When the normal
 segment roll would reach it, `AddSegment` cuts the segment to land a knot **on** the spot (never
 shorter than a minimum segment — a closer spot is pushed out), snaps the bank to 0 and pins the
-knot with explicit tangents, and `StreamTo` calls `DecideFeature` right there: one weighted draw
+knot with explicit tangents, and `Decide` calls `DecideFeature` right there: one weighted draw
 (+ the M0 loop gate), `CreateSection(track, spot, ref rng)`, `AddSection`, the footprint claimed,
 and **the spline continues from the feature** — a loop gets an exit knot at its displaced exit
 pose (`ContinueFromLoopExit`: explicit tangent along `ExitForward`, the bridge measured into
@@ -334,6 +355,12 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
   multiplier on the spacing, 0 = none), the cursor and **its own rng** —
   `hash(layout rng state, FNV(displayName))`, so a spawner never moves another's layout and the
   road never depends on what spawns.
+- **Two passes** (M1): `Step` DECIDES — every roll, the claim or `RecordPickup` — and ends in
+  `ctx.Emit(TrackPlacement)`; `Build(ctx, placement)` builds that record later, inside the stream
+  window, drawing nothing (`CreatePad` no longer records the pickup: `Step` did). Each spawner
+  declares the `Kind` it emits, which is how the generator routes a record back to it. The rolls
+  stay in their old order (a laser gate: variant, coverage, lateral, rotor, wave), so seeds decide
+  what they always did.
 - **The loop** (`TrackSpawner.PlaceUpTo`): roll `chance`, then the subclass `Step(ctx, distance)`
   returns −1 (done, move on by the spacing ÷ `Density`), a distance to retry from (the claimed
   ground in the way), or +∞ (never again — the end zone). An inactive spawner (`IsActive` false,
@@ -425,7 +452,7 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
 
 - **Not a `TrackFeatureDefinition`.** Gates are the `LaserGateSpawner` (`Spawner_LaserGates`:
   prefab, definition drawn inline and cloned in play, spacing 600–1200 m, `startDistance` 1500,
-  `clearance`), phase `ClaimsGround` — so BEFORE every pickup in `StreamTo`, claiming their ground
+  `clearance`), phase `ClaimsGround` — so BEFORE every pickup in every `Decide` pass, claiming their ground
   so no orb or coin sits in a beam, keyed on their END for the cull, drawing from the spawner's own
   rng. Play mode only.
 - **Keep-outs** (`TrackSpawnContext.KeepOutUntil`): `featureKeepOuts` gets `(spot, spot + footprint + exclusion)`
@@ -495,16 +522,23 @@ over this registry. A swaying orb reports its live lateral through
 
 ### Forcing the end in (`ForceEndAhead`, the hyperspace jump)
 
-`TrackGenerator.ForceEndAhead(runUpMeters)` brings a finite track's end in NOW: the final run-up
-starts where the road currently stops (`track.Length` + half a segment), **never inside built
-road** — the spline is append-only and everything short of it already carries pads, lasers,
-colliders and decoration — plus what the road there still owes: the bank unwinding
-(`ceil(|bank|/maxBankStepPerKnot) × segmentLength.y + levelLeadDistance`), a sweep's remaining knots,
-the end of a section (tube, loop) the tip is inside. It sets `endZoneTarget`, `endRunUp` (≥ a ramp +
-half a segment) and `targetLength` (the HUD's distance until the built end takes over), clears
-`pendingRamps` / `deferredFlatKnots`, parks the feature cursor; the ordinary streaming then lands
-`EndZoneStart`, `FinishTrack` and `CreateEndRamps`. False (nothing changes) when endless, already in
-the zone, complete, or the real end is nearer. `EndRampLaterals()` returns the three ramps' centres
+`TrackGenerator.ForceEndAhead(runUpMeters)` brings a finite track's end in NOW. The track is
+decided whole at run start, so it first CUTS THE DECIDED ROAD BACK (`CutBackForEnd`): the last knot
+kept is the one after the first knot `CutClearance` (200 m — what built objects and 40 m road stamps
+reach past their own distance) past the built road, never inside a section. Removing the knots after
+it reshapes the segment ENDING at the kept knot (its AutoSmooth tangent changes), so every record on
+that segment or past it is dropped, with its claims, keep-outs and pickup marks; the road the ship
+can see is untouched. `TrackManager.TruncateKnots` drops the knots, sections and spans past the cut
+and clears the end marks. The builder resumes from the kept knot (`knotDistances` tracks every
+knot's track distance): heading and grade from its rotation, bank from `GetBankAtDistance`, out of
+any sweep. Then the run-up starts at the tip + half a segment, **never inside built road**, plus
+what the road there still owes: the bank unwinding (`ceil(|bank|/maxBankStepPerKnot) ×
+segmentLength.y + levelLeadDistance`), the end of a section. It sets `endZoneTarget`, `endRunUp` (≥ a
+ramp + half a segment) and `targetLength`, and decides the new end at once (`Decide(+∞)`:
+`EndZoneStart`, `FinishTrack`, the end ramp records) — the spawners and coins place nothing on the
+new tail (their cursors are past it). False (nothing changes) when endless, or the real end zone
+already starts before the new one could. Verified: cut 200 m past the built edge, all built knots
+unchanged, the new end's ramps and final collider chunk build. `EndRampLaterals()` returns the three ramps' centres
 from the SAME layout helper `CreateEndRamps` uses (`EndRampLayout` / `EndRampLateral`), valid before
 they exist.
 
@@ -533,8 +567,9 @@ km/h never lie. The number is **fixed above the gate as a world-space label**
 haze) and tinted with the gate. It is never a popup riding ahead of the ship.
 
 **A loop is only placed when it is reachable** (`TrackGenerator.LoopReachable`): in an endless
-play run, the ship's predicted speed at the spot (current speed minus the passive bleed over the
-gap) must clear `LoopRequiredSpeed(spot)` × (1 + `LoopDefinition.gateHeadroom`, 0.1). A refused
+play run, the ship's predicted speed at the spot (at least the CRUISE speed — the track is decided
+whole at run start, with the ship standing on the line — minus the passive bleed over the gap)
+must clear `LoopRequiredSpeed(spot)` × (1 + `LoopDefinition.gateHeadroom`, 0.1). A refused
 loop redraws among the other entries off the **same** roll (`WeightedTable.Pick(…, exclude)`), so seeds
 only diverge where a loop was refused; a table with nothing else skips the spot. Edit-mode and
 non-endless previews are not gated. So a red gate can only come from speed lost after placement.

@@ -34,7 +34,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [PropertyRange(20f, 2000f), SuffixLabel("m", true)]
         [SerializeField] float captureRange = 400f;
 
-        [Tooltip("With no last answer to start from, the projection scans this much of the newest track.")]
+        [Tooltip("With no hint to start from, the projection scans this much track either side of where it last found a ship (the whole track, coarsely, when it never has).")]
         [PropertyRange(200f, 20000f), SuffixLabel("m", true)]
         [SerializeField] float acquireScanMeters = 4000f;
 
@@ -87,6 +87,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             sample.lateral = lateral;
             sample.height = Vector3.Dot(worldPosition - onRoad, there * Vector3.up);
             hint = distance;
+            lastFound = distance;
+            lastFoundRevision = track.Revision;
             return true;
         }
 
@@ -203,13 +205,31 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return angle * tube.Radius / curl;
         }
 
-        // No last answer: the nearest point of the newest stretch of track, coarsely — Newton does the rest.
+        // Where this guide last found a ship on the current track (NaN: never, or the track was rebuilt since).
+        float lastFound = float.NaN;
+        int lastFoundRevision = -1;
+
+        // No hint: the nearest point, coarsely — Newton does the rest. The
+        // track is decided whole at run start, so its newest stretch is the
+        // finish line, not where the ship is: the scan is round where a ship
+        // was last found, and over the whole track (coarser) when none was.
         float Acquire(Vector3 worldPosition)
         {
-            const float Stride = 20f;
-            float from = Mathf.Max(0f, track.Length - acquireScanMeters);
-            float best = from, bestSqr = float.MaxValue;
-            for (float d = from; d <= track.Length; d += Stride)
+            if (!float.IsNaN(lastFound) && lastFoundRevision == track.Revision)
+            {
+                float near = Scan(worldPosition, lastFound - acquireScanMeters, lastFound + acquireScanMeters, 20f, out float nearSqr);
+                if (nearSqr <= captureRange * captureRange) return near;
+            }
+            return Scan(worldPosition, 0f, track.Length, 50f, out _); // somewhere else entirely (a respawn far down, a rebuilt track)
+        }
+
+        float Scan(Vector3 worldPosition, float from, float to, float stride, out float bestSqr)
+        {
+            from = Mathf.Max(0f, from);
+            to = Mathf.Min(track.Length, to);
+            float best = from;
+            bestSqr = float.MaxValue;
+            for (float d = from; d <= to; d += stride)
             {
                 track.GetPoseAtDistance(d, 0f, out Vector3 position, out _);
                 float sqr = (position - worldPosition).sqrMagnitude;

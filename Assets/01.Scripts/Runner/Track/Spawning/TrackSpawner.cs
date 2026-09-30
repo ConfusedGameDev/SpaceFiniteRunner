@@ -103,12 +103,24 @@ namespace ConfusedGameDev.FiniteRunner.Track
         protected virtual void OnBegin(TrackSpawnContext ctx) { }
 
         /// <summary>
-        /// One step at <paramref name="distance"/>. Return -1 when the step is
-        /// done (placed, or nothing fitted) and the cursor moves on by the
-        /// spacing; otherwise the distance to try again from — the end of the
-        /// claimed ground in the way — or +infinity for never again.
+        /// One step at <paramref name="distance"/>: DECIDE what goes here —
+        /// every roll, the claim or the pickup record — and hand it to
+        /// <see cref="TrackSpawnContext.Emit"/>; build nothing. Return -1 when
+        /// the step is done (placed, or nothing fitted) and the cursor moves on
+        /// by the spacing; otherwise the distance to try again from — the end
+        /// of the claimed ground in the way — or +infinity for never again.
         /// </summary>
         protected abstract float Step(TrackSpawnContext ctx, float distance, float limit);
+
+        /// <summary>The kind of record this spawner emits (the generator routes those records back here to be built).</summary>
+        public abstract TrackPlacementKind Kind { get; }
+
+        /// <summary>
+        /// Builds one record this spawner decided, now that the ship is within
+        /// the stream window: the objects, their registration for the cull.
+        /// Draws nothing — everything was rolled in <see cref="Step"/>.
+        /// </summary>
+        public abstract void Build(TrackSpawnContext ctx, in TrackPlacement placement);
 
         /// <summary>Frees what the clone made for itself (nested definition clones, materials). Called before the clone is destroyed.</summary>
         public virtual void Cleanup() { }

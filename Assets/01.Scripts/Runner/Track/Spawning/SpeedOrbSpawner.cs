@@ -28,6 +28,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>The orb tiers (the runtime clone's in play — what the debug menu edits).</summary>
         public PadSpawnEntry[] Tiers => tiers;
 
+        public override TrackPlacementKind Kind => TrackPlacementKind.SpeedOrb;
+
         protected override float Step(TrackSpawnContext ctx, float distance, float limit)
         {
             float claimEnd = ctx.ClaimEnd(distance);
@@ -37,8 +39,17 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (tier == null || tier.definition == null) return -1f;
 
             float lateral = ctx.RandomLateral(ref Rng, distance, ctx.PadMargin(tier.definition, tier.swayAmplitude));
-            ctx.CreatePad(distance, lateral, tier, TierMaterial(ctx, tier));
+            ctx.RecordPickup(distance);
+            ctx.Emit(new TrackPlacement(Kind, distance, lateral, System.Array.IndexOf(tiers, tier)));
             return -1f;
+        }
+
+        public override void Build(TrackSpawnContext ctx, in TrackPlacement placement)
+        {
+            if (placement.variant < 0 || placement.variant >= tiers.Length) return;
+            PadSpawnEntry tier = tiers[placement.variant];
+            if (tier == null || tier.definition == null) return;
+            ctx.CreatePad(placement.distance, placement.lateral, tier, TierMaterial(ctx, tier));
         }
 
         // One recolored boost-material instance per tier. Play mode only —

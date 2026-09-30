@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress. **M0 landed 2026-09-30.** Settled with the designer: D1–D3, and on 2026-09-30 the four open questions (D10–D13). D4–D9 are proposals open for review. |
+| **Status** | In progress. **M0 landed 2026-09-30. M1 landed 2026-09-30.** Settled with the designer: D1–D3, and on 2026-09-30 the four open questions (D10–D13). D4–D9 are proposals open for review. |
 | **Branch** | `feature/trackAuthoring`. |
 | **Scope** | Runner game only (`FiniteRunner_Test`, campaign runner levels). The city chase, `SaveData` and the Store are untouched. `Campaign` changes only through `RunnerLevelDefinition`. |
 | **Related** | `.claude/rules/runner-track.md`, `runner-hud-screens.md`, `campaign.md`, `ship-standalone.md`; `PatrolDuelPRD.md` (the patrol reads `IsGroundClear`) |
@@ -163,6 +163,14 @@ The runner track is finite now (`RunnerLevelDefinition.trackLengthMeters`, 40 km
 | **M7** | Docs and hygiene: `runner-track.md`, `runner-hud-screens.md`, `campaign.md`, the `CLAUDE.md` repo map, a sandbox entry, the validator accept list | n/a | The rules files describe the new flow, and the validators are clean. |
 
 M0 can ship on its own. M1 is the risky one; every later milestone depends on it.
+
+**M1 as built (differences from the plan above):**
+- The builder and the streamer are two passes inside `TrackGenerator` (`Decide`, `DecidePlacementsUpTo`, `BuildUpTo`, `Build`), not two new components. That keeps every prefab and scene reference as it is. M2's asset loader will fill the same records.
+- **R6.3 (a Contracts interface for the streamer) is deferred.** The collider builder, patrol, hyperspace and GameManager still read `TrackGenerator`. Its serialized reference can't be an interface, and M2 loads assets inside the generator too, so there is nothing to separate yet.
+- The data model so far is `TrackPlacement` records (kind, distance, lateral, height, variant, data). Knots, spans and sections still live in `TrackManager`; M2 serializes them next to the records.
+- Hyperspace now cuts the decided road back (`CutBackForEnd`, `TrackManager.TruncateKnots`) and lays a new end, since there is no unbuilt road left to redirect.
+- `TrackGuide`'s no-hint search now looks where it last found the ship, falling back to a whole-track scan, instead of the newest stretch (which is now the finish line).
+- Debug edits to spawn spacing or tier chances apply on the next generate, not mid-run.
 
 **Milestone gate (applies to every milestone, M0–M7):**
 1. When a milestone's code is done, work stops. Nothing is committed yet.

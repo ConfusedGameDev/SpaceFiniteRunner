@@ -55,29 +55,21 @@ namespace ConfusedGameDev.FiniteRunner.Track
             runtime = null;
         }
 
+        public override TrackPlacementKind Kind => TrackPlacementKind.LaserGate;
+
         protected override float Step(TrackSpawnContext ctx, float distance, float limit)
         {
             LaserGateVariant variant = runtime.PickVariant(Rng.NextFloat());
             ctx.Track.GetLateralBand(distance, out float bandMin, out float bandMax);
             float length = (bandMax - bandMin) * Rng.NextFloat(runtime.CoverageMin, runtime.CoverageMax);
-            // Only the rotor has depth: its blade sweeps a disc of road.
-            float halfDepth = runtime.beamRadius + (variant == LaserGateVariant.Rotor ? length * 0.5f : 0f);
+            float halfDepth = HalfDepth(variant, length);
 
             float blockedUntil = ctx.KeepOutUntil(distance, halfDepth + clearance, onFlatSweeps, onOpenEdges);
             if (blockedUntil >= 0f) return float.IsPositiveInfinity(blockedUntil) ? blockedUntil : Mathf.Max(blockedUntil, distance + 10f);
 
-            CreateGate(ctx, distance, variant, length, halfDepth, bandMin, bandMax);
-            return -1f;
-        }
-
-        /// <summary>
-        /// One gate: a root on the track pose at the flight line's middle, a
-        /// laser prefab instance per beam under it, and the <see cref="LaserGate"/>
-        /// that owns the beams' track-space segments. The beam's lateral is
-        /// rolled so the whole beam (and the emitters' bulk) stays in the lane.
-        /// </summary>
-        void CreateGate(TrackSpawnContext ctx, float distance, LaserGateVariant variant, float length, float halfDepth, float bandMin, float bandMax)
-        {
+            // The rest of the gate is rolled here too, in the order it always
+            // was: the beam's lateral (so the whole beam and the emitters'
+            // bulk stay in the lane), the rotor, the wave.
             float halfAcross = variant == LaserGateVariant.Vertical ? runtime.beamRadius : length * 0.5f;
             float margin = halfAcross + 2f * runtime.emitterScale; // the emitter is ~2 m long at scale 1
             float lo = bandMin + margin, hi = bandMax - margin;
@@ -85,6 +77,29 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float rotorSpeed = Rng.NextFloat(runtime.RotorSpeedMin, runtime.RotorSpeedMax) * (Rng.NextBool() ? 1f : -1f);
             float rotorPhase = Rng.NextFloat(0f, 360f);
             bool wavy = runtime.wavy && Rng.NextFloat() < runtime.waveChance; // no draw while the wave is off
+
+            ctx.Claim(distance - halfDepth, distance + halfDepth);
+            ctx.Emit(new TrackPlacement(Kind, distance, lateral, (int)variant, new Vector4(length, rotorSpeed, rotorPhase, wavy ? 1f : 0f)));
+            return -1f;
+        }
+
+        // Only the rotor has depth: its blade sweeps a disc of road.
+        float HalfDepth(LaserGateVariant variant, float length) =>
+            runtime.beamRadius + (variant == LaserGateVariant.Rotor ? length * 0.5f : 0f);
+
+        /// <summary>
+        /// One gate: a root on the track pose at the flight line's middle, a
+        /// laser prefab instance per beam under it, and the <see cref="LaserGate"/>
+        /// that owns the beams' track-space segments.
+        /// </summary>
+        public override void Build(TrackSpawnContext ctx, in TrackPlacement placement)
+        {
+            if (runtime == null || laserPrefab == null) return;
+            float distance = placement.distance, lateral = placement.lateral;
+            var variant = (LaserGateVariant)placement.variant;
+            float length = placement.data.x, rotorSpeed = placement.data.y, rotorPhase = placement.data.z;
+            bool wavy = placement.data.w > 0.5f;
+            float halfDepth = HalfDepth(variant, length);
 
             ctx.Track.GetPoseAtDistance(distance, 0f, out Vector3 pos, out Quaternion rot);
             var root = new GameObject($"LaserGate_{variant}_{distance:00000}");
@@ -109,7 +124,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
             gate.Configure(runtime, variant, distance, lateral, length, rotorSpeed, rotorPhase, visuals, ctx.RoadSurfaceOffset, wavy);
 
             ctx.Register(distance + halfDepth, root); // keyed on its END, like everything that spans track
-            ctx.Claim(distance - halfDepth, distance + halfDepth);
         }
     }
 }

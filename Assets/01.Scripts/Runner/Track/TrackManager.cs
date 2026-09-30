@@ -170,7 +170,37 @@ namespace ConfusedGameDev.FiniteRunner.Track
             EndZoneStart = -1f;
         }
 
-        /// <summary>Appends an auto-smoothed knot at a world position (knots are never removed during a run).</summary>
+        /// <summary>
+        /// Cuts the road back to its first <paramref name="keepKnots"/> knots,
+        /// the last kept one at track distance <paramref name="cutDistance"/>:
+        /// sections starting at or past the cut go, flat sweeps and open
+        /// stretches are dropped or clipped to it, and the end marks are
+        /// cleared for the generator to lay a new end. The one way knots are
+        /// ever removed during a run — the hyperspace jump bringing the end in
+        /// (<see cref="TrackGenerator.ForceEndAhead"/>) — and only past the road
+        /// already BUILT around the ship: removing knots reshapes the segment
+        /// ending at the last kept knot (its AutoSmooth tangent changes), so the
+        /// caller keeps that whole segment unbuilt.
+        /// </summary>
+        public void TruncateKnots(int keepKnots, float cutDistance)
+        {
+            Revision++;
+            if (spline != null)
+            {
+                var knots = spline.Spline;
+                while (knots.Count > Mathf.Max(1, keepKnots)) knots.RemoveAt(knots.Count - 1);
+            }
+            sections.RemoveAll(section => section.StartDistance >= cutDistance);
+            flatSweeps.RemoveAll(sweep => sweep.Start >= cutDistance);
+            foreach (var sweep in flatSweeps) sweep.End = Mathf.Min(sweep.End, cutDistance);
+            openStretches.RemoveAll(stretch => stretch.Start >= cutDistance);
+            foreach (var stretch in openStretches) stretch.End = Mathf.Min(stretch.End, cutDistance);
+            EndDistance = -1f;
+            EndZoneStart = -1f;
+            Recalculate();
+        }
+
+        /// <summary>Appends an auto-smoothed knot at a world position (knots are only ever removed by <see cref="TruncateKnots"/>).</summary>
         public void AppendKnot(float3 position)
         {
             if (spline != null) spline.Spline.Add(new BezierKnot(position), TangentMode.AutoSmooth);

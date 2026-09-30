@@ -13,10 +13,19 @@ using ConfusedGameDev.FiniteRunner.Contracts;
 namespace ConfusedGameDev.FiniteRunner.Track
 {
     /// <summary>
-    /// Procedural track builder and endless streamer. Builds an initial
-    /// stretch on load, then — while the ship flies — keeps appending spline
-    /// segments ahead of it, placing spawnables and decoration on the newly
-    /// settled stretch and culling spawned objects left far behind.
+    /// Procedural track builder and streamer, in two halves that never mix.
+    /// <b>Deciding</b> lays the road (knots, sweeps, banks, features, the end)
+    /// and decides everything that goes on it as <see cref="TrackPlacement"/>
+    /// records — every random draw happens here. On a finite play track the
+    /// WHOLE track is decided in <see cref="Generate"/> (a couple of hundred
+    /// knots and records: cheap), so the run knows its full shape and length
+    /// from the first frame; an endless preview decides as it streams.
+    /// <b>Building</b> turns records into GameObjects only inside the stream
+    /// window — from the ship to <c>aheadDistance</c> ahead — and draws
+    /// nothing, so the same records always build the same track;
+    /// <see cref="SettledDistance"/> is how far it has built, which the
+    /// colliders and the decoration follow, and objects are culled once
+    /// <c>behindDistance</c> behind.
     /// <b>Spawnables</b> — speed orbs, repair orbs, laser gates, anything else
     /// — are <see cref="TrackSpawner"/> assets listed in the
     /// <see cref="TrackSpawnSet"/>: the generator knows none of them by name,
@@ -286,7 +295,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         Unity.Mathematics.Random rng;
         // Coins and ramp laterals draw from streams of their own, seeded off the
         // layout stream's state like the spawners': how many segments one
-        // StreamTo appends depends on the frame, so anything drawn from the
+        // Decide call appends depends on the frame, so anything drawn from the
         // layout stream between segments would make the road frame-dependent.
         Unity.Mathematics.Random collectibleRng;
         Unity.Mathematics.Random rampRng;
@@ -328,6 +337,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
         readonly List<TrackSpawner> runtimeSpawners = new();     // the set's spawners in force, index for index
         TrackSpawnContext spawnContext;
         readonly List<(float start, float end)> featureKeepOuts = new(); // every feature's ground + what lies ahead of it (a ramp's landing), and the end zone
+        readonly List<TrackPlacement> placements = new(); // the run's decided layout, in the order it was decided
+        readonly List<TrackPlacement> unbuilt = new();    // decided, not built yet, by distance
+        int placementsQueued;                             // placements[0..this) are in unbuilt (or built)
+        readonly List<float> knotDistances = new();       // track distance of every knot, index for index with the spline
+        float builtTo;                                    // everything decided before this distance is built
         Dictionary<FeatureSpawnEntry, Material> featureMaterials;
         Material collectibleMaterial;
 
@@ -355,8 +369,21 @@ namespace ConfusedGameDev.FiniteRunner.Track
             rules = runRules;
         }
 
-        /// <summary>Track distance that is finished — nothing past it may be built on: AutoSmooth still reshapes the trailing curves when the next knot lands.</summary>
-        public float SettledDistance => track != null ? Mathf.Max(0f, track.Length - (endless && !trackComplete ? SettleMargin : 0f)) : 0f;
+        /// <summary>
+        /// Track distance up to which the track is decided AND built — what the
+        /// colliders and the decoration stream to. On a finite play track the
+        /// whole road is decided up front, so this is the stream window's edge.
+        /// </summary>
+        public float SettledDistance => builtTo;
+
+        // Track distance that is DECIDED for good: past it, AutoSmooth still
+        // reshapes the trailing curves when the next knot lands.
+        float DecidedDistance => track == null ? 0f
+            : trackComplete || !endless ? track.Length
+            : Mathf.Max(0f, track.Length - SettleMargin);
+
+        /// <summary>The run's decided placements (orbs, gates, ramps, coins…), built or not, in decision order.</summary>
+        public IReadOnlyList<TrackPlacement> Placements => placements;
 
         /// <summary>Everything that ENDS before this distance is behind the ship and may go.</summary>
         public float CullDistance => endless && focus != null ? focus.Distance - behindDistance : float.NegativeInfinity;
@@ -367,7 +394,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         void Update()
         {
             if (!endless || focus == null || track == null) return;
-            StreamTo(focus.Distance + aheadDistance);
+            float edge = focus.Distance + aheadDistance;
+            Decide(edge); // nothing left to decide on a finite track: it was decided whole in Generate
+            BuildUpTo(edge);
             CullBehind(focus.Distance - behindDistance);
         }
 
@@ -431,6 +460,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
             claims.Clear();
             padDistances.Clear();
             featureKeepOuts.Clear();
+            placements.Clear();
+            unbuilt.Clear();
+            placementsQueued = 0;
+            builtTo = 0f;
             ClearChildren(padsParent);
             ClearChildren(markersParent);
             if (decorator != null) decorator.Clear();
@@ -457,15 +490,17 @@ namespace ConfusedGameDev.FiniteRunner.Track
             openStretch = null;
             endPosition = float3.zero;
             track.AppendKnot(endPosition);
+            knotDistances.Clear();
+            knotDistances.Add(0f);
 
             // The spline was just replaced — without this, Length still reports
-            // the previous track and StreamTo would think there is already
+            // the previous track and Decide would think there is already
             // plenty of track, placing everything on a one-knot spline.
             track.Recalculate();
 
             spawnContext = new TrackSpawnContext(track, rules, padsParent, padSize, boostMaterial, layoutSeed,
                                                  decorator != null ? decorator.RoadYOffset : -1.2f,
-                                                 spawned, claims, padDistances, featureKeepOuts);
+                                                 spawned, claims, padDistances, featureKeepOuts, placements);
             foreach (var spawner in runtimeSpawners)
                 if (spawner != null) spawner.Begin(spawnContext);
             collectibleCursor = collectibleRng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
@@ -494,7 +529,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             if (endless)
             {
-                StreamTo(aheadDistance);
+                // A finite track is decided whole, now; an endless preview
+                // only as far as it streams. Either way only the first stretch
+                // is built — from the START, not from where the ship was last
+                // run (a restart regenerates before the ship relaunches).
+                Decide(IsFinite ? float.PositiveInfinity : aheadDistance);
+                BuildUpTo(aheadDistance);
             }
             else
             {
@@ -502,30 +542,33 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 {
                     SpotKind spot = AddSegment();
                     track.Recalculate(); // the level rule and the feature spots read the spline end
+                    knotDistances.Add(track.Length);
                     GrowFlatSweep();
                     if (spot == SpotKind.Feature) DecideFeature();
                 }
-                SpawnPendingRamps(track.Length - 150f);
-                PlaceSpawnersUpTo(track.Length - 150f);
-                PlaceCollectiblesUpTo(track.Length - 150f);
+                DecidePlacementsUpTo(track.Length - 150f);
+                BuildUpTo(track.Length);
                 PlaceMarkers();
-                if (decorator != null) decorator.DecorateUpTo(track.Length);
             }
         }
 
         /// <summary>
-        /// Grows the track piece by piece until at least <paramref name="target"/>
+        /// DECIDES the track piece by piece until at least <paramref name="target"/>
         /// distance of it is settled — a knot that lands on the next feature
         /// spot decides the feature there and then, and the spline continues
-        /// from the feature — then stamps pads and decoration on the settled
-        /// region. The trailing SettleMargin stays bare until more knots land.
+        /// from the feature — then decides what goes on the settled stretch.
+        /// Builds nothing. The trailing SettleMargin stays undecided until more
+        /// knots land; a finished track has none. +infinity decides a finite
+        /// track to its end.
         /// </summary>
-        void StreamTo(float target)
+        void Decide(float target)
         {
             while (!trackComplete && track.Length - SettleMargin < target)
             {
+                if (!IsFinite && float.IsPositiveInfinity(target)) break; // an endless track has no end to decide to
                 SpotKind spot = AddSegment();
                 track.Recalculate();
+                knotDistances.Add(track.Length);
                 GrowFlatSweep();
                 switch (spot)
                 {
@@ -534,15 +577,72 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     case SpotKind.End: FinishTrack(); break;
                 }
             }
-
-            // A finished track has no trailing margin: nothing lands after the
-            // last knot, so the run-up and the end are stamped at once.
-            float settled = trackComplete ? track.Length : track.Length - SettleMargin;
-            SpawnPendingRamps(settled); // first: a ramp's footprint is already claimed, so everything keeps off it
-            float pickupsTo = PlaceSpawnersUpTo(settled);     // ground claimers (gates), then pickups in set order
-            PlaceCollectiblesUpTo(pickupsTo - StageGuard);    // after the pickups: coins keep off where they landed
-            if (decorator != null) decorator.DecorateUpTo(settled);
+            DecidePlacementsUpTo(DecidedDistance);
         }
+
+        // Everything that goes on the road, decided up to the settled limit:
+        // ramps first (their footprint is already claimed, so everything keeps
+        // off it), then the spawn set (ground claimers, then pickups in set
+        // order), then coins (off where the pickups landed). New records join
+        // the build queue in distance order.
+        void DecidePlacementsUpTo(float limit)
+        {
+            SpawnPendingRamps(limit);
+            float pickupsTo = PlaceSpawnersUpTo(limit);
+            PlaceCollectiblesUpTo(pickupsTo - StageGuard);
+
+            if (placementsQueued == placements.Count) return;
+            for (int i = placementsQueued; i < placements.Count; i++) unbuilt.Add(placements[i]);
+            placementsQueued = placements.Count;
+            unbuilt.Sort((a, b) => a.distance.CompareTo(b.distance));
+        }
+
+        /// <summary>
+        /// BUILDS every decided placement before <paramref name="edge"/> (never
+        /// past what is decided) and stamps the decoration up to it. Draws
+        /// nothing: the records carry every roll.
+        /// </summary>
+        void BuildUpTo(float edge)
+        {
+            edge = Mathf.Min(edge, DecidedDistance);
+            if (edge <= builtTo) return;
+            int count = 0;
+            while (count < unbuilt.Count && unbuilt[count].distance < edge) Build(unbuilt[count++]);
+            unbuilt.RemoveRange(0, count);
+            builtTo = edge;
+            if (decorator != null) decorator.DecorateUpTo(edge);
+        }
+
+        // One record, built: the features the generator owns, else the spawner
+        // that emits that kind.
+        void Build(in TrackPlacement placement)
+        {
+            switch (placement.kind)
+            {
+                case TrackPlacementKind.Ramp:
+                    if (FeatureEntry(placement.variant) is { Runtime: JumpDefinition jump } rampEntry)
+                        BuildJump(placement.distance, placement.lateral, rampEntry, jump);
+                    break;
+                case TrackPlacementKind.Loop:
+                    if (FeatureEntry(placement.variant) is { Runtime: LoopDefinition loop } loopEntry
+                        && track.SectionAt(placement.distance) is LoopSection section)
+                        CreateLoop(placement.distance, loopEntry, loop, section);
+                    break;
+                case TrackPlacementKind.EndRamp:
+                    BuildEndRamp(placement);
+                    break;
+                case TrackPlacementKind.Collectible:
+                    CreateCollectible(placement.distance, placement.lateral, Mathf.RoundToInt(placement.data.x));
+                    break;
+                default:
+                    foreach (var spawner in runtimeSpawners)
+                        if (spawner != null && spawner.Kind == placement.kind) { spawner.Build(spawnContext, placement); break; }
+                    break;
+            }
+        }
+
+        FeatureSpawnEntry FeatureEntry(int index) =>
+            FeatureTable != null && index >= 0 && index < FeatureTable.Length ? FeatureTable[index] : null;
 
         /// <summary>
         /// Lays the next knot. Returns true when it landed ON the next feature
@@ -903,7 +1003,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 track.AddSection(loop);
                 ContinueFromLoopExit(loop);
-                CreateFeature(spot, entry, loop);
+                placements.Add(new TrackPlacement(TrackPlacementKind.Loop, spot, 0f, System.Array.IndexOf(FeatureTable, entry)));
             }
             else if (section != null)
             {
@@ -958,6 +1058,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             track.Recalculate();
             loop.SetSplineExtent(track.SplineLength - before);
             track.Recalculate();
+            knotDistances.Add(track.Length);
 
             endPosition = exitPosition;
             heading = Mathf.Atan2(exitForward.x, exitForward.z) * Mathf.Rad2Deg;
@@ -1040,17 +1141,22 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             float gap = EndRampLayout(out float width, out _);
             float start = track.EndDistance - def.length;
-
             for (int i = -1; i <= 1; i++)
-            {
-                float lateral = EndRampLateral(i, width, gap, out float half);
-                BuildRamp(start, lateral, half, endRamp, def, 0f, isEndRamp: true);
-            }
+                placements.Add(new TrackPlacement(TrackPlacementKind.EndRamp, start, EndRampLateral(i, width, gap, out _), i + 1));
+        }
 
-            // The gaps read as drops: a marker strip at the foot of each.
-            if (decorator != null)
+        // One of the three end ramps (slot 0 left, 1 middle, 2 right); the
+        // middle one also marks the two gaps as drops.
+        void BuildEndRamp(in TrackPlacement placement)
+        {
+            if (!(endRamp?.Runtime is JumpDefinition def)) return;
+            float gap = EndRampLayout(out float width, out _);
+            EndRampLateral(placement.variant - 1, width, gap, out float half);
+            BuildRamp(placement.distance, placement.lateral, half, endRamp, def, 0f, isEndRamp: true);
+
+            if (placement.variant == 1 && decorator != null)
                 foreach (float side in new[] { -1f, 1f })
-                    decorator.StampEndMarker(start, side * (width + gap) * 0.5f, gap, def.length);
+                    decorator.StampEndMarker(placement.distance, side * (width + gap) * 0.5f, gap, def.length);
         }
 
         // The end ramps' widths and gaps — ONE rule, shared by the ramps
@@ -1099,33 +1205,29 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         /// <summary>
         /// Brings the end of a finite track in NOW (the runner's hyperspace
-        /// jump): the final run-up starts where the road currently stops —
-        /// never inside road that is already built and dressed (the spline is
-        /// append-only; orbs, lasers, colliders and decoration already sit on
-        /// it) — plus whatever the road there still owes: the bank unwinding
-        /// to level, a sweep in progress, a section (tube, loop) it is inside.
-        /// Everything downstream is the ordinary end: the zone lands on its
-        /// spot, <see cref="FinishTrack"/> builds the three ramps, the
-        /// colliders, the patrol's end and the HUD's distance follow. Pending
-        /// jumps and a deferred flat sweep are dropped (they would otherwise
-        /// land in the run-up). The run-up is at least one ramp plus a
-        /// segment. False when the track is endless, already in its end zone,
-        /// or complete — nothing changes then.
+        /// jump). The track was decided whole at run start, so the road past
+        /// what is already BUILT round the ship is cut away
+        /// (<see cref="CutBackForEnd"/>) and the end is laid from there: the
+        /// final run-up starts where the road then stops, plus whatever the
+        /// road there still owes — the bank unwinding to level, a section
+        /// (tube, loop) it is inside. Everything downstream is the ordinary
+        /// end: the zone lands on its spot, <see cref="FinishTrack"/> records
+        /// the three ramps, the colliders, the patrol's end and the HUD's
+        /// distance follow. The run-up is at least one ramp plus a segment.
+        /// False when the track is endless, or the real end is already that
+        /// close — nothing changes then.
         /// </summary>
         public bool ForceEndAhead(float runUpMeters)
         {
-            if (!IsFinite || inEndZone || trackComplete || track == null) return false;
+            if (!IsFinite || track == null) return false;
             var shape = Shape;
+            if (trackComplete || inEndZone)
+            {
+                if (!CutBackForEnd(shape)) return false;
+            }
+            else if (EndZoneStartFromTip(shape) >= endZoneTarget) return false; // still streaming (never on a play track): the old rule
 
-            float start = track.Length + segmentLength.x * 0.5f; // never a zero-length chord onto the spot
-            float step = Mathf.Max(shape.maxBankStepPerKnot, 0.01f);
-            float unwind = Mathf.Ceil(Mathf.Abs(bank) / step) * segmentLength.y;
-            if (unwind > 0f || turnKnotsLeft > 0)
-                start += turnKnotsLeft * segmentLength.y + unwind + shape.levelLeadDistance;
-            TrackSection section = track.SectionAt(track.Length);
-            if (section != null) start = Mathf.Max(start, section.EndDistance + segmentLength.x * 0.5f);
-            if (start >= endZoneTarget) return false; // the real end is already that close
-
+            float start = EndZoneStartFromTip(shape);
             pendingRamps.Clear();
             deferredFlatKnots = 0;
             featureCursor = float.MaxValue;
@@ -1134,6 +1236,88 @@ namespace ConfusedGameDev.FiniteRunner.Track
             endRunUp = Mathf.Max(runUpMeters, rampLength + segmentLength.x * 0.5f);
             endZoneTarget = start;
             targetLength = start + endRunUp; // the HUD's distance left, until the built end takes over
+            Decide(float.PositiveInfinity);  // lay the new end now: the autopilot aims at it
+            return true;
+        }
+
+        // Where a run-up could begin if the end were brought in at the spline's
+        // current tip: never a zero-length chord onto the spot, after the bank
+        // has unwound (and a sweep finished), never inside a section.
+        float EndZoneStartFromTip(TrackShapeSettings shape)
+        {
+            float start = track.Length + segmentLength.x * 0.5f;
+            float step = Mathf.Max(shape.maxBankStepPerKnot, 0.01f);
+            float unwind = Mathf.Ceil(Mathf.Abs(bank) / step) * segmentLength.y;
+            if (unwind > 0f || turnKnotsLeft > 0)
+                start += turnKnotsLeft * segmentLength.y + unwind + shape.levelLeadDistance;
+            TrackSection section = track.SectionAt(track.Length);
+            if (section != null) start = Mathf.Max(start, section.EndDistance + segmentLength.x * 0.5f);
+            return start;
+        }
+
+        // Room kept between the built road and the cut: what the last built
+        // objects (a ramp, a rotor gate, a 40 m road stamp) may reach past
+        // their own distance.
+        const float CutClearance = 200f;
+
+        /// <summary>
+        /// Cuts a fully decided track back so a new end can be laid (the
+        /// hyperspace jump). The last knot kept is the one AFTER the first knot
+        /// at least <see cref="CutClearance"/> past the built road (removing
+        /// the knots after it reshapes the segment ending there — AutoSmooth —
+        /// so that whole segment must be unbuilt), and never one inside a
+        /// section. Everything decided on the reshaped segment or past it goes;
+        /// the builder resumes from the kept knot's heading, grade and bank,
+        /// out of any sweep. False — nothing touched — when the real end zone
+        /// already starts before the new one could.
+        /// </summary>
+        bool CutBackForEnd(TrackShapeSettings shape)
+        {
+            int count = knotDistances.Count;
+            int first = knotDistances.FindIndex(d => d >= builtTo + CutClearance);
+            if (first < 0) return false;
+            int keep = first + 1;
+            while (keep < count && track.SectionAt(knotDistances[keep - 1]) != null) keep++;
+            if (keep >= count - 1) return false;
+
+            float cut = knotDistances[keep];
+            float reshapedFrom = knotDistances[keep - 1];
+            float zoneStart = track.EndZoneStart >= 0f ? track.EndZoneStart : endZoneTarget;
+            float keptBank = track.GetBankAtDistance(cut);
+            float unwind = Mathf.Ceil(Mathf.Abs(keptBank) / Mathf.Max(shape.maxBankStepPerKnot, 0.01f)) * segmentLength.y;
+            float newStart = cut + segmentLength.x * 0.5f + (unwind > 0f ? unwind + shape.levelLeadDistance : 0f);
+            if (newStart >= zoneStart) return false; // the real end is already that close
+
+            BezierKnot knot = track.Spline.Spline[keep];
+            track.TruncateKnots(keep + 1, cut);
+            knotDistances.RemoveRange(keep + 1, count - keep - 1);
+
+            placements.RemoveAll(p => p.distance >= reshapedFrom);
+            placementsQueued = placements.Count;
+            unbuilt.RemoveAll(p => p.distance >= reshapedFrom);
+            claims.RemoveAll(c => c.start >= reshapedFrom);
+            featureKeepOuts.RemoveAll(k => k.start >= reshapedFrom);
+            padDistances.RemoveAll(d => d >= reshapedFrom);
+
+            // The builder, as it stood at the kept knot, out of any sweep.
+            float3 forward = math.mul(knot.Rotation, new float3(0f, 0f, 1f));
+            endPosition = knot.Position;
+            heading = Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
+            pitch = Mathf.Asin(Mathf.Clamp(forward.y, -1f, 1f)) * Mathf.Rad2Deg;
+            bank = keptBank;
+            turnKnotsLeft = 0;
+            turnRate = 0f;
+            straightKnots = 0;
+            sweepFlat = false;
+            deferredFlatKnots = 0;
+            flatSweep = null;
+            flatSweepGrew = false;
+            lastKnotDistance = knotDistances[keep - 1];
+            lastKnotStraight = false;
+            straightRunRolled = false;
+            openStretch = null;
+            inEndZone = false;
+            trackComplete = false;
             return true;
         }
 
@@ -1147,7 +1331,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 var (entry, distance) = pendingRamps[i];
                 if (distance + entry.Runtime.FootprintLength > limit) { i++; continue; }
-                CreateFeature(distance, entry, null);
+                if (entry.Runtime is JumpDefinition jump) DecideJump(distance, entry, jump);
                 pendingRamps.RemoveAt(i);
             }
         }
@@ -1247,7 +1431,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 {
                     float d = collectibleCursor + i * collectibleStep;
                     if (d >= limit || spawnContext.ClaimEnd(d) >= 0f || spawnContext.NearPickup(d)) continue;
-                    CreateCollectible(d, lateral);
+                    // NextInt's max is exclusive.
+                    int value = collectibleRng.NextInt(collectibleValue.x, Mathf.Max(collectibleValue.x, collectibleValue.y) + 1);
+                    placements.Add(new TrackPlacement(TrackPlacementKind.Collectible, d, lateral, 0, new Vector4(value, 0f, 0f, 0f)));
                 }
 
                 collectibleCursor += count * collectibleStep + collectibleRng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
@@ -1288,7 +1474,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (!Application.isPlaying || !endless || focus == null || performance == null || rules == null) return true;
             if (entry.Runtime is not LoopDefinition loop) return true;
 
-            float speed = focus.Speed;
+            // The track is decided whole at run start, long before the ship is
+            // anywhere near most spots (and standing still at the start line):
+            // predict from at least the cruise speed the throttle holds.
+            float speed = Mathf.Max(focus.Speed, performance.CruiseSpeed);
             float gap = Mathf.Max(0f, distance - focus.Distance);
             float bled = speed - performance.PassiveDeceleration * gap / Mathf.Max(speed, 1f);
             float predicted = Mathf.Max(bled, Mathf.Min(speed, performance.CruiseSpeed));
@@ -1333,17 +1522,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return mat;
         }
 
-        void CreateFeature(float distance, FeatureSpawnEntry entry, TrackSection section)
+        // A ramp's lateral is rolled when its run-up settles, in road order,
+        // off the ramps' own stream. (A tube's section is the whole feature —
+        // the decorator stamps the pipe; a loop is recorded at its knot.)
+        void DecideJump(float distance, FeatureSpawnEntry entry, JumpDefinition def)
         {
-            switch (entry.Runtime)
-            {
-                case JumpDefinition jump: CreateJump(distance, entry, jump); break;
-                case LoopDefinition loop when section is LoopSection loopSection: CreateLoop(distance, entry, loop, loopSection); break;
-                case TubeDefinition: break; // the section registered at decision time is the whole feature: the decorator stamps the pipe
-                default:
-                    Debug.LogWarning($"TrackGenerator: no builder for feature definition {entry.Runtime.GetType().Name}.", this);
-                    break;
-            }
+            float rampHalf = track.HalfWidth * Mathf.Clamp01(def.widthFraction);
+            float maxLat = Mathf.Max(0f, track.HalfWidth - rampHalf - 2f);
+            float lateral = rampRng.NextFloat(-maxLat, maxLat);
+            placements.Add(new TrackPlacement(TrackPlacementKind.Ramp, distance, lateral, System.Array.IndexOf(FeatureTable, entry)));
         }
 
         /// <summary>
@@ -1352,11 +1539,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// scaled to the ramp, or a code-built slab pitched to the ramp angle
         /// with a rail down each edge. No colliders: nothing here is physics.
         /// </summary>
-        void CreateJump(float distance, FeatureSpawnEntry entry, JumpDefinition def)
+        void BuildJump(float distance, float lateral, FeatureSpawnEntry entry, JumpDefinition def)
         {
             float rampHalf = track.HalfWidth * Mathf.Clamp01(def.widthFraction);
-            float maxLat = Mathf.Max(0f, track.HalfWidth - rampHalf - 2f);
-            float lateral = rampRng.NextFloat(-maxLat, maxLat);
             float baseBoost = rules != null ? rules.PowerUpSpeedBoost : GameSettings.Default.powerUpSpeedBoost;
             float boost = baseBoost * entry.multiplier, rollBonus = 0f;
             // A ramp prefab that carries a RampBoost sets its takeoff as a share of a green orb's boost.
@@ -1507,12 +1692,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
             spawned.Add((section.EndDistance, go));
         }
 
-        /// <summary>
-        /// One money pickup on the flight line: the assigned prefab (its
-        /// Collectible must be set to Money) or a code-built coin — a flat
-        /// gold cylinder standing on the track, spun round the track's up by
-        /// the Collectible itself — under a root carrying the long trigger box.
-        /// </summary>
         /// <summary>The coin's diameter: a share of the repair orb's when the set has one, else <c>collectibleSize</c>.</summary>
         float CoinDiameter
         {
@@ -1523,7 +1702,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
         }
 
-        void CreateCollectible(float distance, float lateral)
+        /// <summary>
+        /// One money pickup on the flight line: the assigned prefab (its
+        /// Collectible must be set to Money) or a code-built coin — a flat
+        /// gold cylinder standing on the track, spun round the track's up by
+        /// the Collectible itself — under a root carrying the trigger box.
+        /// </summary>
+        void CreateCollectible(float distance, float lateral, int value)
         {
             track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
             float diameter = CoinDiameter;
@@ -1581,8 +1766,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float lift = roadSurface + collectibleRoadClearance + collectible.HoverAmplitude + diameter * 0.5f;
             go.transform.position = pos + rot * (Vector3.up * lift);
 
-            // NextInt's max is exclusive.
-            collectible.SetValue(collectibleRng.NextInt(collectibleValue.x, Mathf.Max(collectibleValue.x, collectibleValue.y) + 1));
+            collectible.SetValue(value);
             // The patrol's analytic sweep reads the same volume, at the same height.
             collectible.PlaceOnTrack(distance, lateral, lift,
                                      new Vector3(pickup.x * 0.5f, pickup.y * 0.5f, 0.5f));

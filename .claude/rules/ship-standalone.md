@@ -292,7 +292,10 @@ untouched and still runs the runner** until the swap scene (M7).
 - **`TrackGuide : IShipGuide`** is the world→track projection the track never had, **with no
   inverse built**: a few Newton steps in (distance, lateral) at once on the forward
   `GetPoseAtDistance` (which already routes loops and tubes), from the last answer — that is what
-  keeps it on the right pass of a loop. No hint = a coarse scan of the newest `acquireScanMeters`.
+  keeps it on the right pass of a loop. No hint = a scan of ±`acquireScanMeters` round where the guide last found a ship on this track
+  revision, else (never found, rebuilt, or nothing within `captureRange` there) a coarse 50 m scan of
+  the whole track — the runner's track is decided whole at run start, so its newest stretch is the
+  finish line, not the ship.
   Round a curled tube the lateral is seeded from the angle about the pipe's axis (a Newton step
   from the top of the pipe stalls on the far side). `FindRespawn` is the motor's
   `FindRespawnDistance`, verbatim.

@@ -12,6 +12,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// this hands them out by reference, so every spawner plays by the same
     /// rules — a ground claimer claims, a pickup keeps off claimed ground and
     /// off other pickups, and everything is culled by where it ENDS.
+    /// Spawners work in two passes: DECIDING (claims, keep-outs, pickups and
+    /// every roll) ends in <see cref="Emit"/>, a <see cref="TrackPlacement"/>
+    /// record; BUILDING (<see cref="CreatePad"/>, <see cref="Register"/>)
+    /// happens later, only when the ship comes within the stream window, and
+    /// draws nothing.
     /// </summary>
     public sealed class TrackSpawnContext
     {
@@ -19,6 +24,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         readonly List<(float start, float end)> claims;
         readonly List<float> pickupDistances;
         readonly List<(float start, float end)> featureKeepOuts;
+        readonly List<TrackPlacement> placements;
 
         public TrackManager Track { get; }
         /// <summary>The run's rules (Contracts); null in a scene without a game flow — the spawners then use the defaults.</summary>
@@ -37,7 +43,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public TrackSpawnContext(TrackManager track, ITrackRunRules rules, Transform parent,
                                  Vector3 padSize, Material boostMaterial, uint layoutSeed, float roadSurfaceOffset,
                                  List<(float, GameObject)> spawned, List<(float, float)> claims,
-                                 List<float> pickupDistances, List<(float, float)> featureKeepOuts)
+                                 List<float> pickupDistances, List<(float, float)> featureKeepOuts,
+                                 List<TrackPlacement> placements)
         {
             Track = track;
             Rules = rules;
@@ -50,7 +57,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             this.claims = claims;
             this.pickupDistances = pickupDistances;
             this.featureKeepOuts = featureKeepOuts;
+            this.placements = placements;
         }
+
+        /// <summary>Records a decided placement: the generator builds it once the ship comes within the stream window.</summary>
+        public void Emit(TrackPlacement placement) => placements.Add(placement);
 
         /// <summary>Height of the air lane above the flight line, from GameSettings (its class default without a manager).</summary>
         public float AirLaneHeight => Rules != null ? Rules.AirLaneHeight : GameSettings.Default.airLaneHeight;
@@ -139,7 +150,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// (colliders forced to triggers, one added if it has none) or a
         /// code-built orb / slab in <paramref name="material"/>. Boosts get
         /// the base boost × the entry's multiplier; a brake keeps its
-        /// definition's own delta. Registered for the cull and as a pickup.
+        /// definition's own delta. Registered for the cull. Building only: the
+        /// spawner recorded the pickup (<see cref="RecordPickup"/>) when it
+        /// decided it.
         /// </summary>
         public GameObject CreatePad(float distance, float lateral, PadSpawnEntry entry, Material material)
         {
@@ -207,7 +220,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
             else speedPad.SetDefinition(def);
 
             Register(distance, pad);
-            RecordPickup(distance);
             return pad;
         }
 

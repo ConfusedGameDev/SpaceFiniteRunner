@@ -38,6 +38,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public override bool IsActive(TrackSpawnContext ctx) =>
             base.IsActive(ctx) && (ctx.Rules == null || ctx.Rules.HullEnabled);
 
+        public override TrackPlacementKind Kind => TrackPlacementKind.RepairOrb;
+
         protected override float Step(TrackSpawnContext ctx, float distance, float limit)
         {
             float claimEnd = ctx.ClaimEnd(distance);
@@ -46,6 +48,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             float diameter = Diameter(ctx.PadSize);
             float lateral = ctx.RandomLateral(ref Rng, distance, diameter * 0.5f + 2f);
+            ctx.RecordPickup(distance); // coins keep off it too
+            ctx.Emit(new TrackPlacement(Kind, distance, lateral));
+            return -1f;
+        }
+
+        public override void Build(TrackSpawnContext ctx, in TrackPlacement placement)
+        {
+            float distance = placement.distance, lateral = placement.lateral;
+            float diameter = Diameter(ctx.PadSize);
             ctx.Track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
 
             GameObject orb;
@@ -73,8 +84,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
             orb.transform.position = pos + rot * (Vector3.up * lift);
             orb.name = $"RepairOrb_{distance:00000}";
             ctx.Register(distance, orb);
-            ctx.RecordPickup(distance); // coins keep off it too
-            return -1f;
         }
 
         // No prefab: a unit sphere (the red shell, the boost material tinted)

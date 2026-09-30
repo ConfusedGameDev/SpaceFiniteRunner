@@ -23,6 +23,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         [SerializeField, Min(0.1f)] float signScale = 8f;
 
+        public override TrackPlacementKind Kind => TrackPlacementKind.BrakePad;
+
         protected override float Step(TrackSpawnContext ctx, float distance, float limit)
         {
             float claimEnd = ctx.ClaimEnd(distance);
@@ -30,6 +32,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (pad.definition == null || ctx.NearPickup(distance)) return -1f;
 
             float lateral = ctx.RandomLateral(ref Rng, distance, ctx.PadMargin(pad.definition, pad.swayAmplitude));
+            ctx.RecordPickup(distance);
+            ctx.Emit(new TrackPlacement(Kind, distance, lateral));
+            return -1f;
+        }
+
+        public override void Build(TrackSpawnContext ctx, in TrackPlacement placement)
+        {
+            if (pad.definition == null) return;
+            float distance = placement.distance, lateral = placement.lateral;
             GameObject go = ctx.CreatePad(distance, lateral, pad, material);
 
             // Orbs are their own landmark; the gate-style sign only suits flat pads.
@@ -42,7 +53,6 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (material != null) TrackDecorator.OverrideMaterials(sign, material);
                 ctx.Register(distance, sign);
             }
-            return -1f;
         }
     }
 }
