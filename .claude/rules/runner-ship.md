@@ -780,9 +780,26 @@ minimap range, redeploy) stay on `GameSettings`.
 
 ## `ChaseMinimap`
 
-Right-edge **track map**, spawned by `GameManager.Awake` whenever there is a motor — with or
-without a patrol (`Spawn(motor, patrol, gameManager, range, warn)`, `patrol` may be null). The
-vertical strip IS the track: the ship diamond starts at the bottom and climbs to the top
+Spawned by `GameManager.Awake` whenever there is a motor — with or without a patrol
+(`Spawn(motor, patrol, gameManager, range, warn, generator)`, `patrol` may be null).
+
+**The track map** (TrackAuthoringPRD M6, `ChaseMinimapSettings.showTrackMap`, on by default): the
+WHOLE track from above in the hand-placed `TrackMap` rect (`mapArea`, its `Image` is the
+`mapBackground`), drawn by `TrackMapLine` (a `MaskableGraphic`: one quad per segment, overlapped
+half a width so the bends close; the first `SetDriven` points in `mapDrivenColor`). The run knows the
+whole shape from the first frame because the track is decided whole at run start. `SampleTrack`
+takes `mapSamples` points along the centre line (XZ), turns them so start → finish runs UP the map
+(`mapStartAtBottom`; off = world north up), fits them into the rect with the aspect kept
+(`mapPadding`) — and re-samples whenever the track's `Revision`, `Length` or `EndDistance` moves (a
+restart, the hyperspace cut-back). The ship dot (`mapShipIcon`) sits at `DisplayDistance`, the
+patrol dot (`mapPoliceIcon`) at `DisplayDistance − GapToShip` (hidden with the strip's rules),
+styled like the strip icons and blinking with them. Markers (pooled `Image`s, `markerSize`, colours
+and optional sprites): every Ramp and LaserGate record and the finish (1.6×) — never orbs (D11). No
+map without a generator. Edit mode draws a preview curve so the line's look can be judged while
+laying the rect out. `showStrip` (off by default) hides the old strip's bar and icons, never its
+distance labels.
+
+The older **strip** (the vertical bar) IS the track: the ship diamond starts at the bottom and climbs to the top
 (`DistanceTravelled / (DistanceTravelled + GameManager.DistanceRemaining)`; pinned at the top on
 an endless track), the distance to the end reads above the strip (`12.4 KM`, metres on the last
 kilometre, always white) and the patrol gap in metres below it (red inside the warn distance).
@@ -799,7 +816,8 @@ gives back the plain square (ship turned 45°). The rotation is two-way: hand-ro
 sprite (`Runner/Editor/ChaseMinimapRotationSync`, an `Undo.postprocessModifications` hook).
 
 A scene prefab instance (`03.Prefabs/Runner/ChaseMinimap.prefab`) whose children (`Bar`, and
-under it `Police`, `Ship`, `EndDistance`, `Distance`) are serialized parts **laid out by hand**:
+under it `Police`, `Ship`, `EndDistance`, `Distance`; `TrackMap` with `TrackLine`, `MapPolice`,
+`MapShip` — created by Rebuild UI / at spawn when unwired) are serialized parts **laid out by hand**:
 `Spawn` finds it and only BINDS them. Code moves the icons along the strip's height (keeping
 their authored x) and sets their size (`shipIconSize` / `policeIconSize`) and colours from
 `ChaseMinimapSettings` — nothing else; the strip's rect and the labels are the designer's. The

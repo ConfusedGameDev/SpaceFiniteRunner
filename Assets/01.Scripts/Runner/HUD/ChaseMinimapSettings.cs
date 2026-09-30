@@ -4,8 +4,11 @@ using UnityEngine;
 namespace ConfusedGameDev.FiniteRunner.HUD
 {
     /// <summary>
-    /// Look of the right-edge track map (ship climbing the track, the patrol
-    /// hanging under it on the zoomed <see cref="chaseSpan"/> scale). All minimap look tunables live on
+    /// Look of the chase minimap: the top-down TRACK MAP (the whole track's
+    /// shape, the ship and the patrol on it, ramps, gates and the finish
+    /// marked — TrackAuthoringPRD M6) and the older right-edge strip (the ship
+    /// climbing a bar, the patrol hanging under it on the zoomed
+    /// <see cref="chaseSpan"/> scale), each switchable. All minimap look tunables live on
     /// this asset — add new knobs here, not on the ChaseMinimap component.
     /// Positions and sizes of the strip and labels are NOT here: they are
     /// the prefab children's own RectTransforms, laid out by hand.
@@ -45,6 +48,43 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [PropertyRange(8f, 64f)] public float policeIconSize = 20f;
         [Tooltip("Pixels under the ship that stand for the full minimap range (GameSettings.minimapRangeMeters) — the patrol's zoomed gap scale. At track scale the gap would be a pixel or two.")]
         [PropertyRange(20f, 300f)] public float chaseSpan = 120f;
+
+        [TitleGroup("Track map")]
+        [Tooltip("Draw the top-down track map in the prefab's TrackMap rect: the whole track, the ship and the patrol on it, ramps, laser gates and the finish.")]
+        public bool showTrackMap = true;
+        [TitleGroup("Track map")]
+        [Tooltip("Also show the old vertical strip's bar and icons. Its distance labels stay either way.")]
+        public bool showStrip;
+        [TitleGroup("Track map")]
+        [Tooltip("Turn the map so the start is at the bottom and the finish at the top. Off = world north up.")]
+        public bool mapStartAtBottom = true;
+        [TitleGroup("Track map")]
+        [Tooltip("Share of the map rect kept empty round the track, each side.")]
+        [PropertyRange(0f, 0.3f)] public float mapPadding = 0.08f;
+        [TitleGroup("Track map")]
+        [Tooltip("Points the track line is drawn with (the whole track, evenly spaced).")]
+        [PropertyRange(50, 1000)] public int mapSamples = 300;
+        [TitleGroup("Track map")]
+        [PropertyRange(1f, 12f), SuffixLabel("px", true)] public float mapLineWidth = 3f;
+        [TitleGroup("Track map")]
+        [Tooltip("The track still ahead.")]
+        public Color mapLineColor = new(1f, 1f, 1f, 0.55f);
+        [TitleGroup("Track map")]
+        [Tooltip("The stretch already flown.")]
+        public Color mapDrivenColor = new(0.48f, 1f, 0.4f, 0.95f);
+        [TitleGroup("Track map")]
+        [Tooltip("The map rect's backdrop (alpha 0 = none).")]
+        public Color mapBackground = new(0f, 0f, 0f, 0.3f);
+        [TitleGroup("Track map")]
+        [PropertyRange(2f, 32f), SuffixLabel("px", true)] public float markerSize = 6f;
+        [TitleGroup("Track map")] public Color rampMarkerColor = new(1f, 0.8f, 0.2f);
+        [TitleGroup("Track map")] public Color gateMarkerColor = new(1f, 0.2f, 0.2f);
+        [TitleGroup("Track map")] public Color finishMarkerColor = new(1f, 0.25f, 0.9f);
+        [TitleGroup("Track map")]
+        [Tooltip("Optional marker sprites (empty = a plain square).")]
+        [PreviewField(32)] public Sprite rampMarkerSprite;
+        [TitleGroup("Track map")] [PreviewField(32)] public Sprite gateMarkerSprite;
+        [TitleGroup("Track map")] [PreviewField(32)] public Sprite finishMarkerSprite;
 
         [TitleGroup("Behaviour")]
         [ShowIf(nameof(policeBlink))]

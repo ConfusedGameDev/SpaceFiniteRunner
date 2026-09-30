@@ -398,7 +398,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // the patrol is only its second marker.
             if (motor != null)
                 ChaseMinimap.Spawn(motor, patrol, this, settings.minimapRangeMeters,
-                                   patrol != null ? patrol.Definition.warnDistance : 0f);
+                                   patrol != null ? patrol.Definition.warnDistance : 0f, generator);
 
             // The duel: the tug-of-war bar, and the slow motion the exchange
             // runs under. Both no-op without a patrol or with the duel off.

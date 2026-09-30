@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress. **M0 landed 2026-09-30. M1 landed 2026-09-30. M2 landed 2026-09-30. M3 landed 2026-09-30. M4 landed 2026-09-30. M5 landed 2026-09-30.** Settled with the designer: D1–D3, and on 2026-09-30 the four open questions (D10–D13). D4–D9 are proposals open for review. |
+| **Status** | In progress. **M0 landed 2026-09-30. M1 landed 2026-09-30. M2 landed 2026-09-30. M3 landed 2026-09-30. M4 landed 2026-09-30. M5 landed 2026-09-30. main merged in (584ed151). M6 landed 2026-09-30.** Settled with the designer: D1–D3, and on 2026-09-30 the four open questions (D10–D13). D4–D9 are proposals open for review. |
 | **Branch** | `feature/trackAuthoring`. |
 | **Scope** | Runner game only (`FiniteRunner_Test`, campaign runner levels). The city chase, `SaveData` and the Store are untouched. `Campaign` changes only through `RunnerLevelDefinition`. |
 | **Related** | `.claude/rules/runner-track.md`, `runner-hud-screens.md`, `campaign.md`, `ship-standalone.md`; `PatrolDuelPRD.md` (the patrol reads `IsGroundClear`) |
@@ -204,6 +204,14 @@ M0 can ship on its own. M1 is the risky one; every later milestone depends on it
 - Custom prefabs are kept per track in the asset's `customPrefabs` list.
 - The Placements tab of Edit Track has select and drag, a numbers and variant panel, duplicate, delete, the nearest-placements list, palette-plus-click placing, checks (R5.4) with Go buttons, and Reroll Placements (R5.5).
 - A moved or added ramp moves its keep-out with it. It does not re-straighten the road for its landing: a ramp moved onto a curve lands where the road goes. The checks only catch a landing that reaches the run-up.
+
+**M6 as built:**
+- The track map lives in a new hand-placed `TrackMap` rect. It draws the whole track top-down (`TrackMapLine`), start at the bottom and finish at the top, with the flown part tinted.
+- The ship and patrol dots sit at their real distances. Ramps, gates and the finish are marked; orbs are not.
+- The map re-samples on a restart or the hyperspace cut-back.
+- The old strip's bar and icons are hidden by default (`showStrip`); its distance labels stay.
+- The minimap receives the generator from GameManager's `Spawn`, so it does no scene search.
+- Verified in play: all 80 markers match the track's ramps, gates and finish; the map redraws after hyperspace.
 
 **Milestone gate (applies to every milestone, M0–M7):**
 1. When a milestone's code is done, work stops. Nothing is committed yet.
