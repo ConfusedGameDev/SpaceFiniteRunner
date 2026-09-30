@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BoostPad_Definition
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.PadDefinition
   displayName: Boost
-  speedDelta: 1456.5
+  speedDelta: 1585.87
   color: {r: 0.4433962, g: 0.4433962, b: 0.4433962, a: 1}
   sizeMultiplier: 0.75
   floatingOrb: 0

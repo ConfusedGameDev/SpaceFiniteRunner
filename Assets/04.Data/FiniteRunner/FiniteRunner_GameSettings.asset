@@ -20,7 +20,7 @@ MonoBehaviour:
   fallGlitchStrength: 0.8
   respawnMinPatrolGap: 150
   lightSpeedKmh: 6500
-  timeLimitSeconds: 180
+  timeLimitSeconds: 202
   launchDistanceMeters: 100
   trackLengthMeters: 33000
   endRunUpMeters: 1200
@@ -138,7 +138,7 @@ MonoBehaviour:
   wallSlamDamage: 25
   wallScrapeDamage: 10
   fallDamage: 30
-  laserDamage: 30
+  laserDamage: 94
   laserHitShake: {fileID: 11400000, guid: 39ad17b857a24976817bf109a3d733e0, type: 2}
   hitInvulnerabilitySeconds: 1
   repairOrbHealFraction: 0.15
