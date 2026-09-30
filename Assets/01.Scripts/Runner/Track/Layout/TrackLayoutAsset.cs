@@ -35,6 +35,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
             ? "empty"
             : $"{layout.endDistance / 1000f:0.0} km · {layout.knots.Count} knots · {layout.placements.Count} placements · seed {layout.seed}";
 
+        [TitleGroup("Track")]
+        [Tooltip("Prefabs placed by hand on this track (Custom Prefab placements point into this list by index). Anything: a decoration, a pickup, a prop.")]
+        public System.Collections.Generic.List<GameObject> customPrefabs = new();
+
         [HideInInspector]
         [SerializeField] TrackLayout layout = new();
 

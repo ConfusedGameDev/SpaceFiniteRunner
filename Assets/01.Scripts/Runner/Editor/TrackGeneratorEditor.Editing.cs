@@ -79,6 +79,12 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             }
 
             TrackLayout layout = working.Layout;
+            DrawEditTabs();
+            if (editTab == 1)
+            {
+                DrawPlacementPanel(generator, layout);
+                return;
+            }
             if (layout.sections.Count > 0)
                 EditorGUILayout.HelpBox("This track has loops or tubes: knot editing is off (moving road before a section would shift it). Spans can still be edited.", MessageType.Warning);
             EditorGUILayout.HelpBox("Click a knot to select it. Arrows move it (up/down = grade), the disc banks it. Drag the dots at the ends of flat sweeps (orange) and open straights (red) along the road. Grey knots are locked (the start and the final run-up). Ctrl/Cmd+Z undoes.", MessageType.None);
@@ -157,6 +163,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             // Redraw whenever the track on show is the one being undone (editing or not).
             if (working == null || generator.LoadedTrack != working) return;
             if (selectedKnot >= working.Layout.knots.Count) selectedKnot = working.Layout.knots.Count - 1; // an undone insert
+            if (selectedPlacement >= working.Layout.placements.Count) selectedPlacement = -1;           // an undone add
+            warningsStale = true;
             generator.ApplyEdit(working, true);
             SceneView.RepaintAll();
             Repaint();
@@ -238,6 +246,13 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             Vector3 eye = view.camera.transform.position;
             float radiusSqr = Mathf.Pow(Mathf.Max(200f, TrackGizmoSettings.DetailRadius), 2f);
 
+            if (editTab == 1)
+            {
+                PlacementSceneGUI(generator, layout, eye, radiusSqr);
+                ReleaseRebuild(generator);
+                return;
+            }
+
             // Knots: a button each; the selected one gets its handles.
             for (int i = 0; i < layout.knots.Count; i++)
             {
@@ -261,7 +276,12 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             SpanHandles(generator, track, layout.flatSweeps, FlatSpanColor, "Move Flat Sweep", eye, radiusSqr);
             SpanHandles(generator, track, layout.openStretches, OpenSpanColor, "Move Open Straight", eye, radiusSqr);
 
-            // Released: build the preview once, and save.
+            ReleaseRebuild(generator);
+        }
+
+        // A drag ended: build the whole preview once.
+        void ReleaseRebuild(TrackGenerator generator)
+        {
             if (rebuildPending && GUIUtility.hotControl == 0)
             {
                 rebuildPending = false;
@@ -416,6 +436,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         // to disk here: Save, or Stop Editing's prompt, does that.
         void Commit(TrackGenerator generator, bool build)
         {
+            warningsStale = true;
             EditorUtility.SetDirty(working);
             generator.ApplyEdit(working, build);
             SceneView.RepaintAll();

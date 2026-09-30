@@ -356,6 +356,22 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                         m.outline = Footprint(track, cache, p.distance, generator.EndRampLength, p.lateral, generator.EndRampHalfWidth);
                         m.label = p.variant == 1 ? "END RAMPS" : null;
                         break;
+                    case TrackPlacementKind.Pickup:
+                    {
+                        var catalog = generator.Catalog;
+                        var entry = catalog != null && p.variant >= 0 && p.variant < catalog.entries.Count ? catalog.entries[p.variant] : null;
+                        if (entry != null) { m.color = entry.color; m.label = entry.displayName; }
+                        m.size = 6f;
+                        break;
+                    }
+                    case TrackPlacementKind.CustomPrefab:
+                    {
+                        var prefabs = generator.LoadedTrack != null ? generator.LoadedTrack.customPrefabs : null;
+                        m.label = prefabs != null && p.variant >= 0 && p.variant < prefabs.Count && prefabs[p.variant] != null ? prefabs[p.variant].name : "PREFAB";
+                        m.color = new Color(0.8f, 0.8f, 1f);
+                        m.size = 4f;
+                        break;
+                    }
                     case TrackPlacementKind.Loop:
                         m.color = SectionColor;
                         m.size = track.SectionAt(p.distance) is LoopSection loop ? loop.Radius : 50f;

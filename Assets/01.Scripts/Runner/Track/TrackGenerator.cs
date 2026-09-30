@@ -205,6 +205,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Header("Decoration")]
         [SerializeField] TrackDecorator decorator;
 
+        [Header("Authoring")]
+        [Tooltip("What the track editor's palette places (TrackPlacementCatalog). Empty = Resources/FiniteRunner_PlacementCatalog.")]
+        [SerializeField] TrackPlacementCatalog placementCatalog;
+
         public bool Randomize => randomize;
 
         // Layout knobs, read off the shape in force. Width, straightness and
@@ -433,6 +437,29 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         /// <summary>The track this generator builds.</summary>
         public TrackManager Track => track;
+
+        TrackPlacementCatalog defaultCatalog;
+        Dictionary<TrackPlacementCatalog.Entry, Material> catalogMaterials;
+
+        /// <summary>The palette's power-ups: the wired catalog, else the one in Resources (null when neither exists).</summary>
+        public TrackPlacementCatalog Catalog => placementCatalog != null ? placementCatalog
+            : defaultCatalog != null ? defaultCatalog : defaultCatalog = TrackPlacementCatalog.LoadDefault();
+
+        /// <summary>How far two pickups keep apart (a pad length) — the editor's overlap warning uses the same rule.</summary>
+        public float PadLength => padSize.z;
+
+        /// <summary>
+        /// The ground a ramp at <paramref name="distance"/> keeps everything off
+        /// (x = start, y = end): its footprint plus the longest landing — what
+        /// the laser gates and the patrol's duel keep clear of. For the
+        /// editor, which moves and adds ramps on a saved track.
+        /// </summary>
+        public Vector2 RampKeepOut(int featureIndex, float distance)
+        {
+            if (!(FeatureEntry(featureIndex)?.Runtime is JumpDefinition jump)) return new Vector2(distance, distance);
+            float exclusion = jump.MaxAirDistance(JumpStrength) + jump.landingClearance;
+            return new Vector2(distance, distance + jump.FootprintLength + exclusion);
+        }
 
         /// <summary>The decorator stamping the road art (null when none is wired) — where the visible road sits.</summary>
         public TrackDecorator Decorator => decorator;
@@ -821,12 +848,103 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 case TrackPlacementKind.Collectible:
                     CreateCollectible(placement.distance, placement.lateral, Mathf.RoundToInt(placement.data.x));
                     break;
+                case TrackPlacementKind.Pickup:
+                    BuildCatalogPickup(placement);
+                    break;
+                case TrackPlacementKind.CustomPrefab:
+                    BuildCustomPrefab(placement);
+                    break;
                 default:
                     foreach (var spawner in runtimeSpawners)
                         if (spawner != null && spawner.Kind == placement.kind) { spawner.Build(spawnContext, placement); break; }
                     break;
             }
         }
+
+        // A catalog power-up (D13): its pad entry built like any orb or pad.
+        void BuildCatalogPickup(in TrackPlacement placement)
+        {
+            TrackPlacementCatalog catalog = Catalog;
+            if (catalog == null || spawnContext == null || placement.variant < 0 || placement.variant >= catalog.entries.Count) return;
+            TrackPlacementCatalog.Entry entry = catalog.entries[placement.variant];
+            if (entry?.pad?.definition == null) return;
+            spawnContext.CreatePad(placement.distance, placement.lateral, entry.pad, CatalogMaterial(entry));
+        }
+
+        // One recolored boost-material instance per catalog entry, play mode only (like the orb tiers).
+        Material CatalogMaterial(TrackPlacementCatalog.Entry entry)
+        {
+            if (!Application.isPlaying || boostMaterial == null) return boostMaterial;
+            catalogMaterials ??= new Dictionary<TrackPlacementCatalog.Entry, Material>();
+            if (!catalogMaterials.TryGetValue(entry, out Material mat))
+            {
+                mat = TrackSpawnContext.TintedCopy(boostMaterial, entry.pad.color);
+                catalogMaterials.Add(entry, mat);
+            }
+            return mat;
+        }
+
+        // A prefab placed by hand on a saved track, standing on the road at its spot.
+        void BuildCustomPrefab(in TrackPlacement placement)
+        {
+            var prefabs = loadedAsset != null ? loadedAsset.customPrefabs : null;
+            if (prefabs == null || placement.variant < 0 || placement.variant >= prefabs.Count || prefabs[placement.variant] == null) return;
+            GameObject prefab = prefabs[placement.variant];
+            track.GetPoseAtDistance(placement.distance, placement.lateral, out Vector3 pos, out Quaternion rot);
+            var go = Instantiate(prefab, pos + rot * (Vector3.up * placement.height), rot, padsParent);
+            go.name = $"{prefab.name}_{placement.distance:00000}";
+            spawned.Add((placement.distance, go));
+        }
+
+        /// <summary>
+        /// The editor's Reroll Placements (R5.5): decides the spawn set's
+        /// placements — speed orbs, repair orbs, laser gates, coins — afresh,
+        /// with a new seed, on the saved track's road as it stands, and writes
+        /// them into the asset. Ramps, loops, end ramps, catalog power-ups and
+        /// custom prefabs stay; everything rerolled keeps off them by the
+        /// generator's own rules (claims, keep-outs, pickup spacing). Then the
+        /// preview is rebuilt.
+        /// </summary>
+        public void RerollPlacements(TrackLayoutAsset asset)
+        {
+            GenerateCore(asset, build: false);
+            if (loadedAsset != asset) return;
+            TrackLayout layout = asset.Layout;
+
+            placements.RemoveAll(IsRerolled);
+            claims.Clear();
+            padDistances.Clear();
+            foreach (TrackPlacement p in placements)
+            {
+                if (p.kind == TrackPlacementKind.Ramp && FeatureEntry(p.variant)?.Runtime is TrackFeatureDefinition ramp)
+                    claims.Add((p.distance, p.distance + ramp.FootprintLength));
+                if (p.kind == TrackPlacementKind.Pickup) padDistances.Add(p.distance);
+            }
+            foreach (TrackSection section in track.Sections)
+                if (section is LoopSection) claims.Add((section.StartDistance, section.EndDistance));
+            if (layout.endZoneStart >= 0f) claims.Add((layout.endZoneStart, layout.endDistance + 1000f));
+
+            uint rerollSeed = (uint)System.Environment.TickCount | 1u;
+            uint layoutSeed = new Unity.Mathematics.Random(rerollSeed).state;
+            collectibleRng = new Unity.Mathematics.Random(math.hash(new uint2(layoutSeed, TrackSpawner.NameHash("Collectibles"))) | 1u);
+            spawnContext = new TrackSpawnContext(track, rules, padsParent, padSize, boostMaterial, layoutSeed,
+                                                 decorator != null ? decorator.RoadYOffset : -1.2f,
+                                                 spawned, claims, padDistances, featureKeepOuts, placements);
+            foreach (var spawner in runtimeSpawners)
+                if (spawner != null) spawner.Begin(spawnContext);
+            collectibleCursor = collectibleRng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
+
+            float pickupsTo = PlaceSpawnersUpTo(track.Length); // the track is complete: no stage guard
+            PlaceCollectiblesUpTo(pickupsTo);
+
+            layout.placements.Clear();
+            layout.placements.AddRange(placements);
+            GenerateCore(asset); // the preview, from the asset as it now stands
+        }
+
+        static bool IsRerolled(TrackPlacement p) =>
+            p.kind is TrackPlacementKind.SpeedOrb or TrackPlacementKind.RepairOrb or TrackPlacementKind.LaserGate
+                   or TrackPlacementKind.Collectible or TrackPlacementKind.BrakePad;
 
         FeatureSpawnEntry FeatureEntry(int index) =>
             FeatureTable != null && index >= 0 && index < FeatureTable.Length ? FeatureTable[index] : null;

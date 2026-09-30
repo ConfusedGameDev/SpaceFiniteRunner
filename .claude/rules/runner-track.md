@@ -288,6 +288,35 @@ stay endless.
   - **Verified** on a copy of a saved track: a knot moved 200 m and banked 20° → length, run-up and
     end ramps followed, knot distances stayed aligned, no other placement moved; play loaded the
     edited road exactly and the collision road follows it.
+- **Placement editing** (`Runner/Editor/TrackGeneratorEditor.Placements.cs`, M5 — Edit Track's
+  Placements tab). Every change is a record in the asset, undoable and saved with the edit.
+  - Click a placement's dot to select it; drag it along and across the road (projected back to
+    distance + lateral, clamped to the lane; the window round its old and new spot rebuilds live). The
+    inspector edits distance / lateral / height (prefabs) / variant (orb tier, gate variant + beam,
+    rotor, wave, catalog power-up, coin value), duplicates (+30 m), deletes, and lists the 25 nearest
+    the Scene camera. End ramps and loops are not moved here.
+  - **Palette**: the catalog's power-ups, the four laser gate variants, every ramp entry of the
+    feature table, a coin, any prefab — pick one, press Click in Scene to Place, click the road (the
+    mouse ray against the road's own plane, sampled every 20 m round the camera). Esc stops.
+  - **A ramp's keep-out moves with it** (`TrackGenerator.RampKeepOut`: footprint + longest landing),
+    so gates and the patrol duel keep off the new spot.
+  - **Checks**, the generator's own rules as warnings (red rings in the Scene view, Go buttons): a gate
+    within 150 m of a keep-out or the run-up, pickups within a pad length of each other, anything off
+    the lane, a ramp whose landing reaches the run-up, anything in the run-up or past the end.
+  - **Reroll Placements** (`TrackGenerator.RerollPlacements`): decides the spawn set's placements —
+    speed orbs, repair orbs, laser gates, coins — afresh (new seed) on the road as it stands, keeping
+    ramps, loops, end ramps, catalog power-ups and custom prefabs (claims and keep-outs rebuilt from
+    them). Undo brings the old ones back.
+  - **`TrackPlacementCatalog`** (`Resources/FiniteRunner_PlacementCatalog`, or the generator's
+    `placementCatalog`): the palette's power-ups. An entry is a speed orb tier or the repair orb (built
+    by their spawners) or a NEW power-up — a `PadSpawnEntry` (prefab + `PadDefinition`) built as a
+    `SpeedPad` from a `Pickup` record that indexes the entry: adding a power-up is adding an entry, no
+    code. Keep the order (records index it). Brake pads are not offered.
+  - **`CustomPrefab`** records index the asset's `customPrefabs` list; built standing on the road at
+    their spot + height, culled like the rest.
+  - **Verified** on a copy of a saved track: a catalog orb, a new catalog power-up and a custom prefab
+    built where placed; a reroll kept every ramp, end ramp, power-up and prefab and re-decided the
+    orbs, gates and coins.
 - **Previews never reach the scene file**: everything built in edit mode — pickups, road stamps,
   end markers — is flagged `DontSaveInEditor` (`TrackGenerator.MarkPreview`), bent meshes too, and
   the buttons neither record the spline as a prefab override nor dirty the scene.
