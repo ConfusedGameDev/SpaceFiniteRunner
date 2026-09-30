@@ -55,6 +55,11 @@ namespace ConfusedGameDev.FiniteRunner.Contracts
         bool HullEnabled { get; }
         /// <summary>The speed a loop's gate at <paramref name="distance"/> demands, m/s.</summary>
         float LoopRequiredSpeed(float distance);
+        /// <summary>
+        /// The saved track this run plays (a <c>TrackLayoutAsset</c>), or null
+        /// to generate one. Typed loosely: the contract names no track type.
+        /// </summary>
+        UnityEngine.ScriptableObject AuthoredTrack { get; }
     }
 
     /// <summary>

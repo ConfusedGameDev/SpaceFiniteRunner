@@ -13,8 +13,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// length decide how much track it takes), then tested against the
     /// keep-outs and pushed on if it does not fit: never on or near a ramp,
     /// its landing zone, a loop, a tube or the final run-up (flat sweeps and
-    /// open edges are the two toggles). Play mode only: the beams are runtime
-    /// objects, and detection is analytic (<see cref="LaserGate"/>).
+    /// open edges are the two toggles). Decided in edit mode too (a saved track
+    /// carries its gates), BUILT in play only: the beams are posed and burn at
+    /// runtime, and detection is analytic (<see cref="LaserGate"/>).
     /// </summary>
     [CreateAssetMenu(fileName = "Spawner_LaserGates", menuName = "FiniteRunner/Spawners/Laser Gates")]
     public class LaserGateSpawner : TrackSpawner
@@ -41,7 +42,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public override SpawnPhase Phase => SpawnPhase.ClaimsGround;
 
         public override bool IsActive(TrackSpawnContext ctx) =>
-            base.IsActive(ctx) && Application.isPlaying && laserPrefab != null && runtime != null && runtime.TotalWeight > 0f;
+            base.IsActive(ctx) && laserPrefab != null && runtime != null && runtime.TotalWeight > 0f;
 
         protected override void OnBegin(TrackSpawnContext ctx)
         {
@@ -94,7 +95,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// </summary>
         public override void Build(TrackSpawnContext ctx, in TrackPlacement placement)
         {
-            if (runtime == null || laserPrefab == null) return;
+            if (!Application.isPlaying || runtime == null || laserPrefab == null) return; // an edit-mode preview shows no gates
             float distance = placement.distance, lateral = placement.lateral;
             var variant = (LaserGateVariant)placement.variant;
             float length = placement.data.x, rotorSpeed = placement.data.y, rotorPhase = placement.data.z;

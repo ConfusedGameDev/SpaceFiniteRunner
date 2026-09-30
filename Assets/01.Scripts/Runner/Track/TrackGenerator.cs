@@ -272,17 +272,31 @@ namespace ConfusedGameDev.FiniteRunner.Track
         // feature definitions. The debug menu writes the asset, then the clone.
         void PrepareShape()
         {
-            if (shapeRuntime != null && shapeRuntime != trackShape)
-                DestroyObject(shapeRuntime); // last run's clone (or the fallback)
+            if (shapeRuntime != null && shapeIsClone)
+                DestroyObject(shapeRuntime); // last run's clone (or the fallback) — never an asset
 
-            if (trackShape != null)
-                shapeRuntime = Application.isPlaying ? Instantiate(trackShape) : trackShape;
+            TrackShapeSettings source = ShapeSource;
+            if (source != null)
+            {
+                shapeRuntime = Application.isPlaying ? Instantiate(source) : source;
+                shapeIsClone = Application.isPlaying;
+            }
             else
             {
                 shapeRuntime = ScriptableObject.CreateInstance<TrackShapeSettings>();
                 shapeRuntime.hideFlags = HideFlags.HideAndDontSave;
+                shapeIsClone = true;
             }
         }
+
+        // A saved track builds with the shape and the spawn set it was
+        // generated with (its ramp records point into that feature table, its
+        // orb records into those tiers); a generated one with the scene's.
+        TrackShapeSettings ShapeSource => loadedAsset != null && loadedAsset.shape != null ? loadedAsset.shape : trackShape;
+        TrackSpawnSet SpawnSetSource => loadedAsset != null && loadedAsset.spawnSet != null ? loadedAsset.spawnSet : spawnSet;
+
+        /// <summary>The saved track the last <see cref="Generate"/> loaded, or null when it decided one.</summary>
+        public TrackLayoutAsset LoadedTrack => loadedAsset;
 
         static void DestroyObject(Object target)
         {
@@ -341,6 +355,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         readonly List<TrackPlacement> unbuilt = new();    // decided, not built yet, by distance
         int placementsQueued;                             // placements[0..this) are in unbuilt (or built)
         readonly List<float> knotDistances = new();       // track distance of every knot, index for index with the spline
+        readonly List<TrackLayout.Section> sectionRecords = new(); // every section decided, replayable (a saved track stores them)
+        TrackLayoutAsset loadedAsset;                     // the saved track this Generate loaded, or null (decided here)
+        bool baking;                                      // the editor's Generate Track: a finite track with play's rules, in edit mode
+        bool shapeIsClone;                                // shapeRuntime is ours to destroy (a play clone or the fallback), never an asset
         float builtTo;                                    // everything decided before this distance is built
         Dictionary<FeatureSpawnEntry, Material> featureMaterials;
         Material collectibleMaterial;
@@ -415,12 +433,47 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>The track this generator builds.</summary>
         public TrackManager Track => track;
 
-        public void Generate()
+        /// <summary>
+        /// Rebuilds the track for a run: loads the level's saved track when it
+        /// names one (<see cref="ITrackRunRules.AuthoredTrack"/>, play only),
+        /// else decides one — a finite play track whole, an edit-mode preview
+        /// as an endless stretch. Builds the first stretch either way.
+        /// </summary>
+        public void Generate() => GenerateCore(null);
+
+        /// <summary>
+        /// The editor's Generate Track: decides a whole FINITE track in edit
+        /// mode, with the run's rules (<paramref name="runRules"/> — the scene's
+        /// game flow: length, run-up, end ramps, boosts, hull) exactly as a
+        /// play run would, ready for <see cref="CaptureLayout"/>. Builds the
+        /// first stretch as a preview.
+        /// </summary>
+        public void GenerateForBake(ITrackRunRules runRules)
+        {
+            rules = runRules;
+            baking = true;
+            try { GenerateCore(null); }
+            finally { baking = false; }
+        }
+
+        /// <summary>Loads a saved track into the scene in edit mode, as play would, and builds its first stretch — a preview.</summary>
+        public void PreviewSavedTrack(TrackLayoutAsset asset) => GenerateCore(asset);
+
+        void GenerateCore(TrackLayoutAsset preview)
         {
             if (track == null)
             {
                 Debug.LogError($"[TrackGenerator] '{name}' has no TrackManager assigned — nothing to generate.", this);
                 return;
+            }
+
+            loadedAsset = preview != null ? preview
+                : !baking && Application.isPlaying && endless && rules != null ? rules.AuthoredTrack as TrackLayoutAsset
+                : null;
+            if (loadedAsset != null && !loadedAsset.IsValid)
+            {
+                Debug.LogWarning($"[TrackGenerator] saved track '{loadedAsset.name}' is empty or from an older format — generating one instead.", loadedAsset);
+                loadedAsset = null;
             }
 
             // Last run's feature clones live on last run's shape clone, which
@@ -444,10 +497,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
                         : entry.definition;
 
             // One width knob for everything: steering clamp, pad bounds, meshes.
-            if (track != null) track.SetWidth(TrackWidth);
-            if (decorator != null) decorator.SetTrackWidth(TrackWidth);
+            // A saved track keeps the width it was generated at.
+            float width = loadedAsset != null ? loadedAsset.Layout.width : TrackWidth;
+            track.SetWidth(width);
+            if (decorator != null) decorator.SetTrackWidth(width);
 
-            LastSeed = seed != 0 ? (uint)seed : ((uint)System.Environment.TickCount | 1u);
+            LastSeed = loadedAsset != null ? loadedAsset.Layout.seed
+                : seed != 0 ? (uint)seed : ((uint)System.Environment.TickCount | 1u);
             rng = new Unity.Mathematics.Random(LastSeed);
 
             // Every spawner seeds a stream of its own off the layout stream's
@@ -464,6 +520,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             unbuilt.Clear();
             placementsQueued = 0;
             builtTo = 0f;
+            sectionRecords.Clear();
             ClearChildren(padsParent);
             ClearChildren(markersParent);
             if (decorator != null) decorator.Clear();
@@ -509,23 +566,30 @@ namespace ConfusedGameDev.FiniteRunner.Track
             straightUntil = 0f;
 
             // The run's length is PULLED (the GameManager resolves its level
-            // on demand — this Awake may run before its own), in play only:
-            // an edit-mode preview stays a plain endless stretch.
+            // on demand — this Awake may run before its own), in play or when
+            // baking: a plain edit-mode preview stays an endless stretch. A
+            // saved track carries its own.
             targetLength = 0f;
             inEndZone = false;
             trackComplete = false;
-            if (Application.isPlaying && endless)
-            {
-                if (rules != null) targetLength = rules.TrackLengthMeters;
-            }
-            // (Only asked of the manager in a finite play run: the getter
-            // resolves the run's data, which an edit-mode preview must not.)
-            endRunUp = IsFinite && rules != null ? rules.EndRunUpMeters : GameSettings.Default.endRunUpMeters;
+            if (loadedAsset != null) targetLength = loadedAsset.Layout.endDistance;
+            else if ((Application.isPlaying || baking) && endless && rules != null) targetLength = rules.TrackLengthMeters;
+            // (Only asked of the manager for a finite track: the getter
+            // resolves the run's data, which a plain edit-mode preview must not.)
+            endRunUp = loadedAsset != null ? loadedAsset.Layout.endRunUp
+                : IsFinite && rules != null ? rules.EndRunUpMeters : GameSettings.Default.endRunUpMeters;
             // Never a run-up that eats the whole track.
             endRunUp = Mathf.Min(endRunUp, targetLength * 0.5f);
             endZoneTarget = targetLength - endRunUp;
             endTarget = targetLength;
             PrepareEndRamp();
+
+            if (endless && loadedAsset != null)
+            {
+                LoadLayout(loadedAsset.Layout);
+                BuildUpTo(aheadDistance);
+                return;
+            }
 
             if (endless)
             {
@@ -611,6 +675,24 @@ namespace ConfusedGameDev.FiniteRunner.Track
             unbuilt.RemoveRange(0, count);
             builtTo = edge;
             if (decorator != null) decorator.DecorateUpTo(edge);
+            if (!Application.isPlaying)
+            {
+                MarkPreview(padsParent);
+                if (decorator != null) decorator.MarkPreview(); // the end markers stamp outside DecorateUpTo
+            }
+        }
+
+        /// <summary>
+        /// An edit-mode preview is never saved into the scene: play rebuilds
+        /// (or loads) the track anyway, and a saved preview is thousands of
+        /// lines of road pieces in the scene file.
+        /// </summary>
+        public static void MarkPreview(Transform parent)
+        {
+            if (parent == null) return;
+            foreach (Transform child in parent)
+                foreach (Transform t in child.GetComponentsInChildren<Transform>(true))
+                    t.gameObject.hideFlags |= HideFlags.DontSaveInEditor;
         }
 
         // One record, built: the features the generator owns, else the spawner
@@ -970,6 +1052,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 return;
             }
 
+            uint sectionState = rng.state; // a saved track replays the section's rolls from here
             TrackSection section = entry.Runtime.CreateSection(track, spot, ref rng);
             float footprint = section != null ? section.Length : entry.Runtime.FootprintLength;
 
@@ -1003,6 +1086,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 track.AddSection(loop);
                 ContinueFromLoopExit(loop);
+                sectionRecords.Add(new TrackLayout.Section { featureIndex = System.Array.IndexOf(FeatureTable, entry), start = spot, rngState = sectionState, splineExtent = loop.SplineExtent });
                 placements.Add(new TrackPlacement(TrackPlacementKind.Loop, spot, 0f, System.Array.IndexOf(FeatureTable, entry)));
             }
             else if (section != null)
@@ -1010,6 +1094,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 // A tube: the section is the whole feature; the spline keeps
                 // coming underneath it, level (LevelRequired sees the section).
                 track.AddSection(section);
+                sectionRecords.Add(new TrackLayout.Section { featureIndex = System.Array.IndexOf(FeatureTable, entry), start = spot, rngState = sectionState, splineExtent = section.SplineExtent });
             }
             else
             {
@@ -1022,23 +1107,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         /// <summary>
-        /// The jump strength the run actually flies with. The ship's definition
-        /// is the run clone (Store multipliers applied) once the GameManager
-        /// has built it, but the first stretch is generated in Awake, possibly
-        /// before that — so the Store's own multiplier is read too and the
-        /// larger wins (the asset's base strength is 1). Edit-mode previews
-        /// use 1.
+        /// The jump strength the landing room after a ramp is sized for: the
+        /// STRONGEST the Store can make it (never the player's own level), so
+        /// one seed — or one saved track — is one road for every player, and
+        /// the longest jump anyone can make still lands on straight road.
         /// </summary>
-        float JumpStrength
-        {
-            get
-            {
-                if (!Application.isPlaying) return 1f;
-                float fromShip = performance != null ? performance.JumpStrength : 1f;
-                float fromStore = StoreUpgrades.Multiplier(StoreSectionKind.Ship, UpgradeIds.ShipJumpStrength);
-                return Mathf.Max(1f, fromShip, fromStore);
-            }
-        }
+        float JumpStrength => Mathf.Max(1f, StoreUpgrades.MaxMultiplier(UpgradeIds.ShipJumpStrength));
 
         // The spline continues from the loop's exit: an explicit-tangent knot
         // at the exit pose (fixed whatever lands next), the curve between the
@@ -1123,7 +1197,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 }
                 source = endRampFallback;
             }
-            endRamp.Runtime = Instantiate(source);
+            endRamp.Runtime = Application.isPlaying ? Instantiate(source) : source; // edit mode (baking) reads the asset: a clone would leak
         }
 
         /// <summary>
@@ -1201,6 +1275,86 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 EndRampLateral(0, width, gap, out _),
                 EndRampLateral(1, width, gap, out _)
             };
+        }
+
+        /// <summary>
+        /// The track just decided, as data (<see cref="TrackLayout"/>) — what
+        /// the editor saves. Meaningful after a finite track was decided whole
+        /// (<see cref="GenerateForBake"/>); a copy, safe to keep.
+        /// </summary>
+        public TrackLayout CaptureLayout()
+        {
+            var layout = new TrackLayout
+            {
+                seed = LastSeed,
+                width = track.HalfWidth * 2f,
+                length = track.Length,
+                endZoneStart = track.EndZoneStart,
+                endDistance = track.EndDistance,
+                endRunUp = endRunUp,
+            };
+            // The knots as they were handed in, not as AutoSmooth left them:
+            // replayed in order, they rebuild the spline bit for bit.
+            foreach (var (knot, mode) in track.AppendedKnots) layout.knots.Add(new TrackLayout.Knot(knot, mode));
+            layout.knotDistances.AddRange(knotDistances);
+            layout.sections.AddRange(sectionRecords);
+            foreach (var sweep in track.FlatSweeps) layout.flatSweeps.Add(new TrackLayout.Span(sweep.Start, sweep.End, sweep.OuterSide));
+            foreach (var stretch in track.OpenStretches) layout.openStretches.Add(new TrackLayout.Span(stretch.Start, stretch.End));
+            foreach (var keepOut in featureKeepOuts) layout.keepOuts.Add(new Vector2(keepOut.start, keepOut.end));
+            layout.placements.AddRange(placements);
+            return layout;
+        }
+
+        /// <summary>
+        /// Puts a saved track in place of deciding one: the knots re-added in
+        /// order (AutoSmooth knots recompute their tangents off the same
+        /// neighbours), each section replayed from its saved random state on
+        /// the same road, the spans, the end, the keep-outs and a copy of every
+        /// record — queued to build like decided ones. Nothing more is decided:
+        /// the spawners and the coins are parked. The hyperspace jump can still
+        /// cut it back (<see cref="CutBackForEnd"/> works off the knots).
+        /// </summary>
+        void LoadLayout(TrackLayout layout)
+        {
+            track.ClearKnots();
+            foreach (var knot in layout.knots) track.AppendKnot(knot.ToBezier(), knot.mode);
+            track.Recalculate();
+
+            foreach (var record in layout.sections)
+            {
+                TrackFeatureDefinition definition = FeatureEntry(record.featureIndex)?.Runtime;
+                if (definition == null) continue;
+                var replay = new Unity.Mathematics.Random { state = record.rngState };
+                TrackSection section = definition.CreateSection(track, record.start, ref replay);
+                if (section == null) continue;
+                track.AddSection(section);
+                if (section is LoopSection loop) loop.SetSplineExtent(record.splineExtent);
+                track.Recalculate();
+                sectionRecords.Add(record);
+            }
+            foreach (var span in layout.flatSweeps) track.AddFlatSweep(span.start, span.end, span.outerSide);
+            foreach (var span in layout.openStretches) track.AddOpenStretch(span.start, span.end);
+            if (layout.endZoneStart >= 0f) track.SetEndZone(layout.endZoneStart);
+            track.SetEnd(layout.endDistance);
+            if (Mathf.Abs(track.Length - layout.length) > 1f)
+                Debug.LogWarning($"[TrackGenerator] saved track '{(loadedAsset != null ? loadedAsset.name : "?")}' rebuilt to {track.Length:0} m but was saved at {layout.length:0} m.", loadedAsset);
+
+            knotDistances.Clear();
+            knotDistances.AddRange(layout.knotDistances);
+            foreach (var keepOut in layout.keepOuts) featureKeepOuts.Add((keepOut.x, keepOut.y));
+            placements.AddRange(layout.placements);
+            unbuilt.AddRange(placements);
+            unbuilt.Sort((a, b) => a.distance.CompareTo(b.distance));
+            placementsQueued = placements.Count;
+
+            foreach (var spawner in runtimeSpawners)
+                if (spawner != null) spawner.Park();
+            collectibleCursor = float.MaxValue;
+            featureCursor = float.MaxValue;
+            pendingRamps.Clear();
+            endZoneTarget = layout.endZoneStart;
+            inEndZone = true;
+            trackComplete = true;
         }
 
         /// <summary>
@@ -1293,6 +1447,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             knotDistances.RemoveRange(keep + 1, count - keep - 1);
 
             placements.RemoveAll(p => p.distance >= reshapedFrom);
+            sectionRecords.RemoveAll(r => r.start >= cut);
             placementsQueued = placements.Count;
             unbuilt.RemoveAll(p => p.distance >= reshapedFrom);
             claims.RemoveAll(c => c.start >= reshapedFrom);
@@ -1375,13 +1530,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 if (spawner == null) continue;
                 spawner.Cleanup();
-                bool isAsset = spawnSet != null && System.Array.IndexOf(spawnSet.Spawners, spawner) >= 0;
-                if (Application.isPlaying && !isAsset) Destroy(spawner); // last run's clone
+                // In play every spawner in force is a clone (last run's); edit-mode previews run the assets.
+                if (Application.isPlaying) Destroy(spawner);
             }
             runtimeSpawners.Clear();
-            if (spawnSet == null) return;
+            TrackSpawnSet set = SpawnSetSource;
+            if (set == null) return;
 
-            foreach (var asset in spawnSet.Spawners)
+            foreach (var asset in set.Spawners)
                 runtimeSpawners.Add(asset == null ? null : Application.isPlaying ? Instantiate(asset) : asset);
         }
 

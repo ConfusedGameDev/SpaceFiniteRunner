@@ -22,6 +22,23 @@ namespace ConfusedGameDev.FiniteRunner.Store
             return definition.MultiplierFor(PlayerStats.UpgradeLevel(modelId, categoryId));
         }
 
+        /// <summary>
+        /// The largest multiplier any level of <paramref name="categoryId"/>
+        /// grants, whatever the player owns (×1 when unresolvable) — for things
+        /// built for every player alike, like the landing room a track leaves
+        /// after a ramp.
+        /// </summary>
+        public static float MaxMultiplier(string categoryId)
+        {
+            StoreSettings settings = StoreSettings.Load();
+            UpgradeDefinition definition = settings != null ? FindCategory(settings, categoryId) : null;
+            if (definition == null || definition.levels == null) return 1f;
+            float max = 1f;
+            foreach (var level in definition.levels)
+                if (level != null) max = UnityEngine.Mathf.Max(max, level.multiplier);
+            return max;
+        }
+
         /// <summary>Multiplier for the section's default model — what the city and the runner use today.</summary>
         public static float Multiplier(StoreSectionKind kind, string categoryId)
         {

@@ -99,6 +99,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         void Advance() => cursor += Rng.NextFloat(spacing.x, spacing.y);
 
+        /// <summary>Places nothing more this run: a loaded track's placements are all decided already.</summary>
+        public void Park() => cursor = float.MaxValue;
+
         /// <summary>Per-run setup after the stream is seeded: clone nested definitions, reset caches.</summary>
         protected virtual void OnBegin(TrackSpawnContext ctx) { }
 

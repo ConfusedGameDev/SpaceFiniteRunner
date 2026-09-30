@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress. **M0 landed 2026-09-30. M1 landed 2026-09-30.** Settled with the designer: D1–D3, and on 2026-09-30 the four open questions (D10–D13). D4–D9 are proposals open for review. |
+| **Status** | In progress. **M0 landed 2026-09-30. M1 landed 2026-09-30. M2 landed 2026-09-30.** Settled with the designer: D1–D3, and on 2026-09-30 the four open questions (D10–D13). D4–D9 are proposals open for review. |
 | **Branch** | `feature/trackAuthoring`. |
 | **Scope** | Runner game only (`FiniteRunner_Test`, campaign runner levels). The city chase, `SaveData` and the Store are untouched. `Campaign` changes only through `RunnerLevelDefinition`. |
 | **Related** | `.claude/rules/runner-track.md`, `runner-hud-screens.md`, `campaign.md`, `ship-standalone.md`; `PatrolDuelPRD.md` (the patrol reads `IsGroundClear`) |
@@ -171,6 +171,14 @@ M0 can ship on its own. M1 is the risky one; every later milestone depends on it
 - Hyperspace now cuts the decided road back (`CutBackForEnd`, `TrackManager.TruncateKnots`) and lays a new end, since there is no unbuilt road left to redirect.
 - `TrackGuide`'s no-hint search now looks where it last found the ship, falling back to a whole-track scan, instead of the newest stretch (which is now the finish line).
 - Debug edits to spawn spacing or tier chances apply on the next generate, not mid-run.
+
+**M2 as built:**
+- `TrackLayout` saves the knots as they were handed in (not as AutoSmooth left them), so a load is exact. Loops and tubes are saved as replayable records (the random state they were rolled from).
+- Inspector buttons: Generate Track, Save Track As…, Set as Current Track, Clear Current Track, Preview Saved Track, and the old endless preview.
+- FORCE RUNTIME TRACK is a 0/1 debug slider (the menu has no toggle row type).
+- Laser gates are now decided in edit mode (built in play only), so saved tracks include them.
+- Edit-mode previews are flagged never to be saved into the scene, and the buttons don't dirty the scene.
+- Verified: the saved track loads identically; an editor bake equals runtime generation on the same seed; hyperspace works on a saved track and leaves the asset untouched; a restart reloads it; the countdown comes from the asset.
 
 **Milestone gate (applies to every milestone, M0–M7):**
 1. When a milestone's code is done, work stops. Nothing is committed yet.

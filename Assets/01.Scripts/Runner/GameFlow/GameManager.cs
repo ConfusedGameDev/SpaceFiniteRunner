@@ -126,7 +126,38 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public int JumpCount => jumpCount;
         public bool IsObjectiveDone(int index) => index >= 0 && index < objectiveDone.Length && objectiveDone[index];
         public bool IsChallengeDone(int index) => index >= 0 && index < challengeDone.Length && challengeDone[index];
-        public float TimeLimit => settings.timeLimitSeconds;
+        /// <summary>
+        /// The run's countdown, seconds: the saved track's own when it sets one
+        /// (<see cref="Track.TrackLayoutAsset.timeLimitSeconds"/>), else
+        /// <see cref="GameSettings.timeLimitSeconds"/>.
+        /// </summary>
+        public float TimeLimit
+        {
+            get
+            {
+                ResolveRunData();
+                var authored = AuthoredTrack as Track.TrackLayoutAsset;
+                return authored != null && authored.timeLimitSeconds > 0f ? authored.timeLimitSeconds : settings.timeLimitSeconds;
+            }
+        }
+
+        /// <summary>
+        /// The debug menu's FORCE RUNTIME TRACK: ignore the level's saved track
+        /// and generate one, from the next restart — to compare the two. A
+        /// runtime switch, never written to an asset; it lasts while this
+        /// scene is loaded.
+        /// </summary>
+        public bool ForceRuntimeTrack { get; set; }
+
+        /// <summary>The saved track this run plays (the level's, unless forced off), or null to generate one.</summary>
+        public ScriptableObject AuthoredTrack
+        {
+            get
+            {
+                ResolveRunData();
+                return ForceRuntimeTrack || level == null ? null : level.track;
+            }
+        }
         public float TimeRemaining { get; private set; }
         /// <summary>
         /// Latched the frame every mandatory objective is met (reaching Light
@@ -241,7 +272,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             ResolveRunData();
             ResetObjectives();
 
-            TimeRemaining = settings.timeLimitSeconds;
+            TimeRemaining = TimeLimit;
             SpeedPad.Collected += OnPadCollected;
             LaserGate.Hit += OnLaserHit;
 
@@ -664,7 +695,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // timer only ran while flying and stops at the win, so this is
             // launch to the end ramp's lip), or a failed one; the patrol
             // catching up is the runner's arrest.
-            PlayerStats.RecordRunEnded(outcome == RunOutcome.Escaped, settings.timeLimitSeconds - TimeRemaining);
+            PlayerStats.RecordRunEnded(outcome == RunOutcome.Escaped, TimeLimit - TimeRemaining);
             if (outcome == RunOutcome.Caught) PlayerStats.RecordArrest();
             PlayerProfileStore.SaveIfDirty();
 
@@ -1005,7 +1036,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             ObjectivesMet = false;
             lostSpeedAtEnd = false;
             runCounted = false;
-            TimeRemaining = settings.timeLimitSeconds;
+            TimeRemaining = TimeLimit;
             ResetObjectives();
             // A fresh hull and the ship back on screen; the LIVES are the
             // mission's and carry over. A retry after a WIN is another go at a

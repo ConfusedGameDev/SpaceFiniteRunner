@@ -42,6 +42,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
         readonly List<TrackSection> sections = new(); // sorted by StartDistance
         readonly List<FlatSweep> flatSweeps = new(); // in the order they were laid, so sorted by Start
         readonly List<OpenStretch> openStretches = new(); // likewise
+        // Every knot exactly as it was HANDED IN (before AutoSmooth re-derived
+        // its tangents and re-leaned its rotation), index for index with the
+        // spline: re-adding these in order replays the spline bit for bit,
+        // where re-adding the final knots would lean them a second time.
+        readonly List<(BezierKnot knot, TangentMode mode)> appended = new();
+
+        /// <summary>The knots as handed in, in order (what a saved track stores — see <see cref="AppendKnot(BezierKnot, TangentMode)"/>).</summary>
+        public IReadOnlyList<(BezierKnot knot, TangentMode mode)> AppendedKnots => appended;
 
         // Half the step the curvature is measured over: long enough to read
         // through AutoSmooth's knot-to-knot ripple, short next to any sweep.
@@ -116,6 +124,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         public IReadOnlyList<TrackSection> Sections => sections;
 
+        /// <summary>The flat sweeps laid so far, in order (a saved track stores them).</summary>
+        public IReadOnlyList<FlatSweep> FlatSweeps => flatSweeps;
+
+        /// <summary>The open straights laid so far, in order (a saved track stores them).</summary>
+        public IReadOnlyList<OpenStretch> OpenStretches => openStretches;
+
         // --------------------------------------------------------- track end
         // A finite track ends in a void: the generator marks where its final
         // run-up begins and, once the last knot is down, where the road stops.
@@ -163,6 +177,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             Revision++;
             if (spline != null) spline.Spline.Clear();
+            appended.Clear();
             sections.Clear();
             flatSweeps.Clear();
             openStretches.Clear();
@@ -189,6 +204,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             {
                 var knots = spline.Spline;
                 while (knots.Count > Mathf.Max(1, keepKnots)) knots.RemoveAt(knots.Count - 1);
+                if (appended.Count > knots.Count) appended.RemoveRange(knots.Count, appended.Count - knots.Count);
             }
             sections.RemoveAll(section => section.StartDistance >= cutDistance);
             flatSweeps.RemoveAll(sweep => sweep.Start >= cutDistance);
@@ -200,10 +216,23 @@ namespace ConfusedGameDev.FiniteRunner.Track
             Recalculate();
         }
 
+        /// <summary>Appends a saved knot exactly as it was first handed in (<see cref="AppendedKnots"/>): replayed in order, the spline comes out the same.</summary>
+        public void AppendKnot(BezierKnot knot, TangentMode mode)
+        {
+            Add(knot, mode);
+        }
+
+        void Add(BezierKnot knot, TangentMode mode)
+        {
+            if (spline == null) return;
+            spline.Spline.Add(knot, mode);
+            appended.Add((knot, mode));
+        }
+
         /// <summary>Appends an auto-smoothed knot at a world position (knots are only ever removed by <see cref="TruncateKnots"/>).</summary>
         public void AppendKnot(float3 position)
         {
-            if (spline != null) spline.Spline.Add(new BezierKnot(position), TangentMode.AutoSmooth);
+            Add(new BezierKnot(position), TangentMode.AutoSmooth);
         }
 
         /// <summary>
@@ -215,7 +244,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public void AppendKnot(float3 position, quaternion rotation)
         {
             if (spline != null)
-                spline.Spline.Add(new BezierKnot(position, float3.zero, float3.zero, rotation), TangentMode.AutoSmooth);
+                Add(new BezierKnot(position, float3.zero, float3.zero, rotation), TangentMode.AutoSmooth);
         }
 
         /// <summary>
@@ -233,7 +262,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             if (spline == null) return;
             float3 local = math.mul(math.inverse(rotation), tangent);
-            spline.Spline.Add(new BezierKnot(position, -local, local, rotation), TangentMode.Continuous);
+            Add(new BezierKnot(position, -local, local, rotation), TangentMode.Continuous);
         }
 
         /// <summary>

@@ -150,7 +150,8 @@ stay endless.
   (`ContractLookup.Find<T>`), and with none present the generator runs on its own defaults (an
   endless preview).
 - `Generate` PULLS the run's length: `ITrackRunRules.TrackLengthMeters` (the level's own, else
-  `GameSettings.trackLengthMeters`) — play mode only. `endZoneTarget = length − EndRunUpMeters`.
+  `GameSettings.trackLengthMeters`) — in play, or when baking in the editor (a saved track carries
+  its own). `endZoneTarget = length − EndRunUpMeters`.
 - **The last knot cannot be placed at an authored distance** (a chord is only arc length where
   the knots are collinear, and loops insert distance), so the END ZONE START is a pinned
   pseudo-spot — `AddSegment` returns a `SpotKind` (`None / Feature / EndZoneStart / End`) and
@@ -210,8 +211,45 @@ stay endless.
     is 0 once `trackComplete`.
 - `TrackManager.Revision` bumps on `ClearKnots`; caches along the track (`TrackGuide`'s curvature)
   key on it, never on `Length`.
-- **Regenerate Track** (inspector) in play is `GameManager.Restart` (new layout at seed 0, ship and
-  patrol relaunched); in edit mode an endless preview recorded as a prefab-instance modification.
+- **Regenerate Track** (inspector) in play is `GameManager.Restart` (new layout at seed 0 — or the
+  level's saved track again — ship and patrol relaunched). Edit mode has the authoring tools below.
+
+### Saved tracks (`TrackLayout`, `TrackLayoutAsset` — TrackAuthoring M2)
+
+- **`TrackLayout`** (`Track/Layout/`) is a whole decided track as data: the knots **as they were
+  handed in** (`TrackManager.AppendedKnots` — before AutoSmooth re-derived their tangents and re-leaned
+  their rotation; saving the FINAL knots and re-adding them leaned three knots a second time, a
+  fraction of a degree of bank off), every knot's track distance, the sections as replayable records
+  (feature index, start, the layout rng state their definition rolled from — `CreateSection` replays
+  the same roll on the same road — and a loop's spline extent), flat sweeps, open straights, the
+  keep-outs (the patrol duel's `IsGroundClear`), the end, the run-up and every `TrackPlacement`.
+- **`TrackLayoutAsset`** wraps one, plus the shape and spawn set it was generated with (a ramp record
+  indexes that feature table, an orb record those tiers — a saved track BUILDS with them, whatever
+  the scene's generator holds) and `timeLimitSeconds` (0 = `GameSettings`; `GameManager.TimeLimit`
+  resolves it for the HUD, retries and the run stats).
+- **A level plays one** through `RunnerLevelDefinition.track` → `GameManager.AuthoredTrack` →
+  `ITrackRunRules.AuthoredTrack` (typed `ScriptableObject`: the contract names no track type).
+  `Generate` then `LoadLayout`s it instead of deciding: knots re-appended in order, sections
+  replayed, spans / end / keep-outs / records restored, spawners `Park()`ed and the coin and feature
+  cursors parked — nothing more is decided. Gameplay never writes the asset: the generator copies
+  its records, and the hyperspace cut-back works on that copy (`CutBackForEnd` reads the knots).
+  **Verified**: a baked track loads bit for bit (every knot's position, rotation and tangent, every
+  record, the end); hyperspace cuts it back; a restart reloads it.
+- **FORCE RUNTIME TRACK** (debug CORE SETTINGS, a 0/1 slider): `GameManager.ForceRuntimeTrack`, a
+  runtime switch — the level's saved track is ignored from the next restart. No asset is written.
+- **Edit mode = play.** `GenerateForBake(rules)` (the inspector's Generate Track) decides a whole
+  finite track in edit mode with the scene's `GameManager` as the rules — length, run-up, end ramps,
+  hull — and laser gates are DECIDED in edit mode too (built in play only). The ramp landing room
+  is sized for a FIXED jump strength (`StoreUpgrades.MaxMultiplier`, the strongest upgrade — never
+  the player's own), so one seed is one road for every player. **Verified**: an editor bake and a
+  play run generated on the same seed are identical.
+- **Inspector (edit mode)**: Generate Track · Save Track As… (`04.Data/FiniteRunner/Tracks/`;
+  replacing a saved track asks first) · Set as Current Track / Clear Current Track (writes the scene
+  `GameManager`'s level) · Preview Saved Track (`PreviewSavedTrack`: loads it as play would) ·
+  Regenerate (endless preview).
+- **Previews never reach the scene file**: everything built in edit mode — pickups, road stamps,
+  end markers — is flagged `DontSaveInEditor` (`TrackGenerator.MarkPreview`), bent meshes too, and
+  the buttons neither record the spline as a prefab override nor dirty the scene.
 
 ### Core Settings (Odin region)
 
@@ -301,9 +339,9 @@ the clone, never the asset.
   `straightUntil = spot + length + MaxAirDistance(JumpStrength) + landingClearance`: until the
   spline end passes it, `AddSegment` starts no sweep, ends one in progress, holds the bank at 0
   and the grade where it is, so the longest jump the ship can make always lands on the road it
-  left. `JumpStrength` is the run definition's `jumpStrength` or the Store's
-  `ShipJumpStrength` multiplier, whichever is larger (the first stretch is generated in `Awake`,
-  possibly before the GameManager has built the run clone); edit-mode previews use 1. The
+  left. `JumpStrength` is the STRONGEST the Store can make it (`StoreUpgrades.MaxMultiplier` of
+  `ShipJumpStrength`, at least 1) — never the player's own level, so a seed or a saved track is one
+  road for everyone and the longest jump anyone can make lands on straight road. The
   exclusion the cursor skips is the same longest jump + `landingClearance`, not the definition's
   strength-1 `ExclusionAhead`.
 - **`CreateJump`** spawns a `JumpRamp` (start, length, lateral, half width =

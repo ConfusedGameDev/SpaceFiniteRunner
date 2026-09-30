@@ -54,6 +54,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                     onChanged?.Invoke();
                 });
                 refreshers?.Add(() => lengthRow.SetWithoutNotify(game.TrackLengthMeters));
+
+                // 1 = ignore the level's saved track and generate one from the
+                // next restart (to compare them). A runtime switch: no asset is written.
+                var forceRow = screen.AddRow<DebugSliderRow>("FORCE RUNTIME TRACK");
+                forceRow.Configure(0f, 1f, 1f, game.ForceRuntimeTrack ? 1f : 0f, "0", v => game.ForceRuntimeTrack = v > 0.5f);
+                refreshers?.Add(() => forceRow.SetWithoutNotify(game.ForceRuntimeTrack ? 1f : 0f));
             }
 
             // The road's elevation walk. Max grade 0 is the flat track.

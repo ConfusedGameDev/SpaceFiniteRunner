@@ -147,6 +147,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 StampAt(stampCursor);
                 stampCursor += roadSpacing;
             }
+            if (!Application.isPlaying) TrackGenerator.MarkPreview(decorParent); // a preview never lands in the scene file
         }
 
         /// <summary>Destroys every stamped piece before <paramref name="distance"/>.</summary>
@@ -366,6 +367,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
                 Mesh mesh = Instantiate(source);
                 mesh.name = source.name + " (bent)";
+                if (!Application.isPlaying) mesh.hideFlags = HideFlags.DontSaveInEditor;
                 Vector3[] vertices = mesh.vertices;
                 Vector3[] normals = mesh.normals;
                 Vector4[] tangents = mesh.tangents;
@@ -411,6 +413,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 owner.Own(mesh);
             }
         }
+
+        /// <summary>Flags every stamped piece as an edit-mode preview (never saved into the scene).</summary>
+        public void MarkPreview() => TrackGenerator.MarkPreview(decorParent);
 
         public void Clear()
         {
