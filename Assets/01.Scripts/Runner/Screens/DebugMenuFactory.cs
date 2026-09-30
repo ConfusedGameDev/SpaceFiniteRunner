@@ -193,6 +193,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         {
             var screen = MenuScreen.Create("Debug_Features", parent, theme, 0f, ContentTop);
             screen.SetRowMetrics(RowHeight, RowSpacing);
+            screen.SetViewport(9); // dozens of feature rows — nine at a time, the rest scroll in
             DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabFeatures, tabIndex, tabCount);
 
             var shapeAsset = generator.ShapeAsset;
