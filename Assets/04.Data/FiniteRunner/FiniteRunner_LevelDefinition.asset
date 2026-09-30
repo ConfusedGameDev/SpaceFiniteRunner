@@ -15,7 +15,7 @@ MonoBehaviour:
   levelName: Escape Run
   nextSceneName: Store
   trackLengthMeters: 91837
-  track: {fileID: 11400000, guid: 5e868e0e072fa4c2d99a119ab474213c, type: 2}
+  track: {fileID: 0}
   completeVideo: {fileID: 0}
   rankTable:
     sThreshold: 10000
@@ -31,7 +31,7 @@ MonoBehaviour:
     multiplier: 2
   objectives:
   - type: 0
-    targetSpeedKmh: 4563
+    targetSpeedKmh: 4706
     jumpCount: 3
     reward: 500
     accent: {r: 0, g: 0, b: 0, a: 0}

@@ -20,6 +20,7 @@ MonoBehaviour:
   fallGlitchStrength: 0.8
   respawnMinPatrolGap: 150
   lightSpeedKmh: 6500
+  speedDisplayMultiplier: 3.6
   timeLimitSeconds: 202
   launchDistanceMeters: 100
   trackLengthMeters: 33000
@@ -88,7 +89,7 @@ MonoBehaviour:
   airLaneHeight: 30
   landingShake: {fileID: 11400000, guid: 408b45efec3b4c198db77479e94c0f1e, type: 2}
   wallHitShake: {fileID: 11400000, guid: 44c068e10d0145fca926982d0fab124b, type: 2}
-  laserSpeedLoss: 0.067
+  laserSpeedLoss: 0.138
   laserSmokeTextures:
   - {fileID: 2800000, guid: 6bd4792093f9c4229805e4ffc689be94, type: 3}
   - {fileID: 2800000, guid: ced67ea39b03d441383bddeb8ebcaf1a, type: 3}
@@ -138,7 +139,7 @@ MonoBehaviour:
   wallSlamDamage: 25
   wallScrapeDamage: 10
   fallDamage: 30
-  laserDamage: 94
+  laserDamage: 54
   laserHitShake: {fileID: 11400000, guid: 39ad17b857a24976817bf109a3d733e0, type: 2}
   hitInvulnerabilitySeconds: 1
   repairOrbHealFraction: 0.15
