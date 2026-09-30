@@ -32,6 +32,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         [System.NonSerialized] Material shellMaterial, crossMaterial; // the code-built orb's, play mode only
 
+        /// <summary>The orb's diameter, metres, for a track whose pads are <paramref name="padSize"/> (other pickups size themselves off it — a coin is half of one).</summary>
+        public float Diameter(Vector3 padSize) => padSize.x * size;
+
         public override bool IsActive(TrackSpawnContext ctx) =>
             base.IsActive(ctx) && (ctx.Rules == null || ctx.Rules.HullEnabled);
 
@@ -41,7 +44,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (claimEnd >= 0f) return claimEnd;
             if (ctx.NearPickup(distance)) return -1f;
 
-            float diameter = ctx.PadSize.x * size;
+            float diameter = Diameter(ctx.PadSize);
             float lateral = ctx.RandomLateral(ref Rng, distance, diameter * 0.5f + 2f);
             ctx.Track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
 

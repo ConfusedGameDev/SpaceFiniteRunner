@@ -162,14 +162,24 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [SerializeField] Vector2Int collectibleValue = new(1, 5);
 
         [ToggleGroup("spawnCollectibles")]
-        [Tooltip("Width and height of a coin's pickup volume, metres. The ship sweeps the track analytically, so there is no trigger to size (and no length to pad out for speed).")]
+        [Tooltip("Minimum width and height of a coin's pickup volume, metres — never smaller than the coin itself. The player's ship takes coins by sweeping its hull box against this trigger (the patrol reads the same size analytically), so its length does not matter.")]
         [UnityEngine.Serialization.FormerlySerializedAs("collectibleTriggerSize")]
         [SerializeField] Vector2 collectiblePickupSize = new(5f, 5f);
 
         [ToggleGroup("spawnCollectibles")]
-        [Tooltip("Diameter of the code-built coin, metres.")]
-        [PropertyRange(0.5f, 5f), SuffixLabel("m", true)]
+        [Tooltip("Coin diameter as a share of the repair orb's (the spawn set's Spawner_RepairOrbs): 0.5 = half a health pack. 0 = use the fixed size below. Also used when the set has no repair orbs.")]
+        [PropertyRange(0f, 1f)]
+        [SerializeField] float collectibleShareOfRepairOrb = 0.5f;
+
+        [ToggleGroup("spawnCollectibles")]
+        [Tooltip("Diameter of the code-built coin, metres, when it does not follow the repair orb (share 0, or no repair orbs in the set).")]
+        [PropertyRange(0.5f, 20f), SuffixLabel("m", true)]
         [SerializeField] float collectibleSize = 1.6f;
+
+        [ToggleGroup("spawnCollectibles")]
+        [Tooltip("Gap between the visible road and the coin's LOWEST point (the bottom of its hover), along the track's up — like the repair orb's, so a coin always floats on top of the road and in the ship's path.")]
+        [PropertyRange(0f, 10f), SuffixLabel("m", true)]
+        [SerializeField] float collectibleRoadClearance = 1.5f;
 
         [ToggleGroup("spawnCollectibles")]
         [Tooltip("Tint of the code-built coin (a recolored instance of the boost material).")]
@@ -274,6 +284,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         // Streaming state — all reset by Generate().
         Unity.Mathematics.Random rng;
+        // Coins and ramp laterals draw from streams of their own, seeded off the
+        // layout stream's state like the spawners': how many segments one
+        // StreamTo appends depends on the frame, so anything drawn from the
+        // layout stream between segments would make the road frame-dependent.
+        Unity.Mathematics.Random collectibleRng;
+        Unity.Mathematics.Random rampRng;
         float heading;
         float pitch;   // grade of the last segment, degrees (elevation walk)
         float bank;    // roll of the last knot, degrees, right edge up positive (banking)
@@ -364,8 +380,20 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [ContextMenu("Regenerate Track")]
         void RegenerateFromMenu() => Generate();
 
+        /// <summary>The seed the last <see cref="Generate"/> ran on — the rolled one when <c>seed</c> is 0, so a random layout can be reproduced.</summary>
+        public uint LastSeed { get; private set; }
+
+        /// <summary>The track this generator builds.</summary>
+        public TrackManager Track => track;
+
         public void Generate()
         {
+            if (track == null)
+            {
+                Debug.LogError($"[TrackGenerator] '{name}' has no TrackManager assigned — nothing to generate.", this);
+                return;
+            }
+
             // Last run's feature clones live on last run's shape clone, which
             // PrepareShape is about to replace.
             if (Application.isPlaying && shapeRuntime != null && shapeRuntime.featureTable != null)
@@ -390,13 +418,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (track != null) track.SetWidth(TrackWidth);
             if (decorator != null) decorator.SetTrackWidth(TrackWidth);
 
-            rng = seed == 0
-                ? new Unity.Mathematics.Random((uint)System.Environment.TickCount)
-                : new Unity.Mathematics.Random((uint)seed);
+            LastSeed = seed != 0 ? (uint)seed : ((uint)System.Environment.TickCount | 1u);
+            rng = new Unity.Mathematics.Random(LastSeed);
 
             // Every spawner seeds a stream of its own off the layout stream's
             // STATE, not a draw from it: the road never depends on what spawns.
             uint layoutSeed = rng.state;
+            collectibleRng = new Unity.Mathematics.Random(math.hash(new uint2(layoutSeed, TrackSpawner.NameHash("Collectibles"))) | 1u);
+            rampRng = new Unity.Mathematics.Random(math.hash(new uint2(layoutSeed, TrackSpawner.NameHash("JumpRamps"))) | 1u);
 
             spawned.Clear();
             claims.Clear();
@@ -439,7 +468,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                                                  spawned, claims, padDistances, featureKeepOuts);
             foreach (var spawner in runtimeSpawners)
                 if (spawner != null) spawner.Begin(spawnContext);
-            collectibleCursor = rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
+            collectibleCursor = collectibleRng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
             featureCursor = rng.NextFloat(FeatureSpacing.x, FeatureSpacing.y);
             pendingRamps.Clear();
             straightUntil = 0f;
@@ -510,8 +539,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
             // last knot, so the run-up and the end are stamped at once.
             float settled = trackComplete ? track.Length : track.Length - SettleMargin;
             SpawnPendingRamps(settled); // first: a ramp's footprint is already claimed, so everything keeps off it
-            PlaceSpawnersUpTo(settled);     // ground claimers (gates), then pickups in set order
-            PlaceCollectiblesUpTo(settled); // after the pickups: coins keep off where they landed
+            float pickupsTo = PlaceSpawnersUpTo(settled);     // ground claimers (gates), then pickups in set order
+            PlaceCollectiblesUpTo(pickupsTo - StageGuard);    // after the pickups: coins keep off where they landed
             if (decorator != null) decorator.DecorateUpTo(settled);
         }
 
@@ -1111,10 +1140,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>Decided ramps land once the spline under their run-up is settled (AutoSmooth reshapes the last two segments as knots land).</summary>
         void SpawnPendingRamps(float limit)
         {
-            for (int i = pendingRamps.Count - 1; i >= 0; i--)
+            // In road order: each ramp draws its lateral as it is built, so the
+            // order must not depend on how many were waiting (one long pass vs
+            // a pass per frame).
+            for (int i = 0; i < pendingRamps.Count;)
             {
                 var (entry, distance) = pendingRamps[i];
-                if (distance + entry.Runtime.FootprintLength > limit) continue;
+                if (distance + entry.Runtime.FootprintLength > limit) { i++; continue; }
                 CreateFeature(distance, entry, null);
                 pendingRamps.RemoveAt(i);
             }
@@ -1125,15 +1157,30 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// every ground claimer first (a laser gate claims its stretch, so no
         /// pickup lands in a beam), then every pickup spawner in set order (each
         /// keeps off the pickups placed before it).
+        /// Each stage stops <see cref="StageGuard"/> short of the one before it,
+        /// so whatever a placement keeps off (a claim or a pickup within a pad
+        /// length AHEAD of it) is always decided first — the layout is then the
+        /// same whether the track streams in one pass or a pass per frame.
+        /// Returns the limit the last stage ran to.
         /// </summary>
-        void PlaceSpawnersUpTo(float limit)
+        float PlaceSpawnersUpTo(float limit)
         {
-            if (spawnContext == null) return;
+            if (spawnContext == null) return limit;
             foreach (var spawner in runtimeSpawners)
                 if (spawner != null && spawner.Phase == SpawnPhase.ClaimsGround) spawner.PlaceUpTo(spawnContext, limit);
             foreach (var spawner in runtimeSpawners)
-                if (spawner != null && spawner.Phase != SpawnPhase.ClaimsGround) spawner.PlaceUpTo(spawnContext, limit);
+            {
+                if (spawner == null || spawner.Phase == SpawnPhase.ClaimsGround) continue;
+                limit -= StageGuard;
+                spawner.PlaceUpTo(spawnContext, limit);
+            }
+            return limit;
         }
+
+        // How far a later placement stage stays behind the one before it: the
+        // reach of ClaimEnd's widening and NearPickup (one pad length). Zero
+        // once the track is complete — every earlier stage then ran to the end.
+        float StageGuard => trackComplete ? 0f : padSize.z + 1f;
 
         // The spawn set's assets are never mutated in play: a clone of each per
         // Generate, like the shape and the feature definitions, so the debug
@@ -1180,17 +1227,21 @@ namespace ConfusedGameDev.FiniteRunner.Track
         void PlaceCollectiblesUpTo(float limit)
         {
             if (!spawnCollectibles || spawnContext == null) return;
-            while (collectibleCursor < limit)
+            // A row is only started when all of it fits under the limit: a row
+            // cut at the settled edge would lose its far coins, and where it was
+            // cut would depend on the frame.
+            float rowReach = trackComplete ? 0f : (Mathf.Max(collectibleGroupSize.x, collectibleGroupSize.y) - 1) * collectibleStep;
+            while (collectibleCursor + rowReach < limit)
             {
                 float claimEnd = spawnContext.ClaimEnd(collectibleCursor);
                 if (claimEnd >= 0f) { collectibleCursor = claimEnd; continue; }
 
-                int count = rng.NextInt(collectibleGroupSize.x, Mathf.Max(collectibleGroupSize.x, collectibleGroupSize.y) + 1);
+                int count = collectibleRng.NextInt(collectibleGroupSize.x, Mathf.Max(collectibleGroupSize.x, collectibleGroupSize.y) + 1);
                 track.GetLateralBand(collectibleCursor, out float bandMin, out float bandMax);
                 float margin = collectiblePickupSize.x * 0.5f + 2f;
                 float lo = bandMin + margin;
                 float hi = bandMax - margin;
-                float lateral = hi > lo ? rng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f;
+                float lateral = hi > lo ? collectibleRng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f;
 
                 for (int i = 0; i < count; i++)
                 {
@@ -1199,7 +1250,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     CreateCollectible(d, lateral);
                 }
 
-                collectibleCursor += count * collectibleStep + rng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
+                collectibleCursor += count * collectibleStep + collectibleRng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
             }
         }
 
@@ -1305,7 +1356,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             float rampHalf = track.HalfWidth * Mathf.Clamp01(def.widthFraction);
             float maxLat = Mathf.Max(0f, track.HalfWidth - rampHalf - 2f);
-            float lateral = rng.NextFloat(-maxLat, maxLat);
+            float lateral = rampRng.NextFloat(-maxLat, maxLat);
             float baseBoost = rules != null ? rules.PowerUpSpeedBoost : GameSettings.Default.powerUpSpeedBoost;
             float boost = baseBoost * entry.multiplier, rollBonus = 0f;
             // A ramp prefab that carries a RampBoost sets its takeoff as a share of a green orb's boost.
@@ -1462,9 +1513,22 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// gold cylinder standing on the track, spun round the track's up by
         /// the Collectible itself — under a root carrying the long trigger box.
         /// </summary>
+        /// <summary>The coin's diameter: a share of the repair orb's when the set has one, else <c>collectibleSize</c>.</summary>
+        float CoinDiameter
+        {
+            get
+            {
+                var repair = collectibleShareOfRepairOrb > 0f ? GetSpawner<RepairOrbSpawner>() : null;
+                return repair != null ? repair.Diameter(padSize) * collectibleShareOfRepairOrb : collectibleSize;
+            }
+        }
+
         void CreateCollectible(float distance, float lateral)
         {
             track.GetPoseAtDistance(distance, lateral, out Vector3 pos, out Quaternion rot);
+            float diameter = CoinDiameter;
+            // The pickup volume is never smaller than the coin you can see.
+            Vector2 pickup = Vector2.Max(collectiblePickupSize, new Vector2(diameter, diameter));
             GameObject go;
             Collectible collectible;
 
@@ -1487,25 +1551,41 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
                 var coin = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 coin.name = "Mesh";
-                DestroyComponent(coin.GetComponent<Collider>()); // the trigger is on the root
+                // NOW, not at the end of the frame: Collectible.Awake (below)
+                // only adds its own trigger when it finds no collider, so a
+                // deferred Destroy left the coin with none at all and the
+                // ship's collider sweep could never take it.
+                DestroyImmediate(coin.GetComponent<Collider>());
                 coin.transform.SetParent(go.transform, false);
                 // A cylinder's axis is its local Y; laid on its side it faces
                 // the ship like a coin, and its local Z is then the track's up.
                 coin.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                coin.transform.localScale = new Vector3(collectibleSize, 0.04f, collectibleSize);
+                coin.transform.localScale = new Vector3(diameter, diameter * 0.03f, diameter);
                 Material mat = CollectibleMaterial();
                 if (mat != null) coin.GetComponent<Renderer>().sharedMaterial = mat;
+
+                // The pickup trigger on the root, sized to the pickup volume:
+                // what the ship's hull box sweeps against.
+                var trigger = go.AddComponent<BoxCollider>();
+                trigger.isTrigger = true;
+                trigger.size = new Vector3(pickup.x, pickup.y, 1f);
 
                 collectible = go.AddComponent<Collectible>();
                 collectible.Configure("Money", CollectibleKind.Money, Collectible.SpinAxis.Z, coin.transform);
             }
 
+            // Lifted along the track's up (so it holds on a bank or a tube) until
+            // its lowest point — radius and hover below the centre — clears the
+            // visible road by the clearance, like the repair orb.
+            float roadSurface = decorator != null ? decorator.RoadYOffset : -1.2f;
+            float lift = roadSurface + collectibleRoadClearance + collectible.HoverAmplitude + diameter * 0.5f;
+            go.transform.position = pos + rot * (Vector3.up * lift);
+
             // NextInt's max is exclusive.
-            collectible.SetValue(rng.NextInt(collectibleValue.x, Mathf.Max(collectibleValue.x, collectibleValue.y) + 1));
-            // Collected by the ship's swept query, not by a trigger: width and
-            // height of the volume are the knob, its length does not matter.
-            collectible.PlaceOnTrack(distance, lateral, 0f,
-                                     new Vector3(collectiblePickupSize.x * 0.5f, collectiblePickupSize.y * 0.5f, 0.5f));
+            collectible.SetValue(collectibleRng.NextInt(collectibleValue.x, Mathf.Max(collectibleValue.x, collectibleValue.y) + 1));
+            // The patrol's analytic sweep reads the same volume, at the same height.
+            collectible.PlaceOnTrack(distance, lateral, lift,
+                                     new Vector3(pickup.x * 0.5f, pickup.y * 0.5f, 0.5f));
             go.name = $"Money_{distance:00000}";
             spawned.Add((distance, go));
         }

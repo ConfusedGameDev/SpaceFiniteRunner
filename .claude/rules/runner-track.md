@@ -175,7 +175,22 @@ and a scene with no `GameManager` stay endless.
   its last knot.)
 - `RegenerateForRun()` fully rebuilds — endless restarts must, since the stretch behind the
   start was culled.
-- `seed == 0` means non-repeatable.
+- `seed == 0` means non-repeatable (`LastSeed` exposes the rolled seed; the inspector shows it).
+- **A non-zero seed gives the same track however it streams** (one `StreamTo` or one per frame —
+  checked by diffing knot + object dumps). Keep it that way:
+  - The layout `rng` is drawn ONLY in road order (`AddSegment`, `StartTurn`, `DecideFeature`,
+    `CreateSection`). Anything placed later draws from its own stream hashed off the layout state,
+    like the spawners: coins use `collectibleRng`, ramp laterals `rampRng`.
+  - `SpawnPendingRamps` builds in ROAD order (it used to walk the list backwards, so a batch of
+    waiting ramps drew their laterals reversed).
+  - Placement is staged: claimers run to `settled`, each pickup spawner `StageGuard` (a pad length +
+    1) short of the stage before, coins another guard short and only whole rows. Whatever a
+    placement keeps off (`ClaimEnd`'s widening, `NearPickup`) is then decided before it. The guard
+    is 0 once `trackComplete`.
+- `TrackManager.Revision` bumps on `ClearKnots`; caches along the track (`TrackGuide`'s curvature)
+  key on it, never on `Length`.
+- **Regenerate Track** (inspector) in play is `GameManager.Restart` (new layout at seed 0, ship and
+  patrol relaunched); in edit mode an endless preview recorded as a prefab-instance modification.
 
 ### Core Settings (Odin region)
 
@@ -377,9 +392,23 @@ apart at one lateral, `collectibleValue`, `collectiblePickupSize`, coin size/col
 `PlaceCollectiblesUpTo` runs after the spawners in every stream, skips claimed ground and any
 distance within a pad length of a pickup (`padDistances`, pruned with the cull).
 
-`collectiblePickupSize` (width, height; `FormerlySerializedAs` the old 20 m long
-`collectibleTriggerSize`) is the coin's pickup volume for the swept query — there is no trigger
-box to pad out for speed any more.
+**The player's ship takes a coin by COLLIDER** (`ShipPickupSweeper`, like every other pickup): the
+code-built coin carries a root `BoxCollider` trigger sized to the pickup volume. Its cylinder's own
+collider is removed with `DestroyImmediate`: `Collectible.Awake` only adds a trigger when it finds
+NO collider, so a deferred `Destroy` there left every coin collider-less and untakeable (the bug
+fixed during M0).
+
+- **Size**: `collectibleShareOfRepairOrb` (0.5) × the repair orb's diameter
+  (`RepairOrbSpawner.Diameter`, 15 m as shipped → a 7.5 m coin); share 0 or no repair spawner in
+  the set falls back to `collectibleSize`.
+- **Height**: lifted along the track's up like the repair orb: `RoadYOffset +
+  collectibleRoadClearance (1.5) + Collectible.HoverAmplitude + radius`, so its lowest point clears
+  the visible road and it sits inside the ship's hull box (≈1.1–7.6 m over the pose).
+- `collectiblePickupSize` (width, height; `FormerlySerializedAs` the old `collectibleTriggerSize`)
+  is a MINIMUM for the trigger — never smaller than the coin. The analytic registry (the patrol)
+  gets the same volume at the same height.
+- `Collectible`'s id/value label is drawn only when SELECTED (`OnDrawGizmosSelected`) — drawn for
+  every coin it covered the track, Game view included.
 
 ### Laser gates (`Track/Features/LaserGate*.cs`, `LaserBeam.cs`)
 
@@ -610,6 +639,18 @@ behind the ship. There is no goal gantry: the end of a finite track is its three
 `StampEndMarker` (open-edge material, keyed on its far end) marks the gaps between them.
 
 MPB tints are unreliable with the SRP Batcher — hence the material-override fields.
+
+**Every stamped piece is BENT along the track** (`bendPieces`, on): road slabs, barriers, placeholder
+walls, open-edge markers and tube strips. A rigid piece is posed once at its centre, so where the
+bank changes (up to ~6° per 40 m) its neighbour sits at a different roll and, ~80 m out on a road
+this wide, the outer edges step apart by metres — dark wedges between the pieces on every banked
+sweep. `Bend(piece, distance, lateral)` expresses each vertex in the frame of the pose the piece
+was stamped at, (x across, y up, z along), and moves it to the pose at `distance + z` keeping x
+and y — so neighbours share the same curve and bank and meet exactly. Normals go through the
+inverse transpose (the pieces are scaled unevenly). Each piece gets its own mesh copies, owned and
+freed by a runtime-added `BentPiece`. ~0.07 ms a stamp (0.02 rigid). **The kit meshes must be
+Read/Write enabled** (`road-straight_v1`, `road-straight-barrier`, `road-straight`); a piece whose
+mesh is not stays rigid. The end markers (straight run-up) are not bent.
 
 **The road kit and its neon look** (the test scene): the road stamp is
 `03.Prefabs/FiniteRunner/RoadSlab.prefab`, a wrapper round

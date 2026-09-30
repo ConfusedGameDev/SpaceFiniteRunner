@@ -155,9 +155,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
             Length = SplineLength + inserted;
         }
 
+        /// <summary>Bumped by every <see cref="ClearKnots"/>: a changed value means the track was rebuilt and anything cached along it is stale.</summary>
+        public int Revision { get; private set; }
+
         /// <summary>Drops every knot and every section. Call <see cref="Recalculate"/> after the rebuild.</summary>
         public void ClearKnots()
         {
+            Revision++;
             if (spline != null) spline.Spline.Clear();
             sections.Clear();
             flatSweeps.Clear();

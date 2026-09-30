@@ -114,7 +114,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public virtual void Cleanup() { }
 
         // FNV-1a: stable across runs and platforms (string.GetHashCode is not guaranteed to be).
-        static uint NameHash(string name)
+        internal static uint NameHash(string name)
         {
             uint hash = 2166136261u;
             if (name != null)

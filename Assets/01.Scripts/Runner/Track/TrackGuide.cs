@@ -175,12 +175,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         const float CurvatureCell = 5f;
         const float UnsettledTail = 1000f;
         readonly System.Collections.Generic.Dictionary<int, float> curvatureCache = new();
-        float cachedForLength;
+        int cachedRevision = -1;
 
         float CurvatureAt(float distance)
         {
-            if (track.Length < cachedForLength) curvatureCache.Clear(); // the track was rebuilt
-            cachedForLength = track.Length;
+            if (track.Revision != cachedRevision) curvatureCache.Clear(); // the track was rebuilt (a new layout can be longer than the old one)
+            cachedRevision = track.Revision;
             if (distance > track.Length - UnsettledTail) return track.GetCurvatureAtDistance(distance);
 
             int cell = Mathf.FloorToInt(distance / CurvatureCell);

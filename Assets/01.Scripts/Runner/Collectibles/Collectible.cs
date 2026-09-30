@@ -133,6 +133,9 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
         void OnDisable() => PickupRegistry.Unregister(this);
 
         public string Id => string.IsNullOrEmpty(id) ? "" : id.Trim();
+
+        /// <summary>How far the mesh hovers above and below its authored position — a spawner lifts the pickup by it so the hover never dips into the ground.</summary>
+        public float HoverAmplitude => hoverAmplitude;
         public CollectibleKind Kind => kind;
 
         /// <summary>Dollars for a Money pickup (0 for an Item).</summary>
@@ -275,6 +278,12 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
                 var sphere = GetComponent<SphereCollider>();
                 Gizmos.DrawWireSphere(transform.position, sphere != null ? sphere.radius * transform.lossyScale.x : 1.5f);
             }
+        }
+
+        // The id/value label only for the selection: drawn for every coin it
+        // covered the runner's track (and the Game view, with gizmos on).
+        void OnDrawGizmosSelected()
+        {
 #if UNITY_EDITOR
             string label = kind == CollectibleKind.Money ? $"[{id}] ${(value < 0 ? valueRange.x : value)}" : $"[{id}]";
             UnityEditor.Handles.Label(transform.position + Vector3.up * 2f, label);

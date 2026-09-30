@@ -26,6 +26,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// <see cref="oneSidedBarrierPrefab"/>, or for a code-built placeholder
     /// wall on the closed side until that art exists. The open edge itself
     /// gets a low marker strip so it reads from a distance.
+    /// <b>Every piece is bent along the track</b> (<see cref="bendPieces"/>):
+    /// a rigid piece is posed once at its centre, so where the bank changes
+    /// its neighbour sits at a different roll and the outer edges step apart
+    /// by metres (dark wedges between the pieces on a banked sweep). Bent,
+    /// each vertex is re-posed at its own distance along the road, so
+    /// neighbouring pieces follow the same curve and bank and meet exactly.
+    /// The meshes must be Read/Write enabled; a piece whose mesh is not stays
+    /// rigid.
     /// </summary>
     public class TrackDecorator : MonoBehaviour
     {
@@ -47,6 +55,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [SerializeField] Material roadMaterialOverride;
         [Tooltip("Vertical offset of road pieces below the ship's flight line.")]
         [SerializeField] float roadYOffset = -1.2f;
+
+        [Tooltip("Bend every stamped piece (road, barriers, walls, markers, tube strips) along the track, vertex by vertex, so the pieces follow the curve and the bank and meet without gaps. Off = rigid pieces, which open wedges at the outer edges wherever the bank changes. Needs Read/Write on the piece meshes.")]
+        [SerializeField] bool bendPieces = true;
 
         [Header("Side barriers")]
         [SerializeField] GameObject barrierPrefab;
@@ -161,7 +172,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             if (roadPrefab != null)
             {
-                var piece = Stamp(d, roadPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
+                var piece = Stamp(d, 0f, roadPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
                                   rot * Quaternion.Euler(0f, roadYaw, 0f), ScaleAcrossWidth(roadScale));
                 if (roadMaterialOverride != null) OverrideMaterials(piece, roadMaterialOverride);
             }
@@ -186,7 +197,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     // on the closed side.
                     if (oneSidedBarrierPrefab != null)
                     {
-                        var b = Stamp(d, oneSidedBarrierPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
+                        var b = Stamp(d, 0f, oneSidedBarrierPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
                                       rot * Quaternion.Euler(0f, roadYaw + (openSide < 0 ? 180f : 0f), 0f), ScaleAcrossWidth(barrierScale, BarrierWidthFactor));
                         if (BarrierMaterial != null) OverrideMaterials(b, BarrierMaterial);
                     }
@@ -195,7 +206,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 else if (Mathf.Abs(barrierLateral) < 0.01f)
                 {
                     // Full-width piece (e.g. road-straight-barrier): one centered stamp.
-                    var b = Stamp(d, barrierPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
+                    var b = Stamp(d, 0f, barrierPrefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
                                   rot * Quaternion.Euler(0f, roadYaw, 0f), ScaleAcrossWidth(barrierScale, BarrierWidthFactor));
                     if (BarrierMaterial != null) OverrideMaterials(b, BarrierMaterial);
                 }
@@ -205,7 +216,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     if (!openLeft)
                     {
                         track.GetPoseAtDistance(d, -lateral, out Vector3 lp, out Quaternion lr);
-                        var bl = Stamp(d, barrierPrefab, lp + lr * new Vector3(0f, roadYOffset, 0f),
+                        var bl = Stamp(d, -lateral, barrierPrefab, lp + lr * new Vector3(0f, roadYOffset, 0f),
                                        lr * Quaternion.Euler(0f, roadYaw, 0f), barrierScale);
                         if (BarrierMaterial != null) OverrideMaterials(bl, BarrierMaterial);
                     }
@@ -213,7 +224,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     if (!openRight)
                     {
                         track.GetPoseAtDistance(d, lateral, out Vector3 rp, out Quaternion rr);
-                        var br = Stamp(d, barrierPrefab, rp + rr * new Vector3(0f, roadYOffset, 0f),
+                        var br = Stamp(d, lateral, barrierPrefab, rp + rr * new Vector3(0f, roadYOffset, 0f),
                                        rr * Quaternion.Euler(0f, roadYaw + 180f, 0f), barrierScale);
                         if (BarrierMaterial != null) OverrideMaterials(br, BarrierMaterial);
                     }
@@ -232,7 +243,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             track.GetPoseAtDistance(d, lateral, out Vector3 pos, out Quaternion rot);
             StampBox(d, pos + rot * new Vector3(0f, roadYOffset + lift + height * 0.5f, 0f), rot,
                      new Vector3(thickness, height, roadSpacing),
-                     placeholderWallMaterial != null ? placeholderWallMaterial : BarrierMaterial);
+                     placeholderWallMaterial != null ? placeholderWallMaterial : BarrierMaterial, lateral);
         }
 
         // A low strip along the open edge, so the missing wall reads as a
@@ -245,7 +256,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             track.GetPoseAtDistance(d, lateral, out Vector3 pos, out Quaternion rot);
             StampBox(d, pos + rot * new Vector3(0f, lift + openEdgeMarkerSize.y * 0.5f, 0f), rot,
                      new Vector3(openEdgeMarkerSize.x, Mathf.Max(0.05f, openEdgeMarkerSize.y), roadSpacing),
-                     openEdgeMaterial != null ? openEdgeMaterial : roadMaterialOverride);
+                     openEdgeMaterial != null ? openEdgeMaterial : roadMaterialOverride, lateral);
         }
 
         /// <summary>
@@ -265,8 +276,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         }
 
         // A code-built box: a picture only, so its collider goes (nothing on
-        // the track may trip the ship's trigger volume).
-        void StampBox(float distance, Vector3 position, Quaternion rotation, Vector3 size, Material material)
+        // the track may trip the ship's trigger volume). Given a lateral, it
+        // was posed at (distance, lateral) and is bent along the track there;
+        // without one (the end markers, on the straight run-up) it stays rigid.
+        void StampBox(float distance, Vector3 position, Quaternion rotation, Vector3 size, Material material, float lateral = float.NaN)
         {
             var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
             box.name = "OpenEdgePiece";
@@ -281,6 +294,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             box.transform.localScale = size;
             if (material != null) box.GetComponent<Renderer>().sharedMaterial = material;
             stamped.Add((distance, box));
+            if (!float.IsNaN(lateral)) Bend(box, distance, lateral);
         }
 
         /// <summary>
@@ -307,7 +321,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 {
                     float lateral = min + (i + 0.5f) * stripWidth;
                     track.GetPoseAtDistance(d, lateral, out Vector3 pos, out Quaternion rot);
-                    var piece = Stamp(d, prefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
+                    var piece = Stamp(d, lateral, prefab, pos + rot * new Vector3(0f, roadYOffset, 0f),
                                       rot * Quaternion.Euler(0f, roadYaw, 0f), scale);
                     if (material != null) OverrideMaterials(piece, material);
                 }
@@ -315,12 +329,87 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         }
 
-        GameObject Stamp(float distance, GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale)
+        // A piece posed at the track pose (distance, lateral), then bent there.
+        GameObject Stamp(float distance, float lateral, GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale)
         {
             var piece = Instantiate(prefab, position, rotation, decorParent);
             piece.transform.localScale = scale;
             stamped.Add((distance, piece));
+            Bend(piece, distance, lateral);
             return piece;
+        }
+
+        // Track poses at (distance + along) for the piece being bent, keyed on
+        // the along offset: a kit mesh has few distinct rows of vertices.
+        readonly Dictionary<int, (Vector3 position, Quaternion rotation)> bendPoses = new();
+
+        /// <summary>
+        /// Re-poses every vertex of <paramref name="piece"/> on the track: in
+        /// the frame of the pose it was stamped at, (distance, lateral), a
+        /// vertex is (x across, y up, z along); it moves to the pose at
+        /// distance + z, keeping its x and y in that pose's frame. Normals and
+        /// tangents turn with the pose. Each piece gets its own mesh copies,
+        /// freed with it (<see cref="BentPiece"/>).
+        /// </summary>
+        void Bend(GameObject piece, float distance, float lateral)
+        {
+            if (!bendPieces || track == null) return;
+            track.GetPoseAtDistance(distance, lateral, out Vector3 basePosition, out Quaternion baseRotation);
+            Quaternion toBase = Quaternion.Inverse(baseRotation);
+            bendPoses.Clear();
+            BentPiece owner = null;
+
+            foreach (var filter in piece.GetComponentsInChildren<MeshFilter>())
+            {
+                Mesh source = filter.sharedMesh;
+                if (source == null || !source.isReadable) continue;
+
+                Mesh mesh = Instantiate(source);
+                mesh.name = source.name + " (bent)";
+                Vector3[] vertices = mesh.vertices;
+                Vector3[] normals = mesh.normals;
+                Vector4[] tangents = mesh.tangents;
+                bool hasNormals = normals.Length == vertices.Length;
+                bool hasTangents = tangents.Length == vertices.Length;
+
+                Transform t = filter.transform;
+                Matrix4x4 toWorld = t.localToWorldMatrix;
+                Matrix4x4 toLocal = t.worldToLocalMatrix;
+                // Normals go through the inverse transpose (the pieces are scaled unevenly).
+                Matrix4x4 normalToWorld = toLocal.transpose;
+                Matrix4x4 normalToLocal = toWorld.transpose;
+
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    Vector3 local = toBase * (toWorld.MultiplyPoint3x4(vertices[i]) - basePosition);
+                    int key = Mathf.RoundToInt(local.z * 100f);
+                    if (!bendPoses.TryGetValue(key, out var pose))
+                    {
+                        track.GetPoseAtDistance(distance + key * 0.01f, lateral, out Vector3 p, out Quaternion r);
+                        pose = (p, r);
+                        bendPoses[key] = pose;
+                    }
+
+                    Quaternion turn = pose.rotation * toBase;
+                    vertices[i] = toLocal.MultiplyPoint3x4(pose.position + pose.rotation * new Vector3(local.x, local.y, 0f));
+                    if (hasNormals)
+                        normals[i] = normalToLocal.MultiplyVector(turn * normalToWorld.MultiplyVector(normals[i])).normalized;
+                    if (hasTangents)
+                    {
+                        Vector3 tangent = toLocal.MultiplyVector(turn * toWorld.MultiplyVector(tangents[i])).normalized;
+                        tangents[i] = new Vector4(tangent.x, tangent.y, tangent.z, tangents[i].w);
+                    }
+                }
+
+                mesh.vertices = vertices;
+                if (hasNormals) mesh.normals = normals;
+                if (hasTangents) mesh.tangents = tangents;
+                mesh.RecalculateBounds();
+                filter.sharedMesh = mesh;
+
+                if (owner == null) owner = piece.AddComponent<BentPiece>();
+                owner.Own(mesh);
+            }
         }
 
         public void Clear()

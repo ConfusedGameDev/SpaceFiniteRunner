@@ -9,7 +9,8 @@
         "ConfusedGameDev.FiniteRunner.Cheats",
         "ConfusedGameDev.FiniteRunner.UI",
         "ConfusedGameDev.FiniteRunner.Livery",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.Splines"
     ],
     "includePlatforms": [
         "Editor"
