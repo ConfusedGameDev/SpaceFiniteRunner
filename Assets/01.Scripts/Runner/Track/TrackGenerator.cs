@@ -433,6 +433,24 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>The track this generator builds.</summary>
         public TrackManager Track => track;
 
+        /// <summary>The decorator stamping the road art (null when none is wired) — where the visible road sits.</summary>
+        public TrackDecorator Decorator => decorator;
+
+        /// <summary>Length of one end ramp, metres (the definition in force, else the built-in 120).</summary>
+        public float EndRampLength => endRamp?.Runtime is JumpDefinition runtimeDef ? runtimeDef.length
+            : endRamp?.definition is JumpDefinition def ? def.length : 120f;
+
+        /// <summary>Half the width of one end ramp, metres, from the same layout rule that builds them.</summary>
+        public float EndRampHalfWidth
+        {
+            get
+            {
+                float gap = EndRampLayout(out float width, out _);
+                EndRampLateral(0, width, gap, out float half);
+                return half;
+            }
+        }
+
         /// <summary>
         /// Rebuilds the track for a run: loads the level's saved track when it
         /// names one (<see cref="ITrackRunRules.AuthoredTrack"/>, play only),

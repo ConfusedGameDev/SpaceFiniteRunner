@@ -38,6 +38,32 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             GUILayout.Space(10);
             if (Application.isPlaying) DrawPlayMode(generator);
             else DrawAuthoring(generator);
+
+            GUILayout.Space(6);
+            DrawGizmoSettings();
+        }
+
+        // The Scene-view drawing of the track (TrackGizmos): per-user switches.
+        static void DrawGizmoSettings()
+        {
+            EditorGUILayout.LabelField("Scene View", EditorStyles.boldLabel);
+            EditorGUI.BeginChangeCheck();
+            bool show = EditorGUILayout.Toggle("Draw track", TrackGizmoSettings.Show);
+            using (new EditorGUI.DisabledScope(!show))
+            {
+                float radius = EditorGUILayout.Slider("Detail radius (m)", TrackGizmoSettings.DetailRadius, 500f, 20000f);
+                bool placements = EditorGUILayout.Toggle("Placements", TrackGizmoSettings.Placements);
+                bool labels = EditorGUILayout.Toggle("Labels", TrackGizmoSettings.Labels);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    TrackGizmoSettings.Show = show;
+                    TrackGizmoSettings.DetailRadius = radius;
+                    TrackGizmoSettings.Placements = placements;
+                    TrackGizmoSettings.Labels = labels;
+                    SceneView.RepaintAll();
+                }
+            }
+            EditorGUILayout.HelpBox("Red edge = open (a drop) · orange = flat sweep · cyan = loop/tube · magenta = final run-up · white = walls. Ticks every 500 m.", MessageType.None);
         }
 
         // ------------------------------------------------------------------ play

@@ -247,6 +247,16 @@ stay endless.
   replacing a saved track asks first) · Set as Current Track / Clear Current Track (writes the scene
   `GameManager`'s level) · Preview Saved Track (`PreviewSavedTrack`: loads it as play would) ·
   Regenerate (endless preview).
+- **Scene-view drawing** (`Runner/Editor/TrackGizmos.cs`, M3): a `[DrawGizmo]` for the generator,
+  read off the live `TrackManager` and `Placements` — a bake, a Preview Saved Track or a run in play,
+  never GameObjects. The whole centre line coarsely; round the Scene camera (`DetailRadius`) the lane
+  edges, the road's lip and walls — RED open edge, ORANGE flat sweep, CYAN loop/tube, MAGENTA final
+  run-up — a tick across the road every 500 m with a km label, section / run-up / end lines, and a
+  mark per placement in its spawner's colour (orb tiers their own; ramps as footprints, gates as
+  their beam, rotors with their swept disc). Sampled every 20 m once per track change (cached on the
+  track's `Revision`, `Length`, end and record count — ~40 ms for 70 km); a repaint only culls and
+  draws. Per-user switches (`TrackGizmoSettings`, EditorPrefs) in the generator's inspector: draw,
+  detail radius, placements, labels.
 - **Previews never reach the scene file**: everything built in edit mode — pickups, road stamps,
   end markers — is flagged `DontSaveInEditor` (`TrackGenerator.MarkPreview`), bent meshes too, and
   the buttons neither record the spline as a prefab override nor dirty the scene.
