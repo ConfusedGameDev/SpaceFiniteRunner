@@ -167,14 +167,21 @@ fall and the respawn wait) and a run off the END without the win (`HasLeftTrackE
 camera looks wrong. The winning fly-off (`IsEscaping`) keeps it.
 
 **The Light Speed warp** rides the same state (`GameSettings` "Light Speed warp" group): over
-`lightSpeedWarpBlendSeconds` it blends the lens distortion to `lightSpeedLensIntensity` and the
-motion blur to `lightSpeedMotionBlurIntensity` / `lightSpeedMotionBlurClamp`, and back to the
-authored values on losing it. The lens goes through `LensDistortionController.SetHeld(blend,
+`lightSpeedWarpBlendSeconds` it blends the lens distortion to `lightSpeedLensIntensity`, and back
+on losing it. The lens goes through `LensDistortionController.SetHeld(blend,
 intensity)` — a HELD rest under its envelope (the controller rewrites the intensity every frame, so
 nothing else may write it); boost kicks rise from and settle to that rest, never dipping back past
-it. The blur is the `MotionBlur` override on the global volume's RUNTIME profile (the copy the lens
-controller made — added at 0 when the profile has none), its authored values captured on first
-use and restored by `ResetForRun` / teardown. The runner's road
+it.
+
+**The speed motion blur** (`GameSettings` "Speed motion blur" group, `RunFeedback.UpdateSpeedBlur`)
+does NOT ride that state: `speedMotionBlurCurve` is evaluated at the ship's speed as a fraction of
+Light Speed (x 0 = standstill, 1 = Light Speed, held above) and its value lerps the intensity and
+clamp from 0 to `lightSpeedMotionBlurIntensity` / `lightSpeedMotionBlurClamp`. A fall reads as 0,
+and the blend never moves faster than its full range per `lightSpeedWarpBlendSeconds`, so falls
+and respawns ease. While it is on, the volume profile's own blur intensity/clamp are overwritten
+(standstill = no blur). The blur is the `MotionBlur` override on the global volume's RUNTIME
+profile (the copy the lens controller made — added at 0 when the profile has none), its authored
+values captured on first use and restored by `ResetForRun` / teardown / switching the group off. The runner's road
 (`NeonRoad_Mat`, queue 3000) is see-through, so the tunnel shows through it too.
 
 ## VHS tape

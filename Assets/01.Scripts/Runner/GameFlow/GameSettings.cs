@@ -660,7 +660,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         // ---------------------------------------------------- light speed warp
         [ToggleGroup("lightSpeedWarpEnabled", "Light Speed warp")]
-        [Tooltip("While the ship flies at Light Speed, the lens distortion and the motion blur are pushed up; dropping below it blends both back to their authored values (the lens controller's default, the volume profile's blur).")]
+        [Tooltip("While the ship flies at Light Speed, the lens distortion is pushed up; dropping below it blends it back to the lens controller's default. (The motion blur follows speed on its own — see Speed motion blur.)")]
         public bool lightSpeedWarpEnabled = true;
 
         [ToggleGroup("lightSpeedWarpEnabled")]
@@ -669,7 +669,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public float lightSpeedExitMargin = 0.03f;
 
         [ToggleGroup("lightSpeedWarpEnabled")]
-        [Tooltip("Seconds the lens and the blur take to blend in on reaching Light Speed, and back out on losing it.")]
+        [Tooltip("Seconds the lens takes to blend in on reaching Light Speed, and back out on losing it. The speed motion blur also never moves faster than its full range over this time, so a fall or a respawn eases it instead of popping.")]
         [PropertyRange(0f, 3f), SuffixLabel("s", true)]
         public float lightSpeedWarpBlendSeconds = 0.6f;
 
@@ -678,13 +678,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(-1f, 1f)]
         public float lightSpeedLensIntensity = 0.5f;
 
-        [ToggleGroup("lightSpeedWarpEnabled")]
-        [Tooltip("Motion blur intensity held at Light Speed (the volume profile's own value otherwise).")]
+        // ---------------------------------------------------- speed motion blur
+        [ToggleGroup("speedMotionBlurEnabled", "Speed motion blur")]
+        [Tooltip("The motion blur grows with the ship's speed: the curve maps 0 km/h (x = 0) to Light Speed (x = 1, held above it), and its value lerps the blur's intensity and clamp from 0 up to their Light Speed values. Off, the volume profile's own blur is left alone.")]
+        public bool speedMotionBlurEnabled = true;
+
+        [ToggleGroup("speedMotionBlurEnabled")]
+        [Tooltip("x = speed as a fraction of Light Speed (0 = standstill, 1 = Light Speed), y = how much of the Light Speed blur to apply (0 = none, 1 = full).")]
+        public AnimationCurve speedMotionBlurCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+        [ToggleGroup("speedMotionBlurEnabled")]
+        [Tooltip("Motion blur intensity at Light Speed (curve = 1). How strongly each pixel smears along its motion.")]
         [PropertyRange(0f, 1f)]
         public float lightSpeedMotionBlurIntensity = 0.8f;
 
-        [ToggleGroup("lightSpeedWarpEnabled")]
-        [Tooltip("Motion blur clamp (the longest a blur streak may get, fraction of the screen) held at Light Speed.")]
+        [ToggleGroup("speedMotionBlurEnabled")]
+        [Tooltip("Motion blur clamp at Light Speed (curve = 1): the longest a blur streak may get, as a fraction of the screen.")]
         [PropertyRange(0f, 0.2f)]
         public float lightSpeedMotionBlurClamp = 0.12f;
 
