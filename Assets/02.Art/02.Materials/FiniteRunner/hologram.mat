@@ -12,6 +12,7 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - _ALPHATEST_ON
   - _SURFACE_TYPE_TRANSPARENT
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -23,6 +24,7 @@ Material:
   disabledShaderPasses:
   - MOTIONVECTORS
   - DepthOnly
+  - SHADOWCASTER
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -98,15 +100,15 @@ Material:
     m_Ints: []
     m_Floats:
     - _AddPrecomputedVelocity: 0
-    - _AlphaClip: 0
+    - _AlphaClip: 1
     - _AlphaToMask: 0
-    - _Blend: 2.06
+    - _Blend: 2.39
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
-    - _CastShadows: 1
+    - _CastShadows: 0
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
-    - _ColorPower: 10.16
+    - _ColorPower: 0.35
     - _Cull: 0
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
@@ -131,21 +133,21 @@ Material:
     - _SrcBlend: 5
     - _SrcBlendAlpha: 1
     - _Surface: 1
-    - _VertexOffset: 0
+    - _VertexOffset: 0.22
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZTest: 4
     - _ZWrite: 0
     - _ZWriteControl: 0
-    - _fresnelPower: 13.72
+    - _fresnelPower: 19.2
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _ScanLinesSpeed: {r: -1.68, g: 0.89, b: 0, a: 0}
-    - _ScanLinesTiling: {r: 0.38, g: 16.3, b: 0, a: 0}
+    - _ScanLinesSpeed: {r: 0.22, g: 0.72, b: 0, a: 0}
+    - _ScanLinesTiling: {r: 6.8, g: 2.18, b: 0, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _fresneColor: {r: 0, g: 0.00095476717, b: 0, a: 0.23529412}
+    - _fresneColor: {r: 0, g: 0.56457615, b: 0.8490566, a: 0.9843137}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &3834352053193327709

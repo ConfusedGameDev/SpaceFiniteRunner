@@ -1,12 +1,5 @@
 fileFormatVersion: 2
-guid: 6389989103504bf49a717d92c3d64b99
-AssetOrigin:
-  serializedVersion: 1
-  productId: 376952
-  packageName: Cyberpunk Megapolis
-  packageVersion: 1.1
-  assetPath: Assets/Cyberpunk_Megapolis/Textures/CP_Air_Traffic/CP_Air_Traffic_AO.tga
-  uploadId: 913114
+guid: d487e04414bc3f84783e871eb767744f
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -59,7 +52,7 @@ TextureImporter:
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
-  alphaIsTransparency: 1
+  alphaIsTransparency: 0
   spriteTessellationMethod: 0
   spriteTessellationDetail: -1
   spriteGeometrySubdivision: -1
