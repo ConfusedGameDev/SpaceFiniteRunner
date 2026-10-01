@@ -2846,6 +2846,18 @@ PrefabInstance:
       value: -0.008043041
       objectReference: {fileID: 0}
     - target: {fileID: 6667410384356866590, guid: 946e905b1a6044809bff60aeb6bd9158, type: 3}
+      propertyPath: pieceBlend
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6667410384356866590, guid: 946e905b1a6044809bff60aeb6bd9158, type: 3}
+      propertyPath: pieceMorph
+      value: 1.38
+      objectReference: {fileID: 0}
+    - target: {fileID: 6667410384356866590, guid: 946e905b1a6044809bff60aeb6bd9158, type: 3}
+      propertyPath: pieceZMorph
+      value: 1.14
+      objectReference: {fileID: 0}
+    - target: {fileID: 6667410384356866590, guid: 946e905b1a6044809bff60aeb6bd9158, type: 3}
       propertyPath: roadScale.x
       value: 0.7
       objectReference: {fileID: 0}
@@ -3491,15 +3503,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6169925671754622672, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6169925671754622672, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6169925671754622672, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 0
+      value: 600
       objectReference: {fileID: 0}
     - target: {fileID: 6416391660178827286, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3612,6 +3624,10 @@ PrefabInstance:
     - target: {fileID: 7031157573452595784, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
       propertyPath: m_Name
       value: ===UI===
+      objectReference: {fileID: 0}
+    - target: {fileID: 7031157573452595784, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7174718276412641295, guid: 3cdd77425ff29437189c6b76c7e1ffd4, type: 3}
       propertyPath: m_Color.b

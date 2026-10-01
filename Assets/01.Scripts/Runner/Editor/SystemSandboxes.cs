@@ -41,6 +41,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             ("OrbFx", "Assets/03.Prefabs/FiniteRunner/PF_OrbFx.prefab"),
             ("Music", "Assets/03.Prefabs/FiniteRunner/PF_Music.prefab"),
             ("PauseMenu", "Assets/03.Prefabs/Runner/PauseMenu.prefab"),
+            ("OncomingTraffic", "Assets/03.Prefabs/FiniteRunner/PF_TrafficSystem.prefab"),
             // the standalone ship
             ("HoverShip", "Assets/03.Prefabs/Runner/HoverShip.prefab"),
             // shared

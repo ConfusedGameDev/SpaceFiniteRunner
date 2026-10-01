@@ -41,7 +41,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     [RequireComponent(typeof(HoverShip))]
     public partial class ShipMotor : MonoBehaviour, IRunnerShip, ICameraTarget, ICollector,
                                      Contracts.IStreamFocus, Contracts.IShipPerformance,
-                                     Contracts.IChaseTarget, Contracts.IControlTakeover
+                                     Contracts.IChaseTarget, Contracts.IControlTakeover,
+                                     Contracts.ITrafficBody
     {
         // The run's definition: the HoverShip's asset until the GameManager hands
         // in the run's clone (SetDefinition). The asset itself is referenced and
@@ -278,6 +279,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float Contracts.IChaseTarget.FallGravity => ShipSettings.fallGravity;
         float Contracts.IChaseTarget.FallTumbleDegreesPerSecond => ShipSettings.fallTumbleDegreesPerSecond;
         event System.Action<float> Contracts.IChaseTarget.Boosted { add => PadImpulse += value; remove => PadImpulse -= value; }
+        float Contracts.ITrafficBody.Distance => body != null ? body.Distance : DistanceTravelled;
+        float Contracts.ITrafficBody.Lateral => body != null ? body.Lateral : LateralOffset;
+        float Contracts.ITrafficBody.TrafficHeight => AirHeight;
+        Vector3 Contracts.ITrafficBody.TrafficReach => new(pickupReach.x, pickupReach.y, pickupHalfLength);
+        bool Contracts.ITrafficBody.TrafficSolid => !Paused && ((Contracts.IChaseTarget)this).Steady;
         ShipArmed Armed => armedCache != null ? armedCache : (armedCache = GetComponent<ShipArmed>());
         ShipArmed armedCache;
 
@@ -357,6 +363,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float speedAtFall;      // the speed it left with
 
         Vector2 pickupReach = new(2.5f, 2.3f); // half width / half height of the ship's pickup volume (the laser gates' test)
+        float pickupHalfLength = 4f;           // half length of the same volume (oncoming traffic's contact)
 
         // Metres of lateral offset the tube's return stretch answers with full steer
         // (the HoverShip's own autopilot has its own reach; this is not it).
@@ -378,7 +385,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
             // The pickup volume is the one authored on the ship: its box, only a measure.
             var box = GetComponent<BoxCollider>();
-            if (box != null) pickupReach = new Vector2(box.size.x * 0.5f, box.size.y * 0.5f);
+            if (box != null)
+            {
+                pickupReach = new Vector2(box.size.x * 0.5f, box.size.y * 0.5f);
+                pickupHalfLength = box.size.z * 0.5f;
+            }
 
             BindPhysicsShip();
         }

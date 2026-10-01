@@ -115,6 +115,12 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   costs a fall's worth of hull and 6.7 % of the speed at once (`laserSpeedLoss`) with a heavy rumble. Never on or near a ramp, its landing, a loop,
   a tube or the final run-up.
 - Time AND distance are the limits. The track is streamed ahead of the ship but finite.
+- **Oncoming traffic** (`OncomingTrafficPRD.md`, per level: `RunnerLevelDefinition.traffic`, empty
+  = none): pooled hover cars drive the track toward the ship, spawned out of sight on built road and
+  recycled behind it. They steer round ramps and laser gates, ignore power-ups, never spawn where a
+  loop or tube lies between them and the ship, near the end, on the run-up or after HIT HYPERSPACE
+  (which clears the road). A car hit is exactly a laser hit and the car explodes (even through the
+  blink); a car and the patrol destroy each other. See `runner-traffic.md`.
 - Story beats are RPG dialogue lines on purple-orb pickups and patrol taunts only.
 
 ## Repo map
@@ -238,6 +244,7 @@ Loaded automatically by path. Listed here so you know what exists.
 |---|---|
 | `runner-track.md` | `TrackManager`, sections, `TrackGenerator` decide/build, saved tracks + the Scene-view authoring tools, features, pads/orbs, decorator |
 | `runner-ship.md` | `ShipMotor` (physics mode + the legacy track-space sim), `GameManager`, `PolicePatrol`, tuning |
+| `runner-traffic.md` | Oncoming traffic: `TrafficSystem`, the pool, spawn rules, `TrackObstacles` avoidance, swept contact |
 | `ship-standalone.md` | The `Ship` assembly: `HoverBody`, guides, recovery, pickups, prefab rig, the physics runner |
 | `runner-hud-screens.md` | `RaceHud`, `GameOverScreen`, `MissionCompleteScreen` |
 | `runner-store.md` | Store scene, upgrade definitions, appliers |

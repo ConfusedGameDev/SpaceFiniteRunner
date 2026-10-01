@@ -78,7 +78,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// built at init from <see cref="PatrolVisualSettings"/> (its model prefab,
     /// else primitives) — the scene object is just an empty holder.
     /// </summary>
-    public class PolicePatrol : MonoBehaviour
+    public class PolicePatrol : MonoBehaviour, ITrafficVictim
     {
         // Inline so the chase sliders are reachable without leaving the scene.
         [SerializeField, Required, InlineEditor(InlineEditorObjectFieldModes.Foldout)]
@@ -142,6 +142,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // Sized to the shipped car at its current scale (about 9.4 m wide,
         // 5.9 m tall — the ship's own footprint).
         static readonly Vector2 PickupReach = new(4.5f, 3f);
+        // Half its length, for oncoming traffic's contact: the shipped car is ~19 m, the ship's own length.
+        const float HalfLength = 9.5f;
 
         // Time constant of the ship-acceleration smoothing, seconds.
         const float ShipAccelSmoothSeconds = 0.15f;
@@ -282,6 +284,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// invisible on the map as well as in the world.
         /// </summary>
         public bool HiddenFromMap => IsGone || killHideLeft > 0f;
+
+        // ---- oncoming traffic (OncomingTrafficPRD.md R5) ----
+        float ITrafficBody.Distance => body != null ? body.Distance : DistanceTravelled;
+        float ITrafficBody.Lateral => body != null ? body.Lateral : 0f;
+        float ITrafficBody.TrafficHeight => body != null ? body.Height : 0f;
+        Vector3 ITrafficBody.TrafficReach => new(PickupReach.x, PickupReach.y, HalfLength);
+        // Never while hidden or gone, and never mid-exchange: the duel owns both bodies alongside.
+        bool ITrafficBody.TrafficSolid => body != null && runtimeDef != null && isActiveAndEnabled
+                                          && !HiddenFromMap && !HasCaught && !encounter.InExchange;
+
+        /// <summary>A car ran into it: the laser kill's path — a fireball and a redeploy, no floor raise (a hazard death, not an earned kill).</summary>
+        void ITrafficVictim.HitByTraffic()
+        {
+            if (IsGone || HasCaught) return;
+            Kill(spendsDashMeter: false, raiseFloor: false);
+        }
 
         // The end fall, flown in world space like the ship's.
         Vector3 offPosition, prevOffPosition, offVelocity;

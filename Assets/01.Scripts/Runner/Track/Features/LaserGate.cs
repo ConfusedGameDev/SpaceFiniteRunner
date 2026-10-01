@@ -176,6 +176,9 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         /// <summary>How far the gate reaches along the track either side of its distance (the generator's footprint).</summary>
         public float HalfDepth => boundsHalf.z;
 
+        /// <summary>How far an emitter's body reaches past a beam's end, across the track, metres (the emitter is ~2 m long at scale 1, centred on the end) — what a body steering round the gate must also clear.</summary>
+        public float EmitterReach => definition != null ? definition.emitterScale : 0f;
+
         // One clock for the picture and the test. Scaled time: a pause stops the blade.
         float RotorAngle => (rotorPhase + rotorSpeed * Time.time) * Mathf.Deg2Rad;
 

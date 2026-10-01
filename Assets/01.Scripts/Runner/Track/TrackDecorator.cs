@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace ConfusedGameDev.FiniteRunner.Track
@@ -26,17 +27,31 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// <see cref="oneSidedBarrierPrefab"/>, or for a code-built placeholder
     /// wall on the closed side until that art exists. The open edge itself
     /// gets a low marker strip so it reads from a distance.
-    /// <b>Every piece is bent along the track</b> (<see cref="bendPieces"/>):
+    /// <b>Pieces are blended along the track</b> (<see cref="pieceBlend"/>):
     /// a rigid piece is posed once at its centre, so where the bank changes
     /// its neighbour sits at a different roll and the outer edges step apart
-    /// by metres (dark wedges between the pieces on a banked sweep). Bent,
-    /// each vertex is re-posed at its own distance along the road, so
-    /// neighbouring pieces follow the same curve and bank and meet exactly.
-    /// The meshes must be Read/Write enabled; a piece whose mesh is not stays
-    /// rigid.
+    /// by metres (dark wedges between the pieces on a banked sweep).
+    /// <see cref="PieceBlend.Blended"/> bends each vertex to its own distance
+    /// along the road, so neighbouring pieces follow the same curve and bank
+    /// and meet exactly. <see cref="PieceBlend.NotBlended"/> keeps the gaps on
+    /// purpose, and two sliders move each piece between the two — 0 =
+    /// blended, 1 = rigid, past 1 the piece's ends over-rotate away from the
+    /// track so the gaps open wider: <see cref="pieceMorph"/> for the curve
+    /// (yaw, pitch and the piece's spine), <see cref="pieceZMorph"/> for the
+    /// twist round the forward (Z) axis, the bank. The meshes must be
+    /// Read/Write enabled; a piece whose mesh is not stays rigid.
     /// </summary>
     public class TrackDecorator : MonoBehaviour
     {
+        /// <summary>How stamped pieces meet along the track. Serialized: append only.</summary>
+        public enum PieceBlend
+        {
+            /// <summary>Every piece bent along the track; neighbours meet without gaps.</summary>
+            Blended = 0,
+            /// <summary>Pieces keep their own pose; <see cref="pieceMorph"/> sets how far.</summary>
+            NotBlended = 1,
+        }
+
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         [SerializeField] TrackManager track;
@@ -56,8 +71,48 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Vertical offset of road pieces below the ship's flight line.")]
         [SerializeField] float roadYOffset = -1.2f;
 
-        [Tooltip("Bend every stamped piece (road, barriers, walls, markers, tube strips) along the track, vertex by vertex, so the pieces follow the curve and the bank and meet without gaps. Off = rigid pieces, which open wedges at the outer edges wherever the bank changes. Needs Read/Write on the piece meshes.")]
-        [SerializeField] bool bendPieces = true;
+        [Tooltip("How stamped pieces (road, barriers, walls, markers, tube strips) meet. Blended = bent along the track vertex by vertex, so they follow the curve and the bank and meet without gaps. Not Blended = pieces keep their own pose and open wedges where the bank changes; Piece Morph and Piece Z Morph set how much. Needs Read/Write on the piece meshes. In edit mode a change re-stamps the road already drawn; in play it applies to pieces stamped after it.")]
+        [SerializeField] PieceBlend pieceBlend = PieceBlend.Blended;
+
+        [Tooltip("Not Blended only: the CURVE (yaw and pitch, where the piece's spine runs). 0 = follows the track like Blended, 1 = rigid (the plain gaps), above 1 = each piece's ends over-rotate away from the curve so the gaps open wider.")]
+        [SerializeField, ShowIf(nameof(IsNotBlended)), PropertyRange(0f, 3f)] float pieceMorph = 1f;
+
+        [Tooltip("Not Blended only: the TWIST round the forward (Z) axis, the bank. 0 = each piece rolls with the track like Blended, 1 = rigid (the plain bank steps), above 1 = each piece's ends over-roll so the edges step up and down unevenly.")]
+        [SerializeField, ShowIf(nameof(IsNotBlended)), PropertyRange(0f, 3f)] float pieceZMorph = 1f;
+
+        bool IsNotBlended => pieceBlend == PieceBlend.NotBlended;
+
+        // How far each piece is from fully bent, curve (x) and twist (y):
+        // 0 = bent, 1 = rigid, > 1 = over-rotated.
+        Vector2 Morph => IsNotBlended ? new Vector2(pieceMorph, pieceZMorph) : Vector2.zero;
+
+        // The blend the road on screen was stamped with: set when a fresh
+        // road starts stamping, so an edit-mode change can tell it is stale.
+        // NonSerialized: a script reload must not carry it over.
+        [System.NonSerialized] Vector2 stampedMorph;
+
+#if UNITY_EDITOR
+        // Edit mode: a change to Piece Blend / Piece Morph / Piece Z Morph
+        // (undo included) re-stamps the road already drawn, so the preview
+        // always shows the current look. Deferred, since OnValidate may not
+        // create or destroy objects; the same handler is queued once however
+        // many times a slider drag validates.
+        void OnValidate()
+        {
+            if (Application.isPlaying) return;
+            UnityEditor.EditorApplication.delayCall -= RestampForBlend;
+            UnityEditor.EditorApplication.delayCall += RestampForBlend;
+        }
+
+        void RestampForBlend()
+        {
+            // Nothing stamped by this instance (none yet, or a script reload
+            // dropped the list): nothing it can re-stamp without doubling.
+            if (this == null || Application.isPlaying || stamped.Count == 0 || stampedMorph == Morph) return;
+            stampedMorph = Morph;
+            Restamp(0f, stampCursor);
+        }
+#endif
 
         [Header("Side barriers")]
         [SerializeField] GameObject barrierPrefab;
@@ -98,6 +153,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         float stampCursor;
         float widthScale = 1f;
         readonly List<(float distance, GameObject go)> stamped = new();
+        // The end markers: placed by the generator, not by StampAt, so a
+        // re-stamp leaves them standing (it could not put them back).
+        readonly HashSet<GameObject> endMarkers = new();
 
         /// <summary>
         /// Adapts the authored piece scales to the given full track width
@@ -140,6 +198,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             if (track == null || decorParent == null) return;
             if (stampCursor <= 0f) stampCursor = roadSpacing * 0.5f;
+            if (stamped.Count == 0) stampedMorph = Morph; // a fresh road
 
             float limit = Mathf.Min(distance, track.Length);
             while (stampCursor < limit)
@@ -156,6 +215,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             for (int i = stamped.Count - 1; i >= 0; i--)
             {
                 if (stamped[i].distance >= distance) continue;
+                endMarkers.Remove(stamped[i].go);
                 if (stamped[i].go != null) SafeDestroy(stamped[i].go);
                 stamped.RemoveAt(i);
             }
@@ -274,6 +334,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             StampBox(startDistance + length, pos + rot * new Vector3(0f, height * 0.5f, 0f), rot,
                      new Vector3(width, height, length),
                      openEdgeMaterial != null ? openEdgeMaterial : roadMaterialOverride);
+            endMarkers.Add(stamped[stamped.Count - 1].go);
         }
 
         // A code-built box: a picture only, so its collider goes (nothing on
@@ -340,21 +401,29 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return piece;
         }
 
-        // Track poses at (distance + along) for the piece being bent, keyed on
-        // the along offset: a kit mesh has few distinct rows of vertices.
+        // Poses (bent, morphed) at (distance + along) for the piece being bent,
+        // keyed on the along offset: a kit mesh has few distinct rows of vertices.
         readonly Dictionary<int, (Vector3 position, Quaternion rotation)> bendPoses = new();
 
         /// <summary>
         /// Re-poses every vertex of <paramref name="piece"/> on the track: in
         /// the frame of the pose it was stamped at, (distance, lateral), a
         /// vertex is (x across, y up, z along); it moves to the pose at
-        /// distance + z, keeping its x and y in that pose's frame. Normals and
+        /// distance + z, keeping its x and y in that pose's frame. With a
+        /// <see cref="Morph"/> that pose is blended (unclamped) toward the
+        /// rigid one — the stamp pose carried z along its own forward — so 1
+        /// is the rigid piece and above 1 over-rotates it: the turn from the
+        /// stamp pose is split into its swing (the curve, with the spine's
+        /// position) and its twist round Z (the bank), each scaled by its own
+        /// morph. Normals and
         /// tangents turn with the pose. Each piece gets its own mesh copies,
         /// freed with it (<see cref="BentPiece"/>).
         /// </summary>
         void Bend(GameObject piece, float distance, float lateral)
         {
-            if (!bendPieces || track == null) return;
+            Vector2 morph = Morph;
+            // Rigid: the stamp already is the piece, no mesh copy needed.
+            if ((morph - Vector2.one).sqrMagnitude < 1e-6f || track == null) return;
             track.GetPoseAtDistance(distance, lateral, out Vector3 basePosition, out Quaternion baseRotation);
             Quaternion toBase = Quaternion.Inverse(baseRotation);
             bendPoses.Clear();
@@ -387,7 +456,21 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     int key = Mathf.RoundToInt(local.z * 100f);
                     if (!bendPoses.TryGetValue(key, out var pose))
                     {
-                        track.GetPoseAtDistance(distance + key * 0.01f, lateral, out Vector3 p, out Quaternion r);
+                        float along = key * 0.01f;
+                        track.GetPoseAtDistance(distance + along, lateral, out Vector3 p, out Quaternion r);
+                        if (morph != Vector2.zero)
+                        {
+                            Vector3 rigid = basePosition + baseRotation * new Vector3(0f, 0f, along);
+                            p = Vector3.LerpUnclamped(p, rigid, morph.x);
+                            // The turn from the stamp pose, in its frame = swing × twist round Z.
+                            Quaternion delta = toBase * r;
+                            if (delta.w < 0f) delta = new Quaternion(-delta.x, -delta.y, -delta.z, -delta.w); // shortest way round
+                            Quaternion twist = TwistAboutZ(delta);
+                            Quaternion swing = delta * Quaternion.Inverse(twist);
+                            r = baseRotation
+                                * Quaternion.SlerpUnclamped(Quaternion.identity, swing, 1f - morph.x)
+                                * Quaternion.SlerpUnclamped(Quaternion.identity, twist, 1f - morph.y);
+                        }
                         pose = (p, r);
                         bendPoses[key] = pose;
                     }
@@ -414,11 +497,21 @@ namespace ConfusedGameDev.FiniteRunner.Track
             }
         }
 
+        // The part of a rotation that turns about local Z (swing-twist split).
+        static Quaternion TwistAboutZ(Quaternion q)
+        {
+            var twist = new Quaternion(0f, 0f, q.z, q.w);
+            float length = Mathf.Sqrt(twist.z * twist.z + twist.w * twist.w);
+            if (length < 1e-6f) return Quaternion.identity;
+            return new Quaternion(0f, 0f, twist.z / length, twist.w / length);
+        }
+
         /// <summary>
         /// Takes down and re-stamps every piece whose stamp distance lies in
         /// [<paramref name="from"/>, <paramref name="to"/>] (only what was
         /// already stamped) — the road editor's live drag, where only that
-        /// stretch of road changed shape.
+        /// stretch of road changed shape — and the whole drawn road when the
+        /// piece blend changes in edit mode. The end markers are left alone.
         /// </summary>
         public void Restamp(float from, float to)
         {
@@ -426,7 +519,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             for (int i = stamped.Count - 1; i >= 0; i--)
             {
                 float d = stamped[i].distance;
-                if (d < from || d > to) continue;
+                if (d < from || d > to || endMarkers.Contains(stamped[i].go)) continue;
                 if (stamped[i].go != null) SafeDestroy(stamped[i].go);
                 stamped.RemoveAt(i);
             }
@@ -442,6 +535,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public void Clear()
         {
             stamped.Clear();
+            endMarkers.Clear();
             stampCursor = 0f;
             if (decorParent == null) return;
             for (int i = decorParent.childCount - 1; i >= 0; i--)

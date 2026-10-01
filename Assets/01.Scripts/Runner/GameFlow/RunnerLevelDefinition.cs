@@ -138,6 +138,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("A saved track (made in the TrackGenerator's inspector: Generate Track, Save Track As…, Set as Current Track). Set = this level plays exactly that track — its length, its countdown when it sets one, every ramp, orb and gate. Empty = a track is generated for every run (the length above).")]
         public Track.TrackLayoutAsset track;
 
+        [TitleGroup("Level")]
+        [Tooltip("Oncoming traffic for this level: hover cars driving the track toward the ship (OncomingTrafficPRD.md). Empty = none.")]
+        public Traffic.TrafficDefinition traffic;
+
         [TitleGroup("Mission complete")]
         [Tooltip("Clip looping in the panel's video holder. Empty = the holder shows a dead NO SIGNAL screen.")]
         public VideoClip completeVideo;
