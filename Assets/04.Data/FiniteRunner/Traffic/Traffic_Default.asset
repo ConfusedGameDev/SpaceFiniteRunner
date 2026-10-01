@@ -61,8 +61,8 @@ MonoBehaviour:
     halfLength: 9
     halfWidth: 4
     height: 5
-  maxActive: 8
-  spawnSpacing: {x: 80, y: 220}
+  maxActive: 6
+  spawnSpacing: {x: 160, y: 440}
   spawnAheadSeconds: 4
   minSpawnAhead: 700
   despawnBehind: 40
