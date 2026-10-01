@@ -163,7 +163,10 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // The hyperspace jump: the in-run prompt and the CONTROLS rows of its keyboard chord.
         HyperspacePrompt, ActionHyperspaceLeft, ActionHyperspaceRight,
         // The pause menu's DEBUG TOOLS page: the Y debug boost's switch and size.
-        DebugTabTools, DebugBoostChord, DebugBoostAmount
+        DebugTabTools, DebugBoostChord, DebugBoostAmount,
+        // The pause menu's TRAFFIC page: the oncoming traffic's fleet and speed.
+        DebugTabTraffic, TrafficMaxActive, TrafficSpeedMin, TrafficSpeedMax,
+        TrafficSpawnAhead, TrafficMinSpawnAhead, TrafficNoSpawnNearEnd
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1168,6 +1171,13 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString debugTabTools = new("DEBUG TOOLS", "HERRAMIENTAS DEBUG", "デバッグツール", "OUTILS DE DEBUG");
         [SerializeField] LocalizedString debugBoostChord = new("Y BOOST", "IMPULSO CON Y", "Y ブースト", "BOOST Y");
         [SerializeField] LocalizedString debugBoostAmount = new("BOOST AMOUNT (KM/H)", "CANTIDAD DE IMPULSO (KM/H)", "ブースト量 (KM/H)", "VALEUR DU BOOST (KM/H)");
+        [SerializeField] LocalizedString debugTabTraffic = new("TRAFFIC", "TRÁFICO", "交通", "TRAFIC");
+        [SerializeField] LocalizedString trafficMaxActive = new("CARS ON THE ROAD", "COCHES EN LA PISTA", "走行台数", "VOITURES SUR LA ROUTE");
+        [SerializeField] LocalizedString trafficSpeedMin = new("MIN CAR SPEED (M/S)", "VELOCIDAD MÍN. COCHE (M/S)", "車の最低速度 (M/S)", "VITESSE MIN. VOITURE (M/S)");
+        [SerializeField] LocalizedString trafficSpeedMax = new("MAX CAR SPEED (M/S)", "VELOCIDAD MÁX. COCHE (M/S)", "車の最高速度 (M/S)", "VITESSE MAX. VOITURE (M/S)");
+        [SerializeField] LocalizedString trafficSpawnAhead = new("SPAWN AHEAD (S)", "APARICIÓN ADELANTE (S)", "前方出現 (秒)", "APPARITION DEVANT (S)");
+        [SerializeField] LocalizedString trafficMinSpawnAhead = new("MIN SPAWN DISTANCE (M)", "DISTANCIA MÍN. DE APARICIÓN (M)", "最小出現距離 (M)", "DISTANCE MIN. D'APPARITION (M)");
+        [SerializeField] LocalizedString trafficNoSpawnNearEnd = new("NO SPAWN NEAR END (M)", "SIN APARICIÓN CERCA DEL FINAL (M)", "終点付近は出現なし (M)", "PAS D'APPARITION PRÈS DE LA FIN (M)");
         [Tooltip("The debug menu's per-spawner density row. {0} = the spawner's name.")]
         [SerializeField] LocalizedString spawnDensity = new("{0} DENSITY", "DENSIDAD: {0}", "{0} 密度", "DENSITÉ : {0}");
         [SerializeField] LocalizedString respawnPatrolGap = new("RESPAWN PATROL GAP", "VENTAJA SOBRE LA PATRULLA", "リスポーン時のパトロール差", "AVANCE SUR LA PATROUILLE");
@@ -1663,6 +1673,13 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.DebugTabTools => debugTabTools,
             MenuTextId.DebugBoostChord => debugBoostChord,
             MenuTextId.DebugBoostAmount => debugBoostAmount,
+            MenuTextId.DebugTabTraffic => debugTabTraffic,
+            MenuTextId.TrafficMaxActive => trafficMaxActive,
+            MenuTextId.TrafficSpeedMin => trafficSpeedMin,
+            MenuTextId.TrafficSpeedMax => trafficSpeedMax,
+            MenuTextId.TrafficSpawnAhead => trafficSpawnAhead,
+            MenuTextId.TrafficMinSpawnAhead => trafficMinSpawnAhead,
+            MenuTextId.TrafficNoSpawnNearEnd => trafficNoSpawnNearEnd,
             _ => start
         };
     }

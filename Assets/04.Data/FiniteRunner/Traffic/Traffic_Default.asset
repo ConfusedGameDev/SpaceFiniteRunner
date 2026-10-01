@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6df08233d683a74da6ede4f29c3e534, type: 3}
+  m_Name: Traffic_Default
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Traffic.TrafficDefinition
+  vehicles:
+  - prefab: {fileID: 5364836202932860053, guid: 3f0880bf858cf934bb829dde58bc3698, type: 3}
+    weight: 3
+    scale: 3.5
+    yawOffset: -90
+    hoverHeight: 2
+    halfLength: 9
+    halfWidth: 4
+    height: 5
+  - prefab: {fileID: 1790414118986789532, guid: d328a71420fedfd4792b69388c44cc95, type: 3}
+    weight: 2
+    scale: 3.5
+    yawOffset: -90
+    hoverHeight: 2
+    halfLength: 9
+    halfWidth: 4
+    height: 5
+  - prefab: {fileID: 8808719998794427116, guid: a7c8ea8b16efd0e4196cd1eafb002892, type: 3}
+    weight: 1.5
+    scale: 3.5
+    yawOffset: -90
+    hoverHeight: 2
+    halfLength: 9
+    halfWidth: 4
+    height: 5
+  - prefab: {fileID: 993594225561545305, guid: 7e7edacc32657df41b4ab2d00c7c0493, type: 3}
+    weight: 1
+    scale: 3.5
+    yawOffset: -90
+    hoverHeight: 2
+    halfLength: 9
+    halfWidth: 4
+    height: 5
+  - prefab: {fileID: 4507403118244985283, guid: f8a73d8ad9651a24393cc0737ee0317f, type: 3}
+    weight: 0.75
+    scale: 3.5
+    yawOffset: -90
+    hoverHeight: 2
+    halfLength: 9
+    halfWidth: 4
+    height: 5
+  - prefab: {fileID: 5845748833004437153, guid: c91e4281bd266b14d9e9f0e26d572107, type: 3}
+    weight: 0.75
+    scale: 3.5
+    yawOffset: -90
+    hoverHeight: 2
+    halfLength: 9
+    halfWidth: 4
+    height: 5
+  maxActive: 8
+  spawnSpacing: {x: 80, y: 220}
+  spawnAheadSeconds: 4
+  minSpawnAhead: 700
+  despawnBehind: 40
+  speedBand: {x: 40, y: 90}
+  lateralSpeed: 8

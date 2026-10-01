@@ -628,6 +628,12 @@ which is why every spawned pickup gets a trigger), and laser gates by `ShipMotor
 over this registry. A swaying orb reports its live lateral through
 `OrbHover.SwayOffset`.
 
+**`TrackObstacles`** (`Track/TrackObstacles.cs`) is the "what must be steered ROUND here?" query:
+the lateral spans of every built non-end `JumpRamp` and every `LaserGate` in this registry (beam
+bounds plus `LaserGate.EmitterReach`, none for a Vertical beam) touching a stretch, plus
+`FreeIntervals` / `Nearest` over a lane. Oncoming traffic steers and checks its spawns with it
+(`runner-traffic.md`). Built objects only: ask about settled road.
+
 ### Forcing the end in (`ForceEndAhead`, the hyperspace jump)
 
 `TrackGenerator.ForceEndAhead(runUpMeters)` brings a finite track's end in NOW. The track is

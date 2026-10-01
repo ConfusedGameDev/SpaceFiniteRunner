@@ -206,6 +206,13 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             settings != null && ApplyDamage(settings.laserDamage, hard: true);
 
         /// <summary>
+        /// The ship ran into an oncoming car (OncomingTrafficPRD.md D3): the
+        /// same hit as a laser beam, by design — same damage, and the blink
+        /// shields it. Returns whether it took any hull.
+        /// </summary>
+        public bool ApplyTrafficHit() => ApplyLaserHit();
+
+        /// <summary>
         /// Gives back <paramref name="fraction"/> of <see cref="MaxHull"/>,
         /// clamped to full. Returns false — and changes nothing — when the hull
         /// is off, already full, destroyed, or the run is ending: the caller

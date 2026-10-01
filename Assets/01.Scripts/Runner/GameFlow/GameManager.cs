@@ -45,6 +45,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [SerializeField] TuningScreen tuningScreen;
         [Tooltip("The scene's police patrol object. Initialized (and its cruiser visual built) here in Awake; deactivated when the patrol is disabled on GameSettings.")]
         [SerializeField] PolicePatrol patrol;
+        [Tooltip("The scene's oncoming-traffic system (PF_TrafficSystem under ===SYSTEMS===). Bound here to the level's traffic definition; a level without one leaves it idle.")]
+        [SerializeField] Traffic.TrafficSystem traffic;
 
         [Title("Flow")]
         [Tooltip("Overlay the main menu (attract screen) over this scene on boot — an in-scene testing shortcut. The shipping flow keeps this off: the menu is its own scene (MainMenu.unity, build index 0) and this scene is reached from the city chase.")]
@@ -394,6 +396,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 patrol = null;
             }
 
+            // Oncoming traffic: the level opts in with a TrafficDefinition; a
+            // level without one (or no ship) leaves the system idle.
+            if (traffic != null)
+            {
+                if (motor != null)
+                {
+                    traffic.Bind(motor, motor, patrol, motor.Track, generator, this, settings, level.traffic);
+                    traffic.ShipStruck += OnTrafficStruck;
+                }
+                else traffic.Unbind();
+            }
+
             // The track map shows the run's progress with or without a chase;
             // the patrol is only its second marker.
             if (motor != null)
@@ -498,6 +512,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // hull is shielded and a catch is never read (the patrol is held).
             bool jumping = hyperspace != null && hyperspace.Jumping;
             if (shipHealth != null) shipHealth.Shielded = jumping;
+            // The chord clears the road of traffic and nothing spawns after it (OncomingTrafficPRD.md D5).
+            if (traffic != null) traffic.Suspended = jumping;
 
             if (!jumping && patrol != null && patrol.HasCaught)
             {
@@ -970,10 +986,25 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // own Damaged handler adds the glitch.
         void OnLaserHit(LaserGate gate, Component hit)
         {
-            // A jump the player chose is not lost to a gate on the way to the ramps.
-            if (hit != motor || IsEnding || RunOver || (hyperspace != null && hyperspace.Jumping)) return;
+            if (hit != motor) return;
+            ApplyHazardHit(fromTraffic: false);
+        }
+
+        // An oncoming car ran into the ship: the car has already exploded; the
+        // ship takes exactly a laser's hit (OncomingTrafficPRD.md D3).
+        void OnTrafficStruck() => ApplyHazardHit(fromTraffic: true);
+
+        /// <summary>
+        /// The one hit a laser beam and an oncoming car share: hull (the blink
+        /// shields it — then nothing at all plays), a slice of speed, smoke,
+        /// rumble, shake, the hit sound, and the glitch when there is no hull.
+        /// </summary>
+        void ApplyHazardHit(bool fromTraffic)
+        {
+            // A jump the player chose is not lost to a hazard on the way to the ramps.
+            if (motor == null || IsEnding || RunOver || (hyperspace != null && hyperspace.Jumping)) return;
             bool hullOn = settings.hullEnabled && shipHealth != null;
-            if (hullOn && !shipHealth.ApplyLaserHit()) return;
+            if (hullOn && !(fromTraffic ? shipHealth.ApplyTrafficHit() : shipHealth.ApplyLaserHit())) return;
 
             motor.ApplyImpactSpeedLoss(settings.laserSpeedLoss);
 
@@ -1004,6 +1035,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             }
             SpeedPad.Collected -= OnPadCollected;
             LaserGate.Hit -= OnLaserHit;
+            if (traffic != null) traffic.ShipStruck -= OnTrafficStruck;
             if (shipHealth != null)
             {
                 shipHealth.Damaged -= OnHullDamaged;
@@ -1060,6 +1092,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             motor.Paused = false; // EndRun froze the sim; the tuning screen re-pauses if present
             motor.Launch();
             if (patrol != null) patrol.Launch();
+            if (traffic != null) traffic.ResetForRun();
 
             // Reopen ship setup so points can be re-allocated; it re-launches on START.
             if (tuningScreen != null) tuningScreen.Show();

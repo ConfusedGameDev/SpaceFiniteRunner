@@ -164,7 +164,7 @@ it hit finds what to heal; the patrol has none.
 Three sources, one `ApplyDamage`: `SpeedPad.Collected` with a negative delta (`brakePadDamage`),
 `ShipMotor.WallHit` — the dash slam / ramp side (`wallSlamDamage`) — and the polled
 `ShipMotor.IsTouchingWall` (`wallScrapeDamage`) — plus a laser beam (`laserDamage`, a fall's 30 by
-default): `LaserGate.Hit` (it names the hit `Component`) is heard by the GAMEMANAGER (`OnLaserHit`, which checks it is its motor), which calls the public
+default): `LaserGate.Hit` (it names the hit `Component`) is heard by the GAMEMANAGER (`OnLaserHit`, which checks it is its motor, then runs `ApplyHazardHit` — the chain an oncoming car's `TrafficSystem.ShipStruck` shares through `ShipHealth.ApplyTrafficHit()`, see `runner-traffic.md`), which calls the public
 `ShipHealth.ApplyLaserHit()` and only when the hit landed (the blink shields it) cuts
 `GameSettings.laserSpeedLoss` (0.1) of the forward speed at once (`ShipMotor.ApplyImpactSpeedLoss`,
 the rear ram's jolt) and plays the heavy
@@ -651,6 +651,10 @@ minimap range, redeploy) stay on `GameSettings`.
   lateral — outside a run the cruiser copies the player's dodge, so only the run's
   `flankOffsetMeters` can put it on a beam the player is clear of. Gated on `duelEnabled`, so the
   duel-off contract ("the old chase exactly") still holds.
+- **An oncoming car destroys it too** (`ITrafficVictim`, `runner-traffic.md`): the traffic
+  system's swept test hits it unless it is hidden, gone, caught or `InExchange`, and
+  `HitByTraffic` is the laser kill's `Kill(false, false)`. Its contact length is `HalfLength`
+  (9.5 m, the shipped car), beside `PickupReach`.
 - **Catch** (`UpdateCatch`, `HasCaught` polled by `GameManager`): inside `catchDistance` the
   patrol stops gaining (its target is capped to the ship's speed, and the lane rule above keeps
   the two bodies a metre apart) and works on the sideways gap. With the duel ON the catch is
