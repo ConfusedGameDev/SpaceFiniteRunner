@@ -783,7 +783,7 @@ behind the ship. There is no goal gantry: the end of a finite track is its three
 
 MPB tints are unreliable with the SRP Batcher — hence the material-override fields.
 
-**Every stamped piece is BENT along the track** (`bendPieces`, on): road slabs, barriers, placeholder
+**Every stamped piece is BENT along the track** (`pieceBlend` = Blended, the default): road slabs, barriers, placeholder
 walls, open-edge markers and tube strips. A rigid piece is posed once at its centre, so where the
 bank changes (up to ~6° per 40 m) its neighbour sits at a different roll and, ~80 m out on a road
 this wide, the outer edges step apart by metres — dark wedges between the pieces on every banked
@@ -794,6 +794,20 @@ inverse transpose (the pieces are scaled unevenly). Each piece gets its own mesh
 freed by a runtime-added `BentPiece`. ~0.07 ms a stamp (0.02 rigid). **The kit meshes must be
 Read/Write enabled** (`road-straight_v1`, `road-straight-barrier`, `road-straight`); a piece whose
 mesh is not stays rigid. The end markers (straight run-up) are not bent.
+**`pieceBlend` = Not Blended keeps the gaps on purpose**, scaled by two sliders (0–3, shown only
+then): each row's bent pose is blended UNCLAMPED toward the rigid one (the stamp pose carried along
+its own forward). The turn from the stamp pose is split swing × twist round local Z (`TwistAboutZ`):
+`pieceMorph` scales the swing — the curve, yaw and pitch — and the spine position (`LerpUnclamped`),
+`pieceZMorph` the twist — the bank, so the edges step up and down. Each: 0 = Blended, 1 = rigid,
+above 1 the piece's ends over-rotate and the wedges open wider (2 ≈ double). Both at 1 = the plain
+rigid pieces (no mesh copy at all, the 0.02 ms path). Piece centres always sit on the track, and the
+road art is a picture only (the ship rides `TrackColliderBuilder`), so it is purely a look. **In edit
+mode a change re-stamps the road already drawn** (`OnValidate` → `RestampForBlend` on `delayCall`,
+queued once however fast a slider moves, undo included; it compares against `stampedMorph`, the
+blend a fresh road was stamped with, and does nothing while `stamped` is empty — after a script
+reload the list is gone and re-stamping would double the pieces, so Preview / Generate again); the end markers are kept out of
+`Restamp` (`endMarkers` — the generator places them, `StampAt` could not put them back). In play a
+change applies to pieces stamped after it.
 
 **The road kit and its neon look** (the test scene): the road stamp is
 `03.Prefabs/FiniteRunner/RoadSlab.prefab`, a wrapper round
