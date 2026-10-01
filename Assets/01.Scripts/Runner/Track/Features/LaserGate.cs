@@ -180,12 +180,12 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public float EmitterReach => definition != null ? definition.emitterScale : 0f;
 
         // One clock for the picture and the test. Scaled time: a pause stops the blade.
-        float RotorAngle => (rotorPhase + rotorSpeed * Time.time) * Mathf.Deg2Rad;
+        float RotorAngle(float time) => (rotorPhase + rotorSpeed * time) * Mathf.Deg2Rad;
 
-        void GetSegment(int index, out Vector3 a, out Vector3 b)
+        void GetSegment(int index, float time, out Vector3 a, out Vector3 b)
         {
             if (!isRotor) { a = beams[index].a; b = beams[index].b; return; }
-            float angle = RotorAngle;
+            float angle = RotorAngle(time);
             var arm = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * rotorHalfLength;
             a = rotorCentre - arm;
             b = rotorCentre + arm;
@@ -200,7 +200,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             for (int i = 0; i < beams.Count; i++)
             {
                 if (beams[i].visual == null) continue;
-                GetSegment(i, out Vector3 a, out Vector3 b);
+                GetSegment(i, Time.time, out Vector3 a, out Vector3 b);
                 beams[i].visual.SetEndpoints(root.TransformPoint(a + lift), root.TransformPoint(b + lift), root.up, root.forward);
             }
         }
@@ -214,7 +214,55 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public bool Touches(float fromDistance, float toDistance, float lateral, float height, Vector2 reach)
         {
             if (!placed || Time.time - lastHitTime < RehitSeconds) return false;
+            return Burns(fromDistance, toDistance, lateral, height, reach, Time.time);
+        }
 
+        /// <summary>
+        /// Would a body flying on at <paramref name="speed"/> from
+        /// <paramref name="distance"/>, holding this lateral and height, meet
+        /// a beam within <paramref name="horizon"/> seconds? A forecast only —
+        /// the rehit quiet is ignored and nothing is raised. A static beam is
+        /// one sweep; the rotor is swept in <paramref name="step"/>-second
+        /// slices, each against the blade where it will be then.
+        /// </summary>
+        public bool ForecastTouch(float distance, float speed, float lateral, float height, Vector2 reach,
+                                  float horizon, float step)
+        {
+            if (!placed || horizon <= 0f) return false;
+            speed = Mathf.Max(0f, speed);
+            if (!isRotor) return Burns(distance, distance + speed * horizon, lateral, height, reach, Time.time);
+
+            step = Mathf.Max(0.01f, step);
+            float now = Time.time;
+            for (float t = 0f; t < horizon; t += step)
+            {
+                float t1 = Mathf.Min(horizon, t + step);
+                if (Burns(distance + speed * t, distance + speed * t1, lateral, height, reach, now + t)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// <see cref="ForecastTouch"/> over every placed gate in the
+        /// <see cref="PickupRegistry"/> that the stretch ahead reaches.
+        /// </summary>
+        public static bool ForecastAny(float distance, float speed, float lateral, float height, Vector2 reach,
+                                       float horizon, float step)
+        {
+            float far = distance + Mathf.Max(0f, speed) * horizon;
+            foreach (ITrackPickup pickup in PickupRegistry.All)
+            {
+                if (pickup is not LaserGate gate || !gate.placed) continue;
+                float half = gate.boundsHalf.z + reach.x;
+                if (gate.TrackDistance + half < distance || gate.TrackDistance - half > far) continue;
+                if (gate.ForecastTouch(distance, speed, lateral, height, reach, horizon, step)) return true;
+            }
+            return false;
+        }
+
+        // The one burn test, at a given clock (the rotor's angle is a function of it).
+        bool Burns(float fromDistance, float toDistance, float lateral, float height, Vector2 reach, float time)
+        {
             float r = definition.beamRadius;
             // Squash the space so "within the ship's box + the beam" is "within 1".
             Vector3 wave = WaveReach;
@@ -224,7 +272,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
             for (int i = 0; i < beams.Count; i++)
             {
-                GetSegment(i, out Vector3 a, out Vector3 b);
+                GetSegment(i, time, out Vector3 a, out Vector3 b);
                 if (SegmentDistanceSqr(p0, p1, Vector3.Scale(a, scale), Vector3.Scale(b, scale)) <= 1f) return true;
             }
             return false;

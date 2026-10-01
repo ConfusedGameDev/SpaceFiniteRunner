@@ -357,9 +357,48 @@ namespace ConfusedGameDev.FiniteRunner.Traffic
             // Where in the tick the two were level (or the end of it, if they never were).
             float t = Mathf.Abs(gapPrev - gapNow) > 1e-4f ? Mathf.Clamp01(gapPrev / (gapPrev - gapNow)) : 1f;
             float across = Mathf.Lerp(car.PrevLateral, car.Lateral, t) - Mathf.Lerp(latPrev, latNow, t);
-            if (Mathf.Abs(across) > v.halfWidth + reach.x) return false;
+            return Overlaps(v, across, bodyHeight, reach);
+        }
 
-            return bodyHeight - reach.y < v.hoverHeight + v.height;
+        // Level with the car along the track: is the body within its half width and under its roof?
+        static bool Overlaps(TrafficVehicle v, float across, float bodyHeight, Vector3 reach) =>
+            Mathf.Abs(across) <= v.halfWidth + reach.x && bodyHeight - reach.y < v.hoverHeight + v.height;
+
+        /// <summary>
+        /// A forecast for the live system: if a body at <paramref name="distance"/>
+        /// flies on at <paramref name="speed"/> holding this lateral and height,
+        /// how many seconds until the first car it would meet — or −1 when none
+        /// within <paramref name="horizon"/>. Each car is carried forward the
+        /// way it drives (its speed toward the start, its lateral easing to its
+        /// current target) and tested with the same overlap as a real
+        /// contact. Pure: nothing explodes, nothing is raised.
+        /// </summary>
+        public static float ForecastContact(float distance, float speed, float lateral, float height, Vector3 reach,
+                                            float horizon)
+        {
+            TrafficSystem live = Live;
+            if (live == null || !live.Bound || live.suspended || horizon <= 0f) return -1f;
+
+            float best = -1f;
+            foreach (TrafficCar car in live.active)
+            {
+                TrafficVehicle v = car.Vehicle;
+                float closing = Mathf.Max(0f, speed) + car.Speed;
+                if (closing <= 1e-3f) continue;
+                float gap = car.Distance - distance;
+                float along = v.halfLength + reach.z;
+                float tIn = (gap - along) / closing, tOut = (gap + along) / closing;
+                if (tOut < 0f || tIn > horizon) continue;
+
+                // Test where the two are level (or the nearest moment of the window to it).
+                float t = Mathf.Clamp(gap / closing, Mathf.Max(0f, tIn), Mathf.Min(horizon, tOut));
+                float carLateral = Mathf.MoveTowards(car.Lateral, car.TargetLateral, live.def.lateralSpeed * t);
+                if (!Overlaps(v, carLateral - lateral, height, reach)) continue;
+
+                float hit = Mathf.Max(0f, tIn);
+                if (best < 0f || hit < best) best = hit;
+            }
+            return best;
         }
 
         /// <summary>Blows the car up where it is and returns it to the pool.</summary>

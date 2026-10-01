@@ -79,6 +79,9 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   the edge of the window (graded in time, either side of the crossing), with the warp and rumble
   scaled to match. The A glyph floats in the orb's ring as a billboard: white while waiting,
   red → yellow → green by the grade, red on a miss. One press per orb.
+- **Clutch dodge**: a dash that takes the ship off a car's or a beam's line within the last
+  second before the hit slows the world clock for the length of the dash (`DodgeSlowMo` on
+  `PF_Ship`, its own settings asset — see `runner-ship.md`).
 - **The patrol** drives the same physics as the ship: it rubber-bands to the ship's speed and
   takes a share (`boostShare`) of every boost the ship collects, steers for the ship, goes after
   boost orbs of its own (which it uses up), rounds ramps or jumps them, brakes for flat sweeps,

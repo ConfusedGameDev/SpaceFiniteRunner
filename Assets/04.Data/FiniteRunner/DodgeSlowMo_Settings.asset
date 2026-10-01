@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfe42305c13794be489519d26a7d030d, type: 3}
+  m_Name: DodgeSlowMo_Settings
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Ship.DodgeSlowMoSettings
+  enabled: 1
+  threatWindowSeconds: 1
+  dodgeTraffic: 1
+  dodgeLasers: 1
+  extraReach: 0.5
+  minSpeedKmh: 200
+  cooldownSeconds: 1
+  forecastStepSeconds: 0.05
+  timeScale: 0.3
+  blendInSeconds: 0.06
+  blendOutSeconds: 0.2

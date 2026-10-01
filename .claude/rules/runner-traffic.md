@@ -17,7 +17,7 @@ Design and decisions: `OncomingTrafficPRD.md` (D1–D12). Runner only — the ci
 | Type | Where | Role |
 |---|---|---|
 | `TrafficDefinition` | `Runner/Traffic/` | The tunables: weighted `vehicles` table (`TrafficVehicle`: prefab, weight, scale, yaw, hover height, contact half length / half width / height), Fleet, Driving, Impact. Cloned at bind; gameplay reads only the clone. |
-| `TrafficSystem` | `Runner/Traffic/`, `PF_TrafficSystem` nested in `PF_Systems` | Pool, spawn loop, steering, swept contact, `ShipStruck` event, `Suspended`. |
+| `TrafficSystem` | `Runner/Traffic/`, `PF_TrafficSystem` nested in `PF_Systems` | Pool, spawn loop, steering, swept contact, `ShipStruck` event, `Suspended`. `static ForecastContact` (seconds to the first car a body holding its line would meet, −1 none; same overlap test as a real contact, pure) — `DodgeSlowMo` asks it. |
 | `TrafficCar` | `Runner/Traffic/` | One pooled shell: track-space state (`Distance`, `PrevDistance`, `Lateral`, `PrevLateral`, `Speed`, `TargetLateral`, `HomeLateral`), kinematic `Step`, interpolated `ApplyPose`. No colliders. |
 | `TrafficDebugPage` | `Runner/Traffic/` | The pause menu's TRAFFIC tab (registry order 5), shown only while `TrafficSystem.Live` is bound. Rows write the asset (`DebugAssetEdits.Touch`) and mirror onto the clone. |
 | `TrackObstacles` | `Runner/Track/` | Blocked lateral spans over a stretch: built non-end `JumpRamp.Active` and `LaserGate`s from `PickupRegistry` (beam bounds + `EmitterReach`, none for a Vertical beam). `Collect`, `FreeIntervals`, `Nearest`. Reads BUILT objects, so only ask about settled road. |

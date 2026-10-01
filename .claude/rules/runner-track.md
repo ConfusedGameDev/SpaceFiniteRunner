@@ -578,7 +578,7 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   (x lateral, y height, z along), in a space squashed by the ship's reach + `beamRadius`. One
   test for all four variants. The rotor's angle is a pure function of `Time.time`, shared by the
   picture and the test, so a pause freezes both. A gate is never used up; `RehitSeconds` makes one
-  pass one hit. `LaserGate.Hit` (static, `Action<LaserGate, Component>` — the track names the hit component, never the motor; the listener compares) is the player's event; the patrol's body finds gates and
+  pass one hit. `ForecastTouch` / static `ForecastAny` run the same burn test ahead of a body holding its line (no rehit quiet, nothing raised; the rotor at the clock it will be met at) — `DodgeSlowMo` asks them. `LaserGate.Hit` (static, `Action<LaserGate, Component>` — the track names the hit component, never the motor; the listener compares) is the player's event; the patrol's body finds gates and
   ignores them (`PolicePatrol.OnPickedUp` only knows `SpeedPad`).
 - **`LaserBeam` is the picture only**, authored ON the prefab with its four references
   (`Tools → FiniteRunner → Install Laser Gate Assets` adds and wires it by name, and creates

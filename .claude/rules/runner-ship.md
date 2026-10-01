@@ -297,6 +297,15 @@ second half, so nothing cuts mid-drop), ended by `StateChanged(Grounded)`:
   `AirTimeSlowMo` clock contract exactly: enter only when the clock reads exactly 1, cancel
   silently (restoring `fixedDeltaTime` only) when a menu takes it, re-arm after the resume. Never
   owns while `motor.Paused`.
+- `DodgeSlowMo` (`Runner/Ship/`, hand-placed on `PF_Ship`, NO GameManager hook) is the clutch
+  dash: on `DashPerformed` it forecasts the ship's CURRENT line and the line the dash ends on
+  (`lateral ± dashDistance`) over `threatWindowSeconds` (1 s) — `TrafficSystem.ForecastContact`
+  and `LaserGate.ForecastAny` — and only a hit on the old line with none on the new one takes the
+  clock to `timeScale` (0.3) for as long as `IsDashing` holds (a wall ends it early), then blends
+  out. A car or beam landing anyway (`ShipStruck`, `LaserGate.Hit` for this motor) releases at
+  once. Its knobs live on its OWN asset (`04.Data/FiniteRunner/DodgeSlowMo_Settings`, inline on the
+  component), never `GameSettings`. Same clock contract as `LoopSlowMo`, so the loop, the duel and
+  every menu win; the countdown rides the clock (it slows too).
 
 ## `GameManager`
 
