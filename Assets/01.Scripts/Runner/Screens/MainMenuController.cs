@@ -8,6 +8,7 @@ using UnityEngine.UI;
 using ConfusedGameDev.FiniteRunner.Audio;
 using ConfusedGameDev.FiniteRunner.Campaign;
 using ConfusedGameDev.FiniteRunner.Cheats;
+using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Haptics;
 using ConfusedGameDev.FiniteRunner.SaveData;
 using ConfusedGameDev.FiniteRunner.Ship;
@@ -102,6 +103,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             if (theme != null) return;
             standalone = true;
             MissionSession.Clear(); // reaching the main menu ends any campaign mission in flight
+            TrackSelection.Clear(); // and any SELECT COURSE pick
             Open();
 
             // The menu loop: the scene's hand-placed Music object under

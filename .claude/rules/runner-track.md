@@ -228,7 +228,19 @@ stay endless.
   the scene's generator holds) and `timeLimitSeconds` (0 = `GameSettings`; `GameManager.TimeLimit`
   resolves it for the HUD, retries and the run stats).
 - **A level plays one** through `RunnerLevelDefinition.track` → `GameManager.AuthoredTrack` →
-  `ITrackRunRules.AuthoredTrack` (typed `ScriptableObject`: the contract names no track type).
+  `ITrackRunRules.AuthoredTrack` (typed `ScriptableObject`: the contract names no track type) —
+  or the SELECT COURSE pick (`GameFlow/TrackSelection`, a static like `MissionSession`, set by
+  `LevelSelectScreen` and cleared by the main menu): `ResolveRunData` takes it once per scene load
+  in DIRECT PLAY ONLY (a live mission is authored whole and ignores it), so a retry in place and a
+  debug reload keep it; FORCE RUNTIME TRACK still wins. The courses it offers are the
+  `TrackSelectCatalog` (`Resources/FiniteRunner_TrackCatalog`: track, display name, subtitle,
+  difficulty, optional picture), mirrored from `04.Data/FiniteRunner/Tracks/` by **Tools →
+  FiniteRunner → Sync Track Catalog** and by an asset postprocessor on that folder
+  (`Runner/Editor/TrackCatalogSync`) — new tracks get an entry, gone tracks lose theirs, edited
+  fields and order are kept. `TrackLayoutPreview` (`Track/Layout/`) draws a saved track with no
+  track built: the knots re-added to an in-memory `Spline` (the same `Add(knot, mode)` the
+  `TrackManager` makes), sampled on XZ and fitted with the chase minimap's framing for a
+  `TrackMapLine`.
   `Generate` then `LoadLayout`s it instead of deciding: knots re-appended in order, sections
   replayed, spans / end / keep-outs / records restored, spawners `Park()`ed and the coin and feature
   cursors parked — nothing more is decided. Gameplay never writes the asset: the generator copies

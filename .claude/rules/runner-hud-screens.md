@@ -275,3 +275,36 @@ from `MissionSession.Current` ("" in direct play, which then pays without a reco
 after one seen release, `SkipHoldSeconds` const) and jumps the reveal to the slam. Button confirms
 wait for a release after the buttons appear, so the press that finished the hold can't answer.
 Back does nothing.
+
+## `LevelSelectScreen` (`Runner/Screens/`) — SELECT COURSE
+
+The runner's level select, F-Zero GX style, in its own `LevelSelect.unity` (built by **Tools →
+FiniteRunner → Create Level Select Scene**: camera on the menu backdrop, the hand-placed screen, the
+menu music under `===SYSTEMS===`, the shared EventSystem / Haptics / Cheat prefabs; registered by
+`Register Campaign Scenes`). The `ComingSoonScreen` shape: the canvas is built under the object at
+play (sorting 30, 1920 × 1080), Odin **Rebuild Preview** bakes it in edit mode, input is
+`MenuNavigator` polled directly (`StepHorizontal` = d-pad, left stick, A / D, arrows, with the
+theme's dead zone and repeat; `ConfirmPressed` = A / Enter; `BackPressed` = B / Esc).
+
+- **Courses** are the `TrackSelectCatalog` entries with a valid track (`runner-track.md`); each has
+  its map sampled ONCE at build (`TrackLayoutPreview.SampleXZ`, 600 points — 2–3 per knot, so a
+  sweep is a curve) and fitted twice — the 900 × 560 plane with start → finish running LEFT → RIGHT
+  (the plane is landscape and these tracks are long and thin) and the 92 px thumbnail with the
+  minimap's start-at-bottom — so a pick never resamples. Empty catalog = NOTHING HERE YET and a
+  Back-only footer.
+- **Layout** (consts, not knobs): the SELECT COURSE title plate top-left (`MenuScreen.SetTitle`,
+  auto-fit); the course name (64 pt title font, WHITE — `TextPrimary` is 49 % grey) and subtitle
+  centred above the map; the `MapPlane` — a code-built grid tile (`Image.Type.Tiled`) on a faint
+  accent fill, squashed to 0.6 and tilted −6° (a 2D affine: an overlay canvas is orthographic, so
+  an X rotation would buy nothing) — with a child `TrackLine` rect carrying a `TrackMapLine`
+  (6 px, white) and the pop animation (scale 1.08 → 1, alpha 0 → 1, 0.18 s — on the CHILD, never
+  the plane); DIFFICULTY (localized) with five pips (`UiSprites.Circle` accent lit,
+  `UiSprites.Ring` dim unlit); the **strip** at the bottom — one `UiSprites.Ring` per course, a
+  `Mask`ed disc inside drawing the entry's picture or a 2 px `TrackMapLine` thumbnail, the picked
+  ring eased to 1.3× in the accent — and two `▲` texts turned ±90° as the arrows, pulsing on the
+  theme's attract alpha, hidden with one course. Everything joins the page's staggered entrance.
+- **Confirm**: `MissionSession.Clear()` (a picked course is direct play), `TrackSelection.Set`,
+  the music faded, `LoadingScreen.Load(CampaignCatalog.runnerSceneName`, else `FiniteRunner_Test`)
+  — refused with the registrar hint when the scene is not in the build. **Back**:
+  `LoadingScreen.LoadMainMenu()`. `GameManager.NextSceneAfterMission` sends NEXT MISSION back here
+  while a pick is live.

@@ -12,8 +12,9 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// <c>Tools → FiniteRunner → Register Campaign Scenes</c>: rewrites the
     /// build settings' scene list from the campaign catalog — MainMenu at
     /// index 0 (the one scene ever loaded by index), the Store, every
-    /// world's city scene, the runner scene and the Coming Soon scene, in
-    /// that order, each found by name under <c>Assets/05.Scenes</c>. Every
+    /// world's city scene, the runner scene, the Coming Soon scene and the
+    /// Level Select scene, in that order, each found by name under
+    /// <c>Assets/05.Scenes</c>. Every
     /// other scene trip in the project loads BY NAME, so a scene missing
     /// from this list fails silently at play; run this after adding a world
     /// or a scene and commit <c>ProjectSettings/EditorBuildSettings.asset</c>.
@@ -50,6 +51,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 Add(names, "FiniteRunner_Test");
                 Add(names, ComingSoonScreen.SceneName);
             }
+            // The SELECT COURSE scene is not a campaign scene: it is fixed, not on the catalog.
+            Add(names, LevelSelectScreen.SceneName);
 
             var scenes = new List<EditorBuildSettingsScene>();
             var missing = new List<string>();

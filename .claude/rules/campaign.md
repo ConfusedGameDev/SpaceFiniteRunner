@@ -107,11 +107,16 @@ START MISSION replays its city. A REPLAY that ends that way keeps the clear it a
   go; lifetime stats, records and collectibles stay — clears the session and rebuilds the menu.
 - `MissionRow` (`UI/`) is the `StatRow` shape that DOES confirm; its `RightReserve` is what the
   Store pre-measures the column with.
+- **SELECT COURSE** (`LevelSelect.unity`, `Runner/Screens/LevelSelectScreen`, built by **Create
+  Level Select Scene**) is NOT a campaign screen: it picks one saved track for direct play
+  (`TrackSelection`, see `runner-track.md`), clears the session, and loads the runner scene
+  (`CampaignCatalog.runnerSceneName`); NEXT MISSION on its results panel returns to it. It has no
+  main-menu row yet — open the scene and play it.
 
 ## Build settings
 
 `Tools → FiniteRunner → Register Campaign Scenes` (`Runner/Editor/CampaignSceneRegistrar`) rewrites
 `EditorBuildSettings` from the catalog — MainMenu at index 0, Store, every world scene, the runner,
-Coming Soon. Every other trip loads BY NAME, so **run it after adding a world or scene and commit
+Coming Soon, Level Select. Every other trip loads BY NAME, so **run it after adding a world or scene and commit
 `ProjectSettings/EditorBuildSettings.asset`** (the list was once committed empty, which broke every
 by-name load on a fresh checkout).

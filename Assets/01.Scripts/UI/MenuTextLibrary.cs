@@ -166,7 +166,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DebugTabTools, DebugBoostChord, DebugBoostAmount,
         // The pause menu's TRAFFIC page: the oncoming traffic's fleet and speed.
         DebugTabTraffic, TrafficMaxActive, TrafficSpeedMin, TrafficSpeedMax,
-        TrafficSpawnAhead, TrafficMinSpawnAhead, TrafficNoSpawnNearEnd
+        TrafficSpawnAhead, TrafficMinSpawnAhead, TrafficNoSpawnNearEnd,
+        // The SELECT COURSE scene: its title and the difficulty line.
+        SelectCourse, Difficulty
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1178,6 +1180,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString trafficSpawnAhead = new("SPAWN AHEAD (S)", "APARICIÓN ADELANTE (S)", "前方出現 (秒)", "APPARITION DEVANT (S)");
         [SerializeField] LocalizedString trafficMinSpawnAhead = new("MIN SPAWN DISTANCE (M)", "DISTANCIA MÍN. DE APARICIÓN (M)", "最小出現距離 (M)", "DISTANCE MIN. D'APPARITION (M)");
         [SerializeField] LocalizedString trafficNoSpawnNearEnd = new("NO SPAWN NEAR END (M)", "SIN APARICIÓN CERCA DEL FINAL (M)", "終点付近は出現なし (M)", "PAS D'APPARITION PRÈS DE LA FIN (M)");
+        [TitleGroup("Select course")]
+        [SerializeField] LocalizedString selectCourse = new("SELECT COURSE", "ELIGE CIRCUITO", "コース選択", "CHOISIR LE CIRCUIT");
+        [SerializeField] LocalizedString difficulty = new("DIFFICULTY", "DIFICULTAD", "難易度", "DIFFICULTÉ");
         [Tooltip("The debug menu's per-spawner density row. {0} = the spawner's name.")]
         [SerializeField] LocalizedString spawnDensity = new("{0} DENSITY", "DENSIDAD: {0}", "{0} 密度", "DENSITÉ : {0}");
         [SerializeField] LocalizedString respawnPatrolGap = new("RESPAWN PATROL GAP", "VENTAJA SOBRE LA PATRULLA", "リスポーン時のパトロール差", "AVANCE SUR LA PATROUILLE");
@@ -1680,6 +1685,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.TrafficSpawnAhead => trafficSpawnAhead,
             MenuTextId.TrafficMinSpawnAhead => trafficMinSpawnAhead,
             MenuTextId.TrafficNoSpawnNearEnd => trafficNoSpawnNearEnd,
+            MenuTextId.SelectCourse => selectCourse,
+            MenuTextId.Difficulty => difficulty,
             _ => start
         };
     }

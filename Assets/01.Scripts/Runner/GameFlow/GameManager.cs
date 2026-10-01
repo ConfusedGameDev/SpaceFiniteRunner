@@ -154,13 +154,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// </summary>
         public bool ForceRuntimeTrack { get; set; }
 
-        /// <summary>The saved track this run plays (the level's, unless forced off), or null to generate one.</summary>
+        /// <summary>The saved track this run plays — the SELECT COURSE pick (<see cref="TrackSelection"/>), else the level's — unless forced off; null generates one.</summary>
         public ScriptableObject AuthoredTrack
         {
             get
             {
                 ResolveRunData();
-                return ForceRuntimeTrack || level == null ? null : level.track;
+                if (ForceRuntimeTrack) return null;
+                if (selectedTrack != null) return selectedTrack;
+                return level != null ? level.track : null;
             }
         }
         public float TimeRemaining { get; private set; }
@@ -243,11 +245,14 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public bool HasTrackEnd => generator != null && generator.IsFinite;
 
         bool runDataResolved;
+        // The SELECT COURSE pick, taken once with the level so a retry in place
+        // and a debug reload both keep playing it. Runtime only.
+        Track.TrackLayoutAsset selectedTrack;
 
         /// <summary>
         /// Settles which settings and level this run plays on. Idempotent, and
         /// safe before Awake: both are serialized references and the campaign
-        /// session is static.
+        /// session and the course pick are static.
         /// </summary>
         void ResolveRunData()
         {
@@ -270,6 +275,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 Debug.LogError($"{nameof(GameManager)} has no {nameof(RunnerLevelDefinition)} asset assigned — falling back to the default run.", this);
                 level = RunnerLevelDefinition.CreateDefault();
             }
+            // A course picked on the SELECT COURSE screen plays over the level's
+            // own track in direct play. A live mission is authored whole and
+            // ignores it.
+            if (!MissionSession.Active) selectedTrack = TrackSelection.Current;
         }
 
         void Awake()
@@ -889,7 +898,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         // NEXT MISSION on a campaign mission always returns to the Store, which
         // offers the new frontier; direct play keeps the level's own next scene.
-        string NextSceneAfterMission() => MissionSession.Active ? StoreSettings.SceneName : level.nextSceneName;
+        // A course picked on the SELECT COURSE screen goes back to that screen.
+        string NextSceneAfterMission() => MissionSession.Active ? StoreSettings.SceneName
+            : selectedTrack != null ? LevelSelectScreen.SceneName : level.nextSceneName;
 
         MissionCompleteData BuildMissionCompleteData()
         {

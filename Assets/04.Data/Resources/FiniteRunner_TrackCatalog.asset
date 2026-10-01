@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b41db2e595eaf424e8becacd026ccbe0, type: 3}
+  m_Name: FiniteRunner_TrackCatalog
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.TrackSelectCatalog
+  entries:
+  - track: {fileID: 11400000, guid: 85fc55fe72f0f40adbb02b784c5265ac, type: 2}
+    displayName: FINITE RUNNER LEVEL DEFINITION 2
+    subtitle: 
+    difficulty: 1
+    thumbnail: {fileID: 0}
+  - track: {fileID: 11400000, guid: 5e868e0e072fa4c2d99a119ab474213c, type: 2}
+    displayName: FINITE RUNNER LEVEL DEFINITION 3
+    subtitle: 
+    difficulty: 1
+    thumbnail: {fileID: 0}
+  - track: {fileID: 11400000, guid: 41bb4e9b09cad42119dd2979af123942, type: 2}
+    displayName: FINITE RUNNER LEVEL DEFINITION 60878307
+    subtitle: 
+    difficulty: 1
+    thumbnail: {fileID: 0}
+  - track: {fileID: 11400000, guid: 22525e129aa624ec182b8a6e483f6efb, type: 2}
+    displayName: TEST 4
+    subtitle: 
+    difficulty: 1
+    thumbnail: {fileID: 0}
