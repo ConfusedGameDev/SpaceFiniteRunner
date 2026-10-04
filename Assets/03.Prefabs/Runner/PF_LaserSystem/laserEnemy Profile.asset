@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d7fd9488000d3734a9e00ee676215985, type: 3}
-  m_Name: glow Profile
+  m_Name: laserEnemy Profile
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.VolumeProfile
   components:
-  - {fileID: 463289537874604426}
---- !u!114 &463289537874604426
+  - {fileID: 1337034510063155146}
+--- !u!114 &1337034510063155146
 MonoBehaviour:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
@@ -32,15 +32,15 @@ MonoBehaviour:
     m_Value: 1
   threshold:
     m_OverrideState: 1
-    m_Value: 8.95
+    m_Value: 1.4
   intensity:
     m_OverrideState: 1
-    m_Value: 2.92
+    m_Value: 6.2
   scatter:
     m_OverrideState: 1
-    m_Value: 0.327
+    m_Value: 0.019
   clamp:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 65472
   tint:
     m_OverrideState: 0
@@ -49,7 +49,7 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 0
   filter:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
   downscale:
     m_OverrideState: 0
