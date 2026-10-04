@@ -222,7 +222,7 @@ footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:18px;font-s
         <text class="d-muted" x="330" y="146">aheadDistance (1 600 m on PF_Track)</text>
       </svg>
     </div>
-    <figcaption>The window slides with the ship. Only the chase minimap's track map ever shows the whole decided track.</figcaption>
+    <figcaption>In play the window slides with the ship, and only the chase minimap's track map shows the whole track. In edit mode (Generate Track, Preview Saved Track, Edit Track) the whole track is built, so all of it can be seen and edited.</figcaption>
   </figure>
   <ul>
     <li><code>SettledDistance</code> is how far the track has been built. The colliders and the road art stream to it.</li>
@@ -236,7 +236,7 @@ footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:18px;font-s
   <h2>Make a track, start to finish</h2>
   <ol class="steps">
     <li>Open <code>FiniteRunner_Test</code> and select the <b>Track</b> object (it holds the <code>TrackGenerator</code>). The authoring tools are at the bottom of its inspector.</li>
-    <li>Click <b>Generate Track</b>. The track is decided in full with the scene's run rules: the level's length, the run-up and the end ramps. The status box shows its length, placement count and seed, and the first stretch appears in the scene.</li>
+    <li>Click <b>Generate Track</b>. The track is decided in full with the scene's run rules: the level's length, the run-up and the end ramps. The status box shows its length, placement count and seed, and the whole track is built in the scene, end ramps included.</li>
     <li>Click <b>Save Track As…</b> and save the asset in <code>Assets/04.Data/FiniteRunner/Tracks/</code>. Replacing an existing track asks first.</li>
     <li>Click <b>Set as Current Track</b>. This writes the asset into the scene level's <code>track</code> field.</li>
     <li>Press <b>Play</b>. The run loads exactly that track, and the generator's inspector shows <i>saved: &lt;asset&gt;</i>.</li>
@@ -258,10 +258,10 @@ footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:18px;font-s
     <tbody>
       <tr><td class="k">Level</td><td>The scene <code>GameManager</code>'s level (read-only). Needed for the run rules and for Set as Current.</td></tr>
       <tr><td class="k">Track asset</td><td>The saved track the buttons act on. Defaults to the level's current track.</td></tr>
-      <tr><td class="k">Generate Track</td><td>Decides a whole finite track in edit mode, exactly as a play run would, and previews the first stretch. Disabled while editing.</td></tr>
+      <tr><td class="k">Generate Track</td><td>Decides a whole finite track in edit mode, exactly as a play run would, and builds the whole track as a preview. Disabled while editing.</td></tr>
       <tr><td class="k">Save Track As…</td><td>Saves the generated track, or a <b>copy</b> of the saved track on show. Disabled while editing (use Save there).</td></tr>
       <tr><td class="k">Set / Clear Current Track</td><td>Writes or clears the level's <code>track</code> field.</td></tr>
-      <tr><td class="k">Preview Saved Track</td><td>Loads the asset into the scene the way play would.</td></tr>
+      <tr><td class="k">Preview Saved Track</td><td>Loads the asset into the scene the way play would, and builds all of it.</td></tr>
       <tr><td class="k">Edit Track</td><td>Opens the Road and Placements tabs and the Scene-view handles. Saves anything pending first, then takes a snapshot of the track.</td></tr>
       <tr><td class="k">Regenerate (endless preview)</td><td>The old quick look: an endless stretch with no end and no gates.</td></tr>
     </tbody>
@@ -291,7 +291,7 @@ footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:18px;font-s
   </ul>
   <h3>Dragging, saving and undo</h3>
   <ul>
-    <li>While a handle is dragged, only the reshaped stretch rebuilds: two knots either side of a moved knot, or the stretch between a span end's old and new spot. That takes about 10 ms a frame. The whole preview rebuilds on release, in about 60 ms.</li>
+    <li>While a handle is dragged, only the reshaped stretch rebuilds: two knots either side of a moved knot, or the stretch between a span end's old and new spot. That takes about 10 ms a frame. The whole track rebuilds on release, in about 0.4 s for a 92 km track.</li>
     <li>Nothing is written to disk while editing. The panel shows <b>● Unsaved changes</b> with <b>Save</b> and <b>Revert</b>.</li>
     <li>Every change is undoable (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>), including Discard and the recomputed distances. An undo also redraws the track on show after editing stops.</li>
   </ul>
