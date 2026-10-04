@@ -7,6 +7,15 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
     public enum LaserGateVariant { Horizontal, Vertical, Triple, Rotor }
 
     /// <summary>
+    /// What draws a beam (<see cref="LaserBeam"/>). <c>Procedural</c>: the
+    /// LaserA / LaserB emitters and two code-built lines; <c>Prefab</c>: the
+    /// laser model authored in <c>PF_LaserSystem</c> (an emitter bar and its
+    /// beam sheet, stretched to the beam); <c>Both</c>: the two at once.
+    /// Serialized: append-only.
+    /// </summary>
+    public enum LaserBeamLook { Procedural, Prefab, Both }
+
+    /// <summary>
     /// Tunables of the laser gates: a pair of emitters (the
     /// <c>PF_LaserSystem</c> prefab) firing a beam between their shoot points
     /// that burns the hull of a ship flying through it. A gate never spans the
@@ -64,7 +73,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public float tripleSpacing = 5f;
 
         [TitleGroup("Variants")]
-        [Tooltip("Vertical: how far above the flight line the beam reaches, metres. It starts at the road.")]
+        [Tooltip("Vertical (procedural look only): how far above the flight line the beam reaches, metres. It starts at the road. A gate drawing the prefab is as tall as its sheet instead.")]
         [PropertyRange(5f, 60f), SuffixLabel("m", true)]
         public float verticalHeight = 20f;
 
@@ -87,6 +96,16 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [Tooltip("Gap kept between the visible road and the lowest point an emitter can reach as it spins. A horizontal, triple or rotor gate is DRAWN lifted by whatever this takes (the burn stays on the flight line, where the ship's hit box is — the ship's model rides that much above it anyway); a vertical beam rises out of the road with its bottom emitter hidden.")]
         [PropertyRange(0f, 5f), SuffixLabel("m", true)]
         public float emitterRoadClearance = 0.5f;
+
+        [TitleGroup("Look")]
+        [Tooltip("What draws the beam. Prefab = the laser model authored in PF_LaserSystem (its emitter bar and the beam sheet it projects down), at its authored size; Procedural = the old LaserA / LaserB emitters and code-built lines; Both = the two together. Prefab and Both make EVERY gate vertical (the variant weights are ignored) as tall as the sheet and burning as wide as it is; under Prefab alone no gate waves (the sheet cannot zigzag). A prefab with no authored model falls back to Procedural.")]
+        [EnumToggleButtons]
+        public LaserBeamLook look = LaserBeamLook.Prefab;
+
+        [TitleGroup("Look")]
+        [Tooltip("Multiplier on the prefab's authored laser model, bar and sheet alike — never stretched. 1 = exactly as authored in PF_LaserSystem. The gate's height and burn width follow the sheet at this scale.")]
+        [PropertyRange(0.25f, 20f)]
+        public float prefabModelScale = 1f;
 
         [TitleGroup("Look")]
         [Tooltip("Additive material of the beam (URP Particles/Unlit, vertex colour). Empty = one is built in code.")]
@@ -152,6 +171,12 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public float CoverageMax => Mathf.Max(coverageBand.x, coverageBand.y);
         public float RotorSpeedMin => Mathf.Min(rotorSpeedBand.x, rotorSpeedBand.y);
         public float RotorSpeedMax => Mathf.Max(rotorSpeedBand.x, rotorSpeedBand.y);
+
+        /// <summary>The look draws the old emitters and code-built lines.</summary>
+        public bool DrawsProcedural => look != LaserBeamLook.Prefab;
+
+        /// <summary>The look draws the prefab's authored laser model.</summary>
+        public bool DrawsPrefab => look != LaserBeamLook.Procedural;
 
         /// <summary>Sum of the variant weights; 0 = no gate can be drawn.</summary>
         public float TotalWeight =>

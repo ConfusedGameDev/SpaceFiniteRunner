@@ -11,7 +11,9 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// <see cref="LaserGateDefinition"/> asset pointing at it, and the
     /// <see cref="LaserBeam"/> on the <c>PF_LaserSystem</c> prefab with its
     /// emitters and shoot points wired by name (LaserA / LaserB, each with a
-    /// ShootPoint child). The generator's Laser gates group still has to be
+    /// ShootPoint child) and the authored laser model of the Prefab look
+    /// (laserTypeA, its Plane sheet, and a ShootPoint on the bar — derived
+    /// from the sheet when there is none). The generator's Laser gates group still has to be
     /// pointed at the prefab and the definition in the scene.
     /// </summary>
     public static class LaserAssetBuilder
@@ -19,6 +21,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         public const string MaterialPath = "Assets/02.Art/02.Materials/FiniteRunner/LaserBeam_Mat.mat";
         public const string DefinitionPath = "Assets/04.Data/FiniteRunner/LaserGate_Definition.asset";
         public const string PrefabPath = "Assets/03.Prefabs/Runner/PF_LaserSystem.prefab";
+        /// <summary>The authored laser model of the Prefab look, and its beam sheet.</summary>
+        const string ModelName = "laserTypeA", SheetName = "Plane";
 
         [MenuItem("Tools/FiniteRunner/Install Laser Gate Assets")]
         public static void InstallFromMenu()
@@ -93,6 +97,16 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 Wire(so, "emitterB", b);
                 Wire(so, "shootPointA", a != null ? a.Find("ShootPoint") : null);
                 Wire(so, "shootPointB", b != null ? b.Find("ShootPoint") : null);
+
+                // The Prefab look: the authored model, its sheet and a shoot
+                // point on the bar (derived from the sheet when it has none).
+                Transform model = root.transform.Find(ModelName);
+                Transform sheet = model != null ? model.Find(SheetName) : null;
+                Transform shoot = model != null ? model.Find("ShootPoint") : null;
+                if (shoot == null && model != null && sheet != null) shoot = LaserBeam.DeriveShootPoint(model, sheet);
+                Wire(so, "prefabModel", model, required: false);
+                Wire(so, "prefabSheet", sheet, required: false);
+                Wire(so, "prefabShootPoint", shoot, required: false);
                 so.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             }
@@ -102,11 +116,11 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             }
         }
 
-        static void Wire(SerializedObject so, string property, Transform target)
+        static void Wire(SerializedObject so, string property, Transform target, bool required = true)
         {
             SerializedProperty prop = so.FindProperty(property);
             if (prop.objectReferenceValue != null) return; // someone's wiring: leave it
-            if (target == null) Debug.LogWarning($"LaserAssetBuilder: nothing to wire into '{property}' — name the emitters LaserA / LaserB, each with a ShootPoint child.");
+            if (target == null && required) Debug.LogWarning($"LaserAssetBuilder: nothing to wire into '{property}' — name the emitters LaserA / LaserB, each with a ShootPoint child.");
             prop.objectReferenceValue = target;
         }
     }

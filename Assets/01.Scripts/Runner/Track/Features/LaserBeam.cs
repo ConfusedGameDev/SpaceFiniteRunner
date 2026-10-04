@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -21,6 +22,19 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
     /// into a triangle wave running from A to B: a vertex at each muzzle and
     /// one ON every corner of the wave — nowhere else — so the corners stay
     /// sharp however the wave slides.
+    /// <b>Two looks</b> (<see cref="LaserGateDefinition.look"/>): the above
+    /// is the PROCEDURAL one; the PREFAB one is the laser model authored in
+    /// the prefab — an emitter bar and the beam sheet it projects. Its shoot
+    /// point sits on the bar where the sheet starts (forward down the sheet,
+    /// right across it): the model is posed on muzzle B firing at A, the sheet
+    /// facing along the track so the ship sees it flat on. <b>The model keeps
+    /// its authored size</b> (times <see cref="LaserGateDefinition.prefabModelScale"/>),
+    /// never stretched: a gate drawing it is always VERTICAL and takes its
+    /// height and burn width FROM the sheet (<see cref="PrefabSheetLength"/>,
+    /// <see cref="PrefabSheetHalfWidth"/>), so the picture never lies. A copy
+    /// of the sheet turned half round the beam shows the side its
+    /// front-face-only shader would cull. A prefab with no authored model
+    /// falls back to the procedural look.
     /// </summary>
     public class LaserBeam : MonoBehaviour
     {
@@ -33,6 +47,13 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [Tooltip("Muzzle of emitter B, a child of it. Its forward is the firing direction.")]
         [SerializeField] Transform shootPointB;
 
+        [Tooltip("Root of the authored laser model (the Prefab look): its emitter bar and beam sheet. Empty = found by name (laserTypeA).")]
+        [SerializeField] Transform prefabModel;
+        [Tooltip("The model's beam sheet, stretched to the beam. Empty = the model's 'Plane' child.")]
+        [SerializeField] Transform prefabSheet;
+        [Tooltip("Where the sheet leaves the bar, a child of the model: forward down the sheet, right across it. Empty = one is derived from the sheet's mesh at run time.")]
+        [SerializeField] Transform prefabShootPoint;
+
         static Material fallbackMaterial; // domain reload is off: checked for a destroyed one on every use
 
         LaserGateDefinition definition;
@@ -44,6 +65,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         bool ready;
         bool wavy;
         Vector3[] wavePoints = new Vector3[2]; // scratch, grown on demand
+        bool procedural, prefab;     // which looks this beam draws
+        Quaternion shootLocalModel;  // the model's shoot point rotation relative to the model root
 
         /// <summary>
         /// How far an emitter's model reaches out from its barrel line, metres,
@@ -53,20 +76,44 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         /// </summary>
         public float EmitterRadius { get; private set; }
 
+        /// <summary>The authored model is drawn (the Prefab or Both look, and the prefab has one).</summary>
+        public bool DrawsPrefabModel => prefab;
+
+        /// <summary>How far the authored sheet reaches from the bar, metres, at its configured scale — the height of a gate drawing it.</summary>
+        public float PrefabSheetLength { get; private set; }
+
+        /// <summary>Half the authored sheet's width, metres, at its configured scale — what a gate drawing it burns either side of its axis.</summary>
+        public float PrefabSheetHalfWidth { get; private set; }
+
         /// <summary>Wires the run's definition, sizes the emitters and builds the beam. Called once by the generator; <paramref name="wave"/> = this gate rolled the zigzag.</summary>
         public void Configure(LaserGateDefinition def, bool wave = false)
         {
             definition = def;
             wavy = wave;
             ResolveReferences();
-            if (emitterA == null || emitterB == null || shootPointA == null || shootPointB == null)
-            {
-                Debug.LogError($"LaserBeam: '{name}' needs LaserA / LaserB, each with a ShootPoint child.", this);
-                return;
-            }
 
             // Detection is analytic: whatever colliders the models carry are only a picture.
             foreach (var col in GetComponentsInChildren<Collider>(true)) Destroy(col);
+
+            prefab = def.DrawsPrefab && SetUpPrefabModel(def);
+            if (def.DrawsPrefab && !prefab)
+                Debug.LogWarning($"LaserBeam: '{name}' has no authored laser model (a model with a beam sheet) — drawing the procedural beam instead.", this);
+            procedural = def.DrawsProcedural || !prefab;
+            if (prefabModel != null) prefabModel.gameObject.SetActive(prefab);
+            if (emitterA != null) emitterA.gameObject.SetActive(procedural);
+            if (emitterB != null) emitterB.gameObject.SetActive(procedural);
+            if (procedural && !SetUpProcedural(def))
+            {
+                Debug.LogError($"LaserBeam: '{name}' needs LaserA / LaserB, each with a ShootPoint child.", this);
+                procedural = false;
+            }
+            ready = procedural || prefab;
+        }
+
+        // The old look: the two emitters, sized, and the glow + core lines.
+        bool SetUpProcedural(LaserGateDefinition def)
+        {
+            if (emitterA == null || emitterB == null || shootPointA == null || shootPointB == null) return false;
 
             shootLocalA = Quaternion.Inverse(emitterA.rotation) * shootPointA.rotation;
             shootLocalB = Quaternion.Inverse(emitterB.rotation) * shootPointB.rotation;
@@ -74,18 +121,117 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             baseScaleB = emitterB.localScale;
             emitterA.localScale = baseScaleA * def.emitterScale;
             emitterB.localScale = baseScaleB * def.emitterScale;
-            EmitterRadius = Mathf.Max(BarrelRadius(emitterA, shootPointA), BarrelRadius(emitterB, shootPointB));
+            EmitterRadius = Mathf.Max(EmitterRadius, Mathf.Max(BarrelRadius(emitterA, shootPointA), BarrelRadius(emitterB, shootPointB)));
 
             Material material = def.beamMaterial != null ? def.beamMaterial : FallbackMaterial();
             float glowWidth = def.beamRadius * 2f * def.glowWidthFactor;
             glow = BuildLine("Glow", material, def.beamColor, glowWidth);
             core = BuildLine("Core", material, def.coreColor, glowWidth / 3f);
             flickerSeed = Random.value * 100f;
-            ready = true;
+            return true;
+        }
+
+        // The authored look: the model at its authored size times the scale,
+        // its sheet measured — never stretched.
+        bool SetUpPrefabModel(LaserGateDefinition def)
+        {
+            if (prefabModel == null || prefabSheet == null) return false;
+            prefabModel.localScale *= def.prefabModelScale;
+            if (prefabShootPoint == null) prefabShootPoint = DeriveShootPoint(prefabModel, prefabSheet);
+            if (prefabShootPoint == null) return false;
+
+            MeasureSheet(prefabShootPoint, prefabSheet, out float sheetLength, out float sheetWidth);
+            if (sheetLength < 1e-3f || sheetWidth < 1e-3f) return false;
+            PrefabSheetLength = sheetLength;
+            PrefabSheetHalfWidth = sheetWidth * 0.5f;
+
+            // The sheet's shader draws front faces only, and a gate seen from
+            // past it shows its back: a copy turned half round the beam fills
+            // that side in.
+            Transform back = Instantiate(prefabSheet.gameObject, prefabSheet.parent).transform;
+            back.name = prefabSheet.name + "_Back";
+            back.RotateAround(prefabShootPoint.position, prefabShootPoint.forward, 180f);
+            foreach (var col in back.GetComponentsInChildren<Collider>(true)) Destroy(col); // the original's are only queued for destruction, so the copy has its own
+
+            shootLocalModel = Quaternion.Inverse(prefabModel.rotation) * prefabShootPoint.rotation;
+            EmitterRadius = Mathf.Max(EmitterRadius, BarrelRadius(prefabModel, prefabShootPoint));
+            return true;
+        }
+
+        // How far the sheet reaches down the shoot point's forward, and how
+        // wide it is across its right, in world metres.
+        static void MeasureSheet(Transform shootPoint, Transform sheet, out float length, out float width)
+        {
+            length = 0f;
+            float minX = float.PositiveInfinity, maxX = float.NegativeInfinity;
+            foreach (Vector3 corner in MeshCorners(sheet))
+            {
+                Vector3 v = corner - shootPoint.position;
+                length = Mathf.Max(length, Vector3.Dot(v, shootPoint.forward));
+                float x = Vector3.Dot(v, shootPoint.right);
+                minX = Mathf.Min(minX, x);
+                maxX = Mathf.Max(maxX, x);
+            }
+            width = maxX > minX ? maxX - minX : 0f;
+        }
+
+        /// <summary>
+        /// A shoot point for an authored model that carries none: on the
+        /// sheet's long axis, at the end nearest the rest of the model (the
+        /// bar it leaves), forward down the sheet and right across it. Made a
+        /// child of <paramref name="model"/>; null when the sheet has no mesh.
+        /// </summary>
+        public static Transform DeriveShootPoint(Transform model, Transform sheet)
+        {
+            var filter = sheet.GetComponent<MeshFilter>();
+            if (filter == null || filter.sharedMesh == null) return null;
+            Bounds local = filter.sharedMesh.bounds;
+            Vector3 centre = sheet.TransformPoint(local.center);
+
+            // The sheet's two broad axes in world, the longer one being the beam.
+            Vector3 ax = sheet.TransformVector(new Vector3(local.size.x, 0f, 0f));
+            Vector3 ay = sheet.TransformVector(new Vector3(0f, local.size.y, 0f));
+            Vector3 az = sheet.TransformVector(new Vector3(0f, 0f, local.size.z));
+            Vector3[] axes = { ax, ay, az };
+            System.Array.Sort(axes, (p, q) => q.sqrMagnitude.CompareTo(p.sqrMagnitude));
+            Vector3 along = axes[0], across = axes[1];
+            if (along.sqrMagnitude < 1e-6f || across.sqrMagnitude < 1e-6f) return null;
+
+            // The bar: every other renderer of the model.
+            Vector3 bar = centre + Vector3.up; // no bar at all: fire downward
+            bool any = false;
+            var barBounds = new Bounds();
+            foreach (var r in model.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r.transform == sheet || r.transform.IsChildOf(sheet)) continue;
+                if (!any) { barBounds = r.bounds; any = true; } else barBounds.Encapsulate(r.bounds);
+            }
+            if (any) bar = barBounds.center;
+            if (Vector3.Dot(bar - centre, along) > 0f) along = -along; // fire away from the bar
+
+            var point = new GameObject("ShootPoint").transform;
+            point.SetParent(model, false);
+            point.position = centre - along * 0.5f;
+            Vector3 forward = along.normalized;
+            point.rotation = Quaternion.LookRotation(forward, Vector3.Cross(forward, across.normalized));
+            return point;
+        }
+
+        static IEnumerable<Vector3> MeshCorners(Transform root)
+        {
+            foreach (var filter in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (filter.sharedMesh == null) continue;
+                Bounds b = filter.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                    yield return filter.transform.TransformPoint(new Vector3((i & 1) != 0 ? b.max.x : b.min.x,
+                                                                             (i & 2) != 0 ? b.max.y : b.min.y,
+                                                                             (i & 4) != 0 ? b.max.z : b.min.z));
+            }
         }
 
         /// <summary>Hides emitter A: a vertical beam rises straight out of the road, where A's body would be buried.</summary>
-        public void HideEmitterA()
+        public void HideEmitterA() // the prefab model sits on B, so it has nothing to hide
         {
             if (emitterA != null) emitterA.gameObject.SetActive(false);
         }
@@ -96,19 +242,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         {
             float radius = 0f;
             Vector3 axis = shootPoint.forward;
-            foreach (var filter in emitter.GetComponentsInChildren<MeshFilter>(true))
-            {
-                if (filter.sharedMesh == null) continue;
-                Bounds b = filter.sharedMesh.bounds;
-                for (int i = 0; i < 8; i++)
-                {
-                    var corner = new Vector3((i & 1) != 0 ? b.max.x : b.min.x,
-                                             (i & 2) != 0 ? b.max.y : b.min.y,
-                                             (i & 4) != 0 ? b.max.z : b.min.z);
-                    Vector3 v = filter.transform.TransformPoint(corner) - shootPoint.position;
-                    radius = Mathf.Max(radius, Vector3.ProjectOnPlane(v, axis).magnitude);
-                }
-            }
+            foreach (Vector3 corner in MeshCorners(emitter))
+                radius = Mathf.Max(radius, Vector3.ProjectOnPlane(corner - shootPoint.position, axis).magnitude);
             return radius;
         }
 
@@ -129,6 +264,14 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                 ? Vector3.Cross(dir, fallbackUp).normalized
                 : Vector3.ProjectOnPlane(up, dir).normalized;
             if (Mathf.Abs(Vector3.Dot(dir, up)) > 0.98f) up = fallbackUp;
+
+            if (prefab)
+            {
+                // B fires at A, the sheet's right along the wave axis — so it
+                // faces along the track (a rotor's turns with the blade).
+                Pose(prefabModel, prefabShootPoint, shootLocalModel, muzzleB, -dir, Vector3.Cross(-dir, waveAxis), 0f);
+            }
+            if (!procedural) return;
 
             spinAngle = Mathf.Repeat(spinAngle + definition.emitterSpinDegPerSec * Time.deltaTime, 360f);
             Pose(emitterA, shootPointA, shootLocalA, muzzleA, dir, up, spinAngle);
@@ -212,6 +355,9 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             if (emitterB == null) emitterB = transform.Find("LaserB");
             if (shootPointA == null && emitterA != null) shootPointA = emitterA.Find("ShootPoint");
             if (shootPointB == null && emitterB != null) shootPointB = emitterB.Find("ShootPoint");
+            if (prefabModel == null) prefabModel = transform.Find("laserTypeA");
+            if (prefabSheet == null && prefabModel != null) prefabSheet = prefabModel.Find("Plane");
+            if (prefabShootPoint == null && prefabModel != null) prefabShootPoint = prefabModel.Find("ShootPoint");
         }
 
         LineRenderer BuildLine(string lineName, Material material, Color color, float width)

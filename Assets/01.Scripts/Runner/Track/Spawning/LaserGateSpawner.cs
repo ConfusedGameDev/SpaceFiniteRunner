@@ -60,7 +60,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         protected override float Step(TrackSpawnContext ctx, float distance, float limit)
         {
-            LaserGateVariant variant = runtime.PickVariant(Rng.NextFloat());
+            LaserGateVariant variant = Variant(runtime.PickVariant(Rng.NextFloat())); // rolled either way, so seeds keep their rng order
             ctx.Track.GetLateralBand(distance, out float bandMin, out float bandMax);
             float length = (bandMax - bandMin) * Rng.NextFloat(runtime.CoverageMin, runtime.CoverageMax);
             float halfDepth = HalfDepth(variant, length);
@@ -78,11 +78,17 @@ namespace ConfusedGameDev.FiniteRunner.Track
             float rotorSpeed = Rng.NextFloat(runtime.RotorSpeedMin, runtime.RotorSpeedMax) * (Rng.NextBool() ? 1f : -1f);
             float rotorPhase = Rng.NextFloat(0f, 360f);
             bool wavy = runtime.wavy && Rng.NextFloat() < runtime.waveChance; // no draw while the wave is off
+            wavy &= runtime.DrawsProcedural; // the authored sheet cannot zigzag: a wave nobody sees must not burn
 
             ctx.Claim(distance - halfDepth, distance + halfDepth);
             ctx.Emit(new TrackPlacement(Kind, distance, lateral, (int)variant, new Vector4(length, rotorSpeed, rotorPhase, wavy ? 1f : 0f)));
             return -1f;
         }
+
+        // The authored laser model only stands up: a look that draws it makes
+        // every gate vertical — a saved track's older records included.
+        LaserGateVariant Variant(LaserGateVariant rolled) =>
+            runtime.DrawsPrefab ? LaserGateVariant.Vertical : rolled;
 
         // Only the rotor has depth: its blade sweeps a disc of road.
         float HalfDepth(LaserGateVariant variant, float length) =>
@@ -97,9 +103,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             if (!Application.isPlaying || runtime == null || laserPrefab == null) return; // an edit-mode preview shows no gates
             float distance = placement.distance, lateral = placement.lateral;
-            var variant = (LaserGateVariant)placement.variant;
+            var variant = Variant((LaserGateVariant)placement.variant);
             float length = placement.data.x, rotorSpeed = placement.data.y, rotorPhase = placement.data.z;
-            bool wavy = placement.data.w > 0.5f;
+            bool wavy = placement.data.w > 0.5f && runtime.DrawsProcedural;
             float halfDepth = HalfDepth(variant, length);
 
             ctx.Track.GetPoseAtDistance(distance, 0f, out Vector3 pos, out Quaternion rot);

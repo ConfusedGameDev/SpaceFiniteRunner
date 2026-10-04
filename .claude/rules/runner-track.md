@@ -601,6 +601,21 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   shoot point, never the emitter's pivot** (the two models have different pivots). The beam is two
   code-built `LineRenderer`s (glow + core) on one shared additive URP Particles/Unlit material
   tinted by vertex colour — no MPB, no per-instance material.
+- **Two looks, picked by `LaserGateDefinition.look`** (`LaserBeamLook`: Procedural / Prefab / Both,
+  default **Prefab**). Procedural = the LaserA/LaserB emitters + the two lines above. Prefab = the
+  laser model authored in the prefab (`laserTypeA`: an emitter bar + the `Plane` beam sheet on the
+  `laser.shadergraph` / `LaserEnemy` material), wired as `prefabModel` / `prefabSheet` /
+  `prefabShootPoint` (the installer wires them and derives a `ShootPoint` on the bar from the
+  sheet's mesh — forward down the sheet, right across it). **The model is never stretched**: it
+  keeps its authored size × `prefabModelScale`, and **a look that draws it makes every gate
+  VERTICAL** (`LaserGateSpawner.Variant` — the variant is still rolled so seeds keep their rng
+  order, and Build overrides a saved track's older records too). The vertical beam then runs from
+  the road up `LaserBeam.PrefabSheetLength` (not `verticalHeight`) and burns
+  `PrefabSheetHalfWidth` either side (`LaserGate.burnRadius`, not `beamRadius`), so the picture
+  never lies. The model is posed on muzzle B (the top) firing down at A, no roll, the sheet facing
+  along the track. Under Prefab alone the wave is forced off (the sheet cannot zigzag). The
+  shader culls back faces, so a copy of the sheet turned 180° round the beam is added. Each look's
+  objects are activated only when drawn; a prefab with no model falls back to Procedural.
 - **The wave** (`LaserGateDefinition` "Wave" toggle group: `waveChance`, `waveAmplitude`,
   `waveLength`, `waveSpeed`, `waveTaper`; rolled per gate off the spawner's rng, no draw while off): a
   TRIANGLE wave running A → B. `LaserBeam.BuildWave` puts a vertex on each muzzle and one ON every

@@ -64,6 +64,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         Vector3 boundsCentre, boundsHalf;
         float lastHitTime = float.NegativeInfinity;
         float waveAmplitude; // 0 = straight beams; else what burns grows by it on the axis the wave swings along
+        float burnRadius;    // half thickness of what burns: the definition's, or the prefab sheet's half width
 
         /// <summary>Metres the beams are DRAWN above the segments that burn, along the track's up — see the class summary.</summary>
         public float VisualLift { get; private set; }
@@ -92,6 +93,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             definition = def;
             Variant = variant;
             waveAmplitude = wavy ? def.waveAmplitude : 0f;
+            burnRadius = def.beamRadius;
             trackDistance = distance;
             beams.Clear();
 
@@ -100,7 +102,12 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             switch (variant)
             {
                 case LaserGateVariant.Vertical:
-                    AddBeam(new Vector3(lateral, roadSurface, 0f), new Vector3(lateral, def.verticalHeight, 0f), beamVisuals, 0);
+                    // The authored laser model is never stretched: the beam is
+                    // as tall as its sheet and burns as wide as it is.
+                    LaserBeam model = beamVisuals != null && beamVisuals.Count > 0 && beamVisuals[0] != null && beamVisuals[0].DrawsPrefabModel ? beamVisuals[0] : null;
+                    float top = model != null ? roadSurface + model.PrefabSheetLength : def.verticalHeight;
+                    if (model != null) burnRadius = model.PrefabSheetHalfWidth;
+                    AddBeam(new Vector3(lateral, roadSurface, 0f), new Vector3(lateral, top, 0f), beamVisuals, 0);
                     if (beams[0].visual != null) beams[0].visual.HideEmitterA(); // A is the bottom muzzle, on the road: its body would be buried
                     break;
                 case LaserGateVariant.Triple:
@@ -152,7 +159,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         // rotor sweeps a disc), grown by the beam's own thickness.
         void ComputeBounds()
         {
-            float r = definition.beamRadius;
+            float r = burnRadius;
             if (isRotor)
             {
                 boundsCentre = rotorCentre;
@@ -263,7 +270,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         // The one burn test, at a given clock (the rotor's angle is a function of it).
         bool Burns(float fromDistance, float toDistance, float lateral, float height, Vector2 reach, float time)
         {
-            float r = definition.beamRadius;
+            float r = burnRadius;
             // Squash the space so "within the ship's box + the beam" is "within 1".
             Vector3 wave = WaveReach;
             var scale = new Vector3(1f / (reach.x + r + wave.x), 1f / (reach.y + r + wave.y), 1f / (reach.x + r));

@@ -33,3 +33,8 @@ MonoBehaviour:
     subtitle: 
     difficulty: 1
     thumbnail: {fileID: 0}
+  - track: {fileID: 11400000, guid: 9cf6475950c3e4b1d95099c04c4b32a6, type: 2}
+    displayName: FINITE RUNNER LEVEL DEFINITION NEW LASERS
+    subtitle: 
+    difficulty: 1
+    thumbnail: {fileID: 0}
