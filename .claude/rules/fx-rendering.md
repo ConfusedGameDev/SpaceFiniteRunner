@@ -54,7 +54,9 @@ intensity through it.** It exists so the look can be held still and tuned while 
 - **Baseline of a Volume channel = what the Volume's runtime profile holds while the manager is
   not overriding it** — the manager writes a parameter only while a request is applied and puts
   the baseline back when it ends, so the Volume inspector is where the look is tuned, in play mode
-  too. **Save Current State As Baseline** (button on the component, editor play mode) copies the
+  too. An override the profile has switched off (the parameter, or its whole component) has the
+  neutral value as its baseline and is switched on at that value when a request first needs it.
+  **Save Current State As Baseline** (button on the component, editor play mode) copies the
   whole runtime profile onto the profile ASSET, with the baseline (not the momentary value) for any
   effect a request is moving. Runner and city share `Global Volume Profile.asset`.
 - **Drivers** call `PostProcessManager.Gate(this, effect, live, baseline)` just before writing

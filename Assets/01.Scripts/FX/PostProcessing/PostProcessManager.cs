@@ -191,7 +191,12 @@ namespace ConfusedGameDev.FiniteRunner.FX
         void UpdateVolumeChannel(PostEffect effect, Channel channel)
         {
             bool apply = channel.requests.Count > 0 && Allowed(effect) && volume != null;
-            if (apply && channel.parameter == null) channel.parameter = FindParameter(volume.profile, effect, true);
+            // Taking a channel over: its override is added, or switched on at the neutral value, first.
+            if (apply && !channel.overriding)
+            {
+                ReadBaseline(effect, channel);
+                channel.parameter = FindParameter(volume.profile, effect, true);
+            }
             if (!apply || channel.parameter == null)
             {
                 if (channel.overriding && channel.parameter != null) channel.parameter.value = channel.baseline;
@@ -214,10 +219,26 @@ namespace ConfusedGameDev.FiniteRunner.FX
         {
             if (volume == null) return;
             if (channel.parameter == null) channel.parameter = FindParameter(volume.profile, effect, false);
-            channel.baseline = channel.parameter != null && channel.parameter.overrideState
+            channel.baseline = channel.parameter != null && Shown(volume.profile, effect, channel.parameter)
                 ? channel.parameter.value
                 : PostEffects.Neutral(effect);
         }
+
+        // True when the parameter's value is what the picture shows: its
+        // override is on and its component is not switched off in the profile.
+        static bool Shown(VolumeProfile profile, PostEffect effect, VolumeParameter<float> parameter) =>
+            parameter.overrideState && profile.TryGet(ComponentType(effect), out VolumeComponent component) && component.active;
+
+        static System.Type ComponentType(PostEffect effect) => effect switch
+        {
+            PostEffect.LensDistortion => typeof(LensDistortion),
+            PostEffect.MotionBlur => typeof(MotionBlur),
+            PostEffect.MotionBlurClamp => typeof(MotionBlur),
+            PostEffect.Bloom => typeof(Bloom),
+            PostEffect.Vignette => typeof(Vignette),
+            PostEffect.ChromaticAberration => typeof(ChromaticAberration),
+            _ => typeof(FilmGrain),
+        };
 
         // The request farthest from the baseline.
         static float Winner(Channel channel)
@@ -247,8 +268,9 @@ namespace ConfusedGameDev.FiniteRunner.FX
         /// <summary>
         /// The parameter of <paramref name="profile"/> a Volume channel moves.
         /// With <paramref name="add"/>, a missing override is added and a
-        /// switched-off one switched on, both at the neutral value — the
-        /// picture does not change until a request moves it.
+        /// switched-off one (the parameter, or its whole component) switched
+        /// on, both at the neutral value — the picture does not change until
+        /// a request moves it.
         /// </summary>
         static VolumeParameter<float> FindParameter(VolumeProfile profile, PostEffect effect, bool add)
         {
@@ -287,7 +309,9 @@ namespace ConfusedGameDev.FiniteRunner.FX
             VolumeParameter<float> parameter = pick(component);
             if (add && (!component.active || !parameter.overrideState))
             {
-                if (!parameter.overrideState) parameter.value = PostEffects.Neutral(effect);
+                // An override the profile has off (or a whole component it has
+                // off) shows nothing, so it comes on showing nothing.
+                parameter.value = PostEffects.Neutral(effect);
                 parameter.overrideState = true;
                 component.active = true;
             }
