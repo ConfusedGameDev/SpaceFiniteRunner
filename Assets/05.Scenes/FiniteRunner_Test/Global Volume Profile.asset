@@ -15,16 +15,16 @@ MonoBehaviour:
   active: 1
   mode:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 1
   quality:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 2
   intensity:
     m_OverrideState: 1
-    m_Value: 0.213
+    m_Value: 1
   clamp:
     m_OverrideState: 1
-    m_Value: 0.085
+    m_Value: 0.2
 --- !u!114 &-6267736502264393037
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -105,7 +105,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2274cd80d4e22254d98d0282578183e0, type: 3}
   m_Name: ScreenSpaceReflectionVolumeSettings
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.ScreenSpaceReflectionVolumeSettings
-  active: 0
+  active: 1
   mode:
     m_OverrideState: 1
     m_Value: 0
@@ -123,16 +123,16 @@ MonoBehaviour:
     m_Value: 2
   upscalingMethod:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   marchingMethod:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   hitRefinementSteps:
     m_OverrideState: 1
     m_Value: 5
   finalThicknessMultiplier:
     m_OverrideState: 1
-    m_Value: 0.16
+    m_Value: 0.05
   roughnessFilter:
     m_OverrideState: 0
     m_Value: 2
@@ -162,10 +162,10 @@ MonoBehaviour:
     m_Value: 1
   maxRaySteps:
     m_OverrideState: 1
-    m_Value: 64
+    m_Value: 32
   objectThickness:
     m_OverrideState: 1
-    m_Value: 0.01
+    m_Value: 0.325
   temporalFiltering:
     m_OverrideState: 0
     m_Value: 0
@@ -235,13 +235,13 @@ MonoBehaviour:
     m_Value: 1
   threshold:
     m_OverrideState: 1
-    m_Value: 0.59
+    m_Value: 0.74
   intensity:
     m_OverrideState: 1
-    m_Value: 2.42
+    m_Value: 5.29
   scatter:
     m_OverrideState: 1
-    m_Value: 0.274
+    m_Value: 1
   clamp:
     m_OverrideState: 0
     m_Value: 78845
@@ -261,11 +261,11 @@ MonoBehaviour:
     m_OverrideState: 1
     m_Value: 6
   dirtTexture:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: {fileID: 0}
     dimension: 1
   dirtIntensity:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
 --- !u!114 &3961082644683654053
 MonoBehaviour:

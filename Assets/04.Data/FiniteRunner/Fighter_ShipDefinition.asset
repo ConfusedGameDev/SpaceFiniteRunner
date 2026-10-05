@@ -23,12 +23,12 @@ MonoBehaviour:
   passiveDeceleration: 50
   digitalThrottleRampSeconds: 0.358
   acceleration: 0.01
-  lateralSpeed: 34.4
+  lateralSpeed: 79.9
   handlingResponse: 3.6
   gripBase: 92
   gripPerSpeed: 0.84
   slideThreshold: 11.5
-  slideSpeedLoss: 0.123
+  slideSpeedLoss: 0.197
   dashDistance: 30
   dashDuration: 0.128
   dashRechargeSeconds: 1

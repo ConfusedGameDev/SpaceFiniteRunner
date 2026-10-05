@@ -15,7 +15,7 @@ MonoBehaviour:
   active: 1
   displayName: Laser Gates
   color: {r: 1, g: 0.2, b: 0.2, a: 1}
-  spacing: {x: 1190.909, y: 1481.8181}
+  spacing: {x: 540.90906, y: 831.8181}
   startDistance: 1500
   chance: 1
   laserPrefab: {fileID: 4725840355564023753, guid: cb7583b083a34f040b27fa9594991be0, type: 3}

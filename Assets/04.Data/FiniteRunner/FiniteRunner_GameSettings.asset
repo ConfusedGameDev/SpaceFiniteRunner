@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FiniteRunner.GameSettings
   useTuningScreen: 0
   simSubsteps: 2
-  edgeOverhang: 1
-  edgeGraceSeconds: 0.25
+  edgeOverhang: 4.75
+  edgeGraceSeconds: 0.7500001
   fallCameraFollowSeconds: 0.5
   fallGlitchStrength: 0.8
   respawnMinPatrolGap: 150
@@ -33,7 +33,7 @@ MonoBehaviour:
   showPatrolAlert: 0
   showPatrolWarnings: 0
   patrolProximityRumble: 1
-  powerUpSpeedBoost: 42.6
+  powerUpSpeedBoost: 52.5
   boostRumble: {x: 0.15, y: 0.55, z: 0.15}
   bustedRumble: {x: 1, y: 0.7, z: 1.5}
   escapeRumble: {x: 0.7, y: 0.9, z: 0.6}
@@ -134,12 +134,12 @@ MonoBehaviour:
   failVideoOffsetY: -110
   failVideoVolume: 1
   hullEnabled: 1
-  startingLives: 10
+  startingLives: 4
   brakePadDamage: 20
   wallSlamDamage: 25
   wallScrapeDamage: 10
   fallDamage: 30
-  laserDamage: 54
+  laserDamage: 85
   laserHitShake: {fileID: 11400000, guid: 39ad17b857a24976817bf109a3d733e0, type: 2}
   hitInvulnerabilitySeconds: 1
   repairOrbHealFraction: 0.15
@@ -208,7 +208,7 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   lightSpeedMotionBlurIntensity: 1
-  lightSpeedMotionBlurClamp: 0.12
+  lightSpeedMotionBlurClamp: 0.171
   hyperspaceJumpEnabled: 1
   hyperspacePromptDelaySeconds: 5
   hyperspaceRunUpMeters: 600

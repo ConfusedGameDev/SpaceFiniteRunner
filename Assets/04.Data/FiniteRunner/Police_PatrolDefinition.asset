@@ -17,7 +17,7 @@ MonoBehaviour:
   rubberBand: 0.95
   catchUpAccel: 3.33
   boostShare: 0.156
-  lateralSpeed: 14
+  lateralSpeed: 22
   handlingResponse: 6
   gripBase: 130
   gripPerSpeed: 0.5

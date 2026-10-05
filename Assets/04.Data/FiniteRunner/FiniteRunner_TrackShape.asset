@@ -44,7 +44,7 @@ MonoBehaviour:
   baselinePull: 0.5
   turnRateRange: {x: 2, y: 20.589745}
   turnArcRange: {x: 25, y: 120}
-  minStraightKnots: 1
+  minStraightKnots: 4
   alternateTurnChance: 0.7
   maxHeadingDrift: 150
   unbankedSweepChance: 0.45
