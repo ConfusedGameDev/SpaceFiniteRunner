@@ -1,27 +1,23 @@
+using ConfusedGameDev.FiniteRunner.FX;
 using Sirenix.OdinInspector;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 
 namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 {
     /// <summary>
     /// Speed-driven motion blur for the car chase: below the threshold the
-    /// image stays clean, past it the URP Motion Blur override fades in,
+    /// image stays at its baseline, past it the URP Motion Blur fades up,
     /// reaching full strength at the top of the speed band — speed reads as
-    /// danger without touching the camera itself. Works on the scene's global
-    /// Volume (auto-found when not wired); the override is added to the
-    /// volume's RUNTIME profile copy, so the shared profile asset is never
-    /// touched — the same contract as LensDistortionController. Spawned by
-    /// CityManager at play start, but a hand-placed one wins so its tuning
-    /// survives; finds the player car itself (Speedometer pattern), so
-    /// respawns and late spawns need no wiring.
+    /// danger without touching the camera itself. It never touches the
+    /// Volume: the intensity goes to the <see cref="PostProcessManager"/> as
+    /// a request (clamped to the blur's band, dropped while runtime
+    /// adjustments are off), rising from the manager's baseline; the blur's
+    /// mode and quality are the Volume profile's. Hand-placed under
+    /// <c>===LIGHTING===/Filters</c>; finds the player car itself
+    /// (Speedometer pattern), so respawns and late spawns need no wiring.
     /// </summary>
     public class SpeedMotionBlur : MonoBehaviour
     {
-        [Tooltip("Volume carrying the Motion Blur override. Left empty, the first global Volume in the scene is used (and the override added to its runtime profile if missing).")]
-        public Volume volume;
-
         [TitleGroup("Blur")]
         [MinMaxSlider(0f, 400f, true)]
         [Tooltip("Speed band in km/h: blur starts at the low end and reaches full intensity at the high end.")]
@@ -29,7 +25,7 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
 
         [TitleGroup("Blur")]
         [PropertyRange(0f, 1f)]
-        [Tooltip("Blur intensity at the top of the speed band.")]
+        [Tooltip("Blur intensity at the top of the speed band. The post-processing manager clamps it to the blur band.")]
         public float maxIntensity = 0.6f;
 
         [TitleGroup("Blur")]
@@ -37,70 +33,36 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
         [Tooltip("How quickly the blur follows speed changes (higher = snappier).")]
         public float responseSharpness = 6f;
 
-        [TitleGroup("Blur")]
-        [Tooltip("CameraAndObjects keeps the player car sharp (it barely moves on screen) while the world smears — the chase-cam look. CameraOnly is cheaper but blurs the car too.")]
-        public MotionBlurMode mode = MotionBlurMode.CameraAndObjects;
-
-        [TitleGroup("Blur")]
-        [Tooltip("URP blur sample quality.")]
-        public MotionBlurQuality quality = MotionBlurQuality.Medium;
-
         /// <summary>Speed (km/h) where the blur starts fading in.</summary>
         public float ThresholdKmh => speedBandKmh.x;
 
         /// <summary>Speed (km/h) where the blur reaches maxIntensity.</summary>
         public float FullBlurKmh => speedBandKmh.y;
 
-        MotionBlur blur;
         CarController player;
         float refreshTimer;
-        float intensity;
-
-        void Awake()
-        {
-            if (volume == null)
-            {
-                foreach (Volume candidate in FindObjectsByType<Volume>(FindObjectsSortMode.None))
-                {
-                    if (!candidate.isGlobal) continue;
-                    volume = candidate;
-                    break;
-                }
-            }
-            if (volume == null)
-            {
-                volume = new GameObject("SpeedMotionBlurVolume").AddComponent<Volume>();
-                volume.isGlobal = true;
-                volume.profile = ScriptableObject.CreateInstance<VolumeProfile>();
-            }
-
-            // volume.profile is the instantiated runtime copy — mutating it
-            // never dirties the shared profile asset on disk.
-            if (!volume.profile.TryGet(out blur))
-                blur = volume.profile.Add<MotionBlur>();
-            blur.active = true;
-            blur.mode.overrideState = true;
-            blur.quality.overrideState = true;
-            blur.intensity.overrideState = true;
-            blur.intensity.value = 0f;
-        }
+        float blend; // 0 = the baseline, 1 = maxIntensity
 
         void Update()
         {
-            if (blur == null) return;
-            blur.mode.value = mode;
-            blur.quality.value = quality;
-
             RefreshTarget();
             float target = 0f;
             if (player != null)
             {
                 float range = Mathf.Max(1f, FullBlurKmh - ThresholdKmh);
-                target = maxIntensity * Mathf.Clamp01((player.SpeedKmh - ThresholdKmh) / range);
+                target = Mathf.Clamp01((player.SpeedKmh - ThresholdKmh) / range);
             }
-            intensity = Mathf.Lerp(intensity, target, 1f - Mathf.Exp(-responseSharpness * Time.deltaTime));
-            if (intensity < 0.005f && target == 0f) intensity = 0f; // IsActive() gates the pass at exactly 0
-            blur.intensity.value = intensity;
+            blend = Mathf.Lerp(blend, target, 1f - Mathf.Exp(-responseSharpness * Time.deltaTime));
+            if (blend < 0.005f && target == 0f) blend = 0f;
+
+            if (blend <= 0f)
+            {
+                // Below the band: no request, so the baseline shows.
+                PostProcessManager.Clear(this, PostEffect.MotionBlur);
+                return;
+            }
+            float baseline = PostProcessManager.Baseline(this, PostEffect.MotionBlur);
+            PostProcessManager.Set(this, PostEffect.MotionBlur, Mathf.Lerp(baseline, maxIntensity, blend));
         }
 
         void RefreshTarget()
@@ -111,9 +73,6 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles
             player = PlayerCars.Current;
         }
 
-        void OnDisable()
-        {
-            if (blur != null) blur.intensity.value = 0f;
-        }
+        void OnDisable() => PostProcessManager.Clear(this, PostEffect.MotionBlur);
     }
 }

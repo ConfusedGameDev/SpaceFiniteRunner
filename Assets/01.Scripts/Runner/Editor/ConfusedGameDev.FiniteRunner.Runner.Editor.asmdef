@@ -9,6 +9,7 @@
         "ConfusedGameDev.FiniteRunner.Cheats",
         "ConfusedGameDev.FiniteRunner.UI",
         "ConfusedGameDev.FiniteRunner.Livery",
+        "ConfusedGameDev.FiniteRunner.FX",
         "Unity.InputSystem",
         "Unity.Splines"
     ],

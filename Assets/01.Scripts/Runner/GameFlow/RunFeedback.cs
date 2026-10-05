@@ -1,8 +1,5 @@
 using UnityEngine;
 
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
-
 using ConfusedGameDev.FiniteRunner.CameraFX;
 using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.FX;
@@ -46,10 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         bool falling; // FellOff → Respawned: over an open edge, the look lets go at once
         float warpBlend;
         LensDistortionController lens; // cached on first use, so teardown never creates one
-        MotionBlur motionBlur;   // the global volume's runtime-profile override, found lazily
-        float blurBlend = -1f;   // speed-blur share 0..1; -1 = not driving (the authored blur shows)
-        float baseBlurIntensity; // its authored values, restored on teardown or with the speed blur off
-        float baseBlurClamp;
+        float blurBlend = -1f;   // speed-blur share 0..1; -1 = not driving (the baseline blur shows)
 
         /// <summary>The scene's feedback (hand-placed beside the GameManager); added only when the scene has none.</summary>
         public static RunFeedback Ensure(Component host)
@@ -216,11 +210,15 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>
         /// The speed motion blur: <see cref="GameSettings.speedMotionBlurCurve"/>
         /// at the ship's speed as a fraction of Light Speed (0 = standstill,
-        /// 1 = Light Speed and above) lerps the intensity and clamp from 0 to
-        /// their Light Speed values. A fall reads as 0, like the rest of the
-        /// Light Speed look. The blend never moves faster than its full range
-        /// per <see cref="GameSettings.lightSpeedWarpBlendSeconds"/>, so a fall
-        /// or a respawn eases instead of popping.
+        /// 1 = Light Speed and above) lerps the intensity and clamp from the
+        /// post-processing baseline to their Light Speed values. A fall reads
+        /// as 0, like the rest of the Light Speed look. The blend never moves
+        /// faster than its full range per
+        /// <see cref="GameSettings.lightSpeedWarpBlendSeconds"/>, so a fall or
+        /// a respawn eases instead of popping. The values are REQUESTS to the
+        /// <see cref="PostProcessManager"/>, which owns the Volume: it clamps
+        /// them to the blur's band and drops them while runtime adjustments
+        /// are off.
         /// </summary>
         void UpdateSpeedBlur(float lightSpeedFraction, float step)
         {
@@ -232,32 +230,22 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (blurBlend < 0f) blurBlend = 0f;
             float target = Mathf.Clamp01(settings.speedMotionBlurCurve.Evaluate(Mathf.Clamp01(lightSpeedFraction)));
             blurBlend = Mathf.MoveTowards(blurBlend, target, step);
-            if (!FindBlur()) return;
-            motionBlur.intensity.value = Mathf.Lerp(0f, settings.lightSpeedMotionBlurIntensity, blurBlend);
-            motionBlur.clamp.value = Mathf.Lerp(0f, settings.lightSpeedMotionBlurClamp, blurBlend);
+            if (blurBlend <= 0f)
+            {
+                // Standstill: no request, so the baseline shows.
+                ClearBlurRequests();
+                return;
+            }
+            PostProcessManager.Set(this, PostEffect.MotionBlur, Mathf.Lerp(
+                PostProcessManager.Baseline(this, PostEffect.MotionBlur), settings.lightSpeedMotionBlurIntensity, blurBlend));
+            PostProcessManager.Set(this, PostEffect.MotionBlurClamp, Mathf.Lerp(
+                PostProcessManager.Baseline(this, PostEffect.MotionBlurClamp, 0.05f), settings.lightSpeedMotionBlurClamp, blurBlend));
         }
 
-        // The blur override on the global volume's runtime profile — the copy
-        // the lens controller already made, so the asset is never written.
-        bool FindBlur()
+        void ClearBlurRequests()
         {
-            if (motionBlur != null) return true;
-            if (lens == null) lens = LensDistortionController.Instance;
-            if (lens == null || lens.volume == null) return false;
-
-            VolumeProfile profile = lens.volume.profile; // the runtime copy
-            if (!profile.TryGet(out motionBlur))
-            {
-                motionBlur = profile.Add<MotionBlur>();
-                motionBlur.intensity.value = 0f;
-                motionBlur.clamp.value = 0.05f;
-            }
-            motionBlur.active = true;
-            motionBlur.intensity.overrideState = true;
-            motionBlur.clamp.overrideState = true;
-            baseBlurIntensity = motionBlur.intensity.value;
-            baseBlurClamp = motionBlur.clamp.value;
-            return true;
+            PostProcessManager.Clear(this, PostEffect.MotionBlur);
+            PostProcessManager.Clear(this, PostEffect.MotionBlurClamp);
         }
 
         // Back to the authored lens and blur at once (a retry, or teardown).
@@ -275,13 +263,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (lens != null) lens.SetHeld(0f, 0f);
         }
 
-        // The volume profile's authored blur; the next speed update takes over again.
+        // The baseline blur; the next speed update takes over again.
         void RestoreBlur()
         {
             blurBlend = -1f;
-            if (motionBlur == null) return;
-            motionBlur.intensity.value = baseBlurIntensity;
-            motionBlur.clamp.value = baseBlurClamp;
+            ClearBlurRequests();
         }
 
         // Story beat: hype line every time the rare orb tier is grabbed.

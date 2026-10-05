@@ -156,10 +156,13 @@ namespace ConfusedGameDev.FiniteRunner.FX
 
             // The player's VIDEO dial is read every frame (no event), so a
             // slider drag in the pause menu shows through the menu live.
-            float scale = Application.isPlaying
-                ? intensityScale * UserSettings.VhsFilter
-                : (preview ? previewIntensity : 0f);
-            CurrentIntensity = Mathf.Clamp01(settings.intensity * scale);
+            // Gameplay's ramp goes through the post-processing manager (the
+            // asset's own intensity is its baseline); the player's dial is a
+            // preference, not a runtime adjustment, so it multiplies in after.
+            CurrentIntensity = Mathf.Clamp01(Application.isPlaying
+                ? PostProcessManager.Gate(this, PostEffect.VhsTape, settings.intensity * intensityScale, settings.intensity)
+                  * UserSettings.VhsFilter
+                : settings.intensity * (preview ? previewIntensity : 0f));
             Write();
         }
 

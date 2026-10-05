@@ -52,6 +52,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             ("PsxLook", "Assets/03.Prefabs/FiniteRunner/PF_PsxLook.prefab"),
             ("CrtScreen", "Assets/03.Prefabs/FiniteRunner/PF_CrtScreen.prefab"),
             ("GlitchController", "Assets/03.Prefabs/FiniteRunner/PF_GlitchController.prefab"),
+            ("PostProcessing", "Assets/03.Prefabs/FiniteRunner/PF_PostProcessing.prefab"),
             ("CameraController", "Assets/03.Prefabs/FiniteRunner/PF_CameraController.prefab"),
             ("CollectibleManager", "Assets/03.Prefabs/FiniteRunner/PF_CollectibleManager.prefab"),
             ("MoneyHud", "Assets/03.Prefabs/FiniteRunner/PF_MoneyHud.prefab"),

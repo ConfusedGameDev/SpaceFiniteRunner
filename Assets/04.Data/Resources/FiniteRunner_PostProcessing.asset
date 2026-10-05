@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df9885a5c75f8614b9ff9dab30a25add, type: 3}
+  m_Name: FiniteRunner_PostProcessing
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.FX::ConfusedGameDev.FiniteRunner.FX.PostProcessSettings
+  runtimeAdjustments: 1
+  lensRuntime: 1
+  lensRange: {x: -1, y: 1}
+  motionBlurRuntime: 1
+  motionBlurRange: {x: 0, y: 1}
+  motionBlurClampRuntime: 1
+  motionBlurClampRange: {x: 0, y: 0.2}
+  bloomRuntime: 1
+  bloomRange: {x: 0, y: 10}
+  vignetteRuntime: 1
+  vignetteRange: {x: 0, y: 1}
+  chromaticRuntime: 1
+  chromaticRange: {x: 0, y: 1}
+  filmGrainRuntime: 1
+  filmGrainRange: {x: 0, y: 1}
+  glitchRuntime: 1
+  glitchRange: {x: 0, y: 1}
+  distanceFogRuntime: 1
+  distanceFogRange: {x: 0, y: 1}
+  speedLinesRuntime: 1
+  speedLinesRange: {x: 0, y: 1}
+  vhsRuntime: 1
+  vhsRange: {x: 0, y: 1}
+  psxRuntime: 1
+  psxRange: {x: 0, y: 1}
+  crtRuntime: 1
+  crtRange: {x: 0, y: 1}
+  hyperspaceRuntime: 1
+  hyperspaceRange: {x: 0, y: 1}
+  rainAtmosphereRuntime: 1
+  rainAtmosphereRange: {x: 0, y: 1}

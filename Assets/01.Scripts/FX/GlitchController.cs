@@ -110,7 +110,8 @@ namespace ConfusedGameDev.FiniteRunner.FX
             if (holds.Count == 0 && baseFadePerSecond > 0f)
                 baseIntensity = Mathf.MoveTowards(baseIntensity, 0f, baseFadePerSecond * Time.unscaledDeltaTime);
             pulse = Mathf.MoveTowards(pulse, 0f, pulseDecayPerSecond * Time.unscaledDeltaTime);
-            Apply(CurrentIntensity);
+            // The post-processing manager's switch and band rule what is shown; the clean feed is the baseline.
+            Apply(PostProcessManager.Gate(this, PostEffect.Glitch, CurrentIntensity, 0f));
         }
 
         void OnDisable()

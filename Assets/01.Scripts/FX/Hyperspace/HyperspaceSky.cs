@@ -79,6 +79,7 @@ namespace ConfusedGameDev.FiniteRunner.FX
         Vector3 axis = Vector3.forward;
         float scroll;
         float flash;
+        float shownBlend; // Blend as the post-processing manager lets it show
 
         /// <summary>
         /// The owner's one call: finds the scene's hand-placed driver and parks
@@ -153,7 +154,9 @@ namespace ConfusedGameDev.FiniteRunner.FX
             float seconds = wanted ? settings.fadeInSeconds : settings.fadeOutSeconds;
             float rate = seconds > 0f ? dt / seconds : 1f;
             Blend = Mathf.MoveTowards(Blend, wanted ? 1f : 0f, rate);
-            if (Blend <= 0f)
+            // The post-processing manager's switch and band rule what is shown; the scene's sky is the baseline.
+            shownBlend = PostProcessManager.Gate(this, PostEffect.HyperspaceSky, Blend, 0f);
+            if (shownBlend <= 0f)
             {
                 Restore();
                 return;
@@ -219,7 +222,7 @@ namespace ConfusedGameDev.FiniteRunner.FX
         void Write()
         {
             Material m = runtimeSky;
-            m.SetFloat(BlendId, Blend);
+            m.SetFloat(BlendId, shownBlend);
             m.SetVector(TunnelDirId, axis);
             m.SetFloat(ScrollId, scroll);
             m.SetFloat(FlashId, flash);

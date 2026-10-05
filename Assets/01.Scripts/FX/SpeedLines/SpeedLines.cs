@@ -190,7 +190,10 @@ namespace ConfusedGameDev.FiniteRunner.FX
             float value = Application.isPlaying
                 ? Mathf.Clamp01(speedIntensity + pulse) * settings.ModeMultiplier(cameraMode) * intensityScale
                 : (preview ? previewIntensity : 0f);
-            CurrentIntensity = Mathf.Clamp01(value * settings.intensity);
+            value *= settings.intensity;
+            // The post-processing manager's switch and band rule what is shown; no lines is the baseline.
+            if (Application.isPlaying) value = PostProcessManager.Gate(this, PostEffect.SpeedLines, value, 0f);
+            CurrentIntensity = Mathf.Clamp01(value);
 
             // Convergence point: the focus on screen, or the centre when it is
             // behind the camera or the view is first person (nothing to aim at).

@@ -31,6 +31,41 @@ Without the `HasDriver` guard, an edit-mode preview that saved `_Intensity 1` in
 made a driverless scene render the previous scene's fog unconfigured (the runner showed the city's
 purple at 120 m).
 
+## Post-processing manager — the one door for runtime changes
+
+`01.Scripts/FX/PostProcessing/`: `PostProcessManager`, `PostProcessSettings`, `PostEffect`.
+
+**Nothing but the manager writes the global Volume, and every full-screen driver gates its
+intensity through it.** It exists so the look can be held still and tuned while the game plays.
+
+- **Channels** (`PostEffect`, append-only): Volume overrides — `LensDistortion`, `MotionBlur`,
+  `MotionBlurClamp`, `Bloom`, `Vignette`, `ChromaticAberration`, `FilmGrain` (one float each, the
+  override's intensity) — and driver intensities — `Glitch`, `DistanceFog`, `SpeedLines`,
+  `VhsTape`, `PsxLook`, `CrtScreen`, `HyperspaceSky`, `RainAtmosphere`.
+- **Requests are absolute and clamped.** `PostProcessManager.Set(owner, effect, value)` holds a
+  value until `Clear(owner, effect)`; several owners on one effect → the value farthest from the
+  baseline wins; dead owners are dropped. A consumer at rest CLEARS its request instead of sending
+  the baseline, so the baseline stays live. `Baseline(owner, effect)` is what a request rises from.
+- **`PostProcessSettings`** (`04.Data/Resources/FiniteRunner_PostProcessing.asset`, read live) is
+  the one source of truth for ranges: a master `runtimeAdjustments` switch, and per effect a
+  `[ToggleGroup]` switch + a `[MinMaxSlider]` band. Switch off = the effect sits exactly at its
+  baseline, gameplay signals (death glitch, win ramp) included. A new effect gets an enum entry,
+  a switch/band pair here and a case in `Allowed` / `Range`.
+- **Baseline of a Volume channel = what the Volume's runtime profile holds while the manager is
+  not overriding it** — the manager writes a parameter only while a request is applied and puts
+  the baseline back when it ends, so the Volume inspector is where the look is tuned, in play mode
+  too. **Save Current State As Baseline** (button on the component, editor play mode) copies the
+  whole runtime profile onto the profile ASSET, with the baseline (not the momentary value) for any
+  effect a request is moving. Runner and city share `Global Volume Profile.asset`.
+- **Drivers** call `PostProcessManager.Gate(this, effect, live, baseline)` just before writing
+  their material and write what comes back (baseline = 0 for glitch, speed lines, sky, rain
+  atmosphere; the asset's own intensity for fog / VHS / PSX / CRT, whose player VIDEO dials
+  multiply in AFTER the gate). Gameplay keeps calling the drivers' own APIs (`Pulse`, `Hold`, …).
+- Hand-placed as `PostProcessing` under `===SYSTEMS===` (`PF_PostProcessing`, nested in both
+  `PF_Systems`). It drives the global Volume of its OWN scene (`For(scene)` — two are alive during
+  the city→runner handoff); a scene with no global Volume drops Volume requests. Without a manager
+  `Set` is dropped and `Gate` returns the live value, so every consumer still runs alone.
+
 ## Distance fog + far glitch
 
 `01.Scripts/FX/Atmosphere/` + `Rendering/DistanceFogFeature.cs` +
@@ -169,19 +204,20 @@ camera looks wrong. The winning fly-off (`IsEscaping`) keeps it.
 **The Light Speed warp** rides the same state (`GameSettings` "Light Speed warp" group): over
 `lightSpeedWarpBlendSeconds` it blends the lens distortion to `lightSpeedLensIntensity`, and back
 on losing it. The lens goes through `LensDistortionController.SetHeld(blend,
-intensity)` — a HELD rest under its envelope (the controller rewrites the intensity every frame, so
-nothing else may write it); boost kicks rise from and settle to that rest, never dipping back past
-it.
+intensity)` — a HELD rest under its envelope; boost kicks rise from and settle to that rest, never
+dipping back past it. The controller owns no Volume: its value is a `PostEffect.LensDistortion`
+request to the post-processing manager, the rest is the manager's baseline (the profile's lens
+intensity), and at rest it holds no request.
 
 **The speed motion blur** (`GameSettings` "Speed motion blur" group, `RunFeedback.UpdateSpeedBlur`)
 does NOT ride that state: `speedMotionBlurCurve` is evaluated at the ship's speed as a fraction of
 Light Speed (x 0 = standstill, 1 = Light Speed, held above) and its value lerps the intensity and
-clamp from 0 to `lightSpeedMotionBlurIntensity` / `lightSpeedMotionBlurClamp`. A fall reads as 0,
-and the blend never moves faster than its full range per `lightSpeedWarpBlendSeconds`, so falls
-and respawns ease. While it is on, the volume profile's own blur intensity/clamp are overwritten
-(standstill = no blur). The blur is the `MotionBlur` override on the global volume's RUNTIME
-profile (the copy the lens controller made — added at 0 when the profile has none), its authored
-values captured on first use and restored by `ResetForRun` / teardown / switching the group off. The runner's road
+clamp from the post-processing baseline to `lightSpeedMotionBlurIntensity` /
+`lightSpeedMotionBlurClamp`. A fall reads as 0, and the blend never moves faster than its full
+range per `lightSpeedWarpBlendSeconds`, so falls and respawns ease. Both values are requests to the
+post-processing manager (`MotionBlur`, `MotionBlurClamp`), cleared at standstill and by
+`ResetForRun` / teardown / switching the group off; the city's `SpeedMotionBlur` sends the same
+`MotionBlur` request off the car's speed, and the blur's mode and quality are the profile's. The runner's road
 (`NeonRoad_Mat`, queue 3000) is see-through, so the tunnel shows through it too.
 
 ## VHS tape
