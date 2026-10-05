@@ -132,9 +132,16 @@ Procedural builder **and** streamer, in two halves that never mix (TrackAuthorin
   run's distance.
 - **Verified equal**: seed 424242 decided-then-built produces exactly M0's streamed track (every
   knot, every object, the end).
-- **Debug edits to spawn spacing / tier chances apply on the next Generate**, not to the road
-  ahead mid-run (it is already decided). What is read at BUILD time (a tier's multiplier, colour)
-  still applies live.
+- **Debug edits to spawn amounts / tier chances apply on the next Generate** (a restart or a
+  reload), not to the road ahead mid-run (it is already decided). What is read at BUILD time (a
+  tier's multiplier, colour) still applies live. **On a SAVED track too**: those rows set the static
+  `TrackGenerator.RedecideSavedPlacements` (reset when play starts), and while it is on `Generate`
+  follows `LoadLayout` with `RedecideSpawnSet` — the saved track's speed orbs, repair orbs, laser
+  gates and coins are dropped from the generator's COPY of the records and decided again on its
+  road from the spawn set as it stands, seeded off the track's own seed (the same every retry).
+  Ramps, loops, end ramps, catalog power-ups and custom prefabs stay as authored, and the track
+  asset is never written — the editor's Reroll Placements (same routine, new seed) is what makes a
+  new amount permanent on a saved track.
 
 **In play the track is FINITE** (below); an edit-mode preview and a scene with no `GameManager`
 stay endless.
@@ -516,11 +523,15 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
 - **`LaserGateSpawner`**: see Laser gates.
 - **`BrakePadSpawner`**: one `PadSpawnEntry`, the brake material, the pad sign; 1800–3200 m
   (about the old one-in-2.5 km).
-- Debug: CORE SETTINGS → one `{NAME} SPACING` row per spawner (slides the `spacing` band, keeping
-  its spread) and a `%` row per orb tier; MULTIPLIERS → a `×` row per tier. Rows are built from the
-  set's ASSETS (the menu can be built before the first `Generate`), write the asset and mirror onto
-  the runtime clone index for index. The old runtime-only density multiplier is gone (the laser
-  gates' 0.5 was baked in as a 1200–2400 m spacing).
+- Debug: CORE SETTINGS → one `{NAME} / 10 KM` AMOUNT row per spawner (SPEED ORBS, REPAIR ORBS,
+  LASER GATES; 0–100, 0 = none) and a `%` row per orb tier; MULTIPLIERS → a `×` row per tier. The
+  amount is `TrackSpawner.AmountPerTenKm` (10 km ÷ the spacing band's mean × `chance`, 0 when
+  inactive); `SetAmountPerTenKm` scales the whole `spacing` band (proportions and `chance` kept) and
+  0 unticks `active`, leaving the band alone. It is the amount ASKED for — claims and keep-outs take
+  a few away. Rows are built from the set's ASSETS (the menu can be built before the first
+  `Generate`), write the asset and mirror onto the runtime clone index for index; they apply on the
+  next Generate, saved tracks included (above). The old spacing rows and the runtime-only density
+  multiplier are gone.
 
 ### Repair orbs (`Track/RepairOrb.cs`)
 
@@ -621,7 +632,7 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   blink) calls `FX/SmokeVfx.SpawnTrail` on the ship's ROOT, simulating in its local space so the
   plume stays on the ship at any speed and never rolls with a barrel roll. Knobs:
   `GameSettings.laserSmoke*` (textures = the Black smoke sprites; empty = no smoke).
-- Debug: CORE SETTINGS → LASER GATES SPACING (the spawner's spacing band, live).
+- Debug: CORE SETTINGS → LASER GATES / 10 KM (the spawner's amount row — see Spawnables).
 
 ### Analytic pickups (`Simulation/PickupRegistry.cs`)
 

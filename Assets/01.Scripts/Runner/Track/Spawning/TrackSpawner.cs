@@ -40,7 +40,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public Color color = Color.white;
 
         [Tooltip("Metres of track between one spawn step and the next (min, max).")]
-        [MinMaxSlider(10f, 5000f, true), SuffixLabel("m", true)]
+        [MinMaxSlider(10f, 20000f, true), SuffixLabel("m", true)]
         public Vector2 spacing = new(400f, 700f);
 
         [Tooltip("The first step lands between this distance and this plus the minimum spacing, so the launch stays clean.")]
@@ -58,6 +58,33 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
         /// <summary>The authored on/off toggle.</summary>
         public bool Active => active;
+
+        /// <summary>
+        /// How many of these the track gets per 10 km, on average: the steps
+        /// the spacing band fits into 10 km, times the chance a step spawns.
+        /// 0 when switched off. Claimed ground and keep-outs take a few away,
+        /// so it is the amount asked for, not a count.
+        /// </summary>
+        public float AmountPerTenKm =>
+            active ? 10000f * Mathf.Clamp01(chance) / Mathf.Max(1f, (spacing.x + spacing.y) * 0.5f) : 0f;
+
+        /// <summary>
+        /// Sets <see cref="AmountPerTenKm"/> — the debug menu's AMOUNT row.
+        /// The spacing band is scaled as a whole (its proportions kept, the
+        /// chance left alone); 0 switches the spawner off and leaves the band
+        /// as it was, so turning it back up starts from the authored spacing.
+        /// </summary>
+        public void SetAmountPerTenKm(float amount)
+        {
+            active = amount > 0f;
+            if (!active) return;
+            if (chance <= 0f) chance = 1f;
+            float mean = Mathf.Max(1f, (spacing.x + spacing.y) * 0.5f);
+            float wanted = 10000f * Mathf.Clamp01(chance) / amount;
+            spacing *= wanted / mean;
+            spacing.x = Mathf.Max(10f, spacing.x);
+            spacing.y = Mathf.Max(spacing.x, spacing.y);
+        }
 
         /// <summary>When this spawner runs in a streaming pass.</summary>
         public virtual SpawnPhase Phase => SpawnPhase.Pickup;
