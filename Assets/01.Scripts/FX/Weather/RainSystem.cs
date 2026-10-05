@@ -756,7 +756,9 @@ namespace ConfusedGameDev.FiniteRunner.FX
 
         void ApplyAtmosphere()
         {
-            if (!settings.atmosphere)
+            // The post-processing manager's switch and band rule how far the scene's own fog and ambient are moved.
+            float intensity = PostProcessManager.Gate(this, PostEffect.RainAtmosphere, CurrentIntensity, 0f);
+            if (!settings.atmosphere || intensity <= 0f)
             {
                 RestoreAtmosphere();
                 return;
@@ -771,7 +773,6 @@ namespace ConfusedGameDev.FiniteRunner.FX
                 savedAmbientIntensity = RenderSettings.ambientIntensity;
             }
 
-            float intensity = CurrentIntensity;
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
             RenderSettings.fogColor = Color.Lerp(savedFogColor, settings.fogColor, intensity);

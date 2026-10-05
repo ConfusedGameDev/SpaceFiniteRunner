@@ -299,6 +299,20 @@ namespace ConfusedGameDev.FiniteRunner.Track
         TrackShapeSettings ShapeSource => loadedAsset != null && loadedAsset.shape != null ? loadedAsset.shape : trackShape;
         TrackSpawnSet SpawnSetSource => loadedAsset != null && loadedAsset.spawnSet != null ? loadedAsset.spawnSet : spawnSet;
 
+        /// <summary>
+        /// Set by the debug menu when a spawn amount or an orb tier chance is
+        /// changed: from the next Generate until play stops, a SAVED track's
+        /// orbs, repair orbs, laser gates and coins are decided afresh on its
+        /// road from the spawn set as it now stands (ramps, loops, end ramps,
+        /// catalog power-ups and custom prefabs stay as authored). Without it a
+        /// saved track plays its own records and those rows would do nothing.
+        /// A runtime switch: the track asset is never written.
+        /// </summary>
+        public static bool RedecideSavedPlacements { get; set; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => RedecideSavedPlacements = false;
+
         /// <summary>The saved track the last <see cref="Generate"/> loaded, or null when it decided one.</summary>
         public TrackLayoutAsset LoadedTrack => loadedAsset;
 
@@ -709,6 +723,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (endless && loadedAsset != null)
             {
                 LoadLayout(loadedAsset.Layout);
+                if (RedecideSavedPlacements && Application.isPlaying && !baking && preview == null)
+                {
+                    RedecideSpawnSet(loadedAsset.Layout);
+                    RequeuePlacements();
+                    ParkPlacers();
+                }
                 if (build) BuildUpTo(aheadDistance);
                 return;
             }
@@ -911,6 +931,25 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (loadedAsset != asset) return;
             TrackLayout layout = asset.Layout;
 
+            uint rerollSeed = (uint)System.Environment.TickCount | 1u;
+            uint layoutSeed = new Unity.Mathematics.Random(rerollSeed).state;
+            collectibleRng = new Unity.Mathematics.Random(math.hash(new uint2(layoutSeed, TrackSpawner.NameHash("Collectibles"))) | 1u);
+            spawnContext = new TrackSpawnContext(track, rules, padsParent, padSize, boostMaterial, layoutSeed,
+                                                 decorator != null ? decorator.RoadYOffset : -1.2f,
+                                                 spawned, claims, padDistances, featureKeepOuts, placements);
+            RedecideSpawnSet(layout);
+
+            layout.placements.Clear();
+            layout.placements.AddRange(placements);
+            GenerateCore(asset); // the preview, from the asset as it now stands
+        }
+
+        // On a loaded track: drops the spawn set's records and decides them
+        // again on the road as it stands, off the current spawn context's
+        // seed. What stays (ramps, loops, the run-up, catalog power-ups) is
+        // claimed first, so everything decided keeps off it by the usual rules.
+        void RedecideSpawnSet(TrackLayout layout)
+        {
             placements.RemoveAll(IsRerolled);
             claims.Clear();
             padDistances.Clear();
@@ -924,22 +963,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (section is LoopSection) claims.Add((section.StartDistance, section.EndDistance));
             if (layout.endZoneStart >= 0f) claims.Add((layout.endZoneStart, layout.endDistance + 1000f));
 
-            uint rerollSeed = (uint)System.Environment.TickCount | 1u;
-            uint layoutSeed = new Unity.Mathematics.Random(rerollSeed).state;
-            collectibleRng = new Unity.Mathematics.Random(math.hash(new uint2(layoutSeed, TrackSpawner.NameHash("Collectibles"))) | 1u);
-            spawnContext = new TrackSpawnContext(track, rules, padsParent, padSize, boostMaterial, layoutSeed,
-                                                 decorator != null ? decorator.RoadYOffset : -1.2f,
-                                                 spawned, claims, padDistances, featureKeepOuts, placements);
             foreach (var spawner in runtimeSpawners)
                 if (spawner != null) spawner.Begin(spawnContext);
             collectibleCursor = collectibleRng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
 
             float pickupsTo = PlaceSpawnersUpTo(track.Length); // the track is complete: no stage guard
             PlaceCollectiblesUpTo(pickupsTo);
-
-            layout.placements.Clear();
-            layout.placements.AddRange(placements);
-            GenerateCore(asset); // the preview, from the asset as it now stands
         }
 
         static bool IsRerolled(TrackPlacement p) =>
@@ -1542,18 +1571,30 @@ namespace ConfusedGameDev.FiniteRunner.Track
             LoadRoad(layout);
             foreach (var keepOut in layout.keepOuts) featureKeepOuts.Add((keepOut.x, keepOut.y));
             placements.AddRange(layout.placements);
-            unbuilt.AddRange(placements);
-            unbuilt.Sort((a, b) => a.distance.CompareTo(b.distance));
-            placementsQueued = placements.Count;
-
-            foreach (var spawner in runtimeSpawners)
-                if (spawner != null) spawner.Park();
-            collectibleCursor = float.MaxValue;
+            RequeuePlacements();
+            ParkPlacers();
             featureCursor = float.MaxValue;
             pendingRamps.Clear();
             endZoneTarget = layout.endZoneStart;
             inEndZone = true;
             trackComplete = true;
+        }
+
+        // Every record, queued to build in distance order.
+        void RequeuePlacements()
+        {
+            unbuilt.Clear();
+            unbuilt.AddRange(placements);
+            unbuilt.Sort((a, b) => a.distance.CompareTo(b.distance));
+            placementsQueued = placements.Count;
+        }
+
+        // Nothing more is decided on a loaded track.
+        void ParkPlacers()
+        {
+            foreach (var spawner in runtimeSpawners)
+                if (spawner != null) spawner.Park();
+            collectibleCursor = float.MaxValue;
         }
 
         // The road of a saved track: knots, sections, spans, the end and every

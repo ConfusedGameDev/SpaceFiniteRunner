@@ -89,10 +89,14 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.OpenStraights,
                          0f, 100f, 5f, "0", s => s.openStraightChance * 100f, (s, v) => s.openStraightChance = v / 100f);
 
-            // Spawnables: one spacing row per spawner in the set — the band's
-            // minimum, sliding the band and keeping its spread. Live: it only
-            // changes what is still to be streamed. Rows come from the set's
-            // ASSETS (this menu can be built before the first Generate).
+            // Spawnables: one AMOUNT row per spawner in the set (boost orbs,
+            // repair orbs, laser gates) — how many the track gets per 10 km,
+            // 0 = none. It scales the spawner's spacing band. A track's
+            // placements are decided at Generate, so it applies from the next
+            // restart or reload — on a saved track too, whose orbs, gates and
+            // coins are then decided afresh (TrackGenerator.RedecideSavedPlacements).
+            // Rows come from the set's ASSETS (this menu can be built before
+            // the first Generate).
             var authored = generator.SpawnSet != null ? generator.SpawnSet.Spawners : System.Array.Empty<TrackSpawner>();
             SpeedOrbSpawner authoredOrbs = null;
             for (int i = 0; i < authored.Length; i++)
@@ -101,17 +105,18 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 if (asset == null) continue;
                 if (authoredOrbs == null) authoredOrbs = asset as SpeedOrbSpawner;
                 int index = i;
-                var row = screen.AddRow<DebugSliderRow>($"{asset.displayName.ToUpperInvariant()} SPACING");
-                row.Configure(10f, 5000f, 50f, asset.spacing.x, "0", v =>
+                var row = screen.AddRow<DebugSliderRow>($"{asset.displayName.ToUpperInvariant()} / 10 KM");
+                row.Configure(0f, 100f, 1f, Mathf.Clamp(asset.AmountPerTenKm, 0f, 100f), "0", v =>
                 {
-                    SlideBand(ref asset.spacing, v);
+                    asset.SetAmountPerTenKm(v);
                     DebugAssetEdits.Touch(asset);
                     var live = LiveSpawner(generator, index);
-                    if (live != null && live != asset) live.spacing = asset.spacing;
+                    if (live != null && live != asset) live.SetAmountPerTenKm(v);
+                    TrackGenerator.RedecideSavedPlacements = true;
                     onChanged?.Invoke();
                 });
                 row.SetLabelTint(asset.color);
-                refreshers?.Add(() => row.SetWithoutNotify(asset.spacing.x));
+                refreshers?.Add(() => row.SetWithoutNotify(Mathf.Clamp(asset.AmountPerTenKm, 0f, 100f)));
             }
 
             // One color-tinted percentage slider per speed-orb tier. Adjusting
@@ -129,6 +134,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                         RebalanceProbabilities(tiers, probabilityRows, index, v);
                         DebugAssetEdits.Touch(authoredOrbs);
                         MirrorTiers(tiers, LiveTiers(generator));
+                        TrackGenerator.RedecideSavedPlacements = true;
                         onChanged?.Invoke();
                     });
                     row.SetLabelTint(tiers[i].color);

@@ -1,5 +1,6 @@
 using ConfusedGameDev.FiniteRunner.Audio;
 using ConfusedGameDev.FiniteRunner.Collectibles;
+using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.HUD;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -11,9 +12,11 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// Tools → FiniteRunner → Place Scene Systems: puts the runner's
     /// hand-placed scene-lifetime systems into the OPEN scene — the
     /// <see cref="CollectibleManager"/> (the one pickup recorder), the
-    /// <see cref="MoneyHud"/> (the top-right money counter) and the
+    /// <see cref="MoneyHud"/> (the top-right money counter), the
     /// <see cref="RunnerMusic"/> soundtrack (as <c>Music</c>, wired to the
-    /// FiniteRunner_Music asset, created on the spot when missing).
+    /// FiniteRunner_Music asset, created on the spot when missing) and the
+    /// <see cref="PostProcessManager"/> (as <c>PostProcessing</c>, on its
+    /// Resources settings asset).
     /// Tools → FiniteRunner → Place Main Menu Systems is the main menu
     /// scene's counterpart: the same <see cref="RunnerMusic"/> object, wired
     /// to the FiniteRunner_MenuMusic asset instead, and nothing else — the
@@ -45,6 +48,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             placed += Place<CollectibleManager>("CollectibleManager");
             placed += Place<MoneyHud>("MoneyHud");
             placed += Place<RunnerMusic>("Music", music => music.settings = MusicAssetBuilder.CreateOrLoad());
+            placed += Place<PostProcessManager>("PostProcessing",
+                manager => manager.settings = Resources.Load<PostProcessSettings>(PostProcessSettings.ResourcePath));
             Debug.Log($"RunnerSceneSystemsPlacer: {placed} object(s) placed in '{EditorSceneManager.GetActiveScene().name}' — save the scene to keep them.");
         }
 

@@ -7,6 +7,7 @@ using ConfusedGameDev.FiniteRunner.PoliceEscape.UI;
 using ConfusedGameDev.FiniteRunner.PoliceEscape.Vehicles;
 using ConfusedGameDev.FiniteRunner.Cameras;
 using ConfusedGameDev.FiniteRunner.Collectibles;
+using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.HUD;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -204,6 +205,11 @@ namespace ConfusedGameDev.FiniteRunner.PoliceEscape.Editor
             // runner scene and needing no wiring.
             placed += Place<CollectibleManager>("CollectibleManager", parent, null);
             placed += Place<MoneyHud>("MoneyHud", ui, null);
+
+            // The post-processing manager: the one writer of this scene's
+            // global Volume and the gate of every full-screen driver. The
+            // runner's PF_ asset — it carries the shared settings asset.
+            placed += Place<PostProcessManager>("PostProcessing", parent, null);
 
             // Menus poll the EventSystem for mouse input; MenuScreenFactory
             // creates one on demand, so pre-placing it is what keeps that

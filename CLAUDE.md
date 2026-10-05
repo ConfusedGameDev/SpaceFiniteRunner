@@ -191,6 +191,10 @@ These hold everywhere. Break one and something else quietly stops working.
 - **A shared material written by a driver is restored on disable** (`_Intensity` zeroed), and
   only the last instance standing cleans it — the additive city→runner handoff has two drivers
   alive at once. Every full-screen feature also self-gates on that `_Intensity`.
+- **Only `PostProcessManager` writes the global Volume, and every full-screen driver gates its
+  intensity through it** (`Set` / `Clear` requests, `Gate` for drivers). Its settings asset holds
+  the master and per-effect runtime switches and each effect's range; the VolumeProfile asset is
+  the baseline. See `fx-rendering.md`.
 - **Domain reload is off.** Static state, cached profiles and event subscriptions survive play
   sessions: subscribe in `OnEnable`/`OnDisable`, never in a static initializer, and re-`Boot()`
   anything cached.
@@ -259,7 +263,7 @@ Loaded automatically by path. Listed here so you know what exists.
 | `city-cinemas.md` | `CinemaSystem`, formats, triggers |
 | `vehicles.md` | Physics backends, EVP, car models, brake lights, damage, traffic, air-time |
 | `cameras.md` | `OrbitCameraRig`, view modes, look-back, camera shake |
-| `fx-rendering.md` | Distance fog + far glitch, speed lines, weather, render pipeline assets |
+| `fx-rendering.md` | Post-processing manager, distance fog + far glitch, speed lines, weather, render pipeline assets |
 | `audio.md` | Mixer bus layout, `GameAudio` snapshots, car radio |
 | `ui-menus.md` | Menu framework, control bindings, `LoadingScreen`, `PauseMenu`, debug menu |
 | `shared-systems.md` | Floating text, RPG messages, haptics, collectibles, money HUD |

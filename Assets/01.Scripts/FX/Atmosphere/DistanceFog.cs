@@ -87,9 +87,21 @@ namespace ConfusedGameDev.FiniteRunner.FX
         [Tooltip("Apply the fog in edit mode too, so the Scene view shows what the asset does before play.")]
         public bool preview = true;
 
-        /// <summary>Effective master intensity: asset × gameplay scale, 0 in edit mode with preview off.</summary>
-        public float CurrentIntensity =>
-            settings == null || (!Application.isPlaying && !preview) ? 0f : Mathf.Clamp01(settings.intensity * intensityScale);
+        /// <summary>
+        /// Effective master intensity: asset × gameplay scale, 0 in edit mode
+        /// with preview off. In play the gameplay scale goes through the
+        /// post-processing manager, whose baseline is the asset's own value.
+        /// </summary>
+        public float CurrentIntensity
+        {
+            get
+            {
+                if (settings == null || (!Application.isPlaying && !preview)) return 0f;
+                float live = settings.intensity * intensityScale;
+                if (Application.isPlaying) live = PostProcessManager.Gate(this, PostEffect.DistanceFog, live, settings.intensity);
+                return Mathf.Clamp01(live);
+            }
+        }
 
         /// <summary>
         /// Far clip plane the chase camera should use while the fog is on
