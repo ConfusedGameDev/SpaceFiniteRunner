@@ -220,6 +220,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         public bool Heal(float fraction) => HealPoints(fraction) > 0f;
 
+        /// <summary>Untouchable (and blinking) for at least <paramref name="seconds"/> from now — what a hit grants, granted by a set piece instead (the race kill cam's grace).</summary>
+        public void GrantInvulnerability(float seconds)
+        {
+            if (seconds > 0f) invulnerableLeft = Mathf.Max(invulnerableLeft, seconds);
+        }
+
         /// <summary>While set nothing hurts the hull, forced hits included — the hyperspace jump holds it: a win the player chose is not lost on the way.</summary>
         public bool Shielded { get; set; }
 

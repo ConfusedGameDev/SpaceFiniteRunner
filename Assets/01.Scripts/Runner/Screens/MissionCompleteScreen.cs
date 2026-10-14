@@ -29,6 +29,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         public readonly List<ChallengeResult> challenges = new();
         public RankTable rank = new();
 
+        /// <summary>A race level's result (RaceModePRD R5.5): the ship's finishing place of how many racers (0 = no race), rivals it wrecked, and the bounty they paid. Display only — the bounty is already banked, so none of it joins the TOTAL.</summary>
+        public int racePlace, raceRacers, raceWrecked;
+        public long raceBounty;
+
         /// <summary>(bonus + every done objective's reward) × every done challenge's multiplier.</summary>
         public long FinalTotal
         {
@@ -156,6 +160,7 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             public bool done;
             public double shownReward;
             public double shownMultiplier;
+            public string info;   // a display-only row's value (the race rows): typed, shown, never counted
         }
 
         /// <summary>Puts the panel up and freezes the game under it. The chosen callback runs with time already unfrozen.</summary>
@@ -283,6 +288,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                     AddObjectiveRow(objective, typed);
             }
 
+            // RACE — the place and the bounties, display only (already banked).
+            if (data.racePlace > 0)
+            {
+                results.AddRow<StatHeaderRow>(MenuTextId.RaceResults);
+                AddInfoRow(MenuTextId.RaceFinishPlace, StatFormat.Ratio(data.racePlace, data.raceRacers), typed);
+                AddInfoRow(MenuTextId.RaceWrecked, StatFormat.Count(data.raceWrecked), typed);
+                AddInfoRow(MenuTextId.RaceBounties, StatFormat.Money(data.raceBounty), typed);
+            }
+
             // OPTIONAL CHALLENGES — city accepted ones, then the run's.
             if (data.challenges.Count > 0)
             {
@@ -315,6 +329,13 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         }
 
         List<(ResultRow row, string text)> orderedTyped;
+
+        void AddInfoRow(MenuTextId label, string value, List<(ResultRow row, string text)> typed)
+        {
+            var row = results.AddRow<ResultRow>(label);
+            typed.Add((row, MenuTextLibrary.Load().Get(label)));
+            lines.Add(new Line { row = row, done = true, info = value });
+        }
 
         void AddObjectiveRow(ObjectiveResult objective, List<(ResultRow row, string text)> typed)
         {
@@ -493,7 +514,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 sequence.Add(new RevealRowStep(result, RowFadeSeconds, () => result.PunchLabel(1.08f)));
                 sequence.Add(new TypewriterStep(result, text, CharsPerSecond, (index, length) => OnTyped(result, index, length)));
 
-                if (line.challenge)
+                if (line.info != null)
+                {
+                    string value = line.info;
+                    sequence.Add(new ActionStep(() => { result.SetValueText(value); result.PunchValue(1.15f); Blip(theme.AdjustClip, 0.5f); }));
+                }
+                else if (line.challenge)
                 {
                     ChallengeResult challenge = data.challenges[ChallengeIndex(line)];
                     if (challenge.done)

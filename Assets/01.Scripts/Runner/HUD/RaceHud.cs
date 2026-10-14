@@ -45,11 +45,13 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         IRunState run;
         IChaseTarget ship;
+        IRaceStandings standings; // the race, when the scene has one; only shown while it is active
 
         void ResolveSources()
         {
             run ??= runSource as IRunState ?? ContractLookup.Find<IRunState>();
             ship ??= shipSource as IChaseTarget ?? ContractLookup.Find<IChaseTarget>();
+            standings ??= ContractLookup.Find<IRaceStandings>();
         }
 
         // A collector is ours when it lives on the ship's object (the pickup names the HoverShip beside the motor).
@@ -152,6 +154,9 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         SpeedGauge gauge;
         Color targetColor;      // the goal line's authored colour, before the done tint
         int shownSeconds = -1;  // what the timer text currently reads, so it is rebuilt once a second
+        int shownPlace = -1, shownRacers = -1; // what the POS readout reads, so it is rebuilt on a change
+        float placePulse = 1f;  // the POS readout's punch, decaying to 1
+        Vector3 targetScale = Vector3.one;
 
         // The hull bar and the ×N beside it; null while the hull is off.
         SpeedGauge lifeBar;
@@ -178,6 +183,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             BuildLifeBar();
             if (run == null || targetText == null || run.Level == null) return;
             targetColor = targetText.color;
+            targetScale = targetText.rectTransform.localScale;
             RunnerLevelDefinition level = run.Level;
             int slot = 0;
             for (int i = 0; i < level.Count; i++)
@@ -286,6 +292,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         {
             ResolveSources();
             if (ship != null) ship.Boosted += OnPadImpulse;
+            if (standings != null) standings.PlayerPositionChanged += OnPlaceChanged;
             CollectibleManager.MoneyChanged += OnMoneyChanged;
             RepairOrb.Collected += OnRepairOrb;
             BoostQte.Graded += OnQteGraded; // static: paired below — domain reload is off
@@ -294,6 +301,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         void OnDisable()
         {
             if (ship != null) ship.Boosted -= OnPadImpulse;
+            if (standings != null) standings.PlayerPositionChanged -= OnPlaceChanged;
             CollectibleManager.MoneyChanged -= OnMoneyChanged;
             RepairOrb.Collected -= OnRepairOrb;
             BoostQte.Graded -= OnQteGraded;
@@ -361,6 +369,9 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                     run.BoostTextLeadMeters, boostTextSize);
         }
 
+        // A place gained or lost: the POS readout punches.
+        void OnPlaceChanged(int was, int now) => placePulse = pulseScale;
+
         void OnPadImpulse(float magnitude)
         {
             currentPulse = pulseScale;
@@ -397,7 +408,22 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
             UpdateLifeBar();
 
-            if (targetText != null && lightSpeed > 0f)
+            if (targetText != null && standings != null && standings.RaceActive)
+            {
+                // A race has no Light Speed goal (RaceModePRD D5): the goal
+                // line is the player's place instead.
+                int place = standings.PlayerPosition, racers = standings.RacerCount;
+                if (place != shownPlace || racers != shownRacers)
+                {
+                    shownPlace = place;
+                    shownRacers = racers;
+                    targetText.text = string.Format(MenuTextLibrary.Load().Get(MenuTextId.HudRacePosition), place, racers);
+                }
+                targetText.color = place == 1 ? winColor : targetColor;
+                placePulse = Mathf.MoveTowards(placePulse, 1f, pulseDecay * Time.deltaTime);
+                targetText.rectTransform.localScale = targetScale * placePulse;
+            }
+            else if (targetText != null && lightSpeed > 0f)
             {
                 targetText.text = $"LIGHT SPEED  {lightSpeed:0} KM/H";
                 // Reached once is reached: the goal line stays done while the
@@ -406,11 +432,12 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                     targetText.color = run.LightSpeedReached ? winColor : targetColor;
             }
 
+            ObjectiveContext state = run != null ? run.ObjectiveState : default;
             foreach (var line in objectiveLines)
             {
                 bool done = line.challenge ? run.IsChallengeDone(line.index) : run.IsObjectiveDone(line.index);
                 string label = line.step.Summary;
-                string progress = line.step.Progress(kmh, run.JumpCount);
+                string progress = line.step.Progress(state);
                 if (progress.Length > 0) label += "  " + progress;
                 if (line.step is RunnerOptionalChallenge challenge) label += $"  \u00d7{challenge.multiplier}";
                 line.text.text = label;

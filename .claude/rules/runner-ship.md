@@ -471,7 +471,8 @@ edits the live run and never the asset — the same rule as the ship. Run-level 
 minimap range, redeploy) stay on `GameSettings`.
 
 - **It drives the same `TrackBody` as the ship**, through `PatrolDriver` (`GameFlow/`, plain C#,
-  stateless) which outputs the same `BodyControls` the player's input does — so it is held to
+  stateless; its orb / ramp / open-edge / sweep-brake rules live in `Simulation/LineDriving`,
+  shared with the race rivals — `runner-race.md`) which outputs the same `BodyControls` the player's input does — so it is held to
   the ship's physics (steering force, grip on flat sweeps, open edges, ramps and jumps, tubes,
   the swept pickup query) and takes every loop perfectly (no gate is asked of it). It ticks in
   `FixedUpdate` with `simSubsteps` and renders an interpolated pose like the motor:
@@ -794,7 +795,10 @@ minimap range, redeploy) stay on `GameSettings`.
 ## `ChaseMinimap`
 
 Spawned by `GameManager.Awake` whenever there is a motor — with or without a patrol
-(`Spawn(motor, patrol, gameManager, range, warn, generator)`, `patrol` may be null).
+(`Spawn(motor, patrol, gameManager, range, warn, generator, race)`, `patrol` and `race` may be
+null). On a race level it draws **one pooled dot per rival** on the track map in the rival's
+`mapColor` — ghosts too, a finished one on the finish marker, a wrecked one gone — under the
+ship's and the patrol's dots, read through `IRaceStandings` only.
 
 **The track map** (TrackAuthoringPRD M6, `ChaseMinimapSettings.showTrackMap`, on by default): the
 WHOLE track from above in the hand-placed `TrackMap` rect (`mapArea`, its `Image` is the

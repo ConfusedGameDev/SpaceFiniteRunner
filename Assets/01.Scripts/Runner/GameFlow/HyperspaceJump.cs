@@ -54,6 +54,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>True from the chord until the run restarts: the end is coming in and the autopilot flies the ship onto a ramp.</summary>
         [ShowInInspector, ReadOnly]
         public bool Jumping { get; private set; }
+        /// <summary>False keeps the jump from ever being offered this run (a race level, RaceModePRD D5). Set by the composition root after Bind.</summary>
+        public bool Allowed { get; set; } = true;
 
         /// <summary>The scene's jump (hand-placed beside the GameManager); added only when the scene has none.</summary>
         public static HyperspaceJump Ensure(Component host)
@@ -151,7 +153,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 return;
             }
 
-            bool counting = settings.hyperspaceJumpEnabled
+            bool counting = settings.hyperspaceJumpEnabled && Allowed
                             && feedback != null && feedback.AtLightSpeed
                             && run.ObjectivesMet && !run.IsEnding && !run.RunOver
                             && !motor.Paused && !motor.HasLeftTrackEnd

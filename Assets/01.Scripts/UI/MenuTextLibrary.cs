@@ -168,7 +168,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         DebugTabTraffic, TrafficMaxActive, TrafficSpeedMin, TrafficSpeedMax,
         TrafficSpawnAhead, TrafficMinSpawnAhead, TrafficNoSpawnNearEnd,
         // The SELECT COURSE scene: its title and the difficulty line.
-        SelectCourse, Difficulty
+        SelectCourse, Difficulty,
+        // Race mode: the HUD's position readout ({0} = place, {1} = racers) and the two race lose reasons.
+        HudRacePosition, LoseRaceBeaten, LoseRacePosition,
+        // Race mode: the pause menu's RACE page (rows and actions), then the Mission Complete race rows.
+        DebugTabRace, RaceRubberBand, RaceGhostPace, RaceThrustShare, RaceOrbShare, RaceFormVariance, RaceSurgeAmount, RaceLaneSpread, RaceRamSpeedCost, RaceSideShove, RaceCreditWindow, RaceKillCam, RaceKillCamScale, RaceKillCamSeconds, RaceKillCamRange, RaceReadout, RaceGhostWireframes, RaceKillNearest, RaceDnfAll, RaceFinishAll, RaceResults, RaceFinishPlace, RaceWrecked, RaceBounties, RaceLeadGovernor, RaceLeadCapFar
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1183,6 +1187,35 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [TitleGroup("Select course")]
         [SerializeField] LocalizedString selectCourse = new("SELECT COURSE", "ELIGE CIRCUITO", "コース選択", "CHOISIR LE CIRCUIT");
         [SerializeField] LocalizedString difficulty = new("DIFFICULTY", "DIFICULTAD", "難易度", "DIFFICULTÉ");
+        [SerializeField] LocalizedString hudRacePosition = new("POS  {0}/{1}", "POS  {0}/{1}", "順位  {0}/{1}", "POS  {0}/{1}");
+        [SerializeField] LocalizedString loseRaceBeaten = new("BEATEN TO THE FINISH", "TE GANARON LA CARRERA", "ゴールで先を越された", "BATTU À L'ARRIVÉE");
+        [SerializeField] LocalizedString loseRacePosition = new("POSITION OUT OF REACH", "POSICIÓN FUERA DE ALCANCE", "目標の順位に届かない", "POSITION HORS D'ATTEINTE");
+        [SerializeField] LocalizedString debugTabRace = new("RACE", "CARRERA", "レース", "COURSE");
+        [SerializeField] LocalizedString raceRubberBand = new("RUBBER BAND", "ELÁSTICO", "ラバーバンド", "ÉLASTIQUE");
+        [SerializeField] LocalizedString raceGhostPace = new("GHOST PACE", "RITMO FANTASMA", "ゴーストのペース", "RYTHME FANTÔME");
+        [SerializeField] LocalizedString raceThrustShare = new("RIVAL THRUST", "EMPUJE RIVAL", "ライバルの推力", "POUSSÉE DES RIVAUX");
+        [SerializeField] LocalizedString raceOrbShare = new("RIVAL ORB BOOST", "IMPULSO DE ORBES RIVAL", "ライバルのオーブ加速", "BOOST D'ORBE DES RIVAUX");
+        [SerializeField] LocalizedString raceFormVariance = new("FORM VARIANCE", "VARIACIÓN DE FORMA", "調子のばらつき", "VARIATION DE FORME");
+        [SerializeField] LocalizedString raceSurgeAmount = new("SURGE", "ARRANQUES", "スパート", "POUSSÉES");
+        [SerializeField] LocalizedString raceLaneSpread = new("LANE SPREAD", "DISPERSIÓN DE CARRIL", "レーンの散らばり", "DISPERSION DES VOIES");
+        [SerializeField] LocalizedString raceRamSpeedCost = new("RAM SPEED COST", "VELOCIDAD PERDIDA AL EMBESTIR", "体当たりの速度損失", "VITESSE PERDUE À L'IMPACT");
+        [SerializeField] LocalizedString raceSideShove = new("SIDE SHOVE", "EMPUJÓN LATERAL", "横からの押し", "POUSSÉE LATÉRALE");
+        [SerializeField] LocalizedString raceCreditWindow = new("KILL CREDIT WINDOW", "VENTANA DE CRÉDITO", "撃破判定の猶予", "FENÊTRE DE CRÉDIT");
+        [SerializeField] LocalizedString raceKillCam = new("KILL CAM", "CÁMARA DE DERRIBO", "キルカメラ", "CAMÉRA D'ÉLIMINATION");
+        [SerializeField] LocalizedString raceKillCamScale = new("KILL CAM SLOW MOTION", "CÁMARA LENTA DEL DERRIBO", "キルカメラのスロー", "RALENTI DE L'ÉLIMINATION");
+        [SerializeField] LocalizedString raceKillCamSeconds = new("KILL CAM HOLD", "DURACIÓN DEL DERRIBO", "キルカメラの長さ", "DURÉE DE L'ÉLIMINATION");
+        [SerializeField] LocalizedString raceKillCamRange = new("KILL CAM RANGE", "ALCANCE DEL DERRIBO", "キルカメラの範囲", "PORTÉE DE L'ÉLIMINATION");
+        [SerializeField] LocalizedString raceReadout = new("STANDINGS READOUT", "LECTURA DE POSICIONES", "順位の表示", "AFFICHAGE DU CLASSEMENT");
+        [SerializeField] LocalizedString raceGhostWireframes = new("GHOST WIREFRAMES", "FANTASMAS EN ALAMBRE", "ゴーストのワイヤー表示", "FANTÔMES EN FILAIRE");
+        [SerializeField] LocalizedString raceKillNearest = new("WRECK NEAREST RIVAL", "DESTRUIR RIVAL MÁS CERCANO", "最寄りのライバルを破壊", "DÉTRUIRE LE RIVAL LE PLUS PROCHE");
+        [SerializeField] LocalizedString raceDnfAll = new("WRECK ALL RIVALS", "DESTRUIR A TODOS LOS RIVALES", "全ライバルを破壊", "DÉTRUIRE TOUS LES RIVAUX");
+        [SerializeField] LocalizedString raceFinishAll = new("ALL RIVALS FINISH", "TODOS LOS RIVALES TERMINAN", "全ライバルをゴール", "TOUS LES RIVAUX FINISSENT");
+        [SerializeField] LocalizedString raceResults = new("RACE", "CARRERA", "レース", "COURSE");
+        [SerializeField] LocalizedString raceFinishPlace = new("FINISHING PLACE", "POSICIÓN FINAL", "最終順位", "CLASSEMENT FINAL");
+        [SerializeField] LocalizedString raceWrecked = new("RIVALS WRECKED", "RIVALES DESTRUIDOS", "破壊したライバル", "RIVAUX DÉTRUITS");
+        [SerializeField] LocalizedString raceBounties = new("BOUNTIES", "RECOMPENSAS", "賞金", "PRIMES");
+        [SerializeField] LocalizedString raceLeadGovernor = new("LEAD GOVERNOR", "LIMITADOR DEL LÍDER", "先頭の速度制限", "LIMITEUR DU MENEUR");
+        [SerializeField] LocalizedString raceLeadCapFar = new("LEADER SPEED CAP", "TOPE DE VELOCIDAD DEL LÍDER", "先頭の速度上限", "PLAFOND DE VITESSE DU MENEUR");
         [Tooltip("The debug menu's per-spawner density row. {0} = the spawner's name.")]
         [SerializeField] LocalizedString spawnDensity = new("{0} DENSITY", "DENSIDAD: {0}", "{0} 密度", "DENSITÉ : {0}");
         [SerializeField] LocalizedString respawnPatrolGap = new("RESPAWN PATROL GAP", "VENTAJA SOBRE LA PATRULLA", "リスポーン時のパトロール差", "AVANCE SUR LA PATROUILLE");
@@ -1687,6 +1720,35 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.TrafficNoSpawnNearEnd => trafficNoSpawnNearEnd,
             MenuTextId.SelectCourse => selectCourse,
             MenuTextId.Difficulty => difficulty,
+            MenuTextId.HudRacePosition => hudRacePosition,
+            MenuTextId.LoseRaceBeaten => loseRaceBeaten,
+            MenuTextId.LoseRacePosition => loseRacePosition,
+            MenuTextId.DebugTabRace => debugTabRace,
+            MenuTextId.RaceRubberBand => raceRubberBand,
+            MenuTextId.RaceGhostPace => raceGhostPace,
+            MenuTextId.RaceThrustShare => raceThrustShare,
+            MenuTextId.RaceOrbShare => raceOrbShare,
+            MenuTextId.RaceFormVariance => raceFormVariance,
+            MenuTextId.RaceSurgeAmount => raceSurgeAmount,
+            MenuTextId.RaceLaneSpread => raceLaneSpread,
+            MenuTextId.RaceRamSpeedCost => raceRamSpeedCost,
+            MenuTextId.RaceSideShove => raceSideShove,
+            MenuTextId.RaceCreditWindow => raceCreditWindow,
+            MenuTextId.RaceKillCam => raceKillCam,
+            MenuTextId.RaceKillCamScale => raceKillCamScale,
+            MenuTextId.RaceKillCamSeconds => raceKillCamSeconds,
+            MenuTextId.RaceKillCamRange => raceKillCamRange,
+            MenuTextId.RaceReadout => raceReadout,
+            MenuTextId.RaceGhostWireframes => raceGhostWireframes,
+            MenuTextId.RaceKillNearest => raceKillNearest,
+            MenuTextId.RaceDnfAll => raceDnfAll,
+            MenuTextId.RaceFinishAll => raceFinishAll,
+            MenuTextId.RaceResults => raceResults,
+            MenuTextId.RaceFinishPlace => raceFinishPlace,
+            MenuTextId.RaceWrecked => raceWrecked,
+            MenuTextId.RaceBounties => raceBounties,
+            MenuTextId.RaceLeadGovernor => raceLeadGovernor,
+            MenuTextId.RaceLeadCapFar => raceLeadCapFar,
             _ => start
         };
     }

@@ -36,6 +36,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         RunnerLevelDefinition Level { get; }
         bool IsObjectiveDone(int index);
         bool IsChallengeDone(int index);
+        /// <summary>The live state the objectives are judged against (speed, jumps, the race's places) — what the HUD's progress words read.</summary>
+        ObjectiveContext ObjectiveState { get; }
         /// <summary>How far ahead of the ship a "+N" boost text spawns, metres.</summary>
         float BoostTextLeadMeters { get; }
         /// <summary>The track ends (a finite run).</summary>

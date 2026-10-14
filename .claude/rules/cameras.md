@@ -203,6 +203,19 @@ banner, so the ship's fall — and the patrol's, right behind it — plays out; 
 freeze the sim in the chase view instead. An end ramp's lip never fires `TookOff`, so the forced
 Far framing of a jump is not involved.
 
+## Focus shot
+
+`SetFocusShot(cameraPosition, lookAt)` / `ClearFocusShot()` / `FocusShot`: the cinematic vcam
+**planted at any world point and aimed at any other** — not the followed vehicle. The runner's race
+kill cam frames a rival's explosion with it (`runner-race.md`). It uses a per-run `CameraFocus`
+sibling as the LookAt, seats the mount where the game says (with `OnTargetObjectWarped` — the cut
+can be kilometres), forces zero follow damping and zero composer offset while it holds, takes the
+cinematic priority and the cinematic blend, and locks the view cycle. Refused (false) while the
+asset's `cinematic` toggle is off or a `SetCinematic` shot holds the picture; turning the toggle
+off drops a live one. `ClearFocusShot` re-seats the mount on the vehicle and hands the picture back
+over the cinematic blend. Both the focus object and the shot are cleaned up in `OnDestroy` and
+`SetTarget`.
+
 ## Camera shake
 
 `CameraShake.Shake(CameraShakeSettings)` is the static bank every shake is fired at — a plain

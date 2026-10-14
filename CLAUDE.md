@@ -124,6 +124,15 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   loop or tube lies between them and the ship, near the end, on the run-up or after HIT HYPERSPACE
   (which clears the road). A car hit is exactly a laser hit and the car explodes (even through the
   blink); a car and the patrol destroy each other. See `runner-traffic.md`.
+- **Race levels** (`RaceModePRD.md`, per level: `RunnerLevelDefinition.race`, empty = none): rival
+  hover ships launch from a grid with the ship and race it to the end ramps, finish order = lip
+  order. The objective is a place (WIN / TOP X / EXACTLY X); the HUD shows POS and the minimap the
+  field. Rivals avoid laser gates, take orbs, make the odd mistake; ram them from behind, shove
+  them off an open edge or into a beam to wreck them — one you wrecked pays its **bounty** — and a
+  wreck in view near the ship plays a **kill cam** (slow motion, a cut to the explosion, the ship
+  on autopilot and untouchable, the countdown frozen). A race has no traffic and no hyperspace
+  jump; a place out of reach fails the run early. Off-screen rivals are cheap ghosts. See
+  `runner-race.md`.
 - Story beats are RPG dialogue lines on purple-orb pickups and patrol taunts only.
 
 ## Repo map
@@ -252,6 +261,7 @@ Loaded automatically by path. Listed here so you know what exists.
 | `runner-track.md` | `TrackManager`, sections, `TrackGenerator` decide/build, saved tracks + the Scene-view authoring tools, features, pads/orbs, decorator |
 | `runner-ship.md` | `ShipMotor` (physics mode + the legacy track-space sim), `GameManager`, `PolicePatrol`, tuning |
 | `runner-traffic.md` | Oncoming traffic: `TrafficSystem`, the pool, spawn rules, `TrackObstacles` avoidance, swept contact |
+| `runner-race.md` | Race levels: `RaceSystem`, rivals, `RivalDriver`, full sim / ghosts, contact, wrecks, bounty, `RivalKillCam`, the RACE debug page |
 | `ship-standalone.md` | The `Ship` assembly: `HoverBody`, guides, recovery, pickups, prefab rig, the physics runner |
 | `runner-hud-screens.md` | `RaceHud`, `GameOverScreen`, `MissionCompleteScreen` |
 | `runner-store.md` | Store scene, upgrade definitions, appliers |

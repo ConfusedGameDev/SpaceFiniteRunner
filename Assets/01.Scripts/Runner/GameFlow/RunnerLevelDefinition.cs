@@ -8,7 +8,28 @@ using ConfusedGameDev.FiniteRunner.SaveData;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>The things an escape run can ask of the pilot. Order is the save format — append only.</summary>
-    public enum RunnerObjectiveType { ReachSpeed = 0, JumpCount = 1 }
+    public enum RunnerObjectiveType { ReachSpeed = 0, JumpCount = 1, RacePosition = 2 }
+
+    /// <summary>What a Race Position objective asks (RaceModePRD R5.3). Serialized — append only.</summary>
+    public enum RaceGoalMode { Win = 0, TopX = 1, Exactly = 2 }
+
+    /// <summary>
+    /// The run state an objective is judged against — widened from (speed,
+    /// jumps) so a goal type can read the race too. <see cref="raceFinishPlace"/>
+    /// is 0 until the ship's place is fixed at its lip: a race goal is judged
+    /// there and never latched mid-run (D6).
+    /// </summary>
+    public struct ObjectiveContext
+    {
+        /// <summary>The ship's CURRENT speed, km/h as the run shows it.</summary>
+        public float speedKmh;
+        /// <summary>Ramps taken off from this run.</summary>
+        public int jumps;
+        /// <summary>The ship's live place in the race; 0 = no race.</summary>
+        public int racePosition;
+        /// <summary>The ship's finishing place, fixed at its lip; 0 = not finished.</summary>
+        public int raceFinishPlace;
+    }
 
     /// <summary>
     /// One goal of an escape run — the runner's twin of the city's
@@ -36,6 +57,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(1, 50)]
         public int jumpCount = 3;
 
+        [ShowIf("type", RunnerObjectiveType.RacePosition)]
+        [Tooltip("Win = finish 1st. Top X = finish X-th or better. Exactly = finish X-th, no better and no worse. Judged as the ship leaves by an end ramp; the run fails early the moment it can no longer be met.")]
+        [EnumToggleButtons]
+        public RaceGoalMode raceMode = RaceGoalMode.Win;
+
+        [ShowIf(nameof(UsesRacePlace))]
+        [Tooltip("The place X the mode asks for.")]
+        [PropertyRange(1, 30)]
+        public int racePosition = 3;
+
         [HideIf(nameof(IsChallenge))]
         [Tooltip("Money this objective pays on the Mission Complete panel, added to the city level's rewards before the challenge multipliers apply.")]
         [PropertyRange(0, 50000), SuffixLabel("$", true)]
@@ -43,6 +74,39 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         [Tooltip("HUD tint and panel accent for this goal. Fully transparent = the type's default color.")]
         public Color accent = new(0f, 0f, 0f, 0f);
+
+        bool UsesRacePlace => type == RunnerObjectiveType.RacePosition && raceMode != RaceGoalMode.Win;
+
+        /// <summary>The place a Race Position goal targets: 1 for Win, else X.</summary>
+        public int RaceTarget => raceMode == RaceGoalMode.Win ? 1 : Mathf.Max(1, racePosition);
+
+        /// <summary>True when <paramref name="place"/> (1-based) meets a Race Position goal.</summary>
+        public bool MeetsRacePlace(int place) => place > 0 && raceMode switch
+        {
+            RaceGoalMode.Exactly => place == RaceTarget,
+            _ => place <= RaceTarget
+        };
+
+        /// <summary>
+        /// True once a Race Position goal can no longer be met (D7), from the
+        /// rivals that have finished and those still racing: Win / Top X are
+        /// gone once X rivals are home; Exactly also once too few are left to
+        /// finish behind the ship. Always false for any other type.
+        /// </summary>
+        public bool RaceGoalImpossible(int finishedRivals, int racingRivals)
+        {
+            if (type != RunnerObjectiveType.RacePosition) return false;
+            int target = RaceTarget;
+            if (finishedRivals >= target) return true;
+            return raceMode == RaceGoalMode.Exactly && finishedRivals + racingRivals + 1 < target;
+        }
+
+        static string Ordinal(int n)
+        {
+            int tens = n % 100;
+            string suffix = tens >= 11 && tens <= 13 ? "TH" : (n % 10) switch { 1 => "ST", 2 => "ND", 3 => "RD", _ => "TH" };
+            return n + suffix;
+        }
 
         /// <summary>True on a <see cref="RunnerOptionalChallenge"/> — it carries a multiplier, not a reward.</summary>
         public virtual bool IsChallenge => false;
@@ -52,6 +116,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             RunnerObjectiveType.ReachSpeed => $"REACH {targetSpeedKmh:0} KM/H",
             RunnerObjectiveType.JumpCount => jumpCount == 1 ? "JUMP ONCE" : $"JUMP {jumpCount} TIMES",
+            RunnerObjectiveType.RacePosition => raceMode switch
+            {
+                RaceGoalMode.TopX => RaceTarget == 1 ? "FINISH 1ST" : $"FINISH TOP {RaceTarget}",
+                _ => $"FINISH {Ordinal(RaceTarget)}"
+            },
             _ => type.ToString().ToUpperInvariant()
         };
 
@@ -61,18 +130,21 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// <summary>The accent to draw with — the authored one, or the type default when it was left transparent.</summary>
         public Color Accent => accent.a > 0.001f ? accent : DefaultAccent(type);
 
-        /// <summary>Whether the goal is met for the given run state (speed is the ship's CURRENT speed — the manager latches the result).</summary>
-        public bool Satisfied(float speedKmh, int jumps) => type switch
+        /// <summary>Whether the goal is met for the given run state (speed is the ship's CURRENT speed — the manager latches the result). A race goal is met only once the ship's place is fixed at its lip.</summary>
+        public bool Satisfied(in ObjectiveContext run) => type switch
         {
-            RunnerObjectiveType.ReachSpeed => speedKmh >= targetSpeedKmh,
-            RunnerObjectiveType.JumpCount => jumps >= jumpCount,
+            RunnerObjectiveType.ReachSpeed => run.speedKmh >= targetSpeedKmh,
+            RunnerObjectiveType.JumpCount => run.jumps >= jumpCount,
+            RunnerObjectiveType.RacePosition => MeetsRacePlace(run.raceFinishPlace),
             _ => false
         };
 
-        /// <summary>The HUD's progress word — empty for speed (the speedometer already shows it), "1/3" for jumps.</summary>
-        public string Progress(float speedKmh, int jumps) => type switch
+        /// <summary>The HUD's progress word — empty for speed (the speedometer already shows it), "1/3" for jumps, the live place ("P4") for a race.</summary>
+        public string Progress(in ObjectiveContext run) => type switch
         {
-            RunnerObjectiveType.JumpCount => $"{Mathf.Min(jumps, jumpCount)}/{jumpCount}",
+            RunnerObjectiveType.JumpCount => $"{Mathf.Min(run.jumps, jumpCount)}/{jumpCount}",
+            RunnerObjectiveType.RacePosition => run.raceFinishPlace > 0 ? $"P{run.raceFinishPlace}"
+                                              : run.racePosition > 0 ? $"P{run.racePosition}" : string.Empty,
             _ => string.Empty
         };
 
@@ -80,6 +152,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         {
             RunnerObjectiveType.ReachSpeed => new Color(0.45f, 0.9f, 1f),
             RunnerObjectiveType.JumpCount => new Color(1f, 0.8f, 0.3f),
+            RunnerObjectiveType.RacePosition => new Color(1f, 0.45f, 0.85f),
             _ => Color.white
         };
     }
@@ -142,6 +215,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("Oncoming traffic for this level: hover cars driving the track toward the ship (OncomingTrafficPRD.md). Empty = none.")]
         public Traffic.TrafficDefinition traffic;
 
+        [TitleGroup("Level")]
+        [Tooltip("A race: rival hover ships on a grid with the ship, racing it to the end ramps (RaceModePRD.md). Empty = no race. A race level should author no Reach Speed objective and no traffic.")]
+        public Race.RaceDefinition race;
+
         [TitleGroup("Mission complete")]
         [Tooltip("Clip looping in the panel's video holder. Empty = the holder shows a dead NO SIGNAL screen.")]
         public VideoClip completeVideo;
@@ -172,6 +249,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     foreach (var step in objectives)
                         if (step != null && step.type == RunnerObjectiveType.ReachSpeed) return step.targetSpeedKmh;
                 return -1f;
+            }
+        }
+
+        /// <summary>The first MANDATORY Race Position objective's index, or -1 — the goal the early fail and the lip judge.</summary>
+        public int RaceObjectiveIndex
+        {
+            get
+            {
+                if (objectives != null)
+                    for (int i = 0; i < objectives.Count; i++)
+                        if (objectives[i] != null && objectives[i].type == RunnerObjectiveType.RacePosition) return i;
+                return -1;
             }
         }
 

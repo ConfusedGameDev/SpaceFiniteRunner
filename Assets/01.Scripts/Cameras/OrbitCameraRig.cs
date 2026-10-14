@@ -131,6 +131,8 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         bool cinematicOn;
         float cinematicBlendLeft;
         bool mountPlanted;      // a planted shot has seated its tripod
+        bool focusOn;           // a focus shot holds the picture: the mount is planted where the game put it
+        Transform focus;        // what a focus shot looks at (a per-run object beside the mount)
 
         /// <summary>Built-in tag the rig stamps on its target's colliders so the deoccluder ignores them.</summary>
         const string PlayerTag = "Player";
@@ -145,6 +147,9 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         /// <summary>Name of the cinematic vcam object; pre-placed beside the rig the same way, adopted by Build.</summary>
         public const string CinematicName = "CinematicCamera";
 
+        // The focus shot's aim point: a per-run sibling like the anchor and the mount.
+        const string FocusName = "CameraFocus";
+
         bool ownsFirstPersonObject; // created here (destroy with the rig) vs adopted from the scene (leave it)
         bool ownsCinematicObject;
         const int FirstPersonPriority = 20;
@@ -157,6 +162,9 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
 
         /// <summary>True while the cinematic shot holds the picture (the view cycle is locked meanwhile).</summary>
         public bool Cinematic => cinematicOn;
+
+        /// <summary>True while a <see cref="SetFocusShot"/> holds the picture.</summary>
+        public bool FocusShot => focusOn;
 
         /// <summary>
         /// Whether the player may move the camera. False locks the orbit where
@@ -220,6 +228,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             duelTarget = 0f;
             duelBlend = 0f;
             cinematicOn = false;
+            focusOn = false;
             cinematicBlendLeft = 0f;
             SetMode(settings != null ? settings.defaultMode : CameraMode.Far, instant: true);
             orbital.HorizontalAxis.Value = 0f;
@@ -239,6 +248,55 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             if (on == cinematicOn) return;
             cinematicOn = on;
             cinematicBlendLeft = settings != null ? settings.cinematicBlendSeconds : 0f;
+            if (built) ApplyPriorities();
+        }
+
+        /// <summary>
+        /// The FOCUS shot: the cinematic vcam planted at
+        /// <paramref name="cameraPosition"/> and aimed at
+        /// <paramref name="lookAt"/> — any point in the world, not the
+        /// followed vehicle (the runner's race kill cam frames a rival's
+        /// explosion with it). Cut to over the cinematic blend, above every
+        /// player view, and held until <see cref="ClearFocusShot"/>. Refused
+        /// (false) while the asset's cinematic feature is off or another
+        /// cinematic shot holds the picture.
+        /// </summary>
+        public bool SetFocusShot(Vector3 cameraPosition, Vector3 lookAt)
+        {
+            if (!built || settings == null || !settings.cinematic || cinematicOn || mount == null) return false;
+            if (focus == null)
+            {
+                focus = new GameObject(FocusName).transform;
+                focus.SetParent(transform.parent, false);
+            }
+            Vector3 before = mount.position;
+            Vector3 aim = lookAt - cameraPosition;
+            mount.SetPositionAndRotation(cameraPosition, aim.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(aim, Vector3.up) : mount.rotation);
+            focus.position = lookAt;
+            // A cut: the mount just jumped, possibly kilometres.
+            CinemachineCore.OnTargetObjectWarped(mount, mount.position - before);
+            cinematicCamera.LookAt = focus;
+            focusOn = true;
+            cinematicBlendLeft = settings.cinematicBlendSeconds;
+            ApplySettings();
+            ApplyPriorities();
+            return true;
+        }
+
+        /// <summary>Hands the picture back from a focus shot to the live view (a cut over the cinematic blend). A no-op without one.</summary>
+        public void ClearFocusShot()
+        {
+            if (!focusOn) return;
+            focusOn = false;
+            mountPlanted = false;
+            cinematicCamera.LookAt = target != null && target.Transform != null ? anchor : null;
+            cinematicBlendLeft = settings != null ? settings.cinematicBlendSeconds : 0f;
+            if (target != null && anchor != null)
+            {
+                Vector3 before = mount.position;
+                SeatMount();
+                CinemachineCore.OnTargetObjectWarped(mount, mount.position - before);
+            }
             if (built) ApplyPriorities();
         }
 
@@ -453,6 +511,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             if (ownsFirstPersonObject && firstPersonCamera != null) Destroy(firstPersonCamera.gameObject);
             if (ownsCinematicObject && cinematicCamera != null) Destroy(cinematicCamera.gameObject);
             if (anchor != null) Destroy(anchor.gameObject);
+            if (focus != null) Destroy(focus.gameObject);
             if (mount != null) Destroy(mount.gameObject);
         }
 
@@ -593,10 +652,10 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             // planted shot follows the mount rigidly: it must BE on the
             // tripod the frame the mount freezes, not still catching up
             // from wherever damping had left it at 1800 m/s.
-            cinematicFollow.TrackerSettings.PositionDamping = Vector3.one * (settings.cinematicPlanted ? 0f : settings.cinematicDamping);
+            cinematicFollow.TrackerSettings.PositionDamping = Vector3.one * (settings.cinematicPlanted || focusOn ? 0f : settings.cinematicDamping);
             cinematicDeoccluder.enabled = settings.deoccluder;
             cinematicComposer.Damping = Vector2.one * settings.cinematicAimDamping;
-            cinematicComposer.TargetOffset = new Vector3(0f, settings.cinematicLookHeight, 0f);
+            cinematicComposer.TargetOffset = focusOn ? Vector3.zero : new Vector3(0f, settings.cinematicLookHeight, 0f);
             cinematicCamera.Lens.FieldOfView = settings.cinematicFov;
 
             // Mode switches share one blend length: the brain's default blend
@@ -613,7 +672,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
                                              : CinemachineCore.FindPotentialTargetBrain(cinemachineCamera);
             if (brain != null)
             {
-                float blendSeconds = cinematicOn || cinematicBlendLeft > 0f ? settings.cinematicBlendSeconds : settings.modeBlendSeconds;
+                float blendSeconds = cinematicOn || focusOn || cinematicBlendLeft > 0f ? settings.cinematicBlendSeconds : settings.modeBlendSeconds;
                 brain.DefaultBlend = new CinemachineBlendDefinition(CinemachineBlendDefinition.Styles.EaseInOut, blendSeconds);
             }
         }
@@ -663,7 +722,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         {
             bool firstPerson = mode == CameraMode.FirstPerson && lookBackBlend <= 0f && eye != null;
             firstPersonCamera.Priority = firstPerson ? FirstPersonPriority : OrbitPriority - 1;
-            cinematicCamera.Priority = cinematicOn && mount != null ? CinematicPriority : OrbitPriority - 1;
+            cinematicCamera.Priority = (cinematicOn || focusOn) && mount != null ? CinematicPriority : OrbitPriority - 1;
         }
 
         /// <summary>
@@ -735,6 +794,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
         void SeatMount()
         {
             if (mount == null || anchor == null || settings == null) return;
+            if (focusOn) return; // the focus shot's tripod is the game's, not the vehicle's
             // Planted: the first seat after the cut is the tripod, and it
             // stays put until the shot is over — so the loop or the jump
             // plays out in front of a still camera. The vcam already sits on
@@ -769,6 +829,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             if (cinematicBlendLeft > 0f) cinematicBlendLeft -= Time.deltaTime;
             // The feature switched off under a live shot: drop it.
             if (cinematicOn && !settings.cinematic) SetCinematic(false);
+            if (focusOn && !settings.cinematic) ClearFocusShot();
             ApplySettings(); // live tuning off the inline settings asset
 
             if (target == null) return;
@@ -778,7 +839,7 @@ namespace ConfusedGameDev.FiniteRunner.Cameras
             // menu in the project reads the same chord for its own tabs, and
             // the vehicle may be holding the view (a menu open, a jump), or
             // the game may (the cinematic shot).
-            if (MenuNavigator.CameraCyclePressed() && Time.timeScale > 0f && !target.BlockModeCycle && !cinematicOn)
+            if (MenuNavigator.CameraCyclePressed() && Time.timeScale > 0f && !target.BlockModeCycle && !cinematicOn && !focusOn)
                 CycleMode();
 
             ApplyFraming(dt);
