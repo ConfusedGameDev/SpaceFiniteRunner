@@ -37,7 +37,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// Holds no tunables itself — every balance knob lives on the
     /// <see cref="GameSettings"/> asset, drawn inline here for the designers.
     /// </summary>
-    public class GameManager : MonoBehaviour, Contracts.ITrackRunRules, IRunState
+    public class GameManager : MonoBehaviour, Contracts.ITrackRunRules, IRunState, Contracts.ITimeTrialClock
     {
         [Title("Scene references")]
         [SerializeField, Required] ShipMotor motor;
@@ -49,6 +49,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [SerializeField] Traffic.TrafficSystem traffic;
         [Tooltip("The scene's race system (PF_RaceSystem under ===SYSTEMS===). Bound here to the level's race definition; a level without one leaves it idle.")]
         [SerializeField] Race.RaceSystem race;
+        [Tooltip("The scene's time trial system (PF_TimeTrialSystem under ===SYSTEMS===). Bound here to the level's time trial; a level without one leaves it idle.")]
+        [SerializeField] TimeTrial.TimeTrialSystem timeTrial;
 
         [Title("Flow")]
         [Tooltip("Overlay the main menu (attract screen) over this scene on boot — an in-scene testing shortcut. The shipping flow keeps this off: the menu is its own scene (MainMenu.unity, build index 0) and this scene is reached from the city chase.")]
@@ -74,6 +76,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         int pendingBounty;                 // bounty earned during a kill cam, paid on the cut back
         int raceWrecked;                   // rivals the ship wrecked this run (the Mission Complete race rows)
         long raceBountyPaid;               // the bounty they paid
+        float elapsedRunSeconds;           // flying time this run (TimeTrialPRD D13: the countdown can be topped up, so it is not TimeLimit - TimeRemaining)
+        bool judgingLip;                   // inside OnReachedTrackEnd: a Finish With Time goal is judged now and nowhere else
+        bool reviveOnRespawn;              // an Arcade life was spent on a destroyed ship: the respawn brings the hull back
         EscapeVanish escapeVanish;         // every win's exit: fire trails, the model gone in a flash
         RunnerMusic music;                 // null when the music is off on GameSettings
 
@@ -155,6 +160,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 jumps = jumpCount,
                 racePosition = standings != null ? standings.PlayerPosition : 0,
                 raceFinishPlace = raceFinishPlace,
+                timeLeft = TimeRemaining,
+                finished = judgingLip,
             };
         }
 
@@ -178,10 +185,54 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             get
             {
                 ResolveRunData();
+                // A time trial sets its own clock (TimeTrialPRD R1.1): Arcade's
+                // short start, or Beat the Clock's limit when it names one.
+                TimeTrial.TimeTrialDefinition trial = TrialLevel;
+                if (trial != null)
+                {
+                    if (trial.IsArcade) return Mathf.Min(trial.startSeconds, trial.maxClockSeconds);
+                    if (trial.timeLimitSeconds > 0f) return trial.timeLimitSeconds;
+                }
                 var authored = AuthoredTrack as Track.TrackLayoutAsset;
                 return authored != null && authored.timeLimitSeconds > 0f ? authored.timeLimitSeconds : settings.timeLimitSeconds;
             }
         }
+
+        /// <summary>The level's time trial, or null: none set, or the level is a race (a race wins, TimeTrialPRD section 3).</summary>
+        TimeTrial.TimeTrialDefinition TrialLevel
+        {
+            get
+            {
+                ResolveRunData();
+                return level != null && level.race == null ? level.timeTrial : null;
+            }
+        }
+
+        /// <summary>The time trial this run is bound to, or null: what the HUD, the minimap and the panel read.</summary>
+        public Contracts.ITimeTrialState TimeTrialState => timeTrial != null && timeTrial.TrialActive ? timeTrial : null;
+
+        // An Arcade trial with the hull on: a life is spent and the run goes on (TimeTrialPRD D11).
+        bool ArcadeLives => HullEnabled && timeTrial != null && timeTrial.IsArcade;
+
+        /// <summary>
+        /// The time trial's hand on the clock (TimeTrialPRD R1.2):
+        /// <paramref name="seconds"/> added (negative taken away), clamped to the
+        /// trial's cap and 0 — a clock already over the cap is never cut by it.
+        /// Refused (0) while the run is ending, over or paused. A clock taken to
+        /// 0 fails the run on the next frame, like any time-out.
+        /// </summary>
+        public float AddTime(float seconds)
+        {
+            if (motor == null || RunOver || IsEnding || motor.Paused) return 0f;
+            TimeTrial.TimeTrialDefinition trial = timeTrial != null ? timeTrial.Definition : null;
+            float cap = trial != null ? trial.maxClockSeconds : float.PositiveInfinity;
+            float before = TimeRemaining;
+            TimeRemaining = Mathf.Clamp(before + seconds, 0f, Mathf.Max(cap, before));
+            return TimeRemaining - before;
+        }
+
+        /// <summary>Seconds this run has been flown — the countdown's own clock, before any time was added.</summary>
+        public float ElapsedRunSeconds => elapsedRunSeconds;
 
         /// <summary>
         /// The debug menu's FORCE RUNTIME TRACK: ignore the level's saved track
@@ -426,7 +477,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // tunables live on its PatrolDefinition asset), or park it when
             // the feature is off. A missing reference degrades to a chase-less
             // run instead of breaking the scene.
-            if (settings.patrolEnabled && motor != null && patrol != null)
+            // A time trial may switch the chase off for its level (TimeTrialPRD D5).
+            bool patrolWanted = settings.patrolEnabled && (TrialLevel == null || TrialLevel.patrolEnabled);
+            if (patrolWanted && motor != null && patrol != null)
             {
                 // The composition root hands the patrol what it hunts and may take
                 // over (the motor, through the chase contracts), the run's rules and
@@ -436,7 +489,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             }
             else
             {
-                if (settings.patrolEnabled && motor != null)
+                if (patrolWanted && motor != null)
                     Debug.LogError($"{nameof(GameManager)} has no {nameof(PolicePatrol)} scene reference — running without the chase.", this);
                 if (patrol != null) patrol.gameObject.SetActive(false);
                 patrol = null;
@@ -468,11 +521,23 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 race.RivalDestroyed += OnRivalDestroyed;
             }
 
+            // A time trial: the level opts in with a TimeTrialDefinition; a level
+            // without one (or a race: the race wins) leaves the system idle.
+            if (timeTrial != null)
+            {
+                if (level.race != null && level.timeTrial != null)
+                    Debug.LogWarning($"{nameof(GameManager)}: '{level.name}' is a race and also sets a time trial: the time trial is off for races.", level);
+                if (motor != null) timeTrial.Bind(motor, motor.Track, generator, TrialLevel, this);
+                else timeTrial.Unbind();
+            }
+            if (patrol != null) patrol.Killed += OnPatrolKilled;
+            if (motor != null) motor.RespawnStarted += OnRespawnStarted;
+
             // The track map shows the run's progress with or without a chase;
             // the patrol is only its second marker.
             if (motor != null)
                 ChaseMinimap.Spawn(motor, patrol, this, settings.minimapRangeMeters,
-                                   patrol != null ? patrol.Definition.warnDistance : 0f, generator, Standings);
+                                   patrol != null ? patrol.Definition.warnDistance : 0f, generator, Standings, TimeTrialState);
 
             // The duel: the tug-of-war bar, and the slow motion the exchange
             // runs under. Both no-op without a patrol or with the duel off.
@@ -509,7 +574,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 ? HyperspacePrompt.Spawn(motor) : null;
             hyperspace.Bind(motor, generator, patrol, settings, this, feedback, hyperspacePrompt);
             // No hyperspace in a race (D5): it moves the end mid-run, which would break the finish order.
-            hyperspace.Allowed = level.race == null;
+            // Nor in a time trial (TimeTrialPRD D4): it freezes the clock and moves the end.
+            hyperspace.Allowed = level.race == null && TrialLevel == null;
 
             // Weather rides with the camera and needs nothing from the run, so
             // it goes up before the menu — the debug page binds to the live
@@ -599,7 +665,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (!jumping && !killCamming && patrol != null && patrol.HasCaught)
             {
                 HapticsSystem.Instance.Pulse(settings.bustedRumble);
-                BeginFail(RunOutcome.Caught);
+                // Arcade: an arrest is a life, not the run (TimeTrialPRD D11).
+                if (!TrySpendLife(RunOutcome.Caught)) BeginFail(RunOutcome.Caught);
                 return;
             }
 
@@ -617,6 +684,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // flank, a real choice when the countdown is short.
             float countdownStep = DuelSlowMo.IsActive ? Time.unscaledDeltaTime : Time.deltaTime;
             TimeRemaining = Mathf.Max(0f, TimeRemaining - countdownStep);
+            elapsedRunSeconds += countdownStep;
             if (TimeRemaining <= 0f)
                 BeginFail(RunOutcome.TimedOut);
         }
@@ -640,7 +708,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // A race: the ship's place is fixed by its own lip (D8), and only
             // off a ramp — through a gap it finishes nowhere (MissedRamp).
             if (tookRamp && race != null && Standings != null && raceFinishPlace == 0) raceFinishPlace = race.FixPlayerFinish();
+            // A Finish With Time goal is met off a ramp and nowhere else (TimeTrialPRD D3); through a gap it stays open.
+            judgingLip = tookRamp;
             if (EvaluateObjectives(motor.CurrentSpeed * SpeedDisplayMultiplier)) ObjectivesMet = true;
+            judgingLip = false;
 
             // The hyperspace jump was only offered with every objective met,
             // and pressing it is the win: off the end is the escape whether
@@ -730,7 +801,67 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             failRoutine = StartCoroutine(FinishFail(outcome));
         }
 
-        void OnShipDestroyed() => BeginFail(RunOutcome.Destroyed);
+        void OnShipDestroyed()
+        {
+            // Arcade: the ship blows up and comes back down the track (TimeTrialPRD D11).
+            if (!TrySpendLife(RunOutcome.Destroyed)) BeginFail(RunOutcome.Destroyed);
+        }
+
+        /// <summary>
+        /// An Arcade time trial's lost life (TimeTrialPRD D11, R4): the run goes
+        /// on. A destroyed ship explodes and is respawned down the track by the
+        /// fall's own respawn, its hull given back as it reappears; an arrest
+        /// recycles the cruiser behind and respawns the ship the same way. The
+        /// life and the trial's time penalty are taken here. False (the caller
+        /// fails the run as ever) outside Arcade, with the hull off, on the LAST
+        /// life (that loss is GAME OVER, through BeginFail), once the run is
+        /// decided, or when the ship can no longer be brought back (it left the
+        /// end of the track).
+        /// </summary>
+        bool TrySpendLife(RunOutcome cause)
+        {
+            if (!ArcadeLives || LivesLeft <= 1 || RunOver || IsEnding) return false;
+            if (hyperspace != null && hyperspace.Jumping) return false;
+            if (motor == null || motor.HasLeftTrackEnd) return false;
+
+            // Out of play already (destroyed by a fall's own hit): its respawn is
+            // under way and only the hull needs bringing back. Otherwise it is
+            // sent back now — decided first, because the forced respawn raises
+            // its events INSIDE the call (the fall is skipped): the explosion
+            // must play where the ship WAS, and the revive be armed before the
+            // RespawnStarted that answers it.
+            bool recovering = motor.IsRecovering;
+            if (!recovering && !motor.CanForceRespawn) return false;
+
+            if (cause == RunOutcome.Destroyed)
+            {
+                ExplodeShip();
+                // Already standing back on the road (its RespawnStarted has been): revive now.
+                if (motor.IsRespawning) shipHealth.Revive();
+                else reviveOnRespawn = true;
+            }
+            if (cause == RunOutcome.Caught && patrol != null) patrol.ReleaseArrest();
+            LivesLeft = Mathf.Max(1, LivesLeft - 1);
+            if (timeTrial != null) timeTrial.NotifyLifeLost();
+            if (!recovering) motor.ForceRespawn(cause == RunOutcome.Caught ? "arrested" : "destroyed");
+            return true;
+        }
+
+        // The respawn after a spent life: the hull and the model come back as
+        // the ship reappears (the respawn's blink shields it from here).
+        void OnRespawnStarted(Vector3 teleport)
+        {
+            if (!reviveOnRespawn) return;
+            reviveOnRespawn = false;
+            if (shipHealth != null && !RunOver) shipHealth.Revive();
+        }
+
+        // A cruiser destroyed: an Arcade trial's kill bonus (TimeTrialPRD D10).
+        void OnPatrolKilled(PatrolKillCause cause)
+        {
+            if (RunOver || IsEnding) return;
+            if (timeTrial != null) timeTrial.NotifyPatrolKill(cause);
+        }
 
         // A rival wrecked because of the player pays its bounty (RaceModePRD
         // R5.6) through the money pickup's own path; its own mistakes pay
@@ -768,6 +899,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         // pad, dash slam, ramp side) already has its own (RunFeedback's wall hit, the pad's).
         void OnHullDamaged(float amount, bool hard)
         {
+            // A time trial's clean run to the next checkpoint (TimeTrialPRD D9).
+            if (timeTrial != null)
+            {
+                if (hard) timeTrial.NotifyHit();
+                else timeTrial.NotifyScrape();
+            }
             if (GlitchController.Instance != null)
                 GlitchController.Instance.Pulse(settings.hullHitGlitchStrength);
             if (hard) return;
@@ -852,7 +989,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // timer only ran while flying and stops at the win, so this is
             // launch to the end ramp's lip), or a failed one; the patrol
             // catching up is the runner's arrest.
-            PlayerStats.RecordRunEnded(outcome == RunOutcome.Escaped, TimeLimit - TimeRemaining);
+            PlayerStats.RecordRunEnded(outcome == RunOutcome.Escaped, elapsedRunSeconds);
             if (outcome == RunOutcome.Caught) PlayerStats.RecordArrest();
             PlayerProfileStore.SaveIfDirty();
 
@@ -1060,6 +1197,19 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 data.raceWrecked = raceWrecked;
                 data.raceBounty = raceBountyPaid;
             }
+            Contracts.ITimeTrialState trial = TimeTrialState;
+            if (trial != null)
+            {
+                data.trialActive = true;
+                data.trialArcade = trial.IsArcade;
+                data.trialTimeLeft = TimeRemaining;
+                data.trialElapsed = elapsedRunSeconds;
+                data.trialCheckpoints = trial.CheckpointsPassed;
+                data.trialCheckpointCount = trial.CheckpointCount;
+                data.trialClean = trial.CleanCheckpoints;
+                data.trialKills = trial.PatrolKills;
+                data.trialLivesLost = trial.LivesLost;
+            }
             if (hasCity) data.challenges.AddRange(last.challenges);
             for (int i = 0; i < level.ChallengeCount; i++)
             {
@@ -1125,6 +1275,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void OnFellOff()
         {
             if (patrol != null) patrol.SetHold(true);
+            if (timeTrial != null) timeTrial.NotifyHit();
         }
 
         void OnRespawned()
@@ -1159,6 +1310,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (motor == null || IsEnding || RunOver || (hyperspace != null && hyperspace.Jumping)) return;
             bool hullOn = settings.hullEnabled && shipHealth != null;
             if (hullOn && !(fromTraffic ? shipHealth.ApplyTrafficHit() : shipHealth.ApplyLaserHit())) return;
+            if (timeTrial != null) timeTrial.NotifyHit(); // hull on or off, a beam or a car breaks a clean checkpoint
 
             motor.ApplyImpactSpeedLoss(settings.laserSpeedLoss);
 
@@ -1191,6 +1343,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             LaserGate.Hit -= OnLaserHit;
             if (traffic != null) traffic.ShipStruck -= OnTrafficStruck;
             if (race != null) race.RivalDestroyed -= OnRivalDestroyed;
+            if (patrol != null) patrol.Killed -= OnPatrolKilled;
+            if (motor != null) motor.RespawnStarted -= OnRespawnStarted;
             if (killCam != null) killCam.Ended -= OnKillCamEnded;
             if (shipHealth != null)
             {
@@ -1230,6 +1384,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             lostSpeedAtEnd = false;
             runCounted = false;
             TimeRemaining = TimeLimit;
+            elapsedRunSeconds = 0f;
+            judgingLip = false;
+            reviveOnRespawn = false;
             ResetObjectives();
             // A fresh hull and the ship back on screen; the LIVES are the
             // mission's and carry over. A retry after a WIN is another go at a
@@ -1252,6 +1409,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (patrol != null) patrol.Launch();
             if (traffic != null) traffic.ResetForRun();
             if (race != null) race.ResetForRun();
+            if (timeTrial != null) timeTrial.ResetForRun();
 
             // Reopen ship setup so points can be re-allocated; it re-launches on START.
             if (tuningScreen != null) tuningScreen.Show();

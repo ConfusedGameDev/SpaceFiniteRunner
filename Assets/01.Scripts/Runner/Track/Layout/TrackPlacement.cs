@@ -18,6 +18,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         Loop = 8,
         /// <summary>Retired: only runtime generation places one, when the brake spawner is back in the set.</summary>
         BrakePad = 9,
+        /// <summary>An Arcade time trial's checkpoint (TimeTrialPRD D7): built by the TimeTrialSystem, never by the generator.</summary>
+        Checkpoint = 10,
     }
 
     /// <summary>

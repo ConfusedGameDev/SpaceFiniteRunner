@@ -101,6 +101,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             SetShipVisible(true);
         }
 
+        /// <summary>
+        /// Back from 0 mid-run: a full hull, no longer destroyed, the model on
+        /// again, the hit blink cleared — an Arcade time trial's respawn after a
+        /// life is spent (TimeTrialPRD D11). <see cref="ResetForRun"/> by another
+        /// name, so the two can never drift apart.
+        /// </summary>
+        public void Revive() => ResetForRun();
+
         /// <summary>Switches every renderer of the ship's model (mesh, trails, particles) off, or hands back exactly the ones it switched off.</summary>
         public void SetShipVisible(bool visible)
         {

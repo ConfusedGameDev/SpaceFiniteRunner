@@ -137,6 +137,45 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             RespawnStarted?.Invoke(teleport);
         }
         void ForwardRespawned() => Respawned?.Invoke();
+
+        /// <summary>
+        /// Takes the ship out of play now and brings it back down the track by
+        /// the fall's own respawn (<see cref="ShipRecovery.BeginFall"/>, the fall
+        /// itself skipped): <see cref="FellOff"/>, then the respawn wait and the
+        /// blink, then the relaunch. What an Arcade time trial does with a ship
+        /// that blew up and still has lives (TimeTrialPRD D11). False when there
+        /// is no physical ship or it is already out of play or off the end.
+        /// </summary>
+        public bool ForceRespawn(string reason)
+        {
+            if (!CanForceRespawn) return false;
+            GetComponent<ShipRecovery>().BeginFall(reason, skipFall: true);
+            return true;
+        }
+
+        /// <summary>
+        /// True when <see cref="ForceRespawn"/> would act: a physical ship in
+        /// play, with its recovery, on the track. Note that the respawn's own
+        /// events (<see cref="FellOff"/>, <see cref="RespawnStarted"/>) are raised
+        /// INSIDE that call — the fall is skipped — so anything a listener needs
+        /// must be set up before it.
+        /// </summary>
+        public bool CanForceRespawn
+        {
+            get
+            {
+                if (physicsShip == null || physicsLeftEnd || HasLeftTrackEnd || GetComponent<ShipRecovery>() == null) return false;
+                ShipState state = physicsShip.Body.State;
+                return state != ShipState.OffTrack && state != ShipState.Respawning && state != ShipState.Falling;
+            }
+        }
+
+        /// <summary>True while the ship is out of play on its way back: over an edge, or waiting out its respawn.</summary>
+        public bool IsRecovering => physicsShip != null && !physicsLeftEnd && !HasLeftTrackEnd
+                                    && (physicsShip.Body.State == ShipState.OffTrack || physicsShip.Body.State == ShipState.Respawning);
+
+        /// <summary>True once the ship stands back on the road for its respawn (the wait, or a rolling start's blink).</summary>
+        public bool IsRespawning => physicsShip != null && physicsShip.Body.State == ShipState.Respawning;
         void ForwardLanded()
         {
             // The jump paid its boost at the lip; a barrel roll in the flight pays the bonus now, on touchdown.

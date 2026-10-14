@@ -63,6 +63,11 @@ Preview** (Odin button) draws the segments in edit mode. Do not add position/siz
   the `targetText` slot reads `POS  {place}/{racers}` (`MenuTextId.HudRacePosition`) instead of
   the Light Speed line — `winColor` in first, a pulse on every change of place. Its objective line
   (FINISH TOP 3 …) reads progress through `IRunState.ObjectiveState`.
+- **A time trial's clock and goal line** (`runner-timetrial.md`): while `ITimeTrialState.TrialActive`
+  the timer reads tenths under a minute, tints and pulses under the trial's low-time warning, and
+  flashes / punches on every `ClockAdjusted` with a `CHECKPOINT +4.2S`-style floater; the
+  `targetText` slot reads `CHECKPOINT  n/N` (Arcade) or `BEAT THE CLOCK` ("Time trial clock" knobs).
+  The "always yellow, no low-time tint" rule above holds for every other level.
 - Every booster hit spawns a floating "+N" at the ship (`FloatingWorldText`, spawned here);
   `MoneyChanged` is answered with a gold `+$N` floating text.
 - **The boost QTE's verdict** (`qteResultText`, the `QteResultText` object, top-left by default):
@@ -240,6 +245,9 @@ rank table and **banks nothing**. The runner's rows come off the live `GameManag
 WRECKED, BOUNTIES. They are **display-only** lines (`Line.info`): typed, the value set with a
 punch, never counted — the bounties were already paid during the run, so they stay out of the
 TOTAL and the mission payout.
+
+**A time trial adds a TIME TRIAL section** after it (`trialActive`; TIME LEFT, RUN TIME, and in
+Arcade CHECKPOINTS n / N, CLEAN CHECKPOINTS, PATROLS DOWNED, LIVES LOST) — display-only like RACE.
 
 ### Layout and reveal
 

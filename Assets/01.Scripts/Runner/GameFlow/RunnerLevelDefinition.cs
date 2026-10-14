@@ -8,7 +8,7 @@ using ConfusedGameDev.FiniteRunner.SaveData;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>The things an escape run can ask of the pilot. Order is the save format — append only.</summary>
-    public enum RunnerObjectiveType { ReachSpeed = 0, JumpCount = 1, RacePosition = 2 }
+    public enum RunnerObjectiveType { ReachSpeed = 0, JumpCount = 1, RacePosition = 2, FinishWithTime = 3 }
 
     /// <summary>What a Race Position objective asks (RaceModePRD R5.3). Serialized — append only.</summary>
     public enum RaceGoalMode { Win = 0, TopX = 1, Exactly = 2 }
@@ -29,6 +29,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public int racePosition;
         /// <summary>The ship's finishing place, fixed at its lip; 0 = not finished.</summary>
         public int raceFinishPlace;
+        /// <summary>Seconds left on the run's countdown.</summary>
+        public float timeLeft;
+        /// <summary>True only while the ship's lip is judged (it has reached the end of the track): a Finish With Time goal is met there and nowhere else (TimeTrialPRD D3).</summary>
+        public bool finished;
     }
 
     /// <summary>
@@ -66,6 +70,11 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("The place X the mode asks for.")]
         [PropertyRange(1, 30)]
         public int racePosition = 3;
+
+        [ShowIf("type", RunnerObjectiveType.FinishWithTime)]
+        [Tooltip("Leave the track by an end ramp with at least this many seconds still on the clock. 0 = just finish before it runs out — a time trial's goal (TimeTrialPRD D3).")]
+        [PropertyRange(0f, 300f), SuffixLabel("s", true)]
+        public float minSecondsLeft = 0f;
 
         [HideIf(nameof(IsChallenge))]
         [Tooltip("Money this objective pays on the Mission Complete panel, added to the city level's rewards before the challenge multipliers apply.")]
@@ -121,6 +130,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 RaceGoalMode.TopX => RaceTarget == 1 ? "FINISH 1ST" : $"FINISH TOP {RaceTarget}",
                 _ => $"FINISH {Ordinal(RaceTarget)}"
             },
+            RunnerObjectiveType.FinishWithTime => minSecondsLeft > 0f ? $"FINISH WITH {minSecondsLeft:0}S LEFT" : "FINISH IN TIME",
             _ => type.ToString().ToUpperInvariant()
         };
 
@@ -136,6 +146,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             RunnerObjectiveType.ReachSpeed => run.speedKmh >= targetSpeedKmh,
             RunnerObjectiveType.JumpCount => run.jumps >= jumpCount,
             RunnerObjectiveType.RacePosition => MeetsRacePlace(run.raceFinishPlace),
+            RunnerObjectiveType.FinishWithTime => run.finished && run.timeLeft > 0f && run.timeLeft >= minSecondsLeft,
             _ => false
         };
 
@@ -153,6 +164,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             RunnerObjectiveType.ReachSpeed => new Color(0.45f, 0.9f, 1f),
             RunnerObjectiveType.JumpCount => new Color(1f, 0.8f, 0.3f),
             RunnerObjectiveType.RacePosition => new Color(1f, 0.45f, 0.85f),
+            RunnerObjectiveType.FinishWithTime => new Color(0.55f, 1f, 0.6f),
             _ => Color.white
         };
     }
@@ -219,6 +231,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("A race: rival hover ships on a grid with the ship, racing it to the end ramps (RaceModePRD.md). Empty = no race. A race level should author no Reach Speed objective and no traffic.")]
         public Race.RaceDefinition race;
 
+        [TitleGroup("Level")]
+        [Tooltip("A time trial: Beat the Clock (a set time to the end ramps) or Arcade (a short clock fed by checkpoints, clean flying and patrol kills) — TimeTrialPRD.md. Empty = none. A time trial level should author a Finish With Time objective and no Reach Speed. Ignored on a race level.")]
+        public TimeTrial.TimeTrialDefinition timeTrial;
+
         [TitleGroup("Mission complete")]
         [Tooltip("Clip looping in the panel's video holder. Empty = the holder shows a dead NO SIGNAL screen.")]
         public VideoClip completeVideo;
@@ -260,6 +276,18 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 if (objectives != null)
                     for (int i = 0; i < objectives.Count; i++)
                         if (objectives[i] != null && objectives[i].type == RunnerObjectiveType.RacePosition) return i;
+                return -1;
+            }
+        }
+
+        /// <summary>The first MANDATORY Finish With Time objective's index, or -1.</summary>
+        public int FinishObjectiveIndex
+        {
+            get
+            {
+                if (objectives != null)
+                    for (int i = 0; i < objectives.Count; i++)
+                        if (objectives[i] != null && objectives[i].type == RunnerObjectiveType.FinishWithTime) return i;
                 return -1;
             }
         }

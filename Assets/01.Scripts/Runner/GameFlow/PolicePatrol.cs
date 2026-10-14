@@ -12,6 +12,17 @@ using ConfusedGameDev.FiniteRunner.UI;
 using ConfusedGameDev.FiniteRunner.Contracts;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
+    /// <summary>What destroyed a patrol cruiser (<see cref="PolicePatrol.Killed"/>). Never serialized.</summary>
+    public enum PatrolKillCause
+    {
+        /// <summary>The kill prompt's press, after a won tug of war.</summary>
+        Finisher,
+        /// <summary>It drove through a laser beam.</summary>
+        Laser,
+        /// <summary>An oncoming car hit it.</summary>
+        Traffic,
+    }
+
     /// <summary>
     /// The police patrol chasing the ship down the track. Rubber-band chase:
     /// its target speed is the ship's current speed times a factor, floored
@@ -298,7 +309,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         void ITrafficVictim.HitByTraffic()
         {
             if (IsGone || HasCaught) return;
-            Kill(spendsDashMeter: false, raiseFloor: false);
+            Kill(spendsDashMeter: false, raiseFloor: false, PatrolKillCause.Traffic);
         }
 
         // The end fall, flown in world space like the ship's.
@@ -320,6 +331,31 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// is the GameManager's (it owns the message texts on GameSettings).
         /// </summary>
         public event System.Action<int> Redeployed;
+
+        /// <summary>
+        /// The cruiser was destroyed — the finisher, a laser beam or an
+        /// oncoming car — just before it is recycled behind the ship (which
+        /// still raises <see cref="Redeployed"/>). A time trial pays its kill
+        /// bonus on it (TimeTrialPRD D10). Never raised for a fall or an outrun.
+        /// </summary>
+        public event System.Action<PatrolKillCause> Killed;
+
+        /// <summary>
+        /// Lets go of an arrest the run chose not to end on (an Arcade time
+        /// trial spends a life instead, TimeTrialPRD D11): the catch is cleared,
+        /// any run dropped, the controls handed back, and the cruiser recycled
+        /// behind the ship as the next patrol — no floor raise, the player
+        /// earned nothing. No-op unless it has caught the ship.
+        /// </summary>
+        public void ReleaseArrest()
+        {
+            if (!HasCaught || body == null || runtimeDef == null) return;
+            HasCaught = false;
+            encounter.Abort();
+            ReleaseControl();
+            if (target != null) control.SteerAssist = 0f;
+            Redeploy(raiseFloor: false);
+        }
 
         /// <summary>
         /// The patrol closed inside its warn distance; the argument is the gap
@@ -554,7 +590,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                       : ControlBindings.WasPressedThisFrame(GameAction.ShipDashLeft) ? -1 : 0;
             if (press == 0) return;
             // No dash meter charge: nothing was dashed. Escalation is the price.
-            if (encounter.ReportFinisherPress(press)) Kill(spendsDashMeter: false, raiseFloor: true);
+            if (encounter.ReportFinisherPress(press)) Kill(spendsDashMeter: false, raiseFloor: true, PatrolKillCause.Finisher);
         }
 
         /// <summary>
@@ -567,9 +603,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         /// price a caller MAY charge; the finisher's press no longer does, since
         /// nothing was dashed. <paramref name="raiseFloor"/> is the escalation:
         /// earned kills make the next patrol faster, hazard deaths do not,
-        /// exactly as a patrol's fall does not.
+        /// exactly as a patrol's fall does not. <paramref name="cause"/> is what
+        /// <see cref="Killed"/> reports.
         /// </summary>
-        void Kill(bool spendsDashMeter, bool raiseFloor)
+        void Kill(bool spendsDashMeter, bool raiseFloor, PatrolKillCause cause)
         {
             GameSettings rules = runRules;
             Vector3 origin = visual != null ? visual.position : transform.position;
@@ -593,6 +630,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
             float gap = runtimeDef.killTeleportGap > 0f ? runtimeDef.killTeleportGap : runtimeDef.RedeployGap;
             Redeploy(raiseFloor, gapOverride: gap);
+            Killed?.Invoke(cause);
         }
 
         /// <summary>
@@ -612,7 +650,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // LaserGate's own RehitSeconds guard is keyed on RaiseHit, which
             // this path never calls, so the cruiser needs its own.
             laserCooldown = LaserRehitSeconds;
-            Kill(spendsDashMeter: false, raiseFloor: false);
+            Kill(spendsDashMeter: false, raiseFloor: false, PatrolKillCause.Laser);
             return true;
         }
 

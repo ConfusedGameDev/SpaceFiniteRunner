@@ -172,7 +172,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // Race mode: the HUD's position readout ({0} = place, {1} = racers) and the two race lose reasons.
         HudRacePosition, LoseRaceBeaten, LoseRacePosition,
         // Race mode: the pause menu's RACE page (rows and actions), then the Mission Complete race rows.
-        DebugTabRace, RaceRubberBand, RaceGhostPace, RaceThrustShare, RaceOrbShare, RaceFormVariance, RaceSurgeAmount, RaceLaneSpread, RaceRamSpeedCost, RaceSideShove, RaceCreditWindow, RaceKillCam, RaceKillCamScale, RaceKillCamSeconds, RaceKillCamRange, RaceReadout, RaceGhostWireframes, RaceKillNearest, RaceDnfAll, RaceFinishAll, RaceResults, RaceFinishPlace, RaceWrecked, RaceBounties, RaceLeadGovernor, RaceLeadCapFar
+        DebugTabRace, RaceRubberBand, RaceGhostPace, RaceThrustShare, RaceOrbShare, RaceFormVariance, RaceSurgeAmount, RaceLaneSpread, RaceRamSpeedCost, RaceSideShove, RaceCreditWindow, RaceKillCam, RaceKillCamScale, RaceKillCamSeconds, RaceKillCamRange, RaceReadout, RaceGhostWireframes, RaceKillNearest, RaceDnfAll, RaceFinishAll, RaceResults, RaceFinishPlace, RaceWrecked, RaceBounties, RaceLeadGovernor, RaceLeadCapFar,
+        // Time trials: the HUD goal lines, the clock floaters ({0} = the signed seconds), the Mission Complete rows, then the pause menu's TIME TRIAL page.
+        HudCheckpoint, HudBeatTheClock, TtCheckpoint, TtClean, TtPatrolDown, TtLifeLost, TtResults, TtTimeLeft, TtRunTime, TtCheckpoints, TtCleanCheckpoints, TtPatrolsDowned, TtLivesLost, DebugTabTimeTrial, TtStartSeconds, TtTimeLimit, TtMaxClock, TtAutoCount, TtPaceShare, TtGrace, TtCleanBonus, TtKillBonus, TtLifePenalty, TtLowTime, TtCrossNext, TtRelayout, TtAddTime, TtDebugLog, TtPaceFloor
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1216,6 +1218,36 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString raceBounties = new("BOUNTIES", "RECOMPENSAS", "賞金", "PRIMES");
         [SerializeField] LocalizedString raceLeadGovernor = new("LEAD GOVERNOR", "LIMITADOR DEL LÍDER", "先頭の速度制限", "LIMITEUR DU MENEUR");
         [SerializeField] LocalizedString raceLeadCapFar = new("LEADER SPEED CAP", "TOPE DE VELOCIDAD DEL LÍDER", "先頭の速度上限", "PLAFOND DE VITESSE DU MENEUR");
+        [TitleGroup("Time trial")]
+        [SerializeField] LocalizedString hudCheckpoint = new("CHECKPOINT  {0}/{1}", "CONTROL  {0}/{1}", "チェックポイント  {0}/{1}", "CHECKPOINT  {0}/{1}");
+        [SerializeField] LocalizedString hudBeatTheClock = new("BEAT THE CLOCK", "VENCE AL RELOJ", "時間内にゴール", "BATTEZ LA MONTRE");
+        [SerializeField] LocalizedString ttCheckpoint = new("CHECKPOINT {0}", "CONTROL {0}", "チェックポイント {0}", "CHECKPOINT {0}");
+        [SerializeField] LocalizedString ttClean = new("CLEAN {0}", "LIMPIO {0}", "ノーミス {0}", "SANS FAUTE {0}");
+        [SerializeField] LocalizedString ttPatrolDown = new("PATROL DOWN {0}", "PATRULLA ABATIDA {0}", "パトロール撃破 {0}", "PATROUILLE ABATTUE {0}");
+        [SerializeField] LocalizedString ttLifeLost = new("LIFE LOST {0}", "VIDA PERDIDA {0}", "ライフ喪失 {0}", "VIE PERDUE {0}");
+        [SerializeField] LocalizedString ttResults = new("TIME TRIAL", "CONTRARRELOJ", "タイムトライアル", "CONTRE-LA-MONTRE");
+        [SerializeField] LocalizedString ttTimeLeft = new("TIME LEFT", "TIEMPO RESTANTE", "残り時間", "TEMPS RESTANT");
+        [SerializeField] LocalizedString ttRunTime = new("RUN TIME", "TIEMPO DE CARRERA", "走行時間", "TEMPS DE COURSE");
+        [SerializeField] LocalizedString ttCheckpoints = new("CHECKPOINTS", "CONTROLES", "チェックポイント", "CHECKPOINTS");
+        [SerializeField] LocalizedString ttCleanCheckpoints = new("CLEAN CHECKPOINTS", "CONTROLES LIMPIOS", "ノーミス通過", "CHECKPOINTS SANS FAUTE");
+        [SerializeField] LocalizedString ttPatrolsDowned = new("PATROLS DOWNED", "PATRULLAS ABATIDAS", "撃破したパトロール", "PATROUILLES ABATTUES");
+        [SerializeField] LocalizedString ttLivesLost = new("LIVES LOST", "VIDAS PERDIDAS", "失ったライフ", "VIES PERDUES");
+        [SerializeField] LocalizedString debugTabTimeTrial = new("TIME TRIAL", "CONTRARRELOJ", "タイムトライアル", "CONTRE-LA-MONTRE");
+        [SerializeField] LocalizedString ttStartSeconds = new("START TIME (S)", "TIEMPO INICIAL (S)", "開始時間 (秒)", "TEMPS DE DÉPART (S)");
+        [SerializeField] LocalizedString ttTimeLimit = new("TIME LIMIT (S)", "LÍMITE DE TIEMPO (S)", "制限時間 (秒)", "TEMPS LIMITE (S)");
+        [SerializeField] LocalizedString ttMaxClock = new("CLOCK CAP (S)", "TOPE DEL RELOJ (S)", "時間の上限 (秒)", "PLAFOND DU CHRONO (S)");
+        [SerializeField] LocalizedString ttAutoCount = new("CHECKPOINT COUNT", "NÚMERO DE CONTROLES", "チェックポイント数", "NOMBRE DE CHECKPOINTS");
+        [SerializeField] LocalizedString ttPaceShare = new("CHECKPOINT PACE", "RITMO DE CONTROL", "チェックポイントのペース", "RYTHME DES CHECKPOINTS");
+        [SerializeField] LocalizedString ttGrace = new("CHECKPOINT GRACE (S)", "MARGEN DE CONTROL (S)", "チェックポイントの猶予 (秒)", "MARGE DES CHECKPOINTS (S)");
+        [SerializeField] LocalizedString ttCleanBonus = new("CLEAN BONUS (S)", "BONUS LIMPIO (S)", "ノーミスボーナス (秒)", "BONUS SANS FAUTE (S)");
+        [SerializeField] LocalizedString ttKillBonus = new("PATROL KILL BONUS (S)", "BONUS POR PATRULLA (S)", "パトロール撃破ボーナス (秒)", "BONUS PATROUILLE (S)");
+        [SerializeField] LocalizedString ttLifePenalty = new("LIFE PENALTY (S)", "PENALIZACIÓN POR VIDA (S)", "ライフ喪失ペナルティ (秒)", "PÉNALITÉ DE VIE (S)");
+        [SerializeField] LocalizedString ttLowTime = new("LOW TIME WARNING (S)", "AVISO DE POCO TIEMPO (S)", "残り時間警告 (秒)", "ALERTE TEMPS FAIBLE (S)");
+        [SerializeField] LocalizedString ttCrossNext = new("CROSS NEXT CHECKPOINT", "PASAR EL SIGUIENTE CONTROL", "次のチェックポイントを通過", "PASSER LE CHECKPOINT SUIVANT");
+        [SerializeField] LocalizedString ttRelayout = new("LAY CHECKPOINTS AGAIN", "RECOLOCAR CONTROLES", "チェックポイントを再配置", "REPLACER LES CHECKPOINTS");
+        [SerializeField] LocalizedString ttAddTime = new("ADD 10 SECONDS", "SUMAR 10 SEGUNDOS", "10秒追加", "AJOUTER 10 SECONDES");
+        [SerializeField] LocalizedString ttPaceFloor = new("CHECKPOINT PACE FLOOR (KM/H)", "RITMO MÍNIMO DE CONTROL (KM/H)", "チェックポイントの最低ペース (KM/H)", "RYTHME MIN. DES CHECKPOINTS (KM/H)");
+        [SerializeField] LocalizedString ttDebugLog = new("CLOCK LOG", "REGISTRO DEL RELOJ", "時間ログ", "JOURNAL DU CHRONO");
         [Tooltip("The debug menu's per-spawner density row. {0} = the spawner's name.")]
         [SerializeField] LocalizedString spawnDensity = new("{0} DENSITY", "DENSIDAD: {0}", "{0} 密度", "DENSITÉ : {0}");
         [SerializeField] LocalizedString respawnPatrolGap = new("RESPAWN PATROL GAP", "VENTAJA SOBRE LA PATRULLA", "リスポーン時のパトロール差", "AVANCE SUR LA PATROUILLE");
@@ -1749,6 +1781,35 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.RaceBounties => raceBounties,
             MenuTextId.RaceLeadGovernor => raceLeadGovernor,
             MenuTextId.RaceLeadCapFar => raceLeadCapFar,
+            MenuTextId.HudCheckpoint => hudCheckpoint,
+            MenuTextId.HudBeatTheClock => hudBeatTheClock,
+            MenuTextId.TtCheckpoint => ttCheckpoint,
+            MenuTextId.TtClean => ttClean,
+            MenuTextId.TtPatrolDown => ttPatrolDown,
+            MenuTextId.TtLifeLost => ttLifeLost,
+            MenuTextId.TtResults => ttResults,
+            MenuTextId.TtTimeLeft => ttTimeLeft,
+            MenuTextId.TtRunTime => ttRunTime,
+            MenuTextId.TtCheckpoints => ttCheckpoints,
+            MenuTextId.TtCleanCheckpoints => ttCleanCheckpoints,
+            MenuTextId.TtPatrolsDowned => ttPatrolsDowned,
+            MenuTextId.TtLivesLost => ttLivesLost,
+            MenuTextId.DebugTabTimeTrial => debugTabTimeTrial,
+            MenuTextId.TtStartSeconds => ttStartSeconds,
+            MenuTextId.TtTimeLimit => ttTimeLimit,
+            MenuTextId.TtMaxClock => ttMaxClock,
+            MenuTextId.TtAutoCount => ttAutoCount,
+            MenuTextId.TtPaceShare => ttPaceShare,
+            MenuTextId.TtGrace => ttGrace,
+            MenuTextId.TtCleanBonus => ttCleanBonus,
+            MenuTextId.TtKillBonus => ttKillBonus,
+            MenuTextId.TtLifePenalty => ttLifePenalty,
+            MenuTextId.TtLowTime => ttLowTime,
+            MenuTextId.TtCrossNext => ttCrossNext,
+            MenuTextId.TtRelayout => ttRelayout,
+            MenuTextId.TtAddTime => ttAddTime,
+            MenuTextId.TtDebugLog => ttDebugLog,
+            MenuTextId.TtPaceFloor => ttPaceFloor,
             _ => start
         };
     }

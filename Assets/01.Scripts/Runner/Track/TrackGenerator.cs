@@ -874,6 +874,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 case TrackPlacementKind.CustomPrefab:
                     BuildCustomPrefab(placement);
                     break;
+                case TrackPlacementKind.Checkpoint:
+                    break; // a time trial's mark: the TimeTrialSystem draws the gate (TimeTrialPRD D7)
                 default:
                     foreach (var spawner in runtimeSpawners)
                         if (spawner != null && spawner.Kind == placement.kind) { spawner.Build(spawnContext, placement); break; }

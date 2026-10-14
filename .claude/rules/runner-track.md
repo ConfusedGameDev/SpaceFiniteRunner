@@ -331,6 +331,10 @@ stay endless.
     by their spawners) or a NEW power-up — a `PadSpawnEntry` (prefab + `PadDefinition`) built as a
     `SpeedPad` from a `Pickup` record that indexes the entry: adding a power-up is adding an entry, no
     code. Keep the order (records index it). Brake pads are not offered.
+  - **`Checkpoint`** records (kind 10) are a time trial's checkpoints (`runner-timetrial.md`): the
+    generator's `Build` ignores them (the `TimeTrialSystem` draws the gate), the palette offers
+    "Checkpoint (time trial)" on the centre line, the gizmo draws a green line across the road, Checks
+    warn on one inside a keep-out, and Reroll keeps them.
   - **`CustomPrefab`** records index the asset's `customPrefabs` list; built standing on the road at
     their spot + height, culled like the rest.
   - **Verified** on a copy of a saved track: a catalog orb, a new catalog power-up and a custom prefab

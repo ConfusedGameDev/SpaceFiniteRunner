@@ -33,6 +33,11 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         public int racePlace, raceRacers, raceWrecked;
         public long raceBounty;
 
+        /// <summary>A time trial's result (TimeTrialPRD R5.5): on/off, Arcade or Beat the Clock, the seconds left and flown, checkpoints crossed (clean) of how many, patrols destroyed, lives spent. Display only: the pay is the objectives'.</summary>
+        public bool trialActive, trialArcade;
+        public float trialTimeLeft, trialElapsed;
+        public int trialCheckpoints, trialCheckpointCount, trialClean, trialKills, trialLivesLost;
+
         /// <summary>(bonus + every done objective's reward) × every done challenge's multiplier.</summary>
         public long FinalTotal
         {
@@ -295,6 +300,21 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                 AddInfoRow(MenuTextId.RaceFinishPlace, StatFormat.Ratio(data.racePlace, data.raceRacers), typed);
                 AddInfoRow(MenuTextId.RaceWrecked, StatFormat.Count(data.raceWrecked), typed);
                 AddInfoRow(MenuTextId.RaceBounties, StatFormat.Money(data.raceBounty), typed);
+            }
+
+            // TIME TRIAL — the clock and how it was fed, display only.
+            if (data.trialActive)
+            {
+                results.AddRow<StatHeaderRow>(MenuTextId.TtResults);
+                AddInfoRow(MenuTextId.TtTimeLeft, StatFormat.Lap(data.trialTimeLeft), typed);
+                AddInfoRow(MenuTextId.TtRunTime, StatFormat.Lap(data.trialElapsed), typed);
+                if (data.trialArcade)
+                {
+                    AddInfoRow(MenuTextId.TtCheckpoints, StatFormat.Ratio(data.trialCheckpoints, data.trialCheckpointCount), typed);
+                    AddInfoRow(MenuTextId.TtCleanCheckpoints, StatFormat.Count(data.trialClean), typed);
+                    AddInfoRow(MenuTextId.TtPatrolsDowned, StatFormat.Count(data.trialKills), typed);
+                    AddInfoRow(MenuTextId.TtLivesLost, StatFormat.Count(data.trialLivesLost), typed);
+                }
             }
 
             // OPTIONAL CHALLENGES — city accepted ones, then the run's.

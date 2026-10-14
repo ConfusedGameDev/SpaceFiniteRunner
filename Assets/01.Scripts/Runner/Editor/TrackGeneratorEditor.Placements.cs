@@ -85,6 +85,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                     int index = i;
                     items.Add(new PaletteItem { label = "Ramp/" + table[i].name, make = (d, l) => new TrackPlacement(TrackPlacementKind.Ramp, d, l, index) });
                 }
+            // A time trial's checkpoint (TimeTrialPRD D7): a mark across the whole road, so it sits on the centre line.
+            items.Add(new PaletteItem { label = "Checkpoint (time trial)", make = (d, l) => new TrackPlacement(TrackPlacementKind.Checkpoint, d, 0f) });
             items.Add(new PaletteItem { label = "Coin", make = (d, l) => new TrackPlacement(TrackPlacementKind.Collectible, d, l, 0, new Vector4(3f, 0f, 0f, 0f)) });
             items.Add(new PaletteItem { label = "Custom prefab", make = null }); // needs the prefab field
             return items;
@@ -418,6 +420,14 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                     case TrackPlacementKind.BrakePad:
                         pickups.Add(i);
                         break;
+                    case TrackPlacementKind.Checkpoint:
+                        foreach (Vector2 keepOut in layout.keepOuts)
+                            if (keepOut.y <= zone && p.distance > keepOut.x && p.distance < keepOut.y)
+                            {
+                                warnings.Add((i, "checkpoint on a ramp, its landing or a feature"));
+                                break;
+                            }
+                        break;
                 }
             }
 
@@ -494,6 +504,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                     return orbs?.Tiers != null && p.variant >= 0 && p.variant < orbs.Tiers.Length ? orbs.Tiers[p.variant].name + " orb" : "Speed orb";
                 case TrackPlacementKind.LaserGate: return ((LaserGateVariant)p.variant) + " laser gate";
                 case TrackPlacementKind.Ramp: return "Ramp";
+                case TrackPlacementKind.Checkpoint: return "Checkpoint";
                 case TrackPlacementKind.Collectible: return $"Coin (${Mathf.RoundToInt(p.data.x)})";
                 case TrackPlacementKind.Pickup:
                     var catalog = generator.Catalog;

@@ -346,7 +346,9 @@ Win/lose and the countdown.
   runs `ExplodeShip` — `ExplosionVfx.SpawnFireball` off `GameSettings.explosionTextures` (the
   runner's own list: the city's lives in an assembly the runner cannot see), the ship hidden,
   `explosionShake`, glitch, rumble, `ShipAudio.PlayExplosion` (`RunnerSfxSettings.explosionClip`).
-  Reason `LoseDestroyed`. **`BeginFail` takes a life on EVERY loss** (`LivesLeft`, dealt from
+  Reason `LoseDestroyed`. **An Arcade time trial spends a life instead** while more than one is
+  left (`TrySpendLife`, hull 0 or an arrest: explode, respawn through the fall's own respawn, revive
+  on `RespawnStarted`, minus the trial's penalty — `runner-timetrial.md`). **`BeginFail` takes a life on EVERY loss** (`LivesLeft`, dealt from
   `startingLives` in `Awake` only — the runner is entered once per mission and retried in place;
   `Restart` refills the hull and shows the ship, never the lives, except after a WIN, which also
   re-bases the rollback wallet on the paid balance). The loss that takes the last life is

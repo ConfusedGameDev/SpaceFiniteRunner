@@ -133,6 +133,14 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   on autopilot and untouchable, the countdown frozen). A race has no traffic and no hyperspace
   jump; a place out of reach fails the run early. Off-screen rivals are cheap ghosts. See
   `runner-race.md`.
+- **Time trial levels** (`TimeTrialPRD.md`, per level: `RunnerLevelDefinition.timeTrial`, empty =
+  none; a race wins over it): **Beat the Clock** is a set time to the end ramps; **Arcade** starts
+  on a short clock that each **checkpoint** tops up with the time to the next one at the pace the
+  ship crossed it at, plus seconds for a clean checkpoint (no hit since the last) and a patrol kill,
+  minus seconds for a life. The win is a `FinishWithTime` objective met off an end ramp, at any
+  speed. No hyperspace jump; the patrol is per level. In Arcade a life lost (hull 0, an arrest) is
+  NOT the run: the ship explodes and respawns down the track; the last life is still GAME OVER.
+  See `runner-timetrial.md`.
 - Story beats are RPG dialogue lines on purple-orb pickups and patrol taunts only.
 
 ## Repo map
@@ -262,6 +270,7 @@ Loaded automatically by path. Listed here so you know what exists.
 | `runner-ship.md` | `ShipMotor` (physics mode + the legacy track-space sim), `GameManager`, `PolicePatrol`, tuning |
 | `runner-traffic.md` | Oncoming traffic: `TrafficSystem`, the pool, spawn rules, `TrackObstacles` avoidance, swept contact |
 | `runner-race.md` | Race levels: `RaceSystem`, rivals, `RivalDriver`, full sim / ghosts, contact, wrecks, bounty, `RivalKillCam`, the RACE debug page |
+| `runner-timetrial.md` | Time trial levels: `TimeTrialSystem`, checkpoints, the clock contract, Arcade life loss, the TIME TRIAL debug page |
 | `ship-standalone.md` | The `Ship` assembly: `HoverBody`, guides, recovery, pickups, prefab rig, the physics runner |
 | `runner-hud-screens.md` | `RaceHud`, `GameOverScreen`, `MissionCompleteScreen` |
 | `runner-store.md` | Store scene, upgrade definitions, appliers |

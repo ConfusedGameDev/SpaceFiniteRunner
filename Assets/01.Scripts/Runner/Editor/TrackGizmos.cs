@@ -40,6 +40,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         static readonly Color OpenColor = new(1f, 0.15f, 0.15f, 1f);
         static readonly Color FlatColor = new(1f, 0.55f, 0.05f, 1f);
         static readonly Color SectionColor = new(0.2f, 1f, 1f, 1f);
+        static readonly Color CheckpointColor = new(0.3f, 1f, 0.45f, 1f);
         static readonly Color EndZoneColor = new(1f, 0.25f, 0.9f, 1f);
         static readonly Color TickColor = new(1f, 1f, 1f, 0.5f);
 
@@ -370,6 +371,16 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                         m.label = prefabs != null && p.variant >= 0 && p.variant < prefabs.Count && prefabs[p.variant] != null ? prefabs[p.variant].name : "PREFAB";
                         m.color = new Color(0.8f, 0.8f, 1f);
                         m.size = 4f;
+                        break;
+                    }
+                    case TrackPlacementKind.Checkpoint:
+                    {
+                        Vector3 line = centre + up * (cache.roadY + Lift);
+                        float half = track.HalfWidth;
+                        m.color = CheckpointColor;
+                        m.position = line + up * 8f;
+                        m.outline = new[] { line - right * half, line + right * half };
+                        m.label = "CHECKPOINT";
                         break;
                     }
                     case TrackPlacementKind.Loop:
