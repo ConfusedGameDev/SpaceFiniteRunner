@@ -133,8 +133,10 @@ none — it never creates.
 
 It subscribes `Collected` in `OnEnable`/`OnDisable`, calls `PlayerStats.RecordCollectible(id)` for
 every pickup (the LOG's COLLECTIBLES section lists a total and one row per id) and switches on the
-kind — Money adds the value to `RunMoney`, banks it at once through `PlayerStats.AddMoney` (a game
-over keeps it; the Mission Complete panel pays the mission's own reward separately) and raises
+kind — Money adds the value to `RunMoney`, banks it at once through `PlayerStats.AddMoney` (a retry
+keeps it, but a GAME OVER's `PlayerStats.ForfeitMission` rolls the wallet back to the mission's
+`MissionSession.WalletAtStart` baseline, taking it with it; the Mission Complete panel pays the
+mission's own reward separately) and raises
 `MoneyChanged(runTotal, delta)`. **A new kind is one more case.**
 
 `ResetRun()` zeroes the run counters — `GameManager.Restart` calls it.

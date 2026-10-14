@@ -29,7 +29,7 @@ MonoBehaviour:
   dropColor: {r: 0.76, g: 0.85, b: 0.98, a: 0.45}
   dropTexture: {fileID: 2800000, guid: d46e55f0fce1f45fdb51297ab8dc58eb, type: 3}
   additive: 0
-  splashes: 1
+  splashes: 0
   splashChance: 0.25
   splashSize: 0.35
   splashLifetime: 0.35
