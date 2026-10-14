@@ -521,7 +521,8 @@ minimap range, redeploy) stay on `GameSettings`.
   — lateral, speed, paused, steady, off the end, brake input, armed + `SpendArmed`, handling
   response, `ScaleBoost`, fall gravity / tumble, the `Boosted` event) and acts in a duel only
   through `Contracts.IControlTakeover` (steer assist, dash lock, autopilot line + gain, dash
-  consume / drain, impact speed loss, lateral shove, visual kick). `ShipMotor` implements both
+  consume / drain, impact speed loss, forward kick (a race rival's rear ram), lateral shove, visual
+  kick). `ShipMotor` implements both
   explicitly. The run's rules (`GameSettings`) and the track come in through `Init`, not through
   the ship (`target.DashSettings` is gone) or scene searches (only a fallback). `PatrolDriver.Drive`
   takes the ship's lateral as a float. The patrol still drives a `TrackBody` on the track's

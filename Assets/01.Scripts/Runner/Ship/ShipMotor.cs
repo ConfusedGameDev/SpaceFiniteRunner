@@ -478,6 +478,18 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         }
 
         /// <summary>
+        /// A shunt from behind (a race rival ramming the ship's tail): forward
+        /// speed handed to the body's pending change, so it blends in like an
+        /// orb's — without an orb's weight scaling or its <c>PadImpulse</c>.
+        /// </summary>
+        public void AddForwardKick(float metersPerSecond)
+        {
+            if (physicsShip == null || physicsShip.Body == null || metersPerSecond <= 0f) return;
+            if (physicsShip.State == ShipState.OffTrack || physicsShip.State == ShipState.Respawning) return;
+            physicsShip.Body.AddSpeedChange(metersPerSecond);
+        }
+
+        /// <summary>
         /// The win: the flight off the end ramp stops being a fall. The ship
         /// flies on along the line it left the lip with — upright, no tumble,
         /// under <see cref="GameSettings.winEscapeGravity"/> (0 = dead

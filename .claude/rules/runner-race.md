@@ -91,10 +91,18 @@ salt, so a rival makes or skips a given one consistently through a run.
 
 ## Contact, wrecks, bounty (R4, R5)
 
-All analytic, in track space — no colliders. `ShipContact`: side by side, both are shoved apart
-(`sideShoveMeters`; the ship through `IControlTakeover.AddLateralShove`); the ship hitting a
-rival's tail at `ramClosingThreshold` costs it `ramSpeedCost` and takes a point of the rival's
-`ramHull` (at 0: `Rammed`); a rival into the ship's tail is held clear. `ContactSuspended` turns
+All analytic, in track space — no colliders. `ShipContact`:
+- **Side by side** (R4.3): both are shoved apart (`sideShoveMeters`; the ship through
+  `IControlTakeover.AddLateralShove`, the rival through `TrackBody.AddLateralImpulse`), weighted by
+  `sideShoveBias` toward the one that was NOT steering in — each one's sideways speed toward the
+  other decides it (the ship's is measured tick to tick, the contract has none). Swerving into a
+  rival wins the exchange.
+- **The ship into a rival's tail** (R4.1) at `ramClosingThreshold`: the ship pays `ramSpeedCost`,
+  the rival is knocked forward and sideways and loses a point of `ramHull` (at 0: `Rammed`).
+- **A rival into the ship's tail** (R4.2): the ship gets `IControlTakeover.AddForwardKick`
+  (`ramSpeedCost` of its speed, at most the closing speed — it goes through the body's pending
+  speed change, so it lands at the ship's `ShipDefinition.acceleration` blend rate, like an orb)
+  and the rival loses the same share of its own. `ContactSuspended` turns
 it all off (the kill cam). Rival ↔ rival keeps `rivalSeparation` across.
 
 `DestroyRival(rival, cause)` — `RivalWreck { Laser, Fell, MissedRamp, Rammed }` — marks DNF,
@@ -142,7 +150,3 @@ patrol is NOT paused (its timers ride the slowed clock).
   race tick — from the pause menu, after it closes, so a wreck can still play the kill cam.
 - Odin buttons on `RaceSystem`: Finish Leader, Kill Nearest, DNF All, Finish All.
 
-## Known gaps
-
-R4.2's forward kick to the ship on a rear ram (the takeover API has none) and R4.3's weighted side
-shove (both cars move the same) are not built.

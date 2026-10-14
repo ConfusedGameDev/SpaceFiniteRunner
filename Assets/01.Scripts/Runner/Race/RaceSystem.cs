@@ -195,6 +195,7 @@ namespace ConfusedGameDev.FiniteRunner.Race
             gridPending = true;
             launched = false;
             shipSpeedRef = 0f;
+            prevShipLateral = float.NaN;
             raceTime = 0f;
             finishedCount = dnfCount = 0;
             playerFinishPlace = 0;
@@ -693,8 +694,17 @@ namespace ConfusedGameDev.FiniteRunner.Race
         /// <summary>The ship's track, for the kill cam's framing; null unbound.</summary>
         public TrackManager Track => track;
 
+        // The ship's sideways speed, measured tick to tick (the chase
+        // contract has none): who steers INTO a side contact wins it (R4.3).
+        float prevShipLateral = float.NaN;
+        float shipLateralVelocity;
+
         void ShipContact()
         {
+            float dt = Time.fixedDeltaTime;
+            shipLateralVelocity = float.IsNaN(prevShipLateral) || dt <= 0f ? 0f
+                : Mathf.Clamp((ship.Lateral - prevShipLateral) / dt, -def.lateralSpeed * 3f, def.lateralSpeed * 3f); // a tube's wrap is not a swerve
+            prevShipLateral = ship.Lateral;
             bool shipIn = ship.Steady && !ship.HasLeftTrackEnd && !ContactSuspended;
             foreach (var rival in rivals)
             {
@@ -717,12 +727,20 @@ namespace ConfusedGameDev.FiniteRunner.Race
                 if (depthAcross < depthAlong)
                 {
                     // Side by side: held a hull's width apart, and a fresh
-                    // contact throws both away from each other.
+                    // contact throws both away from each other — the heavier
+                    // shove to the one that was NOT steering in (R4.3): each
+                    // one's sideways speed toward the other decides it, so
+                    // swerving into a rival wins the exchange.
+                    float shipInto = shipLateralVelocity * side;
+                    float rivalInto = -body.LateralVelocity * side;
                     body.Lateral = Mathf.Clamp(ship.Lateral + side * reachW, bandMin, bandMax);
                     if (body.LateralVelocity * side < 0f) body.LateralVelocity = 0f;
                     if (!fresh) continue;
-                    body.AddLateralImpulse(side * def.sideShoveMeters * def.handlingResponse);
-                    control?.AddLateralShove(-side * def.sideShoveMeters * ship.HandlingResponse);
+                    float win = Mathf.Clamp01(0.5f + (shipInto - rivalInto) / Mathf.Max(2f * def.lateralSpeed, 1f)); // 1 = all the ship's
+                    float rivalShove = def.sideShoveMeters * Mathf.Lerp(1f - def.sideShoveBias, 1f + def.sideShoveBias, win);
+                    float shipShove = def.sideShoveMeters * Mathf.Lerp(1f + def.sideShoveBias, 1f - def.sideShoveBias, win);
+                    body.AddLateralImpulse(side * rivalShove * def.handlingResponse);
+                    control?.AddLateralShove(-side * shipShove * ship.HandlingResponse);
                     ContactFeedback(along, across, 0.6f);
                 }
                 else if (along > 0f)
@@ -752,16 +770,20 @@ namespace ConfusedGameDev.FiniteRunner.Race
                 else
                 {
                     // The rival into the ship's tail: held behind at the
-                    // ship's speed, bounced back off a fast arrival.
+                    // ship's speed. A fast arrival is ITS ram (R4.2): the ship
+                    // is shunted forward by ramSpeedCost of its speed (never
+                    // more than the closing speed) and the rival pays the
+                    // same share of its own.
                     float closing = body.ForwardSpeed - ship.Speed;
                     body.Distance = ship.Distance - reachL;
-                    body.ForwardSpeed = Mathf.Min(body.ForwardSpeed, ship.Speed);
                     if (fresh && closing >= def.ramClosingThreshold)
                     {
-                        body.ForwardSpeed = Mathf.Max(0f, ship.Speed - closing * 0.3f);
+                        control?.AddForwardKick(Mathf.Min(closing, ship.Speed * def.ramSpeedCost));
+                        body.ForwardSpeed = Mathf.Min(body.ForwardSpeed * (1f - def.ramSpeedCost), ship.Speed);
                         control?.VisualKick(-side * 0.8f);
                         ContactFeedback(along, across, 0.7f);
                     }
+                    else body.ForwardSpeed = Mathf.Min(body.ForwardSpeed, ship.Speed);
                 }
             }
         }

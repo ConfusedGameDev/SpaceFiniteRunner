@@ -224,6 +224,11 @@ namespace ConfusedGameDev.FiniteRunner.Race
         public float sideShoveMeters = 6f;
 
         [TitleGroup("Contact")]
+        [Tooltip("How far the side shove is weighted toward the one that was NOT steering in: 0 = both always shoved the same, 0.6 = the loser of a hard swerve takes 1.6x the shove and the winner 0.4x.")]
+        [PropertyRange(0f, 0.9f)]
+        public float sideShoveBias = 0.6f;
+
+        [TitleGroup("Contact")]
         [Tooltip("Metres a rammed rival is knocked sideways (its side picked by where it was hit).")]
         [PropertyRange(0f, 30f), SuffixLabel("m", true)]
         public float ramKnockMeters = 8f;
