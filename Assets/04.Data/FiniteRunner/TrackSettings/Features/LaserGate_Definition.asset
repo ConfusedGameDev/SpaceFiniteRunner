@@ -22,8 +22,11 @@ MonoBehaviour:
   tripleSpacing: 5
   verticalHeight: 20
   rotorSpeedBand: {x: 40, y: 90}
-  emitterScale: 5
+  emitterScale: 17.3
   emitterSpinDegPerSec: 360
+  emitterRoadClearance: 0.5
+  look: 1
+  prefabModelScale: 1
   beamMaterial: {fileID: 2100000, guid: 818364b793a257b4e97d59c89537325b, type: 2}
   beamColor: {r: 4, g: 0.12, b: 0.08, a: 0.85}
   coreColor: {r: 4, g: 0.9, b: 0.7, a: 1}

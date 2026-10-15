@@ -22,7 +22,7 @@ MonoBehaviour:
   - name: Green
     prefab: {fileID: 2850359091044272792, guid: 2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a, type: 3}
     definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
-    probability: 100
+    probability: 98
     multiplier: 4.499998
     color: {r: 0.1, g: 1, b: 0.3, a: 1}
     swayAmplitude: 0
@@ -33,8 +33,8 @@ MonoBehaviour:
   - name: Blue
     prefab: {fileID: 2850359091044272792, guid: 8d0f2a4c6e8b0d2f4a6c8e0b2d4f6a8c, type: 3}
     definition: {fileID: 11400000, guid: b81b7f4bb38e240e9b1c43f76f25dc45, type: 2}
-    probability: 0
-    multiplier: 0.1
+    probability: 2
+    multiplier: 0.69999814
     color: {r: 0.25, g: 0.55, b: 1, a: 1}
     swayAmplitude: 0
     swayFrequency: 0
