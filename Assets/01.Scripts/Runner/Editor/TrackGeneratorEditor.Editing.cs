@@ -15,7 +15,9 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// <list type="bullet">
     /// <item><b>Knots</b>: click one to select it; its arrows move it (up and
     /// down is the grade), its disc banks it. Neighbours keep their own bank.
-    /// A knot a feature stands on (an explicit-tangent spot) keeps bank 0.</item>
+    /// A knot a feature stands on (an explicit-tangent spot) keeps bank 0.
+    /// Several can be selected and edited together (Ctrl/Cmd+click, Shift+click,
+    /// a box drag — <c>TrackGeneratorEditor.KnotSelection.cs</c>).</item>
     /// <item><b>Locked</b>: the first knot and the final run-up (D9: it stays a
     /// straight, walled, level run to the ramps), and every knot on a track
     /// with loops or tubes — moving road before a section would shift it.</item>
@@ -87,8 +89,13 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             }
             if (layout.sections.Count > 0)
                 EditorGUILayout.HelpBox("This track has loops or tubes: knot editing is off (moving road before a section would shift it). Spans can still be edited.", MessageType.Warning);
-            EditorGUILayout.HelpBox("Click a knot to select it. Arrows move it (up/down = grade), the disc banks it. Drag the dots at the ends of flat sweeps (orange) and open straights (red) along the road. Grey knots are locked (the start and the final run-up). Ctrl/Cmd+Z undoes.", MessageType.None);
+            EditorGUILayout.HelpBox("Click a knot to select it; Ctrl/Cmd+click adds or removes one, Shift+click selects a run of them, a drag on empty space boxes them (Esc clears). Arrows move the selection (up/down = grade), the disc banks it. Drag the dots at the ends of flat sweeps (orange) and open straights (red) along the road. Grey knots are locked (the start and the final run-up). Ctrl/Cmd+Z undoes.", MessageType.None);
 
+            if (SelectedKnotCount > 1)
+            {
+                DrawKnotGroup(generator, layout);
+                return;
+            }
             if (selectedKnot < 0 || selectedKnot >= layout.knots.Count) return;
             DrawSelectedKnot(generator, layout);
         }
@@ -98,7 +105,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             if (!on && !ConfirmStopEditing(generator)) return; // Keep Editing
 
             editingTrack = on;
-            selectedKnot = -1;
+            ClearKnotSelection();
             SceneView.duringSceneGui -= OnSceneEditing;
             if (on)
             {
@@ -144,7 +151,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             working.SetLayout(JsonUtility.FromJson<TrackLayout>(snapshot), working.shape, working.spawnSet);
             EditorUtility.SetDirty(working);
             AssetDatabase.SaveAssetIfDirty(working);
-            selectedKnot = -1;
+            ClearKnotSelection();
             generator.ApplyEdit(working, true);
             status = $"Discarded the changes to '{working.name}'.";
             SceneView.RepaintAll();
@@ -162,7 +169,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             var generator = (TrackGenerator)target;
             // Redraw whenever the track on show is the one being undone (editing or not).
             if (working == null || generator.LoadedTrack != working) return;
-            if (selectedKnot >= working.Layout.knots.Count) selectedKnot = working.Layout.knots.Count - 1; // an undone insert
+            PruneKnotSelection(working.Layout); // an undone insert
             if (selectedPlacement >= working.Layout.placements.Count) selectedPlacement = -1;           // an undone add
             warningsStale = true;
             generator.ApplyEdit(working, true);
@@ -253,24 +260,28 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 return;
             }
 
-            // Knots: a button each; the selected one gets its handles.
+            // Empty-space clicks are the box select's (and a click on nothing
+            // clears) — taken before the knot buttons so a knot still wins its click.
+            KnotMarqueeGUI(layout, container, eye, radiusSqr);
+
+            // Knots: a button each; the selection gets its handles.
             for (int i = 0; i < layout.knots.Count; i++)
             {
                 Vector3 world = container.TransformPoint(layout.knots[i].position);
-                if ((world - eye).sqrMagnitude > radiusSqr && i != selectedKnot) continue;
+                bool selected = knotSelection.Contains(i);
+                if ((world - eye).sqrMagnitude > radiusSqr && !selected) continue;
                 bool locked = KnotLocked(layout, i, out _);
-                float size = HandleUtility.GetHandleSize(world) * 0.15f;
-                Handles.color = i == selectedKnot ? SelectedColor
+                float size = HandleUtility.GetHandleSize(world) * (selected ? 0.18f : 0.15f);
+                Handles.color = selected ? SelectedColor
                     : locked ? LockedKnotColor
                     : layout.knots[i].mode == TangentMode.Continuous ? SpotKnotColor
                     : KnotColor;
                 if (Handles.Button(world, Quaternion.identity, size, size * 1.2f, Handles.SphereHandleCap))
-                {
-                    selectedKnot = i;
-                    Repaint();
-                }
+                    ClickKnot(layout, i);
             }
-            if (selectedKnot >= 0 && selectedKnot < layout.knots.Count && !KnotLocked(layout, selectedKnot, out _))
+            if (SelectedKnotCount > 1)
+                GroupKnotHandles(generator, layout, container);
+            else if (selectedKnot >= 0 && selectedKnot < layout.knots.Count && !KnotLocked(layout, selectedKnot, out _))
                 KnotHandles(generator, layout, container, selectedKnot);
 
             SpanHandles(generator, track, layout.flatSweeps, FlatSpanColor, "Move Flat Sweep", eye, radiusSqr);
@@ -401,7 +412,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             layout.knots.Insert(i + 1, new TrackLayout.Knot { position = position, rotation = Quaternion.identity, mode = TangentMode.AutoSmooth });
             layout.knotDistances.Insert(i + 1, middle); // re-derived by ApplyEdit; keeps the list index-aligned
             ReframeKnot(layout, i + 1, bank);
-            selectedKnot = i + 1;
+            SelectOnlyKnot(i + 1);
             Commit(generator, true);
         }
 
@@ -412,7 +423,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             layout.knotDistances.RemoveAt(i);
             if (i > 0) ReframeKnot(layout, i - 1, BankOf(layout.knots[i - 1].rotation));
             if (i < layout.knots.Count && !KnotLocked(layout, i, out _)) ReframeKnot(layout, i, BankOf(layout.knots[i].rotation));
-            selectedKnot = Mathf.Min(i, layout.knots.Count - 1);
+            SelectOnlyKnot(Mathf.Min(i, layout.knots.Count - 1));
             Commit(generator, true);
         }
 
@@ -446,7 +457,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         // ------------------------------------------------------------- helpers
         void SelectKnot(TrackGenerator generator, TrackLayout layout, int i)
         {
-            selectedKnot = i;
+            SelectOnlyKnot(i);
             FrameKnot(generator, layout, i);
         }
 

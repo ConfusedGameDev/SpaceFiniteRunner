@@ -279,7 +279,13 @@ stay endless.
 - **Road editing** (`Runner/Editor/TrackGeneratorEditor.Editing.cs`, M4): Edit Track on the
   inspector's track asset. Knots: click to select; the position handle moves one (up/down = grade),
   a disc banks it; the inspector has numbers, insert-after, delete, previous/next/frame, and adds or
-  removes open straights and flat sweeps on the selected knot's segment. Span ends drag along the
+  removes open straights and flat sweeps on the selected knot's segment. **Multi-select**
+  (`TrackGeneratorEditor.KnotSelection.cs`): Ctrl/Cmd+click toggles, Shift+click takes the run from
+  the last clicked, a drag on empty space boxes them (Shift / Ctrl adds), a click on nothing or Esc
+  clears — the Knots tab owns empty-space clicks (`AddDefaultControl`), so a stray click no longer
+  drops the inspector. Locked knots never join a group. Two or more share one handle at their centre
+  (same offset, same bank added) and a group panel (bank all, move by, delete — feature knots kept).
+  `selectedKnot` stays the primary, so one knot edits exactly as before. Span ends drag along the
   road (projected back to a distance). Edits go into the ASSET with Undo; `TrackGenerator.ApplyEdit`
   reloads it and `RederiveAfterEdit` rewrites the knot distances (`TrackManager.KnotTrackDistance`),
   the length and end, the run-up start (same KNOT as before), the end ramps (one ramp before the end)
