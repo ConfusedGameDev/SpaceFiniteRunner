@@ -14,7 +14,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// </summary>
     public static class RunnerLevelAssetBuilder
     {
-        const string DataFolder = "Assets/04.Data/FiniteRunner";
+        const string DataFolder = "Assets/04.Data/FiniteRunner/Levels";
         const string AssetPath = DataFolder + "/FiniteRunner_LevelDefinition.asset";
 
         [MenuItem("Tools/FiniteRunner/Create Runner Level Definition")]
@@ -24,8 +24,10 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             bool existed = level != null;
             if (!existed)
             {
-                if (!AssetDatabase.IsValidFolder(DataFolder))
+                if (!AssetDatabase.IsValidFolder("Assets/04.Data/FiniteRunner"))
                     AssetDatabase.CreateFolder("Assets/04.Data", "FiniteRunner");
+                if (!AssetDatabase.IsValidFolder(DataFolder))
+                    AssetDatabase.CreateFolder("Assets/04.Data/FiniteRunner", "Levels");
                 level = ScriptableObject.CreateInstance<RunnerLevelDefinition>();
                 RunnerLevelDefinition.SeedDefaultObjectives(level);
                 AssetDatabase.CreateAsset(level, AssetPath);

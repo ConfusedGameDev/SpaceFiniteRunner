@@ -132,6 +132,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Base material of code-built pickups (orbs, repair orbs, coins); each tint gets a recolored instance. Prefabs keep their own materials.")]
         [SerializeField] Material boostMaterial;
         [SerializeField] Transform padsParent;
+        [Tooltip("Where a time trial's checkpoint gates stand (the TimeTrialCheckpoints object next to Pads): built here in edit mode as a preview of a saved track's checkpoints, and in play by the TimeTrialSystem. Empty: no preview gates, and the system keeps its gates under itself.")]
+        [SerializeField] Transform checkpointParent;
         [Tooltip("Pad footprint (width, thickness, length): the unit the spawners' orbs and pads scale from, and how far pickups and coins keep off each other and off claimed ground.")]
         [SerializeField] Vector3 padSize = new(10f, 0.5f, 20f);
 
@@ -422,6 +424,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// <summary>The run's decided placements (orbs, gates, ramps, coins…), built or not, in decision order.</summary>
         public IReadOnlyList<TrackPlacement> Placements => placements;
 
+        /// <summary>The parent of the checkpoint gates (edit preview and play); null when the scene has none.</summary>
+        public Transform CheckpointParent => checkpointParent;
+
+        /// <summary>
+        /// Builds a checkpoint record's picture in EDIT mode (the editor's saved
+        /// track preview sets it; the track knows nothing of time trials). In
+        /// play it is never called: the TimeTrialSystem draws the gates.
+        /// </summary>
+        public static System.Func<TrackGenerator, TrackPlacement, GameObject> CheckpointPreview { get; set; }
+
         /// <summary>Everything that ENDS before this distance is behind the ship and may go.</summary>
         public float CullDistance => endless && focus != null ? focus.Distance - behindDistance : float.NegativeInfinity;
 
@@ -591,7 +603,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 if (p.distance >= from && p.distance <= to && p.distance < builtTo && p.kind != TrackPlacementKind.EndRamp)
                     BuildTracked(p);
             if (decorator != null) decorator.Restamp(from, to);
-            if (!Application.isPlaying) MarkPreview(padsParent);
+            if (!Application.isPlaying) { MarkPreview(padsParent); MarkPreview(checkpointParent); }
         }
 
         void GenerateCore(TrackLayoutAsset preview, bool build = true)
@@ -659,6 +671,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             placedAt.Clear();
             ClearChildren(padsParent);
             ClearChildren(markersParent);
+            ClearPreviews(checkpointParent); // the TimeTrialSystem's own gates stay: it owns them
             if (decorator != null) decorator.Clear();
             Regenerated?.Invoke();
 
@@ -820,6 +833,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (!Application.isPlaying)
             {
                 MarkPreview(padsParent);
+                MarkPreview(checkpointParent);
                 if (decorator != null) decorator.MarkPreview(); // the end markers stamp outside DecorateUpTo
             }
         }
@@ -873,6 +887,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     break;
                 case TrackPlacementKind.CustomPrefab:
                     BuildCustomPrefab(placement);
+                    break;
+                case TrackPlacementKind.Checkpoint:
+                    // A time trial's mark: in play the TimeTrialSystem draws the gate
+                    // (TimeTrialPRD D7); in edit mode the editor's preview builds one.
+                    if (!Application.isPlaying && CheckpointPreview != null && checkpointParent != null)
+                    {
+                        GameObject gate = CheckpointPreview(this, placement);
+                        if (gate != null) spawned.Add((placement.distance, gate));
+                    }
                     break;
                 default:
                     foreach (var spawner in runtimeSpawners)
@@ -2266,6 +2289,18 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             if (component == null) return;
             if (Application.isPlaying) Destroy(component); else DestroyImmediate(component);
+        }
+
+        // Only the edit previews (DontSaveInEditor): a parent shared with a
+        // system that owns its own children in play keeps those.
+        static void ClearPreviews(Transform parent)
+        {
+            if (parent == null) return;
+            for (int i = parent.childCount - 1; i >= 0; i--)
+            {
+                GameObject child = parent.GetChild(i).gameObject;
+                if ((child.hideFlags & HideFlags.DontSaveInEditor) != 0) TrackDecorator.SafeDestroy(child);
+            }
         }
 
         static void ClearChildren(Transform parent)

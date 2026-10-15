@@ -10,13 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b7e2d4c6a1f04c3e9d8a5b2c7e6f1a03, type: 3}
-  m_Name: FiniteRunner_LevelDefinition
-  m_EditorClassIdentifier: 
-  levelName: Escape Run
-  nextSceneName: Store
-  trackLengthMeters: 91837
-  track: {fileID: 11400000, guid: 9cf6475950c3e4b1d95099c04c4b32a6, type: 2}
-  traffic: {fileID: 11400000, guid: a53a4393d9c25c642bd84bfa1a1c45cc, type: 2}
+  m_Name: FiniteRunner_LevelDefinition_BeatTheClock
+  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.GameFlow.RunnerLevelDefinition
+  levelName: Beat the Clock
+  nextSceneName: CarTest
+  trackLengthMeters: 25000
+  track: {fileID: 11400000, guid: ee13ca43e6d1437fbaf1b7e911c9b011, type: 2}
+  traffic: {fileID: 0}
+  race: {fileID: 0}
+  timeTrial: {fileID: 11400000, guid: 8e0fdc4a29f147c4b8cad523b8c41ab1, type: 2}
   completeVideo: {fileID: 0}
   rankTable:
     sThreshold: 10000
@@ -24,15 +26,21 @@ MonoBehaviour:
     bThreshold: 2500
     cThreshold: 1000
   optionalChallenges:
-  - type: 1
+  - type: 3
     targetSpeedKmh: 6500
     jumpCount: 3
+    raceMode: 0
+    racePosition: 3
+    minSecondsLeft: 20
     reward: 0
     accent: {r: 0, g: 0, b: 0, a: 0}
     multiplier: 2
   objectives:
-  - type: 0
-    targetSpeedKmh: 5574
+  - type: 3
+    targetSpeedKmh: 6500
     jumpCount: 3
+    raceMode: 0
+    racePosition: 3
+    minSecondsLeft: 0
     reward: 500
     accent: {r: 0, g: 0, b: 0, a: 0}

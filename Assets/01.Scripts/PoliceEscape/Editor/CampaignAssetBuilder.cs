@@ -36,7 +36,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         const string RunnerLevel2Path = DataFolder + "/FiniteRunner_Level_02.asset";
 
         const string CityLevel1Path = "Assets/04.Data/InfiniteCity/TestLevelDefinition.asset";
-        const string RunnerLevel1Path = "Assets/04.Data/FiniteRunner/FiniteRunner_LevelDefinition.asset";
+        const string RunnerLevel1Path = "Assets/04.Data/FiniteRunner/Levels/FiniteRunner_LevelDefinition.asset";
         const string WorldScene = "CarTest";
 
         [MenuItem("Tools/FiniteRunner/Create Campaign Assets")]

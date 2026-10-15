@@ -28,7 +28,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         const string ScenePath = "Assets/05.Scenes/ShipAcceptance.unity";
         const string SettingsPath = "Assets/04.Data/Ship/Acceptance_ShipSettings.asset";
         const string DefinitionPath = "Assets/04.Data/Ship/Acceptance_ShipDefinition.asset";
-        const string CameraSettingsPath = "Assets/04.Data/FiniteRunner/Fighter_CameraSettings.asset";
+        const string CameraSettingsPath = "Assets/04.Data/FiniteRunner/Ship/Fighter_CameraSettings.asset";
         const string ModelPath = "Assets/99.Test/Diego/3DModels/nabucodonosor.fbx";
         const float ModelScale = 0.57f;
         static readonly Vector3 HullSize = new(5.02f, 4.61f, 12.3f);

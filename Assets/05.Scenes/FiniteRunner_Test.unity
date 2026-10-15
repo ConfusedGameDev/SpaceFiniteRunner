@@ -3076,6 +3076,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1604805013887349209, guid: 25f46f2b2bb49434fb0bc76063f9b83d, type: 3}
+      propertyPath: level
+      value: 
+      objectReference: {fileID: 11400000, guid: 3d37c1a736d7d474dabaafac44be6091, type: 2}
+    - target: {fileID: 1604805013887349209, guid: 25f46f2b2bb49434fb0bc76063f9b83d, type: 3}
       propertyPath: motor
       value: 
       objectReference: {fileID: 1092581442}

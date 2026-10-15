@@ -85,6 +85,11 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [PreviewField(32)] public Sprite rampMarkerSprite;
         [TitleGroup("Track map")] [PreviewField(32)] public Sprite gateMarkerSprite;
         [TitleGroup("Track map")] [PreviewField(32)] public Sprite finishMarkerSprite;
+        [TitleGroup("Track map")]
+        [Tooltip("A time trial's checkpoints (TimeTrialPRD R5.4): the colour of one still ahead, and the alpha a passed one keeps.")]
+        public Color checkpointMarkerColor = new(0.3f, 1f, 0.45f);
+        [TitleGroup("Track map")] [PreviewField(32)] public Sprite checkpointMarkerSprite;
+        [TitleGroup("Track map")] [PropertyRange(0f, 1f)] public float checkpointPassedAlpha = 0.3f;
 
         [TitleGroup("Behaviour")]
         [ShowIf(nameof(policeBlink))]

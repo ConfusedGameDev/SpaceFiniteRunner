@@ -42,6 +42,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             ("Music", "Assets/03.Prefabs/FiniteRunner/PF_Music.prefab"),
             ("PauseMenu", "Assets/03.Prefabs/Runner/PauseMenu.prefab"),
             ("OncomingTraffic", "Assets/03.Prefabs/FiniteRunner/PF_TrafficSystem.prefab"),
+            ("Race", "Assets/03.Prefabs/FiniteRunner/PF_RaceSystem.prefab"),
+            ("TimeTrial", "Assets/03.Prefabs/FiniteRunner/PF_TimeTrialSystem.prefab"),
             // the standalone ship
             ("HoverShip", "Assets/03.Prefabs/Runner/HoverShip.prefab"),
             // shared

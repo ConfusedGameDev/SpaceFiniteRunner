@@ -124,6 +124,24 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   loop or tube lies between them and the ship, near the end, on the run-up or after HIT HYPERSPACE
   (which clears the road). A car hit is exactly a laser hit and the car explodes (even through the
   blink); a car and the patrol destroy each other. See `runner-traffic.md`.
+- **Race levels** (`RaceModePRD.md`, per level: `RunnerLevelDefinition.race`, empty = none): rival
+  hover ships launch from a grid with the ship and race it to the end ramps, finish order = lip
+  order. The objective is a place (WIN / TOP X / EXACTLY X); the HUD shows POS and the minimap the
+  field. Rivals avoid laser gates, take orbs, make the odd mistake; ram them from behind, shove
+  them off an open edge or into a beam to wreck them — one you wrecked pays its **bounty** — and a
+  wreck in view near the ship plays a **kill cam** (slow motion, a cut to the explosion, the ship
+  on autopilot and untouchable, the countdown frozen). A race has no traffic and no hyperspace
+  jump; a place out of reach fails the run early. Off-screen rivals are cheap ghosts. See
+  `runner-race.md`. Races and time trials open on **READY!! 3, 2, 1, GO!** (`StartCountdown`): ship,
+  rivals, patrol and clock hold on the line and go together on GO.
+- **Time trial levels** (`TimeTrialPRD.md`, per level: `RunnerLevelDefinition.timeTrial`, empty =
+  none; a race wins over it): **Beat the Clock** is a set time to the end ramps; **Arcade** starts
+  on a short clock that each **checkpoint** tops up with the time to the next one at the pace the
+  ship crossed it at, plus seconds for a clean checkpoint (no hit since the last) and a patrol kill,
+  minus seconds for a life. The win is a `FinishWithTime` objective met off an end ramp, at any
+  speed. No hyperspace jump; the patrol is per level. In Arcade a life lost (hull 0, an arrest) is
+  NOT the run: the ship explodes and respawns down the track; the last life is still GAME OVER.
+  See `runner-timetrial.md`.
 - Story beats are RPG dialogue lines on purple-orb pickups and patrol taunts only.
 
 ## Repo map
@@ -169,9 +187,11 @@ These hold everywhere. Break one and something else quietly stops working.
   (`ShipUpgradeApplier.Refresh`) so upgrades stay applied. There are no debug mirror assets and
   no `applyOnLoad` overrides: what the inspector shows is what runs. City settings assets and
   `LevelDefinition` are read live, so their pages edit the asset with nothing to mirror.
-- **Tunables live in ScriptableObjects** (the runner's in `FiniteRunner/Data/` — `GameSettings`,
-  `ShipDefinition`, `PadDefinition`, `CameraShakeSettings`), not as fields on managers. Add new
-  knobs to the settings asset, not to the component that reads it.
+- **Tunables live in ScriptableObjects** (the runner's in `04.Data/FiniteRunner/` — `GameSettings` at
+  its root, the rest by subject: `Levels/`, `Ship/`, `Patrol/`, `CameraShake/`, `TrackSettings/`
+  (`Features/`, `Pads/`), `Spawnables/`, `Tracks/`, `Race/`, `TimeTrial/`, `Traffic/`, `Rendering/`,
+  `UI/`, `Audio/`), not as fields on managers. Add new knobs to the settings asset, not to the
+  component that reads it; a new asset goes in its subject's folder.
 - **Scene-lifetime systems are hand-placed**, under `===SYSTEMS===`, so they are tunable before
   play; code only ever find-or-parks them. Per-run objects are runtime-spawned, under runtime
   headers (`===PLAYER===`, `===NPC===`) that are forced back to the origin on every fetch.
@@ -252,6 +272,8 @@ Loaded automatically by path. Listed here so you know what exists.
 | `runner-track.md` | `TrackManager`, sections, `TrackGenerator` decide/build, saved tracks + the Scene-view authoring tools, features, pads/orbs, decorator |
 | `runner-ship.md` | `ShipMotor` (physics mode + the legacy track-space sim), `GameManager`, `PolicePatrol`, tuning |
 | `runner-traffic.md` | Oncoming traffic: `TrafficSystem`, the pool, spawn rules, `TrackObstacles` avoidance, swept contact |
+| `runner-race.md` | Race levels: `RaceSystem`, rivals, `RivalDriver`, full sim / ghosts, contact, wrecks, bounty, `RivalKillCam`, the RACE debug page |
+| `runner-timetrial.md` | Time trial levels: `TimeTrialSystem`, checkpoints, the clock contract, Arcade life loss, the TIME TRIAL debug page |
 | `ship-standalone.md` | The `Ship` assembly: `HoverBody`, guides, recovery, pickups, prefab rig, the physics runner |
 | `runner-hud-screens.md` | `RaceHud`, `GameOverScreen`, `MissionCompleteScreen` |
 | `runner-store.md` | Store scene, upgrade definitions, appliers |

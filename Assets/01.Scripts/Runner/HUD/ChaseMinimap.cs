@@ -71,6 +71,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         IChaseTarget motor;   // the ship, by contract
         PolicePatrol patrol;     // null on a chase-less run: the map still shows the track
         IRunState gameManager; // the run, by contract
+        IRaceStandings standings; // a race's field, or null: one dot per rival on the track map
+        ITimeTrialState trial;    // a time trial, or null: a marker per checkpoint on the track map
         float rangeMeters; // gap beyond which the patrol is off the map; at it the icon hangs a full chaseSpan under the ship
         float warnMeters;  // gap below which the readout turns red
 
@@ -81,6 +83,9 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         float mapLength = -1f, mapEnd = -2f, mapStep = 1f;
         readonly List<Vector2> mapPoints = new();       // offsets from the map rect's centre, every mapStep metres
         readonly List<RectTransform> mapMarkers = new(); // pooled: ramps, gates, the finish
+        readonly List<Image> rivalDots = new();          // pooled: one per rival, in its own colour
+        readonly List<Image> checkpointMarkers = new();  // pooled: one per time trial checkpoint
+        int shownCheckpoints = -1, shownPassed = -1;     // the checkpoint markers as last drawn
         int shownEnd = -1; // what the two labels currently read, so the strings
         int shownGap = -1; // are rebuilt only when the number changes
         float blinkTimer;
@@ -96,7 +101,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         ChaseMinimapSettings Style => style != null ? style : style = ScriptableObject.CreateInstance<ChaseMinimapSettings>();
 
         public static ChaseMinimap Spawn(IChaseTarget motor, PolicePatrol patrol, IRunState gameManager, float rangeMeters, float warnMeters,
-                                         TrackGenerator track = null)
+                                         TrackGenerator track = null, IRaceStandings race = null, ITimeTrialState trial = null)
         {
             var map = FindFirstObjectByType<ChaseMinimap>();
             if (map == null) map = new GameObject("ChaseMinimap").AddComponent<ChaseMinimap>();
@@ -105,6 +110,9 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             map.motor = motor;
             map.patrol = patrol;
             map.gameManager = gameManager;
+            map.standings = race;
+            map.trial = trial;
+            map.shownCheckpoints = map.shownPassed = -1;
             map.rangeMeters = Mathf.Max(1f, rangeMeters);
             map.warnMeters = warnMeters;
             map.Bind();
@@ -424,6 +432,86 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             if (mapPoints.Count < 2) return;
             mapShipIcon.anchoredPosition = MapPoint(travelled);
             mapLine.SetDriven(Mathf.FloorToInt(travelled / mapStep) + 1);
+            UpdateCheckpointMarkers();
+            UpdateRivalDots();
+        }
+
+        // A time trial's checkpoints (TimeTrialPRD R5.4): laid by the trial on
+        // its own first tick, so they are placed whenever the count (or the
+        // track) changes, and dimmed as the ship passes them.
+        void UpdateCheckpointMarkers()
+        {
+            int count = trial != null && trial.TrialActive ? trial.CheckpointCount : 0;
+            int passed = count > 0 ? trial.CheckpointsPassed : 0;
+            if (count == shownCheckpoints && passed == shownPassed) return;
+            bool placed = count != shownCheckpoints;
+            shownCheckpoints = count;
+            shownPassed = passed;
+
+            while (checkpointMarkers.Count < count)
+            {
+                var rect = CreateRect("MapCheckpoint", mapArea, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.one);
+                var image = rect.gameObject.AddComponent<Image>();
+                image.raycastTarget = false;
+                checkpointMarkers.Add(image);
+                placed = true;
+            }
+            for (int i = 0; i < checkpointMarkers.Count; i++)
+            {
+                Image marker = checkpointMarkers[i];
+                bool shown = i < count;
+                if (marker.gameObject.activeSelf != shown) marker.gameObject.SetActive(shown);
+                if (!shown) continue;
+                if (placed)
+                {
+                    marker.rectTransform.sizeDelta = Vector2.one * Style.markerSize * 1.3f;
+                    marker.rectTransform.anchoredPosition = MapPoint(trial.CheckpointDistance(i));
+                    marker.sprite = Style.checkpointMarkerSprite;
+                    marker.preserveAspect = marker.sprite != null;
+                }
+                Color color = Style.checkpointMarkerColor;
+                if (i < passed) color.a *= Style.checkpointPassedAlpha;
+                marker.color = color;
+            }
+            if (placed)
+            {
+                mapPoliceIcon.SetAsLastSibling();
+                mapShipIcon.SetAsLastSibling();
+            }
+        }
+
+        // The race's field (RaceModePRD R6.2): every rival where it is —
+        // ghosts too, so the whole field shows — a finished one parked on the
+        // finish marker, a destroyed one gone. Under the ship's and the
+        // patrol's dots, which stay on top.
+        void UpdateRivalDots()
+        {
+            int count = standings != null && standings.RaceActive ? standings.RivalCount : 0;
+            bool added = false;
+            while (rivalDots.Count < count)
+            {
+                var rect = CreateRect("MapRival", mapArea, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.one);
+                var image = rect.gameObject.AddComponent<Image>();
+                image.raycastTarget = false;
+                rivalDots.Add(image);
+                added = true;
+            }
+            if (added)
+            {
+                mapPoliceIcon.SetAsLastSibling();
+                mapShipIcon.SetAsLastSibling();
+            }
+            float edge = Style.PoliceIconEdge * 0.75f;
+            for (int i = 0; i < rivalDots.Count; i++)
+            {
+                Image dot = rivalDots[i];
+                bool shown = i < count && standings.RivalState(i) != RacerState.Dnf;
+                if (dot.gameObject.activeSelf != shown) dot.gameObject.SetActive(shown);
+                if (!shown) continue;
+                dot.rectTransform.sizeDelta = Vector2.one * edge;
+                dot.rectTransform.anchoredPosition = MapPoint(Mathf.Max(0f, standings.RivalDistance(i)));
+                dot.color = standings.RivalColor(i);
+            }
         }
 
         // The whole track, from above: every mapStep metres of the centre line
@@ -468,6 +556,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             foreach (Vector2 r in raw) mapPoints.Add((r - middle) * scale);
             mapLine.SetPoints(mapPoints);
             PlaceMarkers();
+            shownCheckpoints = -1; // the map moved: the checkpoints are placed again
         }
 
         void PlaceMarkers()

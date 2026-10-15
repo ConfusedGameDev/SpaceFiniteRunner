@@ -101,6 +101,14 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             SetShipVisible(true);
         }
 
+        /// <summary>
+        /// Back from 0 mid-run: a full hull, no longer destroyed, the model on
+        /// again, the hit blink cleared — an Arcade time trial's respawn after a
+        /// life is spent (TimeTrialPRD D11). <see cref="ResetForRun"/> by another
+        /// name, so the two can never drift apart.
+        /// </summary>
+        public void Revive() => ResetForRun();
+
         /// <summary>Switches every renderer of the ship's model (mesh, trails, particles) off, or hands back exactly the ones it switched off.</summary>
         public void SetShipVisible(bool visible)
         {
@@ -219,6 +227,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// (a <see cref="RepairOrb"/>) is then left in place, not used up.
         /// </summary>
         public bool Heal(float fraction) => HealPoints(fraction) > 0f;
+
+        /// <summary>Untouchable (and blinking) for at least <paramref name="seconds"/> from now — what a hit grants, granted by a set piece instead (the race kill cam's grace).</summary>
+        public void GrantInvulnerability(float seconds)
+        {
+            if (seconds > 0f) invulnerableLeft = Mathf.Max(invulnerableLeft, seconds);
+        }
 
         /// <summary>While set nothing hurts the hull, forced hits included — the hyperspace jump holds it: a win the player chose is not lost on the way.</summary>
         public bool Shielded { get; set; }

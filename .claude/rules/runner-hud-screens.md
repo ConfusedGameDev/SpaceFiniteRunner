@@ -59,6 +59,15 @@ Preview** (Odin button) draws the segments in edit mode. Do not add position/siz
   string rebuilt once a second): the scene's timer text, placed by hand,
   ALWAYS `timerColor` yellow, no low-time tint. There is no bar/slider any more. Unfinished
   objective lines use `lineColor` (white, the old `timeColor`).
+- **A race level's goal line is the place** (`runner-race.md`): while `IRaceStandings.RaceActive`
+  the `targetText` slot reads `POS  {place}/{racers}` (`MenuTextId.HudRacePosition`) instead of
+  the Light Speed line — `winColor` in first, a pulse on every change of place. Its objective line
+  (FINISH TOP 3 …) reads progress through `IRunState.ObjectiveState`.
+- **A time trial's clock and goal line** (`runner-timetrial.md`): while `ITimeTrialState.TrialActive`
+  the timer reads tenths under a minute, tints and pulses under the trial's low-time warning, and
+  flashes / punches on every `ClockAdjusted` with a `CHECKPOINT +4.2S`-style floater; the
+  `targetText` slot reads `CHECKPOINT  n/N` (Arcade) or `BEAT THE CLOCK` ("Time trial clock" knobs).
+  The "always yellow, no low-time tint" rule above holds for every other level.
 - Every booster hit spawns a floating "+N" at the ship (`FloatingWorldText`, spawned here);
   `MoneyChanged` is answered with a gold `+$N` floating text.
 - **The boost QTE's verdict** (`qteResultText`, the `QteResultText` object, top-left by default):
@@ -230,6 +239,15 @@ Assembly-neutral **`MissionCompleteData`**: title, optional `VideoClip`, the cit
 `RankTable`. The city's rows cross the additive scene handoff through the profile's `lastLevel`
 record — `PlayerStats.RecordLevelCompleted` takes the objective/challenge rows, the bonus and the
 rank table and **banks nothing**. The runner's rows come off the live `GameManager` state.
+
+**A race level adds a RACE section** after the escape run's rows (`racePlace` / `raceRacers` /
+`raceWrecked` / `raceBounty`; 0 place = no section): FINISHING PLACE (`StatFormat.Ratio`), RIVALS
+WRECKED, BOUNTIES. They are **display-only** lines (`Line.info`): typed, the value set with a
+punch, never counted — the bounties were already paid during the run, so they stay out of the
+TOTAL and the mission payout.
+
+**A time trial adds a TIME TRIAL section** after it (`trialActive`; TIME LEFT, RUN TIME, and in
+Arcade CHECKPOINTS n / N, CLEAN CHECKPOINTS, PATROLS DOWNED, LIVES LOST) — display-only like RACE.
 
 ### Layout and reveal
 

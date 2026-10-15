@@ -16,7 +16,7 @@ paths:
 
 ## Mixer and `GameAudio`
 
-`Assets/04.Data/FiniteRunner/FiniteRunnerMixer.mixer` + the static `GameAudio` facade in
+`Assets/04.Data/FiniteRunner/Audio/FiniteRunnerMixer.mixer` + the static `GameAudio` facade in
 `01.Scripts/UI/`.
 
 **Bus layout**: `Master → Gameplay → (Music / FX / Voice)`, plus `UI`, `PauseMusic`,

@@ -56,6 +56,8 @@ namespace ConfusedGameDev.FiniteRunner.Contracts
         void ConsumeDashRequest();
         void DrainDashMeter();
         void ApplyImpactSpeedLoss(float share);
+        /// <summary>A shunt from behind: <paramref name="metersPerSecond"/> of forward speed, blended in like a boost (not scaled by the ship's weight). Ignored while the vehicle is out of play.</summary>
+        void AddForwardKick(float metersPerSecond);
         void AddLateralShove(float velocity);
         void VisualKick(float lateralMeters);
     }

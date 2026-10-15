@@ -45,11 +45,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         IRunState run;
         IChaseTarget ship;
+        IRaceStandings standings; // the race, when the scene has one; only shown while it is active
+        ITimeTrialState trial;    // the time trial, when the scene has one; only shown while it is active
 
         void ResolveSources()
         {
             run ??= runSource as IRunState ?? ContractLookup.Find<IRunState>();
             ship ??= shipSource as IChaseTarget ?? ContractLookup.Find<IChaseTarget>();
+            standings ??= ContractLookup.Find<IRaceStandings>();
+            trial ??= ContractLookup.Find<ITimeTrialState>();
         }
 
         // A collector is ours when it lives on the ship's object (the pickup names the HoverShip beside the motor).
@@ -84,6 +88,18 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Header("Countdown")]
         [Tooltip("The MM:SS readout's colour — always, it never tints.")]
         [SerializeField] Color timerColor = new(1f, 0.9f, 0.2f);
+
+        [Header("Time trial clock")]
+        [Tooltip("A time trial's clock (TimeTrialPRD R5.1) under its low-time warning: this colour, pulsing.")]
+        [SerializeField] Color lowTimeColor = new(1f, 0.25f, 0.2f);
+        [Tooltip("The flash, and the floating text, when the trial adds time.")]
+        [SerializeField] Color timeGainColor = new(0.3f, 1f, 0.45f);
+        [Tooltip("The flash, and the floating text, when the trial takes time away.")]
+        [SerializeField] Color timeLossColor = new(1f, 0.3f, 0.25f);
+        [Tooltip("Scale the clock jumps to when time is added or taken, settling back to its authored scale.")]
+        [SerializeField, Min(1f)] float clockPunch = 1.35f;
+        [Tooltip("Pulses per second of the low-time warning.")]
+        [SerializeField, Range(0.5f, 10f)] float lowTimePulseHz = 2.5f;
 
         [Header("Pad pulse")]
         [SerializeField, Min(1f)] float pulseScale = 1.3f;
@@ -152,6 +168,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         SpeedGauge gauge;
         Color targetColor;      // the goal line's authored colour, before the done tint
         int shownSeconds = -1;  // what the timer text currently reads, so it is rebuilt once a second
+        int shownPlace = -1, shownRacers = -1; // what the POS readout reads, so it is rebuilt on a change
+        float placePulse = 1f;  // the POS readout's punch, decaying to 1
+        Vector3 targetScale = Vector3.one;
+        int shownTenths = -1;          // a time trial's clock, in tenths: rebuilt on a change
+        int shownCheckpoint = -1, shownCheckpointCount = -1; // what the CHECKPOINT line reads
+        float clockFlash;              // 1 -> 0 after the trial moved the clock
+        Color clockFlashColor;
+        float clockPulse = 1f;         // the clock's punch, decaying to 1
+        Vector3 timeScale = Vector3.one;
 
         // The hull bar and the ×N beside it; null while the hull is off.
         SpeedGauge lifeBar;
@@ -168,6 +193,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         void Start()
         {
             if (speedText != null) speedScale = speedText.rectTransform.localScale;
+            if (timeText != null) timeScale = timeText.rectTransform.localScale;
             if (qteResultText != null)
             {
                 qteResultScale = qteResultText.rectTransform.localScale;
@@ -178,6 +204,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             BuildLifeBar();
             if (run == null || targetText == null || run.Level == null) return;
             targetColor = targetText.color;
+            targetScale = targetText.rectTransform.localScale;
             RunnerLevelDefinition level = run.Level;
             int slot = 0;
             for (int i = 0; i < level.Count; i++)
@@ -286,6 +313,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         {
             ResolveSources();
             if (ship != null) ship.Boosted += OnPadImpulse;
+            if (standings != null) standings.PlayerPositionChanged += OnPlaceChanged;
+            if (trial != null) trial.ClockAdjusted += OnClockAdjusted;
             CollectibleManager.MoneyChanged += OnMoneyChanged;
             RepairOrb.Collected += OnRepairOrb;
             BoostQte.Graded += OnQteGraded; // static: paired below — domain reload is off
@@ -294,6 +323,8 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         void OnDisable()
         {
             if (ship != null) ship.Boosted -= OnPadImpulse;
+            if (standings != null) standings.PlayerPositionChanged -= OnPlaceChanged;
+            if (trial != null) trial.ClockAdjusted -= OnClockAdjusted;
             CollectibleManager.MoneyChanged -= OnMoneyChanged;
             RepairOrb.Collected -= OnRepairOrb;
             BoostQte.Graded -= OnQteGraded;
@@ -361,6 +392,36 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                     run.BoostTextLeadMeters, boostTextSize);
         }
 
+        // A time trial moved the clock (TimeTrialPRD R5.1, R5.3): it flashes and
+        // punches in the gain / loss colour, and a "CHECKPOINT +4.2S" line
+        // floats up ahead of the ship like the boost text.
+        void OnClockAdjusted(float seconds, TimeAwardKind kind)
+        {
+            clockFlash = 1f;
+            clockFlashColor = seconds >= 0f ? timeGainColor : timeLossColor;
+            clockPulse = clockPunch;
+            shownSeconds = shownTenths = -1; // repaint now, in the flash
+            if (!spawnBoostText || run == null || run.RunOver) return;
+            MenuTextId id = kind switch
+            {
+                TimeAwardKind.CleanBonus => MenuTextId.TtClean,
+                TimeAwardKind.PatrolKill => MenuTextId.TtPatrolDown,
+                TimeAwardKind.LifeLost => MenuTextId.TtLifeLost,
+                TimeAwardKind.DirtyPenalty => MenuTextId.TtDirty,
+                _ => MenuTextId.TtCheckpoint
+            };
+            string amount = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}{1:0.0}S",
+                                          seconds >= 0f ? "+" : "-", Mathf.Abs(seconds));
+            // A clean bonus or dirty penalty lands with its checkpoint: further ahead, so the two lines never overlap.
+            float lead = run.BoostTextLeadMeters * (kind == TimeAwardKind.CleanBonus || kind == TimeAwardKind.DirtyPenalty ? 1.15f : 1f);
+            FloatingTextSystem.Instance.DisplayText(
+                string.Format(MenuTextLibrary.Load().Get(id), amount), clockFlashColor, 1.2f,
+                lead, boostTextSize);
+        }
+
+        // A place gained or lost: the POS readout punches.
+        void OnPlaceChanged(int was, int now) => placePulse = pulseScale;
+
         void OnPadImpulse(float magnitude)
         {
             currentPulse = pulseScale;
@@ -397,7 +458,41 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
             UpdateLifeBar();
 
-            if (targetText != null && lightSpeed > 0f)
+            if (targetText != null && standings != null && standings.RaceActive)
+            {
+                // A race has no Light Speed goal (RaceModePRD D5): the goal
+                // line is the player's place instead.
+                int place = standings.PlayerPosition, racers = standings.RacerCount;
+                if (place != shownPlace || racers != shownRacers)
+                {
+                    shownPlace = place;
+                    shownRacers = racers;
+                    targetText.text = string.Format(MenuTextLibrary.Load().Get(MenuTextId.HudRacePosition), place, racers);
+                }
+                targetText.color = place == 1 ? winColor : targetColor;
+                placePulse = Mathf.MoveTowards(placePulse, 1f, pulseDecay * Time.deltaTime);
+                targetText.rectTransform.localScale = targetScale * placePulse;
+            }
+            else if (targetText != null && trial != null && trial.TrialActive)
+            {
+                // A time trial has no Light Speed goal (TimeTrialPRD D3): Arcade
+                // counts its checkpoints, Beat the Clock says what it is.
+                int passed = trial.CheckpointsPassed, count = trial.CheckpointCount;
+                if (passed != shownCheckpoint || count != shownCheckpointCount)
+                {
+                    if (shownCheckpoint >= 0 && passed != shownCheckpoint) placePulse = pulseScale;
+                    shownCheckpoint = passed;
+                    shownCheckpointCount = count;
+                    var library = MenuTextLibrary.Load();
+                    targetText.text = trial.IsArcade && count > 0
+                        ? string.Format(library.Get(MenuTextId.HudCheckpoint), passed, count)
+                        : library.Get(MenuTextId.HudBeatTheClock);
+                }
+                targetText.color = trial.IsArcade && count > 0 && passed >= count ? winColor : targetColor;
+                placePulse = Mathf.MoveTowards(placePulse, 1f, pulseDecay * Time.deltaTime);
+                targetText.rectTransform.localScale = targetScale * placePulse;
+            }
+            else if (targetText != null && lightSpeed > 0f)
             {
                 targetText.text = $"LIGHT SPEED  {lightSpeed:0} KM/H";
                 // Reached once is reached: the goal line stays done while the
@@ -406,11 +501,12 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                     targetText.color = run.LightSpeedReached ? winColor : targetColor;
             }
 
+            ObjectiveContext state = run != null ? run.ObjectiveState : default;
             foreach (var line in objectiveLines)
             {
                 bool done = line.challenge ? run.IsChallengeDone(line.index) : run.IsObjectiveDone(line.index);
                 string label = line.step.Summary;
-                string progress = line.step.Progress(kmh, run.JumpCount);
+                string progress = line.step.Progress(state);
                 if (progress.Length > 0) label += "  " + progress;
                 if (line.step is RunnerOptionalChallenge challenge) label += $"  \u00d7{challenge.multiplier}";
                 line.text.text = label;
@@ -423,6 +519,11 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         void UpdateCountdown()
         {
             if (run == null || timeText == null) return;
+            if (trial != null && trial.TrialActive)
+            {
+                UpdateTrialClock();
+                return;
+            }
 
             // Whole seconds, rounded up so 00:00 is the moment the clock runs out.
             int seconds = Mathf.CeilToInt(Mathf.Max(0f, run.TimeRemaining));
@@ -430,6 +531,33 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             shownSeconds = seconds;
             timeText.text = $"{seconds / 60:00}:{seconds % 60:00}";
             timeText.color = timerColor;
+        }
+
+        // A time trial's clock (TimeTrialPRD R5.1): tenths under a minute, the
+        // low-time pulse, the flash and punch when the trial moves it.
+        void UpdateTrialClock()
+        {
+            float left = Mathf.Max(0f, run.TimeRemaining);
+            // Tenths rounded up, so 0.0 is the moment the clock runs out.
+            int tenths = Mathf.CeilToInt(left * 10f - 1e-3f);
+            if (tenths != shownTenths)
+            {
+                shownTenths = tenths;
+                shownSeconds = -1;
+                timeText.text = tenths < 600
+                    ? $"{tenths / 10}.{tenths % 10}"
+                    : $"{tenths / 600}:{tenths / 10 % 60:00}";
+            }
+
+            bool low = left > 0f && left <= trial.LowTimeSeconds;
+            float lowPulse = low ? 0.5f + 0.5f * Mathf.Cos(Time.unscaledTime * lowTimePulseHz * 2f * Mathf.PI) : 0f;
+            Color color = low ? Color.Lerp(timerColor, lowTimeColor, 0.6f + 0.4f * lowPulse) : timerColor;
+            clockFlash = Mathf.MoveTowards(clockFlash, 0f, pulseDecay * 0.5f * Time.unscaledDeltaTime);
+            timeText.color = Color.Lerp(color, clockFlashColor, clockFlash);
+
+            clockPulse = Mathf.MoveTowards(clockPulse, 1f, pulseDecay * Time.unscaledDeltaTime);
+            float scale = clockPulse * (low ? 1f + 0.08f * lowPulse : 1f);
+            timeText.rectTransform.localScale = timeScale * scale;
         }
 
         // The readout heats up as speed climbs toward Light Speed: blue when

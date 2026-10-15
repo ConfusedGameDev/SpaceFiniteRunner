@@ -89,6 +89,22 @@ namespace ConfusedGameDev.FiniteRunner.Collectibles
             MoneyChanged?.Invoke(RunMoney, 0);
         }
 
+        /// <summary>
+        /// Money earned without a pickup — a race's bounty (RaceModePRD R5.6).
+        /// Exactly the Money pickup's path: added to <see cref="RunMoney"/>,
+        /// banked at once through <see cref="PlayerStats.AddMoney"/> (so the
+        /// mission's wallet baseline takes it back on a GAME OVER like any
+        /// coin) and announced on <see cref="MoneyChanged"/>, which the money
+        /// HUD counts up and the race HUD answers with its gold "+$N".
+        /// </summary>
+        public void AwardMoney(int amount)
+        {
+            if (amount <= 0) return;
+            RunMoney += amount;
+            PlayerStats.AddMoney(amount);
+            MoneyChanged?.Invoke(RunMoney, amount);
+        }
+
         void OnCollected(Collectible collectible)
         {
             PlayerStats.RecordCollectible(collectible.Id);

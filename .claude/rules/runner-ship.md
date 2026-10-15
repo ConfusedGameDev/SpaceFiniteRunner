@@ -303,7 +303,7 @@ second half, so nothing cuts mid-drop), ended by `StateChanged(Grounded)`:
   and `LaserGate.ForecastAny` — and only a hit on the old line with none on the new one takes the
   clock to `timeScale` (0.3) for as long as `IsDashing` holds (a wall ends it early), then blends
   out. A car or beam landing anyway (`ShipStruck`, `LaserGate.Hit` for this motor) releases at
-  once. Its knobs live on its OWN asset (`04.Data/FiniteRunner/DodgeSlowMo_Settings`, inline on the
+  once. Its knobs live on its OWN asset (`04.Data/FiniteRunner/Ship/DodgeSlowMo_Settings`, inline on the
   component), never `GameSettings`. Same clock contract as `LoopSlowMo`, so the loop, the duel and
   every menu win; the countdown rides the clock (it slows too).
 
@@ -346,7 +346,9 @@ Win/lose and the countdown.
   runs `ExplodeShip` — `ExplosionVfx.SpawnFireball` off `GameSettings.explosionTextures` (the
   runner's own list: the city's lives in an assembly the runner cannot see), the ship hidden,
   `explosionShake`, glitch, rumble, `ShipAudio.PlayExplosion` (`RunnerSfxSettings.explosionClip`).
-  Reason `LoseDestroyed`. **`BeginFail` takes a life on EVERY loss** (`LivesLeft`, dealt from
+  Reason `LoseDestroyed`. **An Arcade time trial spends a life instead** while more than one is
+  left (`TrySpendLife`, hull 0 or an arrest: explode, respawn through the fall's own respawn, revive
+  on `RespawnStarted`, minus the trial's penalty — `runner-timetrial.md`). **`BeginFail` takes a life on EVERY loss** (`LivesLeft`, dealt from
   `startingLives` in `Awake` only — the runner is entered once per mission and retried in place;
   `Restart` refills the hull and shows the ship, never the lives, except after a WIN, which also
   re-bases the rollback wallet on the paid balance). The loss that takes the last life is
@@ -463,6 +465,17 @@ Materials are built at runtime (`ParticleMaterials.Unlit`, forced to URP additiv
 planted camera within 1.5 s, so the trails need width (`escapeTrailWidth`) and a long burn
 (`escapeTrailSeconds`) to read — the part of the line near the camera is the one on the road.
 
+**The start countdown** (`GameFlow/StartCountdown`, `Ensure` + `Bind` in `Awake` after the
+hyperspace jump, `Begin()` in its own `Start` — before the first physics tick — and again at the end
+of `Restart`): a level with `race` or a time trial opens on READY!! (`MenuTextId.CountdownReady`),
+3, 2, 1, GO! (`CountdownGo`), its own overlay canvas at sorting 21. **The hold is `motor.Paused`**,
+re-asserted every frame until GO, which everything that moves already obeys — the ship's sim and
+controls, the patrol, traffic, the clock, the engine sound, and the race (lights out is the tick the
+ship moves, so the rivals launch on GO with no hook). GO unpauses and drains a latched dash. Scaled
+time, so the pause menu freezes it. Knobs: `GameSettings` "Start countdown" group
+(`startCountdownEnabled`, `countdownReadySeconds`, `countdownBeatSeconds`, `countdownGoSeconds`,
+the two colours). The plain runner launches at once.
+
 ## `PolicePatrol`
 
 The chaser: a scene object whose chase tunables live on its `PatrolDefinition` asset
@@ -471,7 +484,8 @@ edits the live run and never the asset — the same rule as the ship. Run-level 
 minimap range, redeploy) stay on `GameSettings`.
 
 - **It drives the same `TrackBody` as the ship**, through `PatrolDriver` (`GameFlow/`, plain C#,
-  stateless) which outputs the same `BodyControls` the player's input does — so it is held to
+  stateless; its orb / ramp / open-edge / sweep-brake rules live in `Simulation/LineDriving`,
+  shared with the race rivals — `runner-race.md`) which outputs the same `BodyControls` the player's input does — so it is held to
   the ship's physics (steering force, grip on flat sweeps, open edges, ramps and jumps, tubes,
   the swept pickup query) and takes every loop perfectly (no gate is asked of it). It ticks in
   `FixedUpdate` with `simSubsteps` and renders an interpolated pose like the motor:
@@ -520,7 +534,8 @@ minimap range, redeploy) stay on `GameSettings`.
   — lateral, speed, paused, steady, off the end, brake input, armed + `SpendArmed`, handling
   response, `ScaleBoost`, fall gravity / tumble, the `Boosted` event) and acts in a duel only
   through `Contracts.IControlTakeover` (steer assist, dash lock, autopilot line + gain, dash
-  consume / drain, impact speed loss, lateral shove, visual kick). `ShipMotor` implements both
+  consume / drain, impact speed loss, forward kick (a race rival's rear ram), lateral shove, visual
+  kick). `ShipMotor` implements both
   explicitly. The run's rules (`GameSettings`) and the track come in through `Init`, not through
   the ship (`target.DashSettings` is gone) or scene searches (only a fallback). `PatrolDriver.Drive`
   takes the ship's lateral as a float. The patrol still drives a `TrackBody` on the track's
@@ -794,7 +809,10 @@ minimap range, redeploy) stay on `GameSettings`.
 ## `ChaseMinimap`
 
 Spawned by `GameManager.Awake` whenever there is a motor — with or without a patrol
-(`Spawn(motor, patrol, gameManager, range, warn, generator)`, `patrol` may be null).
+(`Spawn(motor, patrol, gameManager, range, warn, generator, race)`, `patrol` and `race` may be
+null). On a race level it draws **one pooled dot per rival** on the track map in the rival's
+`mapColor` — ghosts too, a finished one on the finish marker, a wrecked one gone — under the
+ship's and the patrol's dots, read through `IRaceStandings` only.
 
 **The track map** (TrackAuthoringPRD M6, `ChaseMinimapSettings.showTrackMap`, on by default): the
 WHOLE track from above in the hand-placed `TrackMap` rect (`mapArea`, its `Image` is the

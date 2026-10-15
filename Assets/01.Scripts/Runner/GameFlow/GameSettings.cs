@@ -712,6 +712,32 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [PropertyRange(200f, 2000f), SuffixLabel("m", true)]
         public float hyperspaceRunUpMeters = 600f;
 
+        // ---------------------------------------------------- start countdown
+        [ToggleGroup("startCountdownEnabled", "Start countdown")]
+        [Tooltip("Race and time trial levels (Race, Beat the Clock, Arcade) open on READY!! 3, 2, 1, GO!: the ship, the rivals, the patrol and the clock all hold on the line and go together on GO — the controls answer from that frame. The plain runner launches at once as ever.")]
+        public bool startCountdownEnabled = true;
+
+        [ToggleGroup("startCountdownEnabled")]
+        [Tooltip("How long READY!! holds before the 3.")]
+        [PropertyRange(0.3f, 3f), SuffixLabel("s", true)]
+        public float countdownReadySeconds = 1.2f;
+
+        [ToggleGroup("startCountdownEnabled")]
+        [Tooltip("Seconds per number (3, 2, 1).")]
+        [PropertyRange(0.3f, 2f), SuffixLabel("s", true)]
+        public float countdownBeatSeconds = 1f;
+
+        [ToggleGroup("startCountdownEnabled")]
+        [Tooltip("How long GO! stays on screen once the run is live.")]
+        [PropertyRange(0.2f, 2f), SuffixLabel("s", true)]
+        public float countdownGoSeconds = 0.8f;
+
+        [ToggleGroup("startCountdownEnabled")]
+        public Color countdownNumberColor = Color.white;
+
+        [ToggleGroup("startCountdownEnabled")]
+        public Color countdownGoColor = new(0.3f, 1f, 0.4f, 1f);
+
         // ------------------------------------------------- debug boost chord
         [ToggleGroup("debugBoostChord", "Debug boost (Y)")]
         [Tooltip("Debug utility: pressing Y on the pad gives the ship a speed boost, as if it had taken an orb (the +N, rumble and the patrol's boost share included). Also shown on the ship's DebugBoostChord component and the pause menu's DEBUG TOOLS page.")]

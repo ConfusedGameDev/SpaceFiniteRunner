@@ -22,7 +22,7 @@ MonoBehaviour:
   launchCoastGraceSeconds: 2
   passiveDeceleration: 50
   digitalThrottleRampSeconds: 0.358
-  acceleration: 0.01
+  acceleration: 18.5
   lateralSpeed: 79.9
   handlingResponse: 3.6
   gripBase: 92
