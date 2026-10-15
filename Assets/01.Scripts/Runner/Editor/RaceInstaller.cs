@@ -21,7 +21,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     {
         const string DataFolder = "Assets/04.Data/FiniteRunner/Race";
         const string DefinitionPath = DataFolder + "/Race_Default.asset";
-        const string LevelPath = "Assets/04.Data/FiniteRunner/FiniteRunner_LevelDefinition_Race.asset";
+        const string LevelPath = "Assets/04.Data/FiniteRunner/Levels/FiniteRunner_LevelDefinition_Race.asset";
         const string PrefabPath = "Assets/03.Prefabs/FiniteRunner/PF_RaceSystem.prefab";
         const string SystemsPath = "Assets/03.Prefabs/FiniteRunner/PF_Systems.prefab";
         const string ModelFolder = "Assets/Cyberpunk_Megapolis/Prefabs/Car/";

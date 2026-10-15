@@ -156,6 +156,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             }
             EditorGUILayout.EndScrollView();
 
+            DrawCheckpointTools(generator, layout);
+
             EditorGUILayout.Space(4);
             if (GUILayout.Button("Reroll Placements (orbs, repair orbs, gates, coins)")
                 && EditorUtility.DisplayDialog("Reroll placements?",
@@ -188,7 +190,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             EditorGUI.BeginChangeCheck();
             float distance = EditorGUILayout.FloatField("Distance (m)", p.distance);
             generator.Track.GetLateralBand(distance, out float min, out float max);
-            float lateral = EditorGUILayout.Slider("Lateral (m)", p.lateral, min, max);
+            bool checkpoint = p.kind == TrackPlacementKind.Checkpoint; // spans the road: no lateral
+            float lateral = checkpoint ? 0f : EditorGUILayout.Slider("Lateral (m)", p.lateral, min, max);
             float height = p.kind == TrackPlacementKind.CustomPrefab ? EditorGUILayout.FloatField("Height (m)", p.height) : p.height;
             int variant = DrawVariant(generator, p);
             Vector4 data = p.data;
@@ -199,6 +202,14 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 data.w = EditorGUILayout.Toggle("Wave", data.w > 0.5f) ? 1f : 0f;
             }
             if (p.kind == TrackPlacementKind.Collectible) data.x = EditorGUILayout.IntSlider("Value ($)", Mathf.RoundToInt(data.x), 1, 100);
+            if (checkpoint)
+            {
+                // The overrides ride in variant / data / height (TimeTrialCheckpoint's layout).
+                TrackPlacement edited = DrawCheckpointOverrides(generator, layout, p);
+                variant = edited.variant;
+                data = edited.data;
+                height = edited.height;
+            }
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(working, "Edit Placement");
@@ -306,7 +317,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             float newDistance = ProjectDistance(track, dragged, selected.distance);
             track.GetPoseAtDistance(newDistance, 0f, out Vector3 centre, out Quaternion rotation);
             track.GetLateralBand(newDistance, out float min, out float max);
-            float newLateral = Mathf.Clamp(Vector3.Dot(dragged - centre, rotation * Vector3.right), min, max);
+            float newLateral = selected.kind == TrackPlacementKind.Checkpoint ? 0f
+                : Mathf.Clamp(Vector3.Dot(dragged - centre, rotation * Vector3.right), min, max);
 
             Undo.RecordObject(working, "Move Placement");
             float oldDistance = selected.distance;
@@ -441,7 +453,9 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         static Vector3 PlacementWorld(TrackManager track, TrackPlacement p)
         {
             track.GetFrameAtDistance(p.distance, out Vector3 centre, out _, out Vector3 up, out Vector3 right);
-            return centre + right * p.lateral + up * (p.height + 3f);
+            // A checkpoint's height holds its life penalty override, not a height.
+            float height = p.kind == TrackPlacementKind.Checkpoint ? 0f : p.height;
+            return centre + right * p.lateral + up * (height + 3f);
         }
 
         // The road point under the mouse: the nearest hit of the ray on the road's
@@ -504,7 +518,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                     return orbs?.Tiers != null && p.variant >= 0 && p.variant < orbs.Tiers.Length ? orbs.Tiers[p.variant].name + " orb" : "Speed orb";
                 case TrackPlacementKind.LaserGate: return ((LaserGateVariant)p.variant) + " laser gate";
                 case TrackPlacementKind.Ramp: return "Ramp";
-                case TrackPlacementKind.Checkpoint: return "Checkpoint";
+                case TrackPlacementKind.Checkpoint: return p.variant != 0 ? "Checkpoint (overrides)" : "Checkpoint";
                 case TrackPlacementKind.Collectible: return $"Coin (${Mathf.RoundToInt(p.data.x)})";
                 case TrackPlacementKind.Pickup:
                     var catalog = generator.Catalog;

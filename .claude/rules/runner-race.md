@@ -91,7 +91,9 @@ salt, so a rival makes or skips a given one consistently through a run.
 
 ## Contact, wrecks, bounty (R4, R5)
 
-All analytic, in track space — no colliders. `ShipContact`:
+All analytic, in track space — no colliders. A rival still on the grid (waiting out its launch
+reaction) is solid like a racing one (`Settled` takes Grid): touched by the ship it is launched at once
+and the contact plays as below — before, the ship flew through the car ahead off the line. `ShipContact`:
 - **Side by side** (R4.3): both are shoved apart (`sideShoveMeters`; the ship through
   `IControlTakeover.AddLateralShove`, the rival through `TrackBody.AddLateralImpulse`), weighted by
   `sideShoveBias` toward the one that was NOT steering in — each one's sideways speed toward the

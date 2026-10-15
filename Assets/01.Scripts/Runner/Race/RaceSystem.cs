@@ -716,6 +716,11 @@ namespace ConfusedGameDev.FiniteRunner.Race
                 float reachW = rival.Entry.halfWidth + def.shipHalfWidth;
                 if (Mathf.Abs(along) >= reachL || Mathf.Abs(across) >= reachW) { rival.InContact = false; continue; }
 
+                // A rival still on the grid (waiting out its reaction) is a parked
+                // car, not a ghost: touched, it is bumped off the line at once,
+                // then the contact below plays as it would on the move.
+                if (rival.State == RacerState.Grid) rival.Launch(launchSpeed);
+
                 bool fresh = !rival.InContact;
                 rival.InContact = true;
                 rival.LastShipContactTime = Time.time;
@@ -799,9 +804,11 @@ namespace ConfusedGameDev.FiniteRunner.Race
             if (rules != null && rules.wallHitShake != null) CameraShake.Shake(rules.wallHitShake);
         }
 
+        // A rival in full sim on plain ground: Racing, or parked on the grid
+        // (it stands on the road — the ship and the field must not pass through it).
         bool Settled(Rival rival)
         {
-            if (rival.State != RacerState.Racing) return false;
+            if (rival.State != RacerState.Racing && rival.State != RacerState.Grid) return false;
             var body = rival.Body;
             if (body.State != ShipState.Grounded || body.Ramp != null) return false;
             return track.SectionAt(body.Distance) is not TubeSection;

@@ -10,26 +10,29 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b7e2d4c6a1f04c3e9d8a5b2c7e6f1a03, type: 3}
-  m_Name: FiniteRunner_LevelDefinition_Race
-  m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.GameFlow.RunnerLevelDefinition
-  levelName: Race
-  nextSceneName: CarTest
-  trackLengthMeters: 30000
-  track: {fileID: 0}
-  traffic: {fileID: 0}
-  race: {fileID: 11400000, guid: 554e2404b4adac04aba1bfb90a514d6d, type: 2}
+  m_Name: FiniteRunner_LevelDefinition
+  m_EditorClassIdentifier: 
+  levelName: Escape Run
+  nextSceneName: Store
+  trackLengthMeters: 91837
+  track: {fileID: 11400000, guid: ec876427ee3040c7a26ee57ac2fe5a85, type: 2}
+  traffic: {fileID: 11400000, guid: a53a4393d9c25c642bd84bfa1a1c45cc, type: 2}
   completeVideo: {fileID: 0}
   rankTable:
     sThreshold: 10000
     aThreshold: 5000
     bThreshold: 2500
     cThreshold: 1000
-  optionalChallenges: []
-  objectives:
-  - type: 2
+  optionalChallenges:
+  - type: 1
     targetSpeedKmh: 6500
     jumpCount: 3
-    raceMode: 1
-    racePosition: 3
+    reward: 0
+    accent: {r: 0, g: 0, b: 0, a: 0}
+    multiplier: 2
+  objectives:
+  - type: 0
+    targetSpeedKmh: 5574
+    jumpCount: 3
     reward: 500
     accent: {r: 0, g: 0, b: 0, a: 0}

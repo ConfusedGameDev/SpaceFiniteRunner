@@ -7,7 +7,7 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
     /// <summary>
     /// The pause menu's TIME TRIAL page (TimeTrialPRD §6): three actions —
     /// cross the next checkpoint now, lay the checkpoints again, ten seconds
-    /// on the clock — then the clock, checkpoint and bonus knobs. Only a time
+    /// on the clock — then the clock, checkpoint, bonus and penalty knobs (the trial's defaults — a saved track's checkpoint overrides win over them). Only a time
     /// trial level shows it (the bound <see cref="TimeTrialSystem.Live"/>).
     /// The trial reads a runtime clone, so every row writes the ASSET (kept for
     /// the pause menu's flush through <see cref="DebugAssetEdits"/>) and then
@@ -47,8 +47,12 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
                 100f, 6000f, 50f, "0", d => d.paceFloorKmh, (d, v) => d.paceFloorKmh = v);
             Slider(screen, system, refreshers, MenuTextId.TtGrace,
                 0f, 20f, 0.5f, "0.0", d => d.graceSeconds, (d, v) => d.graceSeconds = v);
+            Slider(screen, system, refreshers, MenuTextId.TtAwardScale,
+                0.1f, 2f, 0.05f, "0.00", d => d.awardScale, (d, v) => d.awardScale = v);
             Slider(screen, system, refreshers, MenuTextId.TtCleanBonus,
                 0f, 20f, 0.5f, "0.0", d => d.cleanCheckpointBonus, (d, v) => d.cleanCheckpointBonus = v);
+            Slider(screen, system, refreshers, MenuTextId.TtDirtyPenalty,
+                0f, 20f, 0.5f, "0.0", d => d.dirtyCheckpointPenalty, (d, v) => d.dirtyCheckpointPenalty = v);
             Slider(screen, system, refreshers, MenuTextId.TtKillBonus,
                 0f, 30f, 0.5f, "0.0", d => d.patrolKillBonus, (d, v) => d.patrolKillBonus = v);
             Slider(screen, system, refreshers, MenuTextId.TtLifePenalty,

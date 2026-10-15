@@ -11,6 +11,8 @@ namespace ConfusedGameDev.FiniteRunner.Contracts
         PatrolKill,
         /// <summary>A life lost (a penalty — negative).</summary>
         LifeLost,
+        /// <summary>A checkpoint reached after a hit since the last (a penalty — negative).</summary>
+        DirtyPenalty,
     }
 
     /// <summary>

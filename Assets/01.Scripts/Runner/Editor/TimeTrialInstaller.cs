@@ -1,6 +1,7 @@
 using System.IO;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.TimeTrial;
+using ConfusedGameDev.FiniteRunner.Track;
 using UnityEditor;
 using UnityEngine;
 
@@ -13,8 +14,10 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// TimeTrial_Arcade), the <c>PF_TimeTrialSystem</c> prefab, an instance of
     /// it inside <c>PF_Systems</c> wired to that prefab's
     /// <see cref="GameManager"/> (so every runner scene built on PF_Systems has
-    /// it hand-placed under ===SYSTEMS===), and two test levels that reference
-    /// them. Never overwrites an existing asset and never touches a level other
+    /// it hand-placed under ===SYSTEMS===), the TimeTrialCheckpoints object in
+    /// <c>PF_Env</c> next to Pads (the track's <c>checkpointParent</c>, where
+    /// the checkpoint gates stand in edit mode and in play), and two test levels
+    /// that reference them. Never overwrites an existing asset and never touches a level other
     /// than the ones it creates.
     /// </summary>
     public static class TimeTrialInstaller
@@ -22,10 +25,12 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         const string DataFolder = "Assets/04.Data/FiniteRunner/TimeTrial";
         const string BeatTheClockPath = DataFolder + "/TimeTrial_BeatTheClock.asset";
         const string ArcadePath = DataFolder + "/TimeTrial_Arcade.asset";
-        const string BeatTheClockLevelPath = "Assets/04.Data/FiniteRunner/FiniteRunner_LevelDefinition_BeatTheClock.asset";
-        const string ArcadeLevelPath = "Assets/04.Data/FiniteRunner/FiniteRunner_LevelDefinition_Arcade.asset";
+        const string BeatTheClockLevelPath = "Assets/04.Data/FiniteRunner/Levels/FiniteRunner_LevelDefinition_BeatTheClock.asset";
+        const string ArcadeLevelPath = "Assets/04.Data/FiniteRunner/Levels/FiniteRunner_LevelDefinition_Arcade.asset";
         const string PrefabPath = "Assets/03.Prefabs/FiniteRunner/PF_TimeTrialSystem.prefab";
         const string SystemsPath = "Assets/03.Prefabs/FiniteRunner/PF_Systems.prefab";
+        const string EnvPath = "Assets/03.Prefabs/FiniteRunner/PF_Env.prefab";
+        const string CheckpointParentName = "TimeTrialCheckpoints";
 
         [MenuItem("Tools/FiniteRunner/Install Time Trials")]
         public static void Install()
@@ -40,11 +45,12 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             TimeTrialDefinition arcade = CreateOrLoadDefinition(ArcadePath, TimeTrialMode.Arcade);
             GameObject prefab = CreateOrLoadPrefab();
             bool placed = PlaceInSystems(prefab);
+            bool parented = PlaceCheckpointParent();
             RunnerLevelDefinition btcLevel = CreateOrLoadLevel(BeatTheClockLevelPath, "Beat the Clock", beatTheClock, 25000f);
             RunnerLevelDefinition arcadeLevel = CreateOrLoadLevel(ArcadeLevelPath, "Arcade Time Trial", arcade, 35000f);
             AssetDatabase.SaveAssets();
             Debug.Log($"TimeTrialInstaller: definitions '{beatTheClock.name}' + '{arcade.name}', prefab '{prefab.name}', " +
-                      $"PF_Systems {(placed ? "updated" : "already wired")}, test levels '{btcLevel.name}' + '{arcadeLevel.name}'. " +
+                      $"PF_Systems {(placed ? "updated" : "already wired")}, PF_Env {(parented ? "given" : "already has")} {CheckpointParentName}, test levels '{btcLevel.name}' + '{arcadeLevel.name}'. " +
                       "Set a RunnerLevelDefinition's Time Trial field (or point the GameManager at a test level) to play one.", arcade);
         }
 
@@ -75,6 +81,51 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             prefab = PrefabUtility.SaveAsPrefabAsset(go, PrefabPath);
             Object.DestroyImmediate(go);
             return prefab;
+        }
+
+        /// <summary>
+        /// Adds TimeTrialCheckpoints to PF_Env as a sibling of the track's Pads
+        /// object (the env root when it has none) and wires the track's
+        /// <c>checkpointParent</c> to it. False when both were already done.
+        /// </summary>
+        static bool PlaceCheckpointParent()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(EnvPath) == null)
+            {
+                Debug.LogWarning($"TimeTrialInstaller: no {EnvPath} — add a {CheckpointParentName} object next to Pads and wire the TrackGenerator's Checkpoint Parent by hand.");
+                return false;
+            }
+            GameObject root = PrefabUtility.LoadPrefabContents(EnvPath);
+            try
+            {
+                TrackGenerator generator = root.GetComponentInChildren<TrackGenerator>(true);
+                if (generator == null)
+                {
+                    Debug.LogWarning($"TimeTrialInstaller: {EnvPath} has no TrackGenerator — wire its Checkpoint Parent by hand.");
+                    return false;
+                }
+                var so = new SerializedObject(generator);
+                SerializedProperty field = so.FindProperty("checkpointParent");
+                if (field.objectReferenceValue != null) return false;
+
+                var pads = so.FindProperty("padsParent").objectReferenceValue as Transform;
+                Transform holder = pads != null && pads.parent != null ? pads.parent : root.transform;
+                Transform parent = holder.Find(CheckpointParentName);
+                if (parent == null)
+                {
+                    parent = new GameObject(CheckpointParentName).transform;
+                    parent.SetParent(holder, false);
+                    if (pads != null) parent.SetSiblingIndex(pads.GetSiblingIndex() + 1);
+                }
+                field.objectReferenceValue = parent;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(root, EnvPath);
+                return true;
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         /// <summary>Nests the system in PF_Systems (as "TimeTrialSystem") and wires its GameManager. False when both were already done.</summary>

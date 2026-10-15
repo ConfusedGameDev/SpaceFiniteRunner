@@ -407,12 +407,13 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                 TimeAwardKind.CleanBonus => MenuTextId.TtClean,
                 TimeAwardKind.PatrolKill => MenuTextId.TtPatrolDown,
                 TimeAwardKind.LifeLost => MenuTextId.TtLifeLost,
+                TimeAwardKind.DirtyPenalty => MenuTextId.TtDirty,
                 _ => MenuTextId.TtCheckpoint
             };
             string amount = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}{1:0.0}S",
                                           seconds >= 0f ? "+" : "-", Mathf.Abs(seconds));
-            // A clean bonus lands with its checkpoint: further ahead, so the two lines never overlap.
-            float lead = run.BoostTextLeadMeters * (kind == TimeAwardKind.CleanBonus ? 1.15f : 1f);
+            // A clean bonus or dirty penalty lands with its checkpoint: further ahead, so the two lines never overlap.
+            float lead = run.BoostTextLeadMeters * (kind == TimeAwardKind.CleanBonus || kind == TimeAwardKind.DirtyPenalty ? 1.15f : 1f);
             FloatingTextSystem.Instance.DisplayText(
                 string.Format(MenuTextLibrary.Load().Get(id), amount), clockFlashColor, 1.2f,
                 lead, boostTextSize);

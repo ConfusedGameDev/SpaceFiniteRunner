@@ -20,11 +20,12 @@ MonoBehaviour:
   autoCount: 8
   firstCheckpointMeters: 2500
   featureClearance: 150
-  paceShare: 0.9
+  paceShare: 1.1
   paceFloorKmh: 900
-  graceSeconds: 3
-  awardBand: {x: 4, y: 40}
-  cleanCheckpointBonus: 2
+  graceSeconds: 1
+  awardBand: {x: 1, y: 25}
+  awardScale: 0.5
+  cleanCheckpointBonus: 0.5
   patrolKillBonus: 3
   lifePenaltySeconds: 5
   trafficKillPays: 0

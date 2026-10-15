@@ -72,6 +72,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         RunCameraDirector cameraDirector;  // framing: jumps, loops, falls, the duel dolly, the endings' shot
         RunFeedback feedback;              // feel: rumbles, shakes, glitch pulses, speed lines, story lines
         HyperspaceJump hyperspace;         // the LB+RB / Q+E shortcut to the end ramps, once at Light Speed
+        StartCountdown startCountdown;     // READY!! 3, 2, 1, GO! holding a race or time trial on the line
         Race.RivalKillCam killCam;         // a race's kill cam; null when the level is not a race
         int pendingBounty;                 // bounty earned during a kill cam, paid on the cut back
         int raceWrecked;                   // rivals the ship wrecked this run (the Mission Complete race rows)
@@ -576,6 +577,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             // No hyperspace in a race (D5): it moves the end mid-run, which would break the finish order.
             // Nor in a time trial (TimeTrialPRD D4): it freezes the clock and moves the end.
             hyperspace.Allowed = level.race == null && TrialLevel == null;
+
+            // Races and time trials start on READY!! 3, 2, 1, GO!: the whole run
+            // is held on the line (the motor paused) until GO. Begins in its own
+            // Start, before the first physics tick; Restart begins it again.
+            startCountdown = StartCountdown.Ensure(this);
+            startCountdown.Bind(motor, settings, level.race != null || TrialLevel != null);
 
             // Weather rides with the camera and needs nothing from the run, so
             // it goes up before the menu — the debug page binds to the live
@@ -1410,6 +1417,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (traffic != null) traffic.ResetForRun();
             if (race != null) race.ResetForRun();
             if (timeTrial != null) timeTrial.ResetForRun();
+
+            // Back on the line for a race or a time trial: READY!! 3, 2, 1, GO! again.
+            if (startCountdown != null) startCountdown.Begin();
 
             // Reopen ship setup so points can be re-allocated; it re-launches on START.
             if (tuningScreen != null) tuningScreen.Show();

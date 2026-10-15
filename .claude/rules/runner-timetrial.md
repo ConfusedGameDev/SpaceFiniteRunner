@@ -8,7 +8,7 @@ paths:
 
 # Runner time trials
 
-Design and decisions: `TimeTrialPRD.md` (D1–D14, R1–R5). Runner only. A **time trial level** is a
+Design and decisions: `TimeTrialPRD.md` (D1–D15, R1–R5). Runner only. A **time trial level** is a
 `RunnerLevelDefinition` whose `timeTrial` field holds a `TimeTrialDefinition`; empty = the plain
 runner, and nothing below runs. A level that also sets `race` runs the race (a warning is logged).
 
@@ -16,11 +16,15 @@ runner, and nothing below runs. A level that also sets `race` runs the race (a w
 
 | Type | Where | Role |
 |---|---|---|
-| `TimeTrialDefinition` | `Runner/TimeTrial/` | `mode` (`TimeTrialMode` BeatTheClock / Arcade, append-only), Clock (`timeLimitSeconds` BtC, `startSeconds` Arcade, `maxClockSeconds`, `lowTimeWarningSeconds`), Checkpoints (`autoCount`, `firstCheckpointMeters`, `featureClearance`, `paceShare`, `paceFloorKmh`, `graceSeconds`, `awardBand`), Bonuses (`cleanCheckpointBonus`, `patrolKillBonus`, `lifePenaltySeconds`, `trafficKillPays`, `scrapeBreaksClean`), `patrolEnabled`, Gate look, `debugLog`. Cloned at bind. |
+| `TimeTrialDefinition` | `Runner/TimeTrial/` | `mode` (`TimeTrialMode` BeatTheClock / Arcade, append-only), Clock (`timeLimitSeconds` BtC, `startSeconds` Arcade, `maxClockSeconds`, `lowTimeWarningSeconds`), Checkpoints (`autoCount`, `firstCheckpointMeters`, `featureClearance`, `paceShare`, `paceFloorKmh`, `graceSeconds`, `awardBand`), Bonuses (`cleanCheckpointBonus`, `patrolKillBonus`, `lifePenaltySeconds`, `trafficKillPays`, `scrapeBreaksClean`), `dirtyCheckpointPenalty`, `patrolEnabled`, Gate look, `debugLog`. Cloned at bind. |
+| `TimeTrialCheckpoint` | `Runner/TimeTrial/` | One checkpoint + its optional overrides, packed in a `Checkpoint` `TrackPlacement` (`variant` = `Overrides` bits; `data` = award, clean, dirty, kill; `height` = life). `LayAuto` is THE auto layout, shared by the run and the editor. |
+| `CheckpointGate` | `Runner/TimeTrial/` | One gate's picture (pylons + beam, or `gatePrefab` colliders stripped) + its floating `TextMesh` label (rich text, `Compose` / `Seconds`). Built by the system in play and by the editor preview in edit mode, always under `TrackGenerator.CheckpointParent`; an edit preview carries `Owner` + `RecordIndex`. |
+| `CheckpointPreviewGates`, `CheckpointGateEditor` | `Runner/Editor/` | The edit preview: registered as `TrackGenerator.CheckpointPreview`, so the generator builds a gate per Checkpoint record like a pad (rebuilt on every edit, `DontSaveInEditor`); the picked trial (EditorPrefs), the preview label, the five override rows. Selecting a gate edits its record in the track asset (distance, overrides, prev / next, delete, Save Track). |
 | `TimeTrialSystem` | `Runner/TimeTrial/`, `PF_TimeTrialSystem` under `===SYSTEMS===` (nested in `PF_Systems`) | Lays the checkpoints, judges crossings, sizes awards, counts clean / kills / lives, asks the clock for time, draws the gates. Implements `ITimeTrialState`. `Live` = the bound instance. |
 | `ITimeTrialClock`, `ITimeTrialState`, `TimeAwardKind` | `Contracts/TimeTrialContracts.cs` | The clock the trial moves (the `GameManager` implements it: `AddTime` clamps to `[0, maxClockSeconds]`, refused while ending / over / paused) and the read-only state the HUD, minimap and panel read (`ClockAdjusted(delta, kind)`). |
 | `TimeTrialDebugPage` | `Runner/TimeTrial/` | The pause menu's TIME TRIAL tab (registry order 7, after RACE's 6), shown only while bound. |
 | `TimeTrialInstaller` | `Runner/Editor/` | **Tools → FiniteRunner → Install Time Trials**: `TimeTrial_BeatTheClock` / `TimeTrial_Arcade` (`04.Data/FiniteRunner/TimeTrial/`), `PF_TimeTrialSystem`, the PF_Systems wiring (`GameManager.timeTrial`), two test levels (`FiniteRunner_LevelDefinition_BeatTheClock` / `_Arcade`). Idempotent, never overwrites. |
+| `GameModeMenu` | `Runner/Editor/` | **Tools → FiniteRunner → Set Game Mode → Standard / Race / Beat the Clock / Arcade**: points the open scene's `GameManager.level` at that mode's level (ticks the one in use). Each level plays its own copy of one track: `Track_Standard`, `Track_Race`, `Track_BeatTheClock`, `Track_Arcade` (the only one with Checkpoint records). |
 
 ## The clock and the win
 
@@ -45,19 +49,36 @@ runner, and nothing below runs. A level that also sets `race` runs the race (a w
   across the road, Checks warn on one inside a keep-out, Reroll keeps them) win; else `autoCount`
   spread from `firstCheckpointMeters` to `EndZoneStart`, each slid forward (else back, else dropped)
   off `TrackHazards.IsEncounterGroundClear` runs and laser / ramp records ± `featureClearance`.
-- **Award = (distance to the next checkpoint, the last: to the end) ÷ max(crossing speed ×
-  `paceShare`, `paceFloorKmh`) + `graceSeconds`, clamped to `awardBand`**, sized at the crossing.
+- **Authoring (D15)**: Edit Track → Placements → *Time trial checkpoints*: pick a trial, **Lay Auto
+  Checkpoints** (replaces the track's checkpoints with `LayAuto`'s, undoable) / Clear; then drag,
+  add, duplicate, delete. A selected checkpoint has five tick-to-override rows (greyed = the trial's
+  value): time award (fixed, unclamped), clean bonus, dirty penalty, and the kill bonus / life penalty
+  of the stretch UP TO it (`Ahead()` = the next checkpoint's; past the last, the defaults). Lateral is
+  pinned to 0 and the editor ignores a checkpoint's `height` for drawing.
+- **Award = ((distance to the next checkpoint, the last: to the end) ÷ max(crossing speed ×
+  `paceShare`, `paceFloorKmh`) + `graceSeconds`, clamped to `awardBand`) × `awardScale`**, sized at
+  the crossing. `awardScale` (0.5 on `TimeTrial_Arcade`) is the one generosity knob; a fixed award
+  override is never scaled.
   Not off the ship's cruise: the Fighter's thrust (25 m/s²) needs ~100 s to reach its 2664 m/s
   cruise and real speed is the orbs' — the cruise-sized first pass timed out before checkpoint 1.
   Before crossing, `CheckpointAward` reads the pace-floor value (the most it can pay).
 - **Crossing is analytic** (`IChaseTarget.Distance` passing the mark). A respawn that skips several
   pays each, only the first can be clean.
+- **Dirty**: crossed after a hit → −`DirtyPenaltyOr` (`TimeAwardKind.DirtyPenalty`, `TtDirty` floater);
+  only the first of a respawn skip pays it.
 - **Clean** = nothing since the last checkpoint: hull `Damaged` hard (a scrape only with
   `scrapeBreaksClean`), every laser / car hit through `ApplyHazardHit` (hull on or off), every fall,
   every life. GameManager forwards them (`NotifyHit` / `NotifyScrape`).
-- **Gates**: one per checkpoint, built at layout (code-built pylons + beam on a runtime URP Unlit
-  material, or `gatePrefab` with colliders stripped), shown while the generator has built road
-  there and the ship is within 300 m past, coloured pending / clean / dirty.
+- **Gates**: one `CheckpointGate` per checkpoint, built at layout under the track's
+  `CheckpointParent` (the hand-placed **TimeTrialCheckpoints** object next to Pads in `PF_Env`, wired
+  by the installer; none = the system's own child), shown while the generator has built road there
+  and the ship is within 300 m past, coloured pending / clean / dirty. The generator's regenerate
+  clears only edit previews (`DontSaveInEditor`) from that parent, never the system's gates.
+- **The floating label** (`showGateLabels`, `labelGap`, `labelSize`, `label*Color`): pending, the
+  award at the ship's speed NOW (`AwardAt(i, ship.Speed)`, or the fixed award) + `CLEAN +x` — or
+  `DIRTY -x` on the next gate once the run to it is dirty; crossed, what it paid. Rewritten only when
+  the tenths change. The edit preview shows the fixed award or the pace-floor `MAX`, clean / dirty,
+  and any kill / life override.
 
 ## Bonuses and lives (Arcade)
 
@@ -90,7 +111,7 @@ runner, and nothing below runs. A level that also sets `race` runs the race (a w
 ## Debug
 
 TIME TRIAL page: CROSS NEXT CHECKPOINT, LAY CHECKPOINTS AGAIN, ADD 10 SECONDS; start time, time
-limit, clock cap, checkpoint count / pace / pace floor / grace, the three bonuses, the low-time
+limit, clock cap, checkpoint count / pace / pace floor / grace, the clean bonus, the dirty penalty, the kill bonus, the life penalty, the low-time
 warning, the clock log (`debugLog`: `[TimeTrial]` lines). Rows write the asset
 (`DebugAssetEdits.Touch`) and mirror the clone; start time and limit bite on the next run, layout
 knobs on the next layout. Odin buttons on the system: Debug Cross Next, Debug Relayout.

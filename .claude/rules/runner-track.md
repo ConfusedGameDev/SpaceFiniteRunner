@@ -334,7 +334,13 @@ stay endless.
   - **`Checkpoint`** records (kind 10) are a time trial's checkpoints (`runner-timetrial.md`): the
     generator's `Build` ignores them (the `TimeTrialSystem` draws the gate), the palette offers
     "Checkpoint (time trial)" on the centre line, the gizmo draws a green line across the road, Checks
-    warn on one inside a keep-out, and Reroll keeps them.
+    warn on one inside a keep-out, and Reroll keeps them. In edit mode `Build` hands a Checkpoint record to
+    the static `TrackGenerator.CheckpointPreview` (set by the editor's `CheckpointPreviewGates`) and
+    tracks the gate it returns like any built object, under `checkpointParent` (TimeTrialCheckpoints,
+    next to Pads; `ClearPreviews` only takes `DontSaveInEditor` children, since the TimeTrialSystem
+    owns that parent's gates in play). Lay Auto Checkpoints and the per-checkpoint
+    overrides are `TrackGeneratorEditor.Checkpoints.cs`; a checkpoint's `variant` / `data` / `height`
+    hold its overrides (`TimeTrialCheckpoint`), never a variant or a height.
   - **`CustomPrefab`** records index the asset's `customPrefabs` list; built standing on the road at
     their spot + height, culled like the rest.
   - **Verified** on a copy of a saved track: a catalog orb, a new catalog power-up and a custom prefab
@@ -470,7 +476,7 @@ mirrored onto the entry's runtime clone.
 
 Everything the generator streams onto the track besides features and coins is a **`TrackSpawner`**
 (an abstract ScriptableObject), listed in a **`TrackSpawnSet`** asset —
-`04.Data/FiniteRunner/FiniteRunner_TrackSpawnSet.asset`, drawn inline on `PF_Track`'s
+`04.Data/FiniteRunner/TrackSettings/FiniteRunner_TrackSpawnSet.asset`, drawn inline on `PF_Track`'s
 `TrackGenerator` (`spawnSet`). The spawner assets live in `04.Data/FiniteRunner/Spawnables/`. The
 generator knows none of them by name. **Add a kind** = a `TrackSpawner` subclass + an asset in the
 set; **remove one** = take it out of the set (or untick `active` on the asset).
@@ -609,7 +615,7 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   ignores them (`PolicePatrol.OnPickedUp` only knows `SpeedPad`).
 - **`LaserBeam` is the picture only**, authored ON the prefab with its four references
   (`Tools → FiniteRunner → Install Laser Gate Assets` adds and wires it by name, and creates
-  `LaserBeam_Mat` + `04.Data/FiniteRunner/LaserGate_Definition.asset`, never overwriting). Every
+  `LaserBeam_Mat` + `04.Data/FiniteRunner/TrackSettings/Features/LaserGate_Definition.asset`, never overwriting). Every
   frame the gate hands it two world muzzles: each emitter is turned until its shoot point looks
   down the beam, rolled about that line (`emitterSpinDegPerSec` — the barrel is the models' local
   Z; B rolls the other way) and slid until the shoot point is ON the muzzle. **Posed about the

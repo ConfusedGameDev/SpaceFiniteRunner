@@ -3,6 +3,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 
 using ConfusedGameDev.FiniteRunner.Contracts;
+using ConfusedGameDev.FiniteRunner.UI;
 using ConfusedGameDev.FiniteRunner.GameFlow;
 using ConfusedGameDev.FiniteRunner.Track;
 namespace ConfusedGameDev.FiniteRunner.TimeTrial
@@ -21,10 +22,12 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
     ///
     /// <b>Checkpoints</b> (Arcade only, D6–D8) are laid once per decided track,
     /// on the first tick after a bind or a regenerate: the track's authored
-    /// <see cref="TrackPlacementKind.Checkpoint"/> records when it has any,
+    /// <see cref="TrackPlacementKind.Checkpoint"/> records when it has any
+    /// (each with its own optional overrides, <see cref="TimeTrialCheckpoint"/>),
     /// else <see cref="TimeTrialDefinition.autoCount"/> spread evenly to the
-    /// final run-up and slid off every feature keep-out and laser gate. Each
-    /// one's award is the time to the NEXT one (the last: to the end) at
+    /// final run-up and slid off every feature keep-out and laser gate — the
+    /// same layout the editor's Lay Auto Checkpoints writes. Each
+    /// one's award, unless fixed, is the time to the NEXT one (the last: to the end) at
     /// <see cref="TimeTrialDefinition.paceShare"/> of the speed the ship
     /// crosses it at, never slower than the pace floor, plus grace, inside the
     /// award band: hold the pace you came in with and you make it. (Sized off
@@ -48,12 +51,15 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
         TimeTrialDefinition source;
         TimeTrialDefinition def; // the runtime clone gameplay reads
 
-        readonly List<float> checkpoints = new();
+        readonly List<TimeTrialCheckpoint> checkpoints = new();
         readonly List<float> awards = new();
         readonly List<sbyte> passedClean = new(); // per checkpoint: -1 pending, 0 passed dirty, 1 passed clean
-        readonly List<(float start, float end)> blocked = new();
-        readonly List<Gate> gates = new();
-        Transform gateRoot;
+        readonly List<float> autoSpots = new();
+        readonly List<CheckpointGate> gates = new();
+        readonly List<sbyte> gateShown = new(); // per gate: the state its colour was last set for
+        readonly List<int> gateLabelKey = new(); // per gate: what its label was last written for
+        Transform gateRoot;   // the system's own parent, when the track has no TimeTrialCheckpoints
+        MenuTextLibrary library;
 
         bool layoutPending;
         int layoutRevision = -1;
@@ -61,13 +67,6 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
         bool hitSinceLast;    // anything that breaks a clean checkpoint, since the last one
         int cleanCount, patrolKills, livesLost;
         float banked;         // seconds the trial added this run, net
-
-        sealed class Gate
-        {
-            public GameObject root;
-            public Material material;
-            public sbyte shown = -2; // the state the colour was last set for
-        }
 
         /// <summary>The system bound to the running level, for the debug page; null when no level has a time trial.</summary>
         public static TimeTrialSystem Live { get; private set; }
@@ -91,7 +90,7 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
         public int CheckpointCount => IsArcade ? checkpoints.Count : 0;
         public int CheckpointsPassed => IsArcade ? nextCheckpoint : 0;
         public int CleanCheckpoints => cleanCount;
-        public float CheckpointDistance(int index) => checkpoints[index];
+        public float CheckpointDistance(int index) => checkpoints[index].distance;
         public float CheckpointAward(int index) => awards[index];
         public int PatrolKills => patrolKills;
         public int LivesLost => livesLost;
@@ -161,7 +160,7 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
             layoutPending = true;
             layoutRevision = -1;
             for (int i = 0; i < passedClean.Count; i++) passedClean[i] = -1;
-            foreach (var gate in gates) gate.root.SetActive(false);
+            foreach (var gate in gates) if (gate != null) gate.gameObject.SetActive(false);
         }
 
         void OnDestroy()
@@ -195,7 +194,7 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
             if (!IsArcade) return;
             if (cause == PatrolKillCause.Traffic && !def.trafficKillPays) return;
             patrolKills++;
-            Adjust(def.patrolKillBonus, TimeAwardKind.PatrolKill);
+            Adjust(Ahead().KillBonusOr(def), TimeAwardKind.PatrolKill);
         }
 
         /// <summary>A life was spent and the run goes on (R3.3): the penalty, and the clean run broken.</summary>
@@ -204,8 +203,13 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
             if (!IsArcade) return;
             livesLost++;
             hitSinceLast = true;
-            Adjust(-def.lifePenaltySeconds, TimeAwardKind.LifeLost);
+            Adjust(-Ahead().LifePenaltyOr(def), TimeAwardKind.LifeLost);
         }
+
+        // The checkpoint the ship is flying toward: its kill / life overrides
+        // cover the stretch up to it. Past the last (or none laid), the defaults.
+        TimeTrialCheckpoint Ahead() =>
+            !layoutPending && nextCheckpoint < checkpoints.Count ? checkpoints[nextCheckpoint] : default;
 
         void Adjust(float seconds, TimeAwardKind kind)
         {
@@ -233,13 +237,15 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
         void CrossCheckpoints()
         {
             float at = ship.Distance;
-            while (nextCheckpoint < checkpoints.Count && at >= checkpoints[nextCheckpoint])
+            bool flown = true;
+            while (nextCheckpoint < checkpoints.Count && at >= checkpoints[nextCheckpoint].distance)
             {
                 // A respawn that skipped several pays each one, but only the
-                // first could ever have been flown clean.
-                Cross(ship.Speed);
-                // The rest of a skipped run were never flown at all.
-                if (nextCheckpoint < checkpoints.Count && at >= checkpoints[nextCheckpoint]) hitSinceLast = true;
+                // first could ever have been flown clean — and only the first
+                // charges a dirty penalty: the rest were never flown at all.
+                Cross(ship.Speed, flown);
+                flown = false;
+                if (nextCheckpoint < checkpoints.Count && at >= checkpoints[nextCheckpoint].distance) hitSinceLast = true;
             }
         }
 
@@ -263,19 +269,23 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
             nextCheckpoint = 0;
 
             float limit = track.EndZoneStart;
-            float start = Mathf.Min(def.firstCheckpointMeters, limit * 0.5f);
 
             bool authored = false;
             if (generator != null)
                 foreach (var placement in generator.Placements)
                     if (placement.kind == TrackPlacementKind.Checkpoint && placement.distance > 0f && placement.distance < limit)
                     {
-                        checkpoints.Add(placement.distance);
+                        checkpoints.Add(TimeTrialCheckpoint.FromPlacement(placement));
                         authored = true;
                     }
 
-            if (authored) checkpoints.Sort();
-            else LayAuto(start, limit);
+            if (authored) checkpoints.Sort((a, b) => a.distance.CompareTo(b.distance));
+            else
+            {
+                autoSpots.Clear();
+                TimeTrialCheckpoint.LayAuto(track, generator, generator != null ? generator.Placements : null, def, limit, autoSpots);
+                foreach (float spot in autoSpots) checkpoints.Add(TimeTrialCheckpoint.At(spot));
+            }
 
             // Until crossed, an award reads at the pace floor: the most it can be.
             for (int i = 0; i < checkpoints.Count; i++)
@@ -287,178 +297,76 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
             BuildGates();
             if (def.debugLog)
                 Debug.Log($"[TimeTrial] {checkpoints.Count} checkpoints ({(authored ? "authored" : "auto")}): " +
-                          string.Join(", ", checkpoints.ConvertAll(d => $"{d:0}m")), this);
+                          string.Join(", ", checkpoints.ConvertAll(c => $"{c.distance:0}m{(c.set != 0 ? "*" : "")}")), this);
         }
 
         // The time from checkpoint `index` to the next (the last: to the end)
-        // at the pace a ship crossing at `speed` m/s is held to, plus grace.
+        // at the pace a ship crossing at `speed` m/s is held to, plus grace,
+        // banded then scaled — or the checkpoint's own fixed award, which no
+        // pace, band or scale touches.
         float AwardAt(int index, float speed)
         {
-            float next = index + 1 < checkpoints.Count ? checkpoints[index + 1] : track.EndDistance;
+            TimeTrialCheckpoint cp = checkpoints[index];
+            if (cp.Has(TimeTrialCheckpoint.Overrides.Award)) return cp.award;
+            float next = index + 1 < checkpoints.Count ? checkpoints[index + 1].distance : track.EndDistance;
             float pace = Mathf.Max(speed * def.paceShare, def.paceFloorKmh / 3.6f, 1f);
-            return Mathf.Clamp((next - checkpoints[index]) / pace + def.graceSeconds, def.MinAward, def.MaxAward);
+            return Mathf.Clamp((next - cp.distance) / pace + def.graceSeconds, def.MinAward, def.MaxAward) * def.awardScale;
         }
 
-        // The next checkpoint, crossed at `speed`: its award, sized now, and the
-        // clean bonus when nothing was hit since the last one.
-        void Cross(float speed)
+        // The next checkpoint, crossed at `speed`: its award, sized now, then
+        // the clean bonus when nothing was hit since the last one, else the
+        // dirty penalty (only for one actually `flown`, not a respawn skip).
+        void Cross(float speed, bool flown = true)
         {
             bool clean = !hitSinceLast;
             int index = nextCheckpoint++;
+            TimeTrialCheckpoint cp = checkpoints[index];
             passedClean[index] = (sbyte)(clean ? 1 : 0);
             awards[index] = AwardAt(index, speed);
             Adjust(awards[index], TimeAwardKind.Checkpoint);
             if (clean)
             {
                 cleanCount++;
-                Adjust(def.cleanCheckpointBonus, TimeAwardKind.CleanBonus);
+                Adjust(cp.CleanBonusOr(def), TimeAwardKind.CleanBonus);
             }
+            else if (flown) Adjust(-cp.DirtyPenaltyOr(def), TimeAwardKind.DirtyPenalty);
             hitSinceLast = false;
-        }
-
-        // Evenly from the first spot to the run-up, each slid off what the road
-        // claims (D7): forward past a keep-out, else back, else dropped.
-        void LayAuto(float start, float limit)
-        {
-            CollectBlocked(limit);
-            int count = Mathf.Max(1, def.autoCount);
-            float span = limit - start;
-            if (span <= 0f) return;
-            float step = count > 1 ? span / count : span;
-            float previous = 0f;
-            for (int i = 0; i < count; i++)
-            {
-                float spot = start + step * i;
-                float slideRoom = step * 0.45f;
-                float placed = Clear(spot, spot + slideRoom, limit, forward: true);
-                if (float.IsNaN(placed)) placed = Clear(spot, Mathf.Max(previous + 1f, spot - slideRoom), limit, forward: false);
-                if (float.IsNaN(placed) || placed <= previous + 1f) continue;
-                checkpoints.Add(placed);
-                previous = placed;
-            }
-        }
-
-        // The first free spot from `from` toward `to` (either direction), or NaN.
-        float Clear(float from, float to, float limit, bool forward)
-        {
-            float spot = from;
-            for (int guard = 0; guard < 64; guard++)
-            {
-                if (forward ? spot > to : spot < to) return float.NaN;
-                if (spot <= 0f || spot >= limit) return float.NaN;
-                int hit = BlockedAt(spot);
-                if (hit < 0) return spot;
-                spot = forward ? blocked[hit].end + 1f : blocked[hit].start - 1f;
-            }
-            return float.NaN;
-        }
-
-        int BlockedAt(float distance)
-        {
-            for (int i = 0; i < blocked.Count; i++)
-                if (distance >= blocked[i].start && distance <= blocked[i].end) return i;
-            return -1;
-        }
-
-        // Everything a checkpoint keeps off, widened by the clearance: the
-        // generator's keep-outs (features, landings, the run-up) and sections,
-        // read by sampling its own predicate, plus every decided laser gate.
-        void CollectBlocked(float limit)
-        {
-            blocked.Clear();
-            float clearance = def.featureClearance;
-            const float Stride = 25f;
-            float runStart = -1f;
-            for (float d = 0f; d <= limit + Stride; d += Stride)
-            {
-                bool clear = TrackHazards.IsEncounterGroundClear(track, generator, d, d) || d >= limit;
-                if (!clear && runStart < 0f) runStart = d;
-                else if (clear && runStart >= 0f)
-                {
-                    blocked.Add((runStart - Stride - clearance, d + clearance));
-                    runStart = -1f;
-                }
-            }
-            if (generator != null)
-                foreach (var placement in generator.Placements)
-                    if (placement.kind == TrackPlacementKind.LaserGate || placement.kind == TrackPlacementKind.Ramp)
-                        blocked.Add((placement.distance - clearance, placement.distance + clearance));
         }
 
         // ---- gates ----
 
-        void BuildGates()
+        // The gates stand under the track's TimeTrialCheckpoints object (next to
+        // Pads), else under the system itself.
+        Transform GateParent()
         {
+            if (generator != null && generator.CheckpointParent != null) return generator.CheckpointParent;
             if (gateRoot == null)
             {
-                gateRoot = new GameObject("CheckpointGates").transform;
+                gateRoot = new GameObject("TimeTrialCheckpoints").transform;
                 gateRoot.SetParent(transform, false);
             }
-            while (gates.Count < checkpoints.Count) gates.Add(CreateGate(gates.Count));
-            foreach (var gate in gates)
-            {
-                gate.root.SetActive(false);
-                gate.shown = -2;
-            }
+            return gateRoot;
         }
 
-        Gate CreateGate(int index)
+        void BuildGates()
         {
-            var gate = new Gate { root = new GameObject($"Checkpoint_{index}") };
-            gate.root.transform.SetParent(gateRoot, false);
-            gate.root.SetActive(false);
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-            gate.material = shader != null ? new Material(shader) { name = "CheckpointGate (runtime)" } : null;
-
-            if (def.gatePrefab != null)
+            // A gate the track's regenerate took down (or a parent that moved) is built again.
+            for (int i = gates.Count - 1; i >= 0; i--)
+                if (gates[i] == null) { gates.RemoveAt(i); gateShown.RemoveAt(i); gateLabelKey.RemoveAt(i); }
+            Transform parent = GateParent();
+            while (gates.Count < checkpoints.Count)
             {
-                var visual = Instantiate(def.gatePrefab, gate.root.transform);
-                visual.transform.localPosition = Vector3.zero;
-                visual.transform.localRotation = Quaternion.identity;
-                foreach (var c in visual.GetComponentsInChildren<Collider>(true)) Destroy(c);
-                if (gate.material != null)
-                    foreach (var r in visual.GetComponentsInChildren<Renderer>(true)) r.sharedMaterial = gate.material;
-                return gate;
+                var gate = CheckpointGate.Create(parent, $"Checkpoint_{gates.Count}", def.gatePrefab);
+                gate.gameObject.SetActive(false);
+                gates.Add(gate);
+                gateShown.Add(-2);
+                gateLabelKey.Add(int.MinValue);
             }
-
-            // Two pylons and a beam overhead, sized to the road at layout (unit
-            // cubes, scaled in Place).
-            for (int part = 0; part < 3; part++)
+            for (int i = 0; i < gates.Count; i++)
             {
-                var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                cube.name = part == 0 ? "PylonL" : part == 1 ? "PylonR" : "Beam";
-                cube.transform.SetParent(gate.root.transform, false);
-                Destroy(cube.GetComponent<Collider>());
-                var r = cube.GetComponent<Renderer>();
-                if (gate.material != null) r.sharedMaterial = gate.material;
-                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            }
-            return gate;
-        }
-
-        void Place(Gate gate, float distance)
-        {
-            track.GetPoseAtDistance(distance, 0f, out Vector3 position, out Quaternion rotation);
-            gate.root.transform.SetPositionAndRotation(position, rotation);
-            if (def.gatePrefab != null) return;
-
-            track.GetLateralBand(distance, out float min, out float max);
-            float half = Mathf.Max(Mathf.Abs(min), Mathf.Abs(max)) + 2f;
-            float t = def.gateThickness, h = def.gateHeight;
-            Transform root = gate.root.transform;
-            for (int i = 0; i < root.childCount && i < 3; i++)
-            {
-                Transform part = root.GetChild(i);
-                if (i < 2)
-                {
-                    part.localPosition = new Vector3((i == 0 ? -1f : 1f) * half, h * 0.5f - 1f, 0f);
-                    part.localScale = new Vector3(t, h, t);
-                }
-                else
-                {
-                    part.localPosition = new Vector3(0f, h - 1f, 0f);
-                    part.localScale = new Vector3(half * 2f + t, t, t);
-                }
+                gates[i].gameObject.SetActive(false);
+                gateShown[i] = -2;
+                gateLabelKey[i] = int.MinValue;
             }
         }
 
@@ -468,33 +376,55 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
             float built = generator != null ? generator.SettledDistance : float.PositiveInfinity;
             for (int i = 0; i < checkpoints.Count && i < gates.Count; i++)
             {
-                Gate gate = gates[i];
-                float d = checkpoints[i];
+                CheckpointGate gate = gates[i];
+                if (gate == null) continue;
+                float d = checkpoints[i].distance;
                 bool show = d <= built && d >= at - GateBehindMeters;
-                if (gate.root.activeSelf != show)
+                if (gate.gameObject.activeSelf != show)
                 {
-                    if (show) Place(gate, d);
-                    gate.root.SetActive(show);
+                    if (show) gate.Place(track, d, def.gateHeight, def.gateThickness, def.labelGap, def.labelSize);
+                    gate.gameObject.SetActive(show);
                 }
-                if (!show || gate.material == null) continue;
+                if (!show) continue;
                 sbyte state = passedClean[i];
-                if (gate.shown == state) continue;
-                gate.shown = state;
-                Color color = state < 0 ? def.gatePendingColor : state > 0 ? def.gateCleanColor : def.gateDirtyColor;
-                gate.material.SetColor(BaseColorId, color);
+                if (gateShown[i] != state)
+                {
+                    gateShown[i] = state;
+                    gate.SetColor(state < 0 ? def.gatePendingColor : state > 0 ? def.gateCleanColor : def.gateDirtyColor);
+                }
+                UpdateLabel(i, gate, state);
             }
         }
 
-        static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        // What crossing gate `index` pays: pending, the award at the ship's
+        // speed NOW (or its fixed award) and the clean bonus — the dirty
+        // penalty instead once the run to the next one is dirty; crossed, what
+        // it paid. Rewritten only when the tenths shown change.
+        void UpdateLabel(int index, CheckpointGate gate, sbyte state)
+        {
+            if (!def.showGateLabels) { gate.SetLabel(null); return; }
+            TimeTrialCheckpoint cp = checkpoints[index];
+            float award = state < 0 ? AwardAt(index, ship.Speed) : awards[index];
+            bool dirty = state == 0 || (state < 0 && index == nextCheckpoint && hitSinceLast);
+            float extra = dirty ? -cp.DirtyPenaltyOr(def) : cp.CleanBonusOr(def);
+            int key = Mathf.RoundToInt(award * 10f) * 4096 + Mathf.RoundToInt(extra * 10f) * 4 + (dirty ? 1 : 0) + (state + 1) * 2;
+            if (gateLabelKey[index] == key) return;
+            gateLabelKey[index] = key;
+
+            library ??= MenuTextLibrary.Load();
+            string extraText = Mathf.Approximately(extra, 0f) || library == null ? null
+                : string.Format(library.Get(dirty ? MenuTextId.TtDirty : MenuTextId.TtClean), CheckpointGate.Seconds(extra));
+            gate.SetLabel(CheckpointGate.Compose(CheckpointGate.Seconds(award), def.labelAwardColor,
+                                                 extraText, dirty ? def.labelDirtyColor : def.labelCleanColor));
+        }
 
         void ClearGates()
         {
             foreach (var gate in gates)
-            {
-                if (gate.root != null) Destroy(gate.root);
-                if (gate.material != null) Destroy(gate.material);
-            }
+                if (gate != null) Destroy(gate.gameObject);
             gates.Clear();
+            gateShown.Clear();
+            gateLabelKey.Clear();
         }
 
         // ---- debug ----
@@ -522,7 +452,7 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
             layoutPending = true;
             TryLayOut();
             float at = ship.Distance;
-            while (nextCheckpoint < checkpoints.Count && checkpoints[nextCheckpoint] <= at) passedClean[nextCheckpoint++] = 0;
+            while (nextCheckpoint < checkpoints.Count && checkpoints[nextCheckpoint].distance <= at) passedClean[nextCheckpoint++] = 0;
             if (def.debugLog) Debug.Log($"[TimeTrial] relaid ({passed} passed before, {nextCheckpoint} behind the ship now)", this);
         }
     }

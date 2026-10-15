@@ -132,7 +132,8 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   wreck in view near the ship plays a **kill cam** (slow motion, a cut to the explosion, the ship
   on autopilot and untouchable, the countdown frozen). A race has no traffic and no hyperspace
   jump; a place out of reach fails the run early. Off-screen rivals are cheap ghosts. See
-  `runner-race.md`.
+  `runner-race.md`. Races and time trials open on **READY!! 3, 2, 1, GO!** (`StartCountdown`): ship,
+  rivals, patrol and clock hold on the line and go together on GO.
 - **Time trial levels** (`TimeTrialPRD.md`, per level: `RunnerLevelDefinition.timeTrial`, empty =
   none; a race wins over it): **Beat the Clock** is a set time to the end ramps; **Arcade** starts
   on a short clock that each **checkpoint** tops up with the time to the next one at the pace the
@@ -186,9 +187,11 @@ These hold everywhere. Break one and something else quietly stops working.
   (`ShipUpgradeApplier.Refresh`) so upgrades stay applied. There are no debug mirror assets and
   no `applyOnLoad` overrides: what the inspector shows is what runs. City settings assets and
   `LevelDefinition` are read live, so their pages edit the asset with nothing to mirror.
-- **Tunables live in ScriptableObjects** (the runner's in `FiniteRunner/Data/` — `GameSettings`,
-  `ShipDefinition`, `PadDefinition`, `CameraShakeSettings`), not as fields on managers. Add new
-  knobs to the settings asset, not to the component that reads it.
+- **Tunables live in ScriptableObjects** (the runner's in `04.Data/FiniteRunner/` — `GameSettings` at
+  its root, the rest by subject: `Levels/`, `Ship/`, `Patrol/`, `CameraShake/`, `TrackSettings/`
+  (`Features/`, `Pads/`), `Spawnables/`, `Tracks/`, `Race/`, `TimeTrial/`, `Traffic/`, `Rendering/`,
+  `UI/`, `Audio/`), not as fields on managers. Add new knobs to the settings asset, not to the
+  component that reads it; a new asset goes in its subject's folder.
 - **Scene-lifetime systems are hand-placed**, under `===SYSTEMS===`, so they are tunable before
   play; code only ever find-or-parks them. Per-run objects are runtime-spawned, under runtime
   headers (`===PLAYER===`, `===NPC===`) that are forced back to the origin on every fetch.

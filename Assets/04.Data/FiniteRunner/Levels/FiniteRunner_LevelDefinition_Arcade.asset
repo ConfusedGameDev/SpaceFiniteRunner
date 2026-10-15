@@ -15,7 +15,7 @@ MonoBehaviour:
   levelName: Arcade Time Trial
   nextSceneName: CarTest
   trackLengthMeters: 35000
-  track: {fileID: 0}
+  track: {fileID: 11400000, guid: 9ee7495a33c474fa7b07fd063287f016, type: 2}
   traffic: {fileID: 0}
   race: {fileID: 0}
   timeTrial: {fileID: 11400000, guid: 2fc3facf4d8134b40acefc6126618fe0, type: 2}

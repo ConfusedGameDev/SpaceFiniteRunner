@@ -303,7 +303,7 @@ second half, so nothing cuts mid-drop), ended by `StateChanged(Grounded)`:
   and `LaserGate.ForecastAny` — and only a hit on the old line with none on the new one takes the
   clock to `timeScale` (0.3) for as long as `IsDashing` holds (a wall ends it early), then blends
   out. A car or beam landing anyway (`ShipStruck`, `LaserGate.Hit` for this motor) releases at
-  once. Its knobs live on its OWN asset (`04.Data/FiniteRunner/DodgeSlowMo_Settings`, inline on the
+  once. Its knobs live on its OWN asset (`04.Data/FiniteRunner/Ship/DodgeSlowMo_Settings`, inline on the
   component), never `GameSettings`. Same clock contract as `LoopSlowMo`, so the loop, the duel and
   every menu win; the countdown rides the clock (it slows too).
 
@@ -464,6 +464,17 @@ Materials are built at runtime (`ParticleMaterials.Unlit`, forced to URP additiv
 `escapeTrailIntensity` (HDR). The escape flight climbs at the ramp's 15° and is ~3 km from the
 planted camera within 1.5 s, so the trails need width (`escapeTrailWidth`) and a long burn
 (`escapeTrailSeconds`) to read — the part of the line near the camera is the one on the road.
+
+**The start countdown** (`GameFlow/StartCountdown`, `Ensure` + `Bind` in `Awake` after the
+hyperspace jump, `Begin()` in its own `Start` — before the first physics tick — and again at the end
+of `Restart`): a level with `race` or a time trial opens on READY!! (`MenuTextId.CountdownReady`),
+3, 2, 1, GO! (`CountdownGo`), its own overlay canvas at sorting 21. **The hold is `motor.Paused`**,
+re-asserted every frame until GO, which everything that moves already obeys — the ship's sim and
+controls, the patrol, traffic, the clock, the engine sound, and the race (lights out is the tick the
+ship moves, so the rivals launch on GO with no hook). GO unpauses and drains a latched dash. Scaled
+time, so the pause menu freezes it. Knobs: `GameSettings` "Start countdown" group
+(`startCountdownEnabled`, `countdownReadySeconds`, `countdownBeatSeconds`, `countdownGoSeconds`,
+the two colours). The plain runner launches at once.
 
 ## `PolicePatrol`
 

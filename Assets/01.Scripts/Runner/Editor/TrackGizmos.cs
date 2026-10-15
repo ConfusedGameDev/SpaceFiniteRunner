@@ -41,6 +41,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         static readonly Color FlatColor = new(1f, 0.55f, 0.05f, 1f);
         static readonly Color SectionColor = new(0.2f, 1f, 1f, 1f);
         static readonly Color CheckpointColor = new(0.3f, 1f, 0.45f, 1f);
+        const float CheckpointGateHeight = 28f; // the runtime gate's default beam height
         static readonly Color EndZoneColor = new(1f, 0.25f, 0.9f, 1f);
         static readonly Color TickColor = new(1f, 1f, 1f, 0.5f);
 
@@ -222,6 +223,14 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                     case TrackPlacementKind.Loop:
                         Handles.DrawWireDisc(m.position, m.right, m.size);
                         break;
+                    case TrackPlacementKind.Checkpoint:
+                    {
+                        // A gate: the line across the road, two posts and a beam over it.
+                        Vector3 left = m.outline[0], right = m.outline[1], lift = m.up * CheckpointGateHeight;
+                        Handles.DrawAAPolyLine(6f, left, right);
+                        Handles.DrawAAPolyLine(4f, left, left + lift, right + lift, right);
+                        break;
+                    }
                     default: // orbs, brake pads, anything a spawner adds
                         Handles.SphereHandleCap(0, m.position, Quaternion.identity, m.size, EventType.Repaint);
                         break;

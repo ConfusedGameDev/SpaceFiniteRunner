@@ -38,3 +38,23 @@ MonoBehaviour:
     subtitle: 
     difficulty: 1
     thumbnail: {fileID: 0}
+  - track: {fileID: 11400000, guid: 9ee7495a33c474fa7b07fd063287f016, type: 2}
+    displayName: ARCADE
+    subtitle: 
+    difficulty: 1
+    thumbnail: {fileID: 0}
+  - track: {fileID: 11400000, guid: ee13ca43e6d1437fbaf1b7e911c9b011, type: 2}
+    displayName: BEAT THE CLOCK
+    subtitle: 
+    difficulty: 1
+    thumbnail: {fileID: 0}
+  - track: {fileID: 11400000, guid: 0107574ce81b4ee198155b04208de20a, type: 2}
+    displayName: RACE
+    subtitle: 
+    difficulty: 1
+    thumbnail: {fileID: 0}
+  - track: {fileID: 11400000, guid: ec876427ee3040c7a26ee57ac2fe5a85, type: 2}
+    displayName: STANDARD
+    subtitle: 
+    difficulty: 1
+    thumbnail: {fileID: 0}

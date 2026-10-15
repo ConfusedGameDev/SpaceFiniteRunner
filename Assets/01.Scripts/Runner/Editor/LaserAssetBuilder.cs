@@ -19,7 +19,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     public static class LaserAssetBuilder
     {
         public const string MaterialPath = "Assets/02.Art/02.Materials/FiniteRunner/LaserBeam_Mat.mat";
-        public const string DefinitionPath = "Assets/04.Data/FiniteRunner/LaserGate_Definition.asset";
+        public const string DefinitionPath = "Assets/04.Data/FiniteRunner/TrackSettings/Features/LaserGate_Definition.asset";
         public const string PrefabPath = "Assets/03.Prefabs/Runner/PF_LaserSystem.prefab";
         /// <summary>The authored laser model of the Prefab look, and its beam sheet.</summary>
         const string ModelName = "laserTypeA", SheetName = "Plane";

@@ -57,7 +57,7 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
         // ---- checkpoints ----
         [TitleGroup("Checkpoints")]
         [ShowIf(nameof(IsArcade))]
-        [Tooltip("How many checkpoints a track WITHOUT authored ones gets, spread evenly from the first checkpoint distance to the start of the final run-up. A saved track's own Checkpoint placements always win.")]
+        [Tooltip("How many checkpoints a track WITHOUT authored ones gets, spread evenly from the first checkpoint distance to the start of the final run-up. A saved track's own Checkpoint placements always win — Edit Track's Lay Auto Checkpoints writes this same layout into the track to move and tune by hand.")]
         [PropertyRange(1, 40)]
         public int autoCount = 8;
 
@@ -97,22 +97,34 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
         [MinMaxSlider(1f, 120f, true)]
         public Vector2 awardBand = new(4f, 40f);
 
+        [TitleGroup("Checkpoints")]
+        [ShowIf(nameof(IsArcade))]
+        [Tooltip("Every pace-sized award is multiplied by this AFTER the band: 0.5 pays half. The one knob for how generous the whole trial is. A checkpoint's fixed award (an override) is never scaled.")]
+        [PropertyRange(0.1f, 2f)]
+        public float awardScale = 1f;
+
         // ---- bonuses ----
         [TitleGroup("Bonuses")]
         [ShowIf(nameof(IsArcade))]
-        [Tooltip("Added on reaching a checkpoint with no hit since the last one (hull damage, a beam, a car, a fall, a life), seconds.")]
+        [Tooltip("Added on reaching a checkpoint with no hit since the last one (hull damage, a beam, a car, a fall, a life), seconds. A checkpoint on a saved track can override it.")]
         [PropertyRange(0f, 20f), SuffixLabel("s", true)]
         public float cleanCheckpointBonus = 2f;
 
         [TitleGroup("Bonuses")]
         [ShowIf(nameof(IsArcade))]
-        [Tooltip("Added when a patrol cruiser is destroyed — the finisher, or steered into a laser beam, seconds.")]
+        [Tooltip("Taken away on reaching a checkpoint AFTER a hit since the last one, seconds. 0 = a dirty checkpoint just misses the clean bonus. A checkpoint on a saved track can override it.")]
+        [PropertyRange(0f, 20f), SuffixLabel("s", true)]
+        public float dirtyCheckpointPenalty;
+
+        [TitleGroup("Bonuses")]
+        [ShowIf(nameof(IsArcade))]
+        [Tooltip("Added when a patrol cruiser is destroyed — the finisher, or steered into a laser beam, seconds. A checkpoint on a saved track can override it for the stretch leading up to it.")]
         [PropertyRange(0f, 30f), SuffixLabel("s", true)]
         public float patrolKillBonus = 3f;
 
         [TitleGroup("Bonuses")]
         [ShowIf(nameof(IsArcade))]
-        [Tooltip("Taken away when a life is lost (the hull reaches 0, or an arrest) — the ship respawns down the track, seconds.")]
+        [Tooltip("Taken away when a life is lost (the hull reaches 0, or an arrest) — the ship respawns down the track, seconds. A checkpoint on a saved track can override it for the stretch leading up to it.")]
         [PropertyRange(0f, 30f), SuffixLabel("s", true)]
         public float lifePenaltySeconds = 5f;
 
@@ -158,6 +170,33 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
         [TitleGroup("Gate")]
         [ShowIf(nameof(IsArcade))]
         [ColorUsage(false, true)] public Color gateDirtyColor = new(2.5f, 1.4f, 0.2f);
+
+        [TitleGroup("Gate")]
+        [ShowIf(nameof(IsArcade))]
+        [Tooltip("The floating text over each gate: the time it adds (sized live at the ship's speed, or its fixed award) and the clean bonus — or the dirty penalty once the run to it is dirty.")]
+        public bool showGateLabels = true;
+
+        [TitleGroup("Gate")]
+        [ShowIf(nameof(IsArcade))]
+        [Tooltip("How far above the gate's beam the floating text stands, metres.")]
+        [PropertyRange(0f, 60f), SuffixLabel("m", true)]
+        public float labelGap = 4f;
+
+        [TitleGroup("Gate")]
+        [ShowIf(nameof(IsArcade))]
+        [Tooltip("The floating text's character size (the loop gate's label is 5).")]
+        [PropertyRange(0.5f, 15f)]
+        public float labelSize = 4f;
+
+        [TitleGroup("Gate")]
+        [ShowIf(nameof(IsArcade))]
+        public Color labelAwardColor = Color.white;
+        [TitleGroup("Gate")]
+        [ShowIf(nameof(IsArcade))]
+        public Color labelCleanColor = new(0.35f, 1f, 0.5f);
+        [TitleGroup("Gate")]
+        [ShowIf(nameof(IsArcade))]
+        public Color labelDirtyColor = new(1f, 0.55f, 0.15f);
 
         // ---- debug ----
         [TitleGroup("Debug")]

@@ -174,7 +174,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // Race mode: the pause menu's RACE page (rows and actions), then the Mission Complete race rows.
         DebugTabRace, RaceRubberBand, RaceGhostPace, RaceThrustShare, RaceOrbShare, RaceFormVariance, RaceSurgeAmount, RaceLaneSpread, RaceRamSpeedCost, RaceSideShove, RaceCreditWindow, RaceKillCam, RaceKillCamScale, RaceKillCamSeconds, RaceKillCamRange, RaceReadout, RaceGhostWireframes, RaceKillNearest, RaceDnfAll, RaceFinishAll, RaceResults, RaceFinishPlace, RaceWrecked, RaceBounties, RaceLeadGovernor, RaceLeadCapFar,
         // Time trials: the HUD goal lines, the clock floaters ({0} = the signed seconds), the Mission Complete rows, then the pause menu's TIME TRIAL page.
-        HudCheckpoint, HudBeatTheClock, TtCheckpoint, TtClean, TtPatrolDown, TtLifeLost, TtResults, TtTimeLeft, TtRunTime, TtCheckpoints, TtCleanCheckpoints, TtPatrolsDowned, TtLivesLost, DebugTabTimeTrial, TtStartSeconds, TtTimeLimit, TtMaxClock, TtAutoCount, TtPaceShare, TtGrace, TtCleanBonus, TtKillBonus, TtLifePenalty, TtLowTime, TtCrossNext, TtRelayout, TtAddTime, TtDebugLog, TtPaceFloor
+        HudCheckpoint, HudBeatTheClock, TtCheckpoint, TtClean, TtPatrolDown, TtLifeLost, TtResults, TtTimeLeft, TtRunTime, TtCheckpoints, TtCleanCheckpoints, TtPatrolsDowned, TtLivesLost, DebugTabTimeTrial, TtStartSeconds, TtTimeLimit, TtMaxClock, TtAutoCount, TtPaceShare, TtGrace, TtCleanBonus, TtKillBonus, TtLifePenalty, TtLowTime, TtCrossNext, TtRelayout, TtAddTime, TtDebugLog, TtPaceFloor,
+        // Time trials: the dirty-checkpoint floater ({0} = the signed seconds) and its default on the TIME TRIAL page.
+        TtDirty, TtDirtyPenalty,
+        // Time trials: the award scale on the TIME TRIAL page. The race / time trial start countdown: READY, then GO (the 3-2-1 between are numbers).
+        TtAwardScale, CountdownReady, CountdownGo
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1247,6 +1251,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString ttRelayout = new("LAY CHECKPOINTS AGAIN", "RECOLOCAR CONTROLES", "チェックポイントを再配置", "REPLACER LES CHECKPOINTS");
         [SerializeField] LocalizedString ttAddTime = new("ADD 10 SECONDS", "SUMAR 10 SEGUNDOS", "10秒追加", "AJOUTER 10 SECONDES");
         [SerializeField] LocalizedString ttPaceFloor = new("CHECKPOINT PACE FLOOR (KM/H)", "RITMO MÍNIMO DE CONTROL (KM/H)", "チェックポイントの最低ペース (KM/H)", "RYTHME MIN. DES CHECKPOINTS (KM/H)");
+        [SerializeField] LocalizedString ttDirty = new("DIRTY {0}", "CON DAÑOS {0}", "被弾 {0}", "TOUCHÉ {0}");
+        [SerializeField] LocalizedString ttDirtyPenalty = new("DIRTY PENALTY (S)", "PENALIZACIÓN CON DAÑOS (S)", "被弾ペナルティ (秒)", "PÉNALITÉ TOUCHÉ (S)");
+        [SerializeField] LocalizedString ttAwardScale = new("CHECKPOINT AWARD SCALE", "ESCALA DE PREMIO DE CONTROL", "チェックポイント報酬倍率", "ÉCHELLE DES GAINS DE CHECKPOINT");
+        [SerializeField] LocalizedString countdownReady = new("READY!!", "¡¡LISTOS!!", "レディ!!", "PRÊTS !!");
+        [SerializeField] LocalizedString countdownGo = new("GO!", "¡YA!", "ゴー!", "PARTEZ !");
         [SerializeField] LocalizedString ttDebugLog = new("CLOCK LOG", "REGISTRO DEL RELOJ", "時間ログ", "JOURNAL DU CHRONO");
         [Tooltip("The debug menu's per-spawner density row. {0} = the spawner's name.")]
         [SerializeField] LocalizedString spawnDensity = new("{0} DENSITY", "DENSIDAD: {0}", "{0} 密度", "DENSITÉ : {0}");
@@ -1810,6 +1819,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.TtAddTime => ttAddTime,
             MenuTextId.TtDebugLog => ttDebugLog,
             MenuTextId.TtPaceFloor => ttPaceFloor,
+            MenuTextId.TtDirty => ttDirty,
+            MenuTextId.TtDirtyPenalty => ttDirtyPenalty,
+            MenuTextId.TtAwardScale => ttAwardScale,
+            MenuTextId.CountdownReady => countdownReady,
+            MenuTextId.CountdownGo => countdownGo,
             _ => start
         };
     }
