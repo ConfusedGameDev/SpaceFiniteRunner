@@ -880,7 +880,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     BuildEndRamp(placement);
                     break;
                 case TrackPlacementKind.Collectible:
-                    CreateCollectible(placement.distance, placement.lateral, Mathf.RoundToInt(placement.data.x));
+                    // The toggle gates saved coins too: the records stay in the
+                    // asset, so turning it back on brings them back as authored.
+                    if (spawnCollectibles)
+                        CreateCollectible(placement.distance, placement.lateral, Mathf.RoundToInt(placement.data.x));
                     break;
                 case TrackPlacementKind.Pickup:
                     BuildCatalogPickup(placement);

@@ -565,6 +565,9 @@ The "Collectibles" toggle group (`spawnCollectibles`, optional `collectiblePrefa
 apart at one lateral, `collectibleValue`, `collectiblePickupSize`, coin size/colour).
 `PlaceCollectiblesUpTo` runs after the spawners in every stream, skips claimed ground and any
 distance within a pad length of a pickup (`padDistances`, pruned with the cull).
+**The toggle gates building too**: with it off, a saved track's `Collectible` records stay in the
+asset but are not built, so turning it back on brings them back as authored. `PF_Track` ships with
+it OFF (coins disabled for now; the system is kept).
 
 **The player's ship takes a coin by COLLIDER** (`ShipPickupSweeper`, like every other pickup): the
 code-built coin carries a root `BoxCollider` trigger sized to the pickup volume. Its cylinder's own
