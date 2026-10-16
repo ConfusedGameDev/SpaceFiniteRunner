@@ -236,6 +236,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>Seconds the current (or last) dash burst was spread over: the dash duration on the ground, the barrel roll's length in the air.</summary>
         public float DashBurstDuration => physicsShip != null ? physicsShip.DashBurstDuration : 0f;
 
+        /// <summary>0..1 of the current dash's distance covered; 1 with no dash under way.</summary>
+        public float DashProgress => physicsShip != null ? physicsShip.DashProgress : 1f;
+
         /// <summary>True while the visual is mid barrel roll (an airborne dash). Outlives the burst if a wall cut the dash short — the roll always completes.</summary>
         public bool IsBarrelRolling => physicsShip != null && physicsShip.IsBarrelRolling;
 

@@ -66,6 +66,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float dashMeter = 1f;
         float dashTimeLeft;
         float dashBurstDuration;
+        float dashLength;     // metres the current (or last) dash set out to cover
         bool meterWasFull = true;
         float rollTimeLeft, rollDuration, rollAngle;
         int rollDirection;
@@ -98,6 +99,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float DashMeter => dashMeter;
         public bool IsDashing => dashTimeLeft > 0f;
         public float DashBurstDuration => dashBurstDuration;
+        public float DashProgress => dashLength > 0f ? 1f - Mathf.Clamp01(Mathf.Abs(body.DashRemaining) / dashLength) : 1f;
         public bool IsBarrelRolling => rollTimeLeft > 0f;
         public int BarrelRollDirection => IsBarrelRolling ? rollDirection : 0;
         /// <summary>The guide spline the ship is currently helped by, or null in free flight.</summary>
@@ -467,10 +469,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
 
         /// <summary>
         /// A dash to the left (−1) or right (+1), if the meter affords it and
-        /// no dash window is open. On the ground it is a sideways shove the
-        /// lateral drag stops after exactly the definition's dash distance; in
-        /// the air the same shove (at air authority) rides under a barrel
-        /// roll and the window lasts the roll.
+        /// no dash window is open. It always carries the ship exactly the
+        /// definition's dash distance sideways — at any speed, under any world
+        /// clock, on the ground or in the air, and steering can't fight it —
+        /// unless a wall stops it. In the air the same dash rides under a
+        /// barrel roll and the window lasts the roll.
         /// </summary>
         public bool TryDash(int direction)
         {
@@ -483,7 +486,9 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             bool airborne = State == ShipState.Airborne;
             dashBurstDuration = Mathf.Max(airborne ? definition.barrelRollSeconds : definition.dashDuration, 0.01f);
             dashTimeLeft = dashBurstDuration;
-            body.AddLateralImpulse(direction * definition.DashImpulse);
+            dashLength = Mathf.Max(definition.dashDistance, 0f);
+            body.CancelOpposingLateral(direction);
+            body.AddDash(direction * dashLength);
             DashPerformed?.Invoke(direction);
 
             if (airborne && !IsBarrelRolling)

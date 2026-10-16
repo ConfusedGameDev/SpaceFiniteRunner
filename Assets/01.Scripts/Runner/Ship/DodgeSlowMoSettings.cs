@@ -55,6 +55,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float timeScale = 0.3f;
 
         [TitleGroup("Clock")]
+        [Tooltip("The slow-mo holds until the dash has covered this share of its distance (and its window is over), so the whole dash plays in slow motion. 0.5 ends it about when the window does; 1 waits for the very last centimetre.")]
+        [PropertyRange(0.5f, 1f)]
+        public float holdUntilProgress = 0.9f;
+
+        [TitleGroup("Clock")]
         [Tooltip("Ease into the slow-mo, real seconds.")]
         [PropertyRange(0f, 1f), SuffixLabel("s", true)]
         public float blendInSeconds = 0.06f;

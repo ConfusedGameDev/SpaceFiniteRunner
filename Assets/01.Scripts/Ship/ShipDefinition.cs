@@ -120,7 +120,7 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         public float slideSpeedLoss = 0.1f;
 
         [TitleGroup("Dash")]
-        [Tooltip("Dash power: how far one lateral dash carries the ship. The dash is a physical shove — a burst of lateral velocity of this × Handling Response, which the lateral drag then eats over exactly this distance — so steering can fight it and it can carry the ship over an open edge.")]
+        [Tooltip("Dash power: exactly how far one lateral dash carries the ship — at any speed, in slow motion, on the ground or in the air. It eases out under the lateral drag (Handling Response sets how snappy), steering against it is ignored until it is covered, and it can carry the ship over an open edge. Only a wall stops it short.")]
         [PropertyRange(2f, 30f), SuffixLabel("m", true)]
         public float dashDistance = 12f;
 
@@ -188,9 +188,6 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         [Tooltip("How fast the ship rolls into / out of a bank.")]
         [PropertyRange(0.01f, 20f)]
         public float bankResponse = 6f;
-
-        /// <summary>Lateral velocity of a dash's shove, m/s: sized so the lateral drag (<see cref="handlingResponse"/>) stops it after exactly <see cref="dashDistance"/>.</summary>
-        public float DashImpulse => dashDistance * handlingResponse;
 
         /// <summary>Speed delta a pad of the given raw magnitude applies to this ship.</summary>
         public float ScalePadEffect(float rawMagnitude) => rawMagnitude / weight;

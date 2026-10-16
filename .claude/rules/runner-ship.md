@@ -226,13 +226,21 @@ and ground orbs and brake pads are physically missed; the visual pitches with th
 speed and dash are scaled by `airControlFactor` while airborne, and `ICameraTarget.BlockModeCycle`
 locks Tab so the forced Far framing holds.
 
-**The dash is a shove, not a scripted slide.** A dash calls
-`body.AddLateralImpulse(±ShipDefinition.DashImpulse)` — `dashDistance × handlingResponse` m/s, so
-the lateral drag stops it after exactly `dashDistance` (there is no `dashImpulse` field: the
-distance stat, the store's Dash Power and the debug row keep working). The body keeps it as
-`ShoveVelocity`, decayed by the same drag as steering — separate only so a wall can tell a slam
-(`WallHit` on closed edges) from steering; steering can fight it, and on an open edge it can carry
-the ship off (the overhang grace applies). `dashDuration` is now just the dash WINDOW
+**The dash is a distance budget, always exactly `dashDistance`** (2026-10-16). In physics mode
+`HoverShip.TryDash` calls `HoverBody.AddDash(±dashDistance)`: the body keeps `DashRemaining`
+(metres) and covers `remaining × drag·h / (1 + drag·h)` of it each substep — the old velocity
+shove's exact ease-out under `handlingResponse` — taking the last 2 cm at once, so the steps add up
+to the whole distance at any speed, substep size or world clock. It is NOT scaled by
+`airControlFactor` (a dash fired over a crest's micro-hop was halved), steering against it is
+ignored until under 1 m is left (in the dodge slow-mo the player had ~3× the real time to
+counter-steer it away), and steering velocity carried against it is dropped when it starts. Its
+per-substep velocity is part of `ShoveVelocity`, which a wall still reads to tell a slam (`WallHit`
+on closed edges) from steering; a wall or closed lane edge ends it (`StopLateralMotion`), and on an
+open edge it can carry the ship off. `HoverBody.guideCommandedLateral` is counted AFTER the lateral
+update — counted before, the dash's first substep read as drift and `TrimAgainstDrift` leaned the
+heading against the dash (worst at Light Speed). Outside shoves (the patrol's, a rival's ram) still
+go through `AddLateralImpulse` as a velocity. `IShip.DashProgress` (0..1) reports the dash's travel.
+`TrackBody` (the patrol's) keeps the old velocity shove. `dashDuration` is now just the dash WINDOW
 (`IsDashing`: the ghost trail's span, no new dash inside it); a wall ends it early.
 
 **The airborne dash is a barrel roll.** A dash requested while `Airborne` keeps its sideways shove
@@ -301,7 +309,8 @@ second half, so nothing cuts mid-drop), ended by `StateChanged(Grounded)`:
   dash: on `DashPerformed` it forecasts the ship's CURRENT line and the line the dash ends on
   (`lateral ± dashDistance`) over `threatWindowSeconds` (1 s) — `TrafficSystem.ForecastContact`
   and `LaserGate.ForecastAny` — and only a hit on the old line with none on the new one takes the
-  clock to `timeScale` (0.3) for as long as `IsDashing` holds (a wall ends it early), then blends
+  clock to `timeScale` (0.3) for as long as `IsDashing` holds AND the dash has covered less than
+  `holdUntilProgress` (0.9) of its distance (`DashProgress`; a wall ends both), then blends
   out. A car or beam landing anyway (`ShipStruck`, `LaserGate.Hit` for this motor) releases at
   once. Its knobs live on its OWN asset (`04.Data/FiniteRunner/Ship/DodgeSlowMo_Settings`, inline on the
   component), never `GameSettings`. Same clock contract as `LoopSlowMo`, so the loop, the duel and

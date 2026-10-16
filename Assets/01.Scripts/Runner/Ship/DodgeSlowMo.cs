@@ -12,7 +12,11 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     /// a laser beam due to hit it within the last
     /// <see cref="DodgeSlowMoSettings.threatWindowSeconds"/>, and the dash
     /// takes it clear, the world clock drops to
-    /// <see cref="DodgeSlowMoSettings.timeScale"/> for the length of the dash.
+    /// <see cref="DodgeSlowMoSettings.timeScale"/> for the length of the dash —
+    /// its window AND its travel, up to
+    /// <see cref="DodgeSlowMoSettings.holdUntilProgress"/> of the distance, so
+    /// the whole dash reads in slow motion. The slow clock never shortens the
+    /// dash: the ship covers its full distance whatever the clock reads.
     ///
     /// The verdict is taken the moment the dash fires, from two forecasts
     /// asked of the systems that own the data
@@ -173,10 +177,12 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             }
 
             // The dash starts on the ship's next fixed tick: hold until it has
-            // been seen running, then until it ends (a wall ends it early).
+            // been seen running, then until its window is over AND it has covered
+            // most of its distance (a wall ends both at once).
             if (holding)
             {
-                if (motor.IsDashing) sawDash = true;
+                bool running = motor.IsDashing || motor.DashProgress < settings.holdUntilProgress;
+                if (running) sawDash = true;
                 else if (sawDash || motor.Paused)
                 {
                     holding = false;

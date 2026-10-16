@@ -51,8 +51,7 @@ namespace ConfusedGameDev.FiniteRunner.Store
             freshClone.handlingResponse *= handling;
             freshClone.gripBase *= handling;
             freshClone.gripPerSpeed *= handling;
-            // Dash power: the distance — the shove is derived from it
-            // (DashImpulse), and scaling the response above keeps it honest.
+            // Dash power: the distance — the dash covers exactly this.
             freshClone.dashDistance *= dash;
             // Speed: a higher cruise, and a boost that lasts longer above it.
             freshClone.cruiseSpeed *= speed;

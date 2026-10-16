@@ -82,6 +82,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
     {
         const float ThrottleDeadzone = 0.01f;
         const float ShoveEpsilon = 0.05f;
+        const float DashFinishMeters = 0.02f; // a dash's last few centimetres are covered at once, never dropped
+        const float DashSteerLockMeters = 1f; // steering against a dash is ignored until it has less than this left to cover
         const float Skin = 0.05f;
         const float FitTolerance = 0.9063f; // cos 25°: how far the probes' plane may stand from every surface they hit
         const float DriftGain = 0.7f;
@@ -108,6 +110,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         float guideYawTrim;                          // radians: the heading correction that cancels uncommanded sideways drift
         float guideLastDistance, guideLastLateral;   // the last full projection, to measure that drift from
         float guideCommandedLateral;                 // metres the ship was ASKED to move sideways since then
+        float guideDirection;                        // +1 / −1 flying the line forwards / backwards this substep, 0 with no assist
+        float shoveImpulse;                          // the outside shoves' sideways velocity, m/s, eaten by the lateral drag
         bool guideHasLast;
         bool wallSinceProjection;                    // a wall moved the body since the last projection: that is not drift
 
@@ -127,7 +131,10 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>Speed the body is backing up at, m/s (0 while it flies forward). Only ever non-zero at a forward standstill.</summary>
         public float ReverseSpeed { get; private set; }
         public float LateralVelocity { get; private set; }
+        /// <summary>Sideways velocity of the shoves this substep — the outside shoves' plus the dash's — m/s. What a wall reads to tell a slam from steering.</summary>
         public float ShoveVelocity { get; private set; }
+        /// <summary>Metres the current dash still has to cover sideways (signed, right positive); 0 when no dash is under way.</summary>
+        public float DashRemaining { get; private set; }
         public float TotalLateralVelocity { get; private set; }
         public float VerticalVelocity { get; private set; }
         public float PendingSpeedChange { get; private set; }
@@ -204,6 +211,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             Forward = rotation * Vector3.forward;
             ForwardSpeed = forwardSpeed;
             LateralVelocity = ShoveVelocity = TotalLateralVelocity = VerticalVelocity = 0f;
+            shoveImpulse = 0f;
+            DashRemaining = 0f;
             ReverseSpeed = 0f;
             PendingSpeedChange = 0f;
             CoastGraceLeft = 0f;
@@ -233,13 +242,32 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// <summary>Queues a speed change (already scaled by the owner's weight) to blend in.</summary>
         public void AddSpeedChange(float delta) => PendingSpeedChange += delta;
 
-        /// <summary>A dash: a sideways shove in m/s (right positive) at the current control authority; the lateral drag eats it, so it carries velocity / drag metres.</summary>
-        public void AddLateralImpulse(float velocity) => ShoveVelocity += velocity * ControlFactor;
+        /// <summary>An outside shove (the patrol's, a rival's ram): a sideways velocity in m/s (right positive) at the current control authority; the lateral drag eats it, so it carries velocity / drag metres.</summary>
+        public void AddLateralImpulse(float velocity) => shoveImpulse += velocity * ControlFactor;
+
+        /// <summary>
+        /// A dash: exactly <paramref name="meters"/> sideways (right positive),
+        /// whatever the speed, the substep size, the world clock or the ship's
+        /// state — no air authority, and steering against it is ignored until
+        /// under a metre is left. It eases out under the lateral drag (the same
+        /// curve the old velocity shove had) but is kept as a distance BUDGET,
+        /// so nothing in the integration can shorten it. Only a wall or a
+        /// closed lane edge ends it early.
+        /// </summary>
+        public void AddDash(float meters) => DashRemaining += meters;
+
+        /// <summary>A dash starting: steering velocity carried against it is dropped, so it can't eat into the dash's distance.</summary>
+        public void CancelOpposingLateral(int direction)
+        {
+            if (LateralVelocity * direction < 0f) LateralVelocity = 0f;
+        }
 
         public void StopLateralMotion()
         {
             LateralVelocity = 0f;
             ShoveVelocity = 0f;
+            shoveImpulse = 0f;
+            DashRemaining = 0f;
             TotalLateralVelocity = 0f;
         }
 
@@ -470,10 +498,26 @@ namespace ConfusedGameDev.FiniteRunner.Ship
             float steerForce = fullSteerSpeed * drag;
             // Guided, the stick strafes like the runner's; free, it mostly turns.
             float drive = steer * steerForce * control * Mathf.Lerp(Settings.freeStrafeShare, 1f, assist);
+            // A dash under way can't be fought; its last metre's slow tail no longer holds the stick.
+            if (drive * DashRemaining < 0f && Mathf.Abs(DashRemaining) > DashSteerLockMeters) drive = 0f;
             LateralVelocity = (LateralVelocity + (drive + slip) * dt) / (1f + drag * dt);
-            ShoveVelocity /= 1f + drag * dt;
-            if (Mathf.Abs(ShoveVelocity) < ShoveEpsilon) ShoveVelocity = 0f;
+            shoveImpulse /= 1f + drag * dt;
+            if (Mathf.Abs(shoveImpulse) < ShoveEpsilon) shoveImpulse = 0f;
+
+            // The dash covers the share of what it has left that the implicit drag would
+            // (the old shove's exact curve), so the steps always add up to the whole distance.
+            float dashStep = 0f;
+            if (DashRemaining != 0f)
+            {
+                dashStep = DashRemaining * (drag * dt / (1f + drag * dt));
+                if (Mathf.Abs(DashRemaining - dashStep) < DashFinishMeters) dashStep = DashRemaining;
+                DashRemaining -= dashStep;
+            }
+            ShoveVelocity = shoveImpulse + dashStep / dt;
             TotalLateralVelocity = LateralVelocity + ShoveVelocity;
+            // Counted here, off the velocity the move will actually use: counted before this
+            // update, a dash's first substep went missing and the trim leaned the heading against it.
+            guideCommandedLateral += guideDirection * TotalLateralVelocity * dt;
             BankDemand = steer * control + slip / steerForce + ShoveVelocity / fullSteerSpeed;
         }
 
@@ -599,18 +643,19 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         /// </summary>
         void FollowGuideHeading(float assist, float dt)
         {
+            guideDirection = 0f;
             if (assist <= 0f) return;
             bool airborne = State == ShipState.Airborne;
             Vector3 up = airborne ? Vector3.up : Up;
             Vector3 heading = airborne ? airForward : Forward;
 
             float direction = Vector3.Dot(heading, guideTangent) >= 0f ? 1f : -1f;
+            guideDirection = direction;
             guideAdvance = direction * ForwardSpeed * dt;
             // Half a step ahead, by turning the known tangent through the line's curvature — no lookup.
             Vector3 ahead = Quaternion.AngleAxis(Guided.curvature * guideAdvance * 0.5f * Mathf.Rad2Deg, Guided.up) * guideTangent;
             Vector3 target = Vector3.ProjectOnPlane(ahead * direction, up);
             if (guideYawTrim != 0f) target = Quaternion.AngleAxis(guideYawTrim * Mathf.Rad2Deg, up) * target;
-            guideCommandedLateral += direction * TotalLateralVelocity * dt;
             if (target.sqrMagnitude < 1e-6f) return;
             target.Normalize();
 

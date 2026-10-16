@@ -41,6 +41,8 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         bool IsDashing { get; }
         /// <summary>Length of the current dash window, seconds (the barrel roll's while airborne).</summary>
         float DashBurstDuration { get; }
+        /// <summary>0..1 of the current dash's distance covered (1 with no dash under way, or once a wall stopped it).</summary>
+        float DashProgress { get; }
         bool IsBarrelRolling { get; }
         /// <summary>−1 / +1 while rolling, else 0.</summary>
         int BarrelRollDirection { get; }

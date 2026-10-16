@@ -488,9 +488,10 @@ and mirrors onto that clone (its edge / camera / patrol-gap rows stay on `GameSe
 ## `HoverShip`
 
 Implements `IShip`. **Dash / barrel roll / stall are the motor's, ported one-to-one**: the meter
-recharges at the definition's rate, `TryDash(±1)` spends `ShipSettings.dashCost` and shoves the
-body by exactly the definition's dash distance (verified 20.70 m at 300 and at 1806 m/s); in the
-air the same shove rides under a 360° roll on its own clock; `HasStopped` latches after
+recharges at the definition's rate, `TryDash(±1)` spends `ShipSettings.dashCost` and moves the
+body by exactly the definition's dash distance (`HoverBody.AddDash`, a distance budget — see
+`runner-ship.md`; full distance in the air too, and steering can't fight it); in the air the same
+dash rides under a 360° roll on its own clock; `HasStopped` latches after
 `stallGraceSeconds` at a standstill with the throttle released. A `ControlOverride` swallows the
 input's dash requests (an autopilot is hands-off); a ship with no throttle input holds full
 throttle, like the runner's.
