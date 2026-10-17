@@ -90,6 +90,7 @@ Material:
     - _SmoothnessTextureChannel: 0
     - _SrcBlend: 5
     - _Surface: 1
+    - _VertexOffset: -0.03
     - _WorkflowMode: 0
     - _ZWrite: 0
     - _fresnelPower: -2.06
