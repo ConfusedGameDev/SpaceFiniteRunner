@@ -18,7 +18,7 @@ MonoBehaviour:
   spacing: {x: 1750, y: 2350}
   startDistance: 200
   chance: 0.58
-  prefab: {fileID: 0}
+  prefab: {fileID: 919132149155446097, guid: 293ffa51b0701a34ea072b637eb8e69b, type: 3}
   size: 1.5
   roadClearance: 1.5
   shellColor: {r: 1, g: 0.1, b: 0.1, a: 0.45}
