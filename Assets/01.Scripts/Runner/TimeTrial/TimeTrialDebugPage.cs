@@ -39,8 +39,6 @@ namespace ConfusedGameDev.FiniteRunner.TimeTrial
                 0f, 600f, 5f, "0", d => d.timeLimitSeconds, (d, v) => d.timeLimitSeconds = v);
             Slider(screen, system, refreshers, MenuTextId.TtMaxClock,
                 10f, 999f, 1f, "0.0", d => d.maxClockSeconds, (d, v) => d.maxClockSeconds = v);
-            Slider(screen, system, refreshers, MenuTextId.TtAutoCount,
-                1f, 40f, 1f, "0", d => d.autoCount, (d, v) => d.autoCount = Mathf.RoundToInt(v));
             Slider(screen, system, refreshers, MenuTextId.TtPaceShare,
                 0.3f, 2f, 0.05f, "0.00", d => d.paceShare, (d, v) => d.paceShare = v);
             Slider(screen, system, refreshers, MenuTextId.TtPaceFloor,

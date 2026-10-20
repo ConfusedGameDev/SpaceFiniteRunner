@@ -111,7 +111,7 @@ runner, and nothing below runs. A level that also sets `race` runs the race (a w
 ## Debug
 
 TIME TRIAL page: CROSS NEXT CHECKPOINT, LAY CHECKPOINTS AGAIN, ADD 10 SECONDS; start time, time
-limit, clock cap, checkpoint count / pace / pace floor / grace, the clean bonus, the dirty penalty, the kill bonus, the life penalty, the low-time
+limit, clock cap, checkpoint pace / pace floor / grace, the clean bonus, the dirty penalty, the kill bonus, the life penalty, the low-time
 warning, the clock log (`debugLog`: `[TimeTrial]` lines). Rows write the asset
 (`DebugAssetEdits.Touch`) and mirror the clone; start time and limit bite on the next run, layout
 knobs on the next layout. Odin buttons on the system: Debug Cross Next, Debug Relayout.

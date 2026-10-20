@@ -138,7 +138,7 @@ longer used by the win — the run is won by LEAVING the track — but the capab
 
 **Debug menu** (`DebugMenuFactory`, `runner` tabs of the pause menu): SHIP SPEED has cruise /
 thrust / brake / coast drag / the over-cruise bleed / key throttle ramp, SHIP HANDLING the grip and
-slide rows, CORE SETTINGS the flat-curve and open-straight percentages, PATROL + PATROL DRIVER the
+slide rows, PATROL + PATROL DRIVER the
 patrol's. **Every runner debug row writes the ASSET, then mirrors onto the run's clone**
 (refactor Step 2, 2026-09-27): the ship rows write the definition the run was built from
 (`motor.Definition.Source`) and rebuild the clone with `ShipUpgradeApplier.Refresh` (asset ×

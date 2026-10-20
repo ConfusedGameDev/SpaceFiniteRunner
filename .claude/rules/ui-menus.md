@@ -208,14 +208,13 @@ developer pages in `Scripts/UI/DebugMenu.cs`: each tab is a normal compact-row `
 
 **Runner pages:**
 
-- **Core Settings** — the track shape's width / straightness / elevation / banking rows, TRACK
-  LENGTH, one spacing row per spawner and the orb-tier probabilities (live-rebalance to always
-  total 100%), plus a RELOAD SCENE row.
+- **Core Settings** — FORCE RUNTIME TRACK, one amount row per spawner and the orb-tier
+  probabilities (live-rebalance to always total 100%), plus a RELOAD SCENE row. No track-shape or
+  TRACK LENGTH rows: every shipped level plays a saved track, which never reads them.
 - **Multipliers** — the per-entry boost multipliers (0.1–10).
-- **Features** (`BuildFeaturesTab`) — the feature spacing band (one slider slides the band, keeping
-  its spread), per-entry probability / min spacing / boost rows, and the jump definition's knobs.
-  The table lives on the track shape asset; rows write it (and the definition assets) and mirror
-  onto the run's clones.
+- **Features** (`BuildFeaturesTab`) — only the knobs a built feature reads: the jump's width /
+  length / angle / side-hit loss and the loop's fall gravity / loss. Rows write the definition
+  assets and mirror onto the run's clones.
 - **Four ship tabs** (Speed / Handling / Dash / Hover — only when the menu was spawned with a
   `ShipMotor`) write the ship's `ShipDefinition` asset and rebuild the run's clone from it
   (`ShipUpgradeApplier.Refresh`, Store levels re-applied).
@@ -223,10 +222,9 @@ developer pages in `Scripts/UI/DebugMenu.cs`: each tab is a normal compact-row `
   attack run's overdrive / commit distance / interval / timeout, the flank and its hold, the abort
   grace, the break-off and cooldown, the ground lookahead and abort window, the standoff and the
   run's speed authority (`stationAccel`), the tug-of-war push and press value, the shove, the damage
-  pool and the three rear-ram windows, the escalation knobs and the kill respawn gap — plus four rows
-  that edit `GameSettings` LIVE rather than the patrol's clone (duel timescale, steer assist, the
-  finisher window, the hit-stop, the ram's speed cost, the armed window), because that asset is read
-  live and never cloned.
+  pool and the three rear-ram windows, the escalation knobs and the kill respawn gap, and the duel's
+  clock (timescale, finisher window, hit-stop, ram speed cost, armed window — on `PatrolDefinition`
+  since refactor Step 4, same asset + clone rule). The dormant steer assist has no row.
 - **Debug Tools** (`Screens/DebugToolsPage`, beside FALL & RESPAWN, same `runRules` gate) — developer
   utilities, not tuning: Y BOOST (`GameSettings.debugBoostChord`) and BOOST AMOUNT
   (`debugBoostKmh`). `GameSettings` is read live, so the rows edit the asset alone, no reload prompt.

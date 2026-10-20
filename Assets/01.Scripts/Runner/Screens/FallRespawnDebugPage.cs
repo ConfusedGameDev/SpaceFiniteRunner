@@ -12,11 +12,13 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     /// the SHIP's rules — the fall, the respawn wait, its penalty and whether
     /// it is a rolling start, the blink, the clearance, the stall grace — live
     /// on the ship's <see cref="ShipSettings"/>; each row writes that asset and
-    /// mirrors onto the ship's live clone. The RUN's rules — the open-edge
-    /// overhang and grace, the camera follow, the patrol's head start — live
+    /// mirrors onto the ship's live clone. The RUN's rules — the camera
+    /// follow, the patrol's head start — live
     /// on <see cref="GameSettings"/>, which the run reads live, so those rows
     /// edit the asset alone. Everything applies at once and is saved at the
-    /// menu's commit points through <see cref="DebugAssetEdits"/>.
+    /// menu's commit points through <see cref="DebugAssetEdits"/>. (The
+    /// open-edge overhang and grace rows are gone: only the patrol's and the
+    /// rivals' track bodies read them; the ship falls by ShipRecovery.)
     /// </summary>
     public static class FallRespawnDebugPage
     {
@@ -31,10 +33,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             screen.SetRowMetrics(RowHeight, RowSpacing);
             DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabFall, tabIndex, tabCount);
 
-            AddRun(screen, rules, refreshers, MenuTextId.EdgeOverhang,
-                   0f, 10f, 0.25f, "0.00", s => s.edgeOverhang, (s, v) => s.edgeOverhang = v);
-            AddRun(screen, rules, refreshers, MenuTextId.EdgeGrace,
-                   0f, 2f, 0.05f, "0.00", s => s.edgeGraceSeconds, (s, v) => s.edgeGraceSeconds = v);
             AddShip(screen, ship, refreshers, MenuTextId.FallGravity,
                     0f, 200f, 5f, "0", s => s.fallGravity, (s, v) => s.fallGravity = v);
             AddShip(screen, ship, refreshers, MenuTextId.FallDuration,

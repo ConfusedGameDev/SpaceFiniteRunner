@@ -67,7 +67,7 @@ Stretches of track distance laid over the flat spline with their own pose functi
   OuterSide). One object answers both the physics (grip is tested only inside one) and the
   decorator (`IsEdgeOpen` = the OUTER side of a flat sweep, nowhere else, never inside a
   section), so a missing wall is always a real drop. `TrackShapeSettings.unbankedSweepChance`
-  (0.3; a CORE SETTINGS debug row) is rolled once per sweep in `StartTurn` — no draw at 0,
+  (0.3) is rolled once per sweep in `StartTurn` — no draw at 0,
   so that reproduces the all-banked layout. A flat sweep must stand on level road: rolled while
   the last bank is still unwinding it is DEFERRED (`deferredFlatKnots`, started by `AddSegment`
   at the first level knot, dropped if the road ahead gets claimed) rather than lost. It has no
@@ -186,8 +186,6 @@ stay endless.
   `Resources/FiniteRunner_EndRamp` (a `JumpDefinition`: `entryMargin` 0, length 120, 15°, side hit
   0.05 — width fraction and arc knobs unused), else built-in numbers; cloned in play.
   `BuildRamp` is the one ramp builder, shared with `BuildJump`; the middle slot stamps the gap markers.
-- Debug: CORE SETTINGS → TRACK LENGTH, written by `GameManager.SetTrackLengthFromDebug` to the
-  asset the run resolves it from (the level's own length when it sets one, else `GameSettings`).
 
 **Invariants:**
 
@@ -370,8 +368,8 @@ shape knobs, so the whole track is tuned in one asset. The generator reads them 
 - `trackShape` — a `TrackShapeSettings` asset (`Data/FiniteRunner/FiniteRunner_TrackShape.asset`,
   drawn inline) holding the road's own shape: the **elevation walk** (`elevationEnabled`,
   `elevationBand` ±60 m, `maxGrade` 6°, `maxGradeStepPerKnot` 3°, `baselinePull` 0.5). Play runs
-  on a runtime clone (`Shape`, made in `PrepareShape` at the top of `Generate`); the Core Settings
-  debug tab writes the asset (`ShapeAsset`) and mirrors onto the clone.
+  on a runtime clone (`Shape`, made in `PrepareShape` at the top of `Generate`). It has no debug
+  rows: every shipped level plays a saved track, which never reads it — tune the asset and re-bake.
   `AddSegment` keeps a `pitch` state: a random step per knot, leaned home in proportion to the
   height already gained, forced home outside the band, clamped to the grade — and it draws
   nothing while disabled, so a seed reproduces the flat track exactly. Knots go in through
@@ -474,9 +472,10 @@ the clone, never the asset.
   decorator stamps the pipe.
 
 Loop knobs (`radius`, `exitClearance`, `fallGravity`, `fallSpeedLoss`, gate colours) live on
-`Loop_Definition.asset`. The debug Features tab edits radius / gravity / loss through the generic
-`AddStat<T>` (per tube entry: radius / band / curl), each written to the definition asset and
-mirrored onto the entry's runtime clone.
+`Loop_Definition.asset`. The debug Features tab edits only what a BUILT feature reads — the loop's fall gravity / loss,
+the jump's width / length / angle / side-hit loss — through the generic `AddStat<T>`, each written
+to the definition asset and mirrored onto the entry's runtime clone. Decide-time knobs (feature
+spacing and odds, loop and tube shape, landing clearance) have no rows: a saved track never decides.
 
 ### Spawnables (`Track/Spawning/`)
 

@@ -19,9 +19,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     /// mirrors the value onto the run's live clone, so it applies at once
     /// where the system reads live. The ship's clone carries the Store's
     /// upgrades, so it is rebuilt from the asset (<see cref="ShipUpgradeApplier.Refresh"/>)
-    /// rather than written field by field. Track layout rows (width,
-    /// straightness, shape, features) take effect on the next Generate: the
-    /// Core tab's RELOAD SCENE row.
+    /// rather than written field by field. Track rows (spawn amounts, orb
+    /// tiers, feature knobs) take effect on the next Generate: the Core tab's
+    /// RELOAD SCENE row. The road's shape is not here: every shipped level
+    /// plays a saved track, which never reads it.
     /// </summary>
     public static class DebugMenuFactory
     {
@@ -38,56 +39,20 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             screen.SetRowMetrics(RowHeight, RowSpacing);
             DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabCore, tabIndex, tabCount);
 
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.TrackWidth,
-                         10f, 120f, 5f, "0", s => s.trackWidth, (s, v) => s.trackWidth = v);
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.Straightness,
-                         0f, 100f, 5f, "0", s => s.straightness, (s, v) => s.straightness = v);
+            // The track's shape rows (width, straightness, elevation, banking,
+            // flat sweeps, open straights) and TRACK LENGTH are gone: every
+            // shipped level plays a saved track, which replays its own road and
+            // length and never reads them. Tune those on the TrackShapeSettings
+            // asset and re-bake the track in the TrackGenerator inspector.
 
-            // The finite track's length, metres: written to the asset the run
-            // resolves it from (the level's own, else the GameSettings fallback).
+            // 1 = ignore the level's saved track and generate one from the
+            // next restart (to compare them). A runtime switch: no asset is written.
             if (game != null)
             {
-                var lengthRow = screen.AddRow<DebugSliderRow>(MenuTextId.TrackLength);
-                lengthRow.Configure(1000f, 100000f, 1000f, game.TrackLengthMeters, "0", v =>
-                {
-                    game.SetTrackLengthFromDebug(v);
-                    onChanged?.Invoke();
-                });
-                refreshers?.Add(() => lengthRow.SetWithoutNotify(game.TrackLengthMeters));
-
-                // 1 = ignore the level's saved track and generate one from the
-                // next restart (to compare them). A runtime switch: no asset is written.
                 var forceRow = screen.AddRow<DebugSliderRow>("FORCE RUNTIME TRACK");
                 forceRow.Configure(0f, 1f, 1f, game.ForceRuntimeTrack ? 1f : 0f, "0", v => game.ForceRuntimeTrack = v > 0.5f);
                 refreshers?.Add(() => forceRow.SetWithoutNotify(game.ForceRuntimeTrack ? 1f : 0f));
             }
-
-            // The road's elevation walk. Max grade 0 is the flat track.
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.ElevationBand,
-                         0f, 300f, 10f, "0", s => s.elevationBand, (s, v) => s.elevationBand = v);
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.MaxGrade,
-                         0f, 20f, 1f, "0", s => s.maxGrade, (s, v) => s.maxGrade = v);
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.GradeStep,
-                         0f, 10f, 0.5f, "0.0", s => s.maxGradeStepPerKnot, (s, v) => s.maxGradeStepPerKnot = v);
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.BaselinePull,
-                         0f, 1f, 0.05f, "0.00", s => s.baselinePull, (s, v) => s.baselinePull = v);
-
-            // Banking into turns (turns come from STRAIGHTNESS above). Max bank 0 = level road.
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.MaxBank,
-                         0f, 89f, 1f, "0", s => s.maxBankAngle, (s, v) => s.maxBankAngle = v);
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.BankPerTurn,
-                         0f, 10f, 0.5f, "0.0", s => s.bankPerDegreeOfTurn, (s, v) => s.bankPerDegreeOfTurn = v);
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.BankStep,
-                         0f, 90f, 5f, "0", s => s.maxBankStepPerKnot, (s, v) => s.maxBankStepPerKnot = v);
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.LevelLead,
-                         0f, 3000f, 50f, "0", s => s.levelLeadDistance, (s, v) => s.levelLeadDistance = v);
-
-            // Where the road can kill: the share of sweeps laid flat (grip
-            // tested, outer wall gone) and of straight runs with no walls.
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.UnbankedSweeps,
-                         0f, 100f, 5f, "0", s => s.unbankedSweepChance * 100f, (s, v) => s.unbankedSweepChance = v / 100f);
-            AddShapeStat(screen, generator, onChanged, refreshers, MenuTextId.OpenStraights,
-                         0f, 100f, 5f, "0", s => s.openStraightChance * 100f, (s, v) => s.openStraightChance = v / 100f);
 
             // Spawnables: one AMOUNT row per spawner in the set (boost orbs,
             // repair orbs, laser gates) — how many the track gets per 10 km,
@@ -190,13 +155,11 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         }
 
         /// <summary>
-        /// FEATURES tab: the feature spacing band (one slider that slides the
-        /// band and keeps its spread), one probability / spacing / boost row
-        /// per feature entry, and each definition's knobs. The table lives on
-        /// the shape asset and the definitions are assets of their own: every
-        /// row writes the asset and mirrors onto the run's clone. A placed
-        /// feature keeps the numbers it was built with, so most rows need the
-        /// reload the pause menu offers.
+        /// FEATURES tab: the knobs a built feature reads — the jump's width,
+        /// length, angle and side-hit loss, the loop's fall. The definitions
+        /// are assets of their own: every row writes the asset and mirrors
+        /// onto the run's clone. A placed feature keeps the numbers it was
+        /// built with, so most rows need the reload the pause menu offers.
         /// </summary>
         public static MenuScreen BuildFeaturesTab(RectTransform parent, MenuTheme theme,
                                                   TrackGenerator generator,
@@ -211,56 +174,20 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             var shapeAsset = generator.ShapeAsset;
             if (shapeAsset == null) return screen;
 
-            var spacingRow = screen.AddRow<DebugSliderRow>(MenuTextId.FeatureSpacing);
-            spacingRow.Configure(100f, 4000f, 50f, shapeAsset.featureSpacing.x, "0", v =>
-            {
-                SlideBand(ref shapeAsset.featureSpacing, v);
-                DebugAssetEdits.Touch(shapeAsset);
-                if (generator.Shape != shapeAsset) generator.Shape.featureSpacing = shapeAsset.featureSpacing;
-                onChanged?.Invoke();
-            });
-            refreshers?.Add(() => spacingRow.SetWithoutNotify(shapeAsset.featureSpacing.x));
-
+            // Only the knobs a BUILT feature reads are here. The feature
+            // spacing, per-entry probability / spacing / boost and the
+            // decide-time definition knobs (landing clearance, loop shape and
+            // gate headroom, tube shape) are gone: every shipped level plays a
+            // saved track, which never decides features. The jump's air
+            // distance and air control are the ship's (ShipSettings), not the
+            // ramp's.
             var table = shapeAsset.featureTable;
             if (table == null || table.Length == 0) return screen;
 
-            var probabilityRows = new List<DebugSliderRow>();
             for (int i = 0; i < table.Length; i++)
             {
                 int index = i;
                 var entry = table[i];
-                string tag = entry.name.ToUpperInvariant();
-
-                var row = screen.AddRow<DebugSliderRow>($"{tag} %");
-                row.Configure(0f, 100f, 1f, entry.probability, "0", v =>
-                {
-                    RebalanceProbabilities(table, probabilityRows, index, v);
-                    DebugAssetEdits.Touch(shapeAsset);
-                    MirrorFeatureTable(table, generator.FeatureTable);
-                    onChanged?.Invoke();
-                });
-                row.SetLabelTint(entry.color);
-                probabilityRows.Add(row);
-
-                var spacing = screen.AddRow<DebugSliderRow>($"{tag} SPACING");
-                spacing.Configure(0f, 3000f, 50f, entry.minSpacing, "0", v =>
-                {
-                    entry.minSpacing = v;
-                    DebugAssetEdits.Touch(shapeAsset);
-                    MirrorFeatureTable(table, generator.FeatureTable);
-                    onChanged?.Invoke();
-                });
-                spacing.SetLabelTint(entry.color);
-
-                var boost = screen.AddRow<DebugSliderRow>($"{tag} ×");
-                boost.Configure(0f, 10f, 0.1f, Mathf.Clamp(entry.multiplier, 0f, 10f), "0.0", v =>
-                {
-                    entry.multiplier = v;
-                    DebugAssetEdits.Touch(shapeAsset);
-                    MirrorFeatureTable(table, generator.FeatureTable);
-                    onChanged?.Invoke();
-                });
-                boost.SetLabelTint(entry.color);
 
                 if (entry.definition is JumpDefinition)
                 {
@@ -270,50 +197,15 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                                 10f, 200f, 5f, "0", j => j.length, (j, v) => j.length = v);
                     AddStat<JumpDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.JumpAngle,
                                 5f, 45f, 1f, "0", j => j.rampAngle, (j, v) => j.rampAngle = v);
-                    AddStat<JumpDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.JumpAirDistance,
-                                0.05f, 3f, 0.05f, "0.00", j => j.airDistancePerSpeed, (j, v) => j.airDistancePerSpeed = v);
-                    AddStat<JumpDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.JumpMaxAir,
-                                20f, 2000f, 20f, "0", j => j.airDistanceRange.y,
-                                (j, v) => j.airDistanceRange = new Vector2(Mathf.Min(j.airDistanceRange.x, v), v));
-                    AddStat<JumpDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.JumpAirControl,
-                                0f, 1f, 0.05f, "0.00", j => j.airControlFactor, (j, v) => j.airControlFactor = v);
                     AddStat<JumpDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.JumpSideHitLoss,
                                 0f, 1f, 0.05f, "0.00", j => j.sideHitSpeedLoss, (j, v) => j.sideHitSpeedLoss = v);
-                    AddStat<JumpDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.JumpLandingClearance,
-                                0f, 600f, 10f, "0", j => j.landingClearance, (j, v) => j.landingClearance = v);
                 }
                 else if (entry.definition is LoopDefinition)
                 {
-                    AddStat<LoopDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.LoopRadius,
-                                            40f, 250f, 5f, "0", l => l.radius, (l, v) => l.radius = v);
                     AddStat<LoopDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.LoopFallGravity,
                                             20f, 400f, 10f, "0", l => l.fallGravity, (l, v) => l.fallGravity = v);
                     AddStat<LoopDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.LoopFallLoss,
                                             0f, 1f, 0.05f, "0.00", l => l.fallSpeedLoss, (l, v) => l.fallSpeedLoss = v);
-                    AddStat<LoopDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.LoopGateHeadroom,
-                                            0f, 0.5f, 0.05f, "0.00", l => l.gateHeadroom, (l, v) => l.gateHeadroom = v);
-                    // The variation bands: the sliders move each band's maximum (the minimum follows down).
-                    AddStat<LoopDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.LoopDrift,
-                                            0f, 600f, 20f, "0", l => l.DriftMax,
-                                            (l, v) => l.lateralDriftRange = new Vector2(Mathf.Min(l.lateralDriftRange.x, v), v));
-                    AddStat<LoopDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.LoopCarry,
-                                            0f, 1000f, 20f, "0", l => l.CarryMax,
-                                            (l, v) => l.forwardCarryRange = new Vector2(Mathf.Min(l.forwardCarryRange.x, v), v));
-                    AddStat<LoopDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.LoopExitYaw,
-                                            0f, 60f, 5f, "0", l => l.YawMax,
-                                            (l, v) => l.exitYawRange = new Vector2(Mathf.Min(l.exitYawRange.x, v), v));
-                    AddStat<LoopDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.LoopTurns,
-                                            1f, 3f, 1f, "0", l => l.TurnsMax,
-                                            (l, v) => l.turnsRange = new Vector2Int(Mathf.Min(l.turnsRange.x, Mathf.RoundToInt(v)), Mathf.RoundToInt(v)));
-                }
-                else if (entry.definition is TubeDefinition)
-                {
-                    AddStat<TubeDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.TubeRadius,
-                                            20f, 150f, 5f, "0", t => t.radius, (t, v) => t.radius = v);
-                    AddStat<TubeDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.TubeBand,
-                                            15f, 180f, 5f, "0", t => t.bandDegrees, (t, v) => t.bandDegrees = v);
-                    AddStat<TubeDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.TubeCurl,
-                                            20f, 500f, 10f, "0", t => t.curlLength, (t, v) => t.curlLength = v);
                 }
             }
             return screen;
@@ -348,35 +240,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             refreshers?.Add(() => row.SetWithoutNotify(get(asset)));
         }
 
-        // One localized slider row bound to a TrackShapeSettings knob: writes
-        // the shape asset, then the generator's clone. Takes effect on the next
-        // Generate (the Core tab's reload).
-        static void AddShapeStat(MenuScreen screen, TrackGenerator generator,
-                                 System.Action onChanged, List<System.Action> refreshers, MenuTextId label,
-                                 float min, float max, float step, string format,
-                                 System.Func<TrackShapeSettings, float> get,
-                                 System.Action<TrackShapeSettings, float> set)
-        {
-            TrackShapeSettings Source() => generator.ShapeAsset != null ? generator.ShapeAsset : generator.Shape;
-            var row = screen.AddRow<DebugSliderRow>(label);
-            row.Configure(min, max, step, get(Source()), format, v =>
-            {
-                var asset = Source();
-                set(asset, v);
-                DebugAssetEdits.Touch(asset);
-                if (generator.Shape != asset) set(generator.Shape, v);
-                onChanged?.Invoke();
-            });
-            refreshers?.Add(() => row.SetWithoutNotify(get(Source())));
-        }
-
-        // Moves a (min, max) band so its minimum lands on value, keeping its spread.
-        static void SlideBand(ref Vector2 band, float value)
-        {
-            float spread = Mathf.Max(0f, band.y - band.x);
-            band = new Vector2(value, value + spread);
-        }
-
         // Copies the asset tiers' probabilities and multipliers onto the live clone's, index for index.
         static void MirrorTiers(PadSpawnEntry[] asset, PadSpawnEntry[] live)
         {
@@ -384,18 +247,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             for (int i = 0; i < asset.Length && i < live.Length; i++)
             {
                 live[i].probability = asset[i].probability;
-                live[i].multiplier = asset[i].multiplier;
-            }
-        }
-
-        // Copies the asset feature table's roll values onto the live clone's, index for index.
-        static void MirrorFeatureTable(TrackGenerator.FeatureSpawnEntry[] asset, TrackGenerator.FeatureSpawnEntry[] live)
-        {
-            if (asset == null || live == null || asset == live) return;
-            for (int i = 0; i < asset.Length && i < live.Length; i++)
-            {
-                live[i].probability = asset[i].probability;
-                live[i].minSpacing = asset[i].minSpacing;
                 live[i].multiplier = asset[i].multiplier;
             }
         }
@@ -646,11 +497,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
 
             // The duel's clock, windows and ram price (moved off GameSettings
             // onto the patrol's definition in refactor Step 4). Take the
-            // timescale UP before you add any more help.
+            // timescale UP before you add any more help. (The steer assist row
+            // is gone: duelAssistStrength is dormant, nothing reads it.)
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelTimeScale,
                           0.1f, 1f, 0.05f, "0.00", d => d.duelTimeScale, (d, v) => d.duelTimeScale = v);
-            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelAssist,
-                          0f, 1f, 0.05f, "0.00", d => d.duelAssistStrength, (d, v) => d.duelAssistStrength = v);
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelFinisherWindow,
                           0.2f, 3f, 0.05f, "0.00", d => d.finisherWindowSeconds, (d, v) => d.finisherWindowSeconds = v);
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.DuelHitStop,
