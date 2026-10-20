@@ -647,1754 +647,1196 @@ MonoBehaviour:
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 2
-      distance: 2000.139
-      lateral: 18.605427
+      distance: 9.122126
+      lateral: -0.41384807
       height: 0
       variant: 1
-      data: {x: 35.92664, y: 86.5594, z: 266.57742, w: 0}
+      data: {x: 31.145111, y: -50.810883, z: 42.108322, w: 0}
     - kind: 2
-      distance: 2585.5093
-      lateral: -37.761803
+      distance: 103.066025
+      lateral: 19.284657
       height: 0
       variant: 1
-      data: {x: 33.076923, y: -53.55815, z: 284.3042, w: 0}
+      data: {x: 29.674683, y: 89.0806, z: 268.34647, w: 0}
+    - kind: 2
+      distance: 114.4594
+      lateral: -9.754952
+      height: 0
+      variant: 1
+      data: {x: 30.092464, y: -42.20231, z: 174.4031, w: 0}
+    - kind: 2
+      distance: 171.56723
+      lateral: -21.521955
+      height: 0
+      variant: 1
+      data: {x: 31.072372, y: -89.29842, z: 55.038673, w: 0}
+    - kind: 2
+      distance: 379.19583
+      lateral: 23.341604
+      height: 0
+      variant: 1
+      data: {x: 32.134853, y: -66.182556, z: 234.04604, w: 0}
+    - kind: 2
+      distance: 516.0017
+      lateral: -4.1919603
+      height: 0
+      variant: 1
+      data: {x: 30.0574, y: -52.97122, z: 156.642, w: 0}
+    - kind: 2
+      distance: 670.47284
+      lateral: -3.7454767
+      height: 0
+      variant: 1
+      data: {x: 31.52744, y: -87.84095, z: 321.5188, w: 0}
+    - kind: 2
+      distance: 898.66504
+      lateral: -25.02705
+      height: 0
+      variant: 1
+      data: {x: 33.010788, y: -48.565067, z: 276.15097, w: 0}
+    - kind: 2
+      distance: 1092.3534
+      lateral: -14.279978
+      height: 0
+      variant: 1
+      data: {x: 32.83107, y: 76.03069, z: 74.3168, w: 0}
+    - kind: 2
+      distance: 1210.1073
+      lateral: 8.0116415
+      height: 0
+      variant: 1
+      data: {x: 26.776148, y: 73.90041, z: 354.09625, w: 0}
+    - kind: 2
+      distance: 1435.585
+      lateral: 10.803769
+      height: 0
+      variant: 1
+      data: {x: 33.310753, y: 60.076733, z: 8.827, w: 0}
+    - kind: 2
+      distance: 1555.6726
+      lateral: -16.859211
+      height: 0
+      variant: 1
+      data: {x: 28.057165, y: -42.28989, z: 121.24701, w: 0}
+    - kind: 2
+      distance: 1721.9818
+      lateral: -6.016288
+      height: 0
+      variant: 1
+      data: {x: 28.186575, y: -73.68036, z: 22.650246, w: 0}
+    - kind: 2
+      distance: 1838.1371
+      lateral: 6.8020315
+      height: 0
+      variant: 1
+      data: {x: 25.29089, y: 71.14444, z: 287.62863, w: 0}
+    - kind: 2
+      distance: 2056.4526
+      lateral: -13.561099
+      height: 0
+      variant: 1
+      data: {x: 30.49201, y: -57.300564, z: 116.05485, w: 0}
+    - kind: 2
+      distance: 2306.0586
+      lateral: -6.644678
+      height: 0
+      variant: 1
+      data: {x: 25.699665, y: 69.05271, z: 164.87547, w: 0}
+    - kind: 2
+      distance: 2431.2205
+      lateral: 7.996052
+      height: 0
+      variant: 1
+      data: {x: 31.139217, y: -67.603775, z: 209.96663, w: 0}
+    - kind: 2
+      distance: 2653.9297
+      lateral: -0.6595638
+      height: 0
+      variant: 1
+      data: {x: 24.411152, y: 63.1745, z: 65.79841, w: 0}
+    - kind: 2
+      distance: 2843.433
+      lateral: -11.1846285
+      height: 0
+      variant: 1
+      data: {x: 29.024261, y: 86.27689, z: 264.7673, w: 0}
+    - kind: 2
+      distance: 3078.31
+      lateral: -9.170743
+      height: 0
+      variant: 1
+      data: {x: 35.753685, y: -84.216446, z: 83.11762, w: 0}
+    - kind: 2
+      distance: 3141.0505
+      lateral: -24.827164
+      height: 0
+      variant: 1
+      data: {x: 27.29285, y: 84.7978, z: 176.98361, w: 0}
     - kind: 2
       distance: 4577.7017
-      lateral: -21.364044
+      lateral: 2.0794077
       height: 0
       variant: 1
-      data: {x: 24.97607, y: -55.67726, z: 158.62627, w: 0}
+      data: {x: 28.023153, y: 66.41753, z: 231.08522, w: 0}
     - kind: 2
-      distance: 5236.6187
-      lateral: 47.44786
+      distance: 4651.523
+      lateral: 4.4822826
       height: 0
       variant: 1
-      data: {x: 26.116411, y: 76.495766, z: 241.81003, w: 0}
+      data: {x: 24.8916, y: 57.907005, z: 167.40349, w: 0}
     - kind: 2
-      distance: 5838.2847
-      lateral: 1.9350729
+      distance: 4862.5312
+      lateral: 13.155363
       height: 0
       variant: 1
-      data: {x: 30.200941, y: 52.725605, z: 39.936073, w: 0}
+      data: {x: 30.753838, y: -73.922295, z: 83.3219, w: 0}
     - kind: 2
-      distance: 6468.713
-      lateral: -24.238903
+      distance: 5067.206
+      lateral: 8.175124
       height: 0
       variant: 1
-      data: {x: 29.80663, y: -81.79776, z: 102.650024, w: 0}
+      data: {x: 24.211592, y: 71.20393, z: 208.38503, w: 0}
+    - kind: 2
+      distance: 5223.3584
+      lateral: -6.525903
+      height: 0
+      variant: 1
+      data: {x: 34.035587, y: -73.75388, z: 141.22903, w: 0}
+    - kind: 2
+      distance: 5458.035
+      lateral: 8.56397
+      height: 0
+      variant: 1
+      data: {x: 30.673117, y: 70.46822, z: 213.46156, w: 0}
+    - kind: 2
+      distance: 5516.597
+      lateral: 21.134375
+      height: 0
+      variant: 1
+      data: {x: 31.090008, y: 85.39427, z: 111.2179, w: 0}
+    - kind: 2
+      distance: 5532.254
+      lateral: -12.504373
+      height: 0
+      variant: 1
+      data: {x: 24.212627, y: -69.00887, z: 233.15929, w: 0}
+    - kind: 2
+      distance: 5652.7056
+      lateral: 3.590987
+      height: 0
+      variant: 1
+      data: {x: 32.34475, y: -49.02833, z: 313.7992, w: 0}
+    - kind: 2
+      distance: 5665.8945
+      lateral: -16.795845
+      height: 0
+      variant: 1
+      data: {x: 29.841713, y: 88.02729, z: 349.04755, w: 0}
+    - kind: 2
+      distance: 5827.024
+      lateral: 5.023605
+      height: 0
+      variant: 1
+      data: {x: 26.887068, y: 67.04357, z: 84.03151, w: 0}
+    - kind: 2
+      distance: 6009.7593
+      lateral: -12.348673
+      height: 0
+      variant: 1
+      data: {x: 28.999622, y: -63.079468, z: 197.04884, w: 0}
+    - kind: 2
+      distance: 6165.0205
+      lateral: 7.983152
+      height: 0
+      variant: 1
+      data: {x: 24.124866, y: -76.48855, z: 261.58487, w: 0}
+    - kind: 2
+      distance: 6204.7495
+      lateral: 13.930891
+      height: 0
+      variant: 1
+      data: {x: 30.869032, y: -68.68765, z: 352.61646, w: 0}
+    - kind: 2
+      distance: 6280.694
+      lateral: 19.666336
+      height: 0
+      variant: 1
+      data: {x: 27.785881, y: -80.064255, z: 353.98358, w: 0}
+    - kind: 2
+      distance: 6513.69
+      lateral: 24.668743
+      height: 0
+      variant: 1
+      data: {x: 29.505692, y: 73.14157, z: 320.4449, w: 0}
+    - kind: 2
+      distance: 6711.9688
+      lateral: 3.8621244
+      height: 0
+      variant: 1
+      data: {x: 33.451767, y: -62.645424, z: 92.45999, w: 0}
+    - kind: 2
+      distance: 6736.203
+      lateral: -23.253674
+      height: 0
+      variant: 1
+      data: {x: 25.836687, y: -69.33729, z: 278.2045, w: 0}
     - kind: 2
       distance: 8190.7334
-      lateral: -10.8527565
+      lateral: 11.001086
       height: 0
       variant: 1
-      data: {x: 24.295395, y: -54.929832, z: 227.68852, w: 0}
+      data: {x: 31.006325, y: 71.48484, z: 215.082, w: 0}
     - kind: 2
-      distance: 8932.217
-      lateral: -15.970425
+      distance: 8302.804
+      lateral: -22.679111
       height: 0
       variant: 1
-      data: {x: 24.589802, y: 47.28858, z: 311.74594, w: 0}
+      data: {x: 34.285923, y: 75.94858, z: 271.83737, w: 0}
     - kind: 2
-      distance: 9593.438
-      lateral: 24.15886
+      distance: 8449.937
+      lateral: -22.149675
       height: 0
       variant: 1
-      data: {x: 29.351143, y: 62.015198, z: 263.8749, w: 0}
+      data: {x: 26.816261, y: -66.11358, z: 25.785812, w: 0}
+    - kind: 2
+      distance: 8635.884
+      lateral: -1.1074374
+      height: 0
+      variant: 1
+      data: {x: 32.543724, y: 73.10886, z: 8.435698, w: 0}
+    - kind: 2
+      distance: 8733.206
+      lateral: 22.439405
+      height: 0
+      variant: 1
+      data: {x: 30.047482, y: 55.31757, z: 295.2261, w: 0}
+    - kind: 2
+      distance: 8885.011
+      lateral: -10.599892
+      height: 0
+      variant: 1
+      data: {x: 33.273937, y: 79.18663, z: 22.095009, w: 0}
+    - kind: 2
+      distance: 8960.964
+      lateral: 15.931967
+      height: 0
+      variant: 1
+      data: {x: 35.31332, y: 62.845226, z: 252.5535, w: 0}
+    - kind: 2
+      distance: 8982.735
+      lateral: 1.5338794
+      height: 0
+      variant: 1
+      data: {x: 25.547323, y: -47.01313, z: 271.46677, w: 0}
+    - kind: 2
+      distance: 9191.755
+      lateral: 14.756287
+      height: 0
+      variant: 1
+      data: {x: 30.607327, y: 76.22658, z: 5.552044, w: 0}
+    - kind: 2
+      distance: 9311.888
+      lateral: 0.39118236
+      height: 0
+      variant: 1
+      data: {x: 25.637297, y: -48.41073, z: 128.99126, w: 0}
+    - kind: 2
+      distance: 9417.864
+      lateral: -11.887882
+      height: 0
+      variant: 1
+      data: {x: 35.598263, y: 78.0124, z: 217.44081, w: 0}
+    - kind: 2
+      distance: 9529.248
+      lateral: -20.47151
+      height: 0
+      variant: 1
+      data: {x: 24.898594, y: -52.452717, z: 27.908192, w: 0}
     - kind: 2
       distance: 11067.097
-      lateral: -28.413654
+      lateral: 18.479631
       height: 0
       variant: 1
-      data: {x: 25.043814, y: 75.91751, z: 240.70444, w: 0}
+      data: {x: 33.36675, y: 57.376404, z: 263.61484, w: 0}
     - kind: 2
-      distance: 11810.895
-      lateral: -2.271965
+      distance: 11077.174
+      lateral: -1.8015358
       height: 0
       variant: 1
-      data: {x: 32.067265, y: -51.34613, z: 322.7094, w: 0}
+      data: {x: 33.00074, y: -56.82872, z: 103.43255, w: 0}
     - kind: 2
-      distance: 12422.307
-      lateral: -1.5657886
+      distance: 11248.656
+      lateral: 3.4951358
       height: 0
       variant: 1
-      data: {x: 26.033014, y: 44.115974, z: 359.36267, w: 0}
+      data: {x: 35.80295, y: 79.68047, z: 88.50839, w: 0}
+    - kind: 2
+      distance: 11463.308
+      lateral: -11.208762
+      height: 0
+      variant: 1
+      data: {x: 26.250286, y: 53.262844, z: 58.222004, w: 0}
+    - kind: 2
+      distance: 11478.572
+      lateral: 2.425019
+      height: 0
+      variant: 1
+      data: {x: 35.948383, y: -43.641045, z: 101.79584, w: 0}
+    - kind: 2
+      distance: 11710.198
+      lateral: -7.536339
+      height: 0
+      variant: 1
+      data: {x: 29.107325, y: 65.968704, z: 223.44643, w: 0}
+    - kind: 2
+      distance: 11923.269
+      lateral: 20.625107
+      height: 0
+      variant: 1
+      data: {x: 33.20988, y: -83.97706, z: 42.660812, w: 0}
+    - kind: 2
+      distance: 12143.249
+      lateral: -18.705803
+      height: 0
+      variant: 1
+      data: {x: 32.507046, y: 51.097355, z: 255.69383, w: 0}
+    - kind: 2
+      distance: 12343.43
+      lateral: 18.821821
+      height: 0
+      variant: 1
+      data: {x: 26.586535, y: -84.459854, z: 74.08253, w: 0}
+    - kind: 2
+      distance: 12544.673
+      lateral: -20.654322
+      height: 0
+      variant: 1
+      data: {x: 35.944103, y: 57.368362, z: 236.89244, w: 0}
+    - kind: 2
+      distance: 12639.671
+      lateral: -19.787567
+      height: 0
+      variant: 1
+      data: {x: 26.031889, y: 59.509506, z: 51.306282, w: 0}
+    - kind: 2
+      distance: 12798.661
+      lateral: -18.428602
+      height: 0
+      variant: 1
+      data: {x: 32.17571, y: 78.436386, z: 339.78714, w: 0}
     - kind: 2
       distance: 14214.97
-      lateral: 15.722884
+      lateral: -13.12519
       height: 0
       variant: 1
-      data: {x: 30.218718, y: -78.85597, z: 10.43242, w: 0}
+      data: {x: 34.154167, y: -44.772194, z: 23.364445, w: 0}
     - kind: 2
-      distance: 14875.396
-      lateral: -45.924664
+      distance: 14307.161
+      lateral: 0.9052256
       height: 0
       variant: 1
-      data: {x: 34.367386, y: -89.26203, z: 294.92245, w: 0}
+      data: {x: 27.279364, y: 86.85082, z: 174.01816, w: 0}
     - kind: 2
-      distance: 15517.15
-      lateral: -12.857071
+      distance: 14515.003
+      lateral: 7.7633433
       height: 0
       variant: 1
-      data: {x: 26.134666, y: -64.56164, z: 304.8935, w: 0}
+      data: {x: 27.71338, y: 74.92648, z: 101.235794, w: 0}
+    - kind: 2
+      distance: 14727.186
+      lateral: -13.312076
+      height: 0
+      variant: 1
+      data: {x: 24.1627, y: 87.37462, z: 111.362274, w: 0}
+    - kind: 2
+      distance: 14934.209
+      lateral: -5.1218886
+      height: 0
+      variant: 1
+      data: {x: 26.334543, y: -67.32943, z: 207.4281, w: 0}
+    - kind: 2
+      distance: 15029.634
+      lateral: -17.536802
+      height: 0
+      variant: 1
+      data: {x: 33.47562, y: 45.455524, z: 290.00107, w: 0}
+    - kind: 2
+      distance: 15273.067
+      lateral: 8.905567
+      height: 0
+      variant: 1
+      data: {x: 25.372131, y: -78.03149, z: 122.98769, w: 0}
+    - kind: 2
+      distance: 15369.306
+      lateral: 15.221218
+      height: 0
+      variant: 1
+      data: {x: 29.92172, y: 77.08256, z: 307.3688, w: 0}
+    - kind: 2
+      distance: 15590.273
+      lateral: -14.875613
+      height: 0
+      variant: 1
+      data: {x: 25.421518, y: -75.95964, z: 200.03297, w: 0}
+    - kind: 2
+      distance: 15604.158
+      lateral: 16.938196
+      height: 0
+      variant: 1
+      data: {x: 33.50647, y: 57.19749, z: 113.45598, w: 0}
+    - kind: 2
+      distance: 15712.316
+      lateral: -11.591334
+      height: 0
+      variant: 1
+      data: {x: 32.27855, y: -40.649666, z: 114.24408, w: 0}
     - kind: 2
       distance: 17342.75
-      lateral: -39.824272
+      lateral: -24.949772
       height: 0
       variant: 1
-      data: {x: 33.81374, y: -68.65174, z: 255.71786, w: 0}
+      data: {x: 27.840046, y: 62.509323, z: 119.99431, w: 0}
     - kind: 2
-      distance: 17887.064
-      lateral: -28.436716
+      distance: 17508.438
+      lateral: 17.276318
       height: 0
       variant: 1
-      data: {x: 27.743313, y: 45.653526, z: 228.03738, w: 0}
+      data: {x: 30.904037, y: -83.27374, z: 286.29935, w: 0}
     - kind: 2
-      distance: 18497.674
-      lateral: -41.831543
+      distance: 17632.164
+      lateral: 0.8863106
       height: 0
       variant: 1
-      data: {x: 29.203285, y: 80.98782, z: 359.14294, w: 0}
+      data: {x: 30.680004, y: 73.60486, z: 342.2257, w: 0}
     - kind: 2
-      distance: 19281.766
-      lateral: 24.72897
+      distance: 17647.941
+      lateral: 20.235405
       height: 0
       variant: 1
-      data: {x: 32.846455, y: 88.5734, z: 121.70247, w: 0}
+      data: {x: 27.197145, y: 79.686356, z: 18.661308, w: 0}
+    - kind: 2
+      distance: 17746.475
+      lateral: -0.51514566
+      height: 0
+      variant: 1
+      data: {x: 28.76095, y: -88.539215, z: 159.28206, w: 0}
+    - kind: 2
+      distance: 17780.246
+      lateral: 9.948488
+      height: 0
+      variant: 1
+      data: {x: 26.955942, y: 67.55954, z: 90.8087, w: 0}
+    - kind: 2
+      distance: 17865.06
+      lateral: -16.709724
+      height: 0
+      variant: 1
+      data: {x: 31.990854, y: -46.7554, z: 145.89886, w: 0}
+    - kind: 2
+      distance: 18045.691
+      lateral: 13.916266
+      height: 0
+      variant: 1
+      data: {x: 29.8101, y: 77.86342, z: 61.232903, w: 0}
+    - kind: 2
+      distance: 18289.043
+      lateral: 1.0947773
+      height: 0
+      variant: 1
+      data: {x: 27.367577, y: -57.244484, z: 321.99133, w: 0}
+    - kind: 2
+      distance: 18494.838
+      lateral: 21.229927
+      height: 0
+      variant: 1
+      data: {x: 33.448524, y: 43.27743, z: 164.8589, w: 0}
+    - kind: 2
+      distance: 18558.02
+      lateral: 10.465581
+      height: 0
+      variant: 1
+      data: {x: 26.878235, y: 47.60851, z: 304.04028, w: 0}
+    - kind: 2
+      distance: 18727.8
+      lateral: -10.785202
+      height: 0
+      variant: 1
+      data: {x: 28.712658, y: 63.25199, z: 29.520134, w: 0}
+    - kind: 2
+      distance: 18844.174
+      lateral: -9.122643
+      height: 0
+      variant: 1
+      data: {x: 28.583876, y: 88.433685, z: 76.893394, w: 0}
+    - kind: 2
+      distance: 18934.082
+      lateral: -14.514615
+      height: 0
+      variant: 1
+      data: {x: 35.0579, y: 66.5622, z: 106.41593, w: 0}
+    - kind: 2
+      distance: 19095.469
+      lateral: -10.07598
+      height: 0
+      variant: 1
+      data: {x: 33.893997, y: -55.327347, z: 77.67377, w: 0}
+    - kind: 2
+      distance: 19299.412
+      lateral: -18.985939
+      height: 0
+      variant: 1
+      data: {x: 29.677982, y: 61.836163, z: 109.60811, w: 0}
+    - kind: 2
+      distance: 19467.84
+      lateral: 14.319725
+      height: 0
+      variant: 1
+      data: {x: 30.46331, y: -86.16614, z: 76.21817, w: 0}
+    - kind: 2
+      distance: 19483.627
+      lateral: -7.531354
+      height: 0
+      variant: 1
+      data: {x: 35.506634, y: -55.63589, z: 282.91147, w: 0}
     - kind: 2
       distance: 20991.947
-      lateral: 27.8158
+      lateral: 21.919142
       height: 0
       variant: 1
-      data: {x: 29.992332, y: 58.9618, z: 243.1868, w: 0}
+      data: {x: 32.33116, y: -54.95865, z: 254.82544, w: 0}
     - kind: 2
-      distance: 21765.73
-      lateral: 9.359126
+      distance: 21185.018
+      lateral: 6.7014413
       height: 0
       variant: 1
-      data: {x: 24.16832, y: 82.770996, z: 92.091354, w: 0}
+      data: {x: 28.916378, y: -75.51266, z: 235.5267, w: 0}
     - kind: 2
-      distance: 22588.258
-      lateral: 5.0399966
+      distance: 21427.654
+      lateral: -17.263485
       height: 0
       variant: 1
-      data: {x: 26.719372, y: 78.73352, z: 100.09227, w: 0}
+      data: {x: 25.354256, y: -82.8074, z: 267.31155, w: 0}
     - kind: 2
-      distance: 23319.588
-      lateral: -34.644974
+      distance: 21619.373
+      lateral: -12.129979
       height: 0
       variant: 1
-      data: {x: 33.79719, y: 75.50458, z: 56.598, w: 0}
+      data: {x: 31.957304, y: 45.732162, z: 271.29218, w: 0}
+    - kind: 2
+      distance: 21786.56
+      lateral: -9.607856
+      height: 0
+      variant: 1
+      data: {x: 28.366442, y: -68.26298, z: 151.83643, w: 0}
+    - kind: 2
+      distance: 21909.238
+      lateral: -11.718335
+      height: 0
+      variant: 1
+      data: {x: 35.812183, y: -79.48862, z: 337.75958, w: 0}
+    - kind: 2
+      distance: 22146.18
+      lateral: 10.440142
+      height: 0
+      variant: 1
+      data: {x: 24.767609, y: -88.773155, z: 226.52225, w: 0}
+    - kind: 2
+      distance: 22211.3
+      lateral: -14.817903
+      height: 0
+      variant: 1
+      data: {x: 31.15464, y: -40.814056, z: 228.0448, w: 0}
+    - kind: 2
+      distance: 22405.877
+      lateral: -20.16006
+      height: 0
+      variant: 1
+      data: {x: 25.126133, y: -46.664066, z: 335.1027, w: 0}
+    - kind: 2
+      distance: 22514.703
+      lateral: -2.7588751
+      height: 0
+      variant: 1
+      data: {x: 35.70163, y: 64.58195, z: 34.95991, w: 0}
+    - kind: 2
+      distance: 22623.096
+      lateral: -12.975709
+      height: 0
+      variant: 1
+      data: {x: 32.2685, y: -55.71239, z: 250.82758, w: 0}
+    - kind: 2
+      distance: 22648.543
+      lateral: 24.339542
+      height: 0
+      variant: 1
+      data: {x: 33.524754, y: 66.113914, z: 62.342777, w: 0}
+    - kind: 2
+      distance: 22808.068
+      lateral: 0.88188285
+      height: 0
+      variant: 1
+      data: {x: 24.900255, y: -40.946026, z: 324.0554, w: 0}
+    - kind: 2
+      distance: 22954.266
+      lateral: 14.854493
+      height: 0
+      variant: 1
+      data: {x: 26.438543, y: -83.825264, z: 3.9697552, w: 0}
+    - kind: 2
+      distance: 22966.371
+      lateral: 15.032271
+      height: 0
+      variant: 1
+      data: {x: 28.343924, y: 79.743355, z: 311.80423, w: 0}
+    - kind: 2
+      distance: 23199.27
+      lateral: -4.6478624
+      height: 0
+      variant: 1
+      data: {x: 30.395067, y: -86.17826, z: 183.27405, w: 0}
+    - kind: 2
+      distance: 23438.4
+      lateral: -3.3317006
+      height: 0
+      variant: 1
+      data: {x: 27.18824, y: 81.69378, z: 40.054134, w: 0}
+    - kind: 2
+      distance: 23591.54
+      lateral: -7.2054667
+      height: 0
+      variant: 1
+      data: {x: 33.663204, y: -74.02104, z: 86.34035, w: 0}
+    - kind: 2
+      distance: 23649.357
+      lateral: 5.158916
+      height: 0
+      variant: 1
+      data: {x: 24.330456, y: 71.59679, z: 123.77665, w: 0}
+    - kind: 2
+      distance: 23749.67
+      lateral: 5.0874796
+      height: 0
+      variant: 1
+      data: {x: 35.552673, y: -66.7009, z: 224.54085, w: 0}
     - kind: 2
       distance: 25219.523
-      lateral: -35.84468
+      lateral: 15.432357
       height: 0
       variant: 1
-      data: {x: 26.623577, y: -81.10439, z: 292.80466, w: 0}
+      data: {x: 32.372063, y: -49.51715, z: 160.53459, w: 0}
     - kind: 2
-      distance: 25883.695
-      lateral: 49.573044
+      distance: 25356.65
+      lateral: -11.460212
       height: 0
       variant: 1
-      data: {x: 35.024258, y: 54.712124, z: 22.781439, w: 0}
+      data: {x: 25.96092, y: -75.02821, z: 115.2216, w: 0}
     - kind: 2
-      distance: 26555.652
-      lateral: 10.652439
+      distance: 25579.188
+      lateral: -14.216217
       height: 0
       variant: 1
-      data: {x: 30.70153, y: 79.92573, z: 245.87415, w: 0}
+      data: {x: 33.67377, y: -74.54777, z: 322.28754, w: 0}
     - kind: 2
-      distance: 27234.61
-      lateral: 21.521214
+      distance: 25751.3
+      lateral: -23.9793
       height: 0
       variant: 1
-      data: {x: 34.374508, y: -49.235054, z: 218.17732, w: 0}
-    - kind: 0
-      distance: 155.63872
-      lateral: -0.12835908
+      data: {x: 33.42591, y: 88.95599, z: 226.064, w: 0}
+    - kind: 2
+      distance: 25895.648
+      lateral: -8.749729
       height: 0
-      variant: 0
-      data: {x: 0, y: 0, z: 0, w: 0}
+      variant: 1
+      data: {x: 35.01119, y: 60.793396, z: 319.84406, w: 0}
+    - kind: 2
+      distance: 26081.484
+      lateral: -17.295288
+      height: 0
+      variant: 1
+      data: {x: 34.254826, y: -82.888, z: 148.95148, w: 0}
+    - kind: 2
+      distance: 26142.943
+      lateral: 24.592064
+      height: 0
+      variant: 1
+      data: {x: 29.938581, y: 52.777813, z: 218.31174, w: 0}
+    - kind: 2
+      distance: 26224.24
+      lateral: -6.9766645
+      height: 0
+      variant: 1
+      data: {x: 28.018476, y: -58.805428, z: 81.494865, w: 0}
+    - kind: 2
+      distance: 26407.52
+      lateral: 20.6367
+      height: 0
+      variant: 1
+      data: {x: 27.738342, y: 59.29651, z: 165.72859, w: 0}
+    - kind: 2
+      distance: 26499.559
+      lateral: 19.158728
+      height: 0
+      variant: 1
+      data: {x: 34.025417, y: 47.387363, z: 282.537, w: 0}
+    - kind: 2
+      distance: 26747.557
+      lateral: 5.0331554
+      height: 0
+      variant: 1
+      data: {x: 35.639004, y: -55.575184, z: 162.08388, w: 0}
+    - kind: 2
+      distance: 26814.855
+      lateral: -2.3335595
+      height: 0
+      variant: 1
+      data: {x: 34.998272, y: -85.415245, z: 290.51758, w: 0}
+    - kind: 2
+      distance: 26983.674
+      lateral: 9.9824
+      height: 0
+      variant: 1
+      data: {x: 35.432297, y: -48.250362, z: 155.07439, w: 0}
+    - kind: 2
+      distance: 27118.38
+      lateral: 21.43372
+      height: 0
+      variant: 1
+      data: {x: 31.73425, y: -83.27146, z: 158.58379, w: 0}
+    - kind: 2
+      distance: 27345.283
+      lateral: 15.938642
+      height: 0
+      variant: 1
+      data: {x: 24.913609, y: 42.171116, z: 152.26738, w: 0}
     - kind: 0
-      distance: 557.8411
-      lateral: -16.540304
+      distance: 212.11581
+      lateral: 7.928139
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 944.9452
-      lateral: 24.244474
+      distance: 690.74286
+      lateral: -8.737614
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 1374.4485
-      lateral: -12.528087
+      distance: 1112.6234
+      lateral: 31.015415
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 1764.5283
-      lateral: -6.261217
+      distance: 1587.2616
+      lateral: -24.692774
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 2191.9912
-      lateral: 45.707268
+      distance: 1989.4346
+      lateral: 31.903414
       height: 0
-      variant: 0
+      variant: 1
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 2652.1199
-      lateral: -6.546921
+      distance: 2451.4905
+      lateral: -41.261337
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 3138.1438
-      lateral: 3.5315044
+      distance: 2935.406
+      lateral: -3.4030807
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 3552.035
-      lateral: 30.99679
+      distance: 3397.432
+      lateral: 50.76088
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 3958.212
-      lateral: -0.5653413
+      distance: 3842.772
+      lateral: 40.259586
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 4436.117
-      lateral: -32.836308
+      distance: 4289.138
+      lateral: 1.7072248
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 4898.41
-      lateral: -41.037487
+      distance: 4694.9204
+      lateral: 40.270424
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 5286.397
-      lateral: 1.7796953
+      distance: 5176.092
+      lateral: -35.761055
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 5749.0083
-      lateral: -25.993515
+      distance: 5563.783
+      lateral: -44.643517
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 6209.466
-      lateral: -42.20784
+      distance: 6030.0293
+      lateral: 13.517618
       height: 0
-      variant: 0
+      variant: 1
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 6635.952
-      lateral: -33.758957
+      distance: 6460.224
+      lateral: 10.1251955
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 7099.9814
-      lateral: 33.637505
+      distance: 6865.7935
+      lateral: -15.890644
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 7500.356
-      lateral: 11.67977
+      distance: 7278.0435
+      lateral: -21.47737
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 7888.2505
-      lateral: 3.545189
+      distance: 7723.6675
+      lateral: 8.145563
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 8312.099
-      lateral: 10.36325
+      distance: 8211.004
+      lateral: -31.104351
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 8752.477
-      lateral: 32.860855
+      distance: 8694.571
+      lateral: -16.57771
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 9157.33
-      lateral: 21.79132
+      distance: 9089.702
+      lateral: 32.60887
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 9634.971
-      lateral: -28.9458
+      distance: 9495.681
+      lateral: 38.27562
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 10033.114
-      lateral: 0.8623754
+      distance: 9964.691
+      lateral: 38.18553
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 10451.328
-      lateral: -48.61578
+      distance: 10411.331
+      lateral: -36.79399
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 10884.204
-      lateral: -25.54973
+      distance: 10897.227
+      lateral: -1.7201073
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 11286.513
-      lateral: 18.621859
+      distance: 11308.846
+      lateral: 37.523132
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 11765.586
-      lateral: -28.472912
+      distance: 11743.24
+      lateral: -30.2632
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 12232.072
-      lateral: -36.36842
+      distance: 12206.897
+      lateral: 39.953213
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 12648.246
-      lateral: 37.74162
+      distance: 12659.94
+      lateral: 51.17131
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 13126.953
-      lateral: 37.362
+      distance: 13128.482
+      lateral: -17.641483
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 13556.662
-      lateral: -44.09591
+      distance: 13564.489
+      lateral: 41.780014
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 13974.625
-      lateral: 50.329292
+      distance: 13983.317
+      lateral: 6.8229885
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 14419.494
-      lateral: -19.279148
+      distance: 14412.088
+      lateral: -7.593764
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 14835.629
-      lateral: 32.5739
+      distance: 14890.966
+      lateral: -47.817017
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 15299.684
-      lateral: -46.566654
+      distance: 15389.575
+      lateral: -29.731062
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 15763.889
-      lateral: 34.983723
+      distance: 15845.586
+      lateral: 27.235743
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 16213.187
-      lateral: -10.600683
+      distance: 16233.323
+      lateral: -0.8147775
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 16687.967
-      lateral: -6.3793583
+      distance: 16693.273
+      lateral: -22.990942
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 17094.986
-      lateral: 30.96139
+      distance: 17119.059
+      lateral: 29.107582
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 17507.46
-      lateral: -24.071854
+      distance: 17604.943
+      lateral: -45.81158
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 17946.379
-      lateral: 1.0440364
+      distance: 18065.96
+      lateral: -7.7141037
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 18372.666
-      lateral: 40.13287
+      distance: 18515.107
+      lateral: -49.190113
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 18852.633
-      lateral: -7.4175615
+      distance: 18954.352
+      lateral: 13.2136
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 19337.422
-      lateral: -36.40008
+      distance: 19427.81
+      lateral: 2.9251487
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 19811.678
-      lateral: 47.80618
+      distance: 19907.393
+      lateral: 46.49911
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 20283.092
-      lateral: 51.125107
+      distance: 20382.318
+      lateral: -25.635664
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 20768.252
-      lateral: -18.087132
+      distance: 20781.16
+      lateral: 7.2933154
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 21226.96
-      lateral: 28.567009
+      distance: 21205.287
+      lateral: -35.93291
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 21642.58
-      lateral: 23.595747
+      distance: 21671.91
+      lateral: -37.46022
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 22116.957
-      lateral: 51.581375
+      distance: 22073.168
+      lateral: -0.07400954
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 22519.455
-      lateral: -50.332603
+      distance: 22548.041
+      lateral: 32.667244
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 22940.002
-      lateral: -43.969517
+      distance: 22986.64
+      lateral: -2.1340926
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 23356.193
-      lateral: -10.494894
+      distance: 23384.217
+      lateral: -46.42743
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 23797.557
-      lateral: -6.5346203
+      distance: 23788.504
+      lateral: 8.295937
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 24195.668
-      lateral: -49.59172
+      distance: 24189.406
+      lateral: -9.164197
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 24595.879
-      lateral: -10.474134
+      distance: 24636.574
+      lateral: -14.527263
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 24992.354
-      lateral: -52.405376
+      distance: 25107.254
+      lateral: -51.725216
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 25384.104
-      lateral: 2.4785953
+      distance: 25497.56
+      lateral: 17.43023
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 25809.852
-      lateral: -47.337273
+      distance: 25915.918
+      lateral: -3.4738178
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 26232.924
-      lateral: 41.959694
+      distance: 26322.016
+      lateral: -46.26777
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 26641.133
-      lateral: 36.403885
+      distance: 26767.826
+      lateral: 40.169613
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 27080.086
-      lateral: 32.09752
+      distance: 27168.719
+      lateral: 50.42189
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 27483.082
-      lateral: 52.066746
+      distance: 27638.941
+      lateral: 33.37705
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 27929.29
-      lateral: 36.44314
+      distance: 28071.82
+      lateral: -35.875084
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 0
-      distance: 28388.115
-      lateral: 29.15487
+      distance: 28479.682
+      lateral: -17.170252
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 1
-      distance: 3810.049
-      lateral: 4.40409
+      distance: 399.46582
+      lateral: -20.32784
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 1
-      distance: 14314.884
-      lateral: -23.434155
+      distance: 4347.424
+      lateral: 39.470387
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 1
-      distance: 16425.664
-      lateral: 43.097977
+      distance: 6571.204
+      lateral: 22.829988
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 1
-      distance: 22854.02
-      lateral: 45.316734
+      distance: 12466.496
+      lateral: 39.547554
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 1
-      distance: 26931.582
-      lateral: 13.324364
+      distance: 18578.29
+      lateral: -18.963514
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
     - kind: 1
-      distance: 28721.104
-      lateral: 37.217163
+      distance: 20672.621
+      lateral: 52.75521
       height: 0
       variant: 0
       data: {x: 0, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 366.1927
-      lateral: 37.1287
+    - kind: 1
+      distance: 22578.045
+      lateral: -38.114758
       height: 0
       variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 674.0863
-      lateral: -6.941642
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 689.0863
-      lateral: -6.941642
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 704.0863
-      lateral: -6.941642
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 719.0863
-      lateral: -6.941642
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 1106.4749
-      lateral: 41.12808
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 1558.4224
-      lateral: 54.559994
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 1978.8848
-      lateral: 28.641296
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 2343.4827
-      lateral: -16.47168
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 2358.4827
-      lateral: -16.47168
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 2373.4827
-      lateral: -16.47168
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 2388.4827
-      lateral: -16.47168
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 2403.4827
-      lateral: -16.47168
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 2679.4534
-      lateral: 13.016189
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 2694.4534
-      lateral: 13.016189
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 2709.4534
-      lateral: 13.016189
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 2724.4534
-      lateral: 13.016189
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 3062.0935
-      lateral: 15.79677
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 3077.0935
-      lateral: 15.79677
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 3092.0935
-      lateral: 15.79677
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 3586.0178
-      lateral: -39.344967
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 4046.4592
-      lateral: 21.831394
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 4061.4592
-      lateral: 21.831394
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 4076.4592
-      lateral: 21.831394
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 4091.4592
-      lateral: 21.831394
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 4106.459
-      lateral: 21.831394
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 4409.9844
-      lateral: -1.6512634
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 4823.7812
-      lateral: 51.059486
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 4838.7812
-      lateral: 51.059486
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 4853.7812
-      lateral: 51.059486
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 4868.7812
-      lateral: 51.059486
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 5256.8887
-      lateral: -2.2293797
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 5774.598
-      lateral: -28.01831
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 5789.598
-      lateral: -28.01831
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 5804.598
-      lateral: -28.01831
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 6296.092
-      lateral: -26.657852
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 6311.092
-      lateral: -26.657852
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 6326.092
-      lateral: -26.657852
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 6705.716
-      lateral: 1.0755157
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 6720.716
-      lateral: 1.0755157
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 6735.716
-      lateral: 1.0755157
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 6750.716
-      lateral: 1.0755157
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 6765.716
-      lateral: 1.0755157
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 7210.523
-      lateral: -49.081043
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 7225.523
-      lateral: -49.081043
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 7240.523
-      lateral: -49.081043
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 7255.523
-      lateral: -49.081043
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 7270.523
-      lateral: -49.081043
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 7545.124
-      lateral: -23.379725
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 7560.124
-      lateral: -23.379725
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 7575.124
-      lateral: -23.379725
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 7590.124
-      lateral: -23.379725
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 7605.124
-      lateral: -23.379725
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 8044.9985
-      lateral: -36.808308
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 8059.9985
-      lateral: -36.808308
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 8074.9985
-      lateral: -36.808308
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 8089.9985
-      lateral: -36.808308
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 8104.9985
-      lateral: -36.808308
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 8567.277
-      lateral: -46.89581
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 8582.277
-      lateral: -46.89581
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 8978.795
-      lateral: -14.378764
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 9393.988
-      lateral: 46.407856
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 9408.988
-      lateral: 46.407856
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 9423.988
-      lateral: 46.407856
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 9704.079
-      lateral: -37.73053
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 10108.376
-      lateral: -42.155125
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 10123.376
-      lateral: -42.155125
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 10138.376
-      lateral: -42.155125
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 10506.384
-      lateral: 7.2620335
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 10521.384
-      lateral: 7.2620335
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 10536.384
-      lateral: 7.2620335
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 10551.384
-      lateral: 7.2620335
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 10852.4
-      lateral: -9.809595
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 10912.4
-      lateral: -9.809595
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 11307.984
-      lateral: 15.093477
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 11322.984
-      lateral: 15.093477
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 11337.984
-      lateral: 15.093477
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 11352.984
-      lateral: 15.093477
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 11684.467
-      lateral: 33.26698
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 11699.467
-      lateral: 33.26698
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 12150.187
-      lateral: 19.694906
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 12165.187
-      lateral: 19.694906
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 12180.187
-      lateral: 19.694906
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 12195.187
-      lateral: 19.694906
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 12210.187
-      lateral: 19.694906
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 12557.067
-      lateral: 52.518726
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 12572.067
-      lateral: 52.518726
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 12587.067
-      lateral: 52.518726
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 12913.245
-      lateral: 47.61752
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 12928.245
-      lateral: 47.61752
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 13337.422
-      lateral: 46.92717
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 13728.049
-      lateral: 24.06583
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 14170.595
-      lateral: -1.2803639
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 14185.595
-      lateral: -1.2803639
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 14499.487
-      lateral: -37.394165
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 14514.487
-      lateral: -37.394165
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 14529.487
-      lateral: -37.394165
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 14544.487
-      lateral: -37.394165
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 15029.929
-      lateral: -26.59578
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 15044.929
-      lateral: -26.59578
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 15391.608
-      lateral: 38.141933
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 15406.608
-      lateral: 38.141933
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 15421.608
-      lateral: 38.141933
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 15875.388
-      lateral: -24.577003
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 15890.388
-      lateral: -24.577003
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 15905.388
-      lateral: -24.577003
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 16345.062
-      lateral: -29.607462
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 16360.062
-      lateral: -29.607462
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 16375.062
-      lateral: -29.607462
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 16390.062
-      lateral: -29.607462
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 16405.062
-      lateral: -29.607462
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 16784.645
-      lateral: 29.099026
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 16799.645
-      lateral: 29.099026
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 17234.305
-      lateral: -10.356828
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 17688.695
-      lateral: 48.983803
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 17703.695
-      lateral: 48.983803
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 17718.695
-      lateral: 48.983803
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 17733.695
-      lateral: 48.983803
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 18184.365
-      lateral: 28.91195
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 18199.365
-      lateral: 28.91195
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 18214.365
-      lateral: 28.91195
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 18711.322
-      lateral: 20.53535
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 18726.322
-      lateral: 20.53535
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 18741.322
-      lateral: 20.53535
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 18756.322
-      lateral: 20.53535
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 18771.322
-      lateral: 20.53535
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 19250.451
-      lateral: 48.9853
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 19310.451
-      lateral: 48.9853
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 19637.596
-      lateral: -6.605133
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 19652.596
-      lateral: -6.605133
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 19667.596
-      lateral: -6.605133
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 19682.596
-      lateral: -6.605133
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 19697.596
-      lateral: -6.605133
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 19974.707
-      lateral: -18.0517
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 19989.707
-      lateral: -18.0517
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 20499.832
-      lateral: 21.735025
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 20514.832
-      lateral: 21.735025
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 21014.164
-      lateral: 53.042946
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 21029.164
-      lateral: 53.042946
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 21389.775
-      lateral: -17.27841
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 21870.877
-      lateral: -5.7317657
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 21885.877
-      lateral: -5.7317657
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 21900.877
-      lateral: -5.7317657
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 21915.877
-      lateral: -5.7317657
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 22360.28
-      lateral: 29.251951
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 22375.28
-      lateral: 29.251951
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 22390.28
-      lateral: 29.251951
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 22405.28
-      lateral: 29.251951
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 22420.28
-      lateral: 29.251951
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 22749.117
-      lateral: 23.731358
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 22764.117
-      lateral: 23.731358
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 22779.117
-      lateral: 23.731358
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 22794.117
-      lateral: 23.731358
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 22809.117
-      lateral: 23.731358
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 23280.727
-      lateral: -54.542953
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 23577.459
-      lateral: 34.532524
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 23592.459
-      lateral: 34.532524
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 23607.459
-      lateral: 34.532524
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 23622.459
-      lateral: 34.532524
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 23637.459
-      lateral: 34.532524
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 24039.254
-      lateral: -17.47655
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 24054.254
-      lateral: -17.47655
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 24069.254
-      lateral: -17.47655
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 24084.254
-      lateral: -17.47655
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 24099.254
-      lateral: -17.47655
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 24621.57
-      lateral: -51.852257
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 24636.57
-      lateral: -51.852257
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 24651.57
-      lateral: -51.852257
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 25014.777
-      lateral: 15.6574745
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 25427.06
-      lateral: -16.480467
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 25442.06
-      lateral: -16.480467
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 25457.06
-      lateral: -16.480467
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 25903.965
-      lateral: -52.811264
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 25918.965
-      lateral: -52.811264
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 26265.371
-      lateral: 32.098705
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 26280.371
-      lateral: 32.098705
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 26295.371
-      lateral: 32.098705
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 26310.371
-      lateral: 32.098705
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 26798.127
-      lateral: -23.366373
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 27272.945
-      lateral: 8.265023
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 27287.945
-      lateral: 8.265023
-      height: 0
-      variant: 0
-      data: {x: 3, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 27704.861
-      lateral: 22.587498
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 27719.861
-      lateral: 22.587498
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 27734.861
-      lateral: 22.587498
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 27749.861
-      lateral: 22.587498
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 27764.861
-      lateral: 22.587498
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 28224.559
-      lateral: 43.046326
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 28239.559
-      lateral: 43.046326
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 28254.559
-      lateral: 43.046326
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 28561.434
-      lateral: -8.758559
-      height: 0
-      variant: 0
-      data: {x: 4, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 28576.434
-      lateral: -8.758559
-      height: 0
-      variant: 0
-      data: {x: 5, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 28591.434
-      lateral: -8.758559
-      height: 0
-      variant: 0
-      data: {x: 2, y: 0, z: 0, w: 0}
-    - kind: 4
-      distance: 28606.434
-      lateral: -8.758559
-      height: 0
-      variant: 0
-      data: {x: 1, y: 0, z: 0, w: 0}
+      data: {x: 0, y: 0, z: 0, w: 0}
