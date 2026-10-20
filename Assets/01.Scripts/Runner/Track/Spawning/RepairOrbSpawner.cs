@@ -24,6 +24,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [UnityEngine.Serialization.FormerlySerializedAs("height")]
         [SerializeField] float roadClearance = 1.5f;
 
+        [Tooltip("How fast the orb spins about the track's up, degrees per second. 0 = keeps its authored rotation.")]
+        [Sirenix.OdinInspector.PropertyRange(0f, 720f), Sirenix.OdinInspector.SuffixLabel("°/s", true)]
+        [SerializeField] float spinDegreesPerSecond = 60f;
+
         [Tooltip("Colour of the code-built orb's translucent shell (alpha = how see-through it is, so the cross shows inside).")]
         [SerializeField] Color shellColor = new(1f, 0.1f, 0.1f, 0.45f);
 
@@ -76,6 +80,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (orb.GetComponent<RepairOrb>() == null) orb.AddComponent<RepairOrb>();
             OrbHover hover = orb.GetComponent<OrbHover>();
             if (Application.isPlaying && hover == null) hover = orb.AddComponent<OrbHover>();
+            if (hover != null) hover.SetSpin(spinDegreesPerSecond);
 
             // Lifted along the track's up (so it holds on a bank or a tube) until
             // its lowest point — radius and bob below the centre — clears the road.

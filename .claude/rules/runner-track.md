@@ -534,7 +534,7 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
   + radius, so at any size it never dips into the road and, sitting just above it, is always in
   the ship's path (the ship's hit box tops out ~3.4 m over the road, so keep clearance + 2 × bob
   under that) — optional prefab else the code-built shell + cross (`shellColor` translucent red, `crossColor`
-  green). Off while
+  green). `spinDegreesPerSecond` (60) is handed to its `OrbHover` at build (`SetSpin`). Off while
   `GameManager.HullEnabled` is false.
 - **`LaserGateSpawner`**: see Laser gates.
 - **`BrakePadSpawner`**: one `PadSpawnEntry`, the brake material, the pad sign; 1800–3200 m

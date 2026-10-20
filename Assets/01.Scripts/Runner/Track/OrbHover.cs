@@ -41,6 +41,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
             spinDegreesPerSecond = spin;
         }
 
+        /// <summary>The spin alone, degrees per second (0 = keeps its authored rotation) — for an orb with no sway tier, like the repair orb.</summary>
+        public void SetSpin(float spin) => spinDegreesPerSecond = spin;
+
         void Start()
         {
             basePosition = transform.position;
