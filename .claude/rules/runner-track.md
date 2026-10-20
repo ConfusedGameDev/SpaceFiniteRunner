@@ -252,8 +252,9 @@ stay endless.
   its records, and the hyperspace cut-back works on that copy (`CutBackForEnd` reads the knots).
   **Verified**: a baked track loads bit for bit (every knot's position, rotation and tangent, every
   record, the end); hyperspace cuts it back; a restart reloads it.
-- **FORCE RUNTIME TRACK** (debug CORE SETTINGS, a 0/1 slider): `GameManager.ForceRuntimeTrack`, a
-  runtime switch — the level's saved track is ignored from the next restart. No asset is written.
+- **FORCE RUNTIME TRACK**: `GameManager.ForceRuntimeTrack`, a runtime switch — the level's saved
+  track is ignored from the next restart. No asset is written. It has no debug row any more (RELOAD
+  SCENE dropped it, so it only ever survived a retry).
 - **Edit mode = play.** `GenerateForBake(rules)` (the inspector's Generate Track) decides a whole
   finite track in edit mode with the scene's `GameManager` as the rules — length, run-up, end ramps,
   hull — and laser gates are DECIDED in edit mode too (built in play only). The ramp landing room
@@ -472,10 +473,9 @@ the clone, never the asset.
   decorator stamps the pipe.
 
 Loop knobs (`radius`, `exitClearance`, `fallGravity`, `fallSpeedLoss`, gate colours) live on
-`Loop_Definition.asset`. The debug Features tab edits only what a BUILT feature reads — the loop's fall gravity / loss,
-the jump's width / length / angle / side-hit loss — through the generic `AddStat<T>`, each written
-to the definition asset and mirrored onto the entry's runtime clone. Decide-time knobs (feature
-spacing and odds, loop and tube shape, landing clearance) have no rows: a saved track never decides.
+`Loop_Definition.asset`. There is no debug FEATURES tab: a saved track never decides features, no
+shipped track has a loop, and a mid-run jump length / angle desynced the ramps already built. Tune
+the definition assets and re-bake.
 
 ### Spawnables (`Track/Spawning/`)
 
@@ -538,15 +538,11 @@ set; **remove one** = take it out of the set (or untick `active` on the asset).
 - **`LaserGateSpawner`**: see Laser gates.
 - **`BrakePadSpawner`**: one `PadSpawnEntry`, the brake material, the pad sign; 1800–3200 m
   (about the old one-in-2.5 km).
-- Debug: CORE SETTINGS → one `{NAME} / 10 KM` AMOUNT row per spawner (SPEED ORBS, REPAIR ORBS,
-  LASER GATES; 0–100, 0 = none) and a `%` row per orb tier; MULTIPLIERS → a `×` row per tier. The
-  amount is `TrackSpawner.AmountPerTenKm` (10 km ÷ the spacing band's mean × `chance`, 0 when
-  inactive); `SetAmountPerTenKm` scales the whole `spacing` band (proportions and `chance` kept) and
-  0 unticks `active`, leaving the band alone. It is the amount ASKED for — claims and keep-outs take
-  a few away. Rows are built from the set's ASSETS (the menu can be built before the first
-  `Generate`), write the asset and mirror onto the runtime clone index for index; they apply on the
-  next Generate, saved tracks included (above). The old spacing rows and the runtime-only density
-  multiplier are gone.
+- Debug: MULTIPLIERS → a `×` row per orb tier (read when an orb is built). The spawn amounts and
+  tier odds have no rows any more (they only applied after a reload): tune `spacing` / `chance` and
+  the tiers on the spawner assets. `TrackSpawner.AmountPerTenKm` / `SetAmountPerTenKm` (10 km ÷ the
+  spacing band's mean × `chance`; setting scales the whole band, 0 unticks `active`) and
+  `TrackGenerator.RedecideSavedPlacements` are kept for tooling.
 
 ### Repair orbs (`Track/RepairOrb.cs`)
 
@@ -665,7 +661,7 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   blink) calls `FX/SmokeVfx.SpawnTrail` on the ship's ROOT, simulating in its local space so the
   plume stays on the ship at any speed and never rolls with a barrel roll. Knobs:
   `GameSettings.laserSmoke*` (textures = the Black smoke sprites; empty = no smoke).
-- Debug: CORE SETTINGS → LASER GATES / 10 KM (the spawner's amount row — see Spawnables).
+- Tuning: `Spawner_LaserGates`' `spacing` / `chance` (no debug row — see Spawnables).
 
 ### Analytic pickups (`Simulation/PickupRegistry.cs`)
 

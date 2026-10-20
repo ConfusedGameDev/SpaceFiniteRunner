@@ -168,7 +168,11 @@ boosts scaled by tier (`rawMagnitude / powerUpSpeedBoost`); `Restart` → `RunFe
 `Tools → FiniteRunner → Install Speed Lines Feature` (`SpeedLinesInstaller`, material at
 `02.Materials/FiniteRunner/SpeedLines.mat`, never overwriting) also places and wires the
 `SpeedLines` object in the open scene. `SpeedLinesDebugPage` (nine rows, `MenuTextId`
-`SpeedLines*`) is a pause-menu tab wherever a driver exists.
+`SpeedLines*`) is a pause-menu tab wherever a driver exists. **The runner's pause menu hides it**, with the VHS, PSX and
+CRT pages (`PauseMenu.RunnerHiddenPages`, skipped by `DebugPages.Discover(skip)` when a
+`TrackGenerator` exists): the runner prefabs' `intensityScale` (0.045 / 0.185 / 0.05 / 0.095) cut
+those effects to a few percent, so their rows read as dead. The rain page has no streak row
+(`maxStreakLength` always caps it).
 
 ## Hyperspace sky
 

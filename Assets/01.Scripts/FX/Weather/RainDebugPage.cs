@@ -49,8 +49,6 @@ namespace ConfusedGameDev.FiniteRunner.FX
             page.Slider(MenuTextId.RainDropSize,
                 0.005f, 0.25f, 0.005f, "0.000", s => Centre(s.dropSize),
                 (s, v) => s.dropSize = Slide(s.dropSize, v, 0.005f, 0.25f));
-            page.Slider(MenuTextId.RainStreak,
-                0f, 0.3f, 0.005f, "0.000", s => s.streakLength, (s, v) => s.streakLength = v);
             page.Slider(MenuTextId.RainWind,
                 0f, 40f, 1f, "0", s => s.windSpeed, (s, v) => s.windSpeed = v);
             page.Slider(MenuTextId.RainWindDirection,

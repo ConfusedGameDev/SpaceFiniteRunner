@@ -208,13 +208,16 @@ developer pages in `Scripts/UI/DebugMenu.cs`: each tab is a normal compact-row `
 
 **Runner pages:**
 
-- **Core Settings** — FORCE RUNTIME TRACK, one amount row per spawner and the orb-tier
-  probabilities (live-rebalance to always total 100%), plus a RELOAD SCENE row. No track-shape or
-  TRACK LENGTH rows: every shipped level plays a saved track, which never reads them.
-- **Multipliers** — the per-entry boost multipliers (0.1–10).
-- **Features** (`BuildFeaturesTab`) — only the knobs a built feature reads: the jump's width /
-  length / angle / side-hit loss and the loop's fall gravity / loss. Rows write the definition
-  assets and mirror onto the run's clones.
+**Only rows that change the running game are kept.** A row whose value a saved track, the
+physics ship or the duel never reads — or that only bit on the next launch or reload — was removed
+(2026-10-20): the track shape, TRACK LENGTH, FORCE RUNTIME TRACK, the spawn amounts and tier odds,
+the whole FEATURES tab, launch speed, hover height, the patrol's base speed / start gap / rubber
+band / catch-up / boost share / warn distance / orb seek / orb boost, the duel steer assist, the
+edge overhang / grace, the race's form variance / lane spread, the time trial's auto count, the
+rain streak and the whole TRAFFIC page. A new row must pass the same test.
+
+- **Core Settings** — the RELOAD SCENE row alone.
+- **Multipliers** — the per-tier boost orb multipliers (0.1–10).
 - **Four ship tabs** (Speed / Handling / Dash / Hover — only when the menu was spawned with a
   `ShipMotor`) write the ship's `ShipDefinition` asset and rebuild the run's clone from it
   (`ShipUpgradeApplier.Refresh`, Store levels re-applied).

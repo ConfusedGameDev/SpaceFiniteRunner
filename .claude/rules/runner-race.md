@@ -145,10 +145,10 @@ patrol is NOT paused (its timers ride the slowed clock).
   wireframe box in its map colour (GL, `OnRenderObject`, depth test off).
 - The RACE page: actions WRECK NEAREST RIVAL (in view first, credited to the player — the kill
   cam's and the bounty's test), WRECK ALL RIVALS, ALL RIVALS FINISH; sliders for thrust, rubber
-  band, ghost pace, orb boost, form variance, surge, lane spread, ram speed cost, side shove, kill
+  band, ghost pace, orb boost, surge, ram speed cost, side shove, kill
   credit window, the kill cam's switch / slow motion / hold / range; the two debug toggles. Rows
-  write the asset (`DebugAssetEdits.Touch`) and mirror the clone; form variance and lane spread
-  are rolled at the grid, so they bite on the next run. Actions are queued and run on the next
+  write the asset (`DebugAssetEdits.Touch`) and mirror the clone. Form variance and lane spread
+  have no rows: they are rolled at the grid and only bit on the next run. Actions are queued and run on the next
   race tick — from the pause menu, after it closes, so a wreck can still play the kill cam.
 - Odin buttons on `RaceSystem`: Finish Leader, Kill Nearest, DNF All, Finish All.
 

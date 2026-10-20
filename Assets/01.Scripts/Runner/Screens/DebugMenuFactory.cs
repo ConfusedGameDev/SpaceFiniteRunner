@@ -19,10 +19,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
     /// mirrors the value onto the run's live clone, so it applies at once
     /// where the system reads live. The ship's clone carries the Store's
     /// upgrades, so it is rebuilt from the asset (<see cref="ShipUpgradeApplier.Refresh"/>)
-    /// rather than written field by field. Track rows (spawn amounts, orb
-    /// tiers, feature knobs) take effect on the next Generate: the Core tab's
-    /// RELOAD SCENE row. The road's shape is not here: every shipped level
-    /// plays a saved track, which never reads it.
+    /// rather than written field by field. Only rows that change the running
+    /// game are here: a row whose value a saved track, the physics ship or the
+    /// duel never reads, or that only bit on the next launch, was removed.
     /// </summary>
     public static class DebugMenuFactory
     {
@@ -30,86 +29,21 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         const float RowSpacing = 8f;
         const float ContentTop = 340f;
 
+        /// <summary>
+        /// First tab: RELOAD SCENE, which commits the debug edits and reloads,
+        /// so the rows that apply on the next Generate or launch take effect.
+        /// Its track rows (the road's shape, TRACK LENGTH, FORCE RUNTIME TRACK,
+        /// the spawn amounts and orb-tier odds) are gone: every shipped level
+        /// plays a saved track, and those rows either never reached it or only
+        /// applied after a reload. Tune them on their assets and re-bake.
+        /// </summary>
         public static MenuScreen BuildCoreSettingsTab(RectTransform parent, MenuTheme theme,
-                                                      TrackGenerator generator, GameManager game,
-                                                      System.Action reloadScene, System.Action onChanged,
-                                                      List<System.Action> refreshers, int tabIndex, int tabCount)
+                                                      System.Action reloadScene, int tabIndex, int tabCount)
         {
             var screen = MenuScreen.Create("Debug_CoreSettings", parent, theme, 0f, ContentTop);
             screen.SetRowMetrics(RowHeight, RowSpacing);
             DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabCore, tabIndex, tabCount);
-
-            // The track's shape rows (width, straightness, elevation, banking,
-            // flat sweeps, open straights) and TRACK LENGTH are gone: every
-            // shipped level plays a saved track, which replays its own road and
-            // length and never reads them. Tune those on the TrackShapeSettings
-            // asset and re-bake the track in the TrackGenerator inspector.
-
-            // 1 = ignore the level's saved track and generate one from the
-            // next restart (to compare them). A runtime switch: no asset is written.
-            if (game != null)
-            {
-                var forceRow = screen.AddRow<DebugSliderRow>("FORCE RUNTIME TRACK");
-                forceRow.Configure(0f, 1f, 1f, game.ForceRuntimeTrack ? 1f : 0f, "0", v => game.ForceRuntimeTrack = v > 0.5f);
-                refreshers?.Add(() => forceRow.SetWithoutNotify(game.ForceRuntimeTrack ? 1f : 0f));
-            }
-
-            // Spawnables: one AMOUNT row per spawner in the set (boost orbs,
-            // repair orbs, laser gates) — how many the track gets per 10 km,
-            // 0 = none. It scales the spawner's spacing band. A track's
-            // placements are decided at Generate, so it applies from the next
-            // restart or reload — on a saved track too, whose orbs, gates and
-            // coins are then decided afresh (TrackGenerator.RedecideSavedPlacements).
-            // Rows come from the set's ASSETS (this menu can be built before
-            // the first Generate).
-            var authored = generator.SpawnSet != null ? generator.SpawnSet.Spawners : System.Array.Empty<TrackSpawner>();
-            SpeedOrbSpawner authoredOrbs = null;
-            for (int i = 0; i < authored.Length; i++)
-            {
-                var asset = authored[i];
-                if (asset == null) continue;
-                if (authoredOrbs == null) authoredOrbs = asset as SpeedOrbSpawner;
-                int index = i;
-                var row = screen.AddRow<DebugSliderRow>($"{asset.displayName.ToUpperInvariant()} / 10 KM");
-                row.Configure(0f, 100f, 1f, Mathf.Clamp(asset.AmountPerTenKm, 0f, 100f), "0", v =>
-                {
-                    asset.SetAmountPerTenKm(v);
-                    DebugAssetEdits.Touch(asset);
-                    var live = LiveSpawner(generator, index);
-                    if (live != null && live != asset) live.SetAmountPerTenKm(v);
-                    TrackGenerator.RedecideSavedPlacements = true;
-                    onChanged?.Invoke();
-                });
-                row.SetLabelTint(asset.color);
-                refreshers?.Add(() => row.SetWithoutNotify(Mathf.Clamp(asset.AmountPerTenKm, 0f, 100f)));
-            }
-
-            // One color-tinted percentage slider per speed-orb tier. Adjusting
-            // one rebalances the others, so the table always adds up to 100%.
-            if (authoredOrbs != null)
-            {
-                var probabilityRows = new List<DebugSliderRow>();
-                var tiers = authoredOrbs.Tiers;
-                for (int i = 0; i < tiers.Length; i++)
-                {
-                    int index = i;
-                    var row = screen.AddRow<DebugSliderRow>($"{tiers[i].name.ToUpperInvariant()} %");
-                    row.Configure(0f, 100f, 1f, tiers[i].probability, "0", v =>
-                    {
-                        RebalanceProbabilities(tiers, probabilityRows, index, v);
-                        DebugAssetEdits.Touch(authoredOrbs);
-                        MirrorTiers(tiers, LiveTiers(generator));
-                        TrackGenerator.RedecideSavedPlacements = true;
-                        onChanged?.Invoke();
-                    });
-                    row.SetLabelTint(tiers[i].color);
-                    probabilityRows.Add(row);
-                    refreshers?.Add(() => row.SetWithoutNotify(tiers[index].probability));
-                }
-            }
-
             screen.AddRow<MenuRow>(MenuTextId.ReloadScene).Activated += () => reloadScene?.Invoke();
-            screen.SetViewport(9); // the shape rows pushed this page past the footer; the rest scroll in
             return screen;
         }
 
@@ -154,92 +88,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             return screen;
         }
 
-        /// <summary>
-        /// FEATURES tab: the knobs a built feature reads — the jump's width,
-        /// length, angle and side-hit loss, the loop's fall. The definitions
-        /// are assets of their own: every row writes the asset and mirrors
-        /// onto the run's clone. A placed feature keeps the numbers it was
-        /// built with, so most rows need the reload the pause menu offers.
-        /// </summary>
-        public static MenuScreen BuildFeaturesTab(RectTransform parent, MenuTheme theme,
-                                                  TrackGenerator generator,
-                                                  System.Action onChanged, List<System.Action> refreshers,
-                                                  int tabIndex, int tabCount)
-        {
-            var screen = MenuScreen.Create("Debug_Features", parent, theme, 0f, ContentTop);
-            screen.SetRowMetrics(RowHeight, RowSpacing);
-            screen.SetViewport(9); // dozens of feature rows — nine at a time, the rest scroll in
-            DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabFeatures, tabIndex, tabCount);
-
-            var shapeAsset = generator.ShapeAsset;
-            if (shapeAsset == null) return screen;
-
-            // Only the knobs a BUILT feature reads are here. The feature
-            // spacing, per-entry probability / spacing / boost and the
-            // decide-time definition knobs (landing clearance, loop shape and
-            // gate headroom, tube shape) are gone: every shipped level plays a
-            // saved track, which never decides features. The jump's air
-            // distance and air control are the ship's (ShipSettings), not the
-            // ramp's.
-            var table = shapeAsset.featureTable;
-            if (table == null || table.Length == 0) return screen;
-
-            for (int i = 0; i < table.Length; i++)
-            {
-                int index = i;
-                var entry = table[i];
-
-                if (entry.definition is JumpDefinition)
-                {
-                    AddStat<JumpDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.JumpWidth,
-                                0.05f, 1f, 0.05f, "0.00", j => j.widthFraction, (j, v) => j.widthFraction = v);
-                    AddStat<JumpDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.JumpLength,
-                                10f, 200f, 5f, "0", j => j.length, (j, v) => j.length = v);
-                    AddStat<JumpDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.JumpAngle,
-                                5f, 45f, 1f, "0", j => j.rampAngle, (j, v) => j.rampAngle = v);
-                    AddStat<JumpDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.JumpSideHitLoss,
-                                0f, 1f, 0.05f, "0.00", j => j.sideHitSpeedLoss, (j, v) => j.sideHitSpeedLoss = v);
-                }
-                else if (entry.definition is LoopDefinition)
-                {
-                    AddStat<LoopDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.LoopFallGravity,
-                                            20f, 400f, 10f, "0", l => l.fallGravity, (l, v) => l.fallGravity = v);
-                    AddStat<LoopDefinition>(screen, generator, index, entry, onChanged, refreshers, MenuTextId.LoopFallLoss,
-                                            0f, 1f, 0.05f, "0.00", l => l.fallSpeedLoss, (l, v) => l.fallSpeedLoss = v);
-                }
-            }
-            return screen;
-        }
-
-        // One localized slider row bound to a knob of a feature definition:
-        // writes the definition ASSET, then the run's clone of it (read at
-        // call time off the live table, so it always hits the current run's).
-        static void AddStat<T>(MenuScreen screen, TrackGenerator generator, int index,
-                               TrackGenerator.FeatureSpawnEntry assetEntry,
-                               System.Action onChanged, List<System.Action> refreshers,
-                               MenuTextId label, float min, float max, float step, string format,
-                               System.Func<T, float> get, System.Action<T, float> set) where T : TrackFeatureDefinition
-        {
-            var asset = assetEntry.definition as T;
-            if (asset == null) return;
-            T Clone()
-            {
-                var live = generator.FeatureTable;
-                return live != null && index < live.Length ? live[index].Runtime as T : null;
-            }
-            var row = screen.AddRow<DebugSliderRow>(label);
-            row.Configure(min, max, step, get(asset), format, v =>
-            {
-                set(asset, v);
-                DebugAssetEdits.Touch(asset);
-                var clone = Clone();
-                if (clone != null && clone != asset) set(clone, v);
-                onChanged?.Invoke();
-            });
-            row.SetLabelTint(assetEntry.color);
-            refreshers?.Add(() => row.SetWithoutNotify(get(asset)));
-        }
-
         // Copies the asset tiers' probabilities and multipliers onto the live clone's, index for index.
         static void MirrorTiers(PadSpawnEntry[] asset, PadSpawnEntry[] live)
         {
@@ -255,9 +103,9 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         /// Ship tabs: four pages of <see cref="ShipDefinition"/> sliders (Speed,
         /// Handling, Dash, Hover). Each row writes the ship's definition ASSET
         /// and rebuilds the run's clone from it with the Store's levels
-        /// multiplied in, so most stats apply instantly; the rest (launch
-        /// speed) need the reload the pause menu offers on the way out. The
-        /// sliders show the asset's values (before upgrades).
+        /// multiplied in, so every stat here applies instantly (launch speed
+        /// and hover height, which did not, have no rows). The sliders show the
+        /// asset's values (before upgrades).
         /// </summary>
         public static MenuScreen BuildShipSpeedTab(RectTransform parent, MenuTheme theme, ShipMotor motor,
                                                    System.Action onChanged,
@@ -267,8 +115,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             screen.SetRowMetrics(RowHeight, RowSpacing);
             DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabShipSpeed, tabIndex, tabCount);
 
-            AddShipStat(screen, motor, onChanged, refreshers, MenuTextId.LaunchSpeed,
-                        0f, 1000f, 10f, "0", d => d.initialImpulse, (d, v) => d.initialImpulse = v);
             AddShipStat(screen, motor, onChanged, refreshers, MenuTextId.CruiseSpeed,
                         0f, 3500f, 10f, "0", d => d.cruiseSpeed, (d, v) => d.cruiseSpeed = v);
             AddShipStat(screen, motor, onChanged, refreshers, MenuTextId.Thrust,
@@ -348,8 +194,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             screen.SetRowMetrics(RowHeight, RowSpacing);
             DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabShipHover, tabIndex, tabCount);
 
-            AddShipStat(screen, motor, onChanged, refreshers, MenuTextId.HoverHeight,
-                        0f, 10f, 0.25f, "0.00", d => d.hoverHeight, (d, v) => d.hoverHeight = v);
             AddShipStat(screen, motor, onChanged, refreshers, MenuTextId.BobAmplitude,
                         0f, 3f, 0.05f, "0.00", d => d.bobAmplitude, (d, v) => d.bobAmplitude = v);
             AddShipStat(screen, motor, onChanged, refreshers, MenuTextId.BobFrequency,
@@ -362,8 +206,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         /// <summary>
         /// Patrol tab: the chase tunables of <see cref="PatrolDefinition"/>.
         /// Each row writes the patrol's definition asset and mirrors onto the
-        /// run's clone (most stats apply instantly; the start gap needs the
-        /// reload offered on the way out). All values are in m/s and meters, like the sim.
+        /// run's clone; every row applies instantly. The launch-only rows (base
+        /// speed, start gap) and the far-chase rows the duel's station-keeping
+        /// overrides (rubber band, catch-up, boost share, warn distance) are
+        /// gone. All values are in m/s and meters, like the sim.
         /// </summary>
         public static MenuScreen BuildPatrolTab(RectTransform parent, MenuTheme theme, PolicePatrol patrol,
                                                 System.Action onChanged,
@@ -373,22 +219,10 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             screen.SetRowMetrics(RowHeight, RowSpacing);
             DebugMenu.AddTabHeader(screen, theme, MenuTextId.DebugTabPatrol, tabIndex, tabCount);
 
-            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolBaseSpeed,
-                          1f, 600f, 1f, "0", d => d.baseSpeed, (d, v) => d.baseSpeed = v);
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolRamp,
                           0f, 15f, 0.05f, "0.00", d => d.ramp, (d, v) => d.ramp = v);
-            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolRubberBand,
-                          0.5f, 2f, 0.05f, "0.00", d => d.rubberBand, (d, v) => d.rubberBand = v);
-            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolCatchUp,
-                          0.5f, 150f, 0.5f, "0.0", d => d.catchUpAccel, (d, v) => d.catchUpAccel = v);
-            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolBoostShare,
-                          0f, 1.5f, 0.05f, "0.00", d => d.boostShare, (d, v) => d.boostShare = v);
-            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolStartGap,
-                          0f, 1000f, 25f, "0", d => d.startGap, (d, v) => d.startGap = v);
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolCatchDistance,
                           0f, 100f, 5f, "0", d => d.catchDistance, (d, v) => d.catchDistance = v);
-            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolWarnDistance,
-                          0f, 500f, 10f, "0", d => d.warnDistance, (d, v) => d.warnDistance = v);
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolCatchLateral,
                           0f, 60f, 1f, "0", d => d.alongsideLateral, (d, v) => d.alongsideLateral = v);
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolSustainedCatch,
@@ -566,10 +400,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
                           0.5f, 10f, 0.25f, "0.00", d => d.curveLookaheadSeconds, (d, v) => d.curveLookaheadSeconds = v);
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolOrbLookahead,
                           0f, 10f, 0.25f, "0.00", d => d.orbLookaheadSeconds, (d, v) => d.orbLookaheadSeconds = v);
-            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolOrbSeek,
-                          0f, 1f, 0.05f, "0.00", d => d.orbSeekWeight, (d, v) => d.orbSeekWeight = v);
-            AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolOrbBoost,
-                          0f, 1.5f, 0.05f, "0.00", d => d.orbBoostShare, (d, v) => d.orbBoostShare = v);
             AddPatrolStat(screen, patrol, onChanged, refreshers, MenuTextId.PatrolRampLookahead,
                           0.5f, 10f, 0.25f, "0.00", d => d.rampLookaheadSeconds, (d, v) => d.rampLookaheadSeconds = v);
             screen.SetViewport(9);
@@ -625,40 +455,6 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             refreshers?.Add(() => { var asset = Asset(); if (asset != null) row.SetWithoutNotify(get(asset)); });
         }
 
-        // The runtime clone at a set index, or null before the first Generate.
-        static TrackSpawner LiveSpawner(TrackGenerator generator, int index) =>
-            index < generator.Spawners.Count ? generator.Spawners[index] : null;
-
         static PadSpawnEntry[] LiveTiers(TrackGenerator generator) => generator.GetSpawner<SpeedOrbSpawner>()?.Tiers;
-
-        static PadSpawnEntry LiveTier(TrackGenerator generator, int index)
-        {
-            var tiers = LiveTiers(generator);
-            return tiers != null && index < tiers.Length ? tiers[index] : null;
-        }
-
-        // The moved slider keeps its value; every other entry scales into the
-        // remainder (evenly when they were all zero) and its row's fill and
-        // readout refresh without re-firing callbacks.
-        static void RebalanceProbabilities(IWeightedEntry[] table,
-                                           List<DebugSliderRow> rows, int changed, float value)
-        {
-            float kept = Mathf.Clamp(value, 0f, 100f);
-            table[changed].Probability = kept;
-
-            float othersSum = 0f;
-            for (int i = 0; i < table.Length; i++)
-                if (i != changed) othersSum += table[i].Probability;
-
-            float remainder = 100f - kept;
-            for (int i = 0; i < table.Length; i++)
-            {
-                if (i == changed) continue;
-                table[i].Probability = othersSum > 0f
-                    ? table[i].Probability * remainder / othersSum
-                    : remainder / (table.Length - 1);
-                if (i < rows.Count) rows[i].SetWithoutNotify(table[i].Probability);
-            }
-        }
     }
 }

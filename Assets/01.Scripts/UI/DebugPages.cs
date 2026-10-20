@@ -39,12 +39,13 @@ namespace ConfusedGameDev.FiniteRunner.UI
             entries.Sort((a, b) => a.order.CompareTo(b.order));
         }
 
-        /// <summary>Every provider with something to show in the current scene, in order.</summary>
-        public static List<DebugMenuHooks.IDebugTabs> Discover()
+        /// <summary>Every provider with something to show in the current scene, in order, minus the keys in <paramref name="skip"/>.</summary>
+        public static List<DebugMenuHooks.IDebugTabs> Discover(ICollection<string> skip = null)
         {
             var found = new List<DebugMenuHooks.IDebugTabs>();
             foreach (Entry entry in entries)
             {
+                if (skip != null && skip.Contains(entry.key)) continue;
                 DebugMenuHooks.IDebugTabs tabs = entry.discover?.Invoke();
                 if (tabs != null && tabs.TabCount > 0) found.Add(tabs);
             }

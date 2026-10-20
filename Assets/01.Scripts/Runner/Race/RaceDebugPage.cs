@@ -46,12 +46,8 @@ namespace ConfusedGameDev.FiniteRunner.Race
                 0.5f, 1.2f, 0.01f, "0.00", d => d.ghostPaceFactor, (d, v) => d.ghostPaceFactor = v);
             Slider(screen, system, refreshers, MenuTextId.RaceOrbShare,
                 0f, 2f, 0.05f, "0.00", d => d.orbBoostShare, (d, v) => d.orbBoostShare = v);
-            Slider(screen, system, refreshers, MenuTextId.RaceFormVariance,
-                0f, 0.3f, 0.01f, "0.00", d => d.formVariance, (d, v) => d.formVariance = v);
             Slider(screen, system, refreshers, MenuTextId.RaceSurgeAmount,
                 0f, 0.5f, 0.01f, "0.00", d => d.surgeAmount, (d, v) => d.surgeAmount = v);
-            Slider(screen, system, refreshers, MenuTextId.RaceLaneSpread,
-                0f, 1f, 0.05f, "0.00", d => d.laneSpread, (d, v) => d.laneSpread = v);
             Slider(screen, system, refreshers, MenuTextId.RaceRamSpeedCost,
                 0f, 0.3f, 0.01f, "0.00", d => d.ramSpeedCost, (d, v) => d.ramSpeedCost = v);
             Slider(screen, system, refreshers, MenuTextId.RaceSideShove,

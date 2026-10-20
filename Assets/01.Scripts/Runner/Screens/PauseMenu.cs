@@ -451,6 +451,12 @@ namespace ConfusedGameDev.FiniteRunner.Screens
         /// only added when a tab was actually built. Every tab prints its own
         /// "TAB n/N", so the total is counted before the first one is made.
         /// </summary>
+        static readonly string[] RunnerHiddenPages =
+        {
+            nameof(FX.SpeedLinesDebugPage), nameof(FX.PsxLookDebugPage),
+            nameof(FX.CrtScreenDebugPage), nameof(FX.VhsTapeDebugPage),
+        };
+
         void BuildDebugTabs()
         {
             TrackGenerator generator = FindFirstObjectByType<TrackGenerator>();
@@ -462,14 +468,16 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             // lines, VHS, PSX, CRT) each register a provider with their system
             // and answer only when the scene has something to tune. The city
             // provider stays silent in a runner scene itself.
-            List<DebugMenuHooks.IDebugTabs> registered = DebugPages.Discover();
+            // The runner hides the four retro filters' pages: their prefabs
+            // scale each effect down to a few percent, so the rows read as dead.
+            List<DebugMenuHooks.IDebugTabs> registered = DebugPages.Discover(generator != null ? RunnerHiddenPages : null);
             int registeredTabs = 0;
             foreach (var provider in registered) registeredTabs += provider.TabCount;
 
             // The run rules of falling off (GameSettings, edited live like the fog).
             GameSettings runRules = shipReady ? motor.DashSettings : null;
 
-            int tabCount = (generator != null ? 3 : 0) + (shipReady ? 4 : 0) + (runRules != null ? 2 : 0)
+            int tabCount = (generator != null ? 2 : 0) + (shipReady ? 4 : 0) + (runRules != null ? 2 : 0)
                          + (patrolReady ? 3 : 0) + registeredTabs;
             if (tabCount == 0) return;
 
@@ -480,10 +488,8 @@ namespace ConfusedGameDev.FiniteRunner.Screens
             if (generator != null)
             {
                 debugMenu.AddTab(DebugMenuFactory.BuildCoreSettingsTab(
-                    panelRect, theme, generator, gameManager, ReloadScene, changed, debugRefreshers, tab++, tabCount));
+                    panelRect, theme, ReloadScene, tab++, tabCount));
                 debugMenu.AddTab(DebugMenuFactory.BuildMultipliersTab(
-                    panelRect, theme, generator, changed, debugRefreshers, tab++, tabCount));
-                debugMenu.AddTab(DebugMenuFactory.BuildFeaturesTab(
                     panelRect, theme, generator, changed, debugRefreshers, tab++, tabCount));
             }
             if (shipReady)
