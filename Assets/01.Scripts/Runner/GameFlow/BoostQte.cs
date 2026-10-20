@@ -8,8 +8,9 @@ using ConfusedGameDev.FiniteRunner.UI;
 namespace ConfusedGameDev.FiniteRunner.GameFlow
 {
     /// <summary>
-    /// The timed boost: press Boost (<see cref="GameAction.ShipBoost"/>, A /
-    /// Space) as the ship crosses a boost orb and its boost is multiplied by
+    /// The timed boost: press X (gamepad X / the X key — read raw, the duel
+    /// mash's button, see <see cref="DuelMashInput.PressedThisFrame"/>; A is
+    /// the held boost meter) as the ship crosses a boost orb and its boost is multiplied by
     /// how close the press was. The rules it enforces:
     /// <list type="bullet">
     /// <item><b>Taking an orb without a press is unchanged</b>: the plain
@@ -34,8 +35,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
     /// <see cref="FeedbackScale"/>: set only around a graded impulse, 0
     /// otherwise, read by the warp (<c>PadEffects</c>) and the rumble
     /// (<c>GameManager.OnPadImpulse</c>) inside the impulse's event.</item>
-    /// <item><b>A belongs to the boost while the prompt is up</b>: the
-    /// dialogue box stops reading it (<see cref="MenuNavigator.DialogueAdvanceSuppressed"/>).</item>
     /// </list>
     /// Spawned by the GameManager; the picture is <see cref="BoostQtePrompt"/>.
     /// </summary>
@@ -140,7 +139,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (SpeedPad.BoostTiming == (System.Func<SpeedPad, float>)OnOrbCollected) SpeedPad.BoostTiming = null;
             SpeedPad.BoostApplied -= EndImpulse;
             FeedbackScale = 0f;
-            MenuNavigator.DialogueAdvanceSuppressed = false;
             Clear();
         }
 
@@ -148,11 +146,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
 
         void Update()
         {
-            if (!Enabled || Time.timeScale <= 0f)
-            {
-                MenuNavigator.DialogueAdvanceSuppressed = false;
-                return;
-            }
+            if (!Enabled || Time.timeScale <= 0f) return;
 
             if (target != null && !collected && !target.Available)
             {
@@ -166,7 +160,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 float dt = SecondsToCrossing(target);
                 UpdateRing();
 
-                if (!pressed && CanAct && ControlBindings.WasPressedThisFrame(GameAction.ShipBoost))
+                if (!pressed && CanAct && DuelMashInput.PressedThisFrame())
                     Press(dt);
 
                 if (!pressed && dt < -settings.boostQteWindowSeconds)
@@ -190,8 +184,6 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                     prompt.Follow(lastRingPosition, lastRingSize);
                 }
             }
-
-            MenuNavigator.DialogueAdvanceSuppressed = prompt != null && prompt.Waiting;
         }
 
         // The player can't boost while falling, respawning, or with the patrol holding the controls.

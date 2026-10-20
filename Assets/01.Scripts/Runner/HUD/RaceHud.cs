@@ -17,13 +17,14 @@ namespace ConfusedGameDev.FiniteRunner.HUD
     /// The race HUD (uGUI): the speed as a <see cref="SpeedGauge"/> wedge
     /// (segments growing taller to the right, lit up to the ship's fraction
     /// of Light Speed) beside the km/h number, heating up as you approach
-    /// Light Speed and pulsing on pad hits; the hull bar and ×N lives count;
+    /// Light Speed and pulsing on pad hits; the held boost's meter; the hull
+    /// bar and ×N lives count;
     /// the Light Speed goal and one line per runner objective / challenge
     /// ("JUMP 1/3  ×2"); the countdown as a plain yellow MM:SS; and floating
     /// "+boost" / gold "+$N" text at the ship.
     /// <para><b>The layout is the designer's.</b> Every element is a scene
     /// object placed by hand — this component never moves, resizes, re-anchors
-    /// or re-fonts any of them. The wedge and the hull bar fill the rects they
+    /// or re-fonts any of them. The wedge, the boost bar and the hull bar fill the rects they
     /// are given (<see cref="SpeedGauge.BuildInto"/>), the objective lines are
     /// clones of a hidden template stacked by the template parent's layout
     /// group, and the pulses scale from each element's authored scale.
@@ -136,6 +137,28 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         [Tooltip("Scale the bar (and the lives count, when a life is lost) jumps to on a hit.")]
         [SerializeField, Min(1f)] float lifeHitPunch = 1.25f;
 
+        [Header("Boost bar")]
+        [Tooltip("The rect the held boost's meter fills — place and size it by hand (between the speed wedge and the life bar). Hidden while the ship has no boost meter or it is switched off.")]
+        [SerializeField] RectTransform boostBarRect;
+        [Tooltip("Cells of the boost bar. Many thin cells read as one continuous fill.")]
+        [SerializeField, Range(1, 60)] int boostSegments = 24;
+        [Tooltip("Gap between cells.")]
+        [SerializeField, Range(0f, 30f)] float boostSegmentGap = 2f;
+        [Tooltip("Alpha of the cells already spent.")]
+        [SerializeField, Range(0f, 1f)] float boostEmptyAlpha = 0.2f;
+        [Tooltip("The bar at rest, ready to boost.")]
+        [SerializeField] Color boostReadyColor = new(0.3f, 0.8f, 1f);
+        [Tooltip("The bar while the boost is held — it pulses toward white.")]
+        [SerializeField] Color boostActiveColor = new(0.6f, 1f, 1f);
+        [Tooltip("The bar while it waits out its cooldown or refills.")]
+        [SerializeField] Color boostRecoverColor = new(0.25f, 0.45f, 0.6f);
+        [Tooltip("The flash on a press with the bar empty.")]
+        [SerializeField] Color boostEmptyFlashColor = new(1f, 0.25f, 0.2f);
+        [Tooltip("Pulses per second while boosting.")]
+        [SerializeField, Range(0.5f, 20f)] float boostActivePulseHz = 8f;
+        [Tooltip("Scale the bar jumps to on a press with the bar empty.")]
+        [SerializeField, Min(1f)] float boostEmptyPunch = 1.15f;
+
         [Header("Boost floating text")]
         [SerializeField] bool spawnBoostText = true;
         [SerializeField] Color boostTextColor = new(0.48f, 1f, 0.4f);
@@ -187,8 +210,15 @@ namespace ConfusedGameDev.FiniteRunner.HUD
         float livesPunch = 1f; // the count's scale, decaying to 1
         int shownLives = -1;   // what the count currently reads
 
+        // The held boost's bar; null while the ship has no meter or it is off.
+        IBoostMeter boostMeter;
+        SpeedGauge boostBar;
+        int shownEmptyPresses; // the meter's empty-press count last seen: a rise is a dry press
+        float boostFlash;      // 1 → 0 red flash after a dry press
+        float boostPunch = 1f; // the bar's scale, decaying to 1
+
         // The designer's scales, which the pulses multiply rather than replace.
-        Vector3 speedScale = Vector3.one, lifeBarScale = Vector3.one, livesScale = Vector3.one;
+        Vector3 speedScale = Vector3.one, lifeBarScale = Vector3.one, livesScale = Vector3.one, boostBarScale = Vector3.one;
 
         void Start()
         {
@@ -202,6 +232,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             if (objectiveLineTemplate != null) objectiveLineTemplate.gameObject.SetActive(false);
             BuildGauge();
             BuildLifeBar();
+            BuildBoostBar();
             if (run == null || targetText == null || run.Level == null) return;
             targetColor = targetText.color;
             targetScale = targetText.rectTransform.localScale;
@@ -284,7 +315,49 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             if (livesText != null) livesText.rectTransform.localScale = livesScale * livesPunch;
         }
 
-        /// <summary>Editor preview: draws the wedge and the hull bar into their rects so they can be laid out before play.</summary>
+        // Built only when the ship carries a switched-on boost meter (found in
+        // Start, after every Awake — the ship's meter is on PF_Ship); otherwise
+        // the bar is hidden where it stands.
+        void BuildBoostBar()
+        {
+            boostMeter ??= ContractLookup.Find<IBoostMeter>();
+            bool on = boostMeter != null && boostMeter.MeterEnabled;
+            if (boostBarRect != null) boostBarRect.gameObject.SetActive(on);
+            if (!on || boostBarRect == null) return;
+
+            boostBarScale = boostBarRect.localScale;
+            shownEmptyPresses = boostMeter.EmptyPresses;
+            boostBar = SpeedGauge.BuildInto(boostBarRect, boostSegments, boostSegmentGap, 1f, boostEmptyAlpha);
+        }
+
+        void UpdateBoostBar()
+        {
+            if (boostBar == null) return;
+            if (!boostMeter.MeterEnabled)
+            {
+                boostBar.SetFill(0f, _ => boostRecoverColor); // switched off mid-run (debug): show it spent
+                return;
+            }
+
+            if (boostMeter.EmptyPresses != shownEmptyPresses)
+            {
+                shownEmptyPresses = boostMeter.EmptyPresses;
+                boostFlash = 1f;
+                boostPunch = boostEmptyPunch;
+            }
+            boostFlash = Mathf.MoveTowards(boostFlash, 0f, pulseDecay * Time.deltaTime);
+            boostPunch = Mathf.MoveTowards(boostPunch, 1f, pulseDecay * Time.deltaTime);
+            boostBar.transform.localScale = boostBarScale * boostPunch;
+
+            Color color = boostMeter.IsBoosting
+                ? Color.Lerp(boostActiveColor, Color.white, 0.5f + 0.5f * Mathf.Sin(Time.time * boostActivePulseHz * 2f * Mathf.PI))
+                : boostMeter.IsRecovering ? boostRecoverColor : boostReadyColor;
+            color = Color.Lerp(color, boostEmptyFlashColor, boostFlash);
+            color.a = 1f;
+            boostBar.SetFill(boostMeter.Fraction, _ => color);
+        }
+
+        /// <summary>Editor preview: draws the wedge, the hull bar and the boost bar into their rects so they can be laid out before play.</summary>
         [Button("Rebuild Preview", ButtonSizes.Large), GUIColor(0.6f, 1f, 0.6f)]
         void RebuildPreview()
         {
@@ -294,6 +367,9 @@ namespace ConfusedGameDev.FiniteRunner.HUD
             if (lifeBarRect != null)
                 SpeedGauge.BuildInto(lifeBarRect, lifeSegments, lifeSegmentGap, 1f, lifeEmptyAlpha)
                           .SetFill(4f / 6f, _ => lifeFullColor);
+            if (boostBarRect != null)
+                SpeedGauge.BuildInto(boostBarRect, boostSegments, boostSegmentGap, 1f, boostEmptyAlpha)
+                          .SetFill(0.75f, _ => boostReadyColor);
 #if UNITY_EDITOR
             if (!Application.isPlaying) UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
 #endif
@@ -457,6 +533,7 @@ namespace ConfusedGameDev.FiniteRunner.HUD
                               fraction => SpeedColor(fraction * lightSpeed, lightSpeed));
 
             UpdateLifeBar();
+            UpdateBoostBar();
 
             if (targetText != null && standings != null && standings.RaceActive)
             {

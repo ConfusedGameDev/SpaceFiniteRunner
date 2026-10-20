@@ -493,6 +493,20 @@ namespace ConfusedGameDev.FiniteRunner.Ship
         }
 
         /// <summary>
+        /// The held boost's push (<see cref="BoostMeter"/>): forward speed
+        /// written straight onto the body, NOT through the pending change — that
+        /// blends in at the ship's <c>acceleration</c> rate, so a thrust stronger
+        /// than it would bank up and keep pushing after the button is let go.
+        /// No weight scaling, no <c>PadImpulse</c>.
+        /// </summary>
+        public void AddBoostThrust(float metersPerSecond)
+        {
+            if (physicsShip == null || physicsShip.Body == null || metersPerSecond <= 0f) return;
+            if (physicsShip.State == ShipState.OffTrack || physicsShip.State == ShipState.Respawning) return;
+            physicsShip.Body.ForwardSpeed += metersPerSecond;
+        }
+
+        /// <summary>
         /// The win: the flight off the end ramp stops being a fall. The ship
         /// flies on along the line it left the lip with — upright, no tumble,
         /// under <see cref="GameSettings.winEscapeGravity"/> (0 = dead

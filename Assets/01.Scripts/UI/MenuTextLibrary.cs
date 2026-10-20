@@ -178,7 +178,9 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // Time trials: the dirty-checkpoint floater ({0} = the signed seconds) and its default on the TIME TRIAL page.
         TtDirty, TtDirtyPenalty,
         // Time trials: the award scale on the TIME TRIAL page. The race / time trial start countdown: READY, then GO (the 3-2-1 between are numbers).
-        TtAwardScale, CountdownReady, CountdownGo
+        TtAwardScale, CountdownReady, CountdownGo,
+        // The pause menu's BOOST METER page: the held boost's thrust and its meter.
+        DebugTabBoostMeter, BoostMeterPotence, BoostMeterDrain, BoostMeterCooldown, BoostMeterRefill
     }
 
     /// <summary>One menu string in all four languages. Missing translations fall back to English rather than showing blank.</summary>
@@ -1256,6 +1258,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         [SerializeField] LocalizedString ttAwardScale = new("CHECKPOINT AWARD SCALE", "ESCALA DE PREMIO DE CONTROL", "チェックポイント報酬倍率", "ÉCHELLE DES GAINS DE CHECKPOINT");
         [SerializeField] LocalizedString countdownReady = new("READY!!", "¡¡LISTOS!!", "レディ!!", "PRÊTS !!");
         [SerializeField] LocalizedString countdownGo = new("GO!", "¡YA!", "ゴー!", "PARTEZ !");
+        [SerializeField] LocalizedString debugTabBoostMeter = new("DEBUG — BOOST METER", "DEPURACIÓN — MEDIDOR DE TURBO", "デバッグ — ブーストメーター", "DÉBOGAGE — JAUGE DE BOOST");
+        [SerializeField] LocalizedString boostMeterPotence = new("BOOST POWER (KM/H PER S)", "POTENCIA DEL TURBO (KM/H POR S)", "ブースト出力 (KM/H/秒)", "PUISSANCE DU BOOST (KM/H PAR S)");
+        [SerializeField] LocalizedString boostMeterDrain = new("DRAIN RATE (PER S)", "CONSUMO (POR S)", "消費速度 (毎秒)", "VITESSE DE VIDAGE (PAR S)");
+        [SerializeField] LocalizedString boostMeterCooldown = new("REFILL COOLDOWN (S)", "ESPERA DE RECARGA (S)", "回復までの待ち (秒)", "DÉLAI AVANT RECHARGE (S)");
+        [SerializeField] LocalizedString boostMeterRefill = new("REFILL RATE (PER S)", "RECARGA (POR S)", "回復速度 (毎秒)", "VITESSE DE RECHARGE (PAR S)");
         [SerializeField] LocalizedString ttDebugLog = new("CLOCK LOG", "REGISTRO DEL RELOJ", "時間ログ", "JOURNAL DU CHRONO");
         [Tooltip("The debug menu's per-spawner density row. {0} = the spawner's name.")]
         [SerializeField] LocalizedString spawnDensity = new("{0} DENSITY", "DENSIDAD: {0}", "{0} 密度", "DENSITÉ : {0}");
@@ -1824,6 +1831,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
             MenuTextId.TtAwardScale => ttAwardScale,
             MenuTextId.CountdownReady => countdownReady,
             MenuTextId.CountdownGo => countdownGo,
+            MenuTextId.DebugTabBoostMeter => debugTabBoostMeter,
+            MenuTextId.BoostMeterPotence => boostMeterPotence,
+            MenuTextId.BoostMeterDrain => boostMeterDrain,
+            MenuTextId.BoostMeterCooldown => boostMeterCooldown,
+            MenuTextId.BoostMeterRefill => boostMeterRefill,
             _ => start
         };
     }

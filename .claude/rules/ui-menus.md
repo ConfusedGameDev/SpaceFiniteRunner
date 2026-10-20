@@ -71,11 +71,11 @@ binding.
   gameplay reads through the table.** Gamepad B (the menus' Back) is deliberately NOT reserved,
   for the same reason Space is not: it is the car handbrake's default, and menus only run with
   gameplay frozen. Gamepad A (with Space) is the ship's **Boost** (`GameAction.ShipBoost`, the
-  boost-orb timing press — `runner-track.md`). The dialogue box's advance and the cinema's skip
+  HELD boost meter — `runner-ship.md`). The dialogue box's advance and the cinema's skip
   also read A raw over live gameplay (`MenuNavigator.DialogueAdvancePressed` / `ConfirmHeld`);
-  the dialogue box **yields A while a boost prompt is live** — `BoostQte` holds
-  `MenuNavigator.DialogueAdvanceSuppressed` (Enter still advances), so one press never both
-  boosts and advances a line.
+  the dialogue box **yields A while the boost can act** — `BoostMeter` holds
+  `MenuNavigator.DialogueAdvanceSuppressed` (Enter still advances; pages also hold on their own),
+  so one press never both boosts and advances a line.
 - **The duel's mash button is the FOURTH documented exception to "gameplay reads through the
   table"** (the others being gamepad A above, the mouse for camera pan and touch steering). The
   tug-of-war mash is **fixed and non-bindable**: `Key.X` and `PadControl.ButtonWest`, both in the
@@ -83,7 +83,9 @@ binding.
   cinema skip already read A over live gameplay, and a duel can have a text box queued behind it),
   and there is no pool to randomize over: of the face buttons only **X** is genuinely free — B is
   `CarHandbrake` plus the menus' Back, Y is `CarRespawn`, A is read raw. Reserving them also means a
-  player can never end up mashing a button that steers. The FINISHER prompt is the opposite: it reads
+  player can never end up mashing a button that steers. **The boost orb's timed press (`BoostQte`) shares
+  it** (`DuelMashInput.PressedThisFrame`, no banking): the QTE stands down while `DashLocked`, which
+  holds for the whole exchange, so the two never meet. The FINISHER prompt is the opposite: it reads
   the player's real `ShipDashLeft` / `ShipDashRight` bindings through `ControlBindings.PadFor` /
   `KeyFor` and re-reads them on `ControlBindings.Changed`, because it IS a dash.
 - A control is unique inside its **context** (`BindingSection` Ship / Car / General): same section

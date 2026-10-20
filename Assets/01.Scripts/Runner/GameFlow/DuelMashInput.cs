@@ -38,6 +38,16 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         public static bool UsingGamepad => Gamepad.current != null;
 
         /// <summary>
+        /// X / gamepad X went down this frame — the same raw read as the mash,
+        /// without banking it. The boost orb's timed press reads this: it never
+        /// meets the mash, because the QTE stands down while the duel holds the
+        /// controls (<c>ShipMotor.DashLocked</c>).
+        /// </summary>
+        public static bool PressedThisFrame() =>
+            (Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame)
+            || (Keyboard.current != null && Keyboard.current[MashKey].wasPressedThisFrame);
+
+        /// <summary>
         /// Counts presses since the last drain. Safe to call many times a
         /// frame: it only samples the devices once per frame.
         /// </summary>
@@ -46,9 +56,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             if (Time.frameCount == lastPolledFrame) return;
             lastPolledFrame = Time.frameCount;
 
-            bool pressed = (Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame)
-                        || (Keyboard.current != null && Keyboard.current[MashKey].wasPressedThisFrame);
-            if (pressed && banked < MaxBanked) banked++;
+            if (PressedThisFrame() && banked < MaxBanked) banked++;
         }
 
         /// <summary>Takes every press counted since the last call and clears the count.</summary>

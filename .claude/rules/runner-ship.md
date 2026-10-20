@@ -305,6 +305,19 @@ second half, so nothing cuts mid-drop), ended by `StateChanged(Grounded)`:
   `AirTimeSlowMo` clock contract exactly: enter only when the clock reads exactly 1, cancel
   silently (restoring `fixedDeltaTime` only) when a menu takes it, re-arm after the resume. Never
   owns while `motor.Paused`.
+- `BoostMeter` (`Runner/Ship/`, hand-placed on `PF_Ship`, its own asset
+  `04.Data/FiniteRunner/Ship/BoostMeter_Settings`, read live, inline on the component) is the HELD
+  boost on `GameAction.ShipBoost` (A / Space): while held with charge it adds
+  `potenceKmhPerSecond` through `ShipMotor.AddBoostThrust` — written straight onto
+  `HoverBody.ForwardSpeed`, NOT the pending change (that blends at the ship's `acceleration`,
+  18.5 m/s², so a stronger thrust would bank up and push on after release) and with no
+  `PadImpulse` (no per-frame rumble / speed lines, no patrol share). It drains `drainPerSecond`;
+  any press or hold restarts `cooldownSeconds`, after which it refills at `refillPerSecond`. Empty,
+  a press pulses `emptyPressRumble` and counts `EmptyPresses`. Gated off while paused, on
+  autopilot, `DashLocked` / `DashSuppressed`, out of play, off the end, or `IRunState.IsEnding`;
+  while the gate is open it holds `MenuNavigator.DialogueAdvanceSuppressed` (Enter still
+  advances). `GameManager.Restart` → `ResetMeter()`. HUD via `Contracts.IBoostMeter`; the BOOST
+  METER debug page (`BoostMeterDebugPage`, registry order 8) edits the asset.
 - `DodgeSlowMo` (`Runner/Ship/`, hand-placed on `PF_Ship`, NO GameManager hook) is the clutch
   dash: on `DashPerformed` it forecasts the ship's CURRENT line and the line the dash ends on
   (`lateral ± dashDistance`) over `threatWindowSeconds` (1 s) — `TrafficSystem.ForecastContact`

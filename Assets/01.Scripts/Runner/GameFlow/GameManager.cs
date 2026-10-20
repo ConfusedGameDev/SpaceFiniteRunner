@@ -81,6 +81,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         bool judgingLip;                   // inside OnReachedTrackEnd: a Finish With Time goal is judged now and nowhere else
         bool reviveOnRespawn;              // an Arcade life was spent on a destroyed ship: the respawn brings the hull back
         EscapeVanish escapeVanish;         // every win's exit: fire trails, the model gone in a flash
+        BoostMeter boostMeter;             // the held boost (hand-placed on PF_Ship); refilled on Restart
         RunnerMusic music;                 // null when the music is off on GameSettings
 
         /// <summary>
@@ -428,6 +429,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 }
 
                 if (settings.boostQte) BoostQte.Spawn(motor, settings);
+
+                // The held boost sits on PF_Ship with its own asset; it reads its
+                // rules itself and only needs refilling on a restart.
+                boostMeter = motor.GetComponent<BoostMeter>();
             }
 
             // The ship's run definition: the Store's bought levels multiplied
@@ -1406,6 +1411,7 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
             }
             isGameOver = false;
             if (shipHealth != null) shipHealth.ResetForRun();
+            if (boostMeter != null) boostMeter.ResetMeter();
             // This run's money counter goes back to $0; what was picked up is
             // already banked in the profile.
             CollectibleManager collectibles = CollectibleManager.Instance;

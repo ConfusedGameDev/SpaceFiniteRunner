@@ -88,15 +88,16 @@ namespace ConfusedGameDev.FiniteRunner.HUD
 
         bool usingPad;
 
-        // The Boost binding off the glyph set: the white pad glyph while a
-        // pad is connected, the key cap otherwise, a text label when there is no art.
+        // The timed press's button off the glyph set — X, fixed and
+        // non-bindable like the duel mash it shares: the white pad glyph while
+        // a pad is connected, the key cap otherwise, a text label when there is no art.
         void RefreshBinding()
         {
             if (glyph == null) return;
             usingPad = Gamepad.current != null;
             var glyphs = ControlGlyphSet.Load();
-            PadControl pad = ControlBindings.PadFor(GameAction.ShipBoost);
-            Key key = ControlBindings.KeyFor(GameAction.ShipBoost);
+            const PadControl pad = PadControl.ButtonWest;
+            const Key key = GameFlow.DuelMashInput.MashKey;
             Sprite sprite = glyphs == null ? null : usingPad ? glyphs.ForMono(pad) : glyphs.For(key);
 
             glyph.sprite = sprite;

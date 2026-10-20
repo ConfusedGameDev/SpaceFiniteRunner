@@ -74,10 +74,15 @@ Test scenes: `FiniteRunner_Test` (runner), `CarTest` / `CityTest` (city), `MainM
   for; green 1× / blue 2.5× / purple 10×) push past cruise, where a passive bleed pulls the speed
   back down to it; laser beams take 6.7 % of it. No cap. (Brake pads are retired: the
   `Spawner_BrakePads` asset is kept out of the track's spawn set — see `runner-track.md`.)
+- **Boost meter** (`BoostMeter` on `PF_Ship`, its own `BoostMeter_Settings` asset): HOLD **Boost
+  (A / Space)** for a steady extra thrust (`potenceKmhPerSecond`, can pass cruise; the bleed takes
+  it back after) while a HUD bar between the speed wedge and the life bar drains. Empty = no boost,
+  a press only rumbles. The bar refills only after `cooldownSeconds` (5) without pressing Boost.
+  Tuned on the BOOST METER debug page. See `runner-ship.md`.
 - **Timed boost (QTE)**: a boost orb still boosts when you just fly through it, but pressing
-  **Boost (A / Space)** right as you cross it multiplies the boost — ×1.5 dead on, down to ×1.1 at
+  **X (gamepad X / X key, read raw like the duel mash)** right as you cross it multiplies the boost — ×1.5 dead on, down to ×1.1 at
   the edge of the window (graded in time, either side of the crossing), with the warp and rumble
-  scaled to match. The A glyph floats in the orb's ring as a billboard: white while waiting,
+  scaled to match. The X glyph floats in the orb's ring as a billboard: white while waiting,
   red → yellow → green by the grade, red on a miss. One press per orb.
 - **Clutch dodge**: a dash that takes the ship off a car's or a beam's line within the last
   second before the hit slows the world clock for the length of the dash (`DodgeSlowMo` on

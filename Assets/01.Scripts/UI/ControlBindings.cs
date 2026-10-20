@@ -54,8 +54,8 @@ namespace ConfusedGameDev.FiniteRunner.UI
     /// through here. Gamepad B is the menus' Back but NOT reserved, for the
     /// same reason Space is not: menus only run with gameplay frozen, so the
     /// handbrake (its default) and Back never meet. A is the ship's Boost
-    /// (the timed boost-orb press); the dialogue box also reads it while the
-    /// world runs, and yields it to the boost while a boost prompt is live
+    /// (the held boost meter); the dialogue box also reads it while the
+    /// world runs, and yields it to the boost while the boost can act
     /// (<see cref="MenuNavigator.DialogueAdvanceSuppressed"/>).</item>
     /// <item><b>A control is unique inside its context</b> (<see cref="BindingSection"/>):
     /// binding a control another action of the same context already holds
@@ -133,10 +133,11 @@ namespace ConfusedGameDev.FiniteRunner.UI
         // pause-open Start, and keys the OS or IME owns. Space and gamepad B
         // are deliberately NOT here: they are the handbrake, and menus only
         // run with gameplay frozen, so the two never meet. Nor is A: it is
-        // the ship's Boost by default AND the dialogue advance / cinema skip,
-        // read over live gameplay — the dialogue yields it while a boost
-        // prompt is up (MenuNavigator.DialogueAdvanceSuppressed).
-        // X / gamepad X are the patrol duel's mash, read RAW over live
+        // the ship's Boost (the held boost meter) by default AND the dialogue
+        // advance / cinema skip, read over live gameplay — the dialogue yields
+        // it while the boost can act (MenuNavigator.DialogueAdvanceSuppressed).
+        // X / gamepad X are the patrol duel's mash AND the boost orb's timed
+        // press (the QTE stands down while the duel holds the controls), read RAW over live
         // gameplay (the fourth documented exception to "gameplay input goes
         // through this table", after dialogue advance on A, the camera mouse
         // and touch steering). They ARE reserved because, unlike the handbrake,

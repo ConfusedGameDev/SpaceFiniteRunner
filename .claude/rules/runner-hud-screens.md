@@ -50,6 +50,14 @@ Preview** (Odin button) draws the segments in edit mode. Do not add position/siz
   when a life goes. A `RepairOrb.Collected` = a `repairColor` (green) flash + the same punch and a
   green "+N" hull-points popup — keyed on the orb, not on the fraction rising, since a restart
   refills the bar too. Knobs are the "Life bar" header.
+- **The boost bar** (`BuildBoostBar` / `UpdateBoostBar`, "Boost bar" header) is a third
+  `SpeedGauge` filling the hand-placed `BoostBar` rect (`boostBarRect`, between the wedge and the
+  life bar) in `boostSegments` flat cells, lit to `IBoostMeter.Fraction`. The meter is found by
+  contract in `Start` (it is on `PF_Ship`); none, or `meterEnabled` off, hides the rect. One colour:
+  `boostReadyColor` at rest, `boostActiveColor` pulsing toward white while held,
+  `boostRecoverColor` through the cooldown and refill; a rise of `IBoostMeter.EmptyPresses` (a
+  press on an empty meter) = a `boostEmptyFlashColor` flash + `boostEmptyPunch`. The runner scene
+  overrides the rect to sit over its own life bar (x −91.28, 642.8 wide).
 - **Reached once is reached**: the LIGHT SPEED line turns `winColor` the frame
   `GameManager.LightSpeedReached` latches and stays so while the ship still has to make an end ramp.
 - **The distance left is NOT a HUD line** — it reads on top of the `ChaseMinimap` track map (see
@@ -126,8 +134,8 @@ never spawned → `Awake` tears the baked preview down. Sandbox `HyperspacePromp
 
 ## `BoostQtePrompt` (`Runner/HUD/`) — the boost orb's timing glyph
 
-The picture of the boost QTE (`BoostQte`, `runner-track.md`): the player's LIVE `ShipBoost`
-binding on a small **world-space canvas**, a full billboard (`LookRotation` from the camera,
+The picture of the boost QTE (`BoostQte`, `runner-track.md`): the timed press's FIXED button —
+`PadControl.ButtonWest` / `DuelMashInput.MashKey` (X), not a binding — on a small **world-space canvas**, a full billboard (`LookRotation` from the camera,
 camera up) sitting at the centre of the orb's `Indicator` ring (its mesh bounds' centre), sized
 `GameSettings.boostQteGlyphSize` × the ring's width and lifted `boostQteGlyphLift` (0.5 m) along the orb's up — UNLESS the orb prefab carries a `BoostQteAnchor`
 (`PowerUp_Green` has one, `QtePrompt`): then the glyph sits at that child's world position at the width its preview
