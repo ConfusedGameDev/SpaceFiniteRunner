@@ -19,6 +19,9 @@
 // the edge: _WallStrip > 0 confines the neon on vertical faces to a strip
 // under the wall's top (_WallTop, local Y), the rest of the wall stays
 // asphalt-black — the light line of a synthwave highway, not an orange plank.
+// Every pass runs the track reveal (TrackReveal.hlsl) on the vertex, so the
+// depth prepasses the fog reads see a piece exactly where the colour pass
+// draws it.
 Shader "FiniteRunner/NeonRoad"
 {
     Properties
@@ -63,6 +66,7 @@ Shader "FiniteRunner/NeonRoad"
 
         HLSLINCLUDE
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+        #include "TrackReveal.hlsl"
 
         CBUFFER_START(UnityPerMaterial)
             half4 _BaseColor;
@@ -104,6 +108,7 @@ Shader "FiniteRunner/NeonRoad"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS   : NORMAL;
+                float4 reveal     : TEXCOORD3; // the track reveal's per-piece data
             };
 
             struct Varyings
@@ -117,7 +122,7 @@ Shader "FiniteRunner/NeonRoad"
             Varyings Vert(Attributes input)
             {
                 Varyings o;
-                VertexPositionInputs pos = GetVertexPositionInputs(input.positionOS.xyz);
+                VertexPositionInputs pos = GetVertexPositionInputs(TrackRevealApply(input.positionOS.xyz, input.reveal));
                 o.positionCS = pos.positionCS;
                 float across = _LateralAxis > 0.5 ? input.positionOS.x : input.positionOS.z;
                 o.lateral = (across - _MeshCenter) / max(1e-4, _MeshHalfWidth);
@@ -203,13 +208,13 @@ Shader "FiniteRunner/NeonRoad"
             #pragma vertex DepthVert
             #pragma fragment DepthFrag
 
-            struct Attributes { float4 positionOS : POSITION; };
+            struct Attributes { float4 positionOS : POSITION; float4 reveal : TEXCOORD3; };
             struct Varyings { float4 positionCS : SV_POSITION; };
 
             Varyings DepthVert(Attributes input)
             {
                 Varyings o;
-                o.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                o.positionCS = TransformObjectToHClip(TrackRevealApply(input.positionOS.xyz, input.reveal));
                 return o;
             }
 
@@ -231,6 +236,7 @@ Shader "FiniteRunner/NeonRoad"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS   : NORMAL;
+                float4 reveal     : TEXCOORD3; // the track reveal's per-piece data
             };
 
             struct Varyings
@@ -242,7 +248,7 @@ Shader "FiniteRunner/NeonRoad"
             Varyings NormalsVert(Attributes input)
             {
                 Varyings o;
-                o.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                o.positionCS = TransformObjectToHClip(TrackRevealApply(input.positionOS.xyz, input.reveal));
                 o.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 return o;
             }

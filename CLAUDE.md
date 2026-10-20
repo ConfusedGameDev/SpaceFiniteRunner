@@ -274,7 +274,7 @@ Loaded automatically by path. Listed here so you know what exists.
 
 | Rule | Covers |
 |---|---|
-| `runner-track.md` | `TrackManager`, sections, `TrackGenerator` decide/build, saved tracks + the Scene-view authoring tools, features, pads/orbs, decorator |
+| `runner-track.md` | `TrackManager`, sections, `TrackGenerator` decide/build, saved tracks + the Scene-view authoring tools, features, pads/orbs, decorator, the track reveal |
 | `runner-ship.md` | `ShipMotor` (physics mode + the legacy track-space sim), `GameManager`, `PolicePatrol`, tuning |
 | `runner-traffic.md` | Oncoming traffic: `TrafficSystem`, the pool, spawn rules, `TrackObstacles` avoidance, swept contact |
 | `runner-race.md` | Race levels: `RaceSystem`, rivals, `RivalDriver`, full sim / ghosts, contact, wrecks, bounty, `RivalKillCam`, the RACE debug page |

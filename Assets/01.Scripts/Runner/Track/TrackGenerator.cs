@@ -851,6 +851,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     t.gameObject.hideFlags |= HideFlags.DontSaveInEditor;
         }
 
+        /// <summary>
+        /// Raised in play for every object a placement record builds: (the
+        /// object, the record's distance, its lateral). The track reveal
+        /// animates them in from it; the generator never knows who listens.
+        /// </summary>
+        public static event System.Action<GameObject, float, float> PlacementBuilt;
+
         // Builds a record and remembers which objects it made, so a live edit
         // can take down and rebuild just the ones on the stretch it reshaped.
         void BuildTracked(in TrackPlacement placement)
@@ -858,7 +865,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
             int before = spawned.Count;
             Build(placement);
             for (int i = before; i < spawned.Count; i++)
-                if (spawned[i].go != null) placedAt[spawned[i].go] = placement.distance;
+            {
+                if (spawned[i].go == null) continue;
+                placedAt[spawned[i].go] = placement.distance;
+                if (Application.isPlaying) PlacementBuilt?.Invoke(spawned[i].go, placement.distance, placement.lateral);
+            }
         }
 
         // One record, built: the features the generator owns, else the spawner

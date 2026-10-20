@@ -49,6 +49,8 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [SerializeField] Traffic.TrafficSystem traffic;
         [Tooltip("The scene's race system (PF_RaceSystem under ===SYSTEMS===). Bound here to the level's race definition; a level without one leaves it idle.")]
         [SerializeField] Race.RaceSystem race;
+        [Tooltip("The scene's track reveal (PF_TrackReveal under ===SYSTEMS===): the road ahead assembles itself as the ship — or a race's leader — nears it. Off on a traffic level. Empty = the track stands assembled.")]
+        [SerializeField] TrackReveal reveal;
         [Tooltip("The scene's time trial system (PF_TimeTrialSystem under ===SYSTEMS===). Bound here to the level's time trial; a level without one leaves it idle.")]
         [SerializeField] TimeTrial.TimeTrialSystem timeTrial;
 
@@ -526,6 +528,12 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 else race.Unbind();
                 race.RivalDestroyed += OnRivalDestroyed;
             }
+
+            // The track reveal follows the ship, or a race's leader. A traffic
+            // level keeps the track assembled: its cars drive out of the road ahead.
+            if (reveal != null)
+                reveal.Bind(motor, race != null && race.Bound ? race : null,
+                            motor != null && (level.traffic == null || level.race != null));
 
             // A time trial: the level opts in with a TimeTrialDefinition; a level
             // without one (or a race: the race wins) leaves the system idle.

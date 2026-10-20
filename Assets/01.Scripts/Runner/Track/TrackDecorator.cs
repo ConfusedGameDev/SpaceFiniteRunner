@@ -80,6 +80,9 @@ namespace ConfusedGameDev.FiniteRunner.Track
         [Tooltip("Not Blended only: the TWIST round the forward (Z) axis, the bank. 0 = each piece rolls with the track like Blended, 1 = rigid (the plain bank steps), above 1 = each piece's ends over-roll so the edges step up and down unevenly.")]
         [SerializeField, ShowIf(nameof(IsNotBlended)), PropertyRange(0f, 3f)] float pieceZMorph = 1f;
 
+        [Tooltip("Track reveal: every bent piece's bounds are stretched this far down its own up, so a piece still rising from below the road (TrackReveal) is never culled while on screen. At least the reveal's Drop.")]
+        [SerializeField, PropertyRange(0f, 300f), SuffixLabel("m", true)] float revealBoundsMargin = 60f;
+
         bool IsNotBlended => pieceBlend == PieceBlend.NotBlended;
 
         // How far each piece is from fully bent, curve (x) and twist (y):
@@ -334,7 +337,42 @@ namespace ConfusedGameDev.FiniteRunner.Track
             StampBox(startDistance + length, pos + rot * new Vector3(0f, height * 0.5f, 0f), rot,
                      new Vector3(width, height, length),
                      openEdgeMaterial != null ? openEdgeMaterial : roadMaterialOverride);
-            endMarkers.Add(stamped[stamped.Count - 1].go);
+            GameObject marker = stamped[stamped.Count - 1].go;
+            endMarkers.Add(marker);
+            BakeReveal(marker, startDistance, lateralCentre); // not bent (straight run-up), but it still rises with the road
+        }
+
+        // The track reveal's data on a piece that is not bent: a mesh copy
+        // with UV3 = (distance, seed, 1) and the bounds reaching below it.
+        void BakeReveal(GameObject piece, float distance, float lateral)
+        {
+            var reveal = new Vector4(distance, TrackReveal.Seed(distance, lateral), 1f, 0f);
+            BentPiece owner = null;
+            foreach (var filter in piece.GetComponentsInChildren<MeshFilter>())
+            {
+                if (filter.sharedMesh == null) continue;
+                Mesh mesh = Instantiate(filter.sharedMesh);
+                mesh.name = filter.sharedMesh.name + " (reveal)";
+                if (!Application.isPlaying) mesh.hideFlags = HideFlags.DontSaveInEditor;
+                var data = new Vector4[mesh.vertexCount];
+                System.Array.Fill(data, reveal);
+                mesh.SetUVs(3, data);
+                ReachBelow(mesh, filter.transform.worldToLocalMatrix, filter.transform.rotation);
+                filter.sharedMesh = mesh;
+                if (owner == null) owner = piece.AddComponent<BentPiece>();
+                owner.Own(mesh);
+            }
+        }
+
+        // Stretches a mesh's bounds revealBoundsMargin down the piece's up, so
+        // a piece the reveal still holds below the road is never culled.
+        void ReachBelow(Mesh mesh, Matrix4x4 toLocal, Quaternion pieceRotation)
+        {
+            if (revealBoundsMargin <= 0f) return;
+            Bounds bounds = mesh.bounds;
+            Vector3 down = toLocal.MultiplyVector(pieceRotation * Vector3.down * revealBoundsMargin);
+            bounds.Encapsulate(new Bounds(bounds.center + down, bounds.size));
+            mesh.bounds = bounds;
         }
 
         // A code-built box: a picture only, so its collider goes (nothing on
@@ -418,6 +456,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// morph. Normals and
         /// tangents turn with the pose. Each piece gets its own mesh copies,
         /// freed with it (<see cref="BentPiece"/>).
+        /// <b>Every bent mesh also carries the track reveal's data</b> in UV3
+        /// (<c>TrackReveal.hlsl</c>): (stamp distance, a seed hashed off the
+        /// distance and lateral, 1 = baked) on every vertex, so the shader
+        /// raises the piece rigidly; its bounds reach
+        /// <see cref="revealBoundsMargin"/> below it. A rigid piece (no copy)
+        /// has no data and always stands assembled.
         /// </summary>
         void Bend(GameObject piece, float distance, float lateral)
         {
@@ -428,6 +472,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             Quaternion toBase = Quaternion.Inverse(baseRotation);
             bendPoses.Clear();
             BentPiece owner = null;
+            var reveal = new Vector4(distance, TrackReveal.Seed(distance, lateral), 1f, 0f);
 
             foreach (var filter in piece.GetComponentsInChildren<MeshFilter>())
             {
@@ -489,7 +534,11 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 mesh.vertices = vertices;
                 if (hasNormals) mesh.normals = normals;
                 if (hasTangents) mesh.tangents = tangents;
+                var revealData = new Vector4[vertices.Length];
+                System.Array.Fill(revealData, reveal);
+                mesh.SetUVs(3, revealData);
                 mesh.RecalculateBounds();
+                ReachBelow(mesh, toLocal, baseRotation);
                 filter.sharedMesh = mesh;
 
                 if (owner == null) owner = piece.AddComponent<BentPiece>();

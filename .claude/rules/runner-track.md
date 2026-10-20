@@ -896,3 +896,57 @@ low marker strips and end markers; `NeonWall_Mat` (all orange, strip under y 0.5
 `placeholderWallMaterial`; `NeonTube_Mat` (plain asphalt, a faint blue seam per strip, no lanes) →
 `tubeMaterialOverride`. The glow is the scene volume profile's **Bloom** (threshold 1, intensity
 0.45), added for this — the URP asset is HDR.
+**Not every material is that shader any more**: `NeonRoad_Mat` (the slab) now uses `Road.shadergraph`
+(a copy of the hologram graph) and `NeonBarrier_Mat` uses `laser.shadergraph`; `NeonEdge_Mat`,
+`NeonWall_Mat` and `NeonTube_Mat` are still `NeonRoad.shader`. The paragraph above describes the
+hand-written shader.
+
+## Track reveal (`Track/TrackReveal.cs`, `TrackRevealSettings`, `TrackReveal.hlsl`)
+
+The Bastion-style assembly: the road ahead flies up into place as a front sweeps down the track.
+**A picture only** — building (colliders, decoration, pickups) is unchanged and still runs
+kilometres ahead; the reveal moves the PICTURES in the vertex shader, so it costs a handful of
+global floats a frame at any density (no per-piece CPU work, no Jobs/DOTS needed).
+
+- **Per-piece data**: `TrackDecorator.Bend` writes UV3 = (stamp distance, seed hashed off distance
+  + lateral, 1) on every vertex of every bent mesh, and stretches the mesh bounds
+  `revealBoundsMargin` (60 m) down the piece's up so a rising piece is never culled. A RIGID piece
+  (`pieceBlend` Not Blended at morph 1,1 — no mesh copy) has no data and always stands assembled.
+- **Shader side**: `02.Art/04.Shaders/FiniteRunner/TrackReveal.hlsl` (`TrackRevealApply`) — the
+  piece starts `_TrackRevealDrop` below its rest along its own up, tipped `_TrackRevealTilt` about
+  its X (side from the seed), at `_TrackRevealScale`, and eases out (with `_TrackRevealOvershoot`)
+  to rest over `_TrackRevealBand` metres behind the front; the seed delays it by up to
+  `_TrackRevealStagger`. Not yet started = collapsed out of sight. `NeonRoad.shader` calls it in
+  EVERY pass (the depth prepasses feed the fog — a non-displaced depth pass would draw fog over
+  empty road); `Road.shadergraph` and `laser.shadergraph` call it through a Custom Function node
+  (File, `TrackReveal`) between their old Vertex Position source and the block, fed by a UV node on
+  channel 3. The laser gate's beam sheet shares `laser.shadergraph` but has no UV3 flag, so it
+  is untouched. **`_TrackRevealOn` unset reads 0 = off**: the Scene view, the authoring tools, the
+  city and any scene without the system show the assembled track.
+- **The front** (`TrackReveal`, hand-placed as `PF_TrackReveal` in `PF_Systems`, bound by
+  `GameManager` next to the race): `max(front, reference + startAhead)`, monotonic so a seated piece
+  never comes apart; slower than `creepSpeed` it creeps on to `reference + startAhead + band +
+  stagger` so nothing hangs mid-air at a standstill. A reference that jumps forward (a respawn, the
+  hyperspace end) seats what it skipped; one that goes BACK (a restart) starts over assembled as
+  far as the eye reaches. **Reference** = the ship, or in a race the furthest racer (ghosts and
+  finishers included, through `IRaceStandings`): a player behind the field sees road the leader
+  raised. **Distances, never seconds**: `startAhead` (450) must sit inside the fog's end (~480 m)
+  — at Light Speed a time band would land wholly in the fog, a distance band just plays faster.
+- **Off on a traffic level** (`level.traffic` set, not a race): the cars drive out of the road
+  ahead, so the track stands assembled from frame 0. Also off with the asset's `revealEnabled`, or
+  unbound. Alone in a scene it follows any `IStreamFocus` it finds.
+- **The placements ride the same front on the CPU** (`TrackRevealProps`, beside it on
+  `PF_TrackReveal`): every object a record builds — ramps, end ramps, loop portals, laser gates,
+  orbs, coins, custom prefabs — is heard through the static `TrackGenerator.PlacementBuilt` (object,
+  record distance, lateral; play only), subscribed at `SubsystemRegistration` because the generator
+  builds its first stretch in its own Awake. Inside the band its ROOT gets the shader's motion
+  (`TrackReveal.Seed` / `Ease` are the shader's, line for line); seated, it leaves the list for good.
+  **The offset never sticks**: applied as the last `LateUpdate` (execution order 10000) and taken off
+  by `TrackReveal.Update` (order −10000) via `Restore()` before anything else runs, so props that pose
+  themselves (`OrbHover`, the laser emitters) still read and write their true pose. Not started = the
+  root sunk `drop` and scaled to 1e-4 (never 0: collider warnings). Colliders inside the band are
+  displaced for the fixed step between, which is harmless: nothing can reach the band (the ship and
+  a race's field are behind its seated edge; traffic turns the reveal off). A procedural-look laser
+  beam's world-space `LineRenderer` would not follow its root (the shipped look is Prefab).
+- **The end-gap markers** (`StampEndMarker`, never bent) get the same UV3 data through
+  `TrackDecorator.BakeReveal`, so the run-up rises with its ramps.
