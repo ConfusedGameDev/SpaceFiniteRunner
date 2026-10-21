@@ -932,9 +932,15 @@ global floats a frame at any density (no per-piece CPU work, no Jobs/DOTS needed
   finishers included, through `IRaceStandings`): a player behind the field sees road the leader
   raised. **Distances, never seconds**: `startAhead` (450) must sit inside the fog's end (~480 m)
   — at Light Speed a time band would land wholly in the fog, a distance band just plays faster.
-- **Off on a traffic level** (`level.traffic` set, not a race): the cars drive out of the road
-  ahead, so the track stands assembled from frame 0. Also off with the asset's `revealEnabled`, or
-  unbound. Alone in a scene it follows any `IStreamFocus` it finds.
+- **Switched per level** (`RunnerLevelDefinition.trackReveal`, on by default) and by the asset's
+  `revealEnabled`; unbound it is off. Alone in a scene it follows any `IStreamFocus` it finds.
+- **Oncoming cars ride it** (`TrackRevealProps.Follow(root, ITrackPositioned, lateral)`, called by
+  `TrafficCar.Place` every time a pooled car is placed — a re-placed root replaces its entry, a
+  parked one is dropped): timed by the car's LIVE distance with no stagger, so a car spawned out in
+  unbuilt road (≥ `minSpawnAhead` 700 m, beyond the 450 m front) stays collapsed and rises into its
+  lane as it drives into the assembling road. A car becomes visible at the front — about where the
+  fog let it be seen before — so the warning time is unchanged. Picture only: contact, the clutch
+  dodge's forecast and the explosion all use the car's track-space state.
 - **The placements ride the same front on the CPU** (`TrackRevealProps`, beside it on
   `PF_TrackReveal`): every object a record builds — ramps, end ramps, loop portals, laser gates,
   orbs, coins, custom prefabs — is heard through the static `TrackGenerator.PlacementBuilt` (object,

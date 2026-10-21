@@ -15,6 +15,17 @@ namespace ConfusedGameDev.FiniteRunner.Contracts
     }
 
     /// <summary>
+    /// Something that moves along the track and is drawn there: where it is
+    /// right now, metres from the track start. The track reveal reads it to
+    /// time an oncoming car's arrival into the assembled road.
+    /// </summary>
+    public interface ITrackPositioned
+    {
+        /// <summary>Metres from the track start, this tick.</summary>
+        float Distance { get; }
+    }
+
+    /// <summary>
     /// The few numbers of the flying vehicle that shape what the track
     /// builds: the speed a loop's reachability test predicts with, and the
     /// jump strength a ramp's arc scales by. A plain view of the vehicle's

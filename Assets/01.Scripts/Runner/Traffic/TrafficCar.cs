@@ -1,4 +1,5 @@
 using UnityEngine;
+using ConfusedGameDev.FiniteRunner.Contracts;
 using ConfusedGameDev.FiniteRunner.Track;
 
 namespace ConfusedGameDev.FiniteRunner.Traffic
@@ -12,8 +13,11 @@ namespace ConfusedGameDev.FiniteRunner.Traffic
     /// with the model turned to face the ship. It owns no collider: every
     /// contact is the <see cref="TrafficSystem"/>'s analytic test.
     /// Built once by the system's pool and never destroyed mid-run.
+    /// Every placement hands it to the track reveal (<see cref="TrackRevealProps.Follow"/>),
+    /// so a car out in road that is not yet assembled stays hidden and rises
+    /// into its lane with the road — a picture only; contact never reads it.
     /// </summary>
-    public class TrafficCar : MonoBehaviour
+    public class TrafficCar : MonoBehaviour, ITrackPositioned
     {
         /// <summary>Track distance this tick, metres. Decreases: the car drives toward the start.</summary>
         public float Distance { get; private set; }
@@ -63,6 +67,7 @@ namespace ConfusedGameDev.FiniteRunner.Traffic
             Lateral = PrevLateral = TargetLateral = HomeLateral = lateral;
             Speed = speed;
             gameObject.SetActive(true);
+            TrackRevealProps.Follow(transform, this, lateral);
         }
 
         /// <summary>One fixed tick of kinematic driving.</summary>

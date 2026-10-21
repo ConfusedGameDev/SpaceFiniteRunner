@@ -235,6 +235,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
         [Tooltip("A time trial: Beat the Clock (a set time to the end ramps) or Arcade (a short clock fed by checkpoints, clean flying and patrol kills) — TimeTrialPRD.md. Empty = none. A time trial level should author a Finish With Time objective and no Reach Speed. Ignored on a race level.")]
         public TimeTrial.TimeTrialDefinition timeTrial;
 
+        [TitleGroup("Level")]
+        [Tooltip("The track reveal: the road ahead, its placements and the oncoming cars assemble themselves as the ship (or a race's leader) nears them (TrackReveal_Settings tunes it). Off = the whole track stands built, as before.")]
+        public bool trackReveal = true;
+
         [TitleGroup("Mission complete")]
         [Tooltip("Clip looping in the panel's video holder. Empty = the holder shows a dead NO SIGNAL screen.")]
         public VideoClip completeVideo;

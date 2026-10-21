@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConfusedGameDev.FiniteRunner.Contracts;
 using UnityEngine;
 
 namespace ConfusedGameDev.FiniteRunner.Track
@@ -20,8 +21,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// colliders being displaced for the fixed step in between is harmless.
     /// <b>Builds are heard statically</b> (<see cref="TrackGenerator.PlacementBuilt"/>,
     /// subscribed before any scene loads): the generator builds its first
-    /// stretch in its own Awake, which may run before this one's. Sits beside
-    /// <see cref="TrackReveal"/> on <c>PF_TrackReveal</c>.
+    /// stretch in its own Awake, which may run before this one's.
+    /// <b>Moving things ride it too</b> (<see cref="Follow"/>: the oncoming
+    /// cars, handed over each time one is placed): timed by where they are NOW,
+    /// with no stagger, so a car spawned out in the unbuilt road stays hidden
+    /// and rises into its lane as it drives into the assembling road — the
+    /// player never sees one driving out of the void. A pooled car placed
+    /// again replaces its old entry; a parked one is dropped.
+    /// Sits beside <see cref="TrackReveal"/> on <c>PF_TrackReveal</c>.
     /// </summary>
     [DefaultExecutionOrder(10000)] // LateUpdate after every prop has posed itself
     public class TrackRevealProps : MonoBehaviour
@@ -30,6 +37,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             public Transform root;
             public float distance;   // the record's distance
+            public ITrackPositioned mover; // a moving thing: its live distance instead, no stagger
             public float seed;       // 0..1: stagger and tilt side
             public bool applied;     // offset on this frame
             public Vector3 position; // the true pose under the offset
@@ -57,6 +65,20 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (go == null) return;
             if (props.Count > SweepAbove) props.RemoveAll(p => p.root == null);
             props.Add(new Prop { root = go.transform, distance = distance, seed = TrackReveal.Seed(distance, lateral) });
+        }
+
+        /// <summary>
+        /// Hands the reveal something that moves along the track (an oncoming
+        /// car, each time it is placed): hidden while its spot is not built,
+        /// rising in as it drives into the assembling road. Placing a pooled
+        /// object again replaces its entry.
+        /// </summary>
+        public static void Follow(Transform root, ITrackPositioned mover, float lateral)
+        {
+            if (root == null || mover == null) return;
+            for (int i = props.Count - 1; i >= 0; i--)
+                if (props[i].root == root) props.RemoveAt(i);
+            props.Add(new Prop { root = root, mover = mover, seed = TrackReveal.Seed(mover.Distance, lateral) });
         }
 
         TrackReveal reveal;
@@ -92,9 +114,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
             for (int i = props.Count - 1; i >= 0; i--)
             {
                 Prop p = props[i];
-                if (p.root == null) { props.RemoveAt(i); continue; }
+                if (p.root == null || !p.root.gameObject.activeInHierarchy) { props.RemoveAt(i); continue; } // gone, parked or used up
 
-                float t = Mathf.Clamp01((reveal.Front - (p.distance + p.seed * s.stagger)) / band);
+                float at = p.mover != null ? p.mover.Distance : p.distance + p.seed * s.stagger;
+                float t = Mathf.Clamp01((reveal.Front - at) / band);
                 if (t >= 1f) { props.RemoveAt(i); continue; } // seated for good: the front never goes back
 
                 Transform root = p.root;

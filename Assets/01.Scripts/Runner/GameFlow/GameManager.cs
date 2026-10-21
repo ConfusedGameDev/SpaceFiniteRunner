@@ -529,11 +529,10 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 race.RivalDestroyed += OnRivalDestroyed;
             }
 
-            // The track reveal follows the ship, or a race's leader. A traffic
-            // level keeps the track assembled: its cars drive out of the road ahead.
+            // The track reveal follows the ship, or a race's leader; the level
+            // switches it. Oncoming cars ride it too (they rise in with the road).
             if (reveal != null)
-                reveal.Bind(motor, race != null && race.Bound ? race : null,
-                            motor != null && (level.traffic == null || level.race != null));
+                reveal.Bind(motor, race != null && race.Bound ? race : null, motor != null && level.trackReveal);
 
             // A time trial: the level opts in with a TimeTrialDefinition; a level
             // without one (or a race: the race wins) leaves the system idle.

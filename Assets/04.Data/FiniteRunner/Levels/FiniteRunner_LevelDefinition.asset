@@ -17,6 +17,9 @@ MonoBehaviour:
   trackLengthMeters: 91837
   track: {fileID: 11400000, guid: ec876427ee3040c7a26ee57ac2fe5a85, type: 2}
   traffic: {fileID: 11400000, guid: a53a4393d9c25c642bd84bfa1a1c45cc, type: 2}
+  race: {fileID: 0}
+  timeTrial: {fileID: 0}
+  trackReveal: 1
   completeVideo: {fileID: 0}
   rankTable:
     sThreshold: 10000
@@ -27,6 +30,9 @@ MonoBehaviour:
   - type: 1
     targetSpeedKmh: 6500
     jumpCount: 3
+    raceMode: 0
+    racePosition: 3
+    minSecondsLeft: 0
     reward: 0
     accent: {r: 0, g: 0, b: 0, a: 0}
     multiplier: 2
@@ -34,5 +40,8 @@ MonoBehaviour:
   - type: 0
     targetSpeedKmh: 5574
     jumpCount: 3
+    raceMode: 0
+    racePosition: 3
+    minSecondsLeft: 0
     reward: 500
     accent: {r: 0, g: 0, b: 0, a: 0}

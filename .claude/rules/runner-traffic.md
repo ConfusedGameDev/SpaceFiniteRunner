@@ -72,6 +72,10 @@ car's roof (`hoverHeight + height`) — a ship on a jump clears a car.
 - **Patrol** (`TrafficSolid` false while hidden, gone, caught or `InExchange`): car explodes, then
   `HitByTraffic()` — the laser kill's `Kill(spendsDashMeter: false, raiseFloor: false)`.
 
+**The track reveal** (`runner-track.md`): `TrafficCar` is an `ITrackPositioned` and `Place` hands
+it to `TrackRevealProps.Follow`, so a car out in road not yet assembled is hidden and rises into its
+lane with the road. Visual only — nothing here reads the offset.
+
 Car explosions are `ExplosionVfx.SpawnFireball` with the GameSettings explosion textures /
 lifetime / particles, scaled by `explosionScale × TrafficDefinition.explosionScale`, at the car's
 sim pose (not its interpolated transform).
