@@ -481,6 +481,21 @@ dashGhostCount` metres of travel, the barrel roll's on a time spread; knobs `das
 Verified: the first ghost stays where the dash began while the ship pulls its full carry across, ≤ 2 m
 creep over a life. A ship spun by a crash swings its ghosts round with it — the frame is the ship's.
 
+**Boost-orb sparks** (`FX/MeshSurfaceSparks` + `Runner/Ship/BoostOrbSparks`, ported from
+RevolverBallad's `FX_KakoSparks`): electricity crawling over the hull — sprite-sheet quads pinned to
+random points of the model's triangles, hopping each sheet loop. Every speed-up pad the PLAYER takes
+(`SpeedPad.Collected`, `SpeedDelta > 0`, `motor.Is` — NOT `IsBoostOrb`: the shipped `BoostPad_Definition` has
+`floatingOrb` off, so it is false for every pad) plays one burst at full that fades over `fadeSeconds`
+(2.5) along `fadeCurve`; another orb mid-fade restarts it; idle it is hidden and costs nothing. The look
+is the designer-owned `03.Prefabs/FiniteRunner/PF_ShipBoostSparks` (`ShipBoostSparks_Mat` on the
+KakoSparks sheet), nested in `PF_Ship` as `BoostSparks` **under the ROOT, never under `Visual`** — the
+dash ghosts, `RespawnBlink`, the livery and `BarrelRollTrail.MeasureVisual` all walk every renderer /
+MeshFilter under the visual — with `source` pointing at the model; the quads are posed in world space in
+LateUpdate (the model is posed in `Update`). Sized for the chase camera: 8–13 m sparks, `cameraFacing`
+0.85, tint (6, 9, 13.5) — KakoSparks' 0.9–1.5 m are invisible behind a 20 m ship. **The model needs
+Read/Write** (`nabucodonosor.fbx`); without it a warning and no sparks. `Tools → FiniteRunner → Install
+Ship Boost Sparks` (`ShipBoostSparksBuilder`) turns it on, makes the prefab and nests it, never overwriting.
+
 The ship components (`RespawnBlink`, `BarrelRollTrail`, `ShipDashGhosts`, `ShipRecovery`) read
 the ship's own `ShipSettings` clone. The FALL & RESPAWN debug page writes `HoverShip.SettingsAsset`
 and mirrors onto that clone (its edge / camera / patrol-gap rows stay on `GameSettings`).
