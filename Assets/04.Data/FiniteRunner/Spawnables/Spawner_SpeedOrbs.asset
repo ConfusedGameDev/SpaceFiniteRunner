@@ -27,7 +27,7 @@ MonoBehaviour:
     color: {r: 0.1, g: 1, b: 0.3, a: 1}
     swayAmplitude: 0
     swayFrequency: 0
-    spinDegreesPerSecond: 0
+    spinDegreesPerSecond: 75
     pickupScale: 2
     lane: 0
   - name: Blue
