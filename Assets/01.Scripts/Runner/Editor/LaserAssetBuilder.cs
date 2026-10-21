@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.Track.Features;
 namespace ConfusedGameDev.FiniteRunner.EditorTools
 {
@@ -15,7 +16,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// (laserTypeA, its Plane sheet, and a ShootPoint on the bar — derived
     /// from the sheet when there is none) — the sheet hung from a
     /// <c>SheetPivot</c> on its top edge, so a gate can grow it down from the
-    /// bar (<see cref="LaserBeam.SetExtension"/>). The generator's Laser gates group still has to be
+    /// bar (<see cref="LaserBeam.SetExtension"/>) — and the floor sparks'
+    /// VFX prefab nested at the sheet's foot (<see cref="LaserFloorSparksBuilder"/>). The generator's Laser gates group still has to be
     /// pointed at the prefab and the definition in the scene.
     /// </summary>
     public static class LaserAssetBuilder
@@ -33,7 +35,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             WirePrefab();
             AssetDatabase.SaveAssets();
             EditorGUIUtility.PingObject(definition);
-            Debug.Log($"LaserAssetBuilder: laser gate assets ready — {DefinitionPath}, {MaterialPath}, {PrefabPath}.", definition);
+            Debug.Log($"LaserAssetBuilder: laser gate assets ready — {DefinitionPath}, {MaterialPath}, {PrefabPath}, {LaserFloorSparksBuilder.PrefabPath}.", definition);
         }
 
         /// <summary>The beam material — loaded when it exists, otherwise created: URP Particles/Unlit, additive, so the line's vertex colour tints it.</summary>
@@ -115,6 +117,17 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 Wire(so, "prefabSheet", sheet, required: false);
                 Wire(so, "prefabShootPoint", shoot, required: false);
                 Wire(so, "prefabSheetPivot", pivot, required: false);
+
+                // The floor sparks: their own VFX prefab, nested at the sheet's foot, made once.
+                SerializedProperty sparksProp = so.FindProperty("floorSparks");
+                Transform sparks = root.transform.Find(LaserBeam.FloorSparksName);
+                if (sparks == null && sparksProp.objectReferenceValue == null && sheet != null && shoot != null)
+                {
+                    LaserFloorSparks rig = LaserFloorSparksBuilder.Nest(root.transform, sheet, shoot);
+                    if (rig != null) sparks = rig.transform;
+                }
+                if (sparksProp.objectReferenceValue == null && sparks != null)
+                    sparksProp.objectReferenceValue = sparks.GetComponent<LaserFloorSparks>();
                 so.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             }

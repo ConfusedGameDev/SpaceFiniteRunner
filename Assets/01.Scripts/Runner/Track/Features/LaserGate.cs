@@ -160,6 +160,10 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             passed = false;
             extension = activates ? GrownAt(focus.Distance) : 1f;
             if (activates) beams[0].visual.SetExtension(extension);
+            // The prefab's nested spark rig, moved onto this root (the laser
+            // prefab is scaled) and stretched to the sheet's foot.
+            floorSparks = activates ? beams[0].visual.FloorSparks : null;
+            if (floorSparks != null) floorSparks.Fit(transform, burnRadius * 2f);
             UpdateBeams();
             placed = true;
             if (Application.isPlaying && isActiveAndEnabled) PickupRegistry.Register(this);
@@ -240,18 +244,6 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             UpdateBeams();
         }
 
-        LaserFloorSparks.Settings SparkSettings() => new()
-        {
-            ratePerMeter = definition.sparkRatePerMeter,
-            speed = definition.sparkSpeed,
-            lifetime = definition.sparkLifetime,
-            size = definition.sparkSize,
-            gravity = definition.sparkGravity,
-            bounce = definition.sparkBounce,
-            depth = definition.sparkDepth,
-            lightIntensity = definition.sparkLightIntensity,
-        };
-
         // Share of the sheet let down at the ship's distance, before the pass.
         float GrownAt(float shipDistance)
         {
@@ -273,11 +265,10 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             // the stream while it stays down. The sheet faces along the track,
             // so its foot runs across it (the root's right).
             bool touching = extension >= definition.floorContactThreshold;
-            if (touching)
+            if (touching && floorSparks != null)
             {
-                if (floorSparks == null) floorSparks = LaserFloorSparks.Create(transform, "FloorSparks", definition.sparkColor, burnRadius * 2f, SparkSettings());
                 floorSparks.SetPose(transform.TransformPoint(beams[0].a), transform.rotation);
-                if (!onFloor) floorSparks.Burst(definition.impactBurstCount);
+                if (!onFloor) floorSparks.Burst();
                 floorSparks.Play();
             }
             else if (onFloor && floorSparks != null) floorSparks.Stop();

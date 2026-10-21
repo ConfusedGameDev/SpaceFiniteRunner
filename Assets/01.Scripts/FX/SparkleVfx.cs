@@ -78,6 +78,9 @@ namespace ConfusedGameDev.FiniteRunner.FX
         /// <summary>The shared additive star material, for a looping emitter that wants the same spark (the duel's contact sparks).</summary>
         public static Material SharedMaterial => SparkleMaterial();
 
+        /// <summary>The generated star itself (readable), for an editor tool that bakes it into a texture asset an authored effect can reference.</summary>
+        public static Texture2D SharedTexture => SparkleTexture();
+
         static Material SparkleMaterial()
         {
             if (sparkleMaterial != null) return sparkleMaterial;

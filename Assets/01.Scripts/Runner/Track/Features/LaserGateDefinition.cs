@@ -187,59 +187,9 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public float retractSeconds = 0.4f;
 
         [ToggleGroup("activation")]
-        [Tooltip("Share of its length the sheet must hang out before it counts as touching the road (the impact burst and the floor sparks).")]
+        [Tooltip("Share of its length the sheet must hang out before it counts as touching the road (the impact burst and the floor sparks). The sparks' look is the PF_LaserFloorSparks prefab nested in the laser prefab — tune it there.")]
         [PropertyRange(0.5f, 1f)]
         public float floorContactThreshold = 0.98f;
-
-        [ToggleGroup("activation")]
-        [Tooltip("Colour of the sparks where the sheet meets the road.")]
-        [ColorUsage(true, true)]
-        public Color sparkColor = new(1f, 0.45f, 0.15f, 1f);
-
-        [ToggleGroup("activation")]
-        [Tooltip("Floor sparks per second per metre of the sheet's width (the whole bottom edge emits).")]
-        [PropertyRange(0f, 60f)]
-        public float sparkRatePerMeter = 12f;
-
-        [ToggleGroup("activation")]
-        [Tooltip("Speed the sparks leave the foot at (min, max), m/s, in every direction — the half fired into the road bounces back off it, low and wide.")]
-        [MinMaxSlider(0f, 60f, true), SuffixLabel("m/s", true)]
-        public Vector2 sparkSpeed = new(4f, 18f);
-
-        [ToggleGroup("activation")]
-        [Tooltip("How long a spark lives (min, max), seconds.")]
-        [MinMaxSlider(0.05f, 3f, true), SuffixLabel("s", true)]
-        public Vector2 sparkLifetime = new(0.3f, 0.8f);
-
-        [ToggleGroup("activation")]
-        [Tooltip("Spark size (min, max), metres. Drawn as streaks stretched by their speed.")]
-        [MinMaxSlider(0.05f, 3f, true), SuffixLabel("m", true)]
-        public Vector2 sparkSize = new(0.3f, 0.9f);
-
-        [ToggleGroup("activation")]
-        [Tooltip("Multiplier on gravity: higher keeps the spray down on the road.")]
-        [PropertyRange(0f, 6f)]
-        public float sparkGravity = 2f;
-
-        [ToggleGroup("activation")]
-        [Tooltip("Share of its speed a spark keeps when it hits the road, 0..1. 0 = they die flat; higher = they skip along it.")]
-        [PropertyRange(0f, 1f)]
-        public float sparkBounce = 0.35f;
-
-        [ToggleGroup("activation")]
-        [Tooltip("Depth of the emitting strip through the sheet, metres — how far either side of the sheet the sparks are born.")]
-        [PropertyRange(0.05f, 10f), SuffixLabel("m", true)]
-        public float sparkDepth = 0.5f;
-
-        [ToggleGroup("activation")]
-        [Tooltip("Intensity of the flickering light at the foot. 0 = no light.")]
-        [PropertyRange(0f, 40f)]
-        public float sparkLightIntensity = 8f;
-
-        [ToggleGroup("activation")]
-        [Tooltip("Sparks thrown all at once along the foot when the sheet first hits the road. 0 = no burst.")]
-        [PropertyRange(0, 500)]
-        public int impactBurstCount = 150;
 
         // Paired values are read through these, never as .x / .y.
         public float GrowFullMeters => Mathf.Min(growBand.x, growBand.y);

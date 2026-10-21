@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+using ConfusedGameDev.FiniteRunner.FX;
 namespace ConfusedGameDev.FiniteRunner.Track.Features
 {
     /// <summary>
@@ -40,6 +41,10 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
     /// sheet like the shoot point), and scaling that pivot's Z pulls the sheet
     /// up into the bar or lets it down onto the road. The gate drives it off
     /// the ship's distance; nothing here knows why.
+    /// <b>The spark rig is nested, not built</b>: the prefab carries a
+    /// <c>PF_LaserFloorSparks</c> instance (<see cref="FloorSparks"/>) for the
+    /// gate to play where the sheet meets the road — its look is that
+    /// prefab's, tuned by hand.
     /// </summary>
     public class LaserBeam : MonoBehaviour
     {
@@ -60,6 +65,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [SerializeField] Transform prefabShootPoint;
         [Tooltip("Parent of the sheet on its TOP edge (where it leaves the bar), forward down the sheet: scaling its Z grows the sheet from the bar. Empty = one is made at run time.")]
         [SerializeField] Transform prefabSheetPivot;
+        [Tooltip("The nested spark rig (PF_LaserFloorSparks) the gate plays where the sheet meets the road. Empty = the 'FloorSparks' child; none = no sparks.")]
+        [SerializeField] LaserFloorSparks floorSparks;
 
         static Material fallbackMaterial; // domain reload is off: checked for a destroyed one on every use
 
@@ -87,6 +94,12 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
         /// <summary>The authored model is drawn (the Prefab or Both look, and the prefab has one).</summary>
         public bool DrawsPrefabModel => prefab;
+
+        /// <summary>The nested spark rig for the sheet's foot; null when the prefab carries none.</summary>
+        public LaserFloorSparks FloorSparks => floorSparks;
+
+        /// <summary>Name of the nested spark rig under the prefab's root.</summary>
+        public const string FloorSparksName = "FloorSparks";
 
         /// <summary>How far the authored sheet reaches from the bar, metres, at its configured scale — the height of a gate drawing it.</summary>
         public float PrefabSheetLength { get; private set; }
@@ -179,9 +192,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             return true;
         }
 
-        // How far the sheet reaches down the shoot point's forward, and how
-        // wide it is across its right, in world metres.
-        static void MeasureSheet(Transform shootPoint, Transform sheet, out float length, out float width)
+        /// <summary>How far the sheet reaches down the shoot point's forward, and how wide it is across its right, in world metres.</summary>
+        public static void MeasureSheet(Transform shootPoint, Transform sheet, out float length, out float width)
         {
             length = 0f;
             float minX = float.PositiveInfinity, maxX = float.NegativeInfinity;
@@ -422,6 +434,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             if (prefabSheet == null && prefabSheetPivot != null) prefabSheet = prefabSheetPivot.Find("Plane");
             if (prefabSheet == null && prefabModel != null) prefabSheet = prefabModel.Find("Plane");
             if (prefabShootPoint == null && prefabModel != null) prefabShootPoint = prefabModel.Find("ShootPoint");
+            if (floorSparks == null && transform.Find(FloorSparksName) is Transform rig) floorSparks = rig.GetComponent<LaserFloorSparks>();
         }
 
         LineRenderer BuildLine(string lineName, Material material, Color color, float width)

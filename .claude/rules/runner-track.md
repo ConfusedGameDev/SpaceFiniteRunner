@@ -654,10 +654,19 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   from the top (`GetSegment`), so a half-lowered sheet misses a ship on the road; the patrol and
   rivals see the same. The FORECAST (`ForecastTouch`, DodgeSlowMo) takes the whole beam until the
   pass — it will be down when the ship arrives. At `floorContactThreshold` the foot (beam A, on the
-  road) gets `FX/LaserFloorSparks`: a thin box the sheet's full width (`burnRadius × 2`) along the
-  root's right, sparks in every direction bouncing off a collision PLANE through the foot (no
-  colliders), so they ring the sheet at road level — a `Burst` on the touch, a stream (`spark*`
-  knobs: rate per metre, speed, lifetime, size, gravity, bounce, depth, light) until the retract.
+  road) plays `FX/LaserFloorSparks`: a thin box along the root's right, sparks in every direction
+  bouncing off a collision PLANE through the foot (no colliders), so they ring the sheet at road
+  level — a `Burst` on the touch, a stream until the retract. **The sparks are an AUTHORED VFX
+  prefab, never built in code**: `03.Prefabs/Runner/PF_LaserFloorSparks` (ParticleSystem + `Floor`
+  plane + `Glow` light, `LaserFloorSparks_Mat` = the shared sparkle baked to
+  `02.Art/03.Textures/FiniteRunner/Sparkle_Star.png`) is NESTED in `PF_LaserSystem` as `FloorSparks`
+  at the sheet's foot (wired as `LaserBeam.floorSparks`), so designers tune speed, lifetime, size,
+  colour, gravity, bounce, the light and `impactBurstCount` in the prefab with the particle preview.
+  The gate only `Fit`s it — reparents it onto the gate root at unit scale (the laser prefab is
+  scaled 2) and stretches the box's X to the sheet's width (`burnRadius × 2`), scaling the authored
+  Rate over Time and the light's range by the same ratio — and switches it. `Install Laser Gate
+  Assets` makes and nests it (`LaserFloorSparksBuilder`, never overwriting); a laser prefab without
+  one simply has no sparks.
   No focus (a sandbox) or activation off = the gate stands on, as before. The sheet's convex
   `MeshCollider` was removed from the prefab (a flat plane never cooks; detection is analytic).
 - **The wave** (`LaserGateDefinition` "Wave" toggle group: `waveChance`, `waveAmplitude`,
