@@ -35,6 +35,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
     /// of the sheet turned half round the beam shows the side its
     /// front-face-only shader would cull. A prefab with no authored model
     /// falls back to the procedural look.
+    /// <b>The sheet grows from the bar</b> (<see cref="SetExtension"/>): it
+    /// hangs from a pivot on its top edge (<c>SheetPivot</c>, forward down the
+    /// sheet like the shoot point), and scaling that pivot's Z pulls the sheet
+    /// up into the bar or lets it down onto the road. The gate drives it off
+    /// the ship's distance; nothing here knows why.
     /// </summary>
     public class LaserBeam : MonoBehaviour
     {
@@ -53,6 +58,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [SerializeField] Transform prefabSheet;
         [Tooltip("Where the sheet leaves the bar, a child of the model: forward down the sheet, right across it. Empty = one is derived from the sheet's mesh at run time.")]
         [SerializeField] Transform prefabShootPoint;
+        [Tooltip("Parent of the sheet on its TOP edge (where it leaves the bar), forward down the sheet: scaling its Z grows the sheet from the bar. Empty = one is made at run time.")]
+        [SerializeField] Transform prefabSheetPivot;
 
         static Material fallbackMaterial; // domain reload is off: checked for a destroyed one on every use
 
@@ -67,6 +74,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         Vector3[] wavePoints = new Vector3[2]; // scratch, grown on demand
         bool procedural, prefab;     // which looks this beam draws
         Quaternion shootLocalModel;  // the model's shoot point rotation relative to the model root
+        Renderer[] sheetRenderers;   // the sheet and its back copy: hidden while fully retracted
+        float extension = 1f;
 
         /// <summary>
         /// How far an emitter's model reaches out from its barrel line, metres,
@@ -93,7 +102,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             ResolveReferences();
 
             // Detection is analytic: whatever colliders the models carry are only a picture.
-            foreach (var col in GetComponentsInChildren<Collider>(true)) Destroy(col);
+            foreach (var col in GetComponentsInChildren<Collider>(true)) Kill(col);
 
             prefab = def.DrawsPrefab && SetUpPrefabModel(def);
             if (def.DrawsPrefab && !prefab)
@@ -108,6 +117,15 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
                 procedural = false;
             }
             ready = procedural || prefab;
+        }
+
+        // Out of physics NOW (a queued Destroy leaves it there for the frame,
+        // where the sheet's convex collider fails to cook at its pulled-in
+        // scale), then gone.
+        static void Kill(Collider col)
+        {
+            col.enabled = false;
+            Destroy(col);
         }
 
         // The old look: the two emitters, sized, and the glow + core lines.
@@ -144,6 +162,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             if (sheetLength < 1e-3f || sheetWidth < 1e-3f) return false;
             PrefabSheetLength = sheetLength;
             PrefabSheetHalfWidth = sheetWidth * 0.5f;
+            if (prefabSheetPivot == null || !prefabSheet.IsChildOf(prefabSheetPivot))
+                prefabSheetPivot = DeriveSheetPivot(prefabModel, prefabSheet, prefabShootPoint);
 
             // The sheet's shader draws front faces only, and a gate seen from
             // past it shows its back: a copy turned half round the beam fills
@@ -151,7 +171,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             Transform back = Instantiate(prefabSheet.gameObject, prefabSheet.parent).transform;
             back.name = prefabSheet.name + "_Back";
             back.RotateAround(prefabShootPoint.position, prefabShootPoint.forward, 180f);
-            foreach (var col in back.GetComponentsInChildren<Collider>(true)) Destroy(col); // the original's are only queued for destruction, so the copy has its own
+            foreach (var col in back.GetComponentsInChildren<Collider>(true)) Kill(col); // the original's are only queued for destruction, so the copy has its own
+            sheetRenderers = prefabSheetPivot.GetComponentsInChildren<Renderer>(true); // the copy sits under the pivot too: it grows with the sheet
 
             shootLocalModel = Quaternion.Inverse(prefabModel.rotation) * prefabShootPoint.rotation;
             EmitterRadius = Mathf.Max(EmitterRadius, BarrelRadius(prefabModel, prefabShootPoint));
@@ -215,6 +236,47 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             Vector3 forward = along.normalized;
             point.rotation = Quaternion.LookRotation(forward, Vector3.Cross(forward, across.normalized));
             return point;
+        }
+
+        /// <summary>
+        /// The pivot the sheet grows from: on the shoot point's line, level
+        /// with the sheet's top edge (the corner nearest the bar), turned like
+        /// the shoot point so its forward runs down the sheet. Made a child of
+        /// <paramref name="model"/> with the sheet reparented under it, world
+        /// pose kept. Measure the sheet first — this is its full length.
+        /// </summary>
+        public static Transform DeriveSheetPivot(Transform model, Transform sheet, Transform shootPoint)
+        {
+            float top = float.PositiveInfinity;
+            foreach (Vector3 corner in MeshCorners(sheet))
+                top = Mathf.Min(top, Vector3.Dot(corner - shootPoint.position, shootPoint.forward));
+            if (float.IsInfinity(top)) top = 0f;
+
+            var pivot = new GameObject(SheetPivotName).transform;
+            pivot.SetParent(model, false);
+            pivot.SetPositionAndRotation(shootPoint.position + shootPoint.forward * top, shootPoint.rotation);
+            sheet.SetParent(pivot, true);
+            return pivot;
+        }
+
+        /// <summary>Name of the sheet's pivot under the model.</summary>
+        public const string SheetPivotName = "SheetPivot";
+
+        /// <summary>
+        /// How much of the sheet hangs out of the bar: 0 = pulled all the way
+        /// in (hidden), 1 = its full length, down on the road. The authored
+        /// look only — the procedural lines always draw whole.
+        /// </summary>
+        public void SetExtension(float extension01)
+        {
+            if (!prefab || prefabSheetPivot == null) return;
+            float e = Mathf.Clamp01(extension01);
+            if (Mathf.Approximately(e, extension)) return;
+            extension = e;
+            prefabSheetPivot.localScale = new Vector3(1f, 1f, Mathf.Max(1e-4f, e)); // never 0: a degenerate matrix
+            bool shown = e > 1e-3f;
+            if (sheetRenderers != null)
+                foreach (var r in sheetRenderers) if (r != null && r.enabled != shown) r.enabled = shown;
         }
 
         static IEnumerable<Vector3> MeshCorners(Transform root)
@@ -356,6 +418,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             if (shootPointA == null && emitterA != null) shootPointA = emitterA.Find("ShootPoint");
             if (shootPointB == null && emitterB != null) shootPointB = emitterB.Find("ShootPoint");
             if (prefabModel == null) prefabModel = transform.Find("laserTypeA");
+            if (prefabSheetPivot == null && prefabModel != null) prefabSheetPivot = prefabModel.Find(SheetPivotName);
+            if (prefabSheet == null && prefabSheetPivot != null) prefabSheet = prefabSheetPivot.Find("Plane");
             if (prefabSheet == null && prefabModel != null) prefabSheet = prefabModel.Find("Plane");
             if (prefabShootPoint == null && prefabModel != null) prefabShootPoint = prefabModel.Find("ShootPoint");
         }

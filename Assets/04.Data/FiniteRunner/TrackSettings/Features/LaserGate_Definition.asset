@@ -39,3 +39,18 @@ MonoBehaviour:
   waveLength: 6
   waveSpeed: 2
   waveTaper: 2
+  activation: 1
+  growBand: {x: 207.23683, y: 730.2631}
+  passMargin: 10
+  retractSeconds: 0.4
+  floorContactThreshold: 0.98
+  sparkColor: {r: 1, g: 0.45, b: 0.15, a: 1}
+  sparkRatePerMeter: 12
+  sparkSpeed: {x: 4, y: 18}
+  sparkLifetime: {x: 0.3, y: 0.8}
+  sparkSize: {x: 0.3, y: 0.9621711}
+  sparkGravity: 2
+  sparkBounce: 0.528
+  sparkDepth: 0.5
+  sparkLightIntensity: 8
+  impactBurstCount: 60

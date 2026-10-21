@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+using ConfusedGameDev.FiniteRunner.Contracts;
+using ConfusedGameDev.FiniteRunner.FX;
 using ConfusedGameDev.FiniteRunner.Ship;
 using ConfusedGameDev.FiniteRunner.Simulation;
 namespace ConfusedGameDev.FiniteRunner.Track.Features
@@ -36,6 +38,17 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
     /// the ship's model rides anyway (it sits metres above its box). The
     /// vertical beam is not lifted: it rises out of the road with its bottom
     /// emitter hidden.
+    /// <b>A gate drawing the authored sheet starts OFF</b>
+    /// (<see cref="LaserGateDefinition.activation"/>): the sheet lets itself
+    /// down from the bar as the ship closes from the band's start to its full
+    /// end (<see cref="LaserGateDefinition.growBand"/> — distance, not time, so
+    /// a pause freezes it), sparks where it meets the road, and pulls back up
+    /// once the ship is past — latched, it never comes down again. <b>Only
+    /// what is drawn burns</b>: the vertical segment is cut to the hanging
+    /// part, so a half-lowered sheet misses a ship on the road. The forecast
+    /// (<see cref="ForecastTouch"/>) takes the whole beam until the pass — it
+    /// WILL be down by the time the ship gets there. No focus (a sandbox, no
+    /// ship) = always on, as before.
     /// </summary>
     public class LaserGate : MonoBehaviour, ITrackPickup
     {
@@ -66,6 +79,13 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         float waveAmplitude; // 0 = straight beams; else what burns grows by it on the axis the wave swings along
         float burnRadius;    // half thickness of what burns: the definition's, or the prefab sheet's half width
 
+        IStreamFocus focus;   // the ship's distance; null = the gate stands on
+        bool activates;       // this gate grows: activation on, a focus, the authored sheet drawn
+        float extension = 1f; // share of the sheet hanging out of the bar (and of the vertical beam that burns)
+        bool passed;
+        bool onFloor;
+        LaserFloorSparks floorSparks;
+
         /// <summary>Metres the beams are DRAWN above the segments that burn, along the track's up — see the class summary.</summary>
         public float VisualLift { get; private set; }
 
@@ -88,7 +108,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         /// </summary>
         public void Configure(LaserGateDefinition def, LaserGateVariant variant, float distance, float lateral,
                               float length, float rotorDegreesPerSecond, float rotorPhaseDegrees,
-                              IReadOnlyList<LaserBeam> beamVisuals, float roadSurface, bool wavy = false)
+                              IReadOnlyList<LaserBeam> beamVisuals, float roadSurface, bool wavy = false,
+                              IStreamFocus streamFocus = null)
         {
             definition = def;
             Variant = variant;
@@ -132,6 +153,13 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
             VisualLift = variant == LaserGateVariant.Vertical ? 0f : LiftClearOfRoad(beamVisuals, roadSurface);
             ComputeBounds();
+
+            focus = streamFocus;
+            activates = def.activation && focus != null && variant == LaserGateVariant.Vertical
+                        && beams.Count > 0 && beams[0].visual != null && beams[0].visual.DrawsPrefabModel;
+            passed = false;
+            extension = activates ? GrownAt(focus.Distance) : 1f;
+            if (activates) beams[0].visual.SetExtension(extension);
             UpdateBeams();
             placed = true;
             if (Application.isPlaying && isActiveAndEnabled) PickupRegistry.Register(this);
@@ -189,16 +217,72 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         // One clock for the picture and the test. Scaled time: a pause stops the blade.
         float RotorAngle(float time) => (rotorPhase + rotorSpeed * time) * Mathf.Deg2Rad;
 
-        void GetSegment(int index, float time, out Vector3 a, out Vector3 b)
+        // The vertical beam hangs from its top (b): unless asked for the
+        // WHOLE beam, only the share let down burns.
+        void GetSegment(int index, float time, out Vector3 a, out Vector3 b, bool whole = false)
         {
-            if (!isRotor) { a = beams[index].a; b = beams[index].b; return; }
+            if (!isRotor)
+            {
+                a = beams[index].a;
+                b = beams[index].b;
+                if (activates && !whole) a = b + (a - b) * extension;
+                return;
+            }
             float angle = RotorAngle(time);
             var arm = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * rotorHalfLength;
             a = rotorCentre - arm;
             b = rotorCentre + arm;
         }
 
-        void Update() => UpdateBeams();
+        void Update()
+        {
+            UpdateActivation();
+            UpdateBeams();
+        }
+
+        LaserFloorSparks.Settings SparkSettings() => new()
+        {
+            ratePerMeter = definition.sparkRatePerMeter,
+            speed = definition.sparkSpeed,
+            lifetime = definition.sparkLifetime,
+            size = definition.sparkSize,
+            gravity = definition.sparkGravity,
+            bounce = definition.sparkBounce,
+            depth = definition.sparkDepth,
+            lightIntensity = definition.sparkLightIntensity,
+        };
+
+        // Share of the sheet let down at the ship's distance, before the pass.
+        float GrownAt(float shipDistance)
+        {
+            float gap = trackDistance - shipDistance;
+            float t = 1f - Mathf.InverseLerp(definition.GrowFullMeters, definition.GrowStartMeters, gap);
+            return t * t * (3f - 2f * t); // smoothstep: it eases off the bar and onto the road
+        }
+
+        void UpdateActivation()
+        {
+            if (!activates) return;
+            if (!passed && focus.Distance > trackDistance + definition.passMargin) passed = true;
+            extension = passed
+                ? Mathf.MoveTowards(extension, 0f, Time.deltaTime / Mathf.Max(0.01f, definition.retractSeconds))
+                : GrownAt(focus.Distance);
+            beams[0].visual.SetExtension(extension);
+
+            // Sparks along the sheet's whole bottom edge: a burst on the touch,
+            // the stream while it stays down. The sheet faces along the track,
+            // so its foot runs across it (the root's right).
+            bool touching = extension >= definition.floorContactThreshold;
+            if (touching)
+            {
+                if (floorSparks == null) floorSparks = LaserFloorSparks.Create(transform, "FloorSparks", definition.sparkColor, burnRadius * 2f, SparkSettings());
+                floorSparks.SetPose(transform.TransformPoint(beams[0].a), transform.rotation);
+                if (!onFloor) floorSparks.Burst(definition.impactBurstCount);
+                floorSparks.Play();
+            }
+            else if (onFloor && floorSparks != null) floorSparks.Stop();
+            onFloor = touching;
+        }
 
         void UpdateBeams()
         {
@@ -207,7 +291,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             for (int i = 0; i < beams.Count; i++)
             {
                 if (beams[i].visual == null) continue;
-                GetSegment(i, Time.time, out Vector3 a, out Vector3 b);
+                GetSegment(i, Time.time, out Vector3 a, out Vector3 b, whole: true); // the model is posed on the whole beam; the sheet's pivot does the growing
                 beams[i].visual.SetEndpoints(root.TransformPoint(a + lift), root.TransformPoint(b + lift), root.up, root.forward);
             }
         }
@@ -237,7 +321,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         {
             if (!placed || horizon <= 0f) return false;
             speed = Mathf.Max(0f, speed);
-            if (!isRotor) return Burns(distance, distance + speed * horizon, lateral, height, reach, Time.time);
+            if (!isRotor) return Burns(distance, distance + speed * horizon, lateral, height, reach, Time.time, whole: !passed); // it will be down by then
 
             step = Mathf.Max(0.01f, step);
             float now = Time.time;
@@ -268,7 +352,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         }
 
         // The one burn test, at a given clock (the rotor's angle is a function of it).
-        bool Burns(float fromDistance, float toDistance, float lateral, float height, Vector2 reach, float time)
+        bool Burns(float fromDistance, float toDistance, float lateral, float height, Vector2 reach, float time, bool whole = false)
         {
             float r = burnRadius;
             // Squash the space so "within the ship's box + the beam" is "within 1".
@@ -279,7 +363,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
             for (int i = 0; i < beams.Count; i++)
             {
-                GetSegment(i, time, out Vector3 a, out Vector3 b);
+                if (activates && !whole && extension <= 1e-3f) continue; // pulled up into the bar: nothing burns
+                GetSegment(i, time, out Vector3 a, out Vector3 b, whole);
                 if (SegmentDistanceSqr(p0, p1, Vector3.Scale(a, scale), Vector3.Scale(b, scale)) <= 1f) return true;
             }
             return false;

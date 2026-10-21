@@ -39,12 +39,16 @@ namespace ConfusedGameDev.FiniteRunner.Track
         public uint LayoutSeed { get; }
         /// <summary>Where the visible road surface sits along the track's up, relative to the flight line (negative = below). A floating pickup's lowest point must stay above it.</summary>
         public float RoadSurfaceOffset { get; }
+        /// <summary>What the track streams for — the ship's distance and speed — as the generator holds it NOW (a composition root may bind it after the context was made); null with no ship.</summary>
+        public IStreamFocus Focus => focusSource?.Invoke();
+
+        readonly System.Func<IStreamFocus> focusSource;
 
         public TrackSpawnContext(TrackManager track, ITrackRunRules rules, Transform parent,
                                  Vector3 padSize, Material boostMaterial, uint layoutSeed, float roadSurfaceOffset,
                                  List<(float, GameObject)> spawned, List<(float, float)> claims,
                                  List<float> pickupDistances, List<(float, float)> featureKeepOuts,
-                                 List<TrackPlacement> placements)
+                                 List<TrackPlacement> placements, System.Func<IStreamFocus> focus = null)
         {
             Track = track;
             Rules = rules;
@@ -58,6 +62,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             this.pickupDistances = pickupDistances;
             this.featureKeepOuts = featureKeepOuts;
             this.placements = placements;
+            focusSource = focus;
         }
 
         /// <summary>Records a decided placement: the generator builds it once the ship comes within the stream window.</summary>

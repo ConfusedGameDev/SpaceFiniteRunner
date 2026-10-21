@@ -596,7 +596,7 @@ weight 0** (`LaserGate_Definition.verticalWeight`): with only its top emitter sh
 lone emitter floating over a beam out of bare road, so it is off; the code is kept.
 
 - **Not a `TrackFeatureDefinition`.** Gates are the `LaserGateSpawner` (`Spawner_LaserGates`:
-  prefab, definition drawn inline and cloned in play, spacing 600–1200 m, `startDistance` 1500,
+  prefab, definition drawn inline and cloned in play, spacing 10–250 m and `startDistance` 0 as shipped,
   `clearance`), phase `ClaimsGround` — so BEFORE every pickup in every `Decide` pass, claiming their ground
   so no orb or coin sits in a beam, keyed on their END for the cull, drawing from the spawner's own
   rng. Play mode only.
@@ -641,6 +641,25 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   along the track. Under Prefab alone the wave is forced off (the sheet cannot zigzag). The
   shader culls back faces, so a copy of the sheet turned 180° round the beam is added. Each look's
   objects are activated only when drawn; a prefab with no model falls back to Procedural.
+- **Gates start OFF and let the sheet down as the ship closes in** (`LaserGateDefinition` "Activation"
+  toggle group, Prefab look only). The sheet hangs from `laserTypeA/SheetPivot` — on its TOP edge,
+  turned like the ShootPoint so +Z runs down the sheet (made once by Install Laser Gate Assets,
+  `LaserBeam.DeriveSheetPivot`; derived at run time on a prefab without one; the back copy is made
+  under it, so it grows too). `LaserBeam.SetExtension(0..1)` scales the pivot's Z (never 0) and hides
+  the renderers at 0. `LaserGate` drives it off the ship's DISTANCE (`IStreamFocus`, handed in by the
+  spawner from `TrackSpawnContext.Focus` = the generator's focus): smoothstep from 0 at
+  `GrowStartMeters` (450) to 1 at `GrowFullMeters` (200) — the same at any speed, frozen by a pause.
+  `passMargin` past the gate it latches `passed` and pulls back up over `retractSeconds`, never to
+  come down again. **Only what is drawn burns**: the vertical segment is cut to its hanging share
+  from the top (`GetSegment`), so a half-lowered sheet misses a ship on the road; the patrol and
+  rivals see the same. The FORECAST (`ForecastTouch`, DodgeSlowMo) takes the whole beam until the
+  pass — it will be down when the ship arrives. At `floorContactThreshold` the foot (beam A, on the
+  road) gets `FX/LaserFloorSparks`: a thin box the sheet's full width (`burnRadius × 2`) along the
+  root's right, sparks in every direction bouncing off a collision PLANE through the foot (no
+  colliders), so they ring the sheet at road level — a `Burst` on the touch, a stream (`spark*`
+  knobs: rate per metre, speed, lifetime, size, gravity, bounce, depth, light) until the retract.
+  No focus (a sandbox) or activation off = the gate stands on, as before. The sheet's convex
+  `MeshCollider` was removed from the prefab (a flat plane never cooks; detection is analytic).
 - **The wave** (`LaserGateDefinition` "Wave" toggle group: `waveChance`, `waveAmplitude`,
   `waveLength`, `waveSpeed`, `waveTaper`; rolled per gate off the spawner's rng, no draw while off): a
   TRIANGLE wave running A → B. `LaserBeam.BuildWave` puts a vertex on each muzzle and one ON every

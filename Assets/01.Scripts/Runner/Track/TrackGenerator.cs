@@ -706,7 +706,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
             spawnContext = new TrackSpawnContext(track, rules, padsParent, padSize, boostMaterial, layoutSeed,
                                                  decorator != null ? decorator.RoadYOffset : -1.2f,
-                                                 spawned, claims, padDistances, featureKeepOuts, placements);
+                                                 spawned, claims, padDistances, featureKeepOuts, placements, () => focus);
             foreach (var spawner in runtimeSpawners)
                 if (spawner != null) spawner.Begin(spawnContext);
             collectibleCursor = collectibleRng.NextFloat(collectibleSpacing.x, collectibleSpacing.y);
@@ -973,7 +973,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             collectibleRng = new Unity.Mathematics.Random(math.hash(new uint2(layoutSeed, TrackSpawner.NameHash("Collectibles"))) | 1u);
             spawnContext = new TrackSpawnContext(track, rules, padsParent, padSize, boostMaterial, layoutSeed,
                                                  decorator != null ? decorator.RoadYOffset : -1.2f,
-                                                 spawned, claims, padDistances, featureKeepOuts, placements);
+                                                 spawned, claims, padDistances, featureKeepOuts, placements, () => focus);
             RedecideSpawnSet(layout);
 
             layout.placements.Clear();

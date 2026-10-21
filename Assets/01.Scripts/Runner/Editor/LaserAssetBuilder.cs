@@ -13,7 +13,9 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// emitters and shoot points wired by name (LaserA / LaserB, each with a
     /// ShootPoint child) and the authored laser model of the Prefab look
     /// (laserTypeA, its Plane sheet, and a ShootPoint on the bar — derived
-    /// from the sheet when there is none). The generator's Laser gates group still has to be
+    /// from the sheet when there is none) — the sheet hung from a
+    /// <c>SheetPivot</c> on its top edge, so a gate can grow it down from the
+    /// bar (<see cref="LaserBeam.SetExtension"/>). The generator's Laser gates group still has to be
     /// pointed at the prefab and the definition in the scene.
     /// </summary>
     public static class LaserAssetBuilder
@@ -101,12 +103,18 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
                 // The Prefab look: the authored model, its sheet and a shoot
                 // point on the bar (derived from the sheet when it has none).
                 Transform model = root.transform.Find(ModelName);
-                Transform sheet = model != null ? model.Find(SheetName) : null;
+                Transform pivot = model != null ? model.Find(LaserBeam.SheetPivotName) : null;
+                Transform sheet = pivot != null ? pivot.Find(SheetName) : null;
+                if (sheet == null && model != null) sheet = model.Find(SheetName);
                 Transform shoot = model != null ? model.Find("ShootPoint") : null;
                 if (shoot == null && model != null && sheet != null) shoot = LaserBeam.DeriveShootPoint(model, sheet);
+                // The pivot the sheet grows from: on its top edge, made once.
+                if (pivot == null && model != null && sheet != null && shoot != null)
+                    pivot = LaserBeam.DeriveSheetPivot(model, sheet, shoot);
                 Wire(so, "prefabModel", model, required: false);
                 Wire(so, "prefabSheet", sheet, required: false);
                 Wire(so, "prefabShootPoint", shoot, required: false);
+                Wire(so, "prefabSheetPivot", pivot, required: false);
                 so.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             }
