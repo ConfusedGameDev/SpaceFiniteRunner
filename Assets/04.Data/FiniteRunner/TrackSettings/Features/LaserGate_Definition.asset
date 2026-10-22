@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.Features.LaserGateDefinition
   coverageBand: {x: 0.2, y: 0.44600004}
   beamRadius: 0.27
-  beamHeight: 0
+  beamHeight: -0.07
   horizontalWeight: 4
   verticalWeight: 0
   tripleWeight: 2
@@ -22,9 +22,9 @@ MonoBehaviour:
   tripleSpacing: 5
   verticalHeight: 20
   rotorSpeedBand: {x: 40, y: 90}
-  emitterScale: 20
-  emitterSpinDegPerSec: 360
-  emitterRoadClearance: 0.5
+  emitterScale: 0.5
+  emitterSpinDegPerSec: 0
+  emitterRoadClearance: 0
   look: 1
   prefabModelScale: 1
   beamMaterial: {fileID: 2100000, guid: 818364b793a257b4e97d59c89537325b, type: 2}
@@ -40,8 +40,8 @@ MonoBehaviour:
   waveSpeed: 2
   waveTaper: 2
   activation: 1
-  growBand: {x: 480, y: 540}
-  passMargin: 100
+  growBand: {x: 1369.5653, y: 1500}
+  passMargin: 17.9
   retractSeconds: 0.36
-  floorContactThreshold: 0.5
-  underTrackOverflow: 2.93
+  floorContactThreshold: 0.578
+  underTrackOverflow: 8.1

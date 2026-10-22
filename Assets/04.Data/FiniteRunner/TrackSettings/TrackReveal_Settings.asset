@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TrackReveal_Settings
   m_EditorClassIdentifier: ConfusedGameDev.FiniteRunner.Runner::ConfusedGameDev.FiniteRunner.Track.TrackRevealSettings
   revealEnabled: 1
-  startAhead: 726
+  startAhead: 1226
   band: 300
   stagger: 60
   creepSpeed: 150
