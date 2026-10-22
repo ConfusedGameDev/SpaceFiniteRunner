@@ -648,7 +648,10 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   under it, so it grows too). `LaserBeam.SetExtension(0..1)` scales the pivot's Z (never 0) and hides
   the renderers at 0. `LaserGate` drives it off the ship's DISTANCE (`IStreamFocus`, handed in by the
   spawner from `TrackSpawnContext.Focus` = the generator's focus): smoothstep from 0 at
-  `GrowStartMeters` (450) to 1 at `GrowFullMeters` (200) — the same at any speed, frozen by a pause.
+  `GrowStartMeters` (700) to 1 at `GrowFullMeters` (450) — the same at any speed, frozen by a pause.
+  **The start must sit inside the track reveal's seated edge** (`startAhead − band − stagger`, 866 m
+  as shipped): a gate is collapsed until the reveal front seats it, and a sheet that lowers before
+  that rises in already on (it was 1370–1500 against a 1226 m front).
   `passMargin` past the gate it latches `passed` and pulls back up over `retractSeconds`, never to
   come down again. **Only what is drawn burns**: the vertical segment is cut to its hanging share
   from the top (`GetSegment`), so a half-lowered sheet misses a ship on the road; the patrol and
@@ -978,7 +981,9 @@ global floats a frame at any density (no per-piece CPU work, no Jobs/DOTS needed
   record distance, lateral; play only), subscribed at `SubsystemRegistration` because the generator
   builds its first stretch in its own Awake. Inside the band its ROOT gets the shader's motion
   (`TrackReveal.Seed` / `Ease` are the shader's, line for line); seated, it leaves the list for good.
-  **The offset never sticks**: applied as the last `LateUpdate` (execution order 10000) and taken off
+  **A prop is never dropped as seated on the frame it was built**: a retry regenerates from a UI
+  callback after `TrackReveal.Update` set the front off LAST run's distance, and judged by it every
+  prop short of where the ship died left the list and never rose. **The offset never sticks**: applied as the last `LateUpdate` (execution order 10000) and taken off
   by `TrackReveal.Update` (order −10000) via `Restore()` before anything else runs, so props that pose
   themselves (`OrbHover`, the laser emitters) still read and write their true pose. Not started = the
   root sunk `drop` and scaled to 1e-4 (never 0: collider warnings). Colliders inside the band are

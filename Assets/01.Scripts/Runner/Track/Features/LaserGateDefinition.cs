@@ -172,7 +172,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         public bool activation = true;
 
         [ToggleGroup("activation")]
-        [Tooltip("Distance from the ship to the gate (full, start), metres: the sheet starts down at the far end and is on the road at the near one. Distances, not seconds, so it looks the same at any speed — keep the start inside the reveal / fog front (~450 m) and the full end far enough out to steer round.")]
+        [Tooltip("Distance from the ship to the gate (full, start), metres: the sheet starts down at the far end and is on the road at the near one. Distances, not seconds, so it looks the same at any speed — keep the start inside the track reveal's seated edge (TrackReveal_Settings startAhead − band − stagger, ~866 m as shipped), or the sheet lets itself down while the gate is still collapsed and it rises in already on; keep the full end far enough out to steer round.")]
         [MinMaxSlider(0f, 1500f, true), SuffixLabel("m", true)]
         public Vector2 growBand = new(200f, 450f);
 

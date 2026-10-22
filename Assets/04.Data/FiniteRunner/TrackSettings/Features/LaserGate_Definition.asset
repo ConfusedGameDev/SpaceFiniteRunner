@@ -40,7 +40,7 @@ MonoBehaviour:
   waveSpeed: 2
   waveTaper: 2
   activation: 1
-  growBand: {x: 1369.5653, y: 1500}
+  growBand: {x: 450, y: 700}
   passMargin: 17.9
   retractSeconds: 0.36
   floorContactThreshold: 0.578

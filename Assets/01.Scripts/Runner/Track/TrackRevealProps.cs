@@ -43,6 +43,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             public Vector3 position; // the true pose under the offset
             public Quaternion rotation;
             public Vector3 scale;
+            public int bornFrame;    // the frame it was built: the front may still be last run's (a retry)
         }
 
         // A collapsed prop is not scaled to 0: a zero scale trips collider warnings.
@@ -64,7 +65,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         {
             if (go == null) return;
             if (props.Count > SweepAbove) props.RemoveAll(p => p.root == null);
-            props.Add(new Prop { root = go.transform, distance = distance, seed = TrackReveal.Seed(distance, lateral) });
+            props.Add(new Prop { root = go.transform, distance = distance, seed = TrackReveal.Seed(distance, lateral), bornFrame = Time.frameCount });
         }
 
         /// <summary>
@@ -78,7 +79,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (root == null || mover == null) return;
             for (int i = props.Count - 1; i >= 0; i--)
                 if (props[i].root == root) props.RemoveAt(i);
-            props.Add(new Prop { root = root, mover = mover, seed = TrackReveal.Seed(mover.Distance, lateral) });
+            props.Add(new Prop { root = root, mover = mover, seed = TrackReveal.Seed(mover.Distance, lateral), bornFrame = Time.frameCount });
         }
 
         TrackReveal reveal;
@@ -118,7 +119,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
 
                 float at = p.mover != null ? p.mover.Distance : p.distance + p.seed * s.stagger;
                 float t = Mathf.Clamp01((reveal.Front - at) / band);
-                if (t >= 1f) { props.RemoveAt(i); continue; } // seated for good: the front never goes back
+                if (t >= 1f)
+                {
+                    // A retry rebuilds the track mid-frame, after the reveal set
+                    // this frame's front off LAST run's distance: judged by it, the
+                    // new props would read seated and never rise. Wait a frame.
+                    if (p.bornFrame != Time.frameCount) props.RemoveAt(i); // seated for good: the front never goes back
+                    continue;
+                }
 
                 Transform root = p.root;
                 p.position = root.position;
