@@ -81,7 +81,8 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
         IStreamFocus focus;   // the ship's distance; null = the gate stands on
         bool activates;       // this gate grows: activation on, a focus, the authored sheet drawn
-        float extension = 1f; // share of the sheet hanging out of the bar (and of the vertical beam that burns)
+        float extension = 1f; // share of the sheet's grown length (sheet + under-track overflow) hanging out of the bar
+        float overflowScale = 1f; // grown length over the bar-to-road length: > 1 when the sheet overflows under the track
         bool passed;
         bool onFloor;
         LaserFloorSparks floorSparks;
@@ -158,8 +159,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             activates = def.activation && focus != null && variant == LaserGateVariant.Vertical
                         && beams.Count > 0 && beams[0].visual != null && beams[0].visual.DrawsPrefabModel;
             passed = false;
+            overflowScale = activates && beams[0].visual.PrefabSheetLength > 1e-3f
+                ? 1f + def.underTrackOverflow / beams[0].visual.PrefabSheetLength
+                : 1f;
             extension = activates ? GrownAt(focus.Distance) : 1f;
-            if (activates) beams[0].visual.SetExtension(extension);
+            if (activates) beams[0].visual.SetExtension(extension * overflowScale);
             // The prefab's nested spark rig, moved onto this root (the laser
             // prefab is scaled) and stretched to the sheet's foot.
             floorSparks = activates ? beams[0].visual.FloorSparks : null;
@@ -229,7 +233,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             {
                 a = beams[index].a;
                 b = beams[index].b;
-                if (activates && !whole) a = b + (a - b) * extension;
+                if (activates && !whole) a = b + (a - b) * Reach;
                 return;
             }
             float angle = RotorAngle(time);
@@ -252,6 +256,10 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             return t * t * (3f - 2f * t); // smoothstep: it eases off the bar and onto the road
         }
 
+        // Share of the bar-to-road beam the sheet covers: what burns. The
+        // overflow past the road is drawn only.
+        float Reach => Mathf.Min(1f, extension * overflowScale);
+
         void UpdateActivation()
         {
             if (!activates) return;
@@ -259,12 +267,12 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
             extension = passed
                 ? Mathf.MoveTowards(extension, 0f, Time.deltaTime / Mathf.Max(0.01f, definition.retractSeconds))
                 : GrownAt(focus.Distance);
-            beams[0].visual.SetExtension(extension);
+            beams[0].visual.SetExtension(extension * overflowScale);
 
             // Sparks along the sheet's whole bottom edge: a burst on the touch,
             // the stream while it stays down. The sheet faces along the track,
             // so its foot runs across it (the root's right).
-            bool touching = extension >= definition.floorContactThreshold;
+            bool touching = Reach >= definition.floorContactThreshold;
             if (touching && floorSparks != null)
             {
                 floorSparks.SetPose(transform.TransformPoint(beams[0].a), transform.rotation);
@@ -354,7 +362,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
             for (int i = 0; i < beams.Count; i++)
             {
-                if (activates && !whole && extension <= 1e-3f) continue; // pulled up into the bar: nothing burns
+                if (activates && !whole && Reach <= 1e-3f) continue; // pulled up into the bar: nothing burns
                 GetSegment(i, time, out Vector3 a, out Vector3 b, whole);
                 if (SegmentDistanceSqr(p0, p1, Vector3.Scale(a, scale), Vector3.Scale(b, scale)) <= 1f) return true;
             }

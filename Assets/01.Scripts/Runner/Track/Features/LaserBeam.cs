@@ -276,13 +276,14 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
         /// <summary>
         /// How much of the sheet hangs out of the bar: 0 = pulled all the way
-        /// in (hidden), 1 = its full length, down on the road. The authored
-        /// look only — the procedural lines always draw whole.
+        /// in (hidden), 1 = its full length, down on the road; past 1 it
+        /// overflows under the track (<see cref="LaserGateDefinition.underTrackOverflow"/>).
+        /// The authored look only — the procedural lines always draw whole.
         /// </summary>
-        public void SetExtension(float extension01)
+        public void SetExtension(float share)
         {
             if (!prefab || prefabSheetPivot == null) return;
-            float e = Mathf.Clamp01(extension01);
+            float e = Mathf.Max(0f, share);
             if (Mathf.Approximately(e, extension)) return;
             extension = e;
             prefabSheetPivot.localScale = new Vector3(1f, 1f, Mathf.Max(1e-4f, e)); // never 0: a degenerate matrix

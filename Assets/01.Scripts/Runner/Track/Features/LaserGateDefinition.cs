@@ -94,7 +94,7 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
         [TitleGroup("Emitters")]
         [Tooltip("Gap kept between the visible road and the lowest point an emitter can reach as it spins. A horizontal, triple or rotor gate is DRAWN lifted by whatever this takes (the burn stays on the flight line, where the ship's hit box is — the ship's model rides that much above it anyway); a vertical beam rises out of the road with its bottom emitter hidden.")]
-        [PropertyRange(0f, 5f), SuffixLabel("m", true)]
+        [PropertyRange(0f, 50f), SuffixLabel("m", true)]
         public float emitterRoadClearance = 0.5f;
 
         [TitleGroup("Look")]
@@ -190,6 +190,11 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
         [Tooltip("Share of its length the sheet must hang out before it counts as touching the road (the impact burst and the floor sparks). The sparks' look is the PF_LaserFloorSparks prefab nested in the laser prefab — tune it there.")]
         [PropertyRange(0.5f, 1f)]
         public float floorContactThreshold = 0.98f;
+
+        [ToggleGroup("activation")]
+        [Tooltip("How much further the sheet keeps growing past the road, down under the track, metres. 0 = it stops on the road. The grow band covers the whole length (sheet + overflow), so with overflow the sheet meets the road a little before the band's near end and keeps pushing down under it. Only the part above the road burns; the floor sparks still fire at road level.")]
+        [PropertyRange(0f, 50f), SuffixLabel("m", true)]
+        public float underTrackOverflow = 0f;
 
         // Paired values are read through these, never as .x / .y.
         public float GrowFullMeters => Mathf.Min(growBand.x, growBand.y);

@@ -653,7 +653,10 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   come down again. **Only what is drawn burns**: the vertical segment is cut to its hanging share
   from the top (`GetSegment`), so a half-lowered sheet misses a ship on the road; the patrol and
   rivals see the same. The FORECAST (`ForecastTouch`, DodgeSlowMo) takes the whole beam until the
-  pass — it will be down when the ship arrives. At `floorContactThreshold` the foot (beam A, on the
+  pass — it will be down when the ship arrives. `underTrackOverflow` (0–50 m, default 0) lets the
+  sheet keep growing that far under the road: `extension` runs over sheet + overflow, the pivot
+  scale goes past 1 (`LaserBeam.SetExtension` no longer clamps at 1), and `Reach` (the burning /
+  touching share, capped at 1) = `extension × overflowScale`. At `floorContactThreshold` the foot (beam A, on the
   road) plays `FX/LaserFloorSparks`: a thin box along the root's right, sparks in every direction
   bouncing off a collision PLANE through the foot (no colliders), so they ring the sheet at road
   level — a `Burst` on the touch, a stream until the retract. **The sparks are an AUTHORED VFX
