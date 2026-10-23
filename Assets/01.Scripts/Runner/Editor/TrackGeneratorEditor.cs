@@ -125,6 +125,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             using (new EditorGUI.DisabledScope(working == null || !working.IsValid || editingTrack))
                 if (GUILayout.Button("Preview Saved Track")) Preview(generator, working);
 
+            DrawBuildRange(generator);
             DrawEditPanel(generator);
 
             if (GUILayout.Button("Regenerate (endless preview)")) EndlessPreview(generator);

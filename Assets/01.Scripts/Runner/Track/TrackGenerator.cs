@@ -381,6 +381,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         bool shapeIsClone;                                // shapeRuntime is ours to destroy (a play clone or the fallback), never an asset
         readonly Dictionary<GameObject, float> placedAt = new(); // built object → the distance of the record it came from (live edits rebuild a window)
         float builtTo;                                    // everything decided before this distance is built
+        float buildFrom;                                  // an edit preview's range start: nothing before it is built (0 in play)
         Dictionary<FeatureSpawnEntry, Material> featureMaterials;
         Material collectibleMaterial;
 
@@ -414,6 +415,17 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// whole road is decided up front, so this is the stream window's edge.
         /// </summary>
         public float SettledDistance => builtTo;
+
+        /// <summary>Track distance the built stretch starts at: an edit preview's range start, or in play what is not culled yet.</summary>
+        public float BuiltFrom => Mathf.Max(buildFrom, CullDistance);
+
+        /// <summary>
+        /// The stretch (metres from the start) an EDIT-MODE preview builds — a
+        /// bake, a saved track, the road editor — instead of the stream
+        /// window's first stretch; null keeps that. The editor sets it (a
+        /// per-user preference); play never reads it.
+        /// </summary>
+        public static Vector2? PreviewRange { get; set; }
 
         // Track distance that is DECIDED for good: past it, AutoSmooth still
         // reshapes the trailing curves when the next knot lands.
@@ -599,6 +611,8 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 DestroyObject(go);
                 spawned.RemoveAt(i);
             }
+            from = Mathf.Max(from, buildFrom); // never past the preview range's start
+            if (to < from) return;
             foreach (TrackPlacement p in layout.placements)
                 if (p.distance >= from && p.distance <= to && p.distance < builtTo && p.kind != TrackPlacementKind.EndRamp)
                     BuildTracked(p);
@@ -667,6 +681,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
             unbuilt.Clear();
             placementsQueued = 0;
             builtTo = 0f;
+            buildFrom = 0f;
             sectionRecords.Clear();
             placedAt.Clear();
             ClearChildren(padsParent);
@@ -742,7 +757,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     RequeuePlacements();
                     ParkPlacers();
                 }
-                if (build) BuildUpTo(aheadDistance);
+                if (build) BuildFirstStretch();
                 return;
             }
 
@@ -753,7 +768,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 // is built — from the START, not from where the ship was last
                 // run (a restart regenerates before the ship relaunches).
                 Decide(IsFinite ? float.PositiveInfinity : aheadDistance);
-                BuildUpTo(aheadDistance);
+                BuildFirstStretch();
             }
             else
             {
@@ -836,6 +851,47 @@ namespace ConfusedGameDev.FiniteRunner.Track
                 MarkPreview(checkpointParent);
                 if (decorator != null) decorator.MarkPreview(); // the end markers stamp outside DecorateUpTo
             }
+        }
+
+        // What a (re)generate builds: the stream window's first stretch from the
+        // start — in edit mode the editor's PreviewRange instead, when it set one.
+        void BuildFirstStretch()
+        {
+            if (Application.isPlaying || PreviewRange is not Vector2 range)
+            {
+                BuildUpTo(aheadDistance);
+                return;
+            }
+            // Records before the range are dropped from the queue, never built;
+            // the road art starts on the range too (the end markers it holds are
+            // stamped by the end ramps' records, so it is told before they build).
+            buildFrom = Mathf.Max(0f, range.x);
+            int skip = 0;
+            while (skip < unbuilt.Count && unbuilt[skip].distance < buildFrom) skip++;
+            unbuilt.RemoveRange(0, skip);
+            if (decorator != null) decorator.StartAt(buildFrom);
+            BuildUpTo(Mathf.Max(range.y, buildFrom));
+        }
+
+        /// <summary>
+        /// EDIT MODE: takes down everything built and builds the track on show
+        /// again over <see cref="PreviewRange"/> — the road and its records as
+        /// they are, nothing decided or reloaded (so an unsaved bake survives).
+        /// </summary>
+        public void RebuildPreview()
+        {
+            if (Application.isPlaying || track == null) return;
+            foreach (var (_, go) in spawned)
+                if (go != null) TrackDecorator.SafeDestroy(go);
+            spawned.Clear();
+            placedAt.Clear();
+            ClearChildren(padsParent);
+            ClearPreviews(checkpointParent);
+            if (decorator != null) decorator.Clear();
+            builtTo = 0f;
+            buildFrom = 0f;
+            RequeuePlacements();
+            BuildFirstStretch();
         }
 
         /// <summary>

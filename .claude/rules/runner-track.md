@@ -122,7 +122,7 @@ Procedural builder **and** streamer, in two halves that never mix (TrackAuthorin
   its full shape and length from the first frame (`Placements` exposes the records); an endless
   preview decides as it streams (`Decide(focus + aheadDistance)`).
 - **Building** (`BuildUpTo(edge)`) turns records into GameObjects only inside the stream window —
-  the ship to `aheadDistance` ahead (16 km in the test scene) — in distance order, and draws
+  the ship to `aheadDistance` ahead (30 km in the test scene) — in distance order, and draws
   nothing, so the same records always build the same objects. `SettledDistance` is how far it has
   BUILT; the colliders and the decoration follow it. `Build` routes generator kinds (Ramp, Loop,
   EndRamp, Collectible) to the generator's builders and every other kind to the spawner whose
@@ -265,6 +265,17 @@ stay endless.
   replacing a saved track asks first) · Set as Current Track / Clear Current Track (writes the scene
   `GameManager`'s level) · Preview Saved Track (`PreviewSavedTrack`: loads it as play would) ·
   Regenerate (endless preview).
+- **Build Range** (`Runner/Editor/TrackGeneratorEditor.BuildRange.cs`): which stretch of the track on
+  show an EDIT-MODE preview builds as GameObjects — a min-max slider (metres) applied by Build Range /
+  Whole Track, per user in EditorPrefs (`TrackGizmoSettings.BuildRange`, handed to the static
+  `TrackGenerator.PreviewRange` on every editor load). Every edit-mode (re)generate builds that
+  range (`BuildFirstStretch`: records before it dropped from the queue, `TrackDecorator.StartAt` on
+  it) instead of the first `aheadDistance`; Build Range itself is `RebuildPreview` — the road and its
+  records as they are, nothing decided or reloaded, so an unsaved bake survives. Live drags never
+  build before the range (`RebuildWindow` clamps). A span keyed before the range start (a loop whose
+  mouth is before it) is not built. Play never reads it. The inspector minimap draws the whole track
+  top-down in white, the built stretch (`BuiltFrom`–`SettledDistance`) in red, a pending pick in
+  orange; the Scene view draws the built stretch red over the centre line.
 - **Scene-view drawing** (`Runner/Editor/TrackGizmos.cs`, M3): a `[DrawGizmo]` for the generator,
   read off the live `TrackManager` and `Placements` — a bake, a Preview Saved Track or a run in play,
   never GameObjects. The whole centre line coarsely; round the Scene camera (`DetailRadius`) the lane

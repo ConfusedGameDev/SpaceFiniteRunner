@@ -212,6 +212,18 @@ namespace ConfusedGameDev.FiniteRunner.Track
             if (!Application.isPlaying) TrackGenerator.MarkPreview(decorParent); // a preview never lands in the scene file
         }
 
+        /// <summary>
+        /// A fresh road starts stamping at <paramref name="distance"/> instead of
+        /// the track start (an edit preview of a stretch); the stamps stay on
+        /// the same grid. Ignored once anything is stamped.
+        /// </summary>
+        public void StartAt(float distance)
+        {
+            if (stampCursor > 0f || distance <= 0f) return;
+            float first = roadSpacing * 0.5f;
+            stampCursor = first + Mathf.Max(0, Mathf.CeilToInt((distance - first) / roadSpacing)) * roadSpacing;
+        }
+
         /// <summary>Destroys every stamped piece before <paramref name="distance"/>.</summary>
         public void CullBefore(float distance)
         {

@@ -44,6 +44,8 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         const float CheckpointGateHeight = 28f; // the runtime gate's default beam height
         static readonly Color EndZoneColor = new(1f, 0.25f, 0.9f, 1f);
         static readonly Color TickColor = new(1f, 1f, 1f, 0.5f);
+        /// <summary>The built stretch, in the Scene view and the inspector's minimap.</summary>
+        public static readonly Color BuiltColor = new(1f, 0.2f, 0.2f, 1f);
 
         [System.Flags]
         enum Flag : byte { None = 0, OpenLeft = 1, OpenRight = 2, Flat = 4, Section = 8, EndZone = 16 }
@@ -81,7 +83,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         static readonly Dictionary<TrackGenerator, Cache> caches = new();
 
         // Reused per repaint: one line batch per colour.
-        static readonly List<Vector3> lane = new(), wall = new(), open = new(), flat = new(), section = new(), endZone = new(), ticks = new();
+        static readonly List<Vector3> lane = new(), wall = new(), open = new(), flat = new(), section = new(), endZone = new(), ticks = new(), builtLine = new();
 
         [DrawGizmo(GizmoType.NonSelected | GizmoType.Selected)]
         static void Draw(TrackGenerator generator, GizmoType gizmoType)
@@ -103,6 +105,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
 
             Handles.color = CentreColor;
             Handles.DrawPolyLine(cache.coarse);
+            DrawBuiltStretch(generator, cache);
 
             lane.Clear(); wall.Clear(); open.Clear(); flat.Clear(); section.Clear(); endZone.Clear(); ticks.Clear();
             int count = cache.centre.Count;
@@ -155,6 +158,42 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
         {
             batch.Add(a);
             batch.Add(b);
+        }
+
+        // The stretch that is built as GameObjects, over the whole centre line in red.
+        static void DrawBuiltStretch(TrackGenerator generator, Cache cache)
+        {
+            float from = generator.BuiltFrom, to = generator.SettledDistance;
+            if (to <= from) return;
+            builtLine.Clear();
+            int last = cache.distance.Count - 1;
+            for (int i = 0; i <= last; i++)
+            {
+                float d = cache.distance[i];
+                if (d < from) continue;
+                if (d > to) break;
+                if (i % CoarseEvery == 0 || i == last || builtLine.Count == 0) builtLine.Add(cache.centre[i]);
+            }
+            if (builtLine.Count < 2) return;
+            Handles.color = BuiltColor;
+            Handles.DrawAAPolyLine(4f, builtLine.ToArray());
+        }
+
+        /// <summary>
+        /// The sampled centre line (every <see cref="Step"/> m) with each
+        /// sample's track distance — the inspector's minimap draws from the
+        /// same cache. False when there is no track to draw.
+        /// </summary>
+        public static bool TryGetCentreLine(TrackGenerator generator, out List<float> distance, out List<Vector3> centre)
+        {
+            distance = null;
+            centre = null;
+            TrackManager track = generator != null ? generator.Track : null;
+            if (track == null || track.Spline == null || track.Length < Step * 2f) return false;
+            Cache cache = GetCache(generator, track);
+            distance = cache.distance;
+            centre = cache.centre;
+            return centre.Count > 1;
         }
 
         static void DrawBatch(List<Vector3> batch, Color color)
