@@ -552,6 +552,9 @@ namespace ConfusedGameDev.FiniteRunner.GameFlow
                 ChaseMinimap.Spawn(motor, patrol, this, settings.minimapRangeMeters,
                                    patrol != null ? patrol.Definition.warnDistance : 0f, generator, Standings, TimeTrialState);
 
+            // The debug patrol cam (F2): a null patrol (chase off) reads NO SIGNAL.
+            PatrolCamFeed.Spawn(patrol);
+
             // The duel: the tug-of-war bar, and the slow motion the exchange
             // runs under. Both no-op without a patrol or with the duel off.
             // The slow-mo rides the ship like the loop's does, so the two share

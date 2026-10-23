@@ -132,6 +132,27 @@ hidden while `motor.Paused`. The dash prompt's pattern: hand-placed in `PF_UI`
 (`PF_HyperspacePrompt`), `Spawn(motor)` finds, binds and builds it on its own overlay canvas (12);
 never spawned → `Awake` tears the baked preview down. Sandbox `HyperspacePrompt`.
 
+## `PatrolCamFeed` (`Runner/HUD/`) — the debug PATROL CAM (F2)
+
+A picture-in-picture in the top-left corner showing a camera that follows the patrol cruiser,
+toggled with **F2** (`Keyboard.current.f2Key`, read raw — a debug key, never a `ControlBindings`
+action). Debug only (`Debug.isDebugBuild`), hidden at start unless `startVisible`. Hand-placed in
+`PF_UI` (`PF_PatrolCam`); `GameManager.Awake` calls `PatrolCamFeed.Spawn(patrol)` after the
+minimap, which finds, binds and builds it on its own overlay canvas at sorting **11** (above the
+HUD, under the prompts). Its knobs (plate size / margin / frame, render-texture size, FOV, follow
+offset, look height, heading sharpness, NO SIGNAL image and static) live on
+`04.Data/FiniteRunner/UI/PatrolCam_Settings.asset`, read live.
+
+- **The camera is bolted to the patrol's ROOT** (the flight line, not the bobbing visual): the
+  position is exact every frame and only the heading is smoothed — a lagged position trails a
+  kilometre behind at Light Speed. It renders into its own RenderTexture, URP post and shadows off,
+  and is **disabled whenever the feed is hidden or dead**, so it costs nothing unless watched.
+- **NO SIGNAL** when there is no patrol to film: a null patrol (the chase is off — the GameManager
+  hands in null), an inactive one, or `HiddenFromMap` (gone off the end, hidden across a kill). A
+  held patrol is still filmed. `noSignalImage` when assigned, else the dark plate with
+  `— NO SIGNAL —` over a jumping 64 × 64 noise tile.
+- The tag reads `PATROL CAM  P{PatrolNumber}  {EncounterState}` while live.
+
 ## `BoostQtePrompt` (`Runner/HUD/`) — the boost orb's timing glyph
 
 The picture of the boost QTE (`BoostQte`, `runner-track.md`): the timed press's FIXED button —

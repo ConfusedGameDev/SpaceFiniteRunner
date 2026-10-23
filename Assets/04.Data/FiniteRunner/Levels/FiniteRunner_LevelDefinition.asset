@@ -38,7 +38,7 @@ MonoBehaviour:
     multiplier: 2
   objectives:
   - type: 0
-    targetSpeedKmh: 5574
+    targetSpeedKmh: 5000
     jumpCount: 3
     raceMode: 0
     racePosition: 3

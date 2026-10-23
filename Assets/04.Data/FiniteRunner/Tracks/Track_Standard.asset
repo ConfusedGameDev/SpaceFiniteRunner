@@ -72,7 +72,7 @@ MonoBehaviour:
       mode: 0
     - position: {x: 0, y: 4.387293, z: 3316.991}
       rotation: {x: 0.008726535, y: 0, z: 0, w: 0.999962}
-      tangentIn: {x: -0, y: 0.0000001473818, z: -100}
+      tangentIn: {x: 0, y: 0.0000001473818, z: -100}
       tangentOut: {x: 0, y: -0.0000001473818, z: 100}
       mode: 3
     - position: {x: 0, y: -2.4823976, z: 3710.5552}
@@ -122,7 +122,7 @@ MonoBehaviour:
       mode: 0
     - position: {x: 0, y: 5.498251, z: 6929.476}
       rotation: {x: -0.008726535, y: 0, z: 0, w: 0.999962}
-      tangentIn: {x: -0, y: -0.0000001473818, z: -100}
+      tangentIn: {x: 0, y: -0.0000001473818, z: -100}
       tangentOut: {x: 0, y: 0.0000001473818, z: 100}
       mode: 3
     - position: {x: 0, y: 12.092163, z: 7307.241}
@@ -162,7 +162,7 @@ MonoBehaviour:
       mode: 0
     - position: {x: 0, y: 9.459129, z: 9805.432}
       rotation: {x: 0.008726535, y: 0, z: 0, w: 0.999962}
-      tangentIn: {x: -0, y: 0.00000038259896, z: -134.0407}
+      tangentIn: {x: 0, y: 0.00000038259896, z: -134.0407}
       tangentOut: {x: 0, y: -0.00000038259896, z: 134.0407}
       mode: 3
     - position: {x: 0, y: 2.906992, z: 10180.804}
@@ -207,7 +207,7 @@ MonoBehaviour:
       mode: 0
     - position: {x: 0, y: -14.196293, z: 12952.868}
       rotation: {x: -0.008726535, y: 0, z: 0, w: 0.999962}
-      tangentIn: {x: -0, y: -0.0000001473818, z: -100}
+      tangentIn: {x: 0, y: -0.0000001473818, z: -100}
       tangentOut: {x: 0, y: 0.0000001473818, z: 100}
       mode: 3
     - position: {x: 0, y: -7.184452, z: 13354.576}
@@ -252,7 +252,7 @@ MonoBehaviour:
       mode: 0
     - position: {x: 0, y: -16.373722, z: 16080.167}
       rotation: {x: 0.008726535, y: 0, z: 0, w: 0.999962}
-      tangentIn: {x: -0, y: 0.0000001473818, z: -100}
+      tangentIn: {x: 0, y: 0.0000001473818, z: -100}
       tangentOut: {x: 0, y: -0.0000001473818, z: 100}
       mode: 3
     - position: {x: 0, y: -21.86232, z: 16394.61}
@@ -302,7 +302,7 @@ MonoBehaviour:
       mode: 0
     - position: {x: 0, y: -36.49166, z: 19728.902}
       rotation: {x: 0.005558822, y: 0, z: 0, w: 0.9999846}
-      tangentIn: {x: -0, y: 0.00000019589788, z: -100}
+      tangentIn: {x: 0, y: 0.00000019589788, z: -100}
       tangentOut: {x: 0, y: -0.00000019589788, z: 100}
       mode: 3
     - position: {x: 0, y: -40.343403, z: 20075.34}
@@ -362,7 +362,7 @@ MonoBehaviour:
       mode: 0
     - position: {x: 0, y: -5.3762484, z: 23955.99}
       rotation: {x: -0.008726535, y: 0, z: 0, w: 0.999962}
-      tangentIn: {x: -0, y: -0.0000001473818, z: -100}
+      tangentIn: {x: 0, y: -0.0000001473818, z: -100}
       tangentOut: {x: 0, y: 0.0000001473818, z: 100}
       mode: 3
     - position: {x: 0, y: 0.4748373, z: 24291.2}
@@ -412,7 +412,7 @@ MonoBehaviour:
       mode: 0
     - position: {x: 0, y: 21.107967, z: 27511.857}
       rotation: {x: -0.0071140234, y: 0, z: 0, w: 0.9999748}
-      tangentIn: {x: -0, y: -0.0000005052134, z: -122.74024}
+      tangentIn: {x: 0, y: -0.0000005052134, z: -122.74024}
       tangentOut: {x: 0, y: 0.0000005052134, z: 122.74024}
       mode: 3
     - position: {x: 0, y: 26.297997, z: 27876.604}
@@ -432,7 +432,7 @@ MonoBehaviour:
       mode: 0
     - position: {x: 0, y: 39.38127, z: 28796.076}
       rotation: {x: -0.0071140234, y: 0, z: 0, w: 0.9999748}
-      tangentIn: {x: -0, y: -0.00000047958747, z: -86.58398}
+      tangentIn: {x: 0, y: -0.00000047958747, z: -86.58398}
       tangentOut: {x: 0, y: 0.00000047958747, z: 86.58398}
       mode: 3
     - position: {x: 0, y: 43.982788, z: 29119.463}
@@ -452,7 +452,7 @@ MonoBehaviour:
       mode: 0
     - position: {x: 0, y: 56.454464, z: 29995.953}
       rotation: {x: -0.0071140234, y: 0, z: 0, w: 0.9999748}
-      tangentIn: {x: -0, y: -0.00000032737444, z: -82.55078}
+      tangentIn: {x: 0, y: -0.00000032737444, z: -82.55078}
       tangentOut: {x: 0, y: 0.00000032737444, z: 82.55078}
       mode: 3
     knotDistances:

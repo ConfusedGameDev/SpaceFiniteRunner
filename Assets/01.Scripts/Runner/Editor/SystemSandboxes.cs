@@ -37,6 +37,7 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             ("ChaseMinimap", "Assets/03.Prefabs/Runner/ChaseMinimap.prefab"),
             ("DashPrompt", "Assets/03.Prefabs/Runner/DashPrompt.prefab"),
             ("HyperspacePrompt", "Assets/03.Prefabs/FiniteRunner/PF_HyperspacePrompt.prefab"),
+            ("PatrolCam", "Assets/03.Prefabs/FiniteRunner/PF_PatrolCam.prefab"),
             ("LaserSystem", "Assets/03.Prefabs/Runner/PF_LaserSystem.prefab"),
             ("OrbFx", "Assets/03.Prefabs/FiniteRunner/PF_OrbFx.prefab"),
             ("Music", "Assets/03.Prefabs/FiniteRunner/PF_Music.prefab"),
