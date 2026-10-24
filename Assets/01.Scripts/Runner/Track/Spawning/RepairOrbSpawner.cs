@@ -57,6 +57,15 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return -1f;
         }
 
+        // An orb kept where it stands, pulled inside the lane at its current size.
+        public override bool Refit(TrackSpawnContext ctx, ref TrackPlacement placement)
+        {
+            float lateral = ctx.ClampLateral(placement.distance, placement.lateral, Diameter(ctx.PadSize) * 0.5f + 2f);
+            if (Mathf.Approximately(lateral, placement.lateral)) return false;
+            placement.lateral = lateral;
+            return true;
+        }
+
         public override void Build(TrackSpawnContext ctx, in TrackPlacement placement)
         {
             float distance = placement.distance, lateral = placement.lateral;

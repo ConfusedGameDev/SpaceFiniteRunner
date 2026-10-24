@@ -257,7 +257,7 @@ stay endless.
   SCENE dropped it, so it only ever survived a retry).
 - **Edit mode = play.** `GenerateForBake(rules)` (the inspector's Generate Track) decides a whole
   finite track in edit mode with the scene's `GameManager` as the rules — length, run-up, end ramps,
-  hull — and laser gates are DECIDED in edit mode too (built in play only). The ramp landing room
+  hull — and laser gates are DECIDED and BUILT in edit mode too (posed once, no burn test). The ramp landing room
   is sized for a FIXED jump strength (`StoreUpgrades.MaxMultiplier`, the strongest upgrade — never
   the player's own), so one seed is one road for every player. **Verified**: an editor bake and a
   play run generated on the same seed are identical.
@@ -338,6 +338,22 @@ stay endless.
   - **Checks**, the generator's own rules as warnings (red rings in the Scene view, Go buttons): a gate
     within 150 m of a keep-out or the run-up, pickups within a pad length of each other, anything off
     the lane, a ramp whose landing reaches the run-up, anything in the run-up or past the end.
+  - **Every prop shows**: orbs, repair orbs, laser gates, ramps, end ramps, catalog power-ups, custom
+    prefabs and checkpoint gates are built over the Build Range. Coins follow `spawnCollectibles` (off on
+    `PF_Track`), as in play.
+  - **Update Spawnable Settings** (`TrackGenerator.RefitPlacements`): nothing moves, nothing is rolled —
+    every record is pulled back inside the settings as they stand now (`TrackSpawner.Refit`, per kind:
+    a gate's variant forced Vertical when the look draws the prefab, beam length clamped into the lane ×
+    `coverageBand`, rotor speed into its band keeping its direction, no wave a look cannot draw, the beam
+    kept in the lane; an orb tier that is gone falls back to the last; orbs and repair orbs kept in the
+    lane at their current size — `TrackSpawnContext.ClampLateral`; any other kind except end ramps, loops
+    and checkpoints clamped to the lane), changed records written into the asset (undoable), and the
+    preview rebuilt from the asset's own spawn set, so every prop shows its spawner / prefab / definition
+    as edited.
+  - **Save Spawnables** = the panel's Save (`SaveEdits`): writes the asset and makes it the snapshot
+    Revert / Discard return to. Road and placements are one asset, so pending road edits go too.
+  - **Reroll Placements** asks first ("This will erase the current setup… Are you sure?" Yes / Cancel,
+    warning when the setup is unsaved).
   - **Reroll Placements** (`TrackGenerator.RerollPlacements`): decides the spawn set's placements —
     speed orbs, repair orbs, laser gates, coins — afresh (new seed) on the road as it stands, keeping
     ramps, loops, end ramps, catalog power-ups and custom prefabs (claims and keep-outs rebuilt from
@@ -610,7 +626,9 @@ lone emitter floating over a beam out of bare road, so it is off; the code is ke
   prefab, definition drawn inline and cloned in play, spacing 10–250 m and `startDistance` 0 as shipped,
   `clearance`), phase `ClaimsGround` — so BEFORE every pickup in every `Decide` pass, claiming their ground
   so no orb or coin sits in a beam, keyed on their END for the cull, drawing from the spawner's own
-  rng. Play mode only.
+  rng. Built in edit mode too, as a picture: `LaserGate.Configure` with no focus poses the beams once
+  (sheet fully down, a rotor frozen at its phase, no `Update`), registers nothing, and `LaserBeam.Kill`
+  strips the models' colliders with `DestroyImmediate` there.
 - **Keep-outs** (`TrackSpawnContext.KeepOutUntil`): `featureKeepOuts` gets `(spot, spot + footprint + exclusion)`
   from `DecideFeature` for EVERY feature — a tube too, which claims nothing, and a ramp's longest
   landing — and `(start, ∞)` from `BeginEndZone` (+infinity parks the cursor for good); the

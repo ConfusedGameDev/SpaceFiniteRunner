@@ -134,11 +134,12 @@ namespace ConfusedGameDev.FiniteRunner.Track.Features
 
         // Out of physics NOW (a queued Destroy leaves it there for the frame,
         // where the sheet's convex collider fails to cook at its pulled-in
-        // scale), then gone.
+        // scale), then gone. An edit-mode preview gate cannot queue a Destroy.
         static void Kill(Collider col)
         {
             col.enabled = false;
-            Destroy(col);
+            if (Application.isPlaying) Destroy(col);
+            else DestroyImmediate(col);
         }
 
         // The old look: the two emitters, sized, and the glow + core lines.

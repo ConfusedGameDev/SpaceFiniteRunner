@@ -1037,6 +1037,53 @@ namespace ConfusedGameDev.FiniteRunner.Track
             GenerateCore(asset); // the preview, from the asset as it now stands
         }
 
+        /// <summary>
+        /// The editor's Update Spawnable Settings: keeps every placement where
+        /// it stands — nothing is decided, nothing rolled — and pulls the values
+        /// each record carries back inside the settings as they are now (the
+        /// spawner that emits its kind, <see cref="TrackSpawner.Refit"/>, and the
+        /// lane for everything else on it), writes the changed ones into the
+        /// asset and rebuilds the preview, so every prop is built from the
+        /// current spawners, prefabs and definitions. Returns how many records
+        /// changed.
+        /// </summary>
+        public int RefitPlacements(TrackLayoutAsset asset)
+        {
+            GenerateCore(asset, build: false);
+            if (loadedAsset != asset) return 0;
+            List<TrackPlacement> records = asset.Layout.placements;
+
+            int changed = 0;
+            for (int i = 0; i < records.Count; i++)
+            {
+                TrackPlacement p = records[i];
+                if (!Refit(ref p)) continue;
+                records[i] = p;
+                changed++;
+            }
+            GenerateCore(asset); // the preview, from the asset as it now stands
+            return changed;
+        }
+
+        bool Refit(ref TrackPlacement p)
+        {
+            switch (p.kind)
+            {
+                case TrackPlacementKind.EndRamp:
+                case TrackPlacementKind.Loop:
+                case TrackPlacementKind.Checkpoint:
+                    return false; // the end of the road, a section, a mark across the whole road
+            }
+            foreach (var spawner in runtimeSpawners)
+                if (spawner != null && spawner.Kind == p.kind) return spawner.Refit(spawnContext, ref p);
+
+            track.GetLateralBand(p.distance, out float min, out float max);
+            float lateral = Mathf.Clamp(p.lateral, min, max);
+            if (Mathf.Approximately(lateral, p.lateral)) return false;
+            p.lateral = lateral;
+            return true;
+        }
+
         // On a loaded track: drops the spawn set's records and decides them
         // again on the road as it stands, off the current spawn context's
         // seed. What stays (ramps, loops, the run-up, catalog power-ups) is

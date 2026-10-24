@@ -143,6 +143,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return hi > lo ? rng.NextFloat(lo, hi) : (bandMin + bandMax) * 0.5f;
         }
 
+        /// <summary>A lateral pulled inside the band <see cref="RandomLateral"/> draws from — what a refit keeps a placed thing in.</summary>
+        public float ClampLateral(float distance, float lateral, float margin)
+        {
+            Track.GetLateralBand(distance, out float bandMin, out float bandMax);
+            float lo = bandMin + margin, hi = bandMax - margin;
+            return hi > lo ? Mathf.Clamp(lateral, lo, hi) : (bandMin + bandMax) * 0.5f;
+        }
+
         /// <summary>Half a pad's scaled width plus a margin — and the full sway arc of a moving orb — so the whole pad stays in the lane.</summary>
         public float PadMargin(PadDefinition def, float sway = 0f)
         {

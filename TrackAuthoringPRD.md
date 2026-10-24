@@ -176,7 +176,7 @@ M0 can ship on its own. M1 is the risky one; every later milestone depends on it
 - `TrackLayout` saves the knots as they were handed in (not as AutoSmooth left them), so a load is exact. Loops and tubes are saved as replayable records (the random state they were rolled from).
 - Inspector buttons: Generate Track, Save Track As…, Set as Current Track, Clear Current Track, Preview Saved Track, and the old endless preview.
 - FORCE RUNTIME TRACK is a 0/1 debug slider (the menu has no toggle row type).
-- Laser gates are now decided in edit mode (built in play only), so saved tracks include them.
+- Laser gates are now decided in edit mode (and built there as a picture), so saved tracks include them.
 - Edit-mode previews are flagged never to be saved into the scene, and the buttons don't dirty the scene.
 - Verified: the saved track loads identically; an editor bake equals runtime generation on the same seed; hyperspace works on a saved track and leaves the asset untouched; a restart reloads it; the countdown comes from the asset.
 

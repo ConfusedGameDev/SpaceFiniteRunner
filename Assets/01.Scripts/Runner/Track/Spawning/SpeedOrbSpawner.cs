@@ -52,6 +52,19 @@ namespace ConfusedGameDev.FiniteRunner.Track
             ctx.CreatePad(placement.distance, placement.lateral, tier, TierMaterial(ctx, tier));
         }
 
+        // An orb kept where it stands: a tier that is gone falls back to the
+        // last one, and the orb (its sway included) is kept inside the lane.
+        public override bool Refit(TrackSpawnContext ctx, ref TrackPlacement placement)
+        {
+            if (tiers == null || tiers.Length == 0) return false;
+            TrackPlacement before = placement;
+            placement.variant = Mathf.Clamp(placement.variant, 0, tiers.Length - 1);
+            PadSpawnEntry tier = tiers[placement.variant];
+            if (tier?.definition != null)
+                placement.lateral = ctx.ClampLateral(placement.distance, placement.lateral, ctx.PadMargin(tier.definition, tier.swayAmplitude));
+            return placement.variant != before.variant || !Mathf.Approximately(placement.lateral, before.lateral);
+        }
+
         // One recolored boost-material instance per tier. Play mode only —
         // edit-mode previews would leak the instances into the scene.
         Material TierMaterial(TrackSpawnContext ctx, PadSpawnEntry tier)

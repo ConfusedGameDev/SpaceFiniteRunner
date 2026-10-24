@@ -152,6 +152,14 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// </summary>
         public abstract void Build(TrackSpawnContext ctx, in TrackPlacement placement);
 
+        /// <summary>
+        /// The editor's Update Spawnable Settings: pulls the values a record
+        /// carries back inside this spawner's settings as they stand now — the
+        /// spot and the kind are kept, nothing is rolled. True when the record
+        /// changed. Called after <see cref="Begin"/>, so clones are in place.
+        /// </summary>
+        public virtual bool Refit(TrackSpawnContext ctx, ref TrackPlacement placement) => false;
+
         /// <summary>Frees what the clone made for itself (nested definition clones, materials). Called before the clone is destroyed.</summary>
         public virtual void Cleanup() { }
 

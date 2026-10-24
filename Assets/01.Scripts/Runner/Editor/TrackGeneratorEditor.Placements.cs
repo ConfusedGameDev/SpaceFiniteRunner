@@ -23,8 +23,13 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
     /// gate near a ramp, a feature or the run-up, pickups on top of each
     /// other, anything off the lane, a ramp whose landing reaches the run-up,
     /// anything in the run-up or past the end.</item>
-    /// <item><b>Reroll Placements</b> decides the orbs, repair orbs, gates and
-    /// coins afresh on the road as it stands.</item>
+    /// <item><b>Update Spawnable Settings</b> rebuilds every prop with the
+    /// spawners, prefabs and definitions as they are now, moving nothing — a
+    /// value they no longer allow is pulled back inside them
+    /// (<see cref="TrackGenerator.RefitPlacements"/>). <b>Save Spawnables</b>
+    /// writes the setup into the asset and makes it the revert point.</item>
+    /// <item><b>Reroll Placements</b> erases the orbs, repair orbs, gates and
+    /// coins and decides them afresh on the road as it stands — asked first.</item>
     /// </list>
     /// A moved or added ramp moves its keep-out with it (the ground gates and
     /// the patrol's duel keep off).
@@ -159,10 +164,36 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             DrawCheckpointTools(generator, layout);
 
             EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("Spawnables", EditorStyles.boldLabel);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                var update = new GUIContent("Update Spawnable Settings",
+                    "Rebuild every prop with the spawners, prefabs and definitions as they are now. Nothing moves: values the new settings no longer allow (a beam longer than the coverage band, a removed orb tier, a rotor too fast, a prop off the lane) are pulled back inside them.");
+                if (GUILayout.Button(update))
+                {
+                    Undo.RecordObject(working, "Update Spawnable Settings");
+                    int changed = generator.RefitPlacements(working);
+                    if (changed > 0) EditorUtility.SetDirty(working);
+                    selectedPlacement = -1;
+                    warningsStale = true;
+                    status = $"Rebuilt {layout.placements.Count} placements with the current settings; {changed} refit to them.";
+                    SceneView.RepaintAll();
+                }
+                using (new EditorGUI.DisabledScope(!EditorUtility.IsDirty(working)))
+                {
+                    var save = new GUIContent("Save Spawnables",
+                        "Write the current setup into the track asset; Revert and Discard come back to it from now on. The road lives in the same asset, so unsaved road edits are saved too.");
+                    if (GUILayout.Button(save)) SaveEdits();
+                }
+            }
+
+            bool unsaved = EditorUtility.IsDirty(working);
             if (GUILayout.Button("Reroll Placements (orbs, repair orbs, gates, coins)")
                 && EditorUtility.DisplayDialog("Reroll placements?",
-                    "Decide every speed orb, repair orb, laser gate and coin afresh on this road? Ramps, power-ups from the catalog and custom prefabs stay. Undo brings the old ones back.",
-                    "Reroll", "Cancel"))
+                    "This will erase the current setup — every speed orb, repair orb, laser gate and coin — and decide them again on this road. Ramps, catalog power-ups, custom prefabs and checkpoints stay."
+                    + (unsaved ? "\n\nThe setup has unsaved changes: Save Spawnables first to keep them (Undo still brings them back)." : "")
+                    + "\n\nAre you sure?",
+                    "Yes", "Cancel"))
             {
                 Undo.RecordObject(working, "Reroll Placements");
                 generator.RerollPlacements(working);

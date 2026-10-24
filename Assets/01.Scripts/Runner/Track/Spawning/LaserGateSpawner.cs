@@ -13,9 +13,10 @@ namespace ConfusedGameDev.FiniteRunner.Track
     /// length decide how much track it takes), then tested against the
     /// keep-outs and pushed on if it does not fit: never on or near a ramp,
     /// its landing zone, a loop, a tube or the final run-up (flat sweeps and
-    /// open edges are the two toggles). Decided in edit mode too (a saved track
-    /// carries its gates), BUILT in play only: the beams are posed and burn at
-    /// runtime, and detection is analytic (<see cref="LaserGate"/>).
+    /// open edges are the two toggles). Decided and built in edit mode too (a
+    /// saved track carries its gates, and Edit Track shows them where they
+    /// stand — posed once, never burning); detection is analytic and play-only
+    /// (<see cref="LaserGate"/>).
     /// </summary>
     [CreateAssetMenu(fileName = "Spawner_LaserGates", menuName = "FiniteRunner/Spawners/Laser Gates")]
     public class LaserGateSpawner : TrackSpawner
@@ -85,6 +86,33 @@ namespace ConfusedGameDev.FiniteRunner.Track
             return -1f;
         }
 
+        // A gate kept where it stands, its rolled values pulled inside the
+        // definition as it is now: the variant the look allows, the beam
+        // length inside the coverage band, the rotor's speed inside its band
+        // (same direction), no wave a look cannot draw, the beam in the lane.
+        public override bool Refit(TrackSpawnContext ctx, ref TrackPlacement placement)
+        {
+            if (runtime == null) return false;
+            TrackPlacement before = placement;
+            var variant = Variant((LaserGateVariant)placement.variant);
+            placement.variant = (int)variant;
+
+            ctx.Track.GetLateralBand(placement.distance, out float bandMin, out float bandMax);
+            float width = bandMax - bandMin;
+            Vector4 data = placement.data;
+            data.x = Mathf.Clamp(data.x, width * runtime.CoverageMin, width * runtime.CoverageMax);
+            float sign = data.y < 0f ? -1f : 1f;
+            data.y = sign * Mathf.Clamp(Mathf.Abs(data.y), runtime.RotorSpeedMin, runtime.RotorSpeedMax);
+            if (!runtime.wavy || !runtime.DrawsProcedural) data.w = 0f;
+            placement.data = data;
+
+            float halfAcross = variant == LaserGateVariant.Vertical ? runtime.beamRadius : data.x * 0.5f;
+            placement.lateral = ctx.ClampLateral(placement.distance, placement.lateral, halfAcross + 2f * runtime.emitterScale);
+
+            return placement.variant != before.variant || placement.data != before.data
+                   || !Mathf.Approximately(placement.lateral, before.lateral);
+        }
+
         // The authored laser model only stands up: a look that draws it makes
         // every gate vertical — a saved track's older records included.
         LaserGateVariant Variant(LaserGateVariant rolled) =>
@@ -101,7 +129,7 @@ namespace ConfusedGameDev.FiniteRunner.Track
         /// </summary>
         public override void Build(TrackSpawnContext ctx, in TrackPlacement placement)
         {
-            if (!Application.isPlaying || runtime == null || laserPrefab == null) return; // an edit-mode preview shows no gates
+            if (runtime == null || laserPrefab == null) return;
             float distance = placement.distance, lateral = placement.lateral;
             var variant = Variant((LaserGateVariant)placement.variant);
             float length = placement.data.x, rotorSpeed = placement.data.y, rotorPhase = placement.data.z;
