@@ -112,6 +112,15 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
 
                 using (new EditorGUI.DisabledScope(!onShow))
                     if (GUILayout.Button(generator.LoadedTrack != null ? "Save Track As… (copy)" : "Save Track As…")) SaveAs(generator, level);
+
+                // A road on show with nothing behind it (left in the scene file, or
+                // its state lost to a script reload): what the minimap draws, and
+                // what Edit Track would replace with the track asset.
+                if (!onShow && generator.Track != null && generator.Track.Spline != null && generator.Track.Spline.Spline.Count >= 2)
+                {
+                    EditorGUILayout.HelpBox($"The road on show ({generator.Track.Length / 1000f:0.0} km) is not a saved track and has no end or placements. Save Road on Show finishes it (final run-up, end ramps, orbs and gates from the spawn set) and saves it.", MessageType.Info);
+                    if (GUILayout.Button("Save Road on Show As…")) RescueRoad(generator, game, level);
+                }
             }
 
             using (new EditorGUILayout.HorizontalScope())
@@ -140,6 +149,19 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools
             status = generator.Track.HasEnd
                 ? $"Generated: {generator.Track.EndDistance / 1000f:0.0} km, {generator.Placements.Count} placements, seed {generator.LastSeed}. Not saved yet — Save Track As… to keep it."
                 : "Generated, but the track has no end — is the GameManager's track length 0?";
+        }
+
+        void RescueRoad(TrackGenerator generator, GameManager game, RunnerLevelDefinition level)
+        {
+            if (!generator.RescueRoadForBake(game))
+            {
+                status = "There was no road on show to save.";
+                return;
+            }
+            MarkChanged(generator);
+            status = $"Finished the road on show: {generator.Track.EndDistance / 1000f:0.0} km, {generator.Placements.Count} placements. Not saved yet — Save Track As… to keep it.";
+            working = null; // suggest a fresh name, never the level's track
+            SaveAs(generator, level);
         }
 
         void SaveAs(TrackGenerator generator, RunnerLevelDefinition level)

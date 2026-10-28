@@ -540,6 +540,38 @@ namespace ConfusedGameDev.FiniteRunner.Track
             finally { baking = false; }
         }
 
+        /// <summary>
+        /// The editor's Save Road on Show: the scene's spline holds a road with
+        /// nothing behind it (a preview left in the scene file, or one whose
+        /// state a script reload dropped — no end, no records). Its knots are
+        /// kept as they stand and it is FINISHED as a bake would finish it: the
+        /// final run-up and the end ramps laid on from its tip (the hyperspace
+        /// jump's end-laying), then the spawn set decided over the whole road.
+        /// No features are added (a ramp's record died with the old state). The
+        /// AutoSmooth knots are re-added as they now are, so their bank may
+        /// read a fraction of a degree off the original. Ready for
+        /// <see cref="CaptureLayout"/>; false when there is no road to rescue.
+        /// </summary>
+        public bool RescueRoadForBake(ITrackRunRules runRules)
+        {
+            if (track == null || track.Spline == null || track.Spline.Spline.Count < 2) return false;
+            Spline spline = track.Spline.Spline;
+            rescuedRoad = new List<(BezierKnot, TangentMode)>(spline.Count);
+            for (int i = 0; i < spline.Count; i++) rescuedRoad.Add((spline[i], spline.GetTangentMode(i)));
+
+            rules = runRules;
+            baking = true;
+            try { GenerateCore(null); }
+            finally
+            {
+                baking = false;
+                rescuedRoad = null;
+            }
+            return trackComplete;
+        }
+
+        List<(BezierKnot knot, TangentMode mode)> rescuedRoad; // RescueRoadForBake: the road GenerateCore finishes instead of deciding one
+
         /// <summary>Loads a saved track into the scene in edit mode, as play would, and builds its first stretch — a preview.</summary>
         public void PreviewSavedTrack(TrackLayoutAsset asset) => GenerateCore(asset);
 
@@ -758,6 +790,13 @@ namespace ConfusedGameDev.FiniteRunner.Track
                     ParkPlacers();
                 }
                 if (build) BuildFirstStretch();
+                return;
+            }
+
+            if (rescuedRoad != null)
+            {
+                FinishRescuedRoad();
+                BuildFirstStretch();
                 return;
             }
 
@@ -1900,12 +1939,48 @@ namespace ConfusedGameDev.FiniteRunner.Track
             featureKeepOuts.RemoveAll(k => k.start >= reshapedFrom);
             padDistances.RemoveAll(d => d >= reshapedFrom);
 
-            // The builder, as it stood at the kept knot, out of any sweep.
+            ResumeBuilderAt(knot, keptBank, knotDistances[keep - 1]);
+            return true;
+        }
+
+        // RescueRoadForBake, inside GenerateCore: the rescued knots in place of
+        // the one-knot start, the builder resumed at the last of them, and the
+        // end laid on from there exactly as ForceEndAhead lays it. Decide then
+        // runs the spawn set over the whole road (no stage guard: it is complete).
+        void FinishRescuedRoad()
+        {
+            track.ClearKnots();
+            foreach (var (knot, mode) in rescuedRoad) track.AppendKnot(knot, mode);
+            track.Recalculate();
+            knotDistances.Clear();
+            for (int i = 0; i < rescuedRoad.Count; i++) knotDistances.Add(track.KnotTrackDistance(i));
+
+            int last = rescuedRoad.Count - 1;
+            ResumeBuilderAt(track.Spline.Spline[last], track.GetBankAtDistance(knotDistances[last]), knotDistances[last - 1]);
+            featureCursor = float.MaxValue; // no new features on a rescued road
+            pendingRamps.Clear();
+            straightUntil = 0f;
+
+            endZoneTarget = EndZoneStartFromTip(Shape);
+            targetLength = endZoneTarget + 1f; // finite, so PrepareEndRamp loads the end ramp's definition
+            PrepareEndRamp();
+            float rampLength = endRamp?.Runtime is JumpDefinition def ? def.length : 120f;
+            float runUp = rules != null ? rules.EndRunUpMeters : GameSettings.Default.endRunUpMeters;
+            endRunUp = Mathf.Max(runUp, rampLength + segmentLength.x * 0.5f);
+            targetLength = endZoneTarget + endRunUp;
+            endTarget = targetLength;
+            Decide(float.PositiveInfinity);
+        }
+
+        // The builder, as it stood at a kept knot, out of any sweep — where the
+        // hyperspace cut-back and a rescued road go on laying knots from.
+        void ResumeBuilderAt(BezierKnot knot, float knotBank, float previousKnotDistance)
+        {
             float3 forward = math.mul(knot.Rotation, new float3(0f, 0f, 1f));
             endPosition = knot.Position;
             heading = Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
             pitch = Mathf.Asin(Mathf.Clamp(forward.y, -1f, 1f)) * Mathf.Rad2Deg;
-            bank = keptBank;
+            bank = knotBank;
             turnKnotsLeft = 0;
             turnRate = 0f;
             straightKnots = 0;
@@ -1913,13 +1988,12 @@ namespace ConfusedGameDev.FiniteRunner.Track
             deferredFlatKnots = 0;
             flatSweep = null;
             flatSweepGrew = false;
-            lastKnotDistance = knotDistances[keep - 1];
+            lastKnotDistance = previousKnotDistance;
             lastKnotStraight = false;
             straightRunRolled = false;
             openStretch = null;
             inEndZone = false;
             trackComplete = false;
-            return true;
         }
 
         /// <summary>Decided ramps land once the spline under their run-up is settled (AutoSmooth reshapes the last two segments as knots land).</summary>

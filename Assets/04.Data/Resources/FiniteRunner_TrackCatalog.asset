@@ -58,3 +58,8 @@ MonoBehaviour:
     subtitle: 
     difficulty: 1
     thumbnail: {fileID: 0}
+  - track: {fileID: 11400000, guid: a674b9fff642a194dba9fe2055e5b956, type: 2}
+    displayName: STANDARD CURVED
+    subtitle: 
+    difficulty: 1
+    thumbnail: {fileID: 0}

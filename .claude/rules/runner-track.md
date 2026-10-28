@@ -264,7 +264,13 @@ stay endless.
 - **Inspector (edit mode)**: Generate Track · Save Track As… (`04.Data/FiniteRunner/Tracks/`;
   replacing a saved track asks first) · Set as Current Track / Clear Current Track (writes the scene
   `GameManager`'s level) · Preview Saved Track (`PreviewSavedTrack`: loads it as play would) ·
-  Regenerate (endless preview).
+  Regenerate (endless preview) · **Save Road on Show As…**, shown only when the scene's spline holds
+  a road with nothing behind it (a preview saved into the scene file, or one whose state a script
+  reload dropped — the minimap and gizmos still draw it, Edit Track replaces it with the asset):
+  `TrackGenerator.RescueRoadForBake` keeps its knots as they stand (AutoSmooth ones re-lean ~1°;
+  positions exact), lays the final run-up and end ramps from its tip (`ResumeBuilderAt`, shared with
+  the hyperspace cut-back, then the ordinary end spots), decides the spawn set over the whole road
+  — no features, their records are gone — and opens Save Track As….
 - **Build Range** (`Runner/Editor/TrackGeneratorEditor.BuildRange.cs`): which stretch of the track on
   show an EDIT-MODE preview builds as GameObjects — a min-max slider (metres) applied by Build Range /
   Whole Track, per user in EditorPrefs (`TrackGizmoSettings.BuildRange`, handed to the static
