@@ -79,9 +79,10 @@ namespace ConfusedGameDev.FiniteRunner.EditorTools.UnrealExport
             string output = ResolveOutput();
             var assets = CollectData();
             int data = ExportData(output, assets);
+            int layouts = UnrealPrefabLayout.Export(output, UnrealPrefabLayout.CollectReferenced(assets));
             int schema = ExportSchema(output, assets);
             int rows = ExportManifest(output, assets);
-            Debug.Log($"[UnrealExport] {data} data assets, {schema} schema files, {rows} manifest rows written to {output}");
+            Debug.Log($"[UnrealExport] {data} data assets, {layouts} prefab layouts, {schema} schema files, {rows} manifest rows written to {output}");
         }
 
         static string ResolveOutput()
